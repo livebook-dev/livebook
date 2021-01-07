@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../node_modules/nprogress/nprogress.css";
+@import "./live_view.css";
