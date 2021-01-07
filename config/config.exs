@@ -10,10 +10,10 @@ use Mix.Config
 # Configures the endpoint
 config :live_book, LiveBookWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "xDSK5nu5cynBegaOd+XedDm30Z4iuRnesn/x0MRAv6uxFx+NYiFTNU1gpfq4IkQE",
+  secret_key_base: "9hHHeOiAA8wrivUfuS//jQMurHxoMYUtF788BQMx2KO7mYUE8rVrGGG09djBNQq7",
   render_errors: [view: LiveBookWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: LiveBook.PubSub,
-  live_view: [signing_salt: "1Z+NpfzU"]
+  live_view: [signing_salt: "mAPgPEM4"]
 
 # Configures Elixir's Logger
 config :logger, :console,

@@ -7,8 +7,11 @@ defmodule LiveBookWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_live_book_key",
-    signing_salt: "LZr3S4e9"
+    signing_salt: "SqUy8vWM"
   ]
+
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
   #

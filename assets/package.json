@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "phoenix": "file:../deps/phoenix",
-    "phoenix_html": "file:../deps/phoenix_html"
+    "phoenix_html": "file:../deps/phoenix_html",
+    "phoenix_live_view": "file:../deps/phoenix_live_view",
+    "nprogress": "^0.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
