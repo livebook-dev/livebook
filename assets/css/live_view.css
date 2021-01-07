@@ -1,8 +1,5 @@
-/* This file is for your main application css. */
-@import "./phoenix.css";
-@import "../node_modules/nprogress/nprogress.css";
-
 /* LiveView specific classes for your customizations */
+
 .phx-no-feedback.invalid-feedback,
 .phx-no-feedback .invalid-feedback {
   display: none;
@@ -13,15 +10,15 @@
   transition: opacity 1s ease-out;
 }
 
-.phx-disconnected{
+.phx-disconnected {
   cursor: wait;
 }
-.phx-disconnected *{
+.phx-disconnected * {
   pointer-events: none;
 }
 
 .phx-modal {
-  opacity: 1!important;
+  opacity: 1 !important;
   position: fixed;
   z-index: 1;
   left: 0;
@@ -29,8 +26,8 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgb(0,0,0);
-  background-color: rgba(0,0,0,0.4);
+  background-color: rgb(0, 0, 0);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .phx-modal-content {
@@ -54,7 +51,6 @@
   text-decoration: none;
   cursor: pointer;
 }
-
 
 /* Alerts and form errors */
 .alert {
