@@ -18,6 +18,8 @@ defmodule LiveBookWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
+    live "/sessions", SessionsLive
+    live "/sessions/:id", SessionLive
   end
 
   # Other scopes may use custom stacks.
