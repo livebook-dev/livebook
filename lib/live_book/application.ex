@@ -12,9 +12,9 @@ defmodule LiveBook.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: LiveBook.PubSub},
       # Start the Endpoint (http/https)
-      LiveBookWeb.Endpoint
-      # Start a worker by calling: LiveBook.Worker.start_link(arg)
-      # {LiveBook.Worker, arg}
+      LiveBookWeb.Endpoint,
+      # Start the supervisor dynamically managing sessions
+      LiveBook.SessionSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
