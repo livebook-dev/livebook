@@ -7,7 +7,7 @@ defmodule LiveBook.Notebook.Cell do
   and may potentially produce some output (e.g. during code execution).
   """
 
-  defstruct [:id, :metadata, :type, :source, :outputs]
+  defstruct [:id, :type, :source, :outputs, :metadata]
 
   alias LiveBook.Utils
 
@@ -16,14 +16,12 @@ defmodule LiveBook.Notebook.Cell do
 
   @type t :: %__MODULE__{
           id: cell_id(),
-          metadata: metadata(),
           type: cell_type(),
           source: String.t(),
           # TODO: expand on this
-          outputs: list()
+          outputs: list(),
+          metadata: %{atom() => term()}
         }
-
-  @type metadata :: %{}
 
   @doc """
   Returns an empty cell of the given type.
@@ -32,10 +30,10 @@ defmodule LiveBook.Notebook.Cell do
   def new(type) do
     %__MODULE__{
       id: Utils.random_id(),
-      metadata: %{},
       type: type,
       source: "",
-      outputs: []
+      outputs: [],
+      metadata: %{}
     }
   end
 end

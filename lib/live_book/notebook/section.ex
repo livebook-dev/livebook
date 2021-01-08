@@ -6,7 +6,7 @@ defmodule LiveBook.Notebook.Section do
   in the sense that cells don't interfere with cells in other sections.
   """
 
-  defstruct [:id, :metadata, :cells]
+  defstruct [:id, :name, :cells, :metadata]
 
   alias LiveBook.Notebook.Cell
   alias LiveBook.Utils
@@ -15,12 +15,9 @@ defmodule LiveBook.Notebook.Section do
 
   @type t :: %__MODULE__{
           id: section_id(),
-          metadata: metadata(),
-          cells: list(Cell.t())
-        }
-
-  @type metadata :: %{
-          name: String.t()
+          name: String.t(),
+          cells: list(Cell.t()),
+          metadata: %{atom() => term()}
         }
 
   @doc """
@@ -30,10 +27,9 @@ defmodule LiveBook.Notebook.Section do
   def new() do
     %__MODULE__{
       id: Utils.random_id(),
-      metadata: %{
-        name: "Section"
-      },
-      cells: []
+      name: "Section",
+      cells: [],
+      metadata: %{}
     }
   end
 end

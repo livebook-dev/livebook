@@ -11,18 +11,15 @@ defmodule LiveBook.Notebook do
   A notebook is divided into a set of isolated *sections*.
   """
 
-  defstruct [:metadata, :sections]
+  defstruct [:name, :version, :sections, :metadata]
 
   alias LiveBook.Notebook.Section
 
   @type t :: %__MODULE__{
-          metadata: metadata(),
-          sections: list(Section.t())
-        }
-
-  @type metadata :: %{
           name: String.t(),
-          version: String.t()
+          version: String.t(),
+          sections: list(Section.t()),
+          metadata: %{atom() => term()}
         }
 
   @version "1.0"
@@ -33,11 +30,10 @@ defmodule LiveBook.Notebook do
   @spec new() :: t()
   def new() do
     %__MODULE__{
-      metadata: %{
-        name: "Untitled notebook",
-        version: @version
-      },
-      sections: []
+      name: "Untitled notebook",
+      version: @version,
+      sections: [],
+      metadata: %{}
     }
   end
 end
