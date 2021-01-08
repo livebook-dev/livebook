@@ -1,14 +1,14 @@
 defmodule LiveBook.SessionSupervisor do
-  @moduledoc """
-  Supervisor responsible for managing running notebook sessions.
+  @moduledoc false
 
-  Allows for creating new session processes on demand
-  and managing them using UUIDs.
-  """
+  # Supervisor responsible for managing running notebook sessions.
+  #
+  # Allows for creating new session processes on demand
+  # and managing them using random ids.
 
   use DynamicSupervisor
 
-  alias LiveBook.Session
+  alias LiveBook.{Session, Utils}
 
   @name __MODULE__
 
@@ -28,7 +28,7 @@ defmodule LiveBook.SessionSupervisor do
   """
   @spec create_session() :: {:ok, Session.session_id()} | {:error, any()}
   def create_session() do
-    id = UUID.uuid4()
+    id = Utils.random_id()
 
     case DynamicSupervisor.start_child(@name, {Session, id}) do
       {:ok, _} ->

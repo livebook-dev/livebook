@@ -1,19 +1,19 @@
 defmodule LiveBook.Session do
-  @moduledoc """
-  Server corresponding to a single notebook session.
+  @moduledoc false
 
-  The process keeps the current notebook state and serves
-  as a source of truth that multiple clients talk to.
-  Receives update requests from the clients and notifies
-  them of any changes applied to the notebook.
-  """
+  # Server corresponding to a single notebook session.
+  #
+  # The process keeps the current notebook state and serves
+  # as a source of truth that multiple clients talk to.
+  # Receives update requests from the clients and notifies
+  # them of any changes applied to the notebook.
 
   use GenServer, restart: :temporary
 
   @typedoc """
-  A UUID assigned to every running session process.
+  An id assigned to every running session process.
   """
-  @type session_id :: String.t()
+  @type session_id :: LiveBook.Utils.id()
 
   ## API
 
