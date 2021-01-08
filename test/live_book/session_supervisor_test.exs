@@ -3,22 +3,12 @@ defmodule LiveBook.SessionSupervisorTest do
 
   alias LiveBook.SessionSupervisor
 
-  setup do
-    on_exit(fn ->
-      # Start a fresh SessionSupervisor for each test
-      Supervisor.terminate_child(LiveBook.Supervisor, LiveBook.SessionSupervisor)
-      Supervisor.restart_child(LiveBook.Supervisor, LiveBook.SessionSupervisor)
-    end)
-  end
-
   describe "create_session/0" do
     test "creates a new session process and returns its id" do
       {:ok, id} = SessionSupervisor.create_session()
+      {:ok, pid} = SessionSupervisor.get_session_pid(id)
 
-      assert [{_, pid, _, [LiveBook.Session]}] =
-               DynamicSupervisor.which_children(SessionSupervisor)
-
-      assert pid == :global.whereis_name({:session, id})
+      assert has_child_with_pid?(SessionSupervisor, pid)
     end
 
     test "broadcasts a message" do
@@ -32,10 +22,11 @@ defmodule LiveBook.SessionSupervisorTest do
   describe "delete_session/1" do
     test "stops the session process identified by the given id" do
       {:ok, id} = SessionSupervisor.create_session()
+      {:ok, pid} = SessionSupervisor.get_session_pid(id)
 
       SessionSupervisor.delete_session(id)
 
-      assert [] = DynamicSupervisor.which_children(SessionSupervisor)
+      refute has_child_with_pid?(SessionSupervisor, pid)
     end
 
     test "broadcasts a message" do
@@ -52,7 +43,7 @@ defmodule LiveBook.SessionSupervisorTest do
     test "lists ids identifying sessions running under the supervisor" do
       {:ok, id} = SessionSupervisor.create_session()
 
-      assert SessionSupervisor.get_session_ids() == [id]
+      assert id in SessionSupervisor.get_session_ids()
     end
   end
 
@@ -66,5 +57,22 @@ defmodule LiveBook.SessionSupervisorTest do
     test "returns false if a session process with the given id does not exist" do
       refute SessionSupervisor.session_exists?("nonexistent")
     end
+  end
+
+  describe "get_session_pid/1" do
+    test "returns pid if a session process with the given id is running" do
+      {:ok, id} = SessionSupervisor.create_session()
+
+      assert {:ok, pid} = SessionSupervisor.get_session_pid(id)
+      assert :global.whereis_name({:session, id}) == pid
+    end
+
+    test "returns an error if a session process with the given id does not exist" do
+      assert {:error, :nonexistent} = SessionSupervisor.get_session_pid("nonexistent")
+    end
+  end
+
+  defp has_child_with_pid?(supervisor, pid) do
+    List.keymember?(DynamicSupervisor.which_children(supervisor), pid, 1)
   end
 end

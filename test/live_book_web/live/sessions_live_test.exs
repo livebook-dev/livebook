@@ -3,14 +3,6 @@ defmodule LiveBookWeb.SessionsLiveTest do
 
   import Phoenix.LiveViewTest
 
-  setup do
-    on_exit(fn ->
-      # Start a fresh SessionSupervisor for each test
-      Supervisor.terminate_child(LiveBook.Supervisor, LiveBook.SessionSupervisor)
-      Supervisor.restart_child(LiveBook.Supervisor, LiveBook.SessionSupervisor)
-    end)
-  end
-
   test "disconnected and connected render", %{conn: conn} do
     {:ok, view, disconnected_html} = live(conn, "/sessions")
     assert disconnected_html =~ "Sessions"

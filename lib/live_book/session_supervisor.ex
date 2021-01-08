@@ -82,4 +82,15 @@ defmodule LiveBook.SessionSupervisor do
   def session_exists?(id) do
     :global.whereis_name({:session, id}) != :undefined
   end
+
+  @doc """
+  Retrieves pid of a session process identified by the given id.
+  """
+  @spec get_session_pid(Session.session_id()) :: {:ok, pid()} | {:error, :nonexistent}
+  def get_session_pid(id) do
+    case :global.whereis_name({:session, id}) do
+      :undefined -> {:error, :nonexistent}
+      pid -> {:ok, pid}
+    end
+  end
 end
