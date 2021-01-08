@@ -13,6 +13,10 @@ defmodule LiveBook.Evaluator do
 
   use GenServer
 
+  import LiveBook.Utils
+
+  alias LiveBook.Evaluator
+
   @type t :: GenServer.server()
 
   @type state :: %{
@@ -29,7 +33,7 @@ defmodule LiveBook.Evaluator do
   """
   @type ref :: term()
 
-  # API
+  ## API
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -49,7 +53,7 @@ defmodule LiveBook.Evaluator do
     GenServer.call(evaluator, {:evaluate_code, code, ref, prev_ref}, :infinity)
   end
 
-  # Callbacks
+  ## Callbacks
 
   @impl true
   def init(_opts) do
@@ -66,20 +70,25 @@ defmodule LiveBook.Evaluator do
   end
 
   @impl true
-  def handle_call({:evaluate_code, code, ref, prev_ref}, _from, state) do
+  def handle_call({:evaluate_code, code, ref, prev_ref}, {from, _}, state) do
     context = state.contexts[prev_ref]
 
-    case eval(code, context.binding, context.env) do
-      {:ok, result, binding, env} ->
-        result_context = %{binding: binding, env: env}
+    {:ok, io} = Evaluator.IOProxy.start_link(from, ref)
 
-        new_contexts = Map.put(state.contexts, ref, result_context)
-        new_state = %{state | contexts: new_contexts}
+    # Use the dedicated IO device as the group leader,
+    # so that it handles all :stdio operations.
+    with_group_leader io do
+      case eval(code, context.binding, context.env) do
+        {:ok, result, binding, env} ->
+          result_context = %{binding: binding, env: env}
+          new_contexts = Map.put(state.contexts, ref, result_context)
+          new_state = %{state | contexts: new_contexts}
 
-        {:reply, {:ok, result}, new_state}
+          {:reply, {:ok, result}, new_state}
 
-      {:error, exception} ->
-        {:reply, {:error, exception}, state}
+        {:error, exception} ->
+          {:reply, {:error, exception}, state}
+      end
     end
   end
 
