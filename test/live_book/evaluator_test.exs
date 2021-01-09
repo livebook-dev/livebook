@@ -38,6 +38,12 @@ defmodule LiveBook.EvaluatorTest do
       assert result == {:ok, 1}
     end
 
+    test "given invalid prev_ref raises an error", %{evaluator: evaluator} do
+      assert_raise ArgumentError, fn ->
+        Evaluator.evaluate_code(evaluator, ":ok", :code_1, :code_nonexistent)
+      end
+    end
+
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, ~s{IO.puts("hey")}, :code_1)
 
@@ -89,6 +95,17 @@ defmodule LiveBook.EvaluatorTest do
       ]
 
       assert {:error, _kind, _error, ^expected_stacktrace} = result
+    end
+  end
+
+  describe "forget_evaluation/2" do
+    test "invalidates the given reference", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
+      Evaluator.forget_evaluation(evaluator, :code_1)
+
+      assert_raise ArgumentError, fn ->
+        Evaluator.evaluate_code(evaluator, ":ok", :code_2, :code_1)
+      end
     end
   end
 end

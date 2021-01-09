@@ -57,7 +57,22 @@ defmodule LiveBook.Evaluator do
   """
   @spec evaluate_code(t(), String.t(), ref(), ref()) :: evaluation_response()
   def evaluate_code(evaluator, code, ref, prev_ref \\ :initial) when ref != :initial do
-    GenServer.call(evaluator, {:evaluate_code, code, ref, prev_ref}, :infinity)
+    response = GenServer.call(evaluator, {:evaluate_code, code, ref, prev_ref}, :infinity)
+
+    if response == :invlaid_prev_ref do
+      raise ArgumentError, message: "invalid reference to previous evaluation: #{prev_ref}"
+    end
+
+    response
+  end
+
+  @doc """
+  Removes the evaluation identified by `ref` from history,
+  so that further evaluations cannot use it.
+  """
+  @spec forget_evaluation(t(), ref()) :: :ok
+  def forget_evaluation(evaluator, ref) do
+    GenServer.cast(evaluator, {:forget_evaluation, ref})
   end
 
   ## Callbacks
@@ -78,25 +93,35 @@ defmodule LiveBook.Evaluator do
 
   @impl true
   def handle_call({:evaluate_code, code, ref, prev_ref}, {from, _}, state) do
-    context = state.contexts[prev_ref]
+    case Map.fetch(state.contexts, prev_ref) do
+      :error ->
+        {:reply, :invlaid_prev_ref, state}
 
-    {:ok, io} = Evaluator.IOProxy.start_link(from, ref)
+      {:ok, context} ->
+        {:ok, io} = Evaluator.IOProxy.start_link(from, ref)
 
-    # Use the dedicated IO device as the group leader,
-    # so that it handles all :stdio operations.
-    with_group_leader io do
-      case eval(code, context.binding, context.env) do
-        {:ok, result, binding, env} ->
-          result_context = %{binding: binding, env: env}
-          new_contexts = Map.put(state.contexts, ref, result_context)
-          new_state = %{state | contexts: new_contexts}
+        # Use the dedicated IO device as the group leader,
+        # so that it handles all :stdio operations.
+        with_group_leader io do
+          case eval(code, context.binding, context.env) do
+            {:ok, result, binding, env} ->
+              result_context = %{binding: binding, env: env}
+              new_contexts = Map.put(state.contexts, ref, result_context)
+              new_state = %{state | contexts: new_contexts}
 
-          {:reply, {:ok, result}, new_state}
+              {:reply, {:ok, result}, new_state}
 
-        {:error, kind, error, stacktrace} ->
-          {:reply, {:error, kind, error, stacktrace}, state}
-      end
+            {:error, kind, error, stacktrace} ->
+              {:reply, {:error, kind, error, stacktrace}, state}
+          end
+        end
     end
+  end
+
+  @impl true
+  def handle_cast({:forget_evaluation, ref}, state) do
+    new_state = %{state | contexts: Map.delete(state.contexts, ref)}
+    {:noreply, new_state}
   end
 
   defp eval(code, binding, env) do
