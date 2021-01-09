@@ -12,7 +12,7 @@ defmodule LiveBook.Utils do
   end
 
   @doc """
-  Wraps the given expression so that it's executed
+  Wraps the given expression so that it's evaluated
   with the given process as the group leader.
 
   Always restores the original group leader afterwards.

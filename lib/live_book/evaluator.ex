@@ -33,6 +33,13 @@ defmodule LiveBook.Evaluator do
   """
   @type ref :: term()
 
+  @typedoc """
+  Either {:ok, result} for successfull evaluation
+  or {:error, kind, error, stacktrace} for a failed one.
+  """
+  @type evaluation_response ::
+          {:ok, any()} | {:error, Exception.kind(), any(), Exception.stacktrace()}
+
   ## API
 
   def start_link(opts \\ []) do
@@ -48,7 +55,7 @@ defmodule LiveBook.Evaluator do
   Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
   in which case the corresponding binding and environment are used during evaluation.
   """
-  @spec evaluate_code(t(), String.t(), ref(), ref()) :: {:ok, any()} | {:error, any()}
+  @spec evaluate_code(t(), String.t(), ref(), ref()) :: evaluation_response()
   def evaluate_code(evaluator, code, ref, prev_ref \\ :initial) when ref != :initial do
     GenServer.call(evaluator, {:evaluate_code, code, ref, prev_ref}, :infinity)
   end
@@ -86,8 +93,8 @@ defmodule LiveBook.Evaluator do
 
           {:reply, {:ok, result}, new_state}
 
-        {:error, exception} ->
-          {:reply, {:error, exception}, state}
+        {:error, kind, error, stacktrace} ->
+          {:reply, {:error, kind, error, stacktrace}, state}
       end
     end
   end
@@ -98,9 +105,38 @@ defmodule LiveBook.Evaluator do
       {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
 
       {:ok, result, binding, env}
-    rescue
-      exception ->
-        {:error, exception}
+    catch
+      kind, error ->
+        {kind, error, stacktrace} = prepare_error(kind, error, __STACKTRACE__)
+        {:error, kind, error, stacktrace}
     end
+  end
+
+  defp prepare_error(kind, error, stacktrace) do
+    {error, stacktrace} = Exception.blame(kind, error, stacktrace)
+    stacktrace = prune_stacktrace(stacktrace)
+    {kind, error, stacktrace}
+  end
+
+  # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
+
+  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
+                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
+                      [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
+
+  defp prune_stacktrace(stacktrace) do
+    # The order in which each drop_while is listed is important.
+    # For example, the user may call Code.eval_string/2 in their code
+    # and if there is an error we should not remove erl_eval
+    # and eval_bits information from the user stacktrace.
+    stacktrace
+    |> Enum.reverse()
+    |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
+    |> Enum.drop_while(&(elem(&1, 0) == :gen_server))
+    |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
+    |> Enum.drop_while(&(elem(&1, 0) == :elixir))
+    |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
+    |> Enum.reverse()
+    |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
   end
 end

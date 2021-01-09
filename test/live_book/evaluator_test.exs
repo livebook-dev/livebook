@@ -26,7 +26,8 @@ defmodule LiveBook.EvaluatorTest do
 
       result = Evaluator.evaluate_code(evaluator, "x", :code_2)
 
-      assert {:error, %CompileError{description: "undefined function x/0"}} = result
+      assert {:error, _kind, %CompileError{description: "undefined function x/0"}, _stacktrace} =
+               result
     end
 
     test "given prev_ref sees previous evaluation context", %{evaluator: evaluator} do
@@ -47,6 +48,47 @@ defmodule LiveBook.EvaluatorTest do
       result = Evaluator.evaluate_code(evaluator, ~s{IO.gets("> ")}, :code_1)
 
       assert result == {:ok, {:error, :enotsup}}
+    end
+
+    test "returns error along with its kind and stacktrace", %{evaluator: evaluator} do
+      code = """
+      List.first(%{})
+      """
+
+      result = Evaluator.evaluate_code(evaluator, code, :code_1)
+
+      assert {:error, :error, %FunctionClauseError{}, [{List, :first, 1, _location}]} = result
+    end
+
+    test "in case of an error returns only the relevant part of stacktrace", %{
+      evaluator: evaluator
+    } do
+      code = """
+      defmodule Math do
+        def bad_math do
+          result = 1 / 0
+          {:ok, result}
+        end
+      end
+
+      defmodule Cat do
+        def meow do
+          Math.bad_math()
+          :ok
+        end
+      end
+
+      Cat.meow()
+      """
+
+      result = Evaluator.evaluate_code(evaluator, code, :code_1)
+
+      expected_stacktrace = [
+        {Math, :bad_math, 0, [file: 'nofile', line: 3]},
+        {Cat, :meow, 0, [file: 'nofile', line: 10]}
+      ]
+
+      assert {:error, _kind, _error, ^expected_stacktrace} = result
     end
   end
 end

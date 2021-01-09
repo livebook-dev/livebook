@@ -10,7 +10,7 @@ defmodule LiveBook.Evaluator.IOProxy do
   # the `target` process specified during initialization.
   # Currently only output requests are supported.
   #
-  # The implementation is based the build-in `StringIO`,
+  # The implementation is based on the build-in `StringIO`,
   # so check it out for more reference.
 
   use GenServer

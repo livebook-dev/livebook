@@ -4,7 +4,7 @@ defmodule LiveBook.Notebook.Cell do
 
   A cell is the smallest unit of work in a notebook.
   It primarly consists of text content that the user can edit
-  and may potentially produce some output (e.g. during code execution).
+  and may potentially produce some output (e.g. during code evaluation).
   """
 
   defstruct [:id, :type, :source, :outputs, :metadata]
