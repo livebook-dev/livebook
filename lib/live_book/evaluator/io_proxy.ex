@@ -43,7 +43,7 @@ defmodule LiveBook.Evaluator.IOProxy do
   """
   @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
   def configure(pid, target, ref) do
-    GenServer.call(pid, {:configure, target, ref})
+    GenServer.cast(pid, {:configure, target, ref})
   end
 
   ## Callbacks
@@ -54,8 +54,8 @@ defmodule LiveBook.Evaluator.IOProxy do
   end
 
   @impl true
-  def handle_call({:configure, target, ref}, _from, state) do
-    {:reply, :ok, %{state | target: target, ref: ref}}
+  def handle_cast({:configure, target, ref}, state) do
+    {:noreply, %{state | target: target, ref: ref}}
   end
 
   @impl true

@@ -78,19 +78,12 @@ defmodule LiveBook.Evaluator do
 
   @impl true
   def init(_opts) do
-    case Evaluator.IOProxy.start_link() do
-      {:ok, io_proxy} ->
-        # Use the dedicated IO device as the group leader,
-        # so that it handles all :stdio operations.
-        Process.group_leader(self(), io_proxy)
-        {:ok, initial_state(io_proxy)}
+    {:ok, io_proxy} = Evaluator.IOProxy.start_link()
 
-      :ignore ->
-        :ignore
-
-      {:error, reason} ->
-        {:stop, reason}
-    end
+    # Use the dedicated IO device as the group leader,
+    # so that it handles all :stdio operations.
+    Process.group_leader(self(), io_proxy)
+    {:ok, initial_state(io_proxy)}
   end
 
   defp initial_state(io_proxy) do
@@ -136,7 +129,7 @@ defmodule LiveBook.Evaluator do
 
   defp eval(code, binding, env) do
     try do
-      {:ok, quoted} = Code.string_to_quoted(code)
+      quoted = Code.string_to_quoted!(code)
       {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
 
       {:ok, result, binding, env}
