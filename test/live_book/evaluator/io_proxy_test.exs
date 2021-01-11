@@ -4,7 +4,8 @@ defmodule LiveBook.Evaluator.IOProxyTest do
   alias LiveBook.Evaluator.IOProxy
 
   setup do
-    {:ok, io} = IOProxy.start_link(self(), :ref)
+    {:ok, io} = IOProxy.start_link()
+    IOProxy.configure(io, self(), :ref)
     %{io: io}
   end
 

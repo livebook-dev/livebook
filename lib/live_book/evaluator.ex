@@ -13,13 +13,12 @@ defmodule LiveBook.Evaluator do
 
   use GenServer
 
-  import LiveBook.Utils
-
   alias LiveBook.Evaluator
 
   @type t :: GenServer.server()
 
   @type state :: %{
+          io_proxy: pid(),
           contexts: %{ref() => context()}
         }
 
@@ -79,11 +78,26 @@ defmodule LiveBook.Evaluator do
 
   @impl true
   def init(_opts) do
-    {:ok, initial_state()}
+    case Evaluator.IOProxy.start_link() do
+      {:ok, io_proxy} ->
+        # Use the dedicated IO device as the group leader,
+        # so that it handles all :stdio operations.
+        Process.group_leader(self(), io_proxy)
+        {:ok, initial_state(io_proxy)}
+
+      :ignore ->
+        :ignore
+
+      {:error, reason} ->
+        {:stop, reason}
+    end
   end
 
-  defp initial_state() do
-    %{contexts: %{initial: initial_context()}}
+  defp initial_state(io_proxy) do
+    %{
+      io_proxy: io_proxy,
+      contexts: %{initial: initial_context()}
+    }
   end
 
   defp initial_context() do
@@ -98,22 +112,18 @@ defmodule LiveBook.Evaluator do
         {:reply, :invalid_prev_ref, state}
 
       {:ok, context} ->
-        {:ok, io} = Evaluator.IOProxy.start_link(from, ref)
+        Evaluator.IOProxy.configure(state.io_proxy, from, ref)
 
-        # Use the dedicated IO device as the group leader,
-        # so that it handles all :stdio operations.
-        with_group_leader io do
-          case eval(code, context.binding, context.env) do
-            {:ok, result, binding, env} ->
-              result_context = %{binding: binding, env: env}
-              new_contexts = Map.put(state.contexts, ref, result_context)
-              new_state = %{state | contexts: new_contexts}
+        case eval(code, context.binding, context.env) do
+          {:ok, result, binding, env} ->
+            result_context = %{binding: binding, env: env}
+            new_contexts = Map.put(state.contexts, ref, result_context)
+            new_state = %{state | contexts: new_contexts}
 
-              {:reply, {:ok, result}, new_state}
+            {:reply, {:ok, result}, new_state}
 
-            {:error, kind, error, stacktrace} ->
-              {:reply, {:error, kind, error, stacktrace}, state}
-          end
+          {:error, kind, error, stacktrace} ->
+            {:reply, {:error, kind, error, stacktrace}, state}
         end
     end
   end

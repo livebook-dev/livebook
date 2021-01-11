@@ -22,6 +22,16 @@ defmodule LiveBook.Evaluator.IOProxy do
   @doc """
   Starts the IO device process.
 
+  Make sure to use `configure/3` to actually proxy the requests.
+  """
+  @spec start_link() :: GenServer.on_start()
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts)
+  end
+
+  @doc """
+  Sets IO proxy destination and the reference to be attached to all messages.
+
   For all supported requests a message is sent to `target`,
   so this device serves as a proxy. The given evaluation
   reference (`ref`) is also sent in all messages.
@@ -31,16 +41,21 @@ defmodule LiveBook.Evaluator.IOProxy do
     * `{:evaluator_stdout, ref, string}` - for output requests,
       where `ref` is the given evaluation reference and `string` is the output.
   """
-  @spec start_link(pid(), Evaluator.ref()) :: GenServer.on_start()
-  def start_link(target, ref) do
-    GenServer.start_link(__MODULE__, {target, ref})
+  @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
+  def configure(pid, target, ref) do
+    GenServer.call(pid, {:configure, target, ref})
   end
 
   ## Callbacks
 
   @impl true
-  def init({target, ref}) do
-    {:ok, %{encoding: :unicode, target: target, ref: ref}}
+  def init(_opts) do
+    {:ok, %{encoding: :unicode, target: nil, ref: nil}}
+  end
+
+  @impl true
+  def handle_call({:configure, target, ref}, _from, state) do
+    {:reply, :ok, %{state | target: target, ref: ref}}
   end
 
   @impl true
@@ -133,7 +148,10 @@ defmodule LiveBook.Evaluator.IOProxy do
   defp put_chars(encoding, chars, req, state) do
     case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
-        send(state.target, {:evaluator_stdout, state.ref, string})
+        if state.target do
+          send(state.target, {:evaluator_stdout, state.ref, string})
+        end
+
         {:ok, state}
 
       {_, _, _} ->
