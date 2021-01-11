@@ -59,7 +59,7 @@ defmodule LiveBook.Evaluator do
   def evaluate_code(evaluator, code, ref, prev_ref \\ :initial) when ref != :initial do
     response = GenServer.call(evaluator, {:evaluate_code, code, ref, prev_ref}, :infinity)
 
-    if response == :invlaid_prev_ref do
+    if response == :invalid_prev_ref do
       raise ArgumentError, message: "invalid reference to previous evaluation: #{prev_ref}"
     end
 
@@ -95,7 +95,7 @@ defmodule LiveBook.Evaluator do
   def handle_call({:evaluate_code, code, ref, prev_ref}, {from, _}, state) do
     case Map.fetch(state.contexts, prev_ref) do
       :error ->
-        {:reply, :invlaid_prev_ref, state}
+        {:reply, :invalid_prev_ref, state}
 
       {:ok, context} ->
         {:ok, io} = Evaluator.IOProxy.start_link(from, ref)
