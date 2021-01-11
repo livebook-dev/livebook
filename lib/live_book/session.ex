@@ -233,7 +233,6 @@ defmodule LiveBook.Session do
     {:ok, section} = Notebook.fetch_cell_section(notebook, cell_id)
     {state, evaluator} = get_section_evaluator(state, section.id)
     %{source: source} = cell
-    session_pid = self()
 
     prev_ref =
       case Notebook.parent_cells(notebook, cell_id) do
@@ -241,10 +240,7 @@ defmodule LiveBook.Session do
         [] -> :initial
       end
 
-    spawn(fn ->
-      response = Evaluator.evaluate_code(evaluator, source, cell_id, prev_ref)
-      send(session_pid, {:evaluator_response, cell_id, response})
-    end)
+    Evaluator.evaluate_code(evaluator, self(), source, cell_id, prev_ref)
 
     state
   end
