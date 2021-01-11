@@ -74,6 +74,15 @@ defmodule LiveBook.Evaluator do
     GenServer.cast(evaluator, {:forget_evaluation, ref})
   end
 
+  @doc """
+  Forcefully kills the evaluator.
+  """
+  @spec kill(t()) :: :ok
+  def kill(evaluator) do
+    Process.exit(evaluator, :kill)
+    :ok
+  end
+
   ## Callbacks
 
   @impl true

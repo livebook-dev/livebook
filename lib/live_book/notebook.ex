@@ -2,7 +2,7 @@ defmodule LiveBook.Notebook do
   @moduledoc """
   Data structure representing a notebook.
 
-  A notebook it's just the representation and roughly
+  A notebook is just the representation and roughly
   maps to a file that the user can edit.
   A notebook *session* is a living process that holds a specific
   notebook instance and allows users to collaboratively apply
@@ -13,7 +13,7 @@ defmodule LiveBook.Notebook do
 
   defstruct [:name, :version, :sections, :metadata]
 
-  alias LiveBook.Notebook.Section
+  alias LiveBook.Notebook.{Section, Cell}
 
   @type t :: %__MODULE__{
           name: String.t(),
@@ -35,5 +35,147 @@ defmodule LiveBook.Notebook do
       sections: [],
       metadata: %{}
     }
+  end
+
+  @doc """
+  Finds notebook section by id.
+  """
+  @spec fetch_section(t(), Section.section_id()) :: {:ok, Section.t()} | :error
+  def fetch_section(notebook, section_id) do
+    notebook.sections
+    |> Enum.find(&(&1.id == section_id))
+    |> wrap_ok_error()
+  end
+
+  @doc """
+  Finds notebook section including cell with the given id.
+  """
+  @spec fetch_cell_section(t(), Cell.cell_id()) :: {:ok, Section.t()} | :error
+  def fetch_cell_section(notebook, cell_id) do
+    notebook.sections
+    |> Enum.find(fn section ->
+      Enum.any?(section.cells, &(&1.id == cell_id))
+    end)
+    |> wrap_ok_error()
+  end
+
+  defp wrap_ok_error(nil), do: :error
+  defp wrap_ok_error(value), do: {:ok, value}
+
+  @doc """
+  Finds notebook cell by `id`.
+  """
+  @spec fetch_cell(t(), Cell.section_id()) :: {:ok, Cell.t()} | :error
+  def fetch_cell(notebook, cell_id) do
+    try do
+      for section <- notebook.sections, cell <- section.cells, cell.id == cell_id, do: throw(cell)
+      :error
+    catch
+      cell -> {:ok, cell}
+    end
+  end
+
+  @doc """
+  Inserts `section` at the given `index`.
+  """
+  @spec insert_section(t(), integer(), Section.t()) :: t()
+  def insert_section(notebook, index, section) do
+    sections = List.insert_at(notebook.sections, index, section)
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
+  Inserts `cell` at the given `index` within section identified by `section_id`.
+  """
+  @spec insert_cell(t(), Section.section_id(), integer(), Cell.t()) :: t()
+  def insert_cell(notebook, section_id, index, cell) do
+    sections =
+      Enum.map(notebook.sections, fn section ->
+        if section.id == section_id do
+          %{section | cells: List.insert_at(section.cells, index, cell)}
+        else
+          section
+        end
+      end)
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
+  Deletes section with the given id.
+  """
+  @spec delete_section(t(), Section.section_id()) :: t()
+  def delete_section(notebook, section_id) do
+    sections = Enum.reject(notebook.sections, &(&1.id == section_id))
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
+  Deletes cell with the given id.
+  """
+  @spec delete_cell(t(), Cell.t()) :: t()
+  def delete_cell(notebook, cell_id) do
+    sections =
+      Enum.map(notebook.sections, fn section ->
+        %{section | cells: Enum.reject(section.cells, &(&1.id == cell_id))}
+      end)
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
+  Updates cell with the given function.
+  """
+  @spec update_cell(t(), Cell.cell_id(), (Cell.t() -> Cell.t())) :: t()
+  def update_cell(notebook, cell_id, fun) do
+    sections =
+      Enum.map(notebook.sections, fn section ->
+        cells =
+          Enum.map(section.cells, fn cell ->
+            if cell.id == cell_id, do: fun.(cell), else: cell
+          end)
+
+        %{section | cells: cells}
+      end)
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
+  Returns a list of Elixir cells that the given cell depends on.
+
+  The cells are ordered starting from the most direct parent.
+  """
+  @spec parent_cells(t(), Cell.cell_id()) :: list(Cell.t())
+  def parent_cells(notebook, cell_id) do
+    with {:ok, section} <- LiveBook.Notebook.fetch_cell_section(notebook, cell_id) do
+      # A cell depends on all previous cells within the same section.
+      section.cells
+      |> Enum.filter(&(&1.type == :elixir))
+      |> Enum.take_while(&(&1.id != cell_id))
+      |> Enum.reverse()
+    else
+      _ -> []
+    end
+  end
+
+  @doc """
+  Returns a list of Elixir cells that depend on the given cell.
+
+  The cells are ordered starting from the most direct child.
+  """
+  @spec child_cells(t(), Cell.cell_id()) :: list(Cell.t())
+  def child_cells(notebook, cell_id) do
+    with {:ok, section} <- LiveBook.Notebook.fetch_cell_section(notebook, cell_id) do
+      # A cell affects all the cells below it within the same section.
+      section.cells
+      |> Enum.filter(&(&1.type == :elixir))
+      |> Enum.reverse()
+      |> Enum.take_while(&(&1.id != cell_id))
+    else
+      _ -> []
+    end
   end
 end
