@@ -108,39 +108,26 @@ defmodule LiveBook.Session.Data do
   def apply_operation(data, {:insert_section, index, id}) do
     section = %{Section.new() | id: id}
 
-    {:ok,
-     %{
-       data
-       | notebook: Notebook.insert_section(data.notebook, index, section),
-         section_infos: Map.put(data.section_infos, section.id, new_section_info())
-     }}
+    data
+    |> insert_section(index, section)
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:insert_cell, section_id, index, type, id}) do
     with {:ok, _section} <- Notebook.fetch_section(data.notebook, id) do
       cell = %{Cell.new(type) | id: id}
 
-      {:ok,
-       %{
-         data
-         | notebook: Notebook.insert_cell(data.notebook, section_id, index, cell),
-           cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info())
-       }}
+      data
+      |> insert_cell(section_id, index, cell)
+      |> wrap_ok()
     end
   end
 
   def apply_operation(data, {:delete_section, id}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id) do
-      {:ok,
-       %{
-         data
-         | notebook: Notebook.delete_section(data.notebook, id),
-           section_infos: Map.delete(data.section_infos, section.id),
-           cell_infos: Enum.reduce(section.cells, data.cell_infos, &Map.delete(&2, &1.id)),
-           evaluation_queue:
-             Enum.reduce(section.cells, data.evaluation_queue, &List.delete(&2, &1.id)),
-           deleted_sections: [section | data.deleted_sections]
-       }}
+      data
+      |> delete_section(section)
+      |> wrap_ok()
     end
   end
 
@@ -148,14 +135,9 @@ defmodule LiveBook.Session.Data do
     with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id),
          # If the cell is being evaluated, it should be cancelled first.
          false <- data.cell_infos[cell.id].status == :evaluating do
-      {:ok,
-       %{
-         data
-         | notebook: Notebook.delete_cell(data.notebook, id),
-           evaluation_queue: List.delete(data.evaluation_queue, cell.id),
-           cell_infos: Map.delete(data.cell_infos, cell.id),
-           deleted_cells: [cell | data.deleted_cells]
-       }}
+      data
+      |> delete_cell(cell)
+      |> wrap_ok()
     else
       _ -> :error
     end
@@ -164,48 +146,131 @@ defmodule LiveBook.Session.Data do
   def apply_operation(data, {:queue_cell_evaluation, id}) do
     with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id),
          false <- id in data.evaluation_queue do
-      {:ok,
-       %{
-         data
-         | evaluation_queue: data.evaluation_queue ++ [cell.id],
-           cell_infos: Map.update!(data.cell_infos, cell.id, &%{&1 | status: :queued})
-       }
-       |> maybe_evaluate_queued()}
+      data
+      |> queue_cell_evaluation(cell)
+      |> wrap_ok()
     else
       _ -> :error
     end
   end
 
   def apply_operation(data, {:add_cell_evaluation_stdout, id, string}) do
-    with {:ok, _cell} <- Notebook.fetch_cell(data.notebook, id) do
-      {:ok,
-       %{
-         data
-         | # TODO: add stdout to cell outputs
-           notebook: data.notebook
-       }}
+    with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id) do
+      data
+      |> add_cell_evaluation_stdout(cell, string)
+      |> wrap_ok()
     end
   end
 
   def apply_operation(data, {:add_cell_evaluation_response, id, response}) do
     with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id) do
-      child_cells = Notebook.child_cells(data.notebook, id)
-
-      {:ok,
-       %{
-         data
-         | status: :idle,
-           # TODO: add response to cell outputs
-           notebook: data.notebook,
-           cell_infos:
-             Enum.reduce(child_cells, data.cell_infos, fn cell, infos ->
-               Map.update!(infos, cell.id, &%{&1 | status: :stale})
-             end)
-             |> Map.update!(cell.id, &%{&1 | status: :evaluated})
-       }
-       |> maybe_evaluate_queued()}
+      data
+      |> add_cell_evaluation_response(cell, response)
+      |> wrap_ok()
     end
   end
+
+  # The above definitions validate data, so the implementations
+  # below are focused on making the proper changes.
+
+  defp insert_section(data, index, section) do
+    data
+    |> set!(
+      notebook: Notebook.insert_section(data.notebook, index, section),
+      section_infos: Map.put(data.section_infos, section.id, new_section_info())
+    )
+  end
+
+  defp insert_cell(data, section_id, index, cell) do
+    data
+    |> set!(
+      notebook: Notebook.insert_cell(data.notebook, section_id, index, cell),
+      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info())
+    )
+  end
+
+  defp delete_section(data, section) do
+    data
+    |> set!(
+      notebook: Notebook.delete_section(data.notebook, section.id),
+      section_infos: Map.delete(data.section_infos, section.id),
+      deleted_sections: [section | data.deleted_sections]
+    )
+    |> reduce(section.cells, &clear_cell_info_and_evaluation_queue/2)
+  end
+
+  defp delete_cell(data, cell) do
+    data
+    |> set!(
+      notebook: Notebook.delete_cell(data.notebook, cell.id),
+      deleted_cells: [cell | data.deleted_cells]
+    )
+    |> clear_cell_info_and_evaluation_queue(cell)
+  end
+
+  defp clear_cell_info_and_evaluation_queue(data, cell) do
+    data
+    |> set!(
+      evaluation_queue: List.delete(data.evaluation_queue, cell.id),
+      cell_infos: Map.delete(data.cell_infos, cell.id)
+    )
+  end
+
+  defp queue_cell_evaluation(data, cell) do
+    fresh_parent_cells =
+      data.notebook
+      |> Notebook.parent_cells(cell.id)
+      |> Enum.filter(fn parent -> data.cell_infos[parent.id].status == :fresh end)
+
+    data
+    |> reduce(fresh_parent_cells, &queue_cell_evaluation/2)
+    |> set!(evaluation_queue: data.evaluation_queue ++ [cell.id])
+    |> set_cell_info!(cell.id, status: :queued)
+    |> maybe_evaluate_queued()
+  end
+
+  defp add_cell_evaluation_stdout(data, cell, string) do
+    data
+    |> set!(
+      # TODO: add stdout to cell outputs
+      notebook: data.notebook
+    )
+  end
+
+  defp add_cell_evaluation_response(data, cell, response) do
+    child_cell_ids =
+      data.notebook
+      |> Notebook.child_cells(cell.id)
+      |> Enum.map(& &1.id)
+
+    data
+    |> set!(
+      status: :ready,
+      # TODO: add result to outputs
+      notebook: data.notebook
+    )
+    |> set_cell_info!(cell.id, status: :evaluated)
+    |> set_cell_infos!(child_cell_ids, status: :stale)
+    |> maybe_evaluate_queued()
+  end
+
+  # ---
+
+  defp maybe_evaluate_queued(%{status: :ready, evaluation_queue: [id | ids]} = data) do
+    data
+    |> set!(
+      status: :evaluating,
+      evaluation_queue: ids,
+      notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []})
+    )
+    |> set_cell_info!(id, status: :evaluating)
+  end
+
+  defp maybe_evaluate_queued(data), do: data
+
+  defp wrap_ok(value), do: {:ok, value}
+
+  # ---
 
   defp new_section_info() do
     %{}
@@ -220,19 +285,30 @@ defmodule LiveBook.Session.Data do
     }
   end
 
-  # Given an idle session with non-empty evaluation queue,
-  # changes the data to reflect evaluation of the first cell in the queue.
-  defp maybe_evaluate_queued(%{status: :idle, evaluation_queue: [id | ids]} = data) do
-    %{
-      data
-      | status: :evaluating,
-        evaluation_queue: ids,
-        notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}),
-        cell_infos: Map.update!(data.cell_infos, id, &%{&1 | status: :evaluating})
-    }
+  defp set!(data, changes) do
+    Enum.reduce(changes, data, fn {key, value}, info ->
+      Map.replace!(info, key, value)
+    end)
   end
 
-  defp maybe_evaluate_queued(data), do: data
+  defp set_cell_info!(data, cell_id, changes) do
+    cell_infos =
+      Map.update!(data.cell_infos, cell_id, fn info ->
+        Enum.reduce(changes, info, fn {key, value}, info ->
+          Map.replace!(info, key, value)
+        end)
+      end)
+
+    set!(data, cell_infos: cell_infos)
+  end
+
+  defp set_cell_infos!(data, cell_ids, changes) do
+    Enum.reduce(cell_ids, data, &set_cell_info!(&2, &1, changes))
+  end
+
+  defp reduce(data, list, reducer) do
+    Enum.reduce(list, data, fn elem, data -> reducer.(data, elem) end)
+  end
 
   @doc """
   Finds the cell that's currently being evaluated.
