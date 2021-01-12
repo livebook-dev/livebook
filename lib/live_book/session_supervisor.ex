@@ -26,7 +26,7 @@ defmodule LiveBook.SessionSupervisor do
 
   Broadcasts `{:session_created, id}` message under the `"sessions"` topic.
   """
-  @spec create_session() :: {:ok, Session.session_id()} | {:error, any()}
+  @spec create_session() :: {:ok, Section.id()} | {:error, any()}
   def create_session() do
     id = Utils.random_id()
 
@@ -52,7 +52,7 @@ defmodule LiveBook.SessionSupervisor do
 
   Broadcasts `{:session_delete, id}` message under the `"sessions"` topic.
   """
-  @spec delete_session(Session.session_id()) :: :ok
+  @spec delete_session(Section.id()) :: :ok
   def delete_session(id) do
     Session.stop(id)
     broadcast_sessions_message({:session_deleted, id})
@@ -66,7 +66,7 @@ defmodule LiveBook.SessionSupervisor do
   @doc """
   Returns ids of all the running session processes.
   """
-  @spec get_session_ids() :: list(Session.session_id())
+  @spec get_session_ids() :: list(Section.id())
   def get_session_ids() do
     :global.registered_names()
     |> Enum.flat_map(fn
@@ -78,7 +78,7 @@ defmodule LiveBook.SessionSupervisor do
   @doc """
   Checks if a session process with the given id exists.
   """
-  @spec session_exists?(Session.session_id()) :: boolean()
+  @spec session_exists?(Section.id()) :: boolean()
   def session_exists?(id) do
     :global.whereis_name({:session, id}) != :undefined
   end
@@ -86,7 +86,7 @@ defmodule LiveBook.SessionSupervisor do
   @doc """
   Retrieves pid of a session process identified by the given id.
   """
-  @spec get_session_pid(Session.session_id()) :: {:ok, pid()} | {:error, :nonexistent}
+  @spec get_session_pid(Section.id()) :: {:ok, pid()} | {:error, :nonexistent}
   def get_session_pid(id) do
     case :global.whereis_name({:session, id}) do
       :undefined -> {:error, :nonexistent}

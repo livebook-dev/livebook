@@ -19,7 +19,7 @@ defmodule LiveBook.Session do
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
-          session_id: session_id(),
+          session_id: id(),
           data: Data.t(),
           evaluators: %{Section.t() => Evaluator.t()},
           client_pids: list(pid())
@@ -28,7 +28,7 @@ defmodule LiveBook.Session do
   @typedoc """
   An id assigned to every running session process.
   """
-  @type session_id :: LiveBook.Utils.id()
+  @type id :: Utils.id()
 
   ## API
 
@@ -36,7 +36,7 @@ defmodule LiveBook.Session do
   Starts the server process and registers it globally using the `:global` module,
   so that it's identifiable by the given id.
   """
-  @spec start_link(session_id()) :: GenServer.on_start()
+  @spec start_link(id()) :: GenServer.on_start()
   def start_link(session_id) do
     GenServer.start_link(__MODULE__, [session_id: session_id], name: name(session_id))
   end
@@ -50,7 +50,7 @@ defmodule LiveBook.Session do
 
   The client process is automatically unregistered when it terminates.
   """
-  @spec register_client(session_id(), pid()) :: :ok
+  @spec register_client(id(), pid()) :: :ok
   def register_client(session_id, pid) do
     GenServer.cast(name(session_id), {:register_client, pid})
   end
@@ -58,7 +58,7 @@ defmodule LiveBook.Session do
   @doc """
   Unregisters a session client.
   """
-  @spec unregister_client(session_id(), pid()) :: :ok
+  @spec unregister_client(id(), pid()) :: :ok
   def unregister_client(session_id, pid) do
     GenServer.cast(name(session_id), {:unregister_client, pid})
   end
@@ -66,7 +66,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends section insertion request to the server.
   """
-  @spec insert_section(session_id(), non_neg_integer()) :: :ok
+  @spec insert_section(id(), non_neg_integer()) :: :ok
   def insert_section(session_id, index) do
     GenServer.cast(name(session_id), {:insert_section, index})
   end
@@ -74,7 +74,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends cell insertion request to the server.
   """
-  @spec insert_cell(session_id(), Section.section_id(), non_neg_integer(), Cell.cell_type()) ::
+  @spec insert_cell(id(), Section.id(), non_neg_integer(), Cell.type()) ::
           :ok
   def insert_cell(session_id, section_id, index, type) do
     GenServer.cast(name(session_id), {:insert_cell, section_id, index, type})
@@ -83,7 +83,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends section deletion request to the server.
   """
-  @spec delete_section(session_id(), Section.section_id()) :: :ok
+  @spec delete_section(id(), Section.id()) :: :ok
   def delete_section(session_id, section_id) do
     GenServer.cast(name(session_id), {:delete_section, section_id})
   end
@@ -91,7 +91,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends cell deletion request to the server.
   """
-  @spec delete_cell(session_id(), Cell.cell_id()) :: :ok
+  @spec delete_cell(id(), Cell.id()) :: :ok
   def delete_cell(session_id, cell_id) do
     GenServer.cast(name(session_id), {:delete_cell, cell_id})
   end
@@ -99,7 +99,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends cell evaluation request to the server.
   """
-  @spec queue_cell_evaluation(session_id(), Cell.cell_id()) :: :ok
+  @spec queue_cell_evaluation(id(), Cell.id()) :: :ok
   def queue_cell_evaluation(session_id, cell_id) do
     GenServer.cast(name(session_id), {:queue_cell_evaluation, cell_id})
   end
@@ -107,7 +107,7 @@ defmodule LiveBook.Session do
   @doc """
   Synchronously stops the server.
   """
-  @spec stop(session_id()) :: :ok
+  @spec stop(id()) :: :ok
   def stop(session_id) do
     GenServer.stop(name(session_id))
   end

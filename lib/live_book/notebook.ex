@@ -40,7 +40,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Finds notebook section by id.
   """
-  @spec fetch_section(t(), Section.section_id()) :: {:ok, Section.t()} | :error
+  @spec fetch_section(t(), Section.id()) :: {:ok, Section.t()} | :error
   def fetch_section(notebook, section_id) do
     notebook.sections
     |> Enum.find(&(&1.id == section_id))
@@ -50,7 +50,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Finds notebook section including cell with the given id.
   """
-  @spec fetch_cell_section(t(), Cell.cell_id()) :: {:ok, Section.t()} | :error
+  @spec fetch_cell_section(t(), Cell.id()) :: {:ok, Section.t()} | :error
   def fetch_cell_section(notebook, cell_id) do
     notebook.sections
     |> Enum.find(fn section ->
@@ -88,7 +88,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Inserts `cell` at the given `index` within section identified by `section_id`.
   """
-  @spec insert_cell(t(), Section.section_id(), integer(), Cell.t()) :: t()
+  @spec insert_cell(t(), Section.id(), integer(), Cell.t()) :: t()
   def insert_cell(notebook, section_id, index, cell) do
     sections =
       Enum.map(notebook.sections, fn section ->
@@ -105,7 +105,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Deletes section with the given id.
   """
-  @spec delete_section(t(), Section.section_id()) :: t()
+  @spec delete_section(t(), Section.id()) :: t()
   def delete_section(notebook, section_id) do
     sections = Enum.reject(notebook.sections, &(&1.id == section_id))
 
@@ -115,7 +115,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Deletes cell with the given id.
   """
-  @spec delete_cell(t(), Cell.t()) :: t()
+  @spec delete_cell(t(), Cell.id()) :: t()
   def delete_cell(notebook, cell_id) do
     sections =
       Enum.map(notebook.sections, fn section ->
@@ -128,7 +128,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Updates cell with the given function.
   """
-  @spec update_cell(t(), Cell.cell_id(), (Cell.t() -> Cell.t())) :: t()
+  @spec update_cell(t(), Cell.id(), (Cell.t() -> Cell.t())) :: t()
   def update_cell(notebook, cell_id, fun) do
     sections =
       Enum.map(notebook.sections, fn section ->
@@ -148,7 +148,7 @@ defmodule LiveBook.Notebook do
 
   The cells are ordered starting from the most direct parent.
   """
-  @spec parent_cells(t(), Cell.cell_id()) :: list(Cell.t())
+  @spec parent_cells(t(), Cell.id()) :: list(Cell.t())
   def parent_cells(notebook, cell_id) do
     with {:ok, section} <- LiveBook.Notebook.fetch_cell_section(notebook, cell_id) do
       # A cell depends on all previous cells within the same section.
@@ -166,7 +166,7 @@ defmodule LiveBook.Notebook do
 
   The cells are ordered starting from the most direct child.
   """
-  @spec child_cells(t(), Cell.cell_id()) :: list(Cell.t())
+  @spec child_cells(t(), Cell.id()) :: list(Cell.t())
   def child_cells(notebook, cell_id) do
     with {:ok, section} <- LiveBook.Notebook.fetch_cell_section(notebook, cell_id) do
       # A cell affects all the cells below it within the same section.

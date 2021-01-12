@@ -32,9 +32,9 @@ defmodule LiveBook.Session.Data do
           notebook: Notebook.t(),
           status: status(),
           path: nil | String.t(),
-          execution_queue: list(Cell.cell_id()),
-          section_infos: %{Section.section_id() => section_info()},
-          cell_infos: %{Cell.cell_id() => cell_info()},
+          execution_queue: list(Cell.id()),
+          section_infos: %{Section.id() => section_info()},
+          cell_infos: %{Cell.id() => cell_info()},
           deleted_sections: list(Section.t()),
           deleted_cells: list(Cell.t())
         }
@@ -56,13 +56,13 @@ defmodule LiveBook.Session.Data do
   @type index :: non_neg_integer()
 
   @type operation ::
-          {:insert_section, index(), Section.section_id()}
-          | {:insert_cell, Section.section_id(), index(), Cell.cell_type(), Cell.cell_id()}
-          | {:delete_section, Section.section_id()}
-          | {:delete_cell, Cell.cell_id()}
-          | {:queue_cell_evaluation, Cell.cell_id()}
-          | {:add_cell_evaluation_stdout, Cell.cell_id(), String.t()}
-          | {:add_cell_evaluation_response, Cell.cell_id(), Evaluator.evaluation_response()}
+          {:insert_section, index(), Section.id()}
+          | {:insert_cell, Section.id(), index(), Cell.type(), Cell.id()}
+          | {:delete_section, Section.id()}
+          | {:delete_cell, Cell.id()}
+          | {:queue_cell_evaluation, Cell.id()}
+          | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
+          | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
 
   @doc """
   Returns a fresh notebook session state.
@@ -156,6 +156,8 @@ defmodule LiveBook.Session.Data do
            cell_infos: Map.delete(data.cell_infos, cell.id),
            deleted_cells: [cell | data.deleted_cells]
        }}
+    else
+      _ -> :error
     end
   end
 
@@ -169,16 +171,20 @@ defmodule LiveBook.Session.Data do
            cell_infos: Map.update!(data.cell_infos, cell.id, &%{&1 | status: :queued})
        }
        |> maybe_evaluate_queued()}
+    else
+      _ -> :error
     end
   end
 
   def apply_operation(data, {:add_cell_evaluation_stdout, id, string}) do
-    {:ok,
-     %{
-       data
-       | # TODO: add stdout to cell outputs
-         notebook: data.notebook
-     }}
+    with {:ok, _cell} <- Notebook.fetch_cell(data.notebook, id) do
+      {:ok,
+       %{
+         data
+         | # TODO: add stdout to cell outputs
+           notebook: data.notebook
+       }}
+    end
   end
 
   def apply_operation(data, {:add_cell_evaluation_response, id, response}) do
@@ -231,7 +237,7 @@ defmodule LiveBook.Session.Data do
   @doc """
   Finds the cell that's currently being evaluated.
   """
-  @spec get_evaluating_cell_id(t()) :: Cell.cell_id() | nil
+  @spec get_evaluating_cell_id(t()) :: Cell.id() | nil
   def get_evaluating_cell_id(data) do
     Enum.find(data.cell_infos, fn {_, info} -> info.status == :evaluating end)
     |> case do
