@@ -146,6 +146,7 @@ defmodule LiveBook.Session.Data do
 
   def apply_operation(data, {:queue_cell_evaluation, id}) do
     with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id),
+         :elixir <- cell.type,
          false <- data.cell_infos[cell.id].status in [:queued, :evaluating] do
       data
       |> queue_cell_evaluation(cell)
@@ -254,7 +255,7 @@ defmodule LiveBook.Session.Data do
       # TODO: add result to outputs
       notebook: data.notebook
     )
-    |> set_cell_info!(cell.id, status: :evaluated)
+    |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
     |> set_cell_infos!(child_cell_ids, status: :stale)
     |> set_section_info!(section.id, status: :idle)
     |> maybe_evaluate_queued()
