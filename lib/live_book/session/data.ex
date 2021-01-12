@@ -111,7 +111,7 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:insert_cell, section_id, index, type, id}) do
-    with {:ok, _section} <- Notebook.fetch_section(data.notebook, id) do
+    with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
       cell = %{Cell.new(type) | id: id}
 
       data
@@ -226,9 +226,9 @@ defmodule LiveBook.Session.Data do
 
     data
     |> reduce(fresh_parent_cells, &queue_cell_evaluation/2)
-    |> set_section_info!(section.id,
-      evaluation_queue: data.section_infos[section.id].evaluation_queue ++ [cell.id]
-    )
+    |> update_section_info!(section.id, fn section ->
+      %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
+    end)
     |> set_cell_info!(cell.id, status: :queued)
     |> maybe_evaluate_queued()
   end
@@ -292,7 +292,7 @@ defmodule LiveBook.Session.Data do
     %{
       revision: 0,
       deltas: [],
-      status: :idle,
+      status: :fresh,
       evaluated_at: nil
     }
   end
@@ -304,13 +304,15 @@ defmodule LiveBook.Session.Data do
   end
 
   defp set_cell_info!(data, cell_id, changes) do
-    cell_infos =
-      Map.update!(data.cell_infos, cell_id, fn info ->
-        Enum.reduce(changes, info, fn {key, value}, info ->
-          Map.replace!(info, key, value)
-        end)
+    update_cell_info!(data, cell_id, fn info ->
+      Enum.reduce(changes, info, fn {key, value}, info ->
+        Map.replace!(info, key, value)
       end)
+    end)
+  end
 
+  defp update_cell_info!(data, cell_id, fun) do
+    cell_infos = Map.update!(data.cell_infos, cell_id, fun)
     set!(data, cell_infos: cell_infos)
   end
 
@@ -319,13 +321,15 @@ defmodule LiveBook.Session.Data do
   end
 
   defp set_section_info!(data, section_id, changes) do
-    section_infos =
-      Map.update!(data.section_infos, section_id, fn info ->
-        Enum.reduce(changes, info, fn {key, value}, info ->
-          Map.replace!(info, key, value)
-        end)
+    update_section_info!(data, section_id, fn info ->
+      Enum.reduce(changes, info, fn {key, value}, info ->
+        Map.replace!(info, key, value)
       end)
+    end)
+  end
 
+  defp update_section_info!(data, section_id, fun) do
+    section_infos = Map.update!(data.section_infos, section_id, fun)
     set!(data, section_infos: section_infos)
   end
 
