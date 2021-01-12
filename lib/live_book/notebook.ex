@@ -42,9 +42,9 @@ defmodule LiveBook.Notebook do
   """
   @spec fetch_section(t(), Section.id()) :: {:ok, Section.t()} | :error
   def fetch_section(notebook, section_id) do
-    notebook.sections
-    |> Enum.find(&(&1.id == section_id))
-    |> wrap_ok_error()
+    Enum.find_value(notebook.sections, :error, fn section ->
+      section.id == section_id && {:ok, section}
+    end)
   end
 
   @doc """
@@ -52,26 +52,20 @@ defmodule LiveBook.Notebook do
   """
   @spec fetch_cell_section(t(), Cell.id()) :: {:ok, Section.t()} | :error
   def fetch_cell_section(notebook, cell_id) do
-    notebook.sections
-    |> Enum.find(fn section ->
-      Enum.any?(section.cells, &(&1.id == cell_id))
+    Enum.find_value(notebook.sections, :error, fn section ->
+      Enum.any?(section.cells, &(&1.id == cell_id)) && {:ok, section}
     end)
-    |> wrap_ok_error()
   end
-
-  defp wrap_ok_error(nil), do: :error
-  defp wrap_ok_error(value), do: {:ok, value}
 
   @doc """
   Finds notebook cell by `id`.
   """
   @spec fetch_cell(t(), Cell.section_id()) :: {:ok, Cell.t()} | :error
   def fetch_cell(notebook, cell_id) do
-    try do
-      for section <- notebook.sections, cell <- section.cells, cell.id == cell_id, do: throw(cell)
-      :error
-    catch
-      cell -> {:ok, cell}
+    for(section <- notebook.sections, cell <- section.cells, cell.id == cell_id, do: cell)
+    |> case do
+      [cell] -> {:ok, cell}
+      [] -> :error
     end
   end
 

@@ -56,14 +56,6 @@ defmodule LiveBook.Session do
   end
 
   @doc """
-  Unregisters a session client.
-  """
-  @spec unregister_client(id(), pid()) :: :ok
-  def unregister_client(session_id, pid) do
-    GenServer.cast(name(session_id), {:unregister_client, pid})
-  end
-
-  @doc """
   Asynchronously sends section insertion request to the server.
   """
   @spec insert_section(id(), non_neg_integer()) :: :ok
@@ -129,10 +121,6 @@ defmodule LiveBook.Session do
   def handle_cast({:register_client, pid}, state) do
     Process.monitor(pid)
     {:noreply, %{state | client_pids: [pid | state.client_pids]}}
-  end
-
-  def handle_cast({:unregister_client, pid}, state) do
-    {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
   end
 
   def handle_cast({:insert_section, index}, state) do

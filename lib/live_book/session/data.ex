@@ -345,12 +345,9 @@ defmodule LiveBook.Session.Data do
   def get_evaluating_cell_id(data, section_id) do
     case Notebook.fetch_section(data.notebook, section_id) do
       {:ok, section} ->
-        section.cells
-        |> Enum.find(fn cell -> data.cell_infos[cell.id].status == :evaluating end)
-        |> case do
-          nil -> nil
-          cell -> cell.id
-        end
+        Enum.find_value(section.cells, fn cell ->
+          data.cell_infos[cell.id].status == :evaluating && cell.id
+        end)
 
       :error ->
         nil
