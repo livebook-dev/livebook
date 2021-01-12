@@ -11,7 +11,7 @@ defmodule LiveBook.Evaluator do
   # where the evaluation happens, as otherwise we would have to
   # send them between processes, effectively copying potentially large data.
 
-  use GenServer
+  use GenServer, restart: :temporary
 
   alias LiveBook.Evaluator
 
@@ -68,15 +68,6 @@ defmodule LiveBook.Evaluator do
   @spec forget_evaluation(t(), ref()) :: :ok
   def forget_evaluation(evaluator, ref) do
     GenServer.cast(evaluator, {:forget_evaluation, ref})
-  end
-
-  @doc """
-  Forcefully kills the evaluator.
-  """
-  @spec kill(t()) :: :ok
-  def kill(evaluator) do
-    Process.exit(evaluator, :kill)
-    :ok
   end
 
   ## Callbacks
