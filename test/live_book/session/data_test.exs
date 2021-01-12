@@ -167,7 +167,7 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{status: :evaluating}},
-                section_infos: %{"s1" => %{status: :evaluating, evaluation_queue: []}}
+                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
               }} = Data.apply_operation(data, operation)
     end
 
@@ -185,7 +185,7 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{status: :queued}},
-                section_infos: %{"s1" => %{status: :evaluating, evaluation_queue: ["c2"]}}
+                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
               }} = Data.apply_operation(data, operation)
     end
   end
@@ -196,7 +196,7 @@ defmodule LiveBook.Session.DataTest do
 
   describe "apply_operation/2 given :add_cell_evaluation_response" do
     # TODO assert against output being updated once we do so
-    test "marks the cell as evaluated and marks the section as idle if the queue is empty" do
+    test "marks the cell as evaluated" do
       data =
         data_after_operations!([
           {:insert_section, 0, "s1"},
@@ -210,7 +210,7 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{status: :evaluated}},
-                section_infos: %{"s1" => %{status: :idle, evaluation_queue: []}}
+                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
               }} = Data.apply_operation(data, operation)
     end
 
@@ -229,7 +229,7 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{status: :evaluating}},
-                section_infos: %{"s1" => %{status: :evaluating, evaluation_queue: []}}
+                section_infos: %{"s1" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
               }} = Data.apply_operation(data, operation)
     end
 
@@ -249,7 +249,7 @@ defmodule LiveBook.Session.DataTest do
                   "c1" => %{status: :evaluating},
                   "c2" => %{status: :queued}
                 },
-                section_infos: %{"s1" => %{status: :evaluating, evaluation_queue: ["c2"]}}
+                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
               }} = Data.apply_operation(data, operation)
     end
 

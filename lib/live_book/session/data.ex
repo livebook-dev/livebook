@@ -36,11 +36,9 @@ defmodule LiveBook.Session.Data do
         }
 
   @type section_info :: %{
-          status: section_status(),
+          evaluating_cell_id: Cell.id(),
           evaluation_queue: list(Cell.id())
         }
-
-  @type section_status :: :idle | :evaluating
 
   @type cell_info :: %{
           status: cell_status(),
@@ -87,9 +85,8 @@ defmodule LiveBook.Session.Data do
 
   An operation only applies changes to the structure, but it doesn't trigger
   any actual processing. It's the responsibility of the session process to ensure
-  the system reflects the new structure. For instance, when section status
-  changes from `:idle` to `:evaluating`, the session process should take
-  care of evaluating the appropriate cell.
+  the system reflects the new structure. For instance, when a new cell is marked
+  as evaluating, the session process should take care of triggering actual evaluation.
 
   Returns `{:ok, data}` on correct application or `:error` if the operation
   is not valid. The `:error` is generally expected given the collaborative
@@ -123,7 +120,7 @@ defmodule LiveBook.Session.Data do
   def apply_operation(data, {:delete_section, id}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
          # If a cell within this section is being evaluated, it should be cancelled first
-         false <- data.section_infos[section.id].status == :evaluating do
+         nil <- data.section_infos[section.id].evaluating_cell_id do
       data
       |> delete_section(section)
       |> wrap_ok()
@@ -259,22 +256,22 @@ defmodule LiveBook.Session.Data do
     )
     |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
     |> set_cell_infos!(invalidated_cell_ids, status: :stale)
-    |> set_section_info!(section.id, status: :idle)
+    |> set_section_info!(section.id, evaluating_cell_id: nil)
     |> maybe_evaluate_queued()
   end
 
   # ===
 
   # If there are idle sections with non-empty evaluation queue,
-  # the function marks the section and they appropriate cell for evaluation.
+  # the next queued cell for evaluation.
   defp maybe_evaluate_queued(data) do
     Enum.reduce(data.notebook.sections, data, fn section, data ->
       case data.section_infos[section.id] do
-        %{status: :idle, evaluation_queue: [id | ids]} ->
+        %{evaluating_cell_id: nil, evaluation_queue: [id | ids]} ->
           data
           |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
           |> set_cell_info!(id, status: :evaluating)
-          |> set_section_info!(section.id, status: :evaluating, evaluation_queue: ids)
+          |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
 
         _ ->
           data
@@ -286,7 +283,7 @@ defmodule LiveBook.Session.Data do
 
   defp new_section_info() do
     %{
-      status: :idle,
+      evaluating_cell_id: nil,
       evaluation_queue: []
     }
   end
@@ -345,14 +342,7 @@ defmodule LiveBook.Session.Data do
   """
   @spec get_evaluating_cell_id(t(), Section.id()) :: Cell.id() | nil
   def get_evaluating_cell_id(data, section_id) do
-    case Notebook.fetch_section(data.notebook, section_id) do
-      {:ok, section} ->
-        Enum.find_value(section.cells, fn cell ->
-          data.cell_infos[cell.id].status == :evaluating && cell.id
-        end)
-
-      :error ->
-        nil
-    end
+    info = data.section_infos[section_id]
+    info && info.evaluating_cell_id
   end
 end
