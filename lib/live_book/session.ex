@@ -164,11 +164,7 @@ defmodule LiveBook.Session do
     operation = {:queue_cell_evaluation, cell_id}
 
     handle_operation(state, operation, fn new_state ->
-      if state.data.status == :ready and new_state.data.status == :evaluating do
-        {:noreply, trigger_evaluation(new_state)}
-      else
-        {:noreply, new_state}
-      end
+      maybe_trigger_evaluations(state, new_state)
     end)
   end
 
@@ -186,11 +182,7 @@ defmodule LiveBook.Session do
     operation = {:add_cell_evaluation_response, cell_id, response}
 
     handle_operation(state, operation, fn new_state ->
-      if new_state.data.status == :evaluating do
-        {:noreply, trigger_evaluation(new_state)}
-      else
-        {:noreply, new_state}
-      end
+      maybe_trigger_evaluations(state, new_state)
     end)
   end
 
@@ -226,9 +218,29 @@ defmodule LiveBook.Session do
     Phoenix.PubSub.broadcast(LiveBook.PubSub, "sessions:#{session_id}", message)
   end
 
-  defp trigger_evaluation(state) do
+  # Compares sections in the old and new state and if a new cell
+  # has been marked as evaluating it triggers the actual evaluation task.
+  defp maybe_trigger_evaluations(old_state, new_state) do
+    Enum.reduce(new_state.data.notebook.sections, new_state, fn section, state ->
+      case {Data.get_evaluating_cell_id(old_state.data, section.id),
+            Data.get_evaluating_cell_id(new_state.data, section.id)} do
+        {_, nil} ->
+          # No cell to evaluate
+          state
+
+        {cell_id, cell_id} ->
+          # The evaluating cell hasn't changed, so it must be already evaluating
+          state
+
+        {_, cell_id} ->
+          # The evaluating cell changed, so we trigger the evaluation to reflect that
+          trigger_evaluation(state, cell_id)
+      end
+    end)
+  end
+
+  defp trigger_evaluation(state, cell_id) do
     notebook = state.data.notebook
-    cell_id = Data.get_evaluating_cell_id(state.data)
     {:ok, cell} = Notebook.fetch_cell(notebook, cell_id)
     {:ok, section} = Notebook.fetch_cell_section(notebook, cell_id)
     {state, evaluator} = get_section_evaluator(state, section.id)
