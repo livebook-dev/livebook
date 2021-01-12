@@ -54,7 +54,7 @@ defmodule LiveBook.Evaluator do
   Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
   in which case the corresponding binding and environment are used during evaluation.
 
-  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, response}`.
+  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response}`.
   """
   @spec evaluate_code(t(), pid(), String.t(), ref(), ref()) :: :ok
   def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ :initial) when ref != :initial do
@@ -115,11 +115,11 @@ defmodule LiveBook.Evaluator do
         new_contexts = Map.put(state.contexts, ref, result_context)
         new_state = %{state | contexts: new_contexts}
 
-        send(send_to, {:evaluator_response, {:ok, result}})
+        send(send_to, {:evaluator_response, ref, {:ok, result}})
         {:noreply, new_state}
 
       {:error, kind, error, stacktrace} ->
-        send(send_to, {:evaluator_response, {:error, kind, error, stacktrace}})
+        send(send_to, {:evaluator_response, ref, {:error, kind, error, stacktrace}})
         {:noreply, state}
     end
   end

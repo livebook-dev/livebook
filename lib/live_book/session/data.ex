@@ -245,10 +245,12 @@ defmodule LiveBook.Session.Data do
   defp add_cell_evaluation_response(data, cell, response) do
     {:ok, section} = Notebook.fetch_cell_section(data.notebook, cell.id)
 
-    child_cell_ids =
+    invalidated_cell_ids =
       data.notebook
       |> Notebook.child_cells(cell.id)
       |> Enum.map(& &1.id)
+      # Mark only evaluted cells as stale
+      |> Enum.filter(fn cell_id -> data.cell_infos[cell_id].status == :evaluated end)
 
     data
     |> set!(
@@ -256,7 +258,7 @@ defmodule LiveBook.Session.Data do
       notebook: data.notebook
     )
     |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
-    |> set_cell_infos!(child_cell_ids, status: :stale)
+    |> set_cell_infos!(invalidated_cell_ids, status: :stale)
     |> set_section_info!(section.id, status: :idle)
     |> maybe_evaluate_queued()
   end
