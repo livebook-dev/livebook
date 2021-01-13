@@ -217,13 +217,14 @@ defmodule LiveBook.Session.Data do
   defp queue_cell_evaluation(data, cell) do
     {:ok, section} = Notebook.fetch_cell_section(data.notebook, cell.id)
 
-    fresh_parent_cells =
+    fresh_parent_cells_queue =
       data.notebook
       |> Notebook.parent_cells(cell.id)
       |> Enum.filter(fn parent -> data.cell_infos[parent.id].status == :fresh end)
+      |> Enum.reverse()
 
     data
-    |> reduce(fresh_parent_cells, &queue_cell_evaluation/2)
+    |> reduce(fresh_parent_cells_queue, &queue_cell_evaluation/2)
     |> update_section_info!(section.id, fn section ->
       %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
     end)
