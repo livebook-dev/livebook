@@ -11,10 +11,10 @@ defmodule LiveBook.Notebook.Section do
   alias LiveBook.Notebook.Cell
   alias LiveBook.Utils
 
-  @type section_id :: Utils.id()
+  @type id :: Utils.id()
 
   @type t :: %__MODULE__{
-          id: section_id(),
+          id: id(),
           name: String.t(),
           cells: list(Cell.t()),
           metadata: %{atom() => term()}

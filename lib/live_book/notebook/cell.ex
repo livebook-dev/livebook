@@ -11,12 +11,12 @@ defmodule LiveBook.Notebook.Cell do
 
   alias LiveBook.Utils
 
-  @type cell_id :: Utils.id()
-  @type cell_type :: :markdown | :elixir
+  @type id :: Utils.id()
+  @type type :: :markdown | :elixir
 
   @type t :: %__MODULE__{
-          id: cell_id(),
-          type: cell_type(),
+          id: id(),
+          type: type(),
           source: String.t(),
           # TODO: expand on this
           outputs: list(),
@@ -26,7 +26,7 @@ defmodule LiveBook.Notebook.Cell do
   @doc """
   Returns an empty cell of the given type.
   """
-  @spec new(cell_type()) :: t()
+  @spec new(type()) :: t()
   def new(type) do
     %__MODULE__{
       id: Utils.random_id(),

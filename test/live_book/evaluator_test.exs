@@ -16,44 +16,47 @@ defmodule LiveBook.EvaluatorTest do
       x + y
       """
 
-      result = Evaluator.evaluate_code(evaluator, code, 1)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
-      assert result == {:ok, 3}
+      assert_receive {:evaluator_response, :code_1, {:ok, 3}}
     end
 
     test "given no prev_ref does not see previous evaluation context", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
+      assert_receive {:evaluator_response, :code_1, _}
 
-      result = Evaluator.evaluate_code(evaluator, "x", :code_2)
+      Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
 
-      assert {:error, _kind, %CompileError{description: "undefined function x/0"}, _stacktrace} =
-               result
+      assert_receive {:evaluator_response, :code_2,
+                      {:error, _kind, %CompileError{description: "undefined function x/0"},
+                       _stacktrace}}
     end
 
     test "given prev_ref sees previous evaluation context", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
+      assert_receive {:evaluator_response, :code_1, _}
 
-      result = Evaluator.evaluate_code(evaluator, "x", :code_2, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
 
-      assert result == {:ok, 1}
+      assert_receive {:evaluator_response, :code_2, {:ok, 1}}
     end
 
-    test "given invalid prev_ref raises an error", %{evaluator: evaluator} do
-      assert_raise ArgumentError, fn ->
-        Evaluator.evaluate_code(evaluator, ":ok", :code_1, :code_nonexistent)
-      end
+    test "given invalid prev_ref just uses default context", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, self(), ":hey", :code_1, :code_nonexistent)
+
+      assert_receive {:evaluator_response, :code_1, {:ok, :hey}}
     end
 
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, ~s{IO.puts("hey")}, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), ~s{IO.puts("hey")}, :code_1)
 
-      assert_received {:evaluator_stdout, :code_1, "hey\n"}
+      assert_receive {:evaluator_stdout, :code_1, "hey\n"}
     end
 
     test "using standard input results in an immediate error", %{evaluator: evaluator} do
-      result = Evaluator.evaluate_code(evaluator, ~s{IO.gets("> ")}, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), ~s{IO.gets("> ")}, :code_1)
 
-      assert result == {:ok, {:error, :enotsup}}
+      assert_receive {:evaluator_response, :code_1, {:ok, {:error, :enotsup}}}
     end
 
     test "returns error along with its kind and stacktrace", %{evaluator: evaluator} do
@@ -61,9 +64,10 @@ defmodule LiveBook.EvaluatorTest do
       List.first(%{})
       """
 
-      result = Evaluator.evaluate_code(evaluator, code, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
-      assert {:error, :error, %FunctionClauseError{}, [{List, :first, 1, _location}]} = result
+      assert_receive {:evaluator_response, :code_1,
+                      {:error, :error, %FunctionClauseError{}, [{List, :first, 1, _location}]}}
     end
 
     test "in case of an error returns only the relevant part of stacktrace", %{
@@ -87,25 +91,28 @@ defmodule LiveBook.EvaluatorTest do
       Cat.meow()
       """
 
-      result = Evaluator.evaluate_code(evaluator, code, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
       expected_stacktrace = [
         {Math, :bad_math, 0, [file: 'nofile', line: 3]},
         {Cat, :meow, 0, [file: 'nofile', line: 10]}
       ]
 
-      assert {:error, _kind, _error, ^expected_stacktrace} = result
+      assert_receive {:evaluator_response, :code_1, {:error, _kind, _error, ^expected_stacktrace}}
     end
   end
 
   describe "forget_evaluation/2" do
     test "invalidates the given reference", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
-      Evaluator.forget_evaluation(evaluator, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
+      assert_receive {:evaluator_response, :code_1, _}
 
-      assert_raise ArgumentError, fn ->
-        Evaluator.evaluate_code(evaluator, ":ok", :code_2, :code_1)
-      end
+      Evaluator.forget_evaluation(evaluator, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
+
+      assert_receive {:evaluator_response, :code_2,
+                      {:error, _kind, %CompileError{description: "undefined function x/0"},
+                       _stacktrace}}
     end
   end
 end

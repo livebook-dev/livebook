@@ -11,7 +11,7 @@ defmodule LiveBook.Evaluator do
   # where the evaluation happens, as otherwise we would have to
   # send them between processes, effectively copying potentially large data.
 
-  use GenServer
+  use GenServer, restart: :temporary
 
   alias LiveBook.Evaluator
 
@@ -46,23 +46,19 @@ defmodule LiveBook.Evaluator do
   end
 
   @doc """
-  Synchronously parses and evaluates the given code.
+  Asynchronously parses and evaluates the given code.
 
   Any exceptions are captured, in which case this method returns an error.
 
   The evaluator stores the resulting binding and environment under `ref`.
   Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
   in which case the corresponding binding and environment are used during evaluation.
+
+  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response}`.
   """
-  @spec evaluate_code(t(), String.t(), ref(), ref()) :: evaluation_response()
-  def evaluate_code(evaluator, code, ref, prev_ref \\ :initial) when ref != :initial do
-    response = GenServer.call(evaluator, {:evaluate_code, code, ref, prev_ref}, :infinity)
-
-    if response == :invalid_prev_ref do
-      raise ArgumentError, message: "invalid reference to previous evaluation: #{prev_ref}"
-    end
-
-    response
+  @spec evaluate_code(t(), pid(), String.t(), ref(), ref()) :: :ok
+  def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ :initial) when ref != :initial do
+    GenServer.cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref})
   end
 
   @doc """
@@ -99,29 +95,26 @@ defmodule LiveBook.Evaluator do
   end
 
   @impl true
-  def handle_call({:evaluate_code, code, ref, prev_ref}, {from, _}, state) do
-    case Map.fetch(state.contexts, prev_ref) do
-      :error ->
-        {:reply, :invalid_prev_ref, state}
+  def handle_cast({:evaluate_code, send_to, code, ref, prev_ref}, state) do
+    Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
 
-      {:ok, context} ->
-        Evaluator.IOProxy.configure(state.io_proxy, from, ref)
+    context = Map.get(state.contexts, prev_ref, state.contexts.initial)
 
-        case eval(code, context.binding, context.env) do
-          {:ok, result, binding, env} ->
-            result_context = %{binding: binding, env: env}
-            new_contexts = Map.put(state.contexts, ref, result_context)
-            new_state = %{state | contexts: new_contexts}
+    case eval(code, context.binding, context.env) do
+      {:ok, result, binding, env} ->
+        result_context = %{binding: binding, env: env}
+        new_contexts = Map.put(state.contexts, ref, result_context)
+        new_state = %{state | contexts: new_contexts}
 
-            {:reply, {:ok, result}, new_state}
+        send(send_to, {:evaluator_response, ref, {:ok, result}})
+        {:noreply, new_state}
 
-          {:error, kind, error, stacktrace} ->
-            {:reply, {:error, kind, error, stacktrace}, state}
-        end
+      {:error, kind, error, stacktrace} ->
+        send(send_to, {:evaluator_response, ref, {:error, kind, error, stacktrace}})
+        {:noreply, state}
     end
   end
 
-  @impl true
   def handle_cast({:forget_evaluation, ref}, state) do
     new_state = %{state | contexts: Map.delete(state.contexts, ref)}
     {:noreply, new_state}
