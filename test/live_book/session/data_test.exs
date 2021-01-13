@@ -53,18 +53,6 @@ defmodule LiveBook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns an error for an evaluating section" do
-      data =
-        data_after_operations!([
-          {:insert_section, 0, "s1"},
-          {:insert_cell, "s1", 0, :elixir, "c1"},
-          {:queue_cell_evaluation, "c1"}
-        ])
-
-      operation = {:delete_section, "s1"}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
     test "removes the section from notebook and session info, adds to deleted sections" do
       data =
         data_after_operations!([
@@ -92,16 +80,23 @@ defmodule LiveBook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns an error for an evaluating cell" do
+    test "if the cell is evaluating, cencels section evaluation" do
       data =
         data_after_operations!([
           {:insert_section, 0, "s1"},
           {:insert_cell, "s1", 0, :elixir, "c1"},
-          {:queue_cell_evaluation, "c1"}
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"}
         ])
 
       operation = {:delete_cell, "c1"}
-      assert :error = Data.apply_operation(data, operation)
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{status: :fresh}},
+                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
+              }} = Data.apply_operation(data, operation)
     end
 
     test "removes the cell from notebook and session info, adds to deleted cells" do
@@ -324,7 +319,7 @@ defmodule LiveBook.Session.DataTest do
   describe "apply_operation/2 given :cancel_cell_evaluation" do
     test "returns an error given invalid cell id" do
       data = Data.new()
-      operation = {:queue_cell_evaluation, "nonexistent"}
+      operation = {:cancel_cell_evaluation, "nonexistent"}
       assert :error = Data.apply_operation(data, operation)
     end
 

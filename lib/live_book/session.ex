@@ -155,13 +155,8 @@ defmodule LiveBook.Session do
     operation = {:delete_cell, cell_id}
 
     handle_operation(state, operation, fn new_state ->
-      {:ok, _cell, section} = Notebook.fetch_cell_and_section(state.data, cell_id)
-
-      with {:ok, evaluator} <- fetch_section_evaluator(state, section.id) do
-        Evaluator.forget_evaluation(evaluator, cell_id)
-      end
-
-      new_state
+      forget_cell_evaluation!(state, cell_id)
+      maybe_cancel_evaluations(state, new_state)
     end)
   end
 
@@ -284,6 +279,16 @@ defmodule LiveBook.Session do
     Evaluator.evaluate_code(evaluator, self(), source, cell_id, prev_ref)
 
     state
+  end
+
+  defp forget_cell_evaluation!(state, cell_id) do
+    {:ok, _cell, section} = Notebook.fetch_cell_and_section(state.data, cell_id)
+
+    with {:ok, evaluator} <- fetch_section_evaluator(state, section.id) do
+      Evaluator.forget_evaluation(evaluator, cell_id)
+    end
+
+    :ok
   end
 
   defp fetch_section_evaluator(state, section_id) do

@@ -119,28 +119,32 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:delete_section, id}) do
-    with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
-         # If a cell within this section is being evaluated, it should be cancelled first
-         nil <- data.section_infos[section.id].evaluating_cell_id do
+    with {:ok, section} <- Notebook.fetch_section(data.notebook, id) do
       data
       |> delete_section(section)
       |> wrap_ok()
-    else
-      _ -> :error
     end
   end
 
   def apply_operation(data, {:delete_cell, id}) do
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
-         # If the cell is being evaluated, it should be cancelled first
-         false <- data.cell_infos[cell.id].status == :evaluating do
-      data
-      |> unqueue_cell_evaluation_if_any(cell, section)
-      |> mark_dependent_cells_as_stale(cell)
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+      case data.cell_infos[cell.id].status do
+        :evaluating ->
+          data
+          |> clear_section_evaluation(section)
+
+        :queued ->
+          data
+          |> unqueue_cell_evaluation(cell, section)
+          |> unqueue_dependent_cells_evaluation(cell, section)
+          |> mark_dependent_cells_as_stale(cell)
+
+        _ ->
+          data
+          |> mark_dependent_cells_as_stale(cell)
+      end
       |> delete_cell(cell)
       |> wrap_ok()
-    else
-      _ -> :error
     end
   end
 
@@ -148,10 +152,8 @@ defmodule LiveBook.Session.Data do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :elixir <- cell.type,
          false <- data.cell_infos[cell.id].status in [:queued, :evaluating] do
-      prerequisites_queue = fresh_parent_cells_queue(data, cell)
-
       data
-      |> reduce(prerequisites_queue, &queue_cell_evaluation(&1, &2, section))
+      |> queue_prerequisite_cells_evaluation(cell, section)
       |> queue_cell_evaluation(cell, section)
       |> maybe_evaluate_queued()
       |> wrap_ok()
@@ -188,11 +190,10 @@ defmodule LiveBook.Session.Data do
           |> wrap_ok()
 
         :queued ->
-          queued_child_cells = child_cells_with_status(data, cell, :queued)
-
           data
-          |> unqueue_cell_evaluation_if_any(cell, section)
-          |> reduce(queued_child_cells, &unqueue_cell_evaluation_if_any(&1, &2, section))
+          |> unqueue_cell_evaluation(cell, section)
+          |> unqueue_dependent_cells_evaluation(cell, section)
+          |> mark_dependent_cells_as_stale(cell)
           |> wrap_ok()
 
         _ ->
@@ -251,7 +252,7 @@ defmodule LiveBook.Session.Data do
     |> set_cell_info!(cell.id, status: :queued)
   end
 
-  defp unqueue_cell_evaluation_if_any(data, cell, section) do
+  defp unqueue_cell_evaluation(data, cell, section) do
     data
     |> update_section_info!(section.id, fn section ->
       %{section | evaluation_queue: List.delete(section.evaluation_queue, cell.id)}
@@ -322,6 +323,20 @@ defmodule LiveBook.Session.Data do
     data
     |> set_section_info!(section.id, evaluating_cell_id: nil, evaluation_queue: [])
     |> reduce(section.cells, &set_cell_info!(&1, &2.id, status: :fresh))
+  end
+
+  defp queue_prerequisite_cells_evaluation(data, cell, section) do
+    prerequisites_queue = fresh_parent_cells_queue(data, cell)
+
+    data
+    |> reduce(prerequisites_queue, &queue_cell_evaluation(&1, &2, section))
+  end
+
+  defp unqueue_dependent_cells_evaluation(data, cell, section) do
+    queued_dependent_cells = child_cells_with_status(data, cell, :queued)
+
+    data
+    |> reduce(queued_dependent_cells, &unqueue_cell_evaluation(&1, &2, section))
   end
 
   defp wrap_ok(value), do: {:ok, value}
