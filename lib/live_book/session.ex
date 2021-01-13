@@ -97,6 +97,14 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends cell evaluation cancellation request to the server.
+  """
+  @spec cancel_cell_evaluation(id(), Cell.id()) :: :ok
+  def cancel_cell_evaluation(session_id, cell_id) do
+    GenServer.cast(name(session_id), {:cancel_cell_evaluation, cell_id})
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -153,6 +161,14 @@ defmodule LiveBook.Session do
 
     handle_operation(state, operation, fn new_state ->
       maybe_trigger_evaluations(state, new_state)
+    end)
+  end
+
+  def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
+    operation = {:cancel_cell_evaluation, cell_id}
+
+    handle_operation(state, operation, fn new_state ->
+      maybe_cancel_evaluations(state, new_state)
     end)
   end
 
@@ -223,6 +239,23 @@ defmodule LiveBook.Session do
         {_, cell_id} ->
           # The evaluating cell changed, so we trigger the evaluation to reflect that
           trigger_evaluation(state, cell_id)
+      end
+    end)
+  end
+
+  # Compares sections in the old and new state and if evaluating cell
+  # has been marked as no longer evaluating it stops the section evaluator.
+  defp maybe_cancel_evaluations(old_state, new_state) do
+    Enum.reduce(new_state.data.notebook.sections, new_state, fn section, state ->
+      case {Data.get_evaluating_cell_id(old_state.data, section.id),
+            Data.get_evaluating_cell_id(new_state.data, section.id)} do
+        {cell_id, nil} when cell_id != nil ->
+          # The evaluating cell is no longer evaluating, so we cancel the evaluation
+          delete_section_evaluator(state, section.id)
+
+        _ ->
+          # No evaluation to cancel
+          state
       end
     end)
   end

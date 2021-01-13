@@ -321,6 +321,86 @@ defmodule LiveBook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :cancel_cell_evaluation" do
+    test "returns an error given invalid cell id" do
+      data = Data.new()
+      operation = {:queue_cell_evaluation, "nonexistent"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error for an evaluated cell" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:queue_cell_evaluation, "c1"},
+          {:add_cell_evaluation_response, "c1", {:ok, [1, 2, 3]}}
+        ])
+
+      operation = {:cancel_cell_evaluation, "c1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "if the cell is evaluating, clears the corresponding section evaluation and the queue" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"}
+        ])
+
+      operation = {:cancel_cell_evaluation, "c1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{status: :fresh}, "c2" => %{status: :fresh}},
+                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
+              }} = Data.apply_operation(data, operation)
+    end
+
+    test "if the cell is queued, unqueues it" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"}
+        ])
+
+      operation = {:cancel_cell_evaluation, "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{status: :stale}},
+                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
+              }} = Data.apply_operation(data, operation)
+    end
+
+    test "if the cell is queued, unqueues dependent cells that are also queued" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:insert_cell, "s1", 2, :elixir, "c3"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"},
+          {:queue_cell_evaluation, "c3"}
+        ])
+
+      operation = {:cancel_cell_evaluation, "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c3" => %{status: :stale}},
+                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
+              }} = Data.apply_operation(data, operation)
+    end
+  end
+
   defp data_after_operations!(operations) do
     Enum.reduce(operations, Data.new(), fn operation, data ->
       case Data.apply_operation(data, operation) do

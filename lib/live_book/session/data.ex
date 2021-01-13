@@ -60,6 +60,7 @@ defmodule LiveBook.Session.Data do
           | {:queue_cell_evaluation, Cell.id()}
           | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
           | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
+          | {:cancel_cell_evaluation, Cell.id()}
 
   @doc """
   Returns a fresh notebook session state.
@@ -178,6 +179,28 @@ defmodule LiveBook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:cancel_cell_evaluation, id}) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+      case data.cell_infos[cell.id].status do
+        :evaluating ->
+          data
+          |> clear_section_evaluation(section)
+          |> wrap_ok()
+
+        :queued ->
+          queued_child_cells = child_cells_with_status(data, cell, :queued)
+
+          data
+          |> unqueue_cell_evaluation_if_any(cell, section)
+          |> reduce(queued_child_cells, &unqueue_cell_evaluation_if_any(&1, &2, section))
+          |> wrap_ok()
+
+        _ ->
+          :error
+      end
+    end
+  end
+
   # ===
 
   defp insert_section(data, index, section) do
@@ -259,7 +282,7 @@ defmodule LiveBook.Session.Data do
   end
 
   defp mark_dependent_cells_as_stale(data, cell) do
-    invalidated_cells = evaluated_child_cells(data, cell)
+    invalidated_cells = child_cells_with_status(data, cell, :evaluated)
 
     data
     |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, status: :stale))
@@ -268,15 +291,14 @@ defmodule LiveBook.Session.Data do
   defp fresh_parent_cells_queue(data, cell) do
     data.notebook
     |> Notebook.parent_cells(cell.id)
-    |> Enum.filter(fn parent -> data.cell_infos[parent.id].status == :fresh end)
+    |> Enum.take_while(fn parent -> data.cell_infos[parent.id].status == :fresh end)
     |> Enum.reverse()
   end
 
-  defp evaluated_child_cells(data, cell) do
+  defp child_cells_with_status(data, cell, status) do
     data.notebook
     |> Notebook.child_cells(cell.id)
-    # Mark only evaluted cells as stale
-    |> Enum.filter(fn cell -> data.cell_infos[cell.id].status == :evaluated end)
+    |> Enum.filter(fn cell -> data.cell_infos[cell.id].status == status end)
   end
 
   # If there are idle sections with non-empty evaluation queue,
@@ -294,6 +316,12 @@ defmodule LiveBook.Session.Data do
           data
       end
     end)
+  end
+
+  defp clear_section_evaluation(data, section) do
+    data
+    |> set_section_info!(section.id, evaluating_cell_id: nil, evaluation_queue: [])
+    |> reduce(section.cells, &set_cell_info!(&1, &2.id, status: :fresh))
   end
 
   defp wrap_ok(value), do: {:ok, value}
