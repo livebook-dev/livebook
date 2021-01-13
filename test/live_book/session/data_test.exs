@@ -123,6 +123,24 @@ defmodule LiveBook.Session.DataTest do
                 deleted_cells: [%{id: "c1"}]
               }} = Data.apply_operation(data, operation)
     end
+
+    test "unqueues the cell if it's queued for evaluation" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"}
+        ])
+
+      operation = {:delete_cell, "c2"}
+
+      assert {:ok,
+              %{
+                section_infos: %{"s1" => %{evaluation_queue: []}}
+              }} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :queue_cell_evaluation" do
@@ -191,11 +209,16 @@ defmodule LiveBook.Session.DataTest do
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_stdout" do
-    # TODO assert against output being updated once we do so
+    test "update the cell output" do
+      # TODO assert against output being updated once we do so
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_response" do
-    # TODO assert against output being updated once we do so
+    test "update the cell output" do
+      # TODO assert against output being updated once we do so
+    end
+
     test "marks the cell as evaluated" do
       data =
         data_after_operations!([
@@ -279,8 +302,10 @@ defmodule LiveBook.Session.DataTest do
 
   defp data_after_operations!(operations) do
     Enum.reduce(operations, Data.new(), fn operation, data ->
-      {:ok, data} = Data.apply_operation(data, operation)
-      data
+      case Data.apply_operation(data, operation) do
+        {:ok, data} -> data
+        :error -> raise "failed to set up test data, operation #{inspect(operation)} returned an error"
+      end
     end)
   end
 end

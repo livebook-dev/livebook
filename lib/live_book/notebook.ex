@@ -48,23 +48,18 @@ defmodule LiveBook.Notebook do
   end
 
   @doc """
-  Finds notebook section including cell with the given id.
+  Finds notebook cell by `id` and the corresponding section.
   """
-  @spec fetch_cell_section(t(), Cell.id()) :: {:ok, Section.t()} | :error
-  def fetch_cell_section(notebook, cell_id) do
-    Enum.find_value(notebook.sections, :error, fn section ->
-      Enum.any?(section.cells, &(&1.id == cell_id)) && {:ok, section}
-    end)
-  end
-
-  @doc """
-  Finds notebook cell by `id`.
-  """
-  @spec fetch_cell(t(), Cell.section_id()) :: {:ok, Cell.t()} | :error
-  def fetch_cell(notebook, cell_id) do
-    for(section <- notebook.sections, cell <- section.cells, cell.id == cell_id, do: cell)
+  @spec fetch_cell_and_section(t(), Cell.section_id()) :: {:ok, Cell.t(), Section.t()} | :error
+  def fetch_cell_and_section(notebook, cell_id) do
+    for(
+      section <- notebook.sections,
+      cell <- section.cells,
+      cell.id == cell_id,
+      do: {cell, section}
+    )
     |> case do
-      [cell] -> {:ok, cell}
+      [{cell, section}] -> {:ok, cell, section}
       [] -> :error
     end
   end
@@ -144,7 +139,7 @@ defmodule LiveBook.Notebook do
   """
   @spec parent_cells(t(), Cell.id()) :: list(Cell.t())
   def parent_cells(notebook, cell_id) do
-    with {:ok, section} <- LiveBook.Notebook.fetch_cell_section(notebook, cell_id) do
+    with {:ok, _, section} <- LiveBook.Notebook.fetch_cell_and_section(notebook, cell_id) do
       # A cell depends on all previous cells within the same section.
       section.cells
       |> Enum.filter(&(&1.type == :elixir))
@@ -162,7 +157,7 @@ defmodule LiveBook.Notebook do
   """
   @spec child_cells(t(), Cell.id()) :: list(Cell.t())
   def child_cells(notebook, cell_id) do
-    with {:ok, section} <- LiveBook.Notebook.fetch_cell_section(notebook, cell_id) do
+    with {:ok, _, section} <- LiveBook.Notebook.fetch_cell_and_section(notebook, cell_id) do
       # A cell affects all the cells below it within the same section.
       section.cells
       |> Enum.filter(&(&1.type == :elixir))

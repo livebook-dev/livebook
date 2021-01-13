@@ -229,8 +229,7 @@ defmodule LiveBook.Session do
 
   defp trigger_evaluation(state, cell_id) do
     notebook = state.data.notebook
-    {:ok, cell} = Notebook.fetch_cell(notebook, cell_id)
-    {:ok, section} = Notebook.fetch_cell_section(notebook, cell_id)
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(notebook, cell_id)
     {state, evaluator} = get_section_evaluator(state, section.id)
     %{source: source} = cell
 

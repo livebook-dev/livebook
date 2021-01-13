@@ -130,10 +130,11 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:delete_cell, id}) do
-    with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id),
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          # If the cell is being evaluated, it should be cancelled first
          false <- data.cell_infos[cell.id].status == :evaluating do
       data
+      |> unqueue_cell_evaluation_if_any(cell, section)
       |> delete_cell(cell)
       |> wrap_ok()
     else
@@ -142,11 +143,15 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:queue_cell_evaluation, id}) do
-    with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id),
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :elixir <- cell.type,
          false <- data.cell_infos[cell.id].status in [:queued, :evaluating] do
+      prerequisites_queue = fresh_parent_cells_queue(data, cell)
+
       data
-      |> queue_cell_evaluation(cell)
+      |> reduce(prerequisites_queue, &queue_cell_evaluation(&1, &2, section))
+      |> queue_cell_evaluation(cell, section)
+      |> maybe_evaluate_queued()
       |> wrap_ok()
     else
       _ -> :error
@@ -154,7 +159,7 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:add_cell_evaluation_stdout, id, string}) do
-    with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> add_cell_evaluation_stdout(cell, string)
       |> wrap_ok()
@@ -162,17 +167,16 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:add_cell_evaluation_response, id, response}) do
-    with {:ok, cell} <- Notebook.fetch_cell(data.notebook, id) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> add_cell_evaluation_response(cell, response)
+      |> finish_cell_evaluation(cell, section)
+      |> maybe_evaluate_queued()
       |> wrap_ok()
     end
   end
 
-  # === Actual implementation of each operation ===
-  #
-  # The above definitions validate data, so the implementations
-  # below are focused on making the proper changes.
+  # ===
 
   defp insert_section(data, index, section) do
     data
@@ -214,25 +218,23 @@ defmodule LiveBook.Session.Data do
     |> set!(cell_infos: Map.delete(data.cell_infos, cell.id))
   end
 
-  defp queue_cell_evaluation(data, cell) do
-    {:ok, section} = Notebook.fetch_cell_section(data.notebook, cell.id)
-
-    fresh_parent_cells_queue =
-      data.notebook
-      |> Notebook.parent_cells(cell.id)
-      |> Enum.filter(fn parent -> data.cell_infos[parent.id].status == :fresh end)
-      |> Enum.reverse()
-
+  defp queue_cell_evaluation(data, cell, section) do
     data
-    |> reduce(fresh_parent_cells_queue, &queue_cell_evaluation/2)
     |> update_section_info!(section.id, fn section ->
       %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
     end)
     |> set_cell_info!(cell.id, status: :queued)
-    |> maybe_evaluate_queued()
   end
 
-  defp add_cell_evaluation_stdout(data, cell, string) do
+  defp unqueue_cell_evaluation_if_any(data, cell, section) do
+    data
+    |> update_section_info!(section.id, fn section ->
+      %{section | evaluation_queue: List.delete(section.evaluation_queue, cell.id)}
+    end)
+    |> set_cell_info!(cell.id, status: :stale)
+  end
+
+  defp add_cell_evaluation_stdout(data, _cell, _string) do
     data
     |> set!(
       # TODO: add stdout to cell outputs
@@ -240,28 +242,36 @@ defmodule LiveBook.Session.Data do
     )
   end
 
-  defp add_cell_evaluation_response(data, cell, response) do
-    {:ok, section} = Notebook.fetch_cell_section(data.notebook, cell.id)
-
-    invalidated_cell_ids =
-      data.notebook
-      |> Notebook.child_cells(cell.id)
-      |> Enum.map(& &1.id)
-      # Mark only evaluted cells as stale
-      |> Enum.filter(fn cell_id -> data.cell_infos[cell_id].status == :evaluated end)
-
+  defp add_cell_evaluation_response(data, _cell, _response) do
     data
     |> set!(
       # TODO: add result to outputs
       notebook: data.notebook
     )
-    |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
-    |> set_cell_infos!(invalidated_cell_ids, status: :stale)
-    |> set_section_info!(section.id, evaluating_cell_id: nil)
-    |> maybe_evaluate_queued()
   end
 
-  # ===
+  defp finish_cell_evaluation(data, cell, section) do
+    invalidated_cells = evaluated_child_cells(data, cell)
+
+    data
+    |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
+    |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, status: :stale))
+    |> set_section_info!(section.id, evaluating_cell_id: nil)
+  end
+
+  defp fresh_parent_cells_queue(data, cell) do
+    data.notebook
+    |> Notebook.parent_cells(cell.id)
+    |> Enum.filter(fn parent -> data.cell_infos[parent.id].status == :fresh end)
+    |> Enum.reverse()
+  end
+
+  defp evaluated_child_cells(data, cell) do
+    data.notebook
+    |> Notebook.child_cells(cell.id)
+    # Mark only evaluted cells as stale
+    |> Enum.filter(fn cell -> data.cell_infos[cell.id].status == :evaluated end)
+  end
 
   # If there are idle sections with non-empty evaluation queue,
   # the next queued cell for evaluation.
@@ -315,10 +325,6 @@ defmodule LiveBook.Session.Data do
   defp update_cell_info!(data, cell_id, fun) do
     cell_infos = Map.update!(data.cell_infos, cell_id, fun)
     set!(data, cell_infos: cell_infos)
-  end
-
-  defp set_cell_infos!(data, cell_ids, changes) do
-    Enum.reduce(cell_ids, data, &set_cell_info!(&2, &1, changes))
   end
 
   defp set_section_info!(data, section_id, changes) do
