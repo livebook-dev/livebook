@@ -61,9 +61,8 @@ defmodule LiveBook.SessionTest do
       assert_receive {:operation, {:queue_cell_evaluation, ^cell_id}}
     end
 
-    test "triggers evaluation and sends update operation once it finishes", %{
-      session_id: session_id
-    } do
+    test "triggers evaluation and sends update operation once it finishes",
+         %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)

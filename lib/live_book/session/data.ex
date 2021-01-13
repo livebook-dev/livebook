@@ -135,6 +135,7 @@ defmodule LiveBook.Session.Data do
          false <- data.cell_infos[cell.id].status == :evaluating do
       data
       |> unqueue_cell_evaluation_if_any(cell, section)
+      |> mark_dependent_cells_as_stale(cell)
       |> delete_cell(cell)
       |> wrap_ok()
     else
@@ -171,6 +172,7 @@ defmodule LiveBook.Session.Data do
       data
       |> add_cell_evaluation_response(cell, response)
       |> finish_cell_evaluation(cell, section)
+      |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
       |> wrap_ok()
     end
@@ -251,12 +253,16 @@ defmodule LiveBook.Session.Data do
   end
 
   defp finish_cell_evaluation(data, cell, section) do
+    data
+    |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
+    |> set_section_info!(section.id, evaluating_cell_id: nil)
+  end
+
+  defp mark_dependent_cells_as_stale(data, cell) do
     invalidated_cells = evaluated_child_cells(data, cell)
 
     data
-    |> set_cell_info!(cell.id, status: :evaluated, evaluated_at: DateTime.utc_now())
     |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, status: :stale))
-    |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
 
   defp fresh_parent_cells_queue(data, cell) do

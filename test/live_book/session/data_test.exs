@@ -141,6 +141,27 @@ defmodule LiveBook.Session.DataTest do
                 section_infos: %{"s1" => %{evaluation_queue: []}}
               }} = Data.apply_operation(data, operation)
     end
+
+    test "marks evaluated child cells as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          # Evaluate both cells
+          {:queue_cell_evaluation, "c1"},
+          {:add_cell_evaluation_response, "c1", {:ok, [1, 2, 3]}},
+          {:queue_cell_evaluation, "c2"},
+          {:add_cell_evaluation_response, "c2", {:ok, [1, 2, 3]}}
+        ])
+
+      operation = {:delete_cell, "c1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{status: :stale}}
+              }} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :queue_cell_evaluation" do
@@ -303,8 +324,11 @@ defmodule LiveBook.Session.DataTest do
   defp data_after_operations!(operations) do
     Enum.reduce(operations, Data.new(), fn operation, data ->
       case Data.apply_operation(data, operation) do
-        {:ok, data} -> data
-        :error -> raise "failed to set up test data, operation #{inspect(operation)} returned an error"
+        {:ok, data} ->
+          data
+
+        :error ->
+          raise "failed to set up test data, operation #{inspect(operation)} returned an error"
       end
     end)
   end
