@@ -153,7 +153,16 @@ defmodule LiveBook.Session do
 
   def handle_cast({:delete_cell, cell_id}, state) do
     operation = {:delete_cell, cell_id}
-    handle_operation(state, operation)
+
+    handle_operation(state, operation, fn new_state ->
+      {:ok, _cell, section} = Notebook.fetch_cell_and_section(state.data, cell_id)
+
+      with {:ok, evaluator} <- fetch_section_evaluator(state, section.id) do
+        Evaluator.forget_evaluation(evaluator, cell_id)
+      end
+
+      new_state
+    end)
   end
 
   def handle_cast({:queue_cell_evaluation, cell_id}, state) do
@@ -277,8 +286,12 @@ defmodule LiveBook.Session do
     state
   end
 
+  defp fetch_section_evaluator(state, section_id) do
+    Map.fetch(state.evaluators, section_id)
+  end
+
   defp get_section_evaluator(state, section_id) do
-    case Map.fetch(state.evaluators, section_id) do
+    case fetch_section_evaluator(state, section_id) do
       {:ok, evaluator} ->
         {state, evaluator}
 
@@ -290,7 +303,7 @@ defmodule LiveBook.Session do
   end
 
   defp delete_section_evaluator(state, section_id) do
-    case Map.fetch(state.evaluators, section_id) do
+    case fetch_section_evaluator(state, section_id) do
       {:ok, evaluator} ->
         EvaluatorSupervisor.terminate_evaluator(evaluator)
         %{state | evaluators: Map.delete(state.evaluators, section_id)}
