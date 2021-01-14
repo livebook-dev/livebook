@@ -15,7 +15,7 @@ defmodule LiveBook.Session.DataTest do
                   sections: [%{id: "s1"}]
                 },
                 section_infos: %{"s1" => _}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
@@ -42,7 +42,7 @@ defmodule LiveBook.Session.DataTest do
                   ]
                 },
                 cell_infos: %{"c1" => _}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
@@ -69,7 +69,7 @@ defmodule LiveBook.Session.DataTest do
                 },
                 section_infos: ^empty_map,
                 deleted_sections: [%{id: "s1"}]
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
@@ -96,7 +96,7 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c2" => %{status: :fresh}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, _actions} = Data.apply_operation(data, operation)
     end
 
     test "removes the cell from notebook and session info, adds to deleted cells" do
@@ -116,7 +116,7 @@ defmodule LiveBook.Session.DataTest do
                 },
                 cell_infos: ^empty_map,
                 deleted_cells: [%{id: "c1"}]
-              }} = Data.apply_operation(data, operation)
+              }, _actions} = Data.apply_operation(data, operation)
     end
 
     test "unqueues the cell if it's queued for evaluation" do
@@ -134,7 +134,7 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 section_infos: %{"s1" => %{evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, _actions} = Data.apply_operation(data, operation)
     end
 
     test "marks evaluated child cells as stale" do
@@ -155,7 +155,20 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{status: :stale}}
-              }} = Data.apply_operation(data, operation)
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "returns forget evaluation action" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      operation = {:delete_cell, "c1"}
+
+      assert {:ok, _data, [{:forget_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -202,7 +215,20 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c1" => %{status: :evaluating}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "returns start evaluation action if the corresponding section is idle" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      operation = {:queue_cell_evaluation, "c1"}
+
+      assert {:ok, _data, [{:start_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
 
     test "marks the cell as queued if the corresponding section is already evaluating" do
@@ -220,7 +246,7 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c2" => %{status: :queued}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
@@ -250,7 +276,7 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c1" => %{status: :evaluated}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
 
     test "marks next queued cell in this section as evaluating if there is one" do
@@ -269,7 +295,9 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c2" => %{status: :evaluating}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              },
+              [{:start_evaluation, %{id: "c2"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
 
     test "if parent cells are not executed, marks them for evaluation first" do
@@ -289,7 +317,9 @@ defmodule LiveBook.Session.DataTest do
                   "c2" => %{status: :queued}
                 },
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
-              }} = Data.apply_operation(data, operation)
+              },
+              [{:start_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
 
     test "marks evaluated child cells as stale" do
@@ -312,7 +342,7 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{status: :stale}}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
@@ -352,7 +382,23 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c1" => %{status: :fresh}, "c2" => %{status: :fresh}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "if the cell is evaluating, returns stop evaluation action" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"}
+        ])
+
+      operation = {:cancel_cell_evaluation, "c1"}
+
+      assert {:ok, _data, [{:stop_evaluation, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
 
     test "if the cell is queued, unqueues it" do
@@ -371,7 +417,7 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c2" => %{status: :stale}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
 
     test "if the cell is queued, unqueues dependent cells that are also queued" do
@@ -392,14 +438,14 @@ defmodule LiveBook.Session.DataTest do
               %{
                 cell_infos: %{"c3" => %{status: :stale}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
-              }} = Data.apply_operation(data, operation)
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
   defp data_after_operations!(operations) do
     Enum.reduce(operations, Data.new(), fn operation, data ->
       case Data.apply_operation(data, operation) do
-        {:ok, data} ->
+        {:ok, data, _action} ->
           data
 
         :error ->
