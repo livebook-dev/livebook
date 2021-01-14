@@ -97,6 +97,14 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends cell evaluation cancellation request to the server.
+  """
+  @spec cancel_cell_evaluation(id(), Cell.id()) :: :ok
+  def cancel_cell_evaluation(session_id, cell_id) do
+    GenServer.cast(name(session_id), {:cancel_cell_evaluation, cell_id})
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -137,10 +145,7 @@ defmodule LiveBook.Session do
 
   def handle_cast({:delete_section, section_id}, state) do
     operation = {:delete_section, section_id}
-
-    handle_operation(state, operation, fn new_state ->
-      delete_section_evaluator(new_state, section_id)
-    end)
+    handle_operation(state, operation)
   end
 
   def handle_cast({:delete_cell, cell_id}, state) do
@@ -150,10 +155,12 @@ defmodule LiveBook.Session do
 
   def handle_cast({:queue_cell_evaluation, cell_id}, state) do
     operation = {:queue_cell_evaluation, cell_id}
+    handle_operation(state, operation)
+  end
 
-    handle_operation(state, operation, fn new_state ->
-      maybe_trigger_evaluations(state, new_state)
-    end)
+  def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
+    operation = {:cancel_cell_evaluation, cell_id}
+    handle_operation(state, operation)
   end
 
   @impl true
@@ -168,10 +175,7 @@ defmodule LiveBook.Session do
 
   def handle_info({:evaluator_response, cell_id, response}, state) do
     operation = {:add_cell_evaluation_response, cell_id, response}
-
-    handle_operation(state, operation, fn new_state ->
-      maybe_trigger_evaluations(state, new_state)
-    end)
+    handle_operation(state, operation)
   end
 
   # ---
@@ -181,24 +185,40 @@ defmodule LiveBook.Session do
   #   * broadcasts the operation to all clients immediately,
   #     so that they can update their local `Data`
   #   * applies the operation to own local `Data`
-  #   * optionally performs a relevant task (e.g. starts cell evaluation),
+  #   * if necessary, performs the relevant tasks (e.g. starts cell evaluation),
   #     to reflect the new `Data`
   #
   defp handle_operation(state, operation) do
-    handle_operation(state, operation, fn state -> state end)
-  end
-
-  defp handle_operation(state, operation, handle_new_state) do
     broadcast_operation(state.session_id, operation)
 
     case Data.apply_operation(state.data, operation) do
-      {:ok, new_data} ->
+      {:ok, new_data, actions} ->
         new_state = %{state | data: new_data}
-        {:noreply, handle_new_state.(new_state)}
+        {:noreply, handle_actions(new_state, actions)}
 
       :error ->
         {:noreply, state}
     end
+  end
+
+  defp handle_actions(state, actions) do
+    Enum.reduce(actions, state, &handle_action(&2, &1))
+  end
+
+  defp handle_action(state, {:start_evaluation, cell, section}) do
+    trigger_evaluation(state, cell, section)
+  end
+
+  defp handle_action(state, {:stop_evaluation, section}) do
+    delete_section_evaluator(state, section.id)
+  end
+
+  defp handle_action(state, {:forget_evaluation, cell, section}) do
+    with {:ok, evaluator} <- fetch_section_evaluator(state, section.id) do
+      Evaluator.forget_evaluation(evaluator, cell.id)
+    end
+
+    state
   end
 
   defp broadcast_operation(session_id, operation) do
@@ -206,46 +226,26 @@ defmodule LiveBook.Session do
     Phoenix.PubSub.broadcast(LiveBook.PubSub, "sessions:#{session_id}", message)
   end
 
-  # Compares sections in the old and new state and if a new cell
-  # has been marked as evaluating it triggers the actual evaluation task.
-  defp maybe_trigger_evaluations(old_state, new_state) do
-    Enum.reduce(new_state.data.notebook.sections, new_state, fn section, state ->
-      case {Data.get_evaluating_cell_id(old_state.data, section.id),
-            Data.get_evaluating_cell_id(new_state.data, section.id)} do
-        {_, nil} ->
-          # No cell to evaluate
-          state
-
-        {cell_id, cell_id} ->
-          # The evaluating cell hasn't changed, so it must be already evaluating
-          state
-
-        {_, cell_id} ->
-          # The evaluating cell changed, so we trigger the evaluation to reflect that
-          trigger_evaluation(state, cell_id)
-      end
-    end)
-  end
-
-  defp trigger_evaluation(state, cell_id) do
-    notebook = state.data.notebook
-    {:ok, cell, section} = Notebook.fetch_cell_and_section(notebook, cell_id)
+  defp trigger_evaluation(state, cell, section) do
     {state, evaluator} = get_section_evaluator(state, section.id)
-    %{source: source} = cell
 
     prev_ref =
-      case Notebook.parent_cells(notebook, cell_id) do
+      case Notebook.parent_cells(state.data.notebook, cell.id) do
         [parent | _] -> parent.id
         [] -> :initial
       end
 
-    Evaluator.evaluate_code(evaluator, self(), source, cell_id, prev_ref)
+    Evaluator.evaluate_code(evaluator, self(), cell.source, cell.id, prev_ref)
 
     state
   end
 
+  defp fetch_section_evaluator(state, section_id) do
+    Map.fetch(state.evaluators, section_id)
+  end
+
   defp get_section_evaluator(state, section_id) do
-    case Map.fetch(state.evaluators, section_id) do
+    case fetch_section_evaluator(state, section_id) do
       {:ok, evaluator} ->
         {state, evaluator}
 
@@ -257,7 +257,7 @@ defmodule LiveBook.Session do
   end
 
   defp delete_section_evaluator(state, section_id) do
-    case Map.fetch(state.evaluators, section_id) do
+    case fetch_section_evaluator(state, section_id) do
       {:ok, evaluator} ->
         EvaluatorSupervisor.terminate_evaluator(evaluator)
         %{state | evaluators: Map.delete(state.evaluators, section_id)}
