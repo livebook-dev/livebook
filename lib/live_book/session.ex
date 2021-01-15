@@ -56,6 +56,17 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Returns the current session data.
+
+  The client can then keep data in sync with the server by
+  by subscribing to the `sessions:id` topic and receiving operations to apply.
+  """
+  @spec get_data(id()) :: Data.t()
+  def get_data(session_id) do
+    GenServer.call(name(session_id), :get_data)
+  end
+
+  @doc """
   Asynchronously sends section insertion request to the server.
   """
   @spec insert_section(id(), non_neg_integer()) :: :ok
@@ -123,6 +134,11 @@ defmodule LiveBook.Session do
        evaluators: %{},
        client_pids: []
      }}
+  end
+
+  @impl true
+  def handle_call(:get_data, _from, state) do
+    {:reply, state.data, state}
   end
 
   @impl true
