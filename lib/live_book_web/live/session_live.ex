@@ -13,16 +13,25 @@ defmodule LiveBookWeb.SessionLive do
 
       data = Session.get_data(session_id)
 
-      {:ok,
-       assign(socket,
-         session_id: session_id,
-         data: data,
-         selected_section_id: nil,
-         focused_cell_id: nil
-       )}
+      {:ok, assign(socket, initial_assigns(session_id, data))}
     else
       {:ok, redirect(socket, to: Routes.live_path(socket, LiveBookWeb.SessionsLive))}
     end
+  end
+
+  defp initial_assigns(session_id, data) do
+    first_section_id =
+      case data.notebook.sections do
+        [section | _] -> section.id
+        [] -> nil
+      end
+
+    %{
+      session_id: session_id,
+      data: data,
+      selected_section_id: first_section_id,
+      focused_cell_id: nil
+    }
   end
 
   @impl true
@@ -39,7 +48,9 @@ defmodule LiveBookWeb.SessionLive do
             class="p-8 text-2xl"><%= @data.notebook.name %></h1>
         <div class="flex flex-col space-y-2 pl-4">
           <%= for section <- @data.notebook.sections do %>
-            <div phx-click="select_section" phx-value-section_id="<%= section.id %>" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-500 hover:text-current">
+            <div phx-click="select_section"
+                 phx-value-section_id="<%= section.id %>"
+                 class="py-2 px-4 rounded-l-md cursor-pointer text-gray-500 hover:text-current">
               <span>
                 <%= section.name %>
               </span>
