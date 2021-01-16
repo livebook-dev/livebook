@@ -4,3 +4,14 @@
 
 @import "../node_modules/nprogress/nprogress.css";
 @import "./live_view.css";
+
+/* Remove the default outline on focused elements */
+:focus,
+button:focus {
+  outline: none;
+}
+
+/* Hide Phoenix live reload frame */
+iframe[hidden] {
+  display: none;
+}
