@@ -116,6 +116,22 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends notebook name update request to the server.
+  """
+  @spec set_notebook_name(id(), String.t()) :: :ok
+  def set_notebook_name(session_id, name) do
+    GenServer.cast(name(session_id), {:set_notebook_name, name})
+  end
+
+  @doc """
+  Asynchronously sends section name update request to the server.
+  """
+  @spec set_section_name(id(), Section.id(), String.t()) :: :ok
+  def set_section_name(session_id, section_id, name) do
+    GenServer.cast(name(session_id), {:set_section_name, section_id, name})
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -176,6 +192,16 @@ defmodule LiveBook.Session do
 
   def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
     operation = {:cancel_cell_evaluation, cell_id}
+    handle_operation(state, operation)
+  end
+
+  def handle_cast({:set_notebook_name, name}, state) do
+    operation = {:set_notebook_name, name}
+    handle_operation(state, operation)
+  end
+
+  def handle_cast({:set_section_name, section_id, name}, state) do
+    operation = {:set_section_name, section_id, name}
     handle_operation(state, operation)
   end
 

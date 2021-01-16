@@ -84,6 +84,26 @@ defmodule LiveBook.SessionTest do
     end
   end
 
+  describe "set_notebook_name/2" do
+    test "sends a notebook name update operation to subscribers", %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      Session.set_notebook_name(session_id, "Cat's guide to life")
+      assert_receive {:operation, {:set_notebook_name, "Cat's guide to life"}}
+    end
+  end
+
+  describe "set_section_name/3" do
+    test "sends a section name update operation to subscribers", %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      {section_id, _cell_id} = insert_section_and_cell(session_id)
+
+      Session.set_section_name(session_id, section_id, "Chapter 1")
+      assert_receive {:operation, {:set_section_name, section_id, "Chapter 1"}}
+    end
+  end
+
   defp insert_section_and_cell(session_id) do
     Session.insert_section(session_id, 0)
     assert_receive {:operation, {:insert_section, 0, section_id}}

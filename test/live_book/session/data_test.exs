@@ -447,6 +447,37 @@ defmodule LiveBook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_notebook_name" do
+    test "updates notebook name with the given string" do
+      data = Data.new()
+
+      operation = {:set_notebook_name, "Cat's guide to life"}
+
+      assert {:ok, %{notebook: %{name: "Cat's guide to life"}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_section_name" do
+    test "returns an error given invalid cell id" do
+      data = Data.new()
+      operation = {:set_section_name, "nonexistent", "Chapter 1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates section name with the given string" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"}
+        ])
+
+      operation = {:set_section_name, "s1", "Cat's guide to life"}
+
+      assert {:ok, %{notebook: %{sections: [%{name: "Cat's guide to life"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   defp data_after_operations!(operations) do
     Enum.reduce(operations, Data.new(), fn operation, data ->
       case Data.apply_operation(data, operation) do

@@ -13,7 +13,13 @@ defmodule LiveBookWeb.SessionLive do
 
       data = Session.get_data(session_id)
 
-      {:ok, assign(socket, session_id: session_id, data: data, selected_section_id: nil, focused_cell_id: nil)}
+      {:ok,
+       assign(socket,
+         session_id: session_id,
+         data: data,
+         selected_section_id: nil,
+         focused_cell_id: nil
+       )}
     else
       {:ok, redirect(socket, to: Routes.live_path(socket, LiveBookWeb.SessionsLive))}
     end
