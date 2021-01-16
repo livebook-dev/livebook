@@ -71,7 +71,6 @@ defmodule LiveBookWeb.SessionLive do
         <div class="max-w-screen-lg w-full mx-auto">
           <%= for section <- @data.notebook.sections do %>
             <%= live_component @socket, LiveBookWeb.Section,
-                               id: "section-#{section.id}",
                                section: section,
                                selected: section.id == @selected_section_id,
                                focused_cell_id: @focused_cell_id %>
@@ -137,7 +136,10 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   defp normalize_name(name) do
-    case String.trim(name) do
+    name
+    |> String.trim()
+    |> String.replace(~r/\s+/, " ")
+    |> case do
       "" -> "Untitled"
       name -> name
     end
