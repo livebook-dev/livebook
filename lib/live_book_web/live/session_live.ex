@@ -30,7 +30,13 @@ defmodule LiveBookWeb.SessionLive do
     ~L"""
     <div class="flex flex-grow max-h-full">
       <div class="w-1/5 bg-gray-100 border-r-2 border-gray-200">
-        <h1 class="p-8 text-2xl" contenteditable spellcheck="false"><%= @data.notebook.name %></h1>
+        <h1 id="notebook-name"
+            contenteditable
+            spellcheck="false"
+            phx-blur="set_notebook_name"
+            phx-hook="ContentEditable"
+            data-update-attribute="phx-value-name"
+            class="p-8 text-2xl"><%= @data.notebook.name %></h1>
         <div class="flex flex-col space-y-2 pl-4">
           <%= for section <- @data.notebook.sections do %>
             <div phx-click="select_section" phx-value-section_id="<%= section.id %>" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-500 hover:text-current">
@@ -100,6 +106,27 @@ defmodule LiveBookWeb.SessionLive do
 
   def handle_event("focus_cell", %{"cell_id" => cell_id}, socket) do
     {:noreply, assign(socket, focused_cell_id: cell_id)}
+  end
+
+  def handle_event("set_notebook_name", %{"name" => name}, socket) do
+    name = normalize_name(name)
+    Session.set_notebook_name(socket.assigns.session_id, name)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("set_section_name", %{"section_id" => section_id, "name" => name}, socket) do
+    name = normalize_name(name)
+    Session.set_section_name(socket.assigns.session_id, section_id, name)
+
+    {:noreply, socket}
+  end
+
+  defp normalize_name(name) do
+    case String.trim(name) do
+      "" -> "Untitled"
+      name -> name
+    end
   end
 
   @impl true
