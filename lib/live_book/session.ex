@@ -46,20 +46,21 @@ defmodule LiveBook.Session do
   end
 
   @doc """
-  Registers a session client, so that it receives updates from the server.
+  Registers a session client, so that the session is aware of it.
 
   The client process is automatically unregistered when it terminates.
+
+  Returns the current session data, which the client can than
+  keep in sync with the server by subscribing to the `sessions:id` topic
+  and reciving operations to apply.
   """
-  @spec register_client(id(), pid()) :: :ok
+  @spec register_client(id(), pid()) :: Data.t()
   def register_client(session_id, pid) do
-    GenServer.cast(name(session_id), {:register_client, pid})
+    GenServer.call(name(session_id), {:register_client, pid})
   end
 
   @doc """
   Returns the current session data.
-
-  The client can then keep data in sync with the server by
-  by subscribing to the `sessions:id` topic and receiving operations to apply.
   """
   @spec get_data(id()) :: Data.t()
   def get_data(session_id) do
@@ -153,16 +154,16 @@ defmodule LiveBook.Session do
   end
 
   @impl true
+  def handle_call({:register_client, pid}, _from, state) do
+    Process.monitor(pid)
+    {:reply, state.data, %{state | client_pids: [pid | state.client_pids]}}
+  end
+
   def handle_call(:get_data, _from, state) do
     {:reply, state.data, state}
   end
 
   @impl true
-  def handle_cast({:register_client, pid}, state) do
-    Process.monitor(pid)
-    {:noreply, %{state | client_pids: [pid | state.client_pids]}}
-  end
-
   def handle_cast({:insert_section, index}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section, index, Utils.random_id()}

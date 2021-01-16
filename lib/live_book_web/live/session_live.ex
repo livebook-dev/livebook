@@ -6,12 +6,15 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
     if SessionSupervisor.session_exists?(session_id) do
-      if connected?(socket) do
-        Session.register_client(session_id, self())
-        Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
-      end
+      data =
+        if connected?(socket) do
+          data = Session.register_client(session_id, self())
+          Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
-      data = Session.get_data(session_id)
+          data
+        else
+          Session.get_data(session_id)
+        end
 
       {:ok, assign(socket, initial_assigns(session_id, data))}
     else
