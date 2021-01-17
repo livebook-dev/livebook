@@ -63,6 +63,8 @@ defmodule LiveBook.Session.Data do
           | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
           | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
           | {:cancel_cell_evaluation, Cell.id()}
+          | {:set_notebook_name, String.t()}
+          | {:set_section_name, Section.id(), String.t()}
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
@@ -230,6 +232,22 @@ defmodule LiveBook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:set_notebook_name, name}) do
+    data
+    |> with_actions()
+    |> set_notebook_name(name)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_section_name, section_id, name}) do
+    with {:ok, section} <- Notebook.fetch_section(data.notebook, section_id) do
+      data
+      |> with_actions()
+      |> set_section_name(section, name)
+      |> wrap_ok()
+    end
+  end
+
   # ===
 
   defp with_actions(data, actions \\ []), do: {data, actions}
@@ -382,6 +400,16 @@ defmodule LiveBook.Session.Data do
 
     data_actions
     |> reduce(queued_dependent_cells, &unqueue_cell_evaluation(&1, &2, section))
+  end
+
+  defp set_notebook_name({data, _} = data_actions, name) do
+    data_actions
+    |> set!(notebook: %{data.notebook | name: name})
+  end
+
+  defp set_section_name({data, _} = data_actions, section, name) do
+    data_actions
+    |> set!(notebook: Notebook.update_section(data.notebook, section.id, &%{&1 | name: name}))
   end
 
   defp add_action({data, actions}, action) do

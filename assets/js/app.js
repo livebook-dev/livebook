@@ -4,6 +4,11 @@ import "phoenix_html";
 import { Socket } from "phoenix";
 import NProgress from "nprogress";
 import { LiveSocket } from "phoenix_live_view";
+import ContentEditable from "./content_editable";
+
+const Hooks = {
+  ContentEditable,
+};
 
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
@@ -11,6 +16,7 @@ const csrfToken = document
 
 const liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
+  hooks: Hooks,
 });
 
 // Show progress bar on live navigation and form submits

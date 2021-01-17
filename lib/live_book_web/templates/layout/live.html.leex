@@ -1,15 +1,4 @@
-<nav class="flex items-center justify-between px-8 py-3 bg-purple-600">
-  <div class="w-full">
-    <%= live_redirect "LiveBook", to: "/", class: "font-bold inline-block mr-4 py-2 text-white" %>
-  </div>
-  <ul class="flex flex-row">
-    <li class="flex items-center">
-      <%= live_redirect "Sessions", to: "/sessions", class: "px-3 text-xs uppercase font-bold text-white hover:opacity-75" %>
-    </li>
-  </ul>
-</nav>
-
-<main role="main" class="container mx-auto flex flex-col align-center">
+<main role="main" class="flex-grow flex flex-col align-center h-screen">
   <div>
     <p class="alert alert-info" role="alert"
       phx-click="lv:clear-flash"

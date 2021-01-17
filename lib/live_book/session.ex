@@ -46,13 +46,25 @@ defmodule LiveBook.Session do
   end
 
   @doc """
-  Registers a session client, so that it receives updates from the server.
+  Registers a session client, so that the session is aware of it.
 
   The client process is automatically unregistered when it terminates.
+
+  Returns the current session data, which the client can than
+  keep in sync with the server by subscribing to the `sessions:id` topic
+  and reciving operations to apply.
   """
-  @spec register_client(id(), pid()) :: :ok
+  @spec register_client(id(), pid()) :: Data.t()
   def register_client(session_id, pid) do
-    GenServer.cast(name(session_id), {:register_client, pid})
+    GenServer.call(name(session_id), {:register_client, pid})
+  end
+
+  @doc """
+  Returns the current session data.
+  """
+  @spec get_data(id()) :: Data.t()
+  def get_data(session_id) do
+    GenServer.call(name(session_id), :get_data)
   end
 
   @doc """
@@ -105,6 +117,22 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends notebook name update request to the server.
+  """
+  @spec set_notebook_name(id(), String.t()) :: :ok
+  def set_notebook_name(session_id, name) do
+    GenServer.cast(name(session_id), {:set_notebook_name, name})
+  end
+
+  @doc """
+  Asynchronously sends section name update request to the server.
+  """
+  @spec set_section_name(id(), Section.id(), String.t()) :: :ok
+  def set_section_name(session_id, section_id, name) do
+    GenServer.cast(name(session_id), {:set_section_name, section_id, name})
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -126,11 +154,16 @@ defmodule LiveBook.Session do
   end
 
   @impl true
-  def handle_cast({:register_client, pid}, state) do
+  def handle_call({:register_client, pid}, _from, state) do
     Process.monitor(pid)
-    {:noreply, %{state | client_pids: [pid | state.client_pids]}}
+    {:reply, state.data, %{state | client_pids: [pid | state.client_pids]}}
   end
 
+  def handle_call(:get_data, _from, state) do
+    {:reply, state.data, state}
+  end
+
+  @impl true
   def handle_cast({:insert_section, index}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section, index, Utils.random_id()}
@@ -160,6 +193,16 @@ defmodule LiveBook.Session do
 
   def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
     operation = {:cancel_cell_evaluation, cell_id}
+    handle_operation(state, operation)
+  end
+
+  def handle_cast({:set_notebook_name, name}, state) do
+    operation = {:set_notebook_name, name}
+    handle_operation(state, operation)
+  end
+
+  def handle_cast({:set_section_name, section_id, name}, state) do
+    operation = {:set_section_name, section_id, name}
     handle_operation(state, operation)
   end
 

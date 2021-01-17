@@ -133,6 +133,19 @@ defmodule LiveBook.Notebook do
   end
 
   @doc """
+  Updates section with the given function.
+  """
+  @spec update_section(t(), Section.id(), (Section.t() -> Section.t())) :: t()
+  def update_section(notebook, section_id, fun) do
+    sections =
+      Enum.map(notebook.sections, fn section ->
+        if section.id == section_id, do: fun.(section), else: section
+      end)
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
   Returns a list of Elixir cells that the given cell depends on.
 
   The cells are ordered starting from the most direct parent.
