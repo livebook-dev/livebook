@@ -135,6 +135,16 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event(
+        "cell_delta",
+        %{"cell_id" => cell_id, "delta" => delta, "revision" => revision},
+        socket
+      ) do
+    # TODO: handle delta
+    IO.inspect({cell_id, delta, revision})
+    {:noreply, push_event(socket, "cell:#{cell_id}:acknowledgement", %{})}
+  end
+
   defp normalize_name(name) do
     name
     |> String.trim()
