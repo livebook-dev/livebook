@@ -19,7 +19,9 @@ defmodule LiveBookWeb.Cell do
         phx-hook="Editor"
         phx-update="ignore"
         data-id="<%= @cell.id %>"
-        data-type="<%= @cell.type %>">
+        data-type="<%= @cell.type %>"
+        data-source="<%= @cell.source %>"
+        data-revision="<%= @cell_info.revision %>">
       </div>
     </div>
     """

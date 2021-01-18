@@ -13,8 +13,8 @@ const Editor = {
 
     this.editor = this.__mountEditor(editorContainer);
 
-    const source = ""; // TODO: fetch from attributes
-    const revision = 0; // TODO: fetch from attributes
+    const source = this.el.dataset.source;
+    const revision = +this.el.dataset.revision;
 
     this.editor.getModel().setValue(source);
 
