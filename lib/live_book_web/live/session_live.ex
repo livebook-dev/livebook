@@ -175,9 +175,9 @@ defmodule LiveBookWeb.SessionLive do
 
   defp handle_action(socket, {:broadcast_delta, from, cell, delta}) do
     if from == self() do
-      push_event(socket, "cell:#{cell.id}:acknowledgement", %{})
+      push_event(socket, "cell_acknowledgement:#{cell.id}", %{})
     else
-      push_event(socket, "cell:#{cell.id}:delta", DeltaUtils.delta_to_map(delta))
+      push_event(socket, "cell_delta:#{cell.id}", DeltaUtils.delta_to_map(delta))
     end
   end
 

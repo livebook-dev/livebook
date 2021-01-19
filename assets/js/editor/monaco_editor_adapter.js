@@ -1,7 +1,12 @@
+import monaco from "./monaco";
 import Delta from "../lib/delta";
-import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 
-export default class MonacoAdapter {
+/**
+ * Encapsulates logic related to getting/applying changes to the editor.
+ *
+ * Uses the given Monaco editor instance.
+ */
+export default class MonacoEditorAdapter {
   constructor(editor) {
     this.editor = editor;
     this._onDelta = null;
@@ -15,10 +20,17 @@ export default class MonacoAdapter {
     });
   }
 
+  /**
+   * Registers a callback called whenever the user makes a change
+   * to the editor content. The change is represented by a delta object.
+   */
   onDelta(callback) {
     this._onDelta = callback;
   }
 
+  /**
+   * Applies the given delta to the editor content.
+   */
   applyDelta(delta) {
     const operations = this.__deltaToEditorOperations(delta);
     this.ignoreChange = true;

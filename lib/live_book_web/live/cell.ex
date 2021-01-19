@@ -15,13 +15,14 @@ defmodule LiveBookWeb.Cell do
         </button>
       </div>
       <div
-        id="cell-<%= @cell.id %>"
+        id="cell-<%= @cell.id %>-editor"
         phx-hook="Editor"
         phx-update="ignore"
-        data-id="<%= @cell.id %>"
-        data-type="<%= @cell.type %>"
-        data-source="<%= @cell.source %>"
-        data-revision="<%= @cell_info.revision %>">
+        data-cell-id="<%= @cell.id %>"
+        data-type="<%= @cell.type %>">
+        <div data-source="<%= @cell.source %>"
+             data-revision="<%= @cell_info.revision %>">
+        </div>
       </div>
     </div>
     """

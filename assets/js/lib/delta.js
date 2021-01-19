@@ -1,8 +1,29 @@
+/**
+ * Delta represents a set of changes introduced to a text document.
+ *
+ * Delta is suitable for Operational Transformation and is hence
+ * our primary building block in collaborative text editing.
+ * For a detailed write-up see https://quilljs.com/docs/delta.
+ * The specification covers rich-text editing, while we only
+ * need to work on plain-text, so we use a strict subset of
+ * the specification, where each operation is either:
+ *
+ *   * `{ retain: number }` - move by the given number of characters
+ *   * `{ insert: string }` - insert the given text at the current position
+ *   * `{ delete: number }` - delete the given number of characters starting from the current position
+ *
+ * This class provides a number of methods for creating and transforming a delta.
+ *
+ * The implementation based on https://github.com/quilljs/delta
+ */
 export default class Delta {
   constructor(ops = []) {
     this.ops = ops;
   }
 
+  /**
+   * Appends a retain operation.
+   */
   retain(length) {
     if (length <= 0) {
       return this;
@@ -11,6 +32,9 @@ export default class Delta {
     return this.append({ retain: length });
   }
 
+   /**
+   * Appends an insert operation.
+   */
   insert(text) {
     if (text === "") {
       return this;
@@ -19,6 +43,9 @@ export default class Delta {
     return this.append({ insert: text });
   }
 
+  /**
+   * Appends a delete operation.
+   */
   delete(length) {
     if (length <= 0) {
       return this;
@@ -27,6 +54,15 @@ export default class Delta {
     return this.append({ delete: length });
   }
 
+  /**
+   * Appends the given operation.
+   *
+   * To maintain the canonical form (uniqueness of representation)
+   * this method follows two rules:
+   *
+   *   * insert always goes before delete
+   *   * operations of the same type are merged into a single operation
+   */
   append(op) {
     if (this.ops.length === 0) {
       this.ops.push(op);
@@ -36,7 +72,7 @@ export default class Delta {
     const lastOp = this.ops.pop();
 
     // Insert and delete are commutative, so we always make sure
-    // to put insert first to preserve the canonical form (uniqueness of representation).
+    // to put insert first to preserve the canonical form.
     if (isInsert(op) && isDelete(lastOp)) {
       return this.append(op).append(lastOp);
     }
@@ -60,6 +96,10 @@ export default class Delta {
     return this;
   }
 
+  /**
+   * Returns a new delta that is equivalent to applying the operations of this delta,
+   * followed by operations of the given delta.
+   */
   compose(other) {
     const thisIter = new Iterator(this.ops);
     const otherIter = new Iterator(other.ops);
@@ -87,16 +127,43 @@ export default class Delta {
       }
     }
 
-    return delta.trim();
+    return delta.__trim();
   }
 
-  transform(other) {
+  /**
+   * Transform the given delta against this delta's operations. Returns a new delta.
+   *
+   * This is the core idea behind Operational Transformation.
+
+   * Let's mark this delta as A and the `other` delta as B
+   * and assume they represent changes applied at the same time
+   * to the same text state. If the current text state reflects
+   * delta A being applied, we would like to apply delta B,
+   * but to preserve its intent we need consider the changes made by A.
+   * We can obtain a new delta B' by transforming it against the delta A,
+   * so that does effectively what the original delta B meant to do.
+   * In our case that would be `A.transform(B, "right")`.
+   *
+   * Transformation should work both ways satisfying the property (assuming B is considered to happen first):
+   *
+   * `A.concat(A.transform(B, "right")) = B.concat(B.transform(A, "left"))`
+   *
+   * In Git analogy this can be thought of as rebasing branch B onto branch A.
+   *
+   * The method takes a `priority` argument that indicates which delta should be
+   * considered "first" and win ties, should be either "left" or "right".
+   */
+  transform(other, priority) {
+    if (priority !== "left" && priority !== "right") {
+      throw new Error(`Invalid priority "${priority}", should be either "left" or "right"`)
+    }
+
     const thisIter = new Iterator(this.ops);
     const otherIter = new Iterator(other.ops);
     const delta = new Delta();
 
     while (thisIter.hasNext() || otherIter.hasNext()) {
-      if (isInsert(thisIter.peek()) && !isInsert(otherIter.peek())) {
+      if (isInsert(thisIter.peek()) && (!isInsert(otherIter.peek()) || priority === "left")) {
         const insertLength = operationLength(thisIter.next());
         delta.retain(insertLength);
       } else if (isInsert(otherIter.peek())) {
@@ -118,10 +185,10 @@ export default class Delta {
       }
     }
 
-    return delta.trim();
+    return delta.__trim();
   }
 
-  trim() {
+  __trim() {
     if (this.ops.length > 0 && isRetain(this.ops[this.ops.length - 1])) {
       this.ops.pop();
     }
@@ -130,6 +197,11 @@ export default class Delta {
   }
 }
 
+/**
+ * Operations iterator simplifying the implementation of the delta methods above.
+ *
+ * Allows for iterating over operation slices by specifying the desired length.
+ */
 class Iterator {
   constructor(ops) {
     this.ops = ops;
@@ -181,7 +253,7 @@ class Iterator {
   }
 }
 
-export function operationLength(op) {
+function operationLength(op) {
   if (isInsert(op)) {
     return op.insert.length;
   }

@@ -1,3 +1,11 @@
+/**
+ * A manager associated with a particular editor instance,
+ * which is responsible for controlling client-server communication
+ * and synchronizing the sent/received changes.
+ *
+ * This class takes `serverAdapter` and `editorAdapter` objects
+ * that encapsulate the logic relevant for each part.
+ */
 export default class EditorClient {
   constructor(serverAdapter, editorAdapter, revision) {
     this.serverAdapter = serverAdapter;
@@ -80,9 +88,11 @@ class AwaitingConfirm {
   }
 
   onServerDelta(delta) {
-    const deltaPrime = this.awaitedDelta.transform(delta);
+    // We consider the incoming delta to happen first
+    // (because that's the case from the server's perspective).
+    const deltaPrime = this.awaitedDelta.transform(delta, "right");
     this.client.applyDelta(deltaPrime);
-    const awaitedDeltaPrime = delta.transform(this.awaitedDelta);
+    const awaitedDeltaPrime = delta.transform(this.awaitedDelta, "left");
     return new AwaitingConfirm(this.client, awaitedDeltaPrime);
   }
 
@@ -108,12 +118,14 @@ class AwaitingWithBuffer {
   }
 
   onServerDelta(delta) {
-    const deltaPrime = this.awaitedDelta.compose(this.buffer).transform(delta);
+    // We consider the incoming delta to happen first
+    // (because that's the case from the server's perspective).
+    const deltaPrime = this.awaitedDelta.compose(this.buffer).transform(delta, "right");
     this.client.applyDelta(deltaPrime);
-    const awaitedDeltaPrime = delta.transform(this.awaitedDelta);
+    const awaitedDeltaPrime = delta.transform(this.awaitedDelta, "left");
     const bufferPrime = this.awaitedDelta
-      .transform(delta)
-      .transform(this.buffer);
+      .transform(delta, "right")
+      .transform(this.buffer, "left");
 
     return new AwaitingWithBuffer(this.client, awaitedDeltaPrime, bufferPrime);
   }
