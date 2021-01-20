@@ -434,7 +434,7 @@ defmodule LiveBook.Session.Data do
         Delta.transform(delta_ahead, rebased_new_delta, :left)
       end)
 
-    new_source = Delta.apply_to_text(rebased_new_delta, cell.source)
+    new_source = Delta.apply_to_string(rebased_new_delta, cell.source)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))

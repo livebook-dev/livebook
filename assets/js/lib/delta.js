@@ -1,20 +1,10 @@
 /**
- * Delta represents a set of changes introduced to a text document.
+ * Delta is a format used to represent a set of changes introduced to a text document.
  *
- * Delta is suitable for Operational Transformation and is hence
- * our primary building block in collaborative text editing.
- * For a detailed write-up see https://quilljs.com/docs/delta.
- * The specification covers rich-text editing, while we only
- * need to work on plain-text, so we use a strict subset of
- * the specification, where each operation is either:
+ * See `LiveBook.Delta` for more details.
  *
- *   * `{ retain: number }` - move by the given number of characters
- *   * `{ insert: string }` - insert the given text at the current position
- *   * `{ delete: number }` - delete the given number of characters starting from the current position
- *
- * This class provides a number of methods for creating and transforming a delta.
- *
- * The implementation based on https://github.com/quilljs/delta
+ * Also see https://github.com/quilljs/delta
+ * for a complete implementation of the Delta specification.
  */
 export default class Delta {
   constructor(ops = []) {
@@ -57,11 +47,7 @@ export default class Delta {
   /**
    * Appends the given operation.
    *
-   * To maintain the canonical form (uniqueness of representation)
-   * this method follows two rules:
-   *
-   *   * insert always goes before delete
-   *   * operations of the same type are merged into a single operation
+   * See `LiveBook.Delta.append/2` for more details.
    */
   append(op) {
     if (this.ops.length === 0) {
@@ -133,26 +119,10 @@ export default class Delta {
   /**
    * Transform the given delta against this delta's operations. Returns a new delta.
    *
-   * This is the core idea behind Operational Transformation.
-
-   * Let's mark this delta as A and the `other` delta as B
-   * and assume they represent changes applied at the same time
-   * to the same text state. If the current text state reflects
-   * delta A being applied, we would like to apply delta B,
-   * but to preserve its intent we need consider the changes made by A.
-   * We can obtain a new delta B' by transforming it against the delta A,
-   * so that does effectively what the original delta B meant to do.
-   * In our case that would be `A.transform(B, "right")`.
+   * The method takes a `priority` argument indicates which delta
+   * is considered to have happened first and is used for conflict resolution.
    *
-   * Transformation should work both ways satisfying the property:
-   * (assuming B is considered to have happened first)
-   *
-   * `A.compose(A.transform(B, "right")) = B.compose(B.transform(A, "left"))`
-   *
-   * In Git analogy this can be thought of as rebasing branch B onto branch A.
-   *
-   * The method takes a `priority` argument that indicates which delta should be
-   * considered "first" and win ties, should be either "left" or "right".
+   * See `LiveBook.Delta.Transformation` for more details.
    */
   transform(other, priority) {
     if (priority !== "left" && priority !== "right") {
@@ -202,6 +172,9 @@ export default class Delta {
     return this;
   }
 
+  /**
+   * Converts the given delta to a compact representation, suitable for sending over the network.
+   */
   toCompressed() {
     return this.ops.map((op) => {
       if (isInsert(op)) {
@@ -216,6 +189,9 @@ export default class Delta {
     });
   }
 
+  /**
+   * Builds a new delta from the given compact representation.
+   */
   static fromCompressed(list) {
     return list.reduce((delta, compressedOp) => {
       if (typeof compressedOp === "string") {
