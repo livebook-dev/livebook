@@ -1,5 +1,5 @@
 import monaco from "./monaco";
-import Delta from "../lib/delta";
+import Delta, { isDelete, isInsert, isRetain } from "../lib/delta";
 
 /**
  * Encapsulates logic related to getting/applying changes to the editor.
@@ -69,11 +69,11 @@ export default class MonacoEditorAdapter {
     let index = 0;
 
     delta.ops.forEach((op) => {
-      if (typeof op.retain === "number") {
+      if (isRetain(op)) {
         index += op.retain;
       }
 
-      if (typeof op.insert === "string") {
+      if (isInsert(op)) {
         const start = model.getPositionAt(index);
 
         operations.push({
@@ -88,7 +88,7 @@ export default class MonacoEditorAdapter {
         });
       }
 
-      if (typeof op.delete === "number") {
+      if (isDelete(op)) {
         const start = model.getPositionAt(index);
         const end = model.getPositionAt(index + op.delete);
 

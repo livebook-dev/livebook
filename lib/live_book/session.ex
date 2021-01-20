@@ -15,7 +15,7 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook}
+  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
@@ -135,7 +135,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends a cell delta to apply to the server.
   """
-  @spec apply_cell_delta(id(), pid(), Cell.id(), TextDelta.t(), Data.cell_revision()) :: :ok
+  @spec apply_cell_delta(id(), pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
   def apply_cell_delta(session_id, from, cell_id, delta, revision) do
     GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
   end

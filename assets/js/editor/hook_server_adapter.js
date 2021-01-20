@@ -12,8 +12,8 @@ export default class HookServerAdapter {
     this._onDelta = null;
     this._onAcknowledgement = null;
 
-    this.hook.handleEvent(`cell_delta:${this.cellId}`, (delta) => {
-      this._onDelta && this._onDelta(new Delta(delta.ops));
+    this.hook.handleEvent(`cell_delta:${this.cellId}`, ({ delta }) => {
+      this._onDelta && this._onDelta(Delta.fromCompressed(delta));
     });
 
     this.hook.handleEvent(`cell_acknowledgement:${this.cellId}`, () => {
@@ -41,7 +41,7 @@ export default class HookServerAdapter {
   sendDelta(delta, revision) {
     this.hook.pushEvent("cell_delta", {
       cell_id: this.cellId,
-      delta,
+      delta: delta.toCompressed(),
       revision,
     });
   }

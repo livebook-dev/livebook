@@ -1,7 +1,7 @@
 defmodule LiveBookWeb.SessionLive do
   use LiveBookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session, DeltaUtils}
+  alias LiveBook.{SessionSupervisor, Session, Delta}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -141,7 +141,7 @@ defmodule LiveBookWeb.SessionLive do
         %{"cell_id" => cell_id, "delta" => delta, "revision" => revision},
         socket
       ) do
-    delta = DeltaUtils.delta_from_map(delta)
+    delta = Delta.from_compressed(delta)
     Session.apply_cell_delta(socket.assigns.session_id, self(), cell_id, delta, revision)
 
     {:noreply, socket}
@@ -177,7 +177,7 @@ defmodule LiveBookWeb.SessionLive do
     if from == self() do
       push_event(socket, "cell_acknowledgement:#{cell.id}", %{})
     else
-      push_event(socket, "cell_delta:#{cell.id}", DeltaUtils.delta_to_map(delta))
+      push_event(socket, "cell_delta:#{cell.id}", %{delta: Delta.to_compressed(delta)})
     end
   end
 

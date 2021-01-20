@@ -120,12 +120,16 @@ class AwaitingWithBuffer {
   onServerDelta(delta) {
     // We consider the incoming delta to happen first
     // (because that's the case from the server's perspective).
-    const deltaPrime = this.awaitedDelta.compose(this.buffer).transform(delta, "right");
-    this.client.applyDelta(deltaPrime);
+
+    // Delta transformed against awaitedDelta
+    const deltaPrime = this.awaitedDelta.transform(delta, "right");
+    // Delta transformed against both awaitedDelta and the buffer (appropriate for applying to the editor)
+    const deltaBis = this.buffer.transform(deltaPrime, "right");
+
+    this.client.applyDelta(deltaBis);
+
     const awaitedDeltaPrime = delta.transform(this.awaitedDelta, "left");
-    const bufferPrime = this.awaitedDelta
-      .transform(delta, "right")
-      .transform(this.buffer, "left");
+    const bufferPrime = deltaPrime.transform(this.buffer, "left");
 
     return new AwaitingWithBuffer(this.client, awaitedDeltaPrime, bufferPrime);
   }

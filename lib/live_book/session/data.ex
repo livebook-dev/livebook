@@ -23,7 +23,7 @@ defmodule LiveBook.Session.Data do
     :deleted_cells
   ]
 
-  alias LiveBook.{Notebook, Evaluator, DeltaUtils}
+  alias LiveBook.{Notebook, Evaluator, Delta}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type t :: %__MODULE__{
@@ -44,7 +44,7 @@ defmodule LiveBook.Session.Data do
           validity_status: cell_validity_status(),
           evaluation_status: cell_evaluation_status(),
           revision: cell_revision(),
-          deltas: list(TextDelta.t()),
+          deltas: list(Delta.t()),
           evaluated_at: DateTime.t()
         }
 
@@ -66,13 +66,13 @@ defmodule LiveBook.Session.Data do
           | {:cancel_cell_evaluation, Cell.id()}
           | {:set_notebook_name, String.t()}
           | {:set_section_name, Section.id(), String.t()}
-          | {:apply_cell_delta, pid(), Cell.id(), TextDelta.t(), cell_revision()}
+          | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
-          | {:broadcast_delta, pid(), Cell.t(), TextDelta.t()}
+          | {:broadcast_delta, pid(), Cell.t(), Delta.t()}
 
   @doc """
   Returns a fresh notebook session state.
@@ -431,10 +431,10 @@ defmodule LiveBook.Session.Data do
 
     rebased_new_delta =
       Enum.reduce(deltas_ahead, delta, fn delta_ahead, rebased_new_delta ->
-        TextDelta.transform(delta_ahead, rebased_new_delta, :left)
+        Delta.transform(delta_ahead, rebased_new_delta, :left)
       end)
 
-    new_source = DeltaUtils.apply_delta_to_text(cell.source, rebased_new_delta)
+    new_source = Delta.apply_to_text(rebased_new_delta, cell.source)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))

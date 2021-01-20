@@ -165,7 +165,7 @@ describe('Delta', () => {
     });
 
     it('insert against retain', () => {
-      const a = new Delta().retain(1);
+      const a = new Delta().retain(1).insert('A');
       const b = new Delta().insert('B');
       const bPrime = new Delta().insert('B');
       expect(a.transform(b, "right")).toEqual(bPrime);
@@ -211,7 +211,7 @@ describe('Delta', () => {
         .delete(1);
 
       expect(a.transform(b, "right")).toEqual(bPrimeAssumingBFirst);
-      expect(b.transform(a, "right")).toEqual(aPrimeAssumingBFirst);
+      expect(b.transform(a, "left")).toEqual(aPrimeAssumingBFirst);
     });
 
     it('conflicting appends', () => {
@@ -229,7 +229,7 @@ describe('Delta', () => {
       const bPrime = new Delta().retain(5).insert('bb');
       const aPrime = new Delta().insert('aa');
       expect(a.transform(b, "right")).toEqual(bPrime);
-      expect(b.transform(a, "right")).toEqual(aPrime);
+      expect(b.transform(a, "left")).toEqual(aPrime);
     });
 
     it('trailing deletes with differing lengths', () => {
@@ -238,7 +238,7 @@ describe('Delta', () => {
       const bPrime = new Delta().delete(2);
       const aPrime = new Delta();
       expect(a.transform(b, "right")).toEqual(bPrime);
-      expect(b.transform(a, "right")).toEqual(aPrime);
+      expect(b.transform(a, "left")).toEqual(aPrime);
     });
 
     it('immutability', () => {

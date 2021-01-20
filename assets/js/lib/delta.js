@@ -32,7 +32,7 @@ export default class Delta {
     return this.append({ retain: length });
   }
 
-   /**
+  /**
    * Appends an insert operation.
    */
   insert(text) {
@@ -144,9 +144,10 @@ export default class Delta {
    * so that does effectively what the original delta B meant to do.
    * In our case that would be `A.transform(B, "right")`.
    *
-   * Transformation should work both ways satisfying the property (assuming B is considered to happen first):
+   * Transformation should work both ways satisfying the property:
+   * (assuming B is considered to have happened first)
    *
-   * `A.concat(A.transform(B, "right")) = B.concat(B.transform(A, "left"))`
+   * `A.compose(A.transform(B, "right")) = B.compose(B.transform(A, "left"))`
    *
    * In Git analogy this can be thought of as rebasing branch B onto branch A.
    *
@@ -155,7 +156,9 @@ export default class Delta {
    */
   transform(other, priority) {
     if (priority !== "left" && priority !== "right") {
-      throw new Error(`Invalid priority "${priority}", should be either "left" or "right"`)
+      throw new Error(
+        `Invalid priority "${priority}", should be either "left" or "right"`
+      );
     }
 
     const thisIter = new Iterator(this.ops);
@@ -163,7 +166,10 @@ export default class Delta {
     const delta = new Delta();
 
     while (thisIter.hasNext() || otherIter.hasNext()) {
-      if (isInsert(thisIter.peek()) && (!isInsert(otherIter.peek()) || priority === "left")) {
+      if (
+        isInsert(thisIter.peek()) &&
+        (!isInsert(otherIter.peek()) || priority === "left")
+      ) {
         const insertLength = operationLength(thisIter.next());
         delta.retain(insertLength);
       } else if (isInsert(otherIter.peek())) {
@@ -194,6 +200,34 @@ export default class Delta {
     }
 
     return this;
+  }
+
+  toCompressed() {
+    return this.ops.map((op) => {
+      if (isInsert(op)) {
+        return op.insert;
+      } else if (isRetain(op)) {
+        return op.retain;
+      } else if (isDelete(op)) {
+        return -op.delete;
+      }
+
+      throw new Error(`Invalid operation ${op}`);
+    });
+  }
+
+  static fromCompressed(list) {
+    return list.reduce((delta, compressedOp) => {
+      if (typeof compressedOp === "string") {
+        return delta.insert(compressedOp);
+      } else if (typeof compressedOp === "number" && compressedOp >= 0) {
+        return delta.retain(compressedOp);
+      } else if (typeof compressedOp === "number" && compressedOp < 0) {
+        return delta.delete(-compressedOp);
+      }
+
+      throw new Error(`Invalid compressed operation ${compressedOp}`);
+    }, new this());
   }
 }
 
@@ -236,7 +270,7 @@ class Iterator {
         return { insert: nextOp.insert.substr(offset, length) };
       }
     } else {
-      return { retain: Infinity };
+      return { retain: length };
     }
   }
 
@@ -267,14 +301,14 @@ function operationLength(op) {
   }
 }
 
-function isInsert(op) {
+export function isInsert(op) {
   return typeof op.insert === "string";
 }
 
-function isRetain(op) {
+export function isRetain(op) {
   return typeof op.retain === "number";
 }
 
-function isDelete(op) {
+export function isDelete(op) {
   return typeof op.delete === "number";
 }
