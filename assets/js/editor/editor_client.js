@@ -5,6 +5,20 @@
  *
  * This class takes `serverAdapter` and `editorAdapter` objects
  * that encapsulate the logic relevant for each part.
+ *
+ * ## Changes synchronization
+ *
+ * When the local editor emits a change (represented as delta),
+ * the client sends this delta to the server and waits for an acknowledgement.
+ * Until the acknowledgement comes, the client keeps all further
+ * edits in buffer.
+ * The server may send either an acknowledgement or other client's delta.
+ * It's important to note that those messages come in what the server
+ * believes is chronological order, so any delta received before
+ * the acknowledgement should be treated as if it happened before
+ * our unacknowledged delta.
+ * Other client's delta is transformed against the local unacknowledged
+ * deltas and applied to the editor.
  */
 export default class EditorClient {
   constructor(serverAdapter, editorAdapter, revision) {

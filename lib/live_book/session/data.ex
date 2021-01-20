@@ -252,11 +252,15 @@ defmodule LiveBook.Session.Data do
   end
 
   def apply_operation(data, {:apply_cell_delta, from, cell_id, delta, revision}) do
-    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         cell_info <- data.cell_infos[cell.id],
+         true <- 0 < revision and revision <= cell_info.revision + 1 do
       data
       |> with_actions()
       |> apply_delta(from, cell, delta, revision)
       |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -429,20 +433,20 @@ defmodule LiveBook.Session.Data do
 
     deltas_ahead = Enum.take(info.deltas, -(info.revision - revision + 1))
 
-    rebased_new_delta =
-      Enum.reduce(deltas_ahead, delta, fn delta_ahead, rebased_new_delta ->
-        Delta.transform(delta_ahead, rebased_new_delta, :left)
+    transformed_new_delta =
+      Enum.reduce(deltas_ahead, delta, fn delta_ahead, transformed_new_delta ->
+        Delta.transform(delta_ahead, transformed_new_delta, :left)
       end)
 
-    new_source = Delta.apply_to_string(rebased_new_delta, cell.source)
+    new_source = Delta.apply_to_string(transformed_new_delta, cell.source)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
     |> set_cell_info!(cell.id,
-      deltas: info.deltas ++ [rebased_new_delta],
+      deltas: info.deltas ++ [transformed_new_delta],
       revision: info.revision + 1
     )
-    |> add_action({:broadcast_delta, from, %{cell | source: new_source}, rebased_new_delta})
+    |> add_action({:broadcast_delta, from, %{cell | source: new_source}, transformed_new_delta})
   end
 
   defp add_action({data, actions}, action) do

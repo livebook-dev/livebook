@@ -1,7 +1,7 @@
 defmodule LiveBook.SessionTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Session
+  alias LiveBook.{Session, Delta}
 
   setup do
     {:ok, _} = Session.start_link("1")
@@ -100,7 +100,22 @@ defmodule LiveBook.SessionTest do
       {section_id, _cell_id} = insert_section_and_cell(session_id)
 
       Session.set_section_name(session_id, section_id, "Chapter 1")
-      assert_receive {:operation, {:set_section_name, section_id, "Chapter 1"}}
+      assert_receive {:operation, {:set_section_name, ^section_id, "Chapter 1"}}
+    end
+  end
+
+  describe "apply_cell_delta/5" do
+    test "sends a cell delta operation to subscribers", %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      {_section_id, cell_id} = insert_section_and_cell(session_id)
+
+      from = self()
+      delta = Delta.new() |> Delta.insert("cats")
+      revision = 1
+
+      Session.apply_cell_delta(session_id, from, cell_id, delta, revision)
+      assert_receive {:operation, {:apply_cell_delta, ^from, ^cell_id, ^delta, ^revision}}
     end
   end
 
