@@ -1,1 +1,1 @@
-ExUnit.start(assert_receive_timeout: 1000)
+ExUnit.start(assert_receive_timeout: 300)
