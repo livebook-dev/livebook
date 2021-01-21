@@ -2,6 +2,7 @@ defmodule LiveBook.Session.DataTest do
   use ExUnit.Case, async: true
 
   alias LiveBook.Session.Data
+  alias LiveBook.Delta
 
   describe "apply_operation/2 given :insert_section" do
     test "adds new section to notebook and session info" do
@@ -474,6 +475,92 @@ defmodule LiveBook.Session.DataTest do
       operation = {:set_section_name, "s1", "Cat's guide to life"}
 
       assert {:ok, %{notebook: %{sections: [%{name: "Cat's guide to life"}]}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :apply_cell_delta" do
+    test "returns an error given invalid cell id" do
+      data = Data.new()
+      operation = {:apply_cell_delta, self(), "nonexistent", Delta.new(), 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given invalid revision" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, self(), "c1", delta, 5}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates cell source according to the given delta" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, self(), "c1", delta, 1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{cells: [%{source: "cats"}]}
+                  ]
+                },
+                cell_infos: %{"c1" => %{revision: 1}}
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "transforms the delta if the revision is not the most recent" do
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:apply_cell_delta, self(), "c1", delta1, 1}
+        ])
+
+      delta2 = Delta.new() |> Delta.insert("tea")
+      operation = {:apply_cell_delta, self(), "c1", delta2, 1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{cells: [%{source: "catstea"}]}
+                  ]
+                },
+                cell_infos: %{"c1" => %{revision: 2}}
+              }, _} = Data.apply_operation(data, operation)
+    end
+
+    test "returns broadcast delta action with the transformed delta" do
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:apply_cell_delta, self(), "c1", delta1, 1}
+        ])
+
+      delta2 = Delta.new() |> Delta.insert("tea")
+      operation = {:apply_cell_delta, self(), "c1", delta2, 1}
+
+      from = self()
+      transformed_delta2 = Delta.new() |> Delta.retain(4) |> Delta.insert("tea")
+
+      assert {:ok, _data, [{:broadcast_delta, ^from, _cell, ^transformed_delta2}]} =
                Data.apply_operation(data, operation)
     end
   end

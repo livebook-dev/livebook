@@ -5,9 +5,11 @@ import { Socket } from "phoenix";
 import NProgress from "nprogress";
 import { LiveSocket } from "phoenix_live_view";
 import ContentEditable from "./content_editable";
+import Editor from "./editor";
 
 const Hooks = {
   ContentEditable,
+  Editor,
 };
 
 const csrfToken = document

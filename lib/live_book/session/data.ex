@@ -23,7 +23,7 @@ defmodule LiveBook.Session.Data do
     :deleted_cells
   ]
 
-  alias LiveBook.{Notebook, Evaluator}
+  alias LiveBook.{Notebook, Evaluator, Delta}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type t :: %__MODULE__{
@@ -43,11 +43,12 @@ defmodule LiveBook.Session.Data do
   @type cell_info :: %{
           validity_status: cell_validity_status(),
           evaluation_status: cell_evaluation_status(),
-          revision: non_neg_integer(),
-          # TODO: specify it's a list of deltas, once defined
-          deltas: list(),
+          revision: cell_revision(),
+          deltas: list(Delta.t()),
           evaluated_at: DateTime.t()
         }
+
+  @type cell_revision :: non_neg_integer()
 
   @type cell_validity_status :: :fresh | :evaluated | :stale
   @type cell_evaluation_status :: :ready | :queued | :evaluating
@@ -65,11 +66,13 @@ defmodule LiveBook.Session.Data do
           | {:cancel_cell_evaluation, Cell.id()}
           | {:set_notebook_name, String.t()}
           | {:set_section_name, Section.id(), String.t()}
+          | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
+          | {:broadcast_delta, pid(), Cell.t(), Delta.t()}
 
   @doc """
   Returns a fresh notebook session state.
@@ -248,6 +251,19 @@ defmodule LiveBook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:apply_cell_delta, from, cell_id, delta, revision}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         cell_info <- data.cell_infos[cell.id],
+         true <- 0 < revision and revision <= cell_info.revision + 1 do
+      data
+      |> with_actions()
+      |> apply_delta(from, cell, delta, revision)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   # ===
 
   defp with_actions(data, actions \\ []), do: {data, actions}
@@ -410,6 +426,27 @@ defmodule LiveBook.Session.Data do
   defp set_section_name({data, _} = data_actions, section, name) do
     data_actions
     |> set!(notebook: Notebook.update_section(data.notebook, section.id, &%{&1 | name: name}))
+  end
+
+  defp apply_delta({data, _} = data_actions, from, cell, delta, revision) do
+    info = data.cell_infos[cell.id]
+
+    deltas_ahead = Enum.take(info.deltas, -(info.revision - revision + 1))
+
+    transformed_new_delta =
+      Enum.reduce(deltas_ahead, delta, fn delta_ahead, transformed_new_delta ->
+        Delta.transform(delta_ahead, transformed_new_delta, :left)
+      end)
+
+    new_source = Delta.apply_to_string(transformed_new_delta, cell.source)
+
+    data_actions
+    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
+    |> set_cell_info!(cell.id,
+      deltas: info.deltas ++ [transformed_new_delta],
+      revision: info.revision + 1
+    )
+    |> add_action({:broadcast_delta, from, %{cell | source: new_source}, transformed_new_delta})
   end
 
   defp add_action({data, actions}, action) do

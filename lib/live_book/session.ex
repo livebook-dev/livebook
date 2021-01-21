@@ -15,7 +15,7 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook}
+  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
@@ -133,6 +133,14 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends a cell delta to apply to the server.
+  """
+  @spec apply_cell_delta(id(), pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
+  def apply_cell_delta(session_id, from, cell_id, delta, revision) do
+    GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -206,6 +214,11 @@ defmodule LiveBook.Session do
     handle_operation(state, operation)
   end
 
+  def handle_cast({:apply_cell_delta, from, cell_id, delta, revision}, state) do
+    operation = {:apply_cell_delta, from, cell_id, delta, revision}
+    handle_operation(state, operation)
+  end
+
   @impl true
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
@@ -263,6 +276,8 @@ defmodule LiveBook.Session do
 
     state
   end
+
+  defp handle_action(state, _action), do: state
 
   defp broadcast_operation(session_id, operation) do
     message = {:operation, operation}

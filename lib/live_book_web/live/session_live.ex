@@ -1,7 +1,7 @@
 defmodule LiveBookWeb.SessionLive do
   use LiveBookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session}
+  alias LiveBook.{SessionSupervisor, Session, Delta}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -73,6 +73,7 @@ defmodule LiveBookWeb.SessionLive do
             <%= live_component @socket, LiveBookWeb.Section,
                                section: section,
                                selected: section.id == @selected_section_id,
+                               cell_infos: @data.cell_infos,
                                focused_cell_id: @focused_cell_id %>
           <% end %>
         </div>
@@ -135,6 +136,17 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event(
+        "cell_delta",
+        %{"cell_id" => cell_id, "delta" => delta, "revision" => revision},
+        socket
+      ) do
+    delta = Delta.from_compressed(delta)
+    Session.apply_cell_delta(socket.assigns.session_id, self(), cell_id, delta, revision)
+
+    {:noreply, socket}
+  end
+
   defp normalize_name(name) do
     name
     |> String.trim()
@@ -148,11 +160,26 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.assigns.data, operation) do
-      {:ok, data, _actions} ->
-        {:noreply, assign(socket, data: data)}
+      {:ok, data, actions} ->
+        new_socket = assign(socket, data: data)
+        {:noreply, handle_actions(new_socket, actions)}
 
       :error ->
         {:noreply, socket}
     end
   end
+
+  defp handle_actions(state, actions) do
+    Enum.reduce(actions, state, &handle_action(&2, &1))
+  end
+
+  defp handle_action(socket, {:broadcast_delta, from, cell, delta}) do
+    if from == self() do
+      push_event(socket, "cell_acknowledgement:#{cell.id}", %{})
+    else
+      push_event(socket, "cell_delta:#{cell.id}", %{delta: Delta.to_compressed(delta)})
+    end
+  end
+
+  defp handle_action(socket, _action), do: socket
 end

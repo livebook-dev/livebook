@@ -38,8 +38,8 @@ defmodule LiveBook.Evaluator.IOProxy do
 
   The possible messages are:
 
-    * `{:evaluator_stdout, ref, string}` - for output requests,
-      where `ref` is the given evaluation reference and `string` is the output.
+  * `{:evaluator_stdout, ref, string}` - for output requests,
+    where `ref` is the given evaluation reference and `string` is the output.
   """
   @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
   def configure(pid, target, ref) do

@@ -74,31 +74,32 @@ defmodule LiveBook.EvaluatorTest do
       evaluator: evaluator
     } do
       code = """
-      defmodule Math do
+      defmodule LiveBook.EvaluatorTest.Stacktrace.Math do
         def bad_math do
           result = 1 / 0
           {:ok, result}
         end
       end
 
-      defmodule Cat do
+      defmodule LiveBook.EvaluatorTest.Stacktrace.Cat do
         def meow do
-          Math.bad_math()
+          LiveBook.EvaluatorTest.Stacktrace.Math.bad_math()
           :ok
         end
       end
 
-      Cat.meow()
+      LiveBook.EvaluatorTest.Stacktrace.Cat.meow()
       """
 
       Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
       expected_stacktrace = [
-        {Math, :bad_math, 0, [file: 'nofile', line: 3]},
-        {Cat, :meow, 0, [file: 'nofile', line: 10]}
+        {LiveBook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
+        {LiveBook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: 'nofile', line: 10]}
       ]
 
-      assert_receive {:evaluator_response, :code_1, {:error, _kind, _error, ^expected_stacktrace}}
+      # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
+      assert_receive {:evaluator_response, :code_1, {:error, _kind, _error, ^expected_stacktrace}}, 1000
     end
   end
 
