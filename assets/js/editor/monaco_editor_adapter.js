@@ -34,8 +34,17 @@ export default class MonacoEditorAdapter {
   applyDelta(delta) {
     const operations = this.__deltaToEditorOperations(delta);
     this.ignoreChange = true;
-    this.editor.getModel().pushEditOperations([], operations);
+    // Apply the operations without adding them to the undo stack
+    this.editor.getModel().applyEdits(operations);
     this.ignoreChange = false;
+
+    // Clear the undo/redo stack as the operations may no longer be valid
+    // after applying the concurrent change.
+    // Note: there's not public method for getting EditStack for the text model,
+    // so we use the private attribute.
+    // (https://github.com/microsoft/vscode/blob/11ac71b27220a2354b6bb28966ed3ead183cc495/src/vs/editor/common/model/textModel.ts#L287)
+    const editStack = this.editor.getModel()._commandManager;
+    editStack.clear();
   }
 
   __deltaFromEditorChange(event) {
