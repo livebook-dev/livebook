@@ -28,6 +28,8 @@ const ElixirMonarchLanguage = {
   declarationKeywords: [
     "def",
     "defp",
+    "defn",
+    "defnp",
     "defguard",
     "defguardp",
     "defmacro",
@@ -174,7 +176,7 @@ const ElixirMonarchLanguage = {
       // Note: given `def a + b, do: nil`, `a` is not a function name,
       // so we use negative look-ahead to ensure there's no operator.
       [
-        /\b(defp?|defmacrop?|defguardp?|defdelegate)(\s+)(@variableName)(?!\s+@operator)/,
+        /\b(defp?|defnp?|defmacrop?|defguardp?|defdelegate)(\s+)(@variableName)(?!\s+@operator)/,
         [
           "keyword.declaration",
           "white",
