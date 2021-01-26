@@ -28,6 +28,7 @@ const ElixirMonarchLanguage = {
   declarationKeywords: [
     "def",
     "defp",
+    "defn",
     "defguard",
     "defguardp",
     "defmacro",
