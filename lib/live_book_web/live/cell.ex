@@ -2,9 +2,15 @@ defmodule LiveBookWeb.Cell do
   use LiveBookWeb, :live_component
 
   def render(%{cell: %{type: :markdown}} = assigns) do
+    expanded = assigns.focused and assigns.focused_cell_expanded
+
     ~L"""
-    <div phx-click="focus_cell"
-         phx-value-cell_id="<%= @cell.id %>"
+    <div id="cell-<%= @cell.id %>"
+         phx-hook="Cell"
+         data-cell-id="<%= @cell.id %>"
+         data-type="<%= @cell.type %>"
+         data-focused="<%= @focused %>"
+         data-expanded="<%= expanded %>"
          class="flex flex-col relative mr-10 border-l-4 border-blue-100 border-opacity-0 hover:border-opacity-100 pl-4 -ml-4 <%= if @focused, do: "border-blue-300 border-opacity-100"%>">
       <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
         <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
@@ -12,19 +18,29 @@ defmodule LiveBookWeb.Cell do
         </button>
       </div>
 
-      <div class="<%= if @focused, do: "mb-4" %>">
-        <%= render_editor(@cell, @cell_info, hidden: !@focused) %>
+      <div class="<%= if expanded, do: "mb-4" %>">
+        <%= render_editor(@cell, @cell_info, hidden: !expanded) %>
       </div>
 
-      <%= render_markdown(@cell.source) %>
+      <%= if blank?(@cell.source) do %>
+        <div class="text-gray-300">
+          Empty markdown cell
+        </div>
+      <% else %>
+        <%= render_markdown(@cell.source) %>
+      <% end %>
     </div>
     """
   end
 
   def render(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
-    <div phx-click="focus_cell"
-         phx-value-cell_id="<%= @cell.id %>"
+    <div id="cell-<%= @cell.id %>"
+         phx-hook="Cell"
+         data-cell-id="<%= @cell.id %>"
+         data-type="<%= @cell.type %>"
+         data-focused="<%= @focused %>"
+         data-expanded="false"
          class="flex flex-col relative mr-10">
       <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
         <button class="text-gray-500 hover:text-current">
@@ -67,4 +83,6 @@ defmodule LiveBookWeb.Cell do
     </div>
     """
   end
+
+  defp blank?(string), do: String.trim(string) == ""
 end

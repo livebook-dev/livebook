@@ -48,6 +48,7 @@ const Editor = {
       // The editor might've been hidden and didn't get a change
       // to fit the space, so let's trigger that.
       this.__adjustEditorLayout();
+      this.editor.focus();
     }
   },
 

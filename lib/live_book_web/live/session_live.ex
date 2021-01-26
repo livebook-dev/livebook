@@ -33,7 +33,8 @@ defmodule LiveBookWeb.SessionLive do
       session_id: session_id,
       data: data,
       selected_section_id: first_section_id,
-      focused_cell_id: nil
+      focused_cell_id: nil,
+      focused_cell_expanded: false
     }
   end
 
@@ -74,7 +75,8 @@ defmodule LiveBookWeb.SessionLive do
                                section: section,
                                selected: section.id == @selected_section_id,
                                cell_infos: @data.cell_infos,
-                               focused_cell_id: @focused_cell_id %>
+                               focused_cell_id: @focused_cell_id,
+                               focused_cell_expanded: @focused_cell_expanded %>
           <% end %>
         </div>
       </div>
@@ -119,7 +121,23 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event("focus_cell", %{"cell_id" => cell_id}, socket) do
-    {:noreply, assign(socket, focused_cell_id: cell_id)}
+    {:noreply, assign(socket, focused_cell_id: cell_id, focused_cell_expanded: false)}
+  end
+
+  def handle_event("expand_cell", %{"cell_id" => cell_id}, socket) do
+    if cell_id == socket.assigns.focused_cell_id do
+      {:noreply, assign(socket, focused_cell_expanded: true)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("unexpand_cell", %{"cell_id" => cell_id}, socket) do
+    if cell_id == socket.assigns.focused_cell_id do
+      {:noreply, assign(socket, focused_cell_expanded: false)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("set_notebook_name", %{"name" => name}, socket) do

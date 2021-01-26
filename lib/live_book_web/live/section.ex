@@ -31,7 +31,8 @@ defmodule LiveBookWeb.Section do
             <%= live_component @socket, LiveBookWeb.Cell,
                                cell: cell,
                                cell_info: @cell_infos[cell.id],
-                               focused: cell.id == @focused_cell_id %>
+                               focused: cell.id == @focused_cell_id,
+                               focused_cell_expanded: @focused_cell_expanded %>
             <%= live_component @socket, LiveBookWeb.InsertCellActions,
                                section_id: @section.id,
                                index: index + 1 %>
