@@ -87,6 +87,7 @@ const ElixirMonarchLanguage = {
   specialAtomName: /\.\.\.|<<>>|%\{\}|%|\{\}/,
 
   aliasPart: /[A-Z][a-zA-Z0-9_]*/,
+  moduleName: /@aliasPart(?:\.@aliasPart)*/,
 
   // Sigil pairs are: """ """, ''' ''', " ", ' ', / /, | |, < >, { }, [ ], ( )
   sigilSymmetricDelimiter: /"""|'''|"|'|\/|\|/,
@@ -185,6 +186,32 @@ const ElixirMonarchLanguage = {
           },
         ],
       ],
+      // Tokenize function calls
+      [
+        // In-scope call - an identifier followed by ( or .(
+        /(@variableName)(?=\s*\.?\s*\()/,
+        ['function.call']
+      ],
+      [
+        // Referencing function in a module
+        /(@moduleName)(\s*)(\.)(\s*)(@variableName)/,
+        ['type.identifier', 'white', 'operator', 'white', 'function.call']
+      ],
+      [
+        // Referencing function in an Erlang module
+        /(:)(@atomName)(\s*)(\.)(\s*)(@variableName)/,
+        ["constant.punctuation", "constant", 'white', 'operator', 'white', 'function.call']
+      ],
+      [
+        // Piping into a function (tokenized separately as it may not have parentheses)
+        /(\|>)(\s*)(@variableName)/,
+        ['operator', 'white', 'function.call']
+      ],
+      [
+        // Function reference passed to another function
+        /(&)(\s*)(@variableName)/,
+        ['operator', 'white', 'function.call']
+      ],
       // Language keywords, builtins, constants and variables
       [
         /@variableName/,
@@ -202,7 +229,7 @@ const ElixirMonarchLanguage = {
         },
       ],
       // Module names
-      [/@aliasPart(?:\.@aliasPart)*/, "type.identifier"],
+      [/@moduleName/, "type.identifier"],
     ],
 
     // Strings

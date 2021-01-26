@@ -38,6 +38,7 @@ monaco.editor.defineTheme("custom", {
     { token: "delimiter.bracket.embed", foreground: "#204a87" },
     { token: "sigil", foreground: "#bf8b56" },
     { token: "function", foreground: "#3c91cf" },
+    { token: "function.call", foreground: "#444444" },
 
     // Markdown specific
     { token: "emphasis", fontStyle: "italic" },
