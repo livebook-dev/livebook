@@ -53,7 +53,7 @@ function shouldInsertClosingEnd(lines, lineIndex) {
   ) {
     const nextLineWithSameIndentation = lines
       .slice(lineIndex + 1)
-      .filter(line => !isBlank(line))
+      .filter((line) => !isBlank(line))
       .find((line) => indentation(line) === prevIndentation);
 
     if (nextLineWithSameIndentation) {

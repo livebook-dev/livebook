@@ -60,6 +60,7 @@ const Editor = {
       renderIndentGuides: false,
       occurrencesHighlight: false,
       renderLineHighlight: "none",
+      theme: "custom",
     });
 
     editor.getModel().updateOptions({
