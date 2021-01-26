@@ -23,16 +23,16 @@ const Editor = {
     this.cellId = this.el.dataset.cellId;
     this.type = this.el.dataset.type;
 
-    const editorContainer = this.el.querySelector("div");
+    this.editorContainer = this.el.querySelector("div");
 
-    if (!editorContainer) {
+    if (!this.editorContainer) {
       throw new Error("Editor Hook root element should have a div child");
     }
 
-    const source = editorContainer.dataset.source;
-    const revision = +editorContainer.dataset.revision;
+    this.__mountEditor();
 
-    this.editor = this.__mountEditor(editorContainer);
+    const source = this.editorContainer.dataset.source;
+    const revision = +this.editorContainer.dataset.revision;
 
     this.editor.getModel().setValue(source);
 
@@ -43,8 +43,20 @@ const Editor = {
     );
   },
 
-  __mountEditor(editorContainer) {
-    const editor = monaco.editor.create(editorContainer, {
+  updated() {
+    if (!this.__isHidden()) {
+      // The editor might've been hidden and didn't get a change
+      // to fit the space, so let's trigger that.
+      this.__adjustEditorLayout();
+    }
+  },
+
+  __isHidden() {
+    return this.el.dataset.hidden === "true";
+  },
+
+  __mountEditor() {
+    this.editor = monaco.editor.create(this.editorContainer, {
       language: this.type,
       value: "",
       scrollbar: {
@@ -63,32 +75,30 @@ const Editor = {
       theme: "custom",
     });
 
-    editor.getModel().updateOptions({
+    this.editor.getModel().updateOptions({
       tabSize: 2,
     });
 
-    editor.updateOptions({
+    this.editor.updateOptions({
       autoIndent: true,
       tabSize: 2,
       formatOnType: true,
     });
 
-    // Dynamically adjust editor height to the content, see https://github.com/microsoft/monaco-editor/issues/794
-    function adjustEditorLayout() {
-      const contentHeight = editor.getContentHeight();
-      editorContainer.style.height = `${contentHeight}px`;
-      editor.layout();
-    }
-
-    editor.onDidContentSizeChange(adjustEditorLayout);
-    adjustEditorLayout();
+    this.editor.onDidContentSizeChange(() => this.__adjustEditorLayout());
+    this.__adjustEditorLayout();
 
     window.addEventListener("resize", (event) => {
-      editor.layout();
+      this.editor.layout();
     });
-
-    return editor;
   },
+
+  __adjustEditorLayout() {
+    // Dynamically adjust editor height to the content, see https://github.com/microsoft/monaco-editor/issues/794
+    const contentHeight = this.editor.getContentHeight();
+    this.editorContainer.style.height = `${contentHeight}px`;
+    this.editor.layout();
+  }
 };
 
 export default Editor;
