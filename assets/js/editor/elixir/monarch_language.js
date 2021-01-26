@@ -29,6 +29,7 @@ const ElixirMonarchLanguage = {
     "def",
     "defp",
     "defn",
+    "defnp",
     "defguard",
     "defguardp",
     "defmacro",
