@@ -39,7 +39,7 @@ export default class HookServerAdapter {
    * Sends the given delta to the server.
    */
   sendDelta(delta, revision) {
-    this.hook.pushEvent("cell_delta", {
+    this.hook.pushEvent("apply_cell_delta", {
       cell_id: this.cellId,
       delta: delta.toCompressed(),
       revision,

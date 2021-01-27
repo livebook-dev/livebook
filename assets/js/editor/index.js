@@ -2,7 +2,11 @@ import monaco from "./monaco";
 import EditorClient from "./editor_client";
 import MonacoEditorAdapter from "./monaco_editor_adapter";
 import HookServerAdapter from "./hook_server_adapter";
-import { getAttributeOrThrow, parseBoolean, parseInteger } from "../lib/attribute";
+import {
+  getAttributeOrThrow,
+  parseBoolean,
+  parseInteger,
+} from "../lib/attribute";
 
 /**
  * A hook managing an editable cell.
@@ -36,8 +40,12 @@ const Editor = {
 
     this.__mountEditor();
 
-    const source = getAttributeOrThrow(this.editorContainer, 'data-source');
-    const revision = getAttributeOrThrow(this.editorContainer, 'data-revision', parseInteger)
+    const source = getAttributeOrThrow(this.editorContainer, "data-source");
+    const revision = getAttributeOrThrow(
+      this.editorContainer,
+      "data-revision",
+      parseInteger
+    );
 
     this.editor.getModel().setValue(source);
 
@@ -112,15 +120,15 @@ const Editor = {
     const contentHeight = this.editor.getContentHeight();
     this.editorContainer.style.height = `${contentHeight}px`;
     this.editor.layout();
-  }
+  },
 };
 
 function getProps(hook) {
   return {
-    cellId: getAttributeOrThrow(hook.el, 'data-cell-id'),
-    type: getAttributeOrThrow(hook.el, 'data-type'),
-    isHidden: getAttributeOrThrow(hook.el, 'data-hidden', parseBoolean),
-    isActive: getAttributeOrThrow(hook.el, 'data-active', parseBoolean),
+    cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
+    type: getAttributeOrThrow(hook.el, "data-type"),
+    isHidden: getAttributeOrThrow(hook.el, "data-hidden", parseBoolean),
+    isActive: getAttributeOrThrow(hook.el, "data-active", parseBoolean),
   };
 }
 

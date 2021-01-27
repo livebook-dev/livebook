@@ -41,12 +41,12 @@ monaco.editor.defineTheme("custom", {
     { token: "function.call", foreground: "#abb2bf" },
 
     // Markdown specific
-    { token: 'emphasis', fontStyle: 'italic' },
-    { token: 'strong', fontStyle: 'bold' },
-    { token: 'keyword.md', foreground: '#e06c75' },
-    { token: 'keyword.table', foreground: '#e06c75' },
-    { token: 'string.link.md', foreground: '#61afef' },
-    { token: 'variable.md', foreground: '#56b6c2' },
+    { token: "emphasis", fontStyle: "italic" },
+    { token: "strong", fontStyle: "bold" },
+    { token: "keyword.md", foreground: "#e06c75" },
+    { token: "keyword.table", foreground: "#e06c75" },
+    { token: "string.link.md", foreground: "#61afef" },
+    { token: "variable.md", foreground: "#56b6c2" },
   ],
 
   colors: {

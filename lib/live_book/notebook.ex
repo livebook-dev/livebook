@@ -70,8 +70,9 @@ defmodule LiveBook.Notebook do
   @spec fetch_cell_sibling(t(), Cell.id(), integer()) :: {:ok, Cell.t()} | :error
   def fetch_cell_sibling(notebook, cell_id, offset) do
     with {:ok, cell, section} <- fetch_cell_and_section(notebook, cell_id) do
-      idx = Enum.find_index(section.cells, & &1 == cell)
+      idx = Enum.find_index(section.cells, &(&1 == cell))
       sibling_idx = idx + offset
+
       if sibling_idx >= 0 and sibling_idx < length(section.cells) do
         {:ok, Enum.at(section.cells, sibling_idx)}
       else

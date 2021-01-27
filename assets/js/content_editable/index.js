@@ -42,7 +42,7 @@ const ContentEditable = {
 
 function getProps(hook) {
   return {
-    attribute: getAttributeOrThrow(hook.el, 'data-update-attribute'),
+    attribute: getAttributeOrThrow(hook.el, "data-update-attribute"),
   };
 }
 

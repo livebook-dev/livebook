@@ -99,7 +99,9 @@ defmodule LiveBook.EvaluatorTest do
       ]
 
       # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
-      assert_receive {:evaluator_response, :code_1, {:error, _kind, _error, ^expected_stacktrace}}, 1000
+      assert_receive {:evaluator_response, :code_1,
+                      {:error, _kind, _error, ^expected_stacktrace}},
+                     1000
     end
   end
 

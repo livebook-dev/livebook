@@ -63,12 +63,12 @@ defmodule LiveBookWeb.SessionLive do
               </span>
             </div>
           <% end %>
-          <div phx-click="add_section" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-300 hover:text-gray-400">
+          <button phx-click="add_section" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-300 hover:text-gray-400">
             <div class="flex items-center space-x-2">
               <%= Icons.svg(:plus, class: "h-6") %>
               <span>New section</span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
       <div class="flex-grow px-6 py-8 flex overflow-y-auto">
@@ -123,6 +123,31 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_notebook_name", %{"name" => name}, socket) do
+    name = normalize_name(name)
+    Session.set_notebook_name(socket.assigns.session_id, name)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("set_section_name", %{"section_id" => section_id, "name" => name}, socket) do
+    name = normalize_name(name)
+    Session.set_section_name(socket.assigns.session_id, section_id, name)
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "apply_cell_delta",
+        %{"cell_id" => cell_id, "delta" => delta, "revision" => revision},
+        socket
+      ) do
+    delta = Delta.from_compressed(delta)
+    Session.apply_cell_delta(socket.assigns.session_id, self(), cell_id, delta, revision)
+
+    {:noreply, socket}
+  end
+
   def handle_event("focus_cell", %{"cell_id" => cell_id}, socket) do
     {:noreply, assign(socket, focused_cell_id: cell_id, focused_cell_expanded: false)}
   end
@@ -143,31 +168,6 @@ defmodule LiveBookWeb.SessionLive do
     else
       {:noreply, socket}
     end
-  end
-
-  def handle_event("set_notebook_name", %{"name" => name}, socket) do
-    name = normalize_name(name)
-    Session.set_notebook_name(socket.assigns.session_id, name)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("set_section_name", %{"section_id" => section_id, "name" => name}, socket) do
-    name = normalize_name(name)
-    Session.set_section_name(socket.assigns.session_id, section_id, name)
-
-    {:noreply, socket}
-  end
-
-  def handle_event(
-        "cell_delta",
-        %{"cell_id" => cell_id, "delta" => delta, "revision" => revision},
-        socket
-      ) do
-    delta = Delta.from_compressed(delta)
-    Session.apply_cell_delta(socket.assigns.session_id, self(), cell_id, delta, revision)
-
-    {:noreply, socket}
   end
 
   @impl true
@@ -214,7 +214,9 @@ defmodule LiveBookWeb.SessionLive do
 
       assigns.selected_section_id ->
         # If no cell is focused, focus the first one for easier keyboard navigation.
-        {:ok, section} = Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
+        {:ok, section} =
+          Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
+
         Enum.fetch(section.cells, 0)
 
       true ->

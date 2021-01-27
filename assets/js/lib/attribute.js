@@ -1,6 +1,8 @@
 export function getAttributeOrThrow(element, attr, transform = null) {
   if (!element.hasAttribute(attr)) {
-    throw new Error(`Missing attribute '${attr}' on element <${element.tagName}:${element.id}>`);
+    throw new Error(
+      `Missing attribute '${attr}' on element <${element.tagName}:${element.id}>`
+    );
   }
 
   const value = element.getAttribute(attr);
@@ -17,7 +19,9 @@ export function parseBoolean(value) {
     return false;
   }
 
-  throw new Error(`Invalid boolean attribute ${value}, should be either "true" or "false"`);
+  throw new Error(
+    `Invalid boolean attribute ${value}, should be either "true" or "false"`
+  );
 }
 
 export function parseInteger(value) {
