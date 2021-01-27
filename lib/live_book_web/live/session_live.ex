@@ -1,7 +1,7 @@
 defmodule LiveBookWeb.SessionLive do
   use LiveBookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session, Delta}
+  alias LiveBook.{SessionSupervisor, Session, Delta, Notebook}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -41,7 +41,10 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="flex flex-grow max-h-full">
+    <div class="flex flex-grow max-h-full"
+         id="session"
+         phx-hook="Session"
+         data-focused-cell-id="<%= @focused_cell_id %>">
       <div class="w-1/5 bg-gray-100 border-r-2 border-gray-200">
         <h1 id="notebook-name"
             contenteditable
@@ -124,17 +127,19 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, assign(socket, focused_cell_id: cell_id, focused_cell_expanded: false)}
   end
 
-  def handle_event("expand_cell", %{"cell_id" => cell_id}, socket) do
-    if cell_id == socket.assigns.focused_cell_id do
-      {:noreply, assign(socket, focused_cell_expanded: true)}
-    else
-      {:noreply, socket}
+  def handle_event("move_cell_focus", %{"offset" => offset}, socket) do
+    case cell_for_offset(socket.assigns, offset) do
+      {:ok, cell} ->
+        {:noreply, assign(socket, focused_cell_id: cell.id, focused_cell_expanded: false)}
+
+      :error ->
+        {:noreply, socket}
     end
   end
 
-  def handle_event("unexpand_cell", %{"cell_id" => cell_id}, socket) do
-    if cell_id == socket.assigns.focused_cell_id do
-      {:noreply, assign(socket, focused_cell_expanded: false)}
+  def handle_event("toggle_cell_expanded", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      {:noreply, assign(socket, focused_cell_expanded: !socket.assigns.focused_cell_expanded)}
     else
       {:noreply, socket}
     end
@@ -165,16 +170,6 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  defp normalize_name(name) do
-    name
-    |> String.trim()
-    |> String.replace(~r/\s+/, " ")
-    |> case do
-      "" -> "Untitled"
-      name -> name
-    end
-  end
-
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.assigns.data, operation) do
@@ -200,4 +195,32 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   defp handle_action(socket, _action), do: socket
+
+  defp normalize_name(name) do
+    name
+    |> String.trim()
+    |> String.replace(~r/\s+/, " ")
+    |> case do
+      "" -> "Untitled"
+      name -> name
+    end
+  end
+
+  defp cell_for_offset(assigns, offset) do
+    cond do
+      assigns.focused_cell_id ->
+        Notebook.fetch_cell_sibling(assigns.data.notebook, assigns.focused_cell_id, offset)
+
+      assigns.selected_section_id ->
+        {:ok, section} = Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
+
+        case section.cells do
+          [cell | _] -> {:ok, cell}
+          [] -> :error
+        end
+
+      true ->
+        :error
+    end
+  end
 end

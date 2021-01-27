@@ -29,6 +29,9 @@ const Editor = {
       throw new Error("Editor Hook root element should have a div child");
     }
 
+    // Remove the content placeholder
+    this.editorContainer.firstElementChild.remove();
+
     this.__mountEditor();
 
     const source = this.editorContainer.dataset.source;
@@ -44,11 +47,11 @@ const Editor = {
   },
 
   updated() {
-    if (!this.__isHidden()) {
+    if (this.type === 'markdown' && !this.__isHidden()) {
       // The editor might've been hidden and didn't get a change
       // to fit the space, so let's trigger that.
       this.__adjustEditorLayout();
-      this.editor.focus();
+      this.editor.focus(); // TODO: elixir editor should also be focused if it gets focus, perhaps it would be best if cell hook handled this?
     }
   },
 

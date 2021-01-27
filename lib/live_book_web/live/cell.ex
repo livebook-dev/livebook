@@ -6,11 +6,7 @@ defmodule LiveBookWeb.Cell do
 
     ~L"""
     <div id="cell-<%= @cell.id %>"
-         phx-hook="Cell"
          data-cell-id="<%= @cell.id %>"
-         data-type="<%= @cell.type %>"
-         data-focused="<%= @focused %>"
-         data-expanded="<%= expanded %>"
          class="flex flex-col relative mr-10 border-l-4 border-blue-100 border-opacity-0 hover:border-opacity-100 pl-4 -ml-4 <%= if @focused, do: "border-blue-300 border-opacity-100"%>">
       <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
         <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
@@ -36,11 +32,7 @@ defmodule LiveBookWeb.Cell do
   def render(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
     <div id="cell-<%= @cell.id %>"
-         phx-hook="Cell"
          data-cell-id="<%= @cell.id %>"
-         data-type="<%= @cell.type %>"
-         data-focused="<%= @focused %>"
-         data-expanded="false"
          class="flex flex-col relative mr-10">
       <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
         <button class="text-gray-500 hover:text-current">
@@ -79,6 +71,22 @@ defmodule LiveBookWeb.Cell do
       data-hidden="<%= hidden %>">
       <div data-source="<%= cell.source %>"
            data-revision="<%= cell_info.revision %>">
+        <%# The whole page has to load and then hooks are mounded.
+            There's may be a tiny delay before the editor is being mounted,
+            so show a nice placeholder immediately. %>
+        <%= render_content_placeholder() %>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_content_placeholder() do
+    ~E"""
+    <div class="px-8 max-w-2xl w-full animate-pulse">
+      <div class="flex-1 space-y-4 py-1">
+        <div class="h-4 bg-gray-500 rounded w-3/4"></div>
+        <div class="h-4 bg-gray-500 rounded"></div>
+        <div class="h-4 bg-gray-500 rounded w-5/6"></div>
       </div>
     </div>
     """

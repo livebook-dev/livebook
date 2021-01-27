@@ -6,12 +6,12 @@ import NProgress from "nprogress";
 import { LiveSocket } from "phoenix_live_view";
 import ContentEditable from "./content_editable";
 import Editor from "./editor";
-import Cell from "./cell";
+import Session from "./session";
 
 const Hooks = {
   ContentEditable,
   Editor,
-  Cell,
+  Session,
 };
 
 const csrfToken = document
