@@ -2,6 +2,7 @@ import monaco from "./monaco";
 import EditorClient from "./editor_client";
 import MonacoEditorAdapter from "./monaco_editor_adapter";
 import HookServerAdapter from "./hook_server_adapter";
+import { getAttributeOrThrow, parseBoolean, parseInteger } from "../lib/attribute";
 
 /**
  * A hook managing an editable cell.
@@ -14,14 +15,15 @@ import HookServerAdapter from "./hook_server_adapter";
  *
  *   * `data-cell-id` - id of the cell being edited
  *   * `data-type` - editor type (i.e. language), either "markdown" or "elixir" is expected
+ *   * `data-hidden` - whether this editor is currently hidden
+ *   * `data-active` - whether this editor is currently the active one
  *
  * Additionally the root element should have a direct `div` child
  * with `data-source` and `data-revision` providing the initial values.
  */
 const Editor = {
   mounted() {
-    this.cellId = this.el.dataset.cellId;
-    this.type = this.el.dataset.type;
+    this.props = getProps(this);
 
     this.editorContainer = this.el.querySelector("div");
 
@@ -34,34 +36,42 @@ const Editor = {
 
     this.__mountEditor();
 
-    const source = this.editorContainer.dataset.source;
-    const revision = +this.editorContainer.dataset.revision;
+    const source = getAttributeOrThrow(this.editorContainer, 'data-source');
+    const revision = getAttributeOrThrow(this.editorContainer, 'data-revision', parseInteger)
 
     this.editor.getModel().setValue(source);
 
     new EditorClient(
-      new HookServerAdapter(this, this.cellId),
+      new HookServerAdapter(this, this.props.cellId),
       new MonacoEditorAdapter(this.editor),
       revision
     );
   },
 
   updated() {
-    if (this.type === 'markdown' && !this.__isHidden()) {
-      // The editor might've been hidden and didn't get a change
-      // to fit the space, so let's trigger that.
-      this.__adjustEditorLayout();
-      this.editor.focus(); // TODO: elixir editor should also be focused if it gets focus, perhaps it would be best if cell hook handled this?
-    }
-  },
+    const prevProps = this.props;
+    this.props = getProps(this);
 
-  __isHidden() {
-    return this.el.dataset.hidden === "true";
+    if (prevProps.isHidden && !this.props.isHidden) {
+      // If the editor was created as hidden it didn't get the chance
+      // to properly adjust to the available space, so trigger it now.
+      this.__adjustEditorLayout();
+    }
+
+    if (!prevProps.isActive && this.props.isActive) {
+      this.editor.focus();
+    }
+
+    if (prevProps.isActive && !this.props.isActive) {
+      if (this.editor.hasTextFocus()) {
+        document.activeElement.blur();
+      }
+    }
   },
 
   __mountEditor() {
     this.editor = monaco.editor.create(this.editorContainer, {
-      language: this.type,
+      language: this.props.type,
       value: "",
       scrollbar: {
         vertical: "hidden",
@@ -104,5 +114,14 @@ const Editor = {
     this.editor.layout();
   }
 };
+
+function getProps(hook) {
+  return {
+    cellId: getAttributeOrThrow(hook.el, 'data-cell-id'),
+    type: getAttributeOrThrow(hook.el, 'data-type'),
+    isHidden: getAttributeOrThrow(hook.el, 'data-hidden', parseBoolean),
+    isActive: getAttributeOrThrow(hook.el, 'data-active', parseBoolean),
+  };
+}
 
 export default Editor;

@@ -128,7 +128,7 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event("move_cell_focus", %{"offset" => offset}, socket) do
-    case cell_for_offset(socket.assigns, offset) do
+    case new_focused_cell_from_offset(socket.assigns, offset) do
       {:ok, cell} ->
         {:noreply, assign(socket, focused_cell_id: cell.id, focused_cell_expanded: false)}
 
@@ -206,18 +206,16 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  defp cell_for_offset(assigns, offset) do
+  defp new_focused_cell_from_offset(assigns, offset) do
     cond do
       assigns.focused_cell_id ->
+        # If a cell is focused, look up the appropriate sibling
         Notebook.fetch_cell_sibling(assigns.data.notebook, assigns.focused_cell_id, offset)
 
       assigns.selected_section_id ->
+        # If no cell is focused, focus the first one for easier keyboard navigation.
         {:ok, section} = Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
-
-        case section.cells do
-          [cell | _] -> {:ok, cell}
-          [] -> :error
-        end
+        Enum.fetch(section.cells, 0)
 
       true ->
         :error

@@ -101,6 +101,13 @@ iframe[hidden] {
   color: #abb2bf;
 }
 
+.markdown pre {
+  @apply p-4 rounded text-sm align-middle;
+  /* Match the editor colors */
+  background-color: #282c34;
+  color: #abb2bf;
+}
+
 .markdown :first-child {
   @apply mt-0;
 }
