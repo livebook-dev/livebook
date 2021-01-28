@@ -1,5 +1,5 @@
 import monaco from "./monaco";
-import Delta, { isDelete, isInsert, isRetain } from "../lib/delta";
+import Delta, { isDelete, isInsert, isRetain } from "../../lib/delta";
 
 /**
  * Encapsulates logic related to getting/applying changes to the editor.

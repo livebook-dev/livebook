@@ -26,9 +26,12 @@ export default class EditorClient {
     this.editorAdapter = editorAdapter;
     this.revision = revision;
     this.state = new Synchronized(this);
+    this._onDelta = null;
 
     this.editorAdapter.onDelta((delta) => {
       this.__handleClientDelta(delta);
+      // This delta comes from the editor, so it has already been applied.
+      this.__emitDelta(delta);
     });
 
     this.serverAdapter.onDelta((delta) => {
@@ -38,6 +41,20 @@ export default class EditorClient {
     this.serverAdapter.onAcknowledgement(() => {
       this.__handleServerAcknowledgement();
     });
+  }
+
+  /**
+   * Registers a callback called with a every delta applied to the editor.
+   *
+   * These deltas are already transformed such that applying them
+   * one by one should eventually lead to the same state as on the server.
+   */
+  onDelta(callback) {
+    this._onDelta = callback;
+  }
+
+  __emitDelta(delta) {
+    this._onDelta && this._onDelta(delta);
   }
 
   __handleClientDelta(delta) {
@@ -50,16 +67,18 @@ export default class EditorClient {
   }
 
   __handleServerAcknowledgement() {
+    this.revision++;
     this.state = this.state.onServerAcknowledgement();
   }
 
   applyDelta(delta) {
     this.editorAdapter.applyDelta(delta);
+    // This delta comes from the server and we have just applied it to the editor.
+    this.__emitDelta(delta);
   }
 
   sendDelta(delta) {
-    this.revision++;
-    this.serverAdapter.sendDelta(delta, this.revision);
+    this.serverAdapter.sendDelta(delta, this.revision + 1);
   }
 }
 

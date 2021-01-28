@@ -252,4 +252,34 @@ describe("Delta", () => {
       expect(b).toEqual(new Delta().insert("B"));
     });
   });
+
+  describe("applyToString", () => {
+    test("prepend", () => {
+      const string = "cats";
+      const delta = new Delta().insert("fat ");
+      const result = delta.applyToString(string);
+      expect(result).toEqual("fat cats");
+    });
+
+    test("insert in the middle", () => {
+      const string = "cats";
+      const delta = new Delta().retain(3).insert("'");
+      const result = delta.applyToString(string);
+      expect(result).toEqual("cat's");
+    });
+
+    test("delete", () => {
+      const string = "cats";
+      const delta = new Delta().retain(1).delete(2);
+      const result = delta.applyToString(string);
+      expect(result).toEqual("cs");
+    });
+
+    test("replace", () => {
+      const string = "cats";
+      const delta = new Delta().retain(1).delete(2).insert("ar");
+      const result = delta.applyToString(string);
+      expect(result).toEqual("cars");
+    });
+  });
 });

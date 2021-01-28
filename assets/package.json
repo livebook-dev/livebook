@@ -9,7 +9,9 @@
     "test": "jest --watch"
   },
   "dependencies": {
+    "marked": "^1.2.8",
     "monaco-editor": "^0.21.2",
+    "morphdom": "^2.6.1",
     "nprogress": "^0.2.0",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",

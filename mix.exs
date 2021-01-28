@@ -41,8 +41,7 @@ defmodule LiveBook.MixProject do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"},
-      {:earmark, "~> 1.4"}
+      {:plug_cowboy, "~> 2.0"}
     ]
   end
 

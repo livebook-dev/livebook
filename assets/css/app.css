@@ -94,15 +94,15 @@ iframe[hidden] {
   @apply pr-0;
 }
 
-.markdown code.inline {
+.markdown code {
   @apply py-1 px-2 rounded text-sm align-middle;
   /* Match the editor colors */
   background-color: #282c34;
   color: #abb2bf;
 }
 
-.markdown pre {
-  @apply p-4 rounded text-sm align-middle;
+.markdown pre > code {
+  @apply block p-4 rounded text-sm align-middle;
   /* Match the editor colors */
   background-color: #282c34;
   color: #abb2bf;

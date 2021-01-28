@@ -4,8 +4,17 @@ defmodule LiveBookWeb.Cell do
   def render(assigns) do
     ~L"""
     <div id="cell-<%= @cell.id %>"
+         phx-hook="Cell"
          data-cell-id="<%= @cell.id %>"
-         class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= @focused && "border-blue-300 border-opacity-100"%>">
+         data-type="<%= @cell.type %>"
+         data-focused="<%= @focused %>"
+         data-expanded="<%= @expanded %>"
+         class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>">
+      <div id="init-container-<%= @cell.id %>" phx-update="ignore">
+        <div data-init data-source="<%= @cell.source %>" data-revision="<%= @cell_info.revision %>">
+        </div>
+      </div>
+
       <%= render_cell_content(assigns) %>
     </div>
     """
@@ -19,17 +28,13 @@ defmodule LiveBookWeb.Cell do
       </button>
     </div>
 
-    <div class="<%= if @expanded, do: "mb-4" %>">
-      <%= render_editor(@cell, @cell_info, hidden: !@expanded, active: @expanded) %>
+    <div class="<%= if @expanded, do: "mb-4", else: "hidden" %>">
+      <%= render_editor(@cell) %>
     </div>
 
-    <%= if blank?(@cell.source) do %>
-      <div class="text-gray-300">
-        Empty markdown cell
-      </div>
-    <% else %>
-      <%= render_markdown(@cell.source) %>
-    <% end %>
+    <div class="markdown" data-markdown-container id="markdown-container-<%= @cell.id %>" phx-update="ignore">
+      <%= render_markdown_content_placeholder() %>
+    </div>
     """
   end
 
@@ -44,40 +49,32 @@ defmodule LiveBookWeb.Cell do
       </button>
     </div>
 
-    <%= render_editor(@cell, @cell_info, hidden: !@section_selected, active: @focused) %>
+    <%= render_editor(@cell) %>
     """
   end
 
-  defp render_markdown(source) do
-    {_, html, _} = Earmark.as_html(source)
-
+  defp render_editor(cell) do
     ~E"""
-    <div class="markdown">
-      <%= raw(html) %>
+    <div class="py-3 rounded-md overflow-hidden bg-editor"
+         data-editor-container
+         id="editor-container-<%= cell.id %>"
+         phx-update="ignore">
+      <%= render_editor_content_placeholder() %>
     </div>
     """
   end
 
-  defp render_editor(cell, cell_info, opts) do
-    hidden = Keyword.get(opts, :hidden, false)
-    active = Keyword.get(opts, :active, false)
+  # The whole page has to load and then hooks are mounded.
+  # There may be a tiny delay before the markdown is rendered
+  # or and editors are mounted, so show neat placeholders immediately.
 
+  defp render_markdown_content_placeholder() do
     ~E"""
-    <div
-      class="py-3 rounded-md overflow-hidden bg-editor <%= hidden && "hidden" %>"
-      id="cell-<%= cell.id %>-editor"
-      phx-hook="Editor"
-      phx-update="ignore"
-      data-cell-id="<%= cell.id %>"
-      data-type="<%= cell.type %>"
-      data-active="<%= active %>"
-      data-hidden="<%= hidden %>">
-      <div data-source="<%= cell.source %>"
-           data-revision="<%= cell_info.revision %>">
-        <%# The whole page has to load and then hooks are mounded.
-            There may be a tiny delay before the editor is being mounted,
-            so show a nice placeholder immediately. %>
-        <%= render_editor_content_placeholder() %>
+    <div class="max-w-2xl w-full animate-pulse">
+      <div class="flex-1 space-y-4">
+        <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+        <div class="h-4 bg-gray-200 rounded"></div>
+        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
       </div>
     </div>
     """
@@ -94,6 +91,4 @@ defmodule LiveBookWeb.Cell do
     </div>
     """
   end
-
-  defp blank?(string), do: String.trim(string) == ""
 end

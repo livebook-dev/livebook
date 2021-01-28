@@ -72,21 +72,6 @@ defmodule LiveBookWeb.SessionLiveTest do
 
       refute render(view) =~ cell.id
     end
-
-    test "renders an updated markdown cell content", %{conn: conn, session_id: session_id} do
-      Session.insert_section(session_id, 0)
-      %{notebook: %{sections: [section]}} = Session.get_data(session_id)
-      Session.insert_cell(session_id, section.id, 0, :markdown)
-      %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_id)
-
-      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
-
-      delta = LiveBook.Delta.new(insert: "*some text*")
-      Session.apply_cell_delta(session_id, self(), cell.id, delta, 1)
-      wait_for_session_update(session_id)
-
-      assert render(view) =~ "<em>some text</em>"
-    end
   end
 
   describe "UI-triggered updates" do

@@ -1,6 +1,6 @@
-import monaco from "./monaco";
-import EditorClient from "./editor_client";
-import MonacoEditorAdapter from "./monaco_editor_adapter";
+import monaco from "../cell/live_editor/monaco";
+import EditorClient from "../cell/live_editor/editor_client";
+import MonacoEditorAdapter from "../cell/live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./hook_server_adapter";
 import {
   getAttributeOrThrow,
