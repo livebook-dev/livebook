@@ -50,7 +50,7 @@ defmodule LiveBook.Notebook do
   @doc """
   Finds notebook cell by `id` and the corresponding section.
   """
-  @spec fetch_cell_and_section(t(), Cell.section_id()) :: {:ok, Cell.t(), Section.t()} | :error
+  @spec fetch_cell_and_section(t(), Cell.id()) :: {:ok, Cell.t(), Section.t()} | :error
   def fetch_cell_and_section(notebook, cell_id) do
     for(
       section <- notebook.sections,
@@ -61,6 +61,23 @@ defmodule LiveBook.Notebook do
     |> case do
       [{cell, section}] -> {:ok, cell, section}
       [] -> :error
+    end
+  end
+
+  @doc """
+  Finds a cell being `offset` from the given cell within the same section.
+  """
+  @spec fetch_cell_sibling(t(), Cell.id(), integer()) :: {:ok, Cell.t()} | :error
+  def fetch_cell_sibling(notebook, cell_id, offset) do
+    with {:ok, cell, section} <- fetch_cell_and_section(notebook, cell_id) do
+      idx = Enum.find_index(section.cells, &(&1 == cell))
+      sibling_idx = idx + offset
+
+      if sibling_idx >= 0 and sibling_idx < length(section.cells) do
+        {:ok, Enum.at(section.cells, sibling_idx)}
+      else
+        :error
+      end
     end
   end
 

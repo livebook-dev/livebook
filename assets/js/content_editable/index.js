@@ -1,3 +1,5 @@
+import { getAttributeOrThrow } from "../lib/attribute";
+
 /**
  * A hook used on [contenteditable] elements to update the specified
  * attribute with the element text.
@@ -8,7 +10,7 @@
  */
 const ContentEditable = {
   mounted() {
-    this.attribute = this.el.dataset.updateAttribute;
+    this.props = getProps(this);
 
     this.__updateAttribute();
 
@@ -26,14 +28,22 @@ const ContentEditable = {
   },
 
   updated() {
+    this.props = getProps(this);
+
     // The element has been re-rendered so we have to add the attribute back
     this.__updateAttribute();
   },
 
   __updateAttribute() {
     const value = this.el.innerText.trim();
-    this.el.setAttribute(this.attribute, value);
+    this.el.setAttribute(this.props.attribute, value);
   },
 };
+
+function getProps(hook) {
+  return {
+    attribute: getAttributeOrThrow(hook.el, "data-update-attribute"),
+  };
+}
 
 export default ContentEditable;

@@ -23,7 +23,7 @@ defmodule LiveBookWeb.Section do
         </div>
       </div>
       <div class="container py-4">
-        <div class="flex flex-col space-y-2">
+        <div class="flex flex-col space-y-2 pb-80">
           <%= live_component @socket, LiveBookWeb.InsertCellActions,
                              section_id: @section.id,
                              index: 0 %>
@@ -31,7 +31,8 @@ defmodule LiveBookWeb.Section do
             <%= live_component @socket, LiveBookWeb.Cell,
                                cell: cell,
                                cell_info: @cell_infos[cell.id],
-                               focused: cell.id == @focused_cell_id %>
+                               focused: @selected and cell.id == @focused_cell_id,
+                               expanded: @selected and cell.id == @focused_cell_id and @focused_cell_expanded %>
             <%= live_component @socket, LiveBookWeb.InsertCellActions,
                                section_id: @section.id,
                                index: index + 1 %>

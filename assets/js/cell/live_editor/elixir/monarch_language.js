@@ -192,27 +192,34 @@ const ElixirMonarchLanguage = {
       [
         // In-scope call - an identifier followed by ( or .(
         /(@variableName)(?=\s*\.?\s*\()/,
-        ['function.call']
+        ["function.call"],
       ],
       [
         // Referencing function in a module
         /(@moduleName)(\s*)(\.)(\s*)(@variableName)/,
-        ['type.identifier', 'white', 'operator', 'white', 'function.call']
+        ["type.identifier", "white", "operator", "white", "function.call"],
       ],
       [
         // Referencing function in an Erlang module
         /(:)(@atomName)(\s*)(\.)(\s*)(@variableName)/,
-        ["constant.punctuation", "constant", 'white', 'operator', 'white', 'function.call']
+        [
+          "constant.punctuation",
+          "constant",
+          "white",
+          "operator",
+          "white",
+          "function.call",
+        ],
       ],
       [
         // Piping into a function (tokenized separately as it may not have parentheses)
         /(\|>)(\s*)(@variableName)/,
-        ['operator', 'white', 'function.call']
+        ["operator", "white", "function.call"],
       ],
       [
         // Function reference passed to another function
         /(&)(\s*)(@variableName)/,
-        ['operator', 'white', 'function.call']
+        ["operator", "white", "function.call"],
       ],
       // Language keywords, builtins, constants and variables
       [

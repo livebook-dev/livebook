@@ -15,3 +15,109 @@ button:focus {
 iframe[hidden] {
   display: none;
 }
+
+/* Markdown rendered content */
+
+.markdown {
+  @apply text-gray-700;
+}
+
+.markdown h1 {
+  @apply text-gray-900 font-semibold text-3xl my-4;
+}
+
+.markdown h2 {
+  @apply text-gray-900 font-semibold text-2xl my-4;
+}
+
+.markdown h3 {
+  @apply text-gray-900 font-semibold text-xl my-4;
+}
+
+.markdown p {
+  @apply my-4;
+}
+
+.markdown ul {
+  @apply list-disc list-inside my-4;
+}
+
+.markdown ol {
+  @apply list-decimal list-inside my-4;
+}
+
+.markdown ul > li,
+.markdown ol > li {
+  @apply my-1;
+}
+
+.markdown ul > li ul,
+.markdown ol > li ol {
+  @apply ml-6;
+}
+
+.markdown blockquote {
+  @apply border-l-4 border-gray-200 pl-4 py-2 my-4 text-gray-500;
+}
+
+.markdown a {
+  @apply font-medium underline text-gray-900 hover:no-underline;
+}
+
+.markdown table {
+  @apply w-full my-4;
+}
+
+.markdown table thead tr {
+  @apply border-b border-gray-200;
+}
+
+.markdown table tbody tr:not(:last-child) {
+  @apply border-b border-gray-200;
+}
+
+.markdown table th {
+  @apply p-2 font-bold;
+}
+
+.markdown table td {
+  @apply p-2;
+}
+
+.markdown table th:first-child,
+.markdown table td:first-child {
+  @apply pl-0;
+}
+
+.markdown table th:last-child,
+.markdown table td:last-child {
+  @apply pr-0;
+}
+
+.markdown code {
+  @apply py-1 px-2 rounded text-sm align-middle;
+  /* Match the editor colors */
+  background-color: #282c34;
+  color: #abb2bf;
+}
+
+.markdown pre > code {
+  @apply block p-4 rounded text-sm align-middle;
+  /* Match the editor colors */
+  background-color: #282c34;
+  color: #abb2bf;
+}
+
+.markdown :first-child {
+  @apply mt-0;
+}
+
+.markdown :last-child {
+  @apply mb-0;
+}
+
+/* Other */
+
+.bg-editor {
+  background-color: #282c34;
+}

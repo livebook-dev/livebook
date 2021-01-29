@@ -173,7 +173,7 @@ export default class Delta {
   }
 
   /**
-   * Converts the given delta to a compact representation, suitable for sending over the network.
+   * Converts the delta to a compact representation, suitable for sending over the network.
    */
   toCompressed() {
     return this.ops.map((op) => {
@@ -204,6 +204,33 @@ export default class Delta {
 
       throw new Error(`Invalid compressed operation ${compressedOp}`);
     }, new this());
+  }
+
+  /**
+   * Returns the result of applying the delta to the given string.
+   */
+  applyToString(string) {
+    let newString = "";
+    let index = 0;
+
+    this.ops.forEach((op) => {
+      if (isRetain(op)) {
+        newString += string.slice(index, index + op.retain);
+        index += op.retain;
+      }
+
+      if (isInsert(op)) {
+        newString += op.insert;
+      }
+
+      if (isDelete(op)) {
+        index += op.delete;
+      }
+    });
+
+    newString += string.slice(index);
+
+    return newString;
   }
 }
 
