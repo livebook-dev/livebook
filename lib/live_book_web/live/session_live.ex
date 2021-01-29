@@ -88,6 +88,23 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   @impl true
+  def handle_event("cell_init", %{"cell_id" => cell_id}, socket) do
+    data = socket.assigns.data
+
+    case Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+      {:ok, cell, _section} ->
+        payload = %{
+          source: cell.source,
+          revision: data.cell_infos[cell.id].revision
+        }
+
+        {:reply, payload, socket}
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("add_section", _params, socket) do
     end_index = length(socket.assigns.data.notebook.sections)
     Session.insert_section(socket.assigns.session_id, end_index)

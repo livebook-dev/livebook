@@ -10,11 +10,6 @@ defmodule LiveBookWeb.Cell do
          data-focused="<%= @focused %>"
          data-expanded="<%= @expanded %>"
          class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>">
-      <div id="init-container-<%= @cell.id %>" phx-update="ignore">
-        <div data-init data-source="<%= @cell.source %>" data-revision="<%= @cell_info.revision %>">
-        </div>
-      </div>
-
       <%= render_cell_content(assigns) %>
     </div>
     """
@@ -33,7 +28,7 @@ defmodule LiveBookWeb.Cell do
     </div>
 
     <div class="markdown" data-markdown-container id="markdown-container-<%= @cell.id %>" phx-update="ignore">
-      <%= render_markdown_content_placeholder() %>
+      <%= render_markdown_content_placeholder(@cell.source) %>
     </div>
     """
   end
@@ -59,7 +54,7 @@ defmodule LiveBookWeb.Cell do
          data-editor-container
          id="editor-container-<%= cell.id %>"
          phx-update="ignore">
-      <%= render_editor_content_placeholder() %>
+      <%= render_editor_content_placeholder(cell.source) %>
     </div>
     """
   end
@@ -68,7 +63,13 @@ defmodule LiveBookWeb.Cell do
   # There may be a tiny delay before the markdown is rendered
   # or and editors are mounted, so show neat placeholders immediately.
 
-  defp render_markdown_content_placeholder() do
+  defp render_markdown_content_placeholder("" = _content) do
+    ~E"""
+    <div class="h-4"></div>
+    """
+  end
+
+  defp render_markdown_content_placeholder(_content) do
     ~E"""
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
@@ -80,7 +81,13 @@ defmodule LiveBookWeb.Cell do
     """
   end
 
-  defp render_editor_content_placeholder() do
+  defp render_editor_content_placeholder("" = _content) do
+    ~E"""
+    <div class="h-4"></div>
+    """
+  end
+
+  defp render_editor_content_placeholder(_content) do
     ~E"""
     <div class="px-8 max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4 py-1">

@@ -18,44 +18,42 @@ import Markdown from "./markdown";
  *   * `data-type` - editor type (i.e. language), either "markdown" or "elixir" is expected
  *   * `data-focused` - whether the cell is currently focused
  *   * `data-expanded` - whether the cell is currently expanded (relevant for markdown cells)
- *
- * Additionally the root element should have a `div[data-init]` child (rendered once)
- * holding the initial data rendered only once:
- *
- *   * `data-source` - the initial cell source
- *   * `data-revision` - the initial cell revision corresponding to the source
  */
 const Cell = {
   mounted() {
     this.props = getProps(this);
 
-    const editorContainer = this.el.querySelector("[data-editor-container]");
-    // Remove the content placeholder.
-    editorContainer.firstElementChild.remove();
-    // Create an empty container for the editor to be mounted in.
-    const editorElement = document.createElement("div");
-    editorContainer.appendChild(editorElement);
-    // Setup the editor instance.
-    this.liveEditor = new LiveEditor(
-      this,
-      editorElement,
-      this.props.cellId,
-      this.props.type,
-      this.props.init.source,
-      this.props.init.revision
-    );
+    this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
+      const { source, revision } = payload;
 
-    // Setup markdown rendering.
-    if (this.props.type === "markdown") {
-      const markdownContainer = this.el.querySelector(
-        "[data-markdown-container]"
+      const editorContainer = this.el.querySelector("[data-editor-container]");
+      // Remove the content placeholder.
+      editorContainer.firstElementChild.remove();
+      // Create an empty container for the editor to be mounted in.
+      const editorElement = document.createElement("div");
+      editorContainer.appendChild(editorElement);
+      // Setup the editor instance.
+      this.liveEditor = new LiveEditor(
+        this,
+        editorElement,
+        this.props.cellId,
+        this.props.type,
+        source,
+        revision
       );
-      const markdown = new Markdown(markdownContainer, this.props.init.source);
 
-      this.liveEditor.onChange((newSource) => {
-        markdown.setContent(newSource);
-      });
-    }
+      // Setup markdown rendering.
+      if (this.props.type === "markdown") {
+        const markdownContainer = this.el.querySelector(
+          "[data-markdown-container]"
+        );
+        const markdown = new Markdown(markdownContainer, source);
+
+        this.liveEditor.onChange((newSource) => {
+          markdown.setContent(newSource);
+        });
+      }
+    });
   },
 
   updated() {
@@ -73,17 +71,11 @@ const Cell = {
 };
 
 function getProps(hook) {
-  const initElement = hook.el.querySelector("[data-init]");
-
   return {
     cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
     type: getAttributeOrThrow(hook.el, "data-type"),
     isFocused: getAttributeOrThrow(hook.el, "data-focused", parseBoolean),
     isExpanded: getAttributeOrThrow(hook.el, "data-expanded", parseBoolean),
-    init: {
-      source: getAttributeOrThrow(initElement, "data-source"),
-      revision: getAttributeOrThrow(initElement, "data-revision", parseInteger),
-    },
   };
 }
 
