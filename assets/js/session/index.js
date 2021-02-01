@@ -45,17 +45,7 @@ const Session = {
   },
 
   updated() {
-    const prevProps = this.props;
     this.props = getProps(this);
-
-    // When a new cell gets focus, center it nicely on the page
-    if (
-      this.props.focusedCellId &&
-      this.props.focusedCellId !== prevProps.focusedCellId
-    ) {
-      const cell = this.el.querySelector(`#cell-${this.props.focusedCellId}`);
-      cell.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
   },
 };
 

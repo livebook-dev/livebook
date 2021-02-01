@@ -67,6 +67,10 @@ const Cell = {
     if (isActive(prevProps) && !isActive(this.props)) {
       this.liveEditor.blur();
     }
+
+    if (!prevProps.isFocused && this.props.isFocused) {
+      this.el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   },
 };
 
