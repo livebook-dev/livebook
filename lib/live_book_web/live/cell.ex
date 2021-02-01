@@ -17,11 +17,13 @@ defmodule LiveBookWeb.Cell do
 
   def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
     ~L"""
-    <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
-      <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
-        <%= Icons.svg(:trash, class: "h-6") %>
-      </button>
-    </div>
+    <%= if @focused do %>
+      <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
+        <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
+          <%= Icons.svg(:trash, class: "h-6") %>
+        </button>
+      </div>
+    <% end %>
 
     <div class="<%= if @expanded, do: "mb-4", else: "hidden" %>">
       <%= render_editor(@cell) %>
@@ -35,16 +37,30 @@ defmodule LiveBookWeb.Cell do
 
   def render_cell_content(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
-    <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
-      <button class="text-gray-500 hover:text-current">
-        <%= Icons.svg(:play, class: "h-6") %>
-      </button>
-      <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
-        <%= Icons.svg(:trash, class: "h-6") %>
-      </button>
-    </div>
+    <%= if @focused do %>
+      <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
+        <button phx-click="queue_cell_evaluation" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
+          <%= Icons.svg(:play, class: "h-6") %>
+        </button>
+        <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
+          <%= Icons.svg(:trash, class: "h-6") %>
+        </button>
+      </div>
+    <% end %>
 
     <%= render_editor(@cell) %>
+
+    <%= if length(@cell.outputs) > 0 do %>
+      <div class="flex flex-col rounded-md mt-2 border border-gray-200 divide-y divide-gray-200 text-sm">
+        <%= for output <- Enum.reverse(@cell.outputs) do %>
+          <div class="p-4">
+            <div class="max-h-80 overflow-auto tiny-scrollbar">
+              <%= render_output(output) %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
     """
   end
 
@@ -96,6 +112,24 @@ defmodule LiveBookWeb.Cell do
         <div class="h-4 bg-gray-500 rounded w-5/6"></div>
       </div>
     </div>
+    """
+  end
+
+  defp render_output(output) when is_binary(output) do
+    ~E"""
+    <div class="whitespace-pre text-gray-500"><%= output %></div>
+    """
+  end
+
+  defp render_output({:ok, value}) do
+    ~E"""
+    <div class="whitespace-pre text-gray-500"><%= inspect(value, pretty: true) %></div>
+    """
+  end
+
+  defp render_output({:error, kind, error, stacktrace}) do
+    ~E"""
+    <div class="whitespace-pre text-red-600"><%= Exception.format(kind, error, stacktrace) %></div>
     """
   end
 end

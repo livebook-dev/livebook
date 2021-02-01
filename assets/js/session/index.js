@@ -27,8 +27,11 @@ const Session = {
       } else if (event.altKey && event.key === "k") {
         event.preventDefault();
         this.pushEvent("move_cell_focus", { offset: -1 });
+      } else if (event.ctrlKey && event.key === "Enter") {
+        event.stopPropagation();
+        this.pushEvent("queue_cell_evaluation", {});
       }
-    });
+    }, true);
 
     // Focus/unfocus a cell when the user clicks somewhere
     document.addEventListener("click", (event) => {

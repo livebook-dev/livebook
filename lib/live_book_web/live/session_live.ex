@@ -187,6 +187,20 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
+  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_cell_evaluation", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      Session.queue_cell_evaluation(socket.assigns.session_id, socket.assigns.focused_cell_id)
+    end
+
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.assigns.data, operation) do
