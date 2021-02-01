@@ -328,16 +328,22 @@ defmodule LiveBook.Session.Data do
 
   defp add_cell_evaluation_stdout({data, _} = data_actions, cell, string) do
     data_actions
-    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn cell ->
-      %{cell | outputs: add_output(cell.outputs, string)}
-    end))
+    |> set!(
+      notebook:
+        Notebook.update_cell(data.notebook, cell.id, fn cell ->
+          %{cell | outputs: add_output(cell.outputs, string)}
+        end)
+    )
   end
 
   defp add_cell_evaluation_response({data, _} = data_actions, cell, response) do
     data_actions
-    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn cell ->
-      %{cell | outputs: add_output(cell.outputs, response)}
-    end))
+    |> set!(
+      notebook:
+        Notebook.update_cell(data.notebook, cell.id, fn cell ->
+          %{cell | outputs: add_output(cell.outputs, response)}
+        end)
+    )
   end
 
   defp add_output([], output), do: [output]

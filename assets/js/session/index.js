@@ -14,24 +14,28 @@ const Session = {
     this.props = getProps(this);
 
     // Keybindings
-    document.addEventListener("keydown", (event) => {
-      if (event.shiftKey && event.key === "Enter" && !event.repeat) {
-        if (this.props.focusedCellId !== null) {
-          // If the editor is focused we don't want it to receive the input
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.shiftKey && event.key === "Enter" && !event.repeat) {
+          if (this.props.focusedCellId !== null) {
+            // If the editor is focused we don't want it to receive the input
+            event.preventDefault();
+            this.pushEvent("toggle_cell_expanded", {});
+          }
+        } else if (event.altKey && event.key === "j") {
           event.preventDefault();
-          this.pushEvent("toggle_cell_expanded", {});
+          this.pushEvent("move_cell_focus", { offset: 1 });
+        } else if (event.altKey && event.key === "k") {
+          event.preventDefault();
+          this.pushEvent("move_cell_focus", { offset: -1 });
+        } else if (event.ctrlKey && event.key === "Enter") {
+          event.stopPropagation();
+          this.pushEvent("queue_cell_evaluation", {});
         }
-      } else if (event.altKey && event.key === "j") {
-        event.preventDefault();
-        this.pushEvent("move_cell_focus", { offset: 1 });
-      } else if (event.altKey && event.key === "k") {
-        event.preventDefault();
-        this.pushEvent("move_cell_focus", { offset: -1 });
-      } else if (event.ctrlKey && event.key === "Enter") {
-        event.stopPropagation();
-        this.pushEvent("queue_cell_evaluation", {});
-      }
-    }, true);
+      },
+      true
+    );
 
     // Focus/unfocus a cell when the user clicks somewhere
     document.addEventListener("click", (event) => {

@@ -129,9 +129,9 @@ iframe[hidden] {
 
 .tiny-scrollbar::-webkit-scrollbar-thumb {
   border-radius: 0.25rem;
-  @apply bg-gray-400
+  @apply bg-gray-400;
 }
 
 .tiny-scrollbar::-webkit-scrollbar-track {
-  @apply bg-gray-100
+  @apply bg-gray-100;
 }
