@@ -75,6 +75,7 @@ defmodule LiveBookWeb.SessionLive do
         <div class="max-w-screen-lg w-full mx-auto">
           <%= for section <- @data.notebook.sections do %>
             <%= live_component @socket, LiveBookWeb.Section,
+                               id: section.id,
                                section: section,
                                selected: section.id == @selected_section_id,
                                cell_infos: @data.cell_infos,

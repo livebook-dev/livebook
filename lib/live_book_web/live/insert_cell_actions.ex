@@ -27,7 +27,9 @@ defmodule LiveBookWeb.InsertCellActions do
   end
 
   defp line() do
-    ~e"""
+    assigns = %{}
+
+    ~L"""
     <div class="border-t-2 border-dashed border-gray-200 flex-grow"></div>
     """
   end

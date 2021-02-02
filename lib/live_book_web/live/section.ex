@@ -25,15 +25,18 @@ defmodule LiveBookWeb.Section do
       <div class="container py-4">
         <div class="flex flex-col space-y-2 pb-80">
           <%= live_component @socket, LiveBookWeb.InsertCellActions,
+                             id: "#{@section.id}:0",
                              section_id: @section.id,
                              index: 0 %>
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
             <%= live_component @socket, LiveBookWeb.Cell,
+                               id: cell.id,
                                cell: cell,
                                cell_info: @cell_infos[cell.id],
                                focused: @selected and cell.id == @focused_cell_id,
                                expanded: @selected and cell.id == @focused_cell_id and @focused_cell_expanded %>
             <%= live_component @socket, LiveBookWeb.InsertCellActions,
+                               id: "#{@section.id}:#{index + 1}",
                                section_id: @section.id,
                                index: index + 1 %>
           <% end %>
