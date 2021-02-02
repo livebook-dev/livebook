@@ -121,3 +121,17 @@ iframe[hidden] {
 .bg-editor {
   background-color: #282c34;
 }
+
+.tiny-scrollbar::-webkit-scrollbar {
+  width: 0.4rem;
+  height: 0.4rem;
+}
+
+.tiny-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 0.25rem;
+  @apply bg-gray-400;
+}
+
+.tiny-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}

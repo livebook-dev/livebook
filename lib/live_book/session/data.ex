@@ -326,21 +326,34 @@ defmodule LiveBook.Session.Data do
     |> set_cell_info!(cell.id, evaluation_status: :ready)
   end
 
-  defp add_cell_evaluation_stdout({data, _} = data_actions, _cell, _string) do
+  defp add_cell_evaluation_stdout({data, _} = data_actions, cell, string) do
     data_actions
     |> set!(
-      # TODO: add stdout to cell outputs
-      notebook: data.notebook
+      notebook:
+        Notebook.update_cell(data.notebook, cell.id, fn cell ->
+          %{cell | outputs: add_output(cell.outputs, string)}
+        end)
     )
   end
 
-  defp add_cell_evaluation_response({data, _} = data_actions, _cell, _response) do
+  defp add_cell_evaluation_response({data, _} = data_actions, cell, response) do
     data_actions
     |> set!(
-      # TODO: add result to outputs
-      notebook: data.notebook
+      notebook:
+        Notebook.update_cell(data.notebook, cell.id, fn cell ->
+          %{cell | outputs: add_output(cell.outputs, response)}
+        end)
     )
   end
+
+  defp add_output([], output), do: [output]
+
+  defp add_output([head | tail], output) when is_binary(head) and is_binary(output) do
+    # Merge consecutive string outputs
+    [head <> output | tail]
+  end
+
+  defp add_output(outputs, output), do: [output | outputs]
 
   defp finish_cell_evaluation(data_actions, cell, section) do
     data_actions

@@ -18,7 +18,6 @@ defmodule LiveBook.Notebook.Cell do
           id: id(),
           type: type(),
           source: String.t(),
-          # TODO: expand on this
           outputs: list(),
           metadata: %{atom() => term()}
         }

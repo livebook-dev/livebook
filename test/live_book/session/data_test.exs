@@ -252,14 +252,73 @@ defmodule LiveBook.Session.DataTest do
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_stdout" do
-    test "update the cell output" do
-      # TODO assert against output being updated once we do so
+    test "updates the cell outputs" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:queue_cell_evaluation, "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_stdout, "c1", "Hello!"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{outputs: ["Hello!"]}]
+                    }
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "merges consecutive stdout results" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:queue_cell_evaluation, "c1"},
+          {:add_cell_evaluation_stdout, "c1", "Hello"}
+        ])
+
+      operation = {:add_cell_evaluation_stdout, "c1", " amigo!"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{outputs: ["Hello amigo!"]}]
+                    }
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
     end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_response" do
-    test "update the cell output" do
-      # TODO assert against output being updated once we do so
+    test "updates the cell outputs" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:queue_cell_evaluation, "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_response, "c1", {:ok, [1, 2, 3]}}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{outputs: [{:ok, [1, 2, 3]}]}]
+                    }
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
     end
 
     test "marks the cell as evaluated" do

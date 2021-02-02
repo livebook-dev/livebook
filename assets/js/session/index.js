@@ -14,7 +14,7 @@ const Session = {
     this.props = getProps(this);
 
     // Keybindings
-    document.addEventListener("keydown", (event) => {
+    this.handleDocumentKeydown = (event) => {
       if (event.shiftKey && event.key === "Enter" && !event.repeat) {
         if (this.props.focusedCellId !== null) {
           // If the editor is focused we don't want it to receive the input
@@ -27,33 +27,35 @@ const Session = {
       } else if (event.altKey && event.key === "k") {
         event.preventDefault();
         this.pushEvent("move_cell_focus", { offset: -1 });
+      } else if (event.ctrlKey && event.key === "Enter") {
+        event.stopPropagation();
+        this.pushEvent("queue_cell_evaluation", {});
       }
-    });
+    };
+
+    document.addEventListener("keydown", this.handleDocumentKeydown, true);
 
     // Focus/unfocus a cell when the user clicks somewhere
-    document.addEventListener("click", (event) => {
+    this.handleDocumentClick = (event) => {
       // Find the parent with cell id info, if there is one
       const cell = event.target.closest("[data-cell-id]");
       const cellId = cell ? cell.dataset.cellId : null;
       if (cellId !== this.props.focusedCellId) {
         this.pushEvent("focus_cell", { cell_id: cellId });
       }
-    });
+    };
+
+    document.addEventListener("click", this.handleDocumentClick);
   },
 
   updated() {
-    const prevProps = this.props;
     this.props = getProps(this);
-
-    // When a new cell gets focus, center it nicely on the page
-    if (
-      this.props.focusedCellId &&
-      this.props.focusedCellId !== prevProps.focusedCellId
-    ) {
-      const cell = this.el.querySelector(`#cell-${this.props.focusedCellId}`);
-      cell.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
   },
+
+  destroyed() {
+    document.removeEventListener("keydown", this.handleDocumentKeydown);
+    document.removeEventListener("click", this.handleDocumentClick);
+  }
 };
 
 function getProps(hook) {

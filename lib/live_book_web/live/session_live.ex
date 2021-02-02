@@ -75,6 +75,7 @@ defmodule LiveBookWeb.SessionLive do
         <div class="max-w-screen-lg w-full mx-auto">
           <%= for section <- @data.notebook.sections do %>
             <%= live_component @socket, LiveBookWeb.Section,
+                               id: section.id,
                                section: section,
                                selected: section.id == @selected_section_id,
                                cell_infos: @data.cell_infos,
@@ -185,6 +186,20 @@ defmodule LiveBookWeb.SessionLive do
     else
       {:noreply, socket}
     end
+  end
+
+  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_cell_evaluation", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      Session.queue_cell_evaluation(socket.assigns.session_id, socket.assigns.focused_cell_id)
+    end
+
+    {:noreply, socket}
   end
 
   @impl true
