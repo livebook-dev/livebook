@@ -50,7 +50,7 @@ defmodule LiveBookWeb.Cell do
 
     <%= render_editor(@cell, @cell_info, show_status: true) %>
 
-    <%= if length(@cell.outputs) > 0 do %>
+    <%= if @cell.outputs != [] do %>
       <div class="mt-2">
         <%= render_outputs(@cell.outputs) %>
       </div>
