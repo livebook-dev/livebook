@@ -172,9 +172,9 @@ defmodule LiveBook.Notebook do
     with {:ok, _, section} <- LiveBook.Notebook.fetch_cell_and_section(notebook, cell_id) do
       # A cell depends on all previous cells within the same section.
       section.cells
-      |> Enum.filter(&(&1.type == :elixir))
       |> Enum.take_while(&(&1.id != cell_id))
       |> Enum.reverse()
+      |> Enum.filter(&(&1.type == :elixir))
     else
       _ -> []
     end
@@ -190,9 +190,9 @@ defmodule LiveBook.Notebook do
     with {:ok, _, section} <- LiveBook.Notebook.fetch_cell_and_section(notebook, cell_id) do
       # A cell affects all the cells below it within the same section.
       section.cells
+      |> Enum.drop_while(&(&1.id != cell_id))
+      |> Enum.drop(1)
       |> Enum.filter(&(&1.type == :elixir))
-      |> Enum.reverse()
-      |> Enum.take_while(&(&1.id != cell_id))
     else
       _ -> []
     end

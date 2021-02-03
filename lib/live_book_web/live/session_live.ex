@@ -34,6 +34,7 @@ defmodule LiveBookWeb.SessionLive do
       data: data,
       selected_section_id: first_section_id,
       focused_cell_id: nil,
+      focused_cell_type: nil,
       focused_cell_expanded: false
     }
   end
@@ -44,7 +45,8 @@ defmodule LiveBookWeb.SessionLive do
     <div class="flex flex-grow max-h-full"
          id="session"
          phx-hook="Session"
-         data-focused-cell-id="<%= @focused_cell_id %>">
+         data-focused-cell-id="<%= @focused_cell_id %>"
+         data-focused-cell-type="<%= @focused_cell_type %>">
       <div class="w-1/5 bg-gray-100 border-r-2 border-gray-200">
         <h1 id="notebook-name"
             contenteditable
@@ -135,8 +137,38 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("insert_cell_below_focused", %{"type" => type}, socket) do
+    type = String.to_atom(type)
+
+    with {:ok, cell, section} <- fetch_focused_cell_and_section(socket.assigns) do
+      index = Enum.find_index(section.cells, &(&1 == cell))
+      Session.insert_cell(socket.assigns.session_id, section.id, index + 1, type)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("insert_cell_above_focused", %{"type" => type}, socket) do
+    type = String.to_atom(type)
+
+    with {:ok, cell, section} <- fetch_focused_cell_and_section(socket.assigns) do
+      index = Enum.find_index(section.cells, &(&1 == cell))
+      Session.insert_cell(socket.assigns.session_id, section.id, index, type)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
     Session.delete_cell(socket.assigns.session_id, cell_id)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_focused_cell", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      Session.delete_cell(socket.assigns.session_id, socket.assigns.focused_cell_id)
+    end
 
     {:noreply, socket}
   end
@@ -167,13 +199,25 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event("focus_cell", %{"cell_id" => cell_id}, socket) do
-    {:noreply, assign(socket, focused_cell_id: cell_id, focused_cell_expanded: false)}
+    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
+
+    {:noreply,
+     assign(socket,
+       focused_cell_id: cell.id,
+       focused_cell_type: cell.type,
+       focused_cell_expanded: false
+     )}
   end
 
   def handle_event("move_cell_focus", %{"offset" => offset}, socket) do
     case new_focused_cell_from_offset(socket.assigns, offset) do
       {:ok, cell} ->
-        {:noreply, assign(socket, focused_cell_id: cell.id, focused_cell_expanded: false)}
+        {:noreply,
+         assign(socket,
+           focused_cell_id: cell.id,
+           focused_cell_type: cell.type,
+           focused_cell_expanded: false
+         )}
 
       :error ->
         {:noreply, socket}
@@ -194,9 +238,21 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("queue_cell_evaluation", %{}, socket) do
+  def handle_event("queue_focused_cell_evaluation", %{}, socket) do
     if socket.assigns.focused_cell_id do
       Session.queue_cell_evaluation(socket.assigns.session_id, socket.assigns.focused_cell_id)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_child_cells_evaluation", %{}, socket) do
+    with {:ok, cell, _section} <- fetch_focused_cell_and_section(socket.assigns) do
+      cells = Notebook.child_cells(socket.assigns.data.notebook, cell.id)
+
+      for cell <- [cell | cells] do
+        Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+      end
     end
 
     {:noreply, socket}
@@ -253,6 +309,14 @@ defmodule LiveBookWeb.SessionLive do
 
       true ->
         :error
+    end
+  end
+
+  defp fetch_focused_cell_and_section(assigns) do
+    if assigns.focused_cell_id do
+      Notebook.fetch_cell_and_section(assigns.data.notebook, assigns.focused_cell_id)
+    else
+      :error
     end
   end
 end
