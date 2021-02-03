@@ -70,7 +70,7 @@ const Session = {
         } else {
           this.pushEvent("insert_cell_below_focused", { type: "markdown" });
         }
-      } else if (alt && key === "delete") {
+      } else if (alt && key === "w") {
         cancelEvent(event);
 
         this.pushEvent("delete_focused_cell", {}); // TODO: focused:delete_cell ?
