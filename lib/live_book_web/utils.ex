@@ -16,9 +16,12 @@ defmodule LiveBookWeb.Utils do
     # and their effect is reverted by a special reset escape code.
     #
     # In our case we need HTML tags for syntax highlighting,
-    # so as the colors we use unlikely sequences like ^_^atom^_^
+    # so as the colors we use sequences like \xfeatom\xfe
     # then we HTML-escape the string and finally replace
     # these special sequences with actual <span> tags.
+    #
+    # Note that the surrounding \xfe byte is invalid in a UTF-8 sequence,
+    # so we can be certain it won't appear in the normal `inspect` result.
 
     term
     |> inspect(Keyword.merge(opts, syntax_colors: inspect_html_colors()))
@@ -29,7 +32,7 @@ defmodule LiveBookWeb.Utils do
   end
 
   defp inspect_html_colors() do
-    delim = "^_^"
+    delim = "\xfe"
 
     [
       atom: delim <> "atom" <> delim,
