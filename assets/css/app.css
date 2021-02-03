@@ -116,10 +116,57 @@ iframe[hidden] {
   @apply mb-0;
 }
 
+/* Elixir HTML-ized inspect result */
+
+.elixir-inspect .atom {
+  color: #61afef;
+}
+
+.elixir-inspect .binary {
+  color: #5c6370;
+}
+
+.elixir-inspect .boolean {
+  color: #c678dd;
+}
+
+.elixir-inspect .list {
+  color: #5c6370;
+}
+
+.elixir-inspect .map {
+  color: #5c6370;
+}
+
+.elixir-inspect .nil {
+  color: #c678dd;
+}
+
+.elixir-inspect .number {
+  color: #d19a66;
+}
+
+.elixir-inspect .regex {
+  color: #e06c75;
+}
+
+.elixir-inspect .string {
+  color: #98c379;
+}
+
+.elixir-inspect .tuple {
+  color: #5c6370;
+}
+
 /* Other */
 
 .bg-editor {
   background-color: #282c34;
+}
+
+.font-editor {
+  font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
+  font-size: 14px;
 }
 
 .tiny-scrollbar::-webkit-scrollbar {

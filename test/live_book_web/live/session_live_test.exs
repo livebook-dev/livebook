@@ -92,7 +92,8 @@ defmodule LiveBookWeb.SessionLiveTest do
                Session.get_data(session_id)
     end
 
-    test "queueing cell evaluation updates the shared state", %{conn: conn, session_id: session_id} do
+    test "queueing cell evaluation updates the shared state",
+         %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(5)")
 
@@ -108,7 +109,6 @@ defmodule LiveBookWeb.SessionLiveTest do
 
     test "queueing cell evaluation defaults to the focused cell if no cell id is given",
          %{conn: conn, session_id: session_id} do
-
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(5)")
 

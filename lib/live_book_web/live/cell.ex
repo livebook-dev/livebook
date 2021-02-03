@@ -1,6 +1,8 @@
 defmodule LiveBookWeb.Cell do
   use LiveBookWeb, :live_component
 
+  alias LiveBookWeb.Utils
+
   def render(assigns) do
     ~L"""
     <div id="cell-<%= @cell.id %>"
@@ -131,7 +133,7 @@ defmodule LiveBookWeb.Cell do
     assigns = %{outputs: outputs}
 
     ~L"""
-    <div class="flex flex-col rounded-md border border-gray-200 divide-y divide-gray-200 text-sm">
+    <div class="flex flex-col rounded-md border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for output <- Enum.reverse(@outputs) do %>
         <div class="p-4">
           <div class="max-h-80 overflow-auto tiny-scrollbar">
@@ -152,11 +154,12 @@ defmodule LiveBookWeb.Cell do
   end
 
   defp render_output({:ok, value}) do
-    inspected = inspect(value, pretty: true, width: 140)
+    inspected = Utils.inspect_as_html(value, pretty: true, width: 140)
+
     assigns = %{inspected: inspected}
 
     ~L"""
-    <div class="whitespace-pre text-gray-500"><%= @inspected %></div>
+    <div class="whitespace-pre text-gray-500 elixir-inspect"><%= @inspected %></div>
     """
   end
 
