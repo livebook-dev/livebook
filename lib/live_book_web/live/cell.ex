@@ -133,7 +133,7 @@ defmodule LiveBookWeb.Cell do
     assigns = %{outputs: outputs}
 
     ~L"""
-    <div class="flex flex-col rounded-md border border-gray-200 divide-y divide-gray-200 text-sm">
+    <div class="flex flex-col rounded-md border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for output <- Enum.reverse(@outputs) do %>
         <div class="p-4">
           <div class="max-h-80 overflow-auto tiny-scrollbar">
