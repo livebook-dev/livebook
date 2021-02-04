@@ -68,8 +68,8 @@ defmodule LiveBookWeb.SessionLiveTest do
     end
   end
 
-  describe "UI-triggered updates" do
-    test "adding a new session updates the shared state", %{conn: conn, session_id: session_id} do
+  describe "UI events update the shared state" do
+    test "adding a new section", %{conn: conn, session_id: session_id} do
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
       view
@@ -79,7 +79,7 @@ defmodule LiveBookWeb.SessionLiveTest do
       assert %{notebook: %{sections: [_section]}} = Session.get_data(session_id)
     end
 
-    test "adding a new cell updates the shared state", %{conn: conn, session_id: session_id} do
+    test "adding a new cell", %{conn: conn, session_id: session_id} do
       Session.insert_section(session_id, 0)
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
@@ -92,10 +92,9 @@ defmodule LiveBookWeb.SessionLiveTest do
                Session.get_data(session_id)
     end
 
-    test "queueing cell evaluation updates the shared state",
-         %{conn: conn, session_id: session_id} do
+    test "queueing cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
-      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(5)")
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
@@ -107,23 +106,67 @@ defmodule LiveBookWeb.SessionLiveTest do
                Session.get_data(session_id)
     end
 
-    test "queueing cell evaluation defaults to the focused cell if no cell id is given",
-         %{conn: conn, session_id: session_id} do
+    test "queueing focused cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
-      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(5)")
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
-      view
-      |> element("#session")
-      |> render_hook("focus_cell", %{"cell_id" => cell_id})
+      focus_cell(view, cell_id)
 
       view
       |> element("#session")
-      |> render_hook("queue_cell_evaluation", %{})
+      |> render_hook("queue_focused_cell_evaluation", %{})
 
       assert %{cell_infos: %{^cell_id => %{evaluation_status: :evaluating}}} =
                Session.get_data(session_id)
+    end
+
+    test "inserting a cell below the focused cell", %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_cell(session_id, section_id, :elixir)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      focus_cell(view, cell_id)
+
+      view
+      |> element("#session")
+      |> render_hook("insert_cell_below_focused", %{"type" => "markdown"})
+
+      assert %{notebook: %{sections: [%{cells: [_first_cell, %{type: :markdown}]}]}} =
+               Session.get_data(session_id)
+    end
+
+    test "inserting a cell above the focused cell", %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_cell(session_id, section_id, :elixir)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      focus_cell(view, cell_id)
+
+      view
+      |> element("#session")
+      |> render_hook("insert_cell_above_focused", %{"type" => "markdown"})
+
+      assert %{notebook: %{sections: [%{cells: [%{type: :markdown}, _first_cell]}]}} =
+               Session.get_data(session_id)
+    end
+
+    test "deleting the focused cell", %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_cell(session_id, section_id, :elixir)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      focus_cell(view, cell_id)
+
+      view
+      |> element("#session")
+      |> render_hook("delete_focused_cell", %{})
+
+      assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session_id)
     end
   end
 
@@ -151,5 +194,11 @@ defmodule LiveBookWeb.SessionLiveTest do
     Session.apply_cell_delta(session_id, self(), cell.id, delta, 1)
 
     cell.id
+  end
+
+  defp focus_cell(view, cell_id) do
+    view
+    |> element("#session")
+    |> render_hook("focus_cell", %{"cell_id" => cell_id})
   end
 end

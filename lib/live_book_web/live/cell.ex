@@ -154,7 +154,7 @@ defmodule LiveBookWeb.Cell do
   end
 
   defp render_output({:ok, value}) do
-    inspected = Utils.inspect_as_html(value, pretty: true, width: 140)
+    inspected = Utils.inspect_as_html(value, pretty: true, width: 100)
 
     assigns = %{inspected: inspected}
 

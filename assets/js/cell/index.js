@@ -53,6 +53,16 @@ const Cell = {
           markdown.setContent(newSource);
         });
       }
+
+      // New cells are initially focused, so check for such case.
+
+      if (isActive(this.props)) {
+        this.liveEditor.focus();
+      }
+
+      if (this.props.isFocused) {
+        this.el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     });
   },
 
@@ -60,15 +70,19 @@ const Cell = {
     const prevProps = this.props;
     this.props = getProps(this);
 
+    // Note: this.liveEditor is crated once we receive initial data
+    // so here we have to make sure it's defined.
+
     if (!isActive(prevProps) && isActive(this.props)) {
-      this.liveEditor.focus();
+      this.liveEditor && this.liveEditor.focus();
     }
 
     if (isActive(prevProps) && !isActive(this.props)) {
-      this.liveEditor.blur();
+      this.liveEditor && this.liveEditor.blur();
     }
 
     if (!prevProps.isFocused && this.props.isFocused) {
+      // Note: it's important to trigger scrolling after focus, so it doesn't get interrupted.
       this.el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   },

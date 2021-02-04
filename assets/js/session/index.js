@@ -15,21 +15,65 @@ const Session = {
 
     // Keybindings
     this.handleDocumentKeydown = (event) => {
-      if (event.shiftKey && event.key === "Enter" && !event.repeat) {
-        if (this.props.focusedCellId !== null) {
-          // If the editor is focused we don't want it to receive the input
-          event.preventDefault();
-          this.pushEvent("toggle_cell_expanded", {});
+      const key = event.key.toLowerCase();
+      const shift = event.shiftKey;
+      const alt = event.altKey;
+      const ctrl = event.ctrlKey;
+
+      if (event.repeat) {
+        return;
+      }
+
+      if (shift && key === "enter") {
+        cancelEvent(event);
+
+        if (this.props.focusedCellType === "elixir") {
+          this.pushEvent("queue_focused_cell_evaluation");
         }
-      } else if (event.altKey && event.key === "j") {
-        event.preventDefault();
+
         this.pushEvent("move_cell_focus", { offset: 1 });
-      } else if (event.altKey && event.key === "k") {
-        event.preventDefault();
+      } else if (alt && ctrl && key === "enter") {
+        cancelEvent(event);
+
+        this.pushEvent("queue_child_cells_evaluation", {});
+      } else if (ctrl && key === "enter") {
+        cancelEvent(event);
+
+        if (this.props.focusedCellType === "elixir") {
+          this.pushEvent("queue_focused_cell_evaluation");
+        }
+
+        if (this.props.focusedCellType === "markdown") {
+          this.pushEvent("toggle_cell_expanded");
+        }
+      } else if (alt && key === "j") {
+        cancelEvent(event);
+
+        this.pushEvent("move_cell_focus", { offset: 1 });
+      } else if (alt && key === "k") {
+        cancelEvent(event);
+
         this.pushEvent("move_cell_focus", { offset: -1 });
-      } else if (event.ctrlKey && event.key === "Enter") {
-        event.stopPropagation();
-        this.pushEvent("queue_cell_evaluation", {});
+      } else if (alt && key === "n") {
+        cancelEvent(event);
+
+        if (shift) {
+          this.pushEvent("insert_cell_above_focused", { type: "elixir" });
+        } else {
+          this.pushEvent("insert_cell_below_focused", { type: "elixir" });
+        }
+      } else if (alt && key === "m") {
+        cancelEvent(event);
+
+        if (shift) {
+          this.pushEvent("insert_cell_above_focused", { type: "markdown" });
+        } else {
+          this.pushEvent("insert_cell_below_focused", { type: "markdown" });
+        }
+      } else if (alt && key === "w") {
+        cancelEvent(event);
+
+        this.pushEvent("delete_focused_cell", {}); // TODO: focused:delete_cell ?
       }
     };
 
@@ -55,7 +99,7 @@ const Session = {
   destroyed() {
     document.removeEventListener("keydown", this.handleDocumentKeydown);
     document.removeEventListener("click", this.handleDocumentClick);
-  }
+  },
 };
 
 function getProps(hook) {
@@ -65,7 +109,15 @@ function getProps(hook) {
       "data-focused-cell-id",
       (value) => value || null
     ),
+    focusedCellType: getAttributeOrThrow(hook.el, "data-focused-cell-type"),
   };
+}
+
+function cancelEvent(event) {
+  // Cancel any default browser behavior.
+  event.preventDefault();
+  // Stop event propagation (e.g. so it doesn't reach the editor).
+  event.stopPropagation();
 }
 
 export default Session;
