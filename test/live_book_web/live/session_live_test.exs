@@ -94,7 +94,7 @@ defmodule LiveBookWeb.SessionLiveTest do
 
     test "queueing cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
-      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(5)")
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
@@ -108,7 +108,7 @@ defmodule LiveBookWeb.SessionLiveTest do
 
     test "queueing focused cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
-      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(5)")
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 

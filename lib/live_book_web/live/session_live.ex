@@ -139,22 +139,14 @@ defmodule LiveBookWeb.SessionLive do
 
   def handle_event("insert_cell_below_focused", %{"type" => type}, socket) do
     type = String.to_atom(type)
-
-    with {:ok, cell, section} <- focused_cell_and_section(socket.assigns) do
-      index = Enum.find_index(section.cells, &(&1 == cell))
-      Session.insert_cell(socket.assigns.session_id, section.id, index + 1, type)
-    end
+    insert_cell_next_to_focused(socket.assigns, type, idx_offset: 1)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_cell_above_focused", %{"type" => type}, socket) do
     type = String.to_atom(type)
-
-    with {:ok, cell, section} <- focused_cell_and_section(socket.assigns) do
-      index = Enum.find_index(section.cells, &(&1 == cell))
-      Session.insert_cell(socket.assigns.session_id, section.id, index, type)
-    end
+    insert_cell_next_to_focused(socket.assigns, type, idx_offset: 0)
 
     {:noreply, socket}
   end
@@ -245,7 +237,8 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event("queue_child_cells_evaluation", %{}, socket) do
-    with {:ok, cell, _section} <- focused_cell_and_section(socket.assigns) do
+    if socket.assigns.focused_cell_id do
+      {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, socket.assigns.focused_cell_id)
       cells = Notebook.child_cells(socket.assigns.data.notebook, cell.id)
 
       for cell <- [cell | cells], cell.type == :elixir do
@@ -263,7 +256,7 @@ defmodule LiveBookWeb.SessionLive do
         new_socket =
           socket
           |> assign(data: data)
-          |> post_operation(socket, operation)
+          |> after_operation(socket, operation)
           |> handle_actions(actions)
 
         {:noreply, new_socket}
@@ -273,12 +266,20 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  defp post_operation(socket, _prev_socket, {:insert_cell, _, _, _, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:insert_section, _index, section_id}) do
+    assign(socket, selected_section_id: section_id)
+  end
+
+  defp after_operation(socket, _prev_socket, {:delete_section, _section_id}) do
+    assign(socket, selected_section_id: nil)
+  end
+
+  defp after_operation(socket, _prev_socket, {:insert_cell, _, _, _, cell_id}) do
     {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
     focus_cell(socket, cell, expanded: true)
   end
 
-  defp post_operation(socket, prev_socket, {:delete_cell, cell_id}) do
+  defp after_operation(socket, prev_socket, {:delete_cell, cell_id}) do
     if cell_id == socket.assigns.focused_cell_id do
       case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, 1) do
         {:ok, next_cell} ->
@@ -298,7 +299,7 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  defp post_operation(socket, _prev_socket, _operation), do: socket
+  defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
@@ -340,6 +341,27 @@ defmodule LiveBookWeb.SessionLive do
     )
   end
 
+  defp insert_cell_next_to_focused(assigns, type, idx_offset: idx_offset) do
+    if assigns.focused_cell_id do
+      {:ok, cell, section} = Notebook.fetch_cell_and_section(assigns.data.notebook, assigns.focused_cell_id)
+      index = Enum.find_index(section.cells, &(&1 == cell))
+      Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
+    else
+      append_cell_to_section(assigns, type)
+    end
+  end
+
+  defp append_cell_to_section(assigns, type) do
+    if assigns.selected_section_id do
+      {:ok, section} =
+        Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
+
+      end_index = length(section.cells)
+
+      Session.insert_cell(assigns.session_id, section.id, end_index, type)
+    end
+  end
+
   defp new_focused_cell_from_offset(assigns, offset) do
     cond do
       assigns.focused_cell_id ->
@@ -355,14 +377,6 @@ defmodule LiveBookWeb.SessionLive do
 
       true ->
         :error
-    end
-  end
-
-  defp focused_cell_and_section(assigns) do
-    if assigns.focused_cell_id do
-      Notebook.fetch_cell_and_section(assigns.data.notebook, assigns.focused_cell_id)
-    else
-      :error
     end
   end
 end
