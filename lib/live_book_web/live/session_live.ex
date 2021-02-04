@@ -238,7 +238,12 @@ defmodule LiveBookWeb.SessionLive do
 
   def handle_event("queue_child_cells_evaluation", %{}, socket) do
     if socket.assigns.focused_cell_id do
-      {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, socket.assigns.focused_cell_id)
+      {:ok, cell, _section} =
+        Notebook.fetch_cell_and_section(
+          socket.assigns.data.notebook,
+          socket.assigns.focused_cell_id
+        )
+
       cells = Notebook.child_cells(socket.assigns.data.notebook, cell.id)
 
       for cell <- [cell | cells], cell.type == :elixir do
@@ -343,7 +348,9 @@ defmodule LiveBookWeb.SessionLive do
 
   defp insert_cell_next_to_focused(assigns, type, idx_offset: idx_offset) do
     if assigns.focused_cell_id do
-      {:ok, cell, section} = Notebook.fetch_cell_and_section(assigns.data.notebook, assigns.focused_cell_id)
+      {:ok, cell, section} =
+        Notebook.fetch_cell_and_section(assigns.data.notebook, assigns.focused_cell_id)
+
       index = Enum.find_index(section.cells, &(&1 == cell))
       Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
     else
@@ -353,8 +360,7 @@ defmodule LiveBookWeb.SessionLive do
 
   defp append_cell_to_section(assigns, type) do
     if assigns.selected_section_id do
-      {:ok, section} =
-        Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
+      {:ok, section} = Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
 
       end_index = length(section.cells)
 
