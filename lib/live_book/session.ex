@@ -15,14 +15,15 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta}
+  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta, Remote}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
           session_id: id(),
           data: Data.t(),
           evaluators: %{Section.t() => Evaluator.t()},
-          client_pids: list(pid())
+          client_pids: list(pid()),
+          remote: Remote.t() | nil
         }
 
   @typedoc """
@@ -152,12 +153,21 @@ defmodule LiveBook.Session do
 
   @impl true
   def init(session_id: session_id) do
+    # TODO: where to call this
+    Remote.ensure_distribution()
+    # TODO: do we want to start it immediately?
+    # TODO: monitor and react if the node dies
+    # TODO: we still have to observe evaluators and handle them dying as well
+    remote = Remote.start()
+    Remote.initialize(remote)
+
     {:ok,
      %{
        session_id: session_id,
        data: Data.new(),
        evaluators: %{},
-       client_pids: []
+       client_pids: [],
+       remote: remote
      }}
   end
 
@@ -308,7 +318,7 @@ defmodule LiveBook.Session do
         {state, evaluator}
 
       :error ->
-        {:ok, evaluator} = EvaluatorSupervisor.start_evaluator()
+        {:ok, evaluator} = EvaluatorSupervisor.start_evaluator(state.remote.node)
         state = %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}
         {state, evaluator}
     end
@@ -317,7 +327,7 @@ defmodule LiveBook.Session do
   defp delete_section_evaluator(state, section_id) do
     case fetch_section_evaluator(state, section_id) do
       {:ok, evaluator} ->
-        EvaluatorSupervisor.terminate_evaluator(evaluator)
+        EvaluatorSupervisor.terminate_evaluator(state.remote.node, evaluator)
         %{state | evaluators: Map.delete(state.evaluators, section_id)}
 
       :error ->

@@ -13,8 +13,6 @@ defmodule LiveBook.Application do
       {Phoenix.PubSub, name: LiveBook.PubSub},
       # Start the supervisor dynamically managing sessions
       LiveBook.SessionSupervisor,
-      # Start the supervisor dynamically spawning evaluator servers
-      LiveBook.EvaluatorSupervisor,
       # Start the Endpoint (http/https)
       LiveBookWeb.Endpoint
     ]
