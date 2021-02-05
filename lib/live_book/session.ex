@@ -155,19 +155,14 @@ defmodule LiveBook.Session do
   def init(session_id: session_id) do
     # TODO: where to call this
     Remote.ensure_distribution()
-    # TODO: do we want to start it immediately?
-    # TODO: monitor and react if the node dies
-    # TODO: we still have to observe evaluators and handle them dying as well
-    remote = Remote.start()
-    Remote.initialize(remote)
 
     {:ok,
      %{
        session_id: session_id,
        data: Data.new(),
-       evaluators: %{},
        client_pids: [],
-       remote: remote
+       evaluators: %{},
+       remote: nil
      }}
   end
 
@@ -232,6 +227,12 @@ defmodule LiveBook.Session do
   @impl true
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
+  end
+
+  def handle_info({:nodedown, node}, %{remote: %{node: node}} = state) do
+    new_state = %{state | remote: nil, evaluators: %{}}
+    operation = {:reset_evaluation}
+    handle_operation(new_state, operation)
   end
 
   def handle_info({:evaluator_stdout, cell_id, string}, state) do
@@ -318,11 +319,18 @@ defmodule LiveBook.Session do
         {state, evaluator}
 
       :error ->
+        state = ensure_remote(state)
         {:ok, evaluator} = EvaluatorSupervisor.start_evaluator(state.remote.node)
         state = %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}
         {state, evaluator}
     end
   end
+
+  defp ensure_remote(%{remote: nil} = state) do
+    %{state | remote: start_remote()}
+  end
+
+  defp ensure_remote(state), do: state
 
   defp delete_section_evaluator(state, section_id) do
     case fetch_section_evaluator(state, section_id) do
@@ -333,5 +341,12 @@ defmodule LiveBook.Session do
       :error ->
         state
     end
+  end
+
+  defp start_remote() do
+    remote = Remote.start()
+    Remote.initialize(remote)
+    Node.monitor(remote.node, true)
+    remote
   end
 end

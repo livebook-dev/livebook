@@ -64,6 +64,7 @@ defmodule LiveBook.Session.Data do
           | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
           | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
           | {:cancel_cell_evaluation, Cell.id()}
+          | {:reset_evaluation}
           | {:set_notebook_name, String.t()}
           | {:set_section_name, Section.id(), String.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
@@ -233,6 +234,13 @@ defmodule LiveBook.Session.Data do
           :error
       end
     end
+  end
+
+  def apply_operation(data, {:reset_evaluation}) do
+    data
+    |> with_actions()
+    |> reduce(data.notebook.sections, &clear_section_evaluation/2)
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:set_notebook_name, name}) do

@@ -49,7 +49,10 @@ defmodule LiveBook.Remote do
     elixir_path = System.find_executable("elixir")
     # Pass the nouse_stdio option, so that the caller does not
     # receive unexpected messages if the process produces some output.
-    Port.open({:spawn_executable, elixir_path}, [:nouse_stdio, args: ["--name", to_string(node), "--eval", eval]])
+    Port.open({:spawn_executable, elixir_path}, [
+      :nouse_stdio,
+      args: ["--name", to_string(node), "--eval", eval]
+    ])
 
     # TODO: timeout or something with error?
     primary_pid =
