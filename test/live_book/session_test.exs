@@ -1,10 +1,13 @@
 defmodule LiveBook.SessionTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.{Session, Delta}
+  alias LiveBook.{Session, Delta, Runtime}
 
   setup do
     {:ok, _} = Session.start_link("1")
+    # Use the current node for evaluation, rather than starting a standalone one.
+    {:ok, runtime} = Runtime.Attached.init(node())
+    Session.set_runtime("1", runtime)
     %{session_id: "1"}
   end
 

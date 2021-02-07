@@ -23,6 +23,7 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# The name to give the node when starting distribution mode
 config :live_book, :node_name, :"live_book@127.0.0.1"
 
 # Import environment specific config. This must remain at the bottom

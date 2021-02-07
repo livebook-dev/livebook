@@ -36,7 +36,6 @@ defmodule LiveBook.Runtime.Standalone do
             send(primary_pid, {:acknowledgement, owner_pid})
 
             {:ok, %__MODULE__{node: node, primary_pid: primary_pid}}
-
         after
           5_000 ->
             {:error, :timeout}
@@ -60,7 +59,6 @@ defmodule LiveBook.Runtime.Standalone do
             :stop ->
               :ok
           end
-
       after
         5_000 -> :timeout
       end
