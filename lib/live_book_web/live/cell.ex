@@ -73,7 +73,7 @@ defmodule LiveBookWeb.Cell do
       </div>
 
       <%= if @show_status do %>
-        <div class="absolute bottom-2 right-2 z-50">
+        <div class="absolute bottom-2 right-2">
           <%= render_cell_status(@cell_info) %>
         </div>
       <% end %>

@@ -42,7 +42,6 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
-
     <%= if @live_action == :runtime do %>
       <%= LiveBookWeb.Utils.live_modal @socket, LiveBookWeb.RuntimeComponent,
                               id: :runtime_modal,
@@ -84,7 +83,7 @@ defmodule LiveBookWeb.SessionLive do
           </button>
         </div>
         <div class="p-4">
-          <%= live_redirect to: Routes.session_path(@socket, :runtime, @session_id) do %>
+          <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
             <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
         </div>
@@ -108,8 +107,6 @@ defmodule LiveBookWeb.SessionLive do
 
   @impl true
   def handle_params(_params, _url, socket) do
-    # {:noreply, apply_action(socket, socket.assigns.live_action, params)}
-    # TODO: ?
     {:noreply, socket}
   end
 

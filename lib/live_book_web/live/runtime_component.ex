@@ -5,9 +5,19 @@ defmodule LiveBookWeb.RuntimeComponent do
   alias LiveBook.Runtime
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, error_message: nil)}
+  end
+
+  @impl true
   def render(assigns) do
     ~L"""
     <div class="p-6">
+      <%= if @error_message do %>
+        <div class="mb-3 rounded-md px-4 py-2 bg-red-100 text-red-400 text-sm font-medium">
+          <%= @error_message %>
+        </div>
+      <% end %>
       <h3 class="text-lg font-medium text-gray-900">
         Runtime
       </h3>
@@ -106,16 +116,25 @@ defmodule LiveBookWeb.RuntimeComponent do
   end
 
   def handle_event("connect_internal", _params, socket) do
-    Session.start_standlone_runtime(socket.assigns.session_id)
-
-    {:noreply, socket}
+    session_pid = Session.get_pid(socket.assigns.session_id)
+    handle_runtime_init_result(socket, Runtime.Standalone.init(session_pid))
   end
 
   def handle_event("connect_external", %{"node" => %{"name" => node}}, socket) do
     node = String.to_atom(node)
-    # TODO: avait error (?)
-    Session.start_attached_runtime(socket.assigns.session_id, node)
-
-    {:noreply, socket}
+    handle_runtime_init_result(socket, Runtime.Attached.init(node))
   end
+
+  defp handle_runtime_init_result(socket, {:ok, runtime}) do
+    Session.set_runtime(socket.assigns.session_id, runtime)
+    {:noreply, assign(socket, error_message: nil)}
+  end
+
+  defp handle_runtime_init_result(socket, {:error, error}) do
+    message = runtime_error_to_message(error)
+    {:noreply, assign(socket, error_message: message)}
+  end
+
+  defp runtime_error_to_message(:unreachable), do: "Node unreachable"
+  defp runtime_error_to_message(_), do: "Something went wrong"
 end

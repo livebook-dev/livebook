@@ -45,6 +45,10 @@ defmodule LiveBook.Session do
     {:global, {:session, session_id}}
   end
 
+  def get_pid(session_id) do
+    GenServer.whereis(name(session_id))
+  end
+
   @doc """
   Registers a session client, so that the session is aware of it.
 
@@ -140,14 +144,8 @@ defmodule LiveBook.Session do
     GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
   end
 
-  # TODO: alternatively we could have set_runtime and let the client initialize it
-  # that's more generic, but do we want this?)
-  def start_standlone_runtime(session_id) do
-    GenServer.cast(name(session_id), :start_standlone_runtime)
-  end
-
-  def start_attached_runtime(session_id, node) do
-    GenServer.cast(name(session_id), {:start_attached_runtime, node})
+  def set_runtime(session_id, runtime) do
+    GenServer.cast(name(session_id), {:set_runtime, runtime})
   end
 
   def disconnect(session_id) do
@@ -238,28 +236,15 @@ defmodule LiveBook.Session do
   end
 
   def handle_cast(:disconnect, state) do
-    node = Runtime.get_node(state.data.runtime)
-    Node.monitor(node, false)
-    Remote.deinitialize(node)
-    Runtime.disconnect(state.data.runtime)
-
+    disconnect_from_runtime(state.data.runtime)
     {:noreply, cleanup_runtime(state)}
   end
 
-  def handle_cast(:start_standlone_runtime, state) do
+  def handle_cast({:set_runtime, runtime}, state) do
     # TODO: stop existing / or ignore in such case
-    runtime = new_standalone_runtime()
-    operation = {:set_runtime, runtime}
-    {:noreply, handle_operation(state, operation)}
-  end
-
-  def handle_cast({:start_attached_runtime, node}, state) do
-    # todo: handle error, same for standlone
-    {:ok, runtime} = Runtime.Attached.init(node)
-
-    node = Runtime.get_node(runtime)
-    Remote.initialize(node)
-    Node.monitor(node, true)
+    # runtime = new_standalone_runtime()
+    # TODO: where should this happen (i.e. likely in handle action/operation)
+    connect_to_runtime(runtime)
 
     operation = {:set_runtime, runtime}
     {:noreply, handle_operation(state, operation)}
@@ -284,6 +269,15 @@ defmodule LiveBook.Session do
   def handle_info({:evaluator_response, cell_id, response}, state) do
     operation = {:add_cell_evaluation_response, cell_id, response}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    if state.data.runtime do
+      disconnect_from_runtime(state.data.runtime)
+    end
+
+    :ok
   end
 
   # ---
@@ -380,13 +374,20 @@ defmodule LiveBook.Session do
     end
   end
 
-  defp ensure_runtime(%{data: %{runtime: nil}} = state) do
-    runtime = new_standalone_runtime()
-    operation = {:set_runtime, runtime}
-    handle_operation(state, operation)
+  defp connect_to_runtime(runtime) do
+    node = Runtime.get_node(runtime)
+    Node.monitor(node, true)
+    Remote.initialize(node)
+    :ok
   end
 
-  defp ensure_runtime(state), do: state
+  defp disconnect_from_runtime(runtime) do
+    node = Runtime.get_node(runtime)
+    Node.monitor(node, false)
+    Remote.deinitialize(node)
+    Runtime.disconnect(runtime)
+    :ok
+  end
 
   defp cleanup_runtime(state) do
     %{state | evaluators: %{}}
@@ -394,13 +395,14 @@ defmodule LiveBook.Session do
     |> handle_operation({:set_runtime, nil})
   end
 
-  defp new_standalone_runtime() do
-    {:ok, runtime} = Runtime.Standalone.init()
+  defp ensure_runtime(%{data: %{runtime: nil}} = state) do
+    # TODO: handle the error somehow
+    {:ok, runtime} = Runtime.Standalone.init(self())
+    connect_to_runtime(runtime)
 
-    node = Runtime.get_node(runtime)
-    Remote.initialize(node)
-    Node.monitor(node, true)
-
-    runtime
+    operation = {:set_runtime, runtime}
+    handle_operation(state, operation)
   end
+
+  defp ensure_runtime(state), do: state
 end
