@@ -15,15 +15,14 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta, Remote}
+  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta, Remote, Runtime}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
           session_id: id(),
           data: Data.t(),
           evaluators: %{Section.t() => Evaluator.t()},
-          client_pids: list(pid()),
-          remote: Remote.t() | nil
+          client_pids: list(pid())
         }
 
   @typedoc """
@@ -141,6 +140,20 @@ defmodule LiveBook.Session do
     GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
   end
 
+  # TODO: alternatively we could have set_runtime and let the client initialize it
+  # that's more generic, but do we want this?)
+  def start_standlone_runtime(session_id) do
+    GenServer.cast(name(session_id), :start_standlone_runtime)
+  end
+
+  def start_attached_runtime(session_id, node) do
+    GenServer.cast(name(session_id), {:start_attached_runtime, node})
+  end
+
+  def disconnect(session_id) do
+    GenServer.cast(name(session_id), :disconnect)
+  end
+
   @doc """
   Synchronously stops the server.
   """
@@ -154,6 +167,7 @@ defmodule LiveBook.Session do
   @impl true
   def init(session_id: session_id) do
     # TODO: where to call this
+    # TODO: this doens't seem related to Remote actually, another module?
     Remote.ensure_distribution()
 
     {:ok,
@@ -161,8 +175,7 @@ defmodule LiveBook.Session do
        session_id: session_id,
        data: Data.new(),
        client_pids: [],
-       evaluators: %{},
-       remote: nil
+       evaluators: %{}
      }}
   end
 
@@ -180,48 +193,76 @@ defmodule LiveBook.Session do
   def handle_cast({:insert_section, index}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section, index, Utils.random_id()}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_cell, section_id, index, type}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_cell, section_id, index, type, Utils.random_id()}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:delete_section, section_id}, state) do
     operation = {:delete_section, section_id}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:delete_cell, cell_id}, state) do
     operation = {:delete_cell, cell_id}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:queue_cell_evaluation, cell_id}, state) do
     operation = {:queue_cell_evaluation, cell_id}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
     operation = {:cancel_cell_evaluation, cell_id}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_notebook_name, name}, state) do
     operation = {:set_notebook_name, name}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_section_name, section_id, name}, state) do
     operation = {:set_section_name, section_id, name}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:apply_cell_delta, from, cell_id, delta, revision}, state) do
     operation = {:apply_cell_delta, from, cell_id, delta, revision}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast(:disconnect, state) do
+    node = Runtime.get_node(state.data.runtime)
+    Node.monitor(node, false)
+    Remote.deinitialize(node)
+    Runtime.disconnect(state.data.runtime)
+
+    {:noreply, cleanup_runtime(state)}
+  end
+
+  def handle_cast(:start_standlone_runtime, state) do
+    # TODO: stop existing / or ignore in such case
+    runtime = new_standalone_runtime()
+    operation = {:set_runtime, runtime}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:start_attached_runtime, node}, state) do
+    # todo: handle error, same for standlone
+    {:ok, runtime} = Runtime.Attached.init(node)
+
+    node = Runtime.get_node(runtime)
+    Remote.initialize(node)
+    Node.monitor(node, true)
+
+    operation = {:set_runtime, runtime}
+    {:noreply, handle_operation(state, operation)}
   end
 
   @impl true
@@ -229,20 +270,20 @@ defmodule LiveBook.Session do
     {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
   end
 
-  def handle_info({:nodedown, node}, %{remote: %{node: node}} = state) do
-    new_state = %{state | remote: nil, evaluators: %{}}
-    operation = {:reset_evaluation}
-    handle_operation(new_state, operation)
+  def handle_info({:nodedown, node}, state) do
+    ^node = Runtime.get_node(state.data.runtime)
+
+    {:noreply, cleanup_runtime(state)}
   end
 
   def handle_info({:evaluator_stdout, cell_id, string}, state) do
     operation = {:add_cell_evaluation_stdout, cell_id, string}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:evaluator_response, cell_id, response}, state) do
     operation = {:add_cell_evaluation_response, cell_id, response}
-    handle_operation(state, operation)
+    {:noreply, handle_operation(state, operation)}
   end
 
   # ---
@@ -261,10 +302,10 @@ defmodule LiveBook.Session do
     case Data.apply_operation(state.data, operation) do
       {:ok, new_data, actions} ->
         new_state = %{state | data: new_data}
-        {:noreply, handle_actions(new_state, actions)}
+        handle_actions(new_state, actions)
 
       :error ->
-        {:noreply, state}
+        state
     end
   end
 
@@ -319,23 +360,19 @@ defmodule LiveBook.Session do
         {state, evaluator}
 
       :error ->
-        state = ensure_remote(state)
-        {:ok, evaluator} = EvaluatorSupervisor.start_evaluator(state.remote.node)
+        state = ensure_runtime(state)
+        node = Runtime.get_node(state.data.runtime)
+        {:ok, evaluator} = EvaluatorSupervisor.start_evaluator(node)
         state = %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}
         {state, evaluator}
     end
   end
 
-  defp ensure_remote(%{remote: nil} = state) do
-    %{state | remote: start_remote()}
-  end
-
-  defp ensure_remote(state), do: state
-
   defp delete_section_evaluator(state, section_id) do
     case fetch_section_evaluator(state, section_id) do
       {:ok, evaluator} ->
-        EvaluatorSupervisor.terminate_evaluator(state.remote.node, evaluator)
+        node = Runtime.get_node(state.data.runtime)
+        EvaluatorSupervisor.terminate_evaluator(node, evaluator)
         %{state | evaluators: Map.delete(state.evaluators, section_id)}
 
       :error ->
@@ -343,10 +380,27 @@ defmodule LiveBook.Session do
     end
   end
 
-  defp start_remote() do
-    remote = Remote.start()
-    Remote.initialize(remote)
-    Node.monitor(remote.node, true)
-    remote
+  defp ensure_runtime(%{data: %{runtime: nil}} = state) do
+    runtime = new_standalone_runtime()
+    operation = {:set_runtime, runtime}
+    handle_operation(state, operation)
+  end
+
+  defp ensure_runtime(state), do: state
+
+  defp cleanup_runtime(state) do
+    %{state | evaluators: %{}}
+    |> handle_operation({:reset_evaluation})
+    |> handle_operation({:set_runtime, nil})
+  end
+
+  defp new_standalone_runtime() do
+    {:ok, runtime} = Runtime.Standalone.init()
+
+    node = Runtime.get_node(runtime)
+    Remote.initialize(node)
+    Node.monitor(node, true)
+
+    runtime
   end
 end

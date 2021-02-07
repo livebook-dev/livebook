@@ -19,7 +19,8 @@ defmodule LiveBookWeb.Router do
 
     live "/", HomeLive
     live "/sessions", SessionsLive
-    live "/sessions/:id", SessionLive
+    live "/sessions/:id", SessionLive, :show
+    live "/sessions/:id/runtime", SessionLive, :runtime
   end
 
   # Other scopes may use custom stacks.
