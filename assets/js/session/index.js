@@ -73,7 +73,7 @@ const Session = {
       } else if (alt && key === "w") {
         cancelEvent(event);
 
-        this.pushEvent("delete_focused_cell", {}); // TODO: focused:delete_cell ?
+        this.pushEvent("delete_focused_cell", {});
       }
     };
 

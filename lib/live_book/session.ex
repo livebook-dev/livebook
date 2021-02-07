@@ -164,10 +164,6 @@ defmodule LiveBook.Session do
 
   @impl true
   def init(session_id: session_id) do
-    # TODO: where to call this
-    # TODO: this doens't seem related to Remote actually, another module?
-    Remote.ensure_distribution()
-
     {:ok,
      %{
        session_id: session_id,
@@ -241,8 +237,14 @@ defmodule LiveBook.Session do
   end
 
   def handle_cast({:set_runtime, runtime}, state) do
-    # TODO: stop existing / or ignore in such case
-    # runtime = new_standalone_runtime()
+    state =
+      if state.data.runtime do
+        disconnect_from_runtime(state.data.runtime)
+        cleanup_runtime(state)
+      else
+        state
+      end
+
     # TODO: where should this happen (i.e. likely in handle action/operation)
     connect_to_runtime(runtime)
 

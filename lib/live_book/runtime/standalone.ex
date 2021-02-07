@@ -29,29 +29,29 @@ defmodule LiveBook.Runtime.Standalone do
           args: ["--name", to_string(node), "--eval", eval]
         ])
 
-        # TODO: timeout or something with error?
         receive do
           {:node_started, ^node, primary_pid} ->
             Process.unregister(waiter)
 
-            send(primary_pid, {:set_owner, owner_pid})
+            send(primary_pid, {:acknowledgement, owner_pid})
 
             {:ok, %__MODULE__{node: node, primary_pid: primary_pid}}
+
+        after
+          5_000 ->
+            {:error, :timeout}
         end
     end
   end
 
   defp child_eval(waiter, parent_node) do
     quote do
-      defmodule LiveBook.Remote.Standalone.Client do
-        def init(waiter) do
-          ref = Process.monitor(waiter)
+      waiter_process = {unquote(waiter), unquote(parent_node)}
+      send(waiter_process, {:node_started, node(), self()})
 
-          loop(%{owner_ref: ref})
-        end
-
-        defp loop(state) do
-          owner_ref = state.owner_ref
+      receive do
+        {:acknowledgement, owner_pid} ->
+          owner_ref = Process.monitor(owner_pid)
 
           receive do
             {:DOWN, ^owner_ref, :process, _object, _reason} ->
@@ -59,18 +59,11 @@ defmodule LiveBook.Runtime.Standalone do
 
             :stop ->
               :ok
-
-            {:set_owner, pid} ->
-              Process.demonitor(state.owner_ref)
-              owner_ref = Process.monitor(pid)
-              loop(%{state | owner_ref: owner_ref})
           end
-        end
-      end
 
-      waiter_process = {unquote(waiter), unquote(parent_node)}
-      send(waiter_process, {:node_started, node(), self()})
-      LiveBook.Remote.Standalone.Client.init(waiter_process)
+      after
+        5_000 -> :timeout
+      end
     end
   end
 end

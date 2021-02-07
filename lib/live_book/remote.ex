@@ -1,15 +1,6 @@
 defmodule LiveBook.Remote do
   @required_modules [LiveBook.Evaluator, LiveBook.Evaluator.IOProxy, LiveBook.EvaluatorSupervisor]
 
-  def ensure_distribution() do
-    unless Node.alive?() do
-      # TODO: read form config? (or perhaps just start distribution and app so we don't have to ensure)
-      Node.start(:"live_book@127.0.0.1", :longnames)
-    end
-
-    :ok
-  end
-
   def initialize(node) do
     load_required_modules(node)
     start_supervisor(node)

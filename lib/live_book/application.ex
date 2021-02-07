@@ -6,6 +6,8 @@ defmodule LiveBook.Application do
   use Application
 
   def start(_type, _args) do
+    ensure_distribution()
+
     children = [
       # Start the Telemetry supervisor
       LiveBookWeb.Telemetry,
@@ -28,5 +30,12 @@ defmodule LiveBook.Application do
   def config_change(changed, _new, removed) do
     LiveBookWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp ensure_distribution() do
+    unless Node.alive?() do
+      node_name = Application.fetch_env!(:live_book, :node_name)
+      Node.start(node_name, :longnames)
+    end
   end
 end
