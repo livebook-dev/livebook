@@ -276,7 +276,7 @@ defmodule LiveBook.Session do
     ^node = Runtime.get_node(state.data.runtime)
 
     {:noreply,
-     state
+     %{state | evaluators: %{}}
      |> handle_operation({:reset_evaluation})
      |> handle_operation({:set_runtime, nil})}
   end
