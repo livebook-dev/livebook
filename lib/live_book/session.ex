@@ -15,7 +15,7 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, EvaluatorSupervisor, Utils, Notebook, Delta, Remote, Runtime}
+  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Remote, Runtime}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
@@ -388,7 +388,7 @@ defmodule LiveBook.Session do
            {:ok, evaluator} <-
              state.data.runtime
              |> Runtime.get_node()
-             |> EvaluatorSupervisor.start_evaluator() do
+             |> Remote.EvaluatorSupervisor.start_evaluator() do
         {:ok, %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}}
       end
     end
@@ -399,7 +399,7 @@ defmodule LiveBook.Session do
     case Map.fetch(state.evaluators, section_id) do
       {:ok, evaluator} ->
         node = Runtime.get_node(state.data.runtime)
-        EvaluatorSupervisor.terminate_evaluator(node, evaluator)
+        Remote.EvaluatorSupervisor.terminate_evaluator(node, evaluator)
         %{state | evaluators: Map.delete(state.evaluators, section_id)}
 
       :error ->

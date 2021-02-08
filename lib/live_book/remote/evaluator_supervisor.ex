@@ -1,4 +1,4 @@
-defmodule LiveBook.EvaluatorSupervisor do
+defmodule LiveBook.Remote.EvaluatorSupervisor do
   @moduledoc false
 
   # Supervisor responsible for dynamically spawning

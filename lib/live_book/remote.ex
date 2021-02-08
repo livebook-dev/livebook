@@ -22,13 +22,13 @@ defmodule LiveBook.Remote do
   # related to evaluation. Fortunately Erlang allows us to send modules
   # binary representation to the other node and load them dynamically.
 
-  alias LiveBook.Remote.InitializationCounter
+  alias LiveBook.Remote.{InitializationCounter, EvaluatorSupervisor}
 
   # Modules to load into the connected node.
   @required_modules [
     LiveBook.Evaluator,
     LiveBook.Evaluator.IOProxy,
-    LiveBook.EvaluatorSupervisor,
+    LiveBook.Remote.EvaluatorSupervisor,
     LiveBook.Remote.InitializationCounter
   ]
 
@@ -91,9 +91,9 @@ defmodule LiveBook.Remote do
   defp start_supervisor(node) do
     children = [
       # Start the supervisor to dynamically manage evaluators
-      LiveBook.EvaluatorSupervisor,
+      EvaluatorSupervisor,
       # Start the process keeping track of the number of connected sessions
-      LiveBook.Remote.InitializationCounter
+      InitializationCounter
     ]
 
     opts = [strategy: :one_for_one, name: LiveBook.Remote.Supervisor]
