@@ -5,11 +5,12 @@ defmodule LiveBook.Runtime.StandaloneTest do
 
   describe "init/1" do
     test "starts a new Elixir runtime in distribution mode and ties its lifetime to the given owner process" do
-      owner = spawn(fn ->
-        receive do
-          :stop -> :ok
-        end
-      end)
+      owner =
+        spawn(fn ->
+          receive do
+            :stop -> :ok
+          end
+        end)
 
       assert {:ok, %{node: node}} = Runtime.Standalone.init(owner)
 

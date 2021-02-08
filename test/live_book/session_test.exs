@@ -125,7 +125,8 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "connect_runtime/2" do
-    test "sends a runtime update and evaluation reset operations to subscribers", %{session_id: session_id} do
+    test "sends a runtime update and evaluation reset operations to subscribers",
+         %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       {:ok, runtime} = Runtime.Attached.init(node())
@@ -137,7 +138,8 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "disconnect_runtime/1" do
-    test "sends a runtime update and evaluation reset operations to subscribers", %{session_id: session_id} do
+    test "sends a runtime update and evaluation reset operations to subscribers",
+         %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       Session.disconnect_runtime(session_id)
