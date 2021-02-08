@@ -3,7 +3,7 @@
     <%= if live_flash(@flash, :info) do %>
       <div class="rounded-md px-4 py-2 bg-blue-100 text-blue-400 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
-        phx-value-key="error">
+        phx-value-key="info">
         <%= live_flash(@flash, :info) %>
       </div>
     <% end %>

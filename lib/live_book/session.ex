@@ -275,6 +275,8 @@ defmodule LiveBook.Session do
   def handle_info({:nodedown, node}, state) do
     ^node = Runtime.get_node(state.data.runtime)
 
+    broadcast_info(state.session_id, "runtime node terminated unexpectedly")
+
     {:noreply,
      %{state | evaluators: %{}}
      |> handle_operation({:reset_evaluation})
@@ -351,6 +353,10 @@ defmodule LiveBook.Session do
 
   defp broadcast_error(session_id, error) do
     broadcast_message(session_id, {:error, error})
+  end
+
+  defp broadcast_info(session_id, info) do
+    broadcast_message(session_id, {:info, info})
   end
 
   defp broadcast_message(session_id, message) do

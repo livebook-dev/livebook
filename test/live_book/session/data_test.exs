@@ -2,7 +2,7 @@ defmodule LiveBook.Session.DataTest do
   use ExUnit.Case, async: true
 
   alias LiveBook.Session.Data
-  alias LiveBook.Delta
+  alias LiveBook.{Delta, Runtime}
 
   describe "apply_operation/2 given :insert_section" do
     test "adds new section to notebook and session info" do
@@ -507,6 +507,55 @@ defmodule LiveBook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :reset_evaluation" do
+    test "clears all statuses and the per-section queues" do
+      data =
+        data_after_operations!([
+          # First section with evaluating and queued cells
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"},
+          # Second section with evaluating and queued cells
+          {:insert_section, 1, "s2"},
+          {:insert_cell, "s2", 0, :elixir, "c3"},
+          {:insert_cell, "s2", 1, :elixir, "c4"},
+          {:queue_cell_evaluation, "c3"},
+          {:queue_cell_evaluation, "c4"}
+        ])
+
+      operation = {:reset_evaluation}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c4" => %{validity_status: :fresh, evaluation_status: :ready}
+                },
+                section_infos: %{
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "returns stop evaluation action for every section" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_section, 1, "s2"}
+        ])
+
+      operation = {:reset_evaluation}
+
+      assert {:ok, _data, [{:stop_evaluation, %{id: "s1"}}, {:stop_evaluation, %{id: "s2"}}]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_notebook_name" do
     test "updates notebook name with the given string" do
       data = Data.new()
@@ -621,6 +670,18 @@ defmodule LiveBook.Session.DataTest do
 
       assert {:ok, _data, [{:broadcast_delta, ^from, _cell, ^transformed_delta2}]} =
                Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_runtime" do
+    test "updates data with the given runtime" do
+      data = Data.new()
+
+      {:ok, runtime} = Runtime.Attached.init(node())
+
+      operation = {:set_runtime, runtime}
+
+      assert {:ok, %{runtime: ^runtime}, []} = Data.apply_operation(data, operation)
     end
   end
 
