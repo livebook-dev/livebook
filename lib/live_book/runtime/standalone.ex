@@ -49,7 +49,16 @@ defmodule LiveBook.Runtime.Standalone do
           # Don't use stdio, so that the caller does not receive
           # unexpected messages if the process produces some output.
           :nouse_stdio,
-          args: ["--name", to_string(node), "--eval", eval]
+          args: [
+            "--name",
+            to_string(node),
+            "--eval",
+            eval,
+            # Minimize shedulers busy wait threshold,
+            # so that they go to sleep immediately after evaluation.
+            "--erl",
+            "+sbwt none +sbwtdcpu none +sbwtdio none"
+          ]
         ])
 
         receive do
