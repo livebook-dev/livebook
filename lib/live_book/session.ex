@@ -248,18 +248,23 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast(:disconnect_runtime, state) do
-    {:noreply, disconnect_runtime_if_any(state)}
+  def handle_cast({:connect_runtime, runtime}, state) do
+    state = cleanup_runtime_if_any(state)
+
+    bind_runtime(runtime)
+
+    {:noreply,
+     state
+     |> handle_operation({:reset_evaluation})
+     |> handle_operation({:set_runtime, runtime})}
   end
 
-  def handle_cast({:connect_runtime, runtime}, state) do
-    state = disconnect_runtime_if_any(state)
-
-    # TODO: where should this happen (i.e. likely in handle action/operation)
-    connect_to_runtime(runtime)
-
-    operation = {:set_runtime, runtime}
-    {:noreply, handle_operation(state, operation)}
+  def handle_cast(:disconnect_runtime, state) do
+    {:noreply,
+     state
+     |> cleanup_runtime_if_any()
+     |> handle_operation({:reset_evaluation})
+     |> handle_operation({:set_runtime, nil})}
   end
 
   @impl true
@@ -270,7 +275,10 @@ defmodule LiveBook.Session do
   def handle_info({:nodedown, node}, state) do
     ^node = Runtime.get_node(state.data.runtime)
 
-    {:noreply, cleanup_runtime(state)}
+    {:noreply,
+     state
+     |> handle_operation({:reset_evaluation})
+     |> handle_operation({:set_runtime, nil})}
   end
 
   def handle_info({:evaluator_stdout, cell_id, string}, state) do
@@ -283,9 +291,11 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info(_message, state), do: {:noreply, state}
+
   @impl true
   def terminate(_reason, state) do
-    disconnect_runtime_if_any(state)
+    cleanup_runtime_if_any(state)
 
     :ok
   end
@@ -297,7 +307,7 @@ defmodule LiveBook.Session do
   #   * broadcasts the operation to all clients immediately,
   #     so that they can update their local `Data`
   #   * applies the operation to own local `Data`
-  #   * if necessary, performs the relevant tasks (e.g. starts cell evaluation),
+  #   * if necessary, performs the relevant actions (e.g. starts cell evaluation),
   #     to reflect the new `Data`
   #
   defp handle_operation(state, operation) do
@@ -318,15 +328,15 @@ defmodule LiveBook.Session do
   end
 
   defp handle_action(state, {:start_evaluation, cell, section}) do
-    trigger_evaluation(state, cell, section)
+    start_evaluation(state, cell, section)
   end
 
   defp handle_action(state, {:stop_evaluation, section}) do
-    delete_section_evaluator(state, section.id)
+    discard_evaluator(state, section.id)
   end
 
   defp handle_action(state, {:forget_evaluation, cell, section}) do
-    with {:ok, evaluator} <- fetch_section_evaluator(state, section.id) do
+    with {:ok, evaluator} <- Map.fetch(state.evaluators, section.id) do
       Evaluator.forget_evaluation(evaluator, cell.id)
     end
 
@@ -336,44 +346,57 @@ defmodule LiveBook.Session do
   defp handle_action(state, _action), do: state
 
   defp broadcast_operation(session_id, operation) do
-    message = {:operation, operation}
+    broadcast_message(session_id, {:operation, operation})
+  end
+
+  defp broadcast_error(session_id, error) do
+    broadcast_message(session_id, {:error, error})
+  end
+
+  defp broadcast_message(session_id, message) do
     Phoenix.PubSub.broadcast(LiveBook.PubSub, "sessions:#{session_id}", message)
   end
 
-  defp trigger_evaluation(state, cell, section) do
-    {state, evaluator} = get_section_evaluator(state, section.id)
+  defp start_evaluation(state, cell, section) do
+    case ensure_evaluator(state, section.id) do
+      {:ok, state} ->
+        evaluator = Map.fetch!(state.evaluators, section.id)
 
-    prev_ref =
-      case Notebook.parent_cells(state.data.notebook, cell.id) do
-        [parent | _] -> parent.id
-        [] -> :initial
-      end
+        prev_ref =
+          case Notebook.parent_cells(state.data.notebook, cell.id) do
+            [parent | _] -> parent.id
+            [] -> :initial
+          end
 
-    Evaluator.evaluate_code(evaluator, self(), cell.source, cell.id, prev_ref)
+        Evaluator.evaluate_code(evaluator, self(), cell.source, cell.id, prev_ref)
 
-    state
-  end
+        state
 
-  defp fetch_section_evaluator(state, section_id) do
-    Map.fetch(state.evaluators, section_id)
-  end
-
-  defp get_section_evaluator(state, section_id) do
-    case fetch_section_evaluator(state, section_id) do
-      {:ok, evaluator} ->
-        {state, evaluator}
-
-      :error ->
-        state = ensure_runtime(state)
-        node = Runtime.get_node(state.data.runtime)
-        {:ok, evaluator} = EvaluatorSupervisor.start_evaluator(node)
-        state = %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}
-        {state, evaluator}
+      {:error, error} ->
+        broadcast_error(state.session_id, "failed to setup evaluation - #{error}")
+        handle_operation(state, {:cancel_cell_evaluation, cell.id})
     end
   end
 
-  defp delete_section_evaluator(state, section_id) do
-    case fetch_section_evaluator(state, section_id) do
+  # Checks if a there's already evaluator for the given section,
+  # and starts a new evaluator if none.
+  defp ensure_evaluator(state, section_id) do
+    if Map.has_key?(state.evaluators, section_id) do
+      {:ok, state}
+    else
+      with {:ok, state} <- ensure_runtime(state),
+           {:ok, evaluator} <-
+             state.data.runtime
+             |> Runtime.get_node()
+             |> EvaluatorSupervisor.start_evaluator() do
+        {:ok, %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}}
+      end
+    end
+  end
+
+  # Terminates evaluator for the given section.
+  defp discard_evaluator(state, section_id) do
+    case Map.fetch(state.evaluators, section_id) do
       {:ok, evaluator} ->
         node = Runtime.get_node(state.data.runtime)
         EvaluatorSupervisor.terminate_evaluator(node, evaluator)
@@ -384,40 +407,45 @@ defmodule LiveBook.Session do
     end
   end
 
-  defp connect_to_runtime(runtime) do
+  # If applicable, terminates all evaluators and unbinds the runtime node.
+  defp cleanup_runtime_if_any(%{data: %{runtime: nil}} = state), do: state
+
+  defp cleanup_runtime_if_any(state) do
+    # Terminate all evaluators
+    state =
+      state.evaluators
+      |> Map.keys()
+      |> Enum.reduce(state, fn section_id, state -> discard_evaluator(state, section_id) end)
+
+    unbind_runtime(state.data.runtime)
+
+    state
+  end
+
+  # Actually initialies the runtime node and starts monitoring it
+  defp bind_runtime(runtime) do
     node = Runtime.get_node(runtime)
     Node.monitor(node, true)
     Remote.initialize(node)
   end
 
-  defp disconnect_runtime_if_any(%{data: %{runtime: nil}} = state), do: state
-
-  defp disconnect_runtime_if_any(state) do
-    disconnect_from_runtime(state.data.runtime)
-    cleanup_runtime(state)
-  end
-
-  defp disconnect_from_runtime(runtime) do
+  # Uninitialies the runtime node and stops monitoring it
+  defp unbind_runtime(runtime) do
     node = Runtime.get_node(runtime)
     Node.monitor(node, false)
     Remote.deinitialize(node)
     Runtime.disconnect(runtime)
   end
 
-  defp cleanup_runtime(state) do
-    %{state | evaluators: %{}}
-    |> handle_operation({:reset_evaluation})
-    |> handle_operation({:set_runtime, nil})
-  end
-
+  # Checks if a runtime already set, and if that's not the case
+  # starts a new standlone one.
   defp ensure_runtime(%{data: %{runtime: nil}} = state) do
-    # TODO: handle the error somehow
-    {:ok, runtime} = Runtime.Standalone.init(self())
-    connect_to_runtime(runtime)
-
-    operation = {:set_runtime, runtime}
-    handle_operation(state, operation)
+    with {:ok, runtime} <- Runtime.Standalone.init(self()) do
+      bind_runtime(runtime)
+      operation = {:set_runtime, runtime}
+      {:ok, handle_operation(state, operation)}
+    end
   end
 
-  defp ensure_runtime(state), do: state
+  defp ensure_runtime(state), do: {:ok, state}
 end

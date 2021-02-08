@@ -291,6 +291,14 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
+  def handle_info({:error, error}, socket) do
+    message = error |> to_string() |> String.capitalize()
+
+    {:noreply, put_flash(socket, :error, message)}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
+
   defp after_operation(socket, _prev_socket, {:insert_section, _index, section_id}) do
     assign(socket, selected_section_id: section_id)
   end

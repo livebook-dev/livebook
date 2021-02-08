@@ -69,4 +69,6 @@ defmodule LiveBookWeb.SessionsLive do
 
     {:noreply, assign(socket, :session_ids, session_ids)}
   end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 end

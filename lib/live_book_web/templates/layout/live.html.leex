@@ -1,12 +1,20 @@
 <main role="main" class="flex-grow flex flex-col h-screen">
-  <div class="fixed right-0 left-0 z-50">
-    <p class="alert alert-info" role="alert"
-      phx-click="lv:clear-flash"
-      phx-value-key="info"><%= live_flash(@flash, :info) %></p>
+  <div class="fixed right-5 bottom-5 z-50 flex flex-col space-y-3">
+    <%= if live_flash(@flash, :info) do %>
+      <div class="rounded-md px-4 py-2 bg-blue-100 text-blue-400 cursor-pointer" role="alert"
+        phx-click="lv:clear-flash"
+        phx-value-key="error">
+        <%= live_flash(@flash, :info) %>
+      </div>
+    <% end %>
 
-    <p class="alert alert-danger" role="alert"
-      phx-click="lv:clear-flash"
-      phx-value-key="error"><%= live_flash(@flash, :error) %></p>
+    <%= if live_flash(@flash, :error) do %>
+      <div class="rounded-md px-4 py-2 bg-red-100 text-red-400 cursor-pointer" role="alert"
+        phx-click="lv:clear-flash"
+        phx-value-key="error">
+        <%= live_flash(@flash, :error) %>
+      </div>
+    <% end %>
   </div>
 
   <%= @inner_content %>

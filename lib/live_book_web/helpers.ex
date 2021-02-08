@@ -8,7 +8,7 @@ defmodule LiveBookWeb.Helpers do
 
   ## Examples
 
-      iex(2)> LiveBookWeb.Utils.inspect_as_html(:test, [])
+      iex(2)> LiveBookWeb.Helpers.inspect_as_html(:test, [])
       {:safe, "<span class=\\"atom\\">:test</span>"}
   """
   @spec inspect_as_html(Inspect.t(), keyword()) :: Phoenix.HTML.safe()

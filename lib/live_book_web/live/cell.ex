@@ -1,8 +1,6 @@
 defmodule LiveBookWeb.Cell do
   use LiveBookWeb, :live_component
 
-  alias LiveBookWeb.Utils
-
   def render(assigns) do
     ~L"""
     <div id="cell-<%= @cell.id %>"
@@ -154,7 +152,7 @@ defmodule LiveBookWeb.Cell do
   end
 
   defp render_output({:ok, value}) do
-    inspected = Utils.inspect_as_html(value, pretty: true, width: 100)
+    inspected = inspect_as_html(value, pretty: true, width: 100)
 
     assigns = %{inspected: inspected}
 
