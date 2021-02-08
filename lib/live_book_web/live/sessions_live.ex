@@ -33,7 +33,7 @@ defmodule LiveBookWeb.SessionsLive do
           </div>
         <% end %>
       </div>
-      <button phx-click="create_session" class="text-base font-medium rounded py-2 px-3 bg-purple-400 text-white shadow-md focus">
+      <button phx-click="create_session" class="button-base button-primary shadow-md">
         New session
       </button>
     </div>

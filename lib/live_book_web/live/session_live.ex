@@ -43,7 +43,7 @@ defmodule LiveBookWeb.SessionLive do
   def render(assigns) do
     ~L"""
     <%= if @live_action == :runtime do %>
-      <%= LiveBookWeb.Utils.live_modal @socket, LiveBookWeb.RuntimeComponent,
+      <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
                               id: :runtime_modal,
                               action: :runtime,
                               return_to: Routes.session_path(@socket, :show, @session_id),

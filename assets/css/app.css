@@ -182,3 +182,23 @@ iframe[hidden] {
 .tiny-scrollbar::-webkit-scrollbar-track {
   @apply bg-gray-100;
 }
+
+.button-base {
+  @apply px-4 py-2 bg-white rounded-md border border-gray-300 font-medium text-gray-700 hover:bg-gray-50;
+}
+
+.button-sm {
+  @apply px-3 py-1;
+}
+
+.button-danger {
+  @apply border border-red-300 text-red-500 hover:bg-red-50;
+}
+
+.button-primary {
+  @apply border-0 bg-purple-400 text-white hover:bg-purple-500;
+}
+
+.input-base {
+  @apply w-full px-3 py-3 bg-white rounded-md placeholder-gray-400 text-gray-700;
+}

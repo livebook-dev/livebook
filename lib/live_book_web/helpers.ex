@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.Utils do
+defmodule LiveBookWeb.Helpers do
   import Phoenix.LiveView.Helpers
 
   @doc """
@@ -64,18 +64,10 @@ defmodule LiveBookWeb.Utils do
   end
 
   @doc """
-  Renders a component inside the `YoWeb.ModalComponent` component.
+  Renders a component inside the `LiveBook.ModalComponent` component.
 
   The rendered modal receives a `:return_to` option to properly update
   the URL when the modal is closed.
-
-  ## Examples
-
-      <%= live_modal @socket, YoWeb.UserLive.FormComponent,
-        id: @user.id || :new,
-        action: @live_action,
-        user: @user,
-        return_to: Routes.user_index_path(@socket, :index) %>
   """
   def live_modal(socket, component, opts) do
     path = Keyword.fetch!(opts, :return_to)

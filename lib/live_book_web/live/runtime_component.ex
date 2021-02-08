@@ -1,8 +1,7 @@
 defmodule LiveBookWeb.RuntimeComponent do
   use LiveBookWeb, :live_component
 
-  alias LiveBook.Session
-  alias LiveBook.Runtime
+  alias LiveBook.{Session, Runtime}
 
   @impl true
   def mount(socket) do
@@ -22,8 +21,8 @@ defmodule LiveBookWeb.RuntimeComponent do
         Runtime
       </h3>
       <p class="text-sm text-gray-500">
-        The code is evaluated in a separate Elixir runtime (node).
-        Here you can configure the node.
+        The code is evaluated in a separate Elixir runtime (node),
+        which you can configure yourself here.
       </p>
       <div class="shadow rounded-md p-2 my-4">
         <%= if @runtime do %>
@@ -40,7 +39,7 @@ defmodule LiveBookWeb.RuntimeComponent do
                 <td><%= runtime_type_label(@runtime) %></td>
                 <td><%= @runtime.node %></td>
                 <td>
-                  <button class="px-3 py-1 bg-white rounded-md border border-red-300 text-sm font-medium text-red-500 hover:bg-red-50"
+                  <button class="button-base text-sm button-sm button-danger"
                     type="button"
                     phx-click="disconnect"
                     phx-target="<%= @myself %>">
@@ -51,35 +50,35 @@ defmodule LiveBookWeb.RuntimeComponent do
             </tbody>
           </table>
         <% else %>
-          <p class="text-sm text-gray-500">
+          <p class="p-2 text-sm text-gray-500">
             No connected node
           </p>
         <% end %>
       </div>
       <div class="<%= if @runtime, do: "opacity-50 pointer-events-none" %>">
         <h3 class="text-lg font-medium text-gray-900">
-          Standalone node
+          Standalone
         </h3>
         <div class="flex-col space-y-3">
           <p class="text-sm text-gray-500">
             You can start a new local node to handle code evaluation.
             This happens automatically as soon as you evaluate the first cell.
           </p>
-          <button class="px-4 py-2 bg-white rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          <button class="button-base text-sm"
             type="button"
-            phx-click="connect_internal"
+            phx-click="init_standalone"
             phx-target="<%= @myself %>">
             Connect
           </button>
         </div>
         <h3 class="text-lg font-medium text-gray-900 mt-4">
-          Attached node
+          Attached
         </h3>
         <div class="flex-col space-y-3">
           <p class="text-sm text-gray-500">
-            You can connect the session to an already running Elixir node
+            You can connect the session to an already running node
             and evaluate code in the context of that node.
-            This is especially handy for developing mix projects.
+            This is especially handy when developing mix projects.
             Make sure to give the node a name:
           </p>
           <div class="text-sm text-gray-500 markdown">
@@ -90,14 +89,14 @@ defmodule LiveBookWeb.RuntimeComponent do
           </p>
           <%= f = form_for :node, "#",
             phx_target: @myself,
-            phx_submit: "connect_external" %>
+            phx_submit: "init_attached" %>
 
             <%= text_input f, :name,
               placeholder: "test@127.0.0.1",
-              class: "w-full px-3 py-3 bg-white rounded-md placeholder-gray-400 text-gray-700 text-sm shadow" %>
+              class: "input-base text-sm shadow" %>
 
             <%= submit "Connect",
-              class: "mt-3 px-4 py-2 bg-white rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50" %>
+              class: "mt-3 button-base text-sm" %>
           </form>
         </div>
       </div>
@@ -110,23 +109,23 @@ defmodule LiveBookWeb.RuntimeComponent do
 
   @impl true
   def handle_event("disconnect", _params, socket) do
-    Session.disconnect(socket.assigns.session_id)
+    Session.disconnect_runtime(socket.assigns.session_id)
 
     {:noreply, socket}
   end
 
-  def handle_event("connect_internal", _params, socket) do
+  def handle_event("init_standalone", _params, socket) do
     session_pid = Session.get_pid(socket.assigns.session_id)
     handle_runtime_init_result(socket, Runtime.Standalone.init(session_pid))
   end
 
-  def handle_event("connect_external", %{"node" => %{"name" => node}}, socket) do
+  def handle_event("init_attached", %{"node" => %{"name" => node}}, socket) do
     node = String.to_atom(node)
     handle_runtime_init_result(socket, Runtime.Attached.init(node))
   end
 
   defp handle_runtime_init_result(socket, {:ok, runtime}) do
-    Session.set_runtime(socket.assigns.session_id, runtime)
+    Session.connect_runtime(socket.assigns.session_id, runtime)
     {:noreply, assign(socket, error_message: nil)}
   end
 
@@ -136,5 +135,7 @@ defmodule LiveBookWeb.RuntimeComponent do
   end
 
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"
+  defp runtime_error_to_message(:no_elixir_executable), do: "No Elixir executable found in PATH"
+  defp runtime_error_to_message(:timeout), do: "Connection timed out"
   defp runtime_error_to_message(_), do: "Something went wrong"
 end

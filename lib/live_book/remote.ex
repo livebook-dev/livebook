@@ -1,6 +1,30 @@
 defmodule LiveBook.Remote do
+  @moduledoc false
+
+  # This module allows for initializing connected nodes
+  # with modules and processes necessary for evaluation.
+  #
+  # To ensure proper isolation between sessions,
+  # code evaluation takes place in a separate Elixir runtime.
+  # This also makes it easy to terminate the whole
+  # evaluation environment without stopping LiveBook.
+  #
+  # As each session has a corresponding node for evaluation
+  # we have a distributed system, so we can leverage
+  # Erlang capabilities for their communication.
+  #
+  # By abstracting evaluation away to an arbitrary node we naturally get
+  # support for evaluation in the context of existing nodes,
+  # like those started in a mix environment.
+  #
+  # To work with a separate node, we have to inject the necessary
+  # LiveBook modules there and also start the relevant processes
+  # related to evaluation. Fortunately Erlang allows us to send modules
+  # binary representation to the other node and load them dynamically.
+
   alias LiveBook.Remote.InitializationCounter
 
+  # Modules to load into the connected node.
   @required_modules [
     LiveBook.Evaluator,
     LiveBook.Evaluator.IOProxy,
@@ -8,6 +32,16 @@ defmodule LiveBook.Remote do
     LiveBook.Remote.InitializationCounter
   ]
 
+  @doc """
+  Loads the necessary modules into the given node
+  and starts a LiveBook-related supervision tree.
+
+  The initialization may be invoked multiple times for the same node,
+  in which case no double work is done, but the node keeps track
+  of the number of initializations. Each call to this function
+  should indicate a separate session willing to use the node.
+  """
+  @spec initialize(node()) :: :ok
   def initialize(node) do
     unless initialized?(node) do
       load_required_modules(node)
@@ -19,6 +53,16 @@ defmodule LiveBook.Remote do
     :ok
   end
 
+  @doc """
+  Unloads LiveBook-specific modules from the given node
+  and tears down the supervision tree.
+
+  If initialization has been invoked N times for the given node,
+  only N-th call to this function will actually perform the cleanup.
+  This way if multiple sessions are connected to the same node,
+  the deinitialization happens once all of them are disconnected.
+  """
+  @spec deinitialize(node()) :: :ok
   def deinitialize(node) do
     InitializationCounter.decrement(node)
 
@@ -46,7 +90,9 @@ defmodule LiveBook.Remote do
 
   defp start_supervisor(node) do
     children = [
+      # Start the supervisor to dynamically manage evaluators
       LiveBook.EvaluatorSupervisor,
+      # Start the process keeping track of the number of connected sessions
       LiveBook.Remote.InitializationCounter
     ]
 

@@ -45,6 +45,10 @@ defmodule LiveBook.Session do
     {:global, {:session, session_id}}
   end
 
+  @doc """
+  Returns session pid given its id.
+  """
+  @spec get_pid(id()) :: pid() | nil
   def get_pid(session_id) do
     GenServer.whereis(name(session_id))
   end
@@ -144,12 +148,25 @@ defmodule LiveBook.Session do
     GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
   end
 
-  def set_runtime(session_id, runtime) do
-    GenServer.cast(name(session_id), {:set_runtime, runtime})
+  @doc """
+  Asynchronously connects to the given runtime.
+
+  Note that this results in initializing the corresponding remote node
+  with modules and processes required for evaluation.
+  """
+  @spec connect_runtime(id(), Runtime.t()) :: :ok
+  def connect_runtime(session_id, runtime) do
+    GenServer.cast(name(session_id), {:connect_runtime, runtime})
   end
 
-  def disconnect(session_id) do
-    GenServer.cast(name(session_id), :disconnect)
+  @doc """
+  Asynchronously disconnects from the current runtime.
+
+  Note that this results in clearing the evaluation state.
+  """
+  @spec disconnect_runtime(id()) :: :ok
+  def disconnect_runtime(session_id) do
+    GenServer.cast(name(session_id), :disconnect_runtime)
   end
 
   @doc """
@@ -231,19 +248,12 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast(:disconnect, state) do
-    disconnect_from_runtime(state.data.runtime)
-    {:noreply, cleanup_runtime(state)}
+  def handle_cast(:disconnect_runtime, state) do
+    {:noreply, disconnect_runtime_if_any(state)}
   end
 
-  def handle_cast({:set_runtime, runtime}, state) do
-    state =
-      if state.data.runtime do
-        disconnect_from_runtime(state.data.runtime)
-        cleanup_runtime(state)
-      else
-        state
-      end
+  def handle_cast({:connect_runtime, runtime}, state) do
+    state = disconnect_runtime_if_any(state)
 
     # TODO: where should this happen (i.e. likely in handle action/operation)
     connect_to_runtime(runtime)
@@ -275,9 +285,7 @@ defmodule LiveBook.Session do
 
   @impl true
   def terminate(_reason, state) do
-    if state.data.runtime do
-      disconnect_from_runtime(state.data.runtime)
-    end
+    disconnect_runtime_if_any(state)
 
     :ok
   end
@@ -380,7 +388,13 @@ defmodule LiveBook.Session do
     node = Runtime.get_node(runtime)
     Node.monitor(node, true)
     Remote.initialize(node)
-    :ok
+  end
+
+  defp disconnect_runtime_if_any(%{data: %{runtime: nil}} = state), do: state
+
+  defp disconnect_runtime_if_any(state) do
+    disconnect_from_runtime(state.data.runtime)
+    cleanup_runtime(state)
   end
 
   defp disconnect_from_runtime(runtime) do
@@ -388,7 +402,6 @@ defmodule LiveBook.Session do
     Node.monitor(node, false)
     Remote.deinitialize(node)
     Runtime.disconnect(runtime)
-    :ok
   end
 
   defp cleanup_runtime(state) do
