@@ -22,91 +22,58 @@ defmodule LiveBook.Remote do
   # related to evaluation. Fortunately Erlang allows us to send modules
   # binary representation to the other node and load them dynamically.
 
-  alias LiveBook.Remote.{InitializationCounter, EvaluatorSupervisor}
-
   # Modules to load into the connected node.
   @required_modules [
     LiveBook.Evaluator,
     LiveBook.Evaluator.IOProxy,
-    LiveBook.Remote.EvaluatorSupervisor,
-    LiveBook.Remote.InitializationCounter
+    LiveBook.Remote,
+    LiveBook.Remote.Manager,
+    LiveBook.Remote.EvaluatorSupervisor
   ]
 
   @doc """
   Loads the necessary modules into the given node
-  and starts a LiveBook-related supervision tree.
+  and starts the primary LiveBook remote process.
 
-  The initialization may be invoked multiple times for the same node,
-  in which case no double work is done, but the node keeps track
-  of the number of initializations. Each call to this function
-  should indicate a separate session willing to use the node.
+  The initialization may be invoked only once on the given
+  node until its disconnected.
   """
   @spec initialize(node()) :: :ok
   def initialize(node) do
-    unless initialized?(node) do
+    if initialized?(node) do
+      # TODO: return eror tuple
+      raise "already initialized"
+    else
       load_required_modules(node)
-      start_supervisor(node)
-    end
-
-    InitializationCounter.increment(node)
-
-    :ok
-  end
-
-  @doc """
-  Unloads LiveBook-specific modules from the given node
-  and tears down the supervision tree.
-
-  If initialization has been invoked N times for the given node,
-  only N-th call to this function will actually perform the cleanup.
-  This way if multiple sessions are connected to the same node,
-  the deinitialization happens once all of them are disconnected.
-  """
-  @spec deinitialize(node()) :: :ok
-  def deinitialize(node) do
-    InitializationCounter.decrement(node)
-
-    if InitializationCounter.value(node) == 0 do
-      unload_required_modules(node)
-      stop_supervisor(node)
+      start_manager(node)
     end
 
     :ok
   end
 
-  defp load_required_modules(node) do
+  def load_required_modules(node) do
     for module <- @required_modules do
       {_module, binary, filename} = :code.get_object_code(module)
       {:module, _} = :rpc.call(node, :code, :load_binary, [module, filename, binary])
     end
   end
 
-  defp unload_required_modules(node) do
+  def unload_required_modules() do
     for module <- @required_modules do
-      :rpc.call(node, :code, :delete, [module])
-      :rpc.call(node, :code, :purge, [module])
+      # If we attached, detached and attached again, there may still
+      # be deleted module code, so purge it first.
+      :code.purge(module)
+      :code.delete(module)
     end
   end
 
-  defp start_supervisor(node) do
-    children = [
-      # Start the supervisor to dynamically manage evaluators
-      EvaluatorSupervisor,
-      # Start the process keeping track of the number of connected sessions
-      InitializationCounter
-    ]
-
-    opts = [strategy: :one_for_one, name: LiveBook.Remote.Supervisor]
-
-    {:ok, _pid} = :rpc.block_call(node, Supervisor, :start_link, [children, opts])
-  end
-
-  defp stop_supervisor(node) do
-    :rpc.call(node, Supervisor, :stop, [LiveBook.Remote.Supervisor, :normal])
+  defp start_manager(node) do
+    # TODO: fix owner pid
+    :rpc.call(node, LiveBook.Remote.Manager, :start, [[owner_pid: self()]])
   end
 
   defp initialized?(node) do
-    case :rpc.call(node, Process, :whereis, [LiveBook.Remote.Supervisor]) do
+    case :rpc.call(node, Process, :whereis, [LiveBook.Remote.Manager]) do
       nil -> false
       _pid -> true
     end

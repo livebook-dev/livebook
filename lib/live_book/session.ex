@@ -439,7 +439,6 @@ defmodule LiveBook.Session do
   defp unbind_runtime(runtime) do
     node = Runtime.get_node(runtime)
     Node.monitor(node, false)
-    Remote.deinitialize(node)
     Runtime.disconnect(runtime)
   end
 
