@@ -35,7 +35,7 @@ defmodule LiveBook.Runtime.Standalone do
       elixir_path ->
         id = Utils.random_short_id()
 
-        node = :"live_book_runtime_#{id}@127.0.0.1"
+        node = Utils.node_from_name("live_book_runtime_#{id}")
 
         # The new Elixir node receives a code to evaluate
         # and we have to pass the current pid there, but since pid
@@ -52,7 +52,7 @@ defmodule LiveBook.Runtime.Standalone do
           # unexpected messages if the process produces some output.
           :nouse_stdio,
           args: [
-            "--name",
+            if(LiveBook.Config.shortnames?, do: "--sname", else: "--name"),
             to_string(node),
             "--eval",
             eval,

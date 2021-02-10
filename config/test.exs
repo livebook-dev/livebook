@@ -11,4 +11,4 @@ config :logger, level: :warn
 
 # Use a different node name for tests to avoid interfering
 # with a running development node.
-config :live_book, :node_name, :"live_book_test@127.0.0.1"
+config :live_book, :node_name, :live_book_test

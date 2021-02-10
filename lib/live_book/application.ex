@@ -35,7 +35,8 @@ defmodule LiveBook.Application do
   defp ensure_distribution() do
     unless Node.alive?() do
       node_name = Application.fetch_env!(:live_book, :node_name)
-      Node.start(node_name, :longnames)
+      type = Application.fetch_env!(:live_book, :node_type)
+      Node.start(node_name, type)
     end
   end
 end

@@ -1,7 +1,7 @@
 defmodule LiveBookWeb.RuntimeComponent do
   use LiveBookWeb, :live_component
 
-  alias LiveBook.{Session, Runtime}
+  alias LiveBook.{Session, Runtime, Utils}
 
   @impl true
   def mount(socket) do
@@ -82,7 +82,11 @@ defmodule LiveBookWeb.RuntimeComponent do
             Make sure to give the node a name:
           </p>
           <div class="text-sm text-gray-500 markdown">
-          <pre><code>iex --name test@127.0.0.1 -S mix</code></pre>
+          <%= if LiveBook.Config.shortnames? do %>
+            <pre><code>iex --sname test -S mix</code></pre>
+          <% else %>
+            <pre><code>iex --name test@127.0.0.1 -S mix</code></pre>
+          <% end %>
           </div>
           <p class="text-sm text-gray-500">
             Then enter the name of the node below:
@@ -92,7 +96,7 @@ defmodule LiveBookWeb.RuntimeComponent do
             phx_submit: "init_attached" %>
 
             <%= text_input f, :name,
-              placeholder: "test@127.0.0.1",
+              placeholder: if(LiveBook.Config.shortnames?, do: "test", else: "test@127.0.0.1"),
               class: "input-base text-sm shadow" %>
 
             <%= submit "Connect",
@@ -119,8 +123,8 @@ defmodule LiveBookWeb.RuntimeComponent do
     handle_runtime_init_result(socket, Runtime.Standalone.init(session_pid))
   end
 
-  def handle_event("init_attached", %{"node" => %{"name" => node}}, socket) do
-    node = String.to_atom(node)
+  def handle_event("init_attached", %{"node" => %{"name" => name}}, socket) do
+    node = Utils.node_from_name(name)
     handle_runtime_init_result(socket, Runtime.Attached.init(node))
   end
 
