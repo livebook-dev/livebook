@@ -137,6 +137,9 @@ defmodule LiveBookWeb.RuntimeComponent do
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"
   defp runtime_error_to_message(:no_elixir_executable), do: "No Elixir executable found in PATH"
   defp runtime_error_to_message(:timeout), do: "Connection timed out"
-  defp runtime_error_to_message(:already_in_use), do: "Another session is already connected to this node"
+
+  defp runtime_error_to_message(:already_in_use),
+    do: "Another session is already connected to this node"
+
   defp runtime_error_to_message(_), do: "Something went wrong"
 end

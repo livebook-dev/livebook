@@ -125,26 +125,24 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "connect_runtime/2" do
-    test "sends a runtime update and evaluation reset operations to subscribers",
+    test "sends a runtime update operation to subscribers",
          %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
       Session.connect_runtime(session_id, runtime)
 
-      assert_receive {:operation, {:reset_evaluation}}
       assert_receive {:operation, {:set_runtime, ^runtime}}
     end
   end
 
   describe "disconnect_runtime/1" do
-    test "sends a runtime update and evaluation reset operations to subscribers",
+    test "sends a runtime update operation to subscribers",
          %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       Session.disconnect_runtime(session_id)
 
-      assert_receive {:operation, {:reset_evaluation}}
       assert_receive {:operation, {:set_runtime, nil}}
     end
   end
@@ -180,7 +178,6 @@ defmodule LiveBook.SessionTest do
     # Terminate the other node, the session should detect that.
     Node.spawn(runtime.node, System, :halt, [])
 
-    assert_receive {:operation, {:reset_evaluation}}
     assert_receive {:operation, {:set_runtime, nil}}
     assert_receive {:info, "runtime node terminated unexpectedly"}
   end

@@ -17,33 +17,70 @@ defmodule LiveBook.Runtime.Remote.Manager do
 
   @await_owner_timeout 5_000
 
+  @doc """
+  Starts the manager.
+
+  Note: make sure to `set_owner` within `@await_owner_timeout`
+  or the manager assumes it's not needed and terminates.
+  """
   def start(opts \\ []) do
     GenServer.start(__MODULE__, opts, name: @name)
   end
 
+  @doc """
+  Sets the owner process.
+
+  The owner process is watched and as soon as it terminates,
+  the manager also terminates. All the evaluation results are
+  send directly to the owner.
+  """
   @spec set_owner(node(), pid()) :: :ok
   def set_owner(node, owner) do
     GenServer.cast({@name, node}, {:set_owner, owner})
   end
 
-  @spec evaluate_code(node(), String.t(), Evaluator.ref(), Evaluator.ref(), Evaluator.ref()) :: :ok
-  def evaluate_code(node, code, container_ref, evaluation_ref, prev_evaluation_ref) do
+  @doc """
+  Evaluates the given code using an `Evaluator` process
+  belonging to the given `container_ref` and instructs
+  it to send all the outputs to the owner process.
+
+  If that's the first evaluation for this `container_ref`,
+  a new evaluator is started.
+
+  See `Evaluator` for more details.
+  """
+  @spec evaluate_code(node(), String.t(), Evaluator.ref(), Evaluator.ref(), Evaluator.ref()) ::
+          :ok
+  def evaluate_code(node, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
     GenServer.cast(
       {@name, node},
       {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref}
     )
   end
 
+  @doc """
+  Removes the specified evaluation from the history.
+
+  See `Evaluator` for more details.
+  """
   @spec forget_evaluation(node(), Evaluator.ref(), Evaluator.ref()) :: :ok
   def forget_evaluation(node, container_ref, evaluation_ref) do
     GenServer.cast({@name, node}, {:forget_evaluation, container_ref, evaluation_ref})
   end
 
+  @doc """
+  Terminates the `Evaluator` process belonging to the given container.
+  """
   @spec drop_container(node(), Evaluator.ref()) :: :ok
   def drop_container(node, container_ref) do
     GenServer.cast({@name, node}, {:drop_container, container_ref})
   end
 
+  @doc """
+  Stops the manager.
+
+  This results in all LiveBook-related modules being unloaded from this node.
+  """
   @spec stop(node()) :: :ok
   def stop(node) do
     GenServer.stop({@name, node})
@@ -68,6 +105,8 @@ defmodule LiveBook.Runtime.Remote.Manager do
 
   @impl true
   def handle_info(:check_owner, state) do
+    # If not owner has been set within @await_owner_timeout
+    # from the start, terminate the process.
     if state.owner do
       {:noreply, state}
     else

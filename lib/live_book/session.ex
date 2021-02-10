@@ -226,8 +226,15 @@ defmodule LiveBook.Session do
   end
 
   def handle_cast({:queue_cell_evaluation, cell_id}, state) do
-    operation = {:queue_cell_evaluation, cell_id}
-    {:noreply, handle_operation(state, operation)}
+    case ensure_runtime(state) do
+      {:ok, state} ->
+        operation = {:queue_cell_evaluation, cell_id}
+        {:noreply, handle_operation(state, operation)}
+
+      {:error, error} ->
+        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
+        {:noreply, state}
+    end
   end
 
   def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
@@ -259,8 +266,7 @@ defmodule LiveBook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: runtime_monitor_ref}
-     |> handle_operation({:set_runtime, runtime})
-     |> handle_operation({:reset_evaluation})}
+     |> handle_operation({:set_runtime, runtime})}
   end
 
   def handle_cast(:disconnect_runtime, state) do
@@ -268,8 +274,7 @@ defmodule LiveBook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, nil})
-     |> handle_operation({:reset_evaluation})}
+     |> handle_operation({:set_runtime, nil})}
   end
 
   @impl true
@@ -278,8 +283,7 @@ defmodule LiveBook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, nil})
-     |> handle_operation({:reset_evaluation})}
+     |> handle_operation({:set_runtime, nil})}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
@@ -291,7 +295,7 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:evaluator_response, cell_id, response}, state) do
+  def handle_info({:evaluation_response, cell_id, response}, state) do
     operation = {:add_cell_evaluation_response, cell_id, response}
     {:noreply, handle_operation(state, operation)}
   end
@@ -364,22 +368,15 @@ defmodule LiveBook.Session do
   end
 
   defp start_evaluation(state, cell, section) do
-    case ensure_runtime(state) do
-      {:ok, state} ->
-        prev_ref =
-          case Notebook.parent_cells(state.data.notebook, cell.id) do
-            [parent | _] -> parent.id
-            [] -> :initial
-          end
+    prev_ref =
+      case Notebook.parent_cells(state.data.notebook, cell.id) do
+        [parent | _] -> parent.id
+        [] -> :initial
+      end
 
-        Runtime.evaluate_code(state.data.runtime, cell.source, section.id, cell.id, prev_ref)
+    Runtime.evaluate_code(state.data.runtime, cell.source, section.id, cell.id, prev_ref)
 
-        state
-
-      {:error, error} ->
-        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
-        handle_operation(state, {:cancel_cell_evaluation, cell.id})
-    end
+    state
   end
 
   # Checks if a runtime already set, and if that's not the case

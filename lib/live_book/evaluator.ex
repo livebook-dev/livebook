@@ -106,11 +106,11 @@ defmodule LiveBook.Evaluator do
         new_contexts = Map.put(state.contexts, ref, result_context)
         new_state = %{state | contexts: new_contexts}
 
-        send(send_to, {:evaluator_response, ref, {:ok, result}})
+        send(send_to, {:evaluation_response, ref, {:ok, result}})
         {:noreply, new_state}
 
       {:error, kind, error, stacktrace} ->
-        send(send_to, {:evaluator_response, ref, {:error, kind, error, stacktrace}})
+        send(send_to, {:evaluation_response, ref, {:error, kind, error, stacktrace}})
         {:noreply, state}
     end
   end

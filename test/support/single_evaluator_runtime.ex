@@ -25,7 +25,13 @@ defimpl LiveBook.Runtime, for: LiveBookTest.Runtime.SingleEvaluator do
 
   def disconnect(_runtime), do: :ok
 
-  def evaluate_code(runtime, code, _container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
+  def evaluate_code(
+        runtime,
+        code,
+        _container_ref,
+        evaluation_ref,
+        prev_evaluation_ref \\ :initial
+      ) do
     Evaluator.evaluate_code(runtime.evaluator, self(), code, evaluation_ref, prev_evaluation_ref)
 
     :ok
