@@ -50,7 +50,7 @@ defmodule LiveBook.EvaluatorTest do
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, self(), ~s{IO.puts("hey")}, :code_1)
 
-      assert_receive {:evaluator_stdout, :code_1, "hey\n"}
+      assert_receive {:evaluation_stdout, :code_1, "hey\n"}
     end
 
     test "using standard input results in an immediate error", %{evaluator: evaluator} do

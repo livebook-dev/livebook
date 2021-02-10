@@ -15,14 +15,15 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Remote, Runtime}
+  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Runtime}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
           session_id: id(),
           data: Data.t(),
           evaluators: %{Section.t() => Evaluator.t()},
-          client_pids: list(pid())
+          client_pids: list(pid()),
+          runtime_monitor_ref: reference()
         }
 
   @typedoc """
@@ -186,7 +187,8 @@ defmodule LiveBook.Session do
        session_id: session_id,
        data: Data.new(),
        client_pids: [],
-       evaluators: %{}
+       evaluators: %{},
+       runtime_monitor_ref: nil
      }}
   end
 
@@ -249,41 +251,42 @@ defmodule LiveBook.Session do
   end
 
   def handle_cast({:connect_runtime, runtime}, state) do
-    state = cleanup_runtime_if_any(state)
+    if state.data.runtime do
+      Runtime.disconnect(state.data.runtime)
+    end
 
-    bind_runtime(runtime)
+    runtime_monitor_ref = Runtime.connect(runtime)
 
     {:noreply,
-     state
-     |> handle_operation({:reset_evaluation})
-     |> handle_operation({:set_runtime, runtime})}
+     %{state | runtime_monitor_ref: runtime_monitor_ref}
+     |> handle_operation({:set_runtime, runtime})
+     |> handle_operation({:reset_evaluation})}
   end
 
   def handle_cast(:disconnect_runtime, state) do
+    Runtime.disconnect(state.data.runtime)
+
     {:noreply,
-     state
-     |> cleanup_runtime_if_any()
-     |> handle_operation({:reset_evaluation})
-     |> handle_operation({:set_runtime, nil})}
+     %{state | runtime_monitor_ref: nil}
+     |> handle_operation({:set_runtime, nil})
+     |> handle_operation({:reset_evaluation})}
   end
 
   @impl true
+  def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
+    broadcast_info(state.session_id, "runtime node terminated unexpectedly")
+
+    {:noreply,
+     %{state | runtime_monitor_ref: nil}
+     |> handle_operation({:set_runtime, nil})
+     |> handle_operation({:reset_evaluation})}
+  end
+
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
   end
 
-  def handle_info({:nodedown, node}, state) do
-    ^node = Runtime.get_node(state.data.runtime)
-
-    broadcast_info(state.session_id, "runtime node terminated unexpectedly")
-
-    {:noreply,
-     %{state | evaluators: %{}}
-     |> handle_operation({:reset_evaluation})
-     |> handle_operation({:set_runtime, nil})}
-  end
-
-  def handle_info({:evaluator_stdout, cell_id, string}, state) do
+  def handle_info({:evaluation_stdout, cell_id, string}, state) do
     operation = {:add_cell_evaluation_stdout, cell_id, string}
     {:noreply, handle_operation(state, operation)}
   end
@@ -294,13 +297,6 @@ defmodule LiveBook.Session do
   end
 
   def handle_info(_message, state), do: {:noreply, state}
-
-  @impl true
-  def terminate(_reason, state) do
-    cleanup_runtime_if_any(state)
-
-    :ok
-  end
 
   # ---
 
@@ -334,12 +330,16 @@ defmodule LiveBook.Session do
   end
 
   defp handle_action(state, {:stop_evaluation, section}) do
-    discard_evaluator(state, section.id)
+    if state.data.runtime do
+      Runtime.drop_container(state.data.runtime, section.id)
+    end
+
+    state
   end
 
   defp handle_action(state, {:forget_evaluation, cell, section}) do
-    with {:ok, evaluator} <- Map.fetch(state.evaluators, section.id) do
-      Evaluator.forget_evaluation(evaluator, cell.id)
+    if state.data.runtime do
+      Runtime.forget_evaluation(state.data.runtime, section.id, cell.id)
     end
 
     state
@@ -364,91 +364,33 @@ defmodule LiveBook.Session do
   end
 
   defp start_evaluation(state, cell, section) do
-    case ensure_evaluator(state, section.id) do
+    case ensure_runtime(state) do
       {:ok, state} ->
-        evaluator = Map.fetch!(state.evaluators, section.id)
-
         prev_ref =
           case Notebook.parent_cells(state.data.notebook, cell.id) do
             [parent | _] -> parent.id
             [] -> :initial
           end
 
-        Evaluator.evaluate_code(evaluator, self(), cell.source, cell.id, prev_ref)
+        Runtime.evaluate_code(state.data.runtime, cell.source, section.id, cell.id, prev_ref)
 
         state
 
       {:error, error} ->
-        broadcast_error(state.session_id, "failed to setup evaluation - #{error}")
+        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
         handle_operation(state, {:cancel_cell_evaluation, cell.id})
     end
-  end
-
-  # Checks if a there's already evaluator for the given section,
-  # and starts a new evaluator if none.
-  defp ensure_evaluator(state, section_id) do
-    if Map.has_key?(state.evaluators, section_id) do
-      {:ok, state}
-    else
-      with {:ok, state} <- ensure_runtime(state),
-           {:ok, evaluator} <-
-             state.data.runtime
-             |> Runtime.get_node()
-             |> Remote.EvaluatorSupervisor.start_evaluator() do
-        {:ok, %{state | evaluators: Map.put(state.evaluators, section_id, evaluator)}}
-      end
-    end
-  end
-
-  # Terminates evaluator for the given section.
-  defp discard_evaluator(state, section_id) do
-    case Map.fetch(state.evaluators, section_id) do
-      {:ok, evaluator} ->
-        node = Runtime.get_node(state.data.runtime)
-        Remote.EvaluatorSupervisor.terminate_evaluator(node, evaluator)
-        %{state | evaluators: Map.delete(state.evaluators, section_id)}
-
-      :error ->
-        state
-    end
-  end
-
-  # If applicable, terminates all evaluators and unbinds the runtime node.
-  defp cleanup_runtime_if_any(%{data: %{runtime: nil}} = state), do: state
-
-  defp cleanup_runtime_if_any(state) do
-    # Terminate all evaluators
-    state =
-      state.evaluators
-      |> Map.keys()
-      |> Enum.reduce(state, fn section_id, state -> discard_evaluator(state, section_id) end)
-
-    unbind_runtime(state.data.runtime)
-
-    state
-  end
-
-  # Actually initialies the runtime node and starts monitoring it
-  defp bind_runtime(runtime) do
-    node = Runtime.get_node(runtime)
-    Node.monitor(node, true)
-    Remote.initialize(node)
-  end
-
-  # Uninitialies the runtime node and stops monitoring it
-  defp unbind_runtime(runtime) do
-    node = Runtime.get_node(runtime)
-    Node.monitor(node, false)
-    Runtime.disconnect(runtime)
   end
 
   # Checks if a runtime already set, and if that's not the case
   # starts a new standlone one.
   defp ensure_runtime(%{data: %{runtime: nil}} = state) do
     with {:ok, runtime} <- Runtime.Standalone.init(self()) do
-      bind_runtime(runtime)
-      operation = {:set_runtime, runtime}
-      {:ok, handle_operation(state, operation)}
+      runtime_monitor_ref = Runtime.connect(runtime)
+
+      {:ok,
+       %{state | runtime_monitor_ref: runtime_monitor_ref}
+       |> handle_operation({:set_runtime, runtime})}
     end
   end
 

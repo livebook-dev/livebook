@@ -25,8 +25,11 @@ defmodule LiveBook.Runtime.StandaloneTest do
       assert_receive {:nodedown, ^node}
     end
 
-    test "given an invalid node returns an error" do
-      assert {:error, :unreachable} = Runtime.Attached.init(:nonexistent@node)
+    test "loads necessary modules and starts manager process" do
+      assert {:ok, %{node: node} = runtime} = Runtime.Standalone.init(self())
+
+      assert evaluator_module_loaded?(node)
+      assert manager_started?(node)
     end
   end
 
@@ -40,5 +43,13 @@ defmodule LiveBook.Runtime.StandaloneTest do
     Runtime.disconnect(runtime)
 
     assert_receive {:nodedown, ^node}
+  end
+
+  defp evaluator_module_loaded?(node) do
+    :rpc.call(node, :code, :is_loaded, [LiveBook.Evaluator]) != false
+  end
+
+  defp manager_started?(node) do
+    :rpc.call(node, Process, :whereis, [LiveBook.Runtime.Remote.Manager]) != nil
   end
 end

@@ -2,7 +2,7 @@ defmodule LiveBook.Session.DataTest do
   use ExUnit.Case, async: true
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Delta, Runtime}
+  alias LiveBook.Delta
 
   describe "apply_operation/2 given :insert_section" do
     test "adds new section to notebook and session info" do
@@ -677,7 +677,7 @@ defmodule LiveBook.Session.DataTest do
     test "updates data with the given runtime" do
       data = Data.new()
 
-      {:ok, runtime} = Runtime.Attached.init(node())
+      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
 
       operation = {:set_runtime, runtime}
 

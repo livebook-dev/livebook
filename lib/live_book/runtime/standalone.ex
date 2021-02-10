@@ -1,7 +1,7 @@
 defmodule LiveBook.Runtime.Standalone do
   defstruct [:node, :primary_pid]
 
-  # Represents an Elixir node managed by LiveBook.
+  # A runtime backed by a standalone Elixir node managed by LiveBook.
   #
   # LiveBook is responsible for starting and terminating the node.
   # Most importantly we have to make sure the started node doesn't
@@ -15,7 +15,8 @@ defmodule LiveBook.Runtime.Standalone do
         }
 
   @doc """
-  Initializes the runtime by starting an Elixir node (i.e. a system process).
+  Starts a new Elixir node (i.e. a system process) and initializes
+  it with LiveBook-specific modules and processes.
 
   The new node monitors the given owner process and terminates
   as soon as it terminates. It may also be terminated manually
@@ -68,6 +69,9 @@ defmodule LiveBook.Runtime.Standalone do
             # Having the other process pid we can send the owner pid as a message.
             send(primary_pid, {:node_acknowledged, owner_pid})
 
+            # There should be no problem initializing the new node
+            :ok = LiveBook.Runtime.Remote.initialize(node)
+
             {:ok, %__MODULE__{node: node, primary_pid: primary_pid}}
         after
           10_000 ->
@@ -105,12 +109,34 @@ defmodule LiveBook.Runtime.Standalone do
 end
 
 defimpl LiveBook.Runtime, for: LiveBook.Runtime.Standalone do
-  def get_node(runtime), do: runtime.node
+  alias LiveBook.Runtime.Remote
+
+  def connect(runtime) do
+    Remote.Manager.set_owner(runtime.node, self())
+    Process.monitor({Remote.Manager, runtime.node})
+  end
 
   def disconnect(runtime) do
-    # Send a message to the main node process so it knows to terminate.
+    Remote.Manager.stop(runtime.node)
+    # Instruct the other node to terminate
     send(runtime.primary_pid, :stop)
+  end
 
-    :ok
+  def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
+    Remote.Manager.evaluate_code(
+      runtime.node,
+      code,
+      container_ref,
+      evaluation_ref,
+      prev_evaluation_ref
+    )
+  end
+
+  def forget_evaluation(runtime, container_ref, evaluation_ref) do
+    Remote.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
+  end
+
+  def drop_container(runtime, container_ref) do
+    Remote.Manager.drop_container(runtime.node, container_ref)
   end
 end

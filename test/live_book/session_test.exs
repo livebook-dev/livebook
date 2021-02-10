@@ -8,7 +8,7 @@ defmodule LiveBook.SessionTest do
     {:ok, _} = Session.start_link(session_id)
     # By default, use the current node for evaluation,
     # rather than starting a standalone one.
-    {:ok, runtime} = Runtime.Attached.init(node())
+    {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
     Session.connect_runtime(session_id, runtime)
     %{session_id: session_id}
   end
@@ -129,7 +129,7 @@ defmodule LiveBook.SessionTest do
          %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
-      {:ok, runtime} = Runtime.Attached.init(node())
+      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
       Session.connect_runtime(session_id, runtime)
 
       assert_receive {:operation, {:reset_evaluation}}
@@ -149,7 +149,7 @@ defmodule LiveBook.SessionTest do
     end
   end
 
-  # For most tests we use the current node for evaluation, so that they are not expensive.
+  # For most tests we use the lightweight runtime, so that they are cheap to run.
   # Here go several integration tests that actually start a separate runtime
   # to verify session integrates well with it.
 

@@ -1,21 +1,15 @@
-defmodule LiveBook.Remote do
+defmodule LiveBook.Runtime.Remote do
   @moduledoc false
 
   # This module allows for initializing connected nodes
   # with modules and processes necessary for evaluation.
   #
   # To ensure proper isolation between sessions,
-  # code evaluation takes place in a separate Elixir runtime.
-  # This also makes it easy to terminate the whole
+  # code evaluation may take place in a separate Elixir runtime,
+  # which also makes it easy to terminate the whole
   # evaluation environment without stopping LiveBook.
-  #
-  # As each session has a corresponding node for evaluation
-  # we have a distributed system, so we can leverage
-  # Erlang capabilities for their communication.
-  #
-  # By abstracting evaluation away to an arbitrary node we naturally get
-  # support for evaluation in the context of existing nodes,
-  # like those started in a mix environment.
+  # This is what both `Runtime.Standalone` and `Runtime.Attached` do
+  # and this module containes the shared functionality they need.
   #
   # To work with a separate node, we have to inject the necessary
   # LiveBook modules there and also start the relevant processes
@@ -26,9 +20,9 @@ defmodule LiveBook.Remote do
   @required_modules [
     LiveBook.Evaluator,
     LiveBook.Evaluator.IOProxy,
-    LiveBook.Remote,
-    LiveBook.Remote.Manager,
-    LiveBook.Remote.EvaluatorSupervisor
+    LiveBook.Runtime.Remote,
+    LiveBook.Runtime.Remote.Manager,
+    LiveBook.Runtime.Remote.EvaluatorSupervisor
   ]
 
   @doc """
@@ -38,44 +32,45 @@ defmodule LiveBook.Remote do
   The initialization may be invoked only once on the given
   node until its disconnected.
   """
-  @spec initialize(node()) :: :ok
+  @spec initialize(node()) :: :ok | {:error, :already_in_use}
   def initialize(node) do
     if initialized?(node) do
-      # TODO: return eror tuple
-      raise "already initialized"
+      {:error, :already_in_use}
     else
       load_required_modules(node)
       start_manager(node)
-    end
 
-    :ok
+      :ok
+    end
   end
 
-  def load_required_modules(node) do
+  defp load_required_modules(node) do
     for module <- @required_modules do
       {_module, binary, filename} = :code.get_object_code(module)
       {:module, _} = :rpc.call(node, :code, :load_binary, [module, filename, binary])
     end
   end
 
+  defp start_manager(node) do
+    :rpc.call(node, LiveBook.Runtime.Remote.Manager, :start, [])
+  end
+
+  defp initialized?(node) do
+    case :rpc.call(node, Process, :whereis, [LiveBook.Runtime.Remote.Manager]) do
+      nil -> false
+      _pid -> true
+    end
+  end
+
+  @doc """
+  Unloads the previously loaded LiveBook modules from the caller node.
+  """
   def unload_required_modules() do
     for module <- @required_modules do
       # If we attached, detached and attached again, there may still
       # be deleted module code, so purge it first.
       :code.purge(module)
       :code.delete(module)
-    end
-  end
-
-  defp start_manager(node) do
-    # TODO: fix owner pid
-    :rpc.call(node, LiveBook.Remote.Manager, :start, [[owner_pid: self()]])
-  end
-
-  defp initialized?(node) do
-    case :rpc.call(node, Process, :whereis, [LiveBook.Remote.Manager]) do
-      nil -> false
-      _pid -> true
     end
   end
 end

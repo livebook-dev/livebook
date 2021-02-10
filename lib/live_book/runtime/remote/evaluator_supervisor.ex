@@ -1,4 +1,4 @@
-defmodule LiveBook.Remote.EvaluatorSupervisor do
+defmodule LiveBook.Runtime.Remote.EvaluatorSupervisor do
   @moduledoc false
 
   # Supervisor responsible for dynamically spawning
@@ -22,9 +22,9 @@ defmodule LiveBook.Remote.EvaluatorSupervisor do
   @doc """
   Spawns a new evaluator.
   """
-  @spec start_evaluator(node()) :: {:ok, Evaluator.t()} | {:error, any()}
-  def start_evaluator(node) do
-    case DynamicSupervisor.start_child({@name, node}, Evaluator) do
+  @spec start_evaluator() :: {:ok, Evaluator.t()} | {:error, any()}
+  def start_evaluator() do
+    case DynamicSupervisor.start_child(@name, Evaluator) do
       {:ok, pid} -> {:ok, pid}
       {:ok, pid, _} -> {:ok, pid}
       :ignore -> {:error, :ignore}
@@ -35,9 +35,9 @@ defmodule LiveBook.Remote.EvaluatorSupervisor do
   @doc """
   Terminates the given evaluator.
   """
-  @spec terminate_evaluator(node(), Evaluator.t()) :: :ok
-  def terminate_evaluator(node, evaluator) do
-    DynamicSupervisor.terminate_child({@name, node}, evaluator)
+  @spec terminate_evaluator(Evaluator.t()) :: :ok
+  def terminate_evaluator(evaluator) do
+    DynamicSupervisor.terminate_child(@name, evaluator)
     :ok
   end
 end
