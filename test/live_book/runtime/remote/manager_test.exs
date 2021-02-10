@@ -1,7 +1,7 @@
 defmodule LiveBook.Runtime.Remote.ManagerTest do
   use ExUnit.Case, async: false
 
-  alias LiveBook.Runtime.Remote.{Manager, EvaluatorSupervisor}
+  alias LiveBook.Runtime.Remote.Manager
 
   describe "set_owner/2" do
     test "starts watching the given process and terminates as soon as it terminates" do

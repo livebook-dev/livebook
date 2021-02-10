@@ -1,5 +1,5 @@
 defmodule LiveBook.Runtime.Standalone do
-  defstruct [:node, :primary_pid]
+  defstruct [:node, :primary_pid, :init_ref]
 
   # A runtime backed by a standalone Elixir node managed by LiveBook.
   #
@@ -11,7 +11,8 @@ defmodule LiveBook.Runtime.Standalone do
 
   @type t :: %__MODULE__{
           node: node(),
-          primary_pid: pid()
+          primary_pid: pid(),
+          init_ref: reference()
         }
 
   @doc """
@@ -63,16 +64,16 @@ defmodule LiveBook.Runtime.Standalone do
         ])
 
         receive do
-          {:node_started, ^node, primary_pid} ->
+          {:node_started, init_ref, ^node, primary_pid} ->
             # Unregister the temporary name as it's no longer needed.
             Process.unregister(waiter)
             # Having the other process pid we can send the owner pid as a message.
-            send(primary_pid, {:node_acknowledged, owner_pid})
+            send(primary_pid, {:node_acknowledged, init_ref, owner_pid})
 
             # There should be no problem initializing the new node
             :ok = LiveBook.Runtime.Remote.initialize(node)
 
-            {:ok, %__MODULE__{node: node, primary_pid: primary_pid}}
+            {:ok, %__MODULE__{node: node, primary_pid: primary_pid, init_ref: init_ref}}
         after
           10_000 ->
             {:error, :timeout}
@@ -86,10 +87,11 @@ defmodule LiveBook.Runtime.Standalone do
     # and as soon as it finishes, the runtime terminates.
     quote do
       # Initiate communication with the waiting process on the parent node.
-      send({unquote(waiter), unquote(parent_node)}, {:node_started, node(), self()})
+      init_ref = make_ref()
+      send({unquote(waiter), unquote(parent_node)}, {:node_started, init_ref, node(), self()})
 
       receive do
-        {:node_acknowledged, owner_pid} ->
+        {:node_acknowledged, ^init_ref, owner_pid} ->
           owner_ref = Process.monitor(owner_pid)
 
           # Wait until either the owner process terminates
@@ -98,7 +100,7 @@ defmodule LiveBook.Runtime.Standalone do
             {:DOWN, ^owner_ref, :process, _object, _reason} ->
               :ok
 
-            :stop ->
+            {:stop, ^init_ref} ->
               :ok
           end
       after
@@ -119,7 +121,7 @@ defimpl LiveBook.Runtime, for: LiveBook.Runtime.Standalone do
   def disconnect(runtime) do
     Remote.Manager.stop(runtime.node)
     # Instruct the other node to terminate
-    send(runtime.primary_pid, :stop)
+    send(runtime.primary_pid, {:stop, runtime.init_ref})
   end
 
   def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
