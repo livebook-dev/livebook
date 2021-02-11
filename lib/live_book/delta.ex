@@ -122,29 +122,6 @@ defmodule LiveBook.Delta do
   end
 
   @doc """
-  Returns the result of applying `delta` to `string`.
-  """
-  @spec apply_to_string(t(), String.t()) :: String.t()
-  def apply_to_string(delta, string) do
-    do_apply_to_string(delta.ops, string)
-  end
-
-  defp do_apply_to_string([], string), do: string
-
-  defp do_apply_to_string([{:retain, n} | ops], string) do
-    {left, right} = String.split_at(string, n)
-    left <> do_apply_to_string(ops, right)
-  end
-
-  defp do_apply_to_string([{:insert, inserted} | ops], string) do
-    inserted <> do_apply_to_string(ops, string)
-  end
-
-  defp do_apply_to_string([{:delete, n} | ops], string) do
-    do_apply_to_string(ops, String.slice(string, n..-1))
-  end
-
-  @doc """
   Converts the given delta to a compact representation,
   suitable for sending over the network.
 
