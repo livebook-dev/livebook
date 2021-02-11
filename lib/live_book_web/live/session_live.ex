@@ -42,12 +42,21 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="flex flex-grow max-h-full"
+    <%= if @live_action == :runtime do %>
+      <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
+                              id: :runtime_modal,
+                              action: :runtime,
+                              return_to: Routes.session_path(@socket, :show, @session_id),
+                              session_id: @session_id,
+                              runtime: @data.runtime %>
+    <% end %>
+
+    <div class="flex flex-grow h-full"
          id="session"
          phx-hook="Session"
          data-focused-cell-id="<%= @focused_cell_id %>"
          data-focused-cell-type="<%= @focused_cell_type %>">
-      <div class="w-1/5 bg-gray-100 border-r-2 border-gray-200">
+      <div class="flex flex-col w-1/5 bg-gray-100 border-r-2 border-gray-200">
         <h1 id="notebook-name"
             contenteditable
             spellcheck="false"
@@ -55,7 +64,8 @@ defmodule LiveBookWeb.SessionLive do
             phx-hook="ContentEditable"
             data-update-attribute="phx-value-name"
             class="p-8 text-2xl"><%= @data.notebook.name %></h1>
-        <div class="flex flex-col space-y-2 pl-4">
+
+        <div class="flex-grow flex flex-col space-y-2 pl-4">
           <%= for section <- @data.notebook.sections do %>
             <div phx-click="select_section"
                  phx-value-section_id="<%= section.id %>"
@@ -71,6 +81,11 @@ defmodule LiveBookWeb.SessionLive do
               <span>New section</span>
             </div>
           </button>
+        </div>
+        <div class="p-4">
+          <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
+            <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+          <% end %>
         </div>
       </div>
       <div class="flex-grow px-6 py-8 flex overflow-y-auto">
@@ -88,6 +103,11 @@ defmodule LiveBookWeb.SessionLive do
       </div>
     </div>
     """
+  end
+
+  @impl true
+  def handle_params(_params, _url, socket) do
+    {:noreply, socket}
   end
 
   @impl true
@@ -270,6 +290,20 @@ defmodule LiveBookWeb.SessionLive do
         {:noreply, socket}
     end
   end
+
+  def handle_info({:error, error}, socket) do
+    message = error |> to_string() |> String.capitalize()
+
+    {:noreply, put_flash(socket, :error, message)}
+  end
+
+  def handle_info({:info, info}, socket) do
+    message = info |> to_string() |> String.capitalize()
+
+    {:noreply, put_flash(socket, :info, message)}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   defp after_operation(socket, _prev_socket, {:insert_section, _index, section_id}) do
     assign(socket, selected_section_id: section_id)

@@ -13,17 +13,17 @@ defmodule LiveBook.Evaluator.IOProxyTest do
 
   test "IO.puts", %{io: io} do
     IO.puts(io, "hey")
-    assert_received {:evaluator_stdout, :ref, "hey\n"}
+    assert_received {:evaluation_stdout, :ref, "hey\n"}
   end
 
   test "IO.write", %{io: io} do
     IO.write(io, "hey")
-    assert_received {:evaluator_stdout, :ref, "hey"}
+    assert_received {:evaluation_stdout, :ref, "hey"}
   end
 
   test "IO.inspect", %{io: io} do
     IO.inspect(io, %{}, [])
-    assert_received {:evaluator_stdout, :ref, "%{}\n"}
+    assert_received {:evaluation_stdout, :ref, "%{}\n"}
   end
 
   test "IO.read", %{io: io} do

@@ -89,6 +89,7 @@ defmodule LiveBookWeb do
       alias LiveBookWeb.Router.Helpers, as: Routes
 
       # Custom helpers
+      import LiveBookWeb.Helpers
       alias LiveBookWeb.Icons
     end
   end

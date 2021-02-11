@@ -624,6 +624,54 @@ defmodule LiveBook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_runtime" do
+    test "updates data with the given runtime" do
+      data = Data.new()
+
+      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+
+      operation = {:set_runtime, runtime}
+
+      assert {:ok, %{runtime: ^runtime}, []} = Data.apply_operation(data, operation)
+    end
+
+    test "clears all statuses and the per-section queues" do
+      data =
+        data_after_operations!([
+          # First section with evaluating and queued cells
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"},
+          # Second section with evaluating and queued cells
+          {:insert_section, 1, "s2"},
+          {:insert_cell, "s2", 0, :elixir, "c3"},
+          {:insert_cell, "s2", 1, :elixir, "c4"},
+          {:queue_cell_evaluation, "c3"},
+          {:queue_cell_evaluation, "c4"}
+        ])
+
+      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+
+      operation = {:set_runtime, runtime}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c4" => %{validity_status: :fresh, evaluation_status: :ready}
+                },
+                section_infos: %{
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   defp data_after_operations!(operations) do
     Enum.reduce(operations, Data.new(), fn operation, data ->
       case Data.apply_operation(data, operation) do

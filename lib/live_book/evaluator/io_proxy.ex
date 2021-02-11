@@ -38,7 +38,7 @@ defmodule LiveBook.Evaluator.IOProxy do
 
   The possible messages are:
 
-  * `{:evaluator_stdout, ref, string}` - for output requests,
+  * `{:evaluation_stdout, ref, string}` - for output requests,
     where `ref` is the given evaluation reference and `string` is the output.
   """
   @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
@@ -149,7 +149,7 @@ defmodule LiveBook.Evaluator.IOProxy do
     case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
         if state.target do
-          send(state.target, {:evaluator_stdout, state.ref, string})
+          send(state.target, {:evaluation_stdout, state.ref, string})
         end
 
         {:ok, state}

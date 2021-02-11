@@ -1,8 +1,8 @@
-defmodule LiveBook.EvaluatorSupervisor do
+defmodule LiveBook.Runtime.ErlDist.EvaluatorSupervisor do
   @moduledoc false
 
   # Supervisor responsible for dynamically spawning
-  # and terminating terminator server processes.
+  # and terminating evaluator server processes.
 
   use DynamicSupervisor
 

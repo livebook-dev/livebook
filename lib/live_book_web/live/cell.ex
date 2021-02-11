@@ -1,8 +1,6 @@
 defmodule LiveBookWeb.Cell do
   use LiveBookWeb, :live_component
 
-  alias LiveBookWeb.Utils
-
   def render(assigns) do
     ~L"""
     <div id="cell-<%= @cell.id %>"
@@ -73,7 +71,7 @@ defmodule LiveBookWeb.Cell do
       </div>
 
       <%= if @show_status do %>
-        <div class="absolute bottom-2 right-2 z-50">
+        <div class="absolute bottom-2 right-2">
           <%= render_cell_status(@cell_info) %>
         </div>
       <% end %>
@@ -154,7 +152,7 @@ defmodule LiveBookWeb.Cell do
   end
 
   defp render_output({:ok, value}) do
-    inspected = Utils.inspect_as_html(value, pretty: true, width: 100)
+    inspected = inspect_as_html(value, pretty: true, width: 100)
 
     assigns = %{inspected: inspected}
 

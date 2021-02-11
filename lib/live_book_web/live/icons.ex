@@ -48,6 +48,36 @@ defmodule LiveBookWeb.Icons do
     """
   end
 
+  def svg(:chip, attrs) do
+    assigns = %{attrs: heroicon_svg_attrs(attrs)}
+
+    ~L"""
+    <%= tag(:svg, @attrs) %>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+    </svg>
+    """
+  end
+
+  def svg(:information_circle, attrs) do
+    assigns = %{attrs: heroicon_svg_attrs(attrs)}
+
+    ~L"""
+    <%= tag(:svg, @attrs) %>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    """
+  end
+
+  def svg(:exclamation_circle, attrs) do
+    assigns = %{attrs: heroicon_svg_attrs(attrs)}
+
+    ~L"""
+    <%= tag(:svg, @attrs) %>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    """
+  end
+
   # https://heroicons.com
   defp heroicon_svg_attrs(attrs) do
     heroicon_svg_attrs = [

@@ -20,10 +20,11 @@ defmodule LiveBook.Session.Data do
     :section_infos,
     :cell_infos,
     :deleted_sections,
-    :deleted_cells
+    :deleted_cells,
+    :runtime
   ]
 
-  alias LiveBook.{Notebook, Evaluator, Delta}
+  alias LiveBook.{Notebook, Evaluator, Delta, Runtime}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type t :: %__MODULE__{
@@ -32,7 +33,8 @@ defmodule LiveBook.Session.Data do
           section_infos: %{Section.id() => section_info()},
           cell_infos: %{Cell.id() => cell_info()},
           deleted_sections: list(Section.t()),
-          deleted_cells: list(Cell.t())
+          deleted_cells: list(Cell.t()),
+          runtime: Runtime.t() | nil
         }
 
   @type section_info :: %{
@@ -67,6 +69,7 @@ defmodule LiveBook.Session.Data do
           | {:set_notebook_name, String.t()}
           | {:set_section_name, Section.id(), String.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
+          | {:set_runtime, Runtime.t() | nil}
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
@@ -85,7 +88,8 @@ defmodule LiveBook.Session.Data do
       section_infos: %{},
       cell_infos: %{},
       deleted_sections: [],
-      deleted_cells: []
+      deleted_cells: [],
+      runtime: nil
     }
   end
 
@@ -151,6 +155,7 @@ defmodule LiveBook.Session.Data do
           data
           |> with_actions()
           |> clear_section_evaluation(section)
+          |> add_action({:stop_evaluation, section})
 
         :queued ->
           data
@@ -219,6 +224,7 @@ defmodule LiveBook.Session.Data do
           data
           |> with_actions()
           |> clear_section_evaluation(section)
+          |> add_action({:stop_evaluation, section})
           |> wrap_ok()
 
         :queued ->
@@ -262,6 +268,14 @@ defmodule LiveBook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:set_runtime, runtime}) do
+    data
+    |> with_actions()
+    |> set!(runtime: runtime)
+    |> reduce(data.notebook.sections, &clear_section_evaluation/2)
+    |> wrap_ok()
   end
 
   # ===
@@ -404,7 +418,6 @@ defmodule LiveBook.Session.Data do
       section.cells,
       &set_cell_info!(&1, &2.id, validity_status: :fresh, evaluation_status: :ready)
     )
-    |> add_action({:stop_evaluation, section})
   end
 
   defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell, section) do

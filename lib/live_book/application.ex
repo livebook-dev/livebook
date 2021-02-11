@@ -6,6 +6,8 @@ defmodule LiveBook.Application do
   use Application
 
   def start(_type, _args) do
+    ensure_distribution()
+
     children = [
       # Start the Telemetry supervisor
       LiveBookWeb.Telemetry,
@@ -13,8 +15,6 @@ defmodule LiveBook.Application do
       {Phoenix.PubSub, name: LiveBook.PubSub},
       # Start the supervisor dynamically managing sessions
       LiveBook.SessionSupervisor,
-      # Start the supervisor dynamically spawning evaluator servers
-      LiveBook.EvaluatorSupervisor,
       # Start the Endpoint (http/https)
       LiveBookWeb.Endpoint
     ]
@@ -30,5 +30,13 @@ defmodule LiveBook.Application do
   def config_change(changed, _new, removed) do
     LiveBookWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp ensure_distribution() do
+    unless Node.alive?() do
+      System.cmd("epmd", ["-daemon"])
+      {type, name} = Application.fetch_env!(:live_book, :node_name)
+      Node.start(name, type)
+    end
   end
 end

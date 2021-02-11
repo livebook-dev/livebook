@@ -1,4 +1,6 @@
-defmodule LiveBookWeb.Utils do
+defmodule LiveBookWeb.Helpers do
+  import Phoenix.LiveView.Helpers
+
   @doc """
   Wraps `inspect/2` to include HTML tags in the final string for syntax highlighting.
 
@@ -6,7 +8,7 @@ defmodule LiveBookWeb.Utils do
 
   ## Examples
 
-      iex(2)> LiveBookWeb.Utils.inspect_as_html(:test, [])
+      iex(2)> LiveBookWeb.Helpers.inspect_as_html(:test, [])
       {:safe, "<span class=\\"atom\\">:test</span>"}
   """
   @spec inspect_as_html(Inspect.t(), keyword()) :: Phoenix.HTML.safe()
@@ -59,5 +61,17 @@ defmodule LiveBookWeb.Utils do
       {key, color}, string ->
         String.replace(string, color, "<span class=\"#{Atom.to_string(key)}\">")
     end)
+  end
+
+  @doc """
+  Renders a component inside the `LiveBook.ModalComponent` component.
+
+  The rendered modal receives a `:return_to` option to properly update
+  the URL when the modal is closed.
+  """
+  def live_modal(socket, component, opts) do
+    path = Keyword.fetch!(opts, :return_to)
+    modal_opts = [id: :modal, return_to: path, component: component, opts: opts]
+    live_component(socket, LiveBookWeb.ModalComponent, modal_opts)
   end
 end

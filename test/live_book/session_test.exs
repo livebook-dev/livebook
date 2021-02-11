@@ -1,11 +1,16 @@
 defmodule LiveBook.SessionTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.{Session, Delta}
+  alias LiveBook.{Session, Delta, Runtime, Utils}
 
   setup do
-    {:ok, _} = Session.start_link("1")
-    %{session_id: "1"}
+    session_id = Utils.random_id()
+    {:ok, _} = Session.start_link(session_id)
+    # By default, use the current node for evaluation,
+    # rather than starting a standalone one.
+    {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+    Session.connect_runtime(session_id, runtime)
+    %{session_id: session_id}
   end
 
   describe "insert_section/2" do
@@ -117,6 +122,64 @@ defmodule LiveBook.SessionTest do
       Session.apply_cell_delta(session_id, from, cell_id, delta, revision)
       assert_receive {:operation, {:apply_cell_delta, ^from, ^cell_id, ^delta, ^revision}}
     end
+  end
+
+  describe "connect_runtime/2" do
+    test "sends a runtime update operation to subscribers",
+         %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+      Session.connect_runtime(session_id, runtime)
+
+      assert_receive {:operation, {:set_runtime, ^runtime}}
+    end
+  end
+
+  describe "disconnect_runtime/1" do
+    test "sends a runtime update operation to subscribers",
+         %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      Session.disconnect_runtime(session_id)
+
+      assert_receive {:operation, {:set_runtime, nil}}
+    end
+  end
+
+  # For most tests we use the lightweight runtime, so that they are cheap to run.
+  # Here go several integration tests that actually start a separate runtime
+  # to verify session integrates well with it.
+
+  test "starts a standalone runtime upon first evaluation if there was none set explicitly" do
+    session_id = Utils.random_id()
+    {:ok, _} = Session.start_link(session_id)
+
+    Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+    {_section_id, cell_id} = insert_section_and_cell(session_id)
+
+    Session.queue_cell_evaluation(session_id, cell_id)
+    # Give it a bit more time as this involves starting a system process.
+    assert_receive {:operation, {:add_cell_evaluation_response, ^cell_id, _}}, 1000
+  end
+
+  test "if the runtime node goes down, notifies the subscribers" do
+    session_id = Utils.random_id()
+    {:ok, _} = Session.start_link(session_id)
+    {:ok, runtime} = Runtime.Standalone.init(self())
+
+    Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+    # Wait for the runtime to best set
+    Session.connect_runtime(session_id, runtime)
+    assert_receive {:operation, {:set_runtime, ^runtime}}
+
+    # Terminate the other node, the session should detect that.
+    Node.spawn(runtime.node, System, :halt, [])
+
+    assert_receive {:operation, {:set_runtime, nil}}
+    assert_receive {:info, "runtime node terminated unexpectedly"}
   end
 
   defp insert_section_and_cell(session_id) do
