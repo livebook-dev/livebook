@@ -24,7 +24,7 @@ defmodule LiveBook.Session.Data do
     :runtime
   ]
 
-  alias LiveBook.{Notebook, Evaluator, Delta, Runtime}
+  alias LiveBook.{Notebook, Evaluator, Delta, Runtime, JSInterop}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type t :: %__MODULE__{
@@ -464,7 +464,7 @@ defmodule LiveBook.Session.Data do
         Delta.transform(delta_ahead, transformed_new_delta, :left)
       end)
 
-    new_source = Delta.apply_to_string(transformed_new_delta, cell.source)
+    new_source = JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
