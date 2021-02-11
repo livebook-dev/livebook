@@ -1,0 +1,5 @@
+/* Remove the default outline on focused elements */
+:focus,
+button:focus {
+  outline: none;
+}

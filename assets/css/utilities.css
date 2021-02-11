@@ -1,0 +1,10 @@
+/* A set of reusable classes */
+
+.bg-editor {
+  background-color: #282c34;
+}
+
+.font-editor {
+  font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
+  font-size: 14px;
+}
