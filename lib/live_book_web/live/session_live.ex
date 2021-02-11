@@ -91,7 +91,7 @@ defmodule LiveBookWeb.SessionLive do
       <div class="flex-grow px-6 py-8 flex overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto">
           <%= for section <- @data.notebook.sections do %>
-            <%= live_component @socket, LiveBookWeb.Section,
+            <%= live_component @socket, LiveBookWeb.SectionComponent,
                   id: section.id,
                   section: section,
                   selected: section.id == @selected_section_id,

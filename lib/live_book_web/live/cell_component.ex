@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.Cell do
+defmodule LiveBookWeb.CellComponent do
   use LiveBookWeb, :live_component
 
   def render(assigns) do
@@ -99,7 +99,7 @@ defmodule LiveBookWeb.Cell do
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
         <div class="h-4 bg-gray-200 rounded-md w-3/4"></div>
-        <div class="h-4 bg-gray-200 rounded"></div>
+        <div class="h-4 bg-gray-200 rounded-md"></div>
         <div class="h-4 bg-gray-200 rounded-md w-5/6"></div>
       </div>
     </div>
@@ -121,7 +121,7 @@ defmodule LiveBookWeb.Cell do
     <div class="px-8 max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4 py-1">
         <div class="h-4 bg-gray-500 rounded-md w-3/4"></div>
-        <div class="h-4 bg-gray-500 rounded"></div>
+        <div class="h-4 bg-gray-500 rounded-md"></div>
         <div class="h-4 bg-gray-500 rounded-md w-5/6"></div>
       </div>
     </div>

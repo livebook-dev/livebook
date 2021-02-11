@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.InsertCellActions do
+defmodule LiveBookWeb.InsertCellComponent do
   use LiveBookWeb, :live_component
 
   def render(assigns) do
