@@ -6,9 +6,9 @@ defmodule LiveBook.Config do
   """
   @spec shortnames?() :: boolean()
   def shortnames?() do
-    case Application.fetch_env!(:live_book, :node_type) do
-      :shortnames -> true
-      :longnames -> false
+    case Application.fetch_env!(:live_book, :node_name) do
+      {:shortnames, _name} -> true
+      {:longnames, _name} -> false
     end
   end
 end
