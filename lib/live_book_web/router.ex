@@ -17,9 +17,9 @@ defmodule LiveBookWeb.Router do
   scope "/", LiveBookWeb do
     pipe_through :browser
 
-    live "/", HomeLive
-    live "/sessions", SessionsLive
-    live "/sessions/:id", SessionLive, :show
+    live "/", HomeLive, :page
+    live "/sessions", SessionsLive, :page
+    live "/sessions/:id", SessionLive, :page
     live "/sessions/:id/runtime", SessionLive, :runtime
   end
 

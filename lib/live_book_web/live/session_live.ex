@@ -18,7 +18,7 @@ defmodule LiveBookWeb.SessionLive do
 
       {:ok, assign(socket, initial_assigns(session_id, data))}
     else
-      {:ok, redirect(socket, to: Routes.live_path(socket, LiveBookWeb.SessionsLive))}
+      {:ok, redirect(socket, to: Routes.sessions_path(socket, :page))}
     end
   end
 
@@ -46,7 +46,7 @@ defmodule LiveBookWeb.SessionLive do
       <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
             id: :runtime_modal,
             action: :runtime,
-            return_to: Routes.session_path(@socket, :show, @session_id),
+            return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
             runtime: @data.runtime %>
     <% end %>
