@@ -91,16 +91,11 @@ defmodule LiveBookWeb.RuntimeComponent do
           <p class="text-sm text-gray-500">
             Then enter the name of the node below:
           </p>
-          <%= f = form_for :node, "#",
-            phx_target: @myself,
-            phx_submit: "init_attached" %>
+          <%= f = form_for :node, "#", phx_target: @myself, phx_submit: "init_attached" %>
+            <%= text_input f, :name, class: "input-base text-sm shadow",
+                  placeholder: if(LiveBook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
-            <%= text_input f, :name,
-              placeholder: if(LiveBook.Config.shortnames?, do: "test", else: "test@127.0.0.1"),
-              class: "input-base text-sm shadow" %>
-
-            <%= submit "Connect",
-              class: "mt-3 button-base text-sm" %>
+            <%= submit "Connect", class: "mt-3 button-base text-sm" %>
           </form>
         </div>
       </div>

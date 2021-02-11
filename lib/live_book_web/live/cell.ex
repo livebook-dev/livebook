@@ -3,13 +3,13 @@ defmodule LiveBookWeb.Cell do
 
   def render(assigns) do
     ~L"""
-    <div id="cell-<%= @cell.id %>"
-         phx-hook="Cell"
-         data-cell-id="<%= @cell.id %>"
-         data-type="<%= @cell.type %>"
-         data-focused="<%= @focused %>"
-         data-expanded="<%= @expanded %>"
-         class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>">
+    <div class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>"
+      id="cell-<%= @cell.id %>"
+      phx-hook="Cell"
+      data-cell-id="<%= @cell.id %>"
+      data-type="<%= @cell.type %>"
+      data-focused="<%= @focused %>"
+      data-expanded="<%= @expanded %>">
       <%= render_cell_content(assigns) %>
     </div>
     """
@@ -64,9 +64,10 @@ defmodule LiveBookWeb.Cell do
 
     ~L"""
     <div class="py-3 rounded-md overflow-hidden bg-editor relative">
-      <div id="editor-container-<%= @cell.id %>"
-           data-editor-container
-           phx-update="ignore">
+      <div
+        id="editor-container-<%= @cell.id %>"
+        data-editor-container
+        phx-update="ignore">
         <%= render_editor_content_placeholder(@cell.source) %>
       </div>
 
