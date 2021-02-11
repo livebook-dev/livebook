@@ -18,7 +18,7 @@ defmodule LiveBookWeb.SessionLive do
 
       {:ok, assign(socket, initial_assigns(session_id, data))}
     else
-      {:ok, redirect(socket, to: Routes.live_path(socket, LiveBookWeb.SessionsLive))}
+      {:ok, redirect(socket, to: Routes.sessions_path(socket, :page))}
     end
   end
 
@@ -44,11 +44,11 @@ defmodule LiveBookWeb.SessionLive do
     ~L"""
     <%= if @live_action == :runtime do %>
       <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
-                              id: :runtime_modal,
-                              action: :runtime,
-                              return_to: Routes.session_path(@socket, :show, @session_id),
-                              session_id: @session_id,
-                              runtime: @data.runtime %>
+            id: :runtime_modal,
+            action: :runtime,
+            return_to: Routes.session_path(@socket, :page, @session_id),
+            session_id: @session_id,
+            runtime: @data.runtime %>
     <% end %>
 
     <div class="flex flex-grow h-full"
@@ -91,13 +91,13 @@ defmodule LiveBookWeb.SessionLive do
       <div class="flex-grow px-6 py-8 flex overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto">
           <%= for section <- @data.notebook.sections do %>
-            <%= live_component @socket, LiveBookWeb.Section,
-                               id: section.id,
-                               section: section,
-                               selected: section.id == @selected_section_id,
-                               cell_infos: @data.cell_infos,
-                               focused_cell_id: @focused_cell_id,
-                               focused_cell_expanded: @focused_cell_expanded %>
+            <%= live_component @socket, LiveBookWeb.SectionComponent,
+                  id: section.id,
+                  section: section,
+                  selected: section.id == @selected_section_id,
+                  cell_infos: @data.cell_infos,
+                  focused_cell_id: @focused_cell_id,
+                  focused_cell_expanded: @focused_cell_expanded %>
           <% end %>
         </div>
       </div>

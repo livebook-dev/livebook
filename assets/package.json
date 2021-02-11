@@ -31,6 +31,7 @@
     "monaco-editor-webpack-plugin": "^2.1.0",
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "postcss": "^8.2.3",
+    "postcss-import": "^14.0.0",
     "postcss-loader": "^4.1.0",
     "prettier": "^2.2.1",
     "tailwindcss": "^2.0.2",

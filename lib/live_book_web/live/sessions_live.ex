@@ -16,14 +16,14 @@ defmodule LiveBookWeb.SessionsLive do
   def render(assigns) do
     ~L"""
     <div class="container max-w-screen-md p-4 mx-auto">
-      <div class="flex flex-col shadow-md rounded px-3 py-2 mb-4">
+      <div class="flex flex-col shadow-md rounded-md px-3 py-2 mb-4">
         <div class="text-gray-700 text-lg font-semibold p-2">
           Sessions
         </div>
         <%= for session_id <- Enum.sort(@session_ids) do %>
           <div class="p-3 flex">
             <div class="flex-grow text-lg text-gray-500 hover:text-current">
-              <%= live_redirect session_id, to: Routes.session_path(@socket, :show, session_id) %>
+              <%= live_redirect session_id, to: Routes.session_path(@socket, :page, session_id) %>
             </div>
             <div>
               <button phx-click="delete_session" phx-value-id="<%= session_id %>" aria-label="delete" class="text-gray-500 hover:text-current">
@@ -44,7 +44,7 @@ defmodule LiveBookWeb.SessionsLive do
   def handle_event("create_session", _params, socket) do
     case LiveBook.SessionSupervisor.create_session() do
       {:ok, id} ->
-        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :show, id))}
+        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}

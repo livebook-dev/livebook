@@ -1,15 +1,15 @@
-defmodule LiveBookWeb.Cell do
+defmodule LiveBookWeb.CellComponent do
   use LiveBookWeb, :live_component
 
   def render(assigns) do
     ~L"""
-    <div id="cell-<%= @cell.id %>"
-         phx-hook="Cell"
-         data-cell-id="<%= @cell.id %>"
-         data-type="<%= @cell.type %>"
-         data-focused="<%= @focused %>"
-         data-expanded="<%= @expanded %>"
-         class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>">
+    <div class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>"
+      id="cell-<%= @cell.id %>"
+      phx-hook="Cell"
+      data-cell-id="<%= @cell.id %>"
+      data-type="<%= @cell.type %>"
+      data-focused="<%= @focused %>"
+      data-expanded="<%= @expanded %>">
       <%= render_cell_content(assigns) %>
     </div>
     """
@@ -64,9 +64,10 @@ defmodule LiveBookWeb.Cell do
 
     ~L"""
     <div class="py-3 rounded-md overflow-hidden bg-editor relative">
-      <div id="editor-container-<%= @cell.id %>"
-           data-editor-container
-           phx-update="ignore">
+      <div
+        id="editor-container-<%= @cell.id %>"
+        data-editor-container
+        phx-update="ignore">
         <%= render_editor_content_placeholder(@cell.source) %>
       </div>
 
@@ -97,9 +98,9 @@ defmodule LiveBookWeb.Cell do
     ~L"""
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
-        <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-        <div class="h-4 bg-gray-200 rounded"></div>
-        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+        <div class="h-4 bg-gray-200 rounded-md w-3/4"></div>
+        <div class="h-4 bg-gray-200 rounded-md"></div>
+        <div class="h-4 bg-gray-200 rounded-md w-5/6"></div>
       </div>
     </div>
     """
@@ -119,9 +120,9 @@ defmodule LiveBookWeb.Cell do
     ~L"""
     <div class="px-8 max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4 py-1">
-        <div class="h-4 bg-gray-500 rounded w-3/4"></div>
-        <div class="h-4 bg-gray-500 rounded"></div>
-        <div class="h-4 bg-gray-500 rounded w-5/6"></div>
+        <div class="h-4 bg-gray-500 rounded-md w-3/4"></div>
+        <div class="h-4 bg-gray-500 rounded-md"></div>
+        <div class="h-4 bg-gray-500 rounded-md w-5/6"></div>
       </div>
     </div>
     """
