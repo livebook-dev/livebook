@@ -34,7 +34,7 @@ defmodule LiveBook.Runtime.ErlDist.ManagerTest do
       Manager.set_owner(node(), self())
       Manager.evaluate_code(node(), "1 + 1", :container1, :evaluation1)
 
-      assert_receive {:evaluation_response, :evaluation1, {:ok, 2}}
+      assert_receive {:evaluation_response, :evaluation1, _}
 
       Manager.stop(node())
     end

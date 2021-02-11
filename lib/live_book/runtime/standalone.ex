@@ -52,7 +52,7 @@ defmodule LiveBook.Runtime.Standalone do
           # unexpected messages if the process produces some output.
           :nouse_stdio,
           args: [
-            if(LiveBook.Config.shortnames?, do: "--sname", else: "--name"),
+            if(LiveBook.Config.shortnames?(), do: "--sname", else: "--name"),
             to_string(node),
             "--eval",
             eval,

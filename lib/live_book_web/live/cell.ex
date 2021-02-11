@@ -151,18 +151,15 @@ defmodule LiveBookWeb.Cell do
     """
   end
 
-  defp render_output({:ok, value}) do
-    inspected = inspect_as_html(value, pretty: true, width: 100)
-
-    assigns = %{inspected: inspected}
+  defp render_output({:inspect_html, inspected_html}) do
+    assigns = %{inspected_html: inspected_html}
 
     ~L"""
-    <div class="whitespace-pre text-gray-500 elixir-inspect"><%= @inspected %></div>
+    <div class="whitespace-pre text-gray-500 elixir-inspect"><%= raw @inspected_html %></div>
     """
   end
 
-  defp render_output({:error, kind, error, stacktrace}) do
-    formatted = Exception.format(kind, error, stacktrace)
+  defp render_output({:error, formatted}) do
     assigns = %{formatted: formatted}
 
     ~L"""
