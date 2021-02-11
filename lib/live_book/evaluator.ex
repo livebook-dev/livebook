@@ -41,6 +41,14 @@ defmodule LiveBook.Evaluator do
 
   ## API
 
+  @doc """
+  Starts the evaluator.
+
+  Options:
+
+  * `formatter` - a module implementing the `LiveBook.Evaluator.Formatter` behaviour,
+    used for transforming evaluation response before it's sent to the client
+  """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
   end
@@ -55,6 +63,7 @@ defmodule LiveBook.Evaluator do
   in which case the corresponding binding and environment are used during evaluation.
 
   Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response}`.
+  Note that response is transformed with the configured formatter (identity by default).
   """
   @spec evaluate_code(t(), pid(), String.t(), ref(), ref()) :: :ok
   def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ :initial) when ref != :initial do
@@ -73,17 +82,20 @@ defmodule LiveBook.Evaluator do
   ## Callbacks
 
   @impl true
-  def init(_opts) do
+  def init(opts) do
+    formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
+
     {:ok, io_proxy} = Evaluator.IOProxy.start_link()
 
     # Use the dedicated IO device as the group leader,
     # so that it handles all :stdio operations.
     Process.group_leader(self(), io_proxy)
-    {:ok, initial_state(io_proxy)}
+    {:ok, initial_state(formatter, io_proxy)}
   end
 
-  defp initial_state(io_proxy) do
+  defp initial_state(formatter, io_proxy) do
     %{
+      formatter: formatter,
       io_proxy: io_proxy,
       contexts: %{initial: initial_context()}
     }
@@ -106,11 +118,11 @@ defmodule LiveBook.Evaluator do
         new_contexts = Map.put(state.contexts, ref, result_context)
         new_state = %{state | contexts: new_contexts}
 
-        send(send_to, {:evaluation_response, ref, {:ok, result}})
+        send_evaluation_response(send_to, ref, {:ok, result}, state.formatter)
         {:noreply, new_state}
 
       {:error, kind, error, stacktrace} ->
-        send(send_to, {:evaluation_response, ref, {:error, kind, error, stacktrace}})
+        send_evaluation_response(send_to, ref, {:error, kind, error, stacktrace}, state.formatter)
         {:noreply, state}
     end
   end
@@ -118,6 +130,11 @@ defmodule LiveBook.Evaluator do
   def handle_cast({:forget_evaluation, ref}, state) do
     new_state = %{state | contexts: Map.delete(state.contexts, ref)}
     {:noreply, new_state}
+  end
+
+  defp send_evaluation_response(send_to, ref, evaluation_response, formatter) do
+    response = formatter.format(evaluation_response)
+    send(send_to, {:evaluation_response, ref, response})
   end
 
   defp eval(code, binding, env) do

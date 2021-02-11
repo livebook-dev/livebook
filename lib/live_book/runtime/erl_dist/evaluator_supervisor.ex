@@ -24,7 +24,7 @@ defmodule LiveBook.Runtime.ErlDist.EvaluatorSupervisor do
   """
   @spec start_evaluator() :: {:ok, Evaluator.t()} | {:error, any()}
   def start_evaluator() do
-    case DynamicSupervisor.start_child(@name, Evaluator) do
+    case DynamicSupervisor.start_child(@name, {Evaluator, [formatter: Evaluator.StringFormatter]}) do
       {:ok, pid} -> {:ok, pid}
       {:ok, pid, _} -> {:ok, pid}
       :ignore -> {:error, :ignore}
