@@ -10,7 +10,7 @@ defmodule LiveBookWeb.InsertCellActions do
         phx-value-type="markdown"
         phx-value-section_id="<%= @section_id %>"
         phx-value-index="<%= @index %>"
-        class="py-1 px-2 rounded text-sm hover:bg-gray-100 border border-gray-200 bg-gray-50">
+        class="py-1 px-2 rounded-md text-sm hover:bg-gray-100 border border-gray-200 bg-gray-50">
         + Markdown
       </button>
       <button
@@ -18,7 +18,7 @@ defmodule LiveBookWeb.InsertCellActions do
         phx-value-type="elixir"
         phx-value-section_id="<%= @section_id %>"
         phx-value-index="<%= @index %>"
-        class="py-1 px-2 rounded text-sm hover:bg-gray-100 border border-gray-200 bg-gray-50">
+        class="py-1 px-2 rounded-md text-sm hover:bg-gray-100 border border-gray-200 bg-gray-50">
         + Elixir
       </button>
       <%= line() %>

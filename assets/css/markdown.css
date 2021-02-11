@@ -77,14 +77,14 @@
 }
 
 .markdown code {
-  @apply py-1 px-2 rounded text-sm align-middle;
+  @apply py-1 px-2 rounded-md text-sm align-middle;
   /* Match the editor colors */
   background-color: #282c34;
   color: #abb2bf;
 }
 
 .markdown pre > code {
-  @apply block p-4 rounded text-sm align-middle;
+  @apply block p-4 rounded-md text-sm align-middle;
   /* Match the editor colors */
   background-color: #282c34;
   color: #abb2bf;

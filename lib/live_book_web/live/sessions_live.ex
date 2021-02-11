@@ -16,7 +16,7 @@ defmodule LiveBookWeb.SessionsLive do
   def render(assigns) do
     ~L"""
     <div class="container max-w-screen-md p-4 mx-auto">
-      <div class="flex flex-col shadow-md rounded px-3 py-2 mb-4">
+      <div class="flex flex-col shadow-md rounded-md px-3 py-2 mb-4">
         <div class="text-gray-700 text-lg font-semibold p-2">
           Sessions
         </div>
