@@ -1,8 +1,8 @@
-defmodule LiveBook.Runtime.Remote do
+defmodule LiveBook.Runtime.ErlDist do
   @moduledoc false
 
-  # This module allows for initializing connected nodes
-  # with modules and processes necessary for evaluation.
+  # This module allows for initializing nodes connected using
+  # Erlang Distribution with modules and processes necessary for evaluation.
   #
   # To ensure proper isolation between sessions,
   # code evaluation may take place in a separate Elixir runtime,
@@ -20,9 +20,9 @@ defmodule LiveBook.Runtime.Remote do
   @required_modules [
     LiveBook.Evaluator,
     LiveBook.Evaluator.IOProxy,
-    LiveBook.Runtime.Remote,
-    LiveBook.Runtime.Remote.Manager,
-    LiveBook.Runtime.Remote.EvaluatorSupervisor
+    LiveBook.Runtime.ErlDist,
+    LiveBook.Runtime.ErlDist.Manager,
+    LiveBook.Runtime.ErlDist.EvaluatorSupervisor
   ]
 
   @doc """
@@ -52,11 +52,11 @@ defmodule LiveBook.Runtime.Remote do
   end
 
   defp start_manager(node) do
-    :rpc.call(node, LiveBook.Runtime.Remote.Manager, :start, [])
+    :rpc.call(node, LiveBook.Runtime.ErlDist.Manager, :start, [])
   end
 
   defp initialized?(node) do
-    case :rpc.call(node, Process, :whereis, [LiveBook.Runtime.Remote.Manager]) do
+    case :rpc.call(node, Process, :whereis, [LiveBook.Runtime.ErlDist.Manager]) do
       nil -> false
       _pid -> true
     end

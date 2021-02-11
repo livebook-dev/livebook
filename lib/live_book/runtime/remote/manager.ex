@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.Remote.Manager do
+defmodule LiveBook.Runtime.ErlDist.Manager do
   @moduledoc false
 
   # The primary LiveBook process started on a remote node.
@@ -11,7 +11,7 @@ defmodule LiveBook.Runtime.Remote.Manager do
   use GenServer
 
   alias LiveBook.Evaluator
-  alias LiveBook.Runtime.Remote
+  alias LiveBook.Runtime.ErlDist
 
   @name __MODULE__
 
@@ -89,7 +89,7 @@ defmodule LiveBook.Runtime.Remote.Manager do
   @impl true
   def init(_opts) do
     Process.flag(:trap_exit, true)
-    Remote.EvaluatorSupervisor.start_link()
+    ErlDist.EvaluatorSupervisor.start_link()
 
     Process.send_after(self(), :check_owner, @await_owner_timeout)
 
@@ -98,7 +98,7 @@ defmodule LiveBook.Runtime.Remote.Manager do
 
   @impl true
   def terminate(_reason, _state) do
-    Remote.unload_required_modules()
+    ErlDist.unload_required_modules()
 
     :ok
   end
@@ -161,7 +161,7 @@ defmodule LiveBook.Runtime.Remote.Manager do
     if Map.has_key?(state.evaluators, container_ref) do
       state
     else
-      {:ok, evaluator} = Remote.EvaluatorSupervisor.start_evaluator()
+      {:ok, evaluator} = ErlDist.EvaluatorSupervisor.start_evaluator()
       %{state | evaluators: Map.put(state.evaluators, container_ref, evaluator)}
     end
   end
@@ -169,7 +169,7 @@ defmodule LiveBook.Runtime.Remote.Manager do
   defp discard_evaluator(state, container_ref) do
     case Map.fetch(state.evaluators, container_ref) do
       {:ok, evaluator} ->
-        Remote.EvaluatorSupervisor.terminate_evaluator(evaluator)
+        ErlDist.EvaluatorSupervisor.terminate_evaluator(evaluator)
         %{state | evaluators: Map.delete(state.evaluators, container_ref)}
 
       :error ->

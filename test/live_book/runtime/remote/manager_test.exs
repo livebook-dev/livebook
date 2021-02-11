@@ -1,7 +1,7 @@
-defmodule LiveBook.Runtime.Remote.ManagerTest do
+defmodule LiveBook.Runtime.ErlDist.ManagerTest do
   use ExUnit.Case, async: false
 
-  alias LiveBook.Runtime.Remote.Manager
+  alias LiveBook.Runtime.ErlDist.Manager
 
   describe "set_owner/2" do
     test "starts watching the given process and terminates as soon as it terminates" do
@@ -17,8 +17,8 @@ defmodule LiveBook.Runtime.Remote.ManagerTest do
       Manager.set_owner(node(), owner)
 
       # Make sure the node is running.
-      assert Process.whereis(LiveBook.Runtime.Remote.Manager) != nil
-      ref = Process.monitor(LiveBook.Runtime.Remote.Manager)
+      assert Process.whereis(LiveBook.Runtime.ErlDist.Manager) != nil
+      ref = Process.monitor(LiveBook.Runtime.ErlDist.Manager)
 
       # Tell the owner process to stop.
       send(owner, :stop)

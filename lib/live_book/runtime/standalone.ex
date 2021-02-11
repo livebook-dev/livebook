@@ -71,7 +71,7 @@ defmodule LiveBook.Runtime.Standalone do
             send(primary_pid, {:node_acknowledged, init_ref, owner_pid})
 
             # There should be no problem initializing the new node
-            :ok = LiveBook.Runtime.Remote.initialize(node)
+            :ok = LiveBook.Runtime.ErlDist.initialize(node)
 
             {:ok, %__MODULE__{node: node, primary_pid: primary_pid, init_ref: init_ref}}
         after
@@ -111,21 +111,21 @@ defmodule LiveBook.Runtime.Standalone do
 end
 
 defimpl LiveBook.Runtime, for: LiveBook.Runtime.Standalone do
-  alias LiveBook.Runtime.Remote
+  alias LiveBook.Runtime.ErlDist
 
   def connect(runtime) do
-    Remote.Manager.set_owner(runtime.node, self())
-    Process.monitor({Remote.Manager, runtime.node})
+    ErlDist.Manager.set_owner(runtime.node, self())
+    Process.monitor({ErlDist.Manager, runtime.node})
   end
 
   def disconnect(runtime) do
-    Remote.Manager.stop(runtime.node)
+    ErlDist.Manager.stop(runtime.node)
     # Instruct the other node to terminate
     send(runtime.primary_pid, {:stop, runtime.init_ref})
   end
 
   def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
-    Remote.Manager.evaluate_code(
+    ErlDist.Manager.evaluate_code(
       runtime.node,
       code,
       container_ref,
@@ -135,10 +135,10 @@ defimpl LiveBook.Runtime, for: LiveBook.Runtime.Standalone do
   end
 
   def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    Remote.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
+    ErlDist.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
   end
 
   def drop_container(runtime, container_ref) do
-    Remote.Manager.drop_container(runtime.node, container_ref)
+    ErlDist.Manager.drop_container(runtime.node, container_ref)
   end
 end

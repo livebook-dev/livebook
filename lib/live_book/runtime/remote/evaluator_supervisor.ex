@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.Remote.EvaluatorSupervisor do
+defmodule LiveBook.Runtime.ErlDist.EvaluatorSupervisor do
   @moduledoc false
 
   # Supervisor responsible for dynamically spawning

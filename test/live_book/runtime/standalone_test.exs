@@ -50,6 +50,6 @@ defmodule LiveBook.Runtime.StandaloneTest do
   end
 
   defp manager_started?(node) do
-    :rpc.call(node, Process, :whereis, [LiveBook.Runtime.Remote.Manager]) != nil
+    :rpc.call(node, Process, :whereis, [LiveBook.Runtime.ErlDist.Manager]) != nil
   end
 end

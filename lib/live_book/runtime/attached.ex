@@ -23,7 +23,7 @@ defmodule LiveBook.Runtime.Attached do
   def init(node) do
     case Node.ping(node) do
       :pong ->
-        case LiveBook.Runtime.Remote.initialize(node) do
+        case LiveBook.Runtime.ErlDist.initialize(node) do
           :ok ->
             {:ok, %__MODULE__{node: node}}
 
@@ -38,19 +38,19 @@ defmodule LiveBook.Runtime.Attached do
 end
 
 defimpl LiveBook.Runtime, for: LiveBook.Runtime.Attached do
-  alias LiveBook.Runtime.Remote
+  alias LiveBook.Runtime.ErlDist
 
   def connect(runtime) do
-    Remote.Manager.set_owner(runtime.node, self())
-    Process.monitor({Remote.Manager, runtime.node})
+    ErlDist.Manager.set_owner(runtime.node, self())
+    Process.monitor({ErlDist.Manager, runtime.node})
   end
 
   def disconnect(runtime) do
-    Remote.Manager.stop(runtime.node)
+    ErlDist.Manager.stop(runtime.node)
   end
 
   def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
-    Remote.Manager.evaluate_code(
+    ErlDist.Manager.evaluate_code(
       runtime.node,
       code,
       container_ref,
@@ -60,10 +60,10 @@ defimpl LiveBook.Runtime, for: LiveBook.Runtime.Attached do
   end
 
   def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    Remote.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
+    ErlDist.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
   end
 
   def drop_container(runtime, container_ref) do
-    Remote.Manager.drop_container(runtime.node, container_ref)
+    ErlDist.Manager.drop_container(runtime.node, container_ref)
   end
 end
