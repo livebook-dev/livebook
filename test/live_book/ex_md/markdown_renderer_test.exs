@@ -262,8 +262,28 @@ defmodule LiveBook.ExMd.MarkdownRendererTest do
     assert markdown == reformat(markdown)
   end
 
+  test "separates blocks with a single line" do
+    markdown = """
+    The first paragraph,
+    with multiple lines.
+
+    > We can't control what happens to us,
+    > only how it affects us and the choices we make.
+
+    ```elixir
+    Enum.to_list(1..10)
+    ```
+
+    Another paragraph.\
+    """
+
+    assert markdown == reformat(markdown)
+  end
+
+  # By reformatting we can assert correct rendering
+  # by comparing against the original content.
   defp reformat(markdown) do
     {:ok, ast, []} = EarmarkParser.as_ast(markdown)
-    MarkdownRenderer.ast_to_markdown(ast)
+    MarkdownRenderer.markdown_from_ast(ast)
   end
 end

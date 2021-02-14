@@ -1,313 +1,341 @@
 defmodule LiveBook.ExMd.MarkdownRenderer do
-  # TODO: split html/table/list rendering to submodules?
-
-  # https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#void-element
-  @void_elements ~W(area base br col command embed hr img input keygen link meta param source track wbr)
-
-  def ast_to_markdown(ast) do
-    ast
-    |> ast_to_md([])
+  @doc """
+  Renders Markdown string from the given `EarmarkParser` AST.
+  """
+  @spec markdown_from_ast(EarmarkParser.ast()) :: String.t()
+  def markdown_from_ast(ast) do
+    build_md([], ast)
     |> IO.iodata_to_binary()
     |> String.trim()
   end
 
-  defp ast_to_md([], iodata), do: iodata
+  defp build_md(iodata, ast)
 
-  defp ast_to_md([string | ast], iodata) when is_binary(string) do
-    ast_to_md(ast, [iodata, string])
+  defp build_md(iodata, []), do: iodata
+
+  defp build_md(iodata, [string | ast]) when is_binary(string) do
+    string
+    |> append_inline(iodata)
+    |> build_md(ast)
   end
 
-  defp ast_to_md([{tag, attrs, [], %{verbatim: true}} | ast], iodata)
-       when tag in @void_elements do
-    md = "<#{tag} #{attrs_to_string(attrs)} />"
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
+  defp build_md(iodata, [{tag, attrs, lines, %{verbatim: true}} | ast]) do
+    render_html(tag, attrs, lines)
+    |> append_block(iodata)
+    |> build_md(ast)
   end
 
-  defp ast_to_md([{tag, attrs, lines, %{verbatim: true}} | ast], iodata) do
+  defp build_md(iodata, [{"em", _, content, %{}} | ast]) do
+    render_emphasis(content)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"strong", _, content, %{}} | ast]) do
+    render_strong(content)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"del", _, content, %{}} | ast]) do
+    render_strikethrough(content)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"code", _, content, %{}} | ast]) do
+    render_code_inline(content)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"a", attrs, content, %{}} | ast]) do
+    render_link(content, attrs)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"img", attrs, [], %{}} | ast]) do
+    render_image(attrs)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{:comment, _, lines, %{comment: true}} | ast]) do
+    render_comment(lines)
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"hr", attrs, [], %{}} | ast]) do
+    render_ruler(attrs)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"p", _, content, %{}} | ast]) do
+    render_paragraph(content)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"h" <> n, _, content, %{}} | ast])
+       when n in ["1", "2", "3", "4", "5", "6"] do
+    n = String.to_integer(n)
+
+    render_heading(n, content)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"pre", _, [{"code", attrs, [content], %{}}], %{}} | ast]) do
+    render_code_block(content, attrs)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"blockquote", [], content, %{}} | ast]) do
+    render_blockquote(content)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"table", _, content, %{}} | ast]) do
+    render_table(content)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"ul", _, content, %{}} | ast]) do
+    render_unordered_list(content)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp build_md(iodata, [{"ol", _, content, %{}} | ast]) do
+    render_ordered_list(content)
+    |> append_block(iodata)
+    |> build_md(ast)
+  end
+
+  defp append_inline(md, iodata), do: [iodata, md]
+  defp append_block(md, iodata), do: [iodata, "\n", md, "\n"]
+
+  # Renderers
+
+  # https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#void-element
+  @void_elements ~W(area base br col command embed hr img input keygen link meta param source track wbr)
+
+  defp render_html(tag, attrs, []) when tag in @void_elements do
+    "<#{tag} #{attrs_to_string(attrs)} />"
+  end
+
+  defp render_html(tag, attrs, lines) do
     inner = Enum.join(lines, "\n")
-    md = "<#{tag} #{attrs_to_string(attrs)}>\n#{inner}\n</#{tag}>"
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
+    "<#{tag} #{attrs_to_string(attrs)}>\n#{inner}\n</#{tag}>"
   end
 
-  defp ast_to_md([{"em", _, content, %{}} | ast], iodata) do
-    md_content = ast_to_markdown(content)
-    md = "*#{md_content}*"
-
-    ast_to_md(ast, [iodata, md])
+  defp render_emphasis(content) do
+    inner = markdown_from_ast(content)
+    "*#{inner}*"
   end
 
-  defp ast_to_md([{"strong", _, content, %{}} | ast], iodata) do
-    md_content = ast_to_markdown(content)
-    md = "**#{md_content}**"
-
-    ast_to_md(ast, [iodata, md])
+  defp render_strong(content) do
+    inner = markdown_from_ast(content)
+    "**#{inner}**"
   end
 
-  defp ast_to_md([{"del", _, content, %{}} | ast], iodata) do
-    md_content = ast_to_markdown(content)
-    md = "~~#{md_content}~~"
-
-    ast_to_md(ast, [iodata, md])
+  defp render_strikethrough(content) do
+    inner = markdown_from_ast(content)
+    "~~#{inner}~~"
   end
 
-  defp ast_to_md([{"code", _, content, %{}} | ast], iodata) do
-    md_content = ast_to_markdown(content)
-    md = "`#{md_content}`"
-
-    ast_to_md(ast, [iodata, md])
+  defp render_code_inline(content) do
+    inner = markdown_from_ast(content)
+    "`#{inner}`"
   end
 
-  defp ast_to_md([{"a", attrs, content, %{}} | ast], iodata) do
-    caption = ast_to_markdown(content)
+  defp render_link(content, attrs) do
+    caption = markdown_from_ast(content)
     href = get_attr(attrs, "href", "")
-    md = "[#{caption}](#{href})"
-
-    ast_to_md(ast, [iodata, md])
+    "[#{caption}](#{href})"
   end
 
-  defp ast_to_md([{"img", attrs, [], %{}} | ast], iodata) do
-    if attr_keys(attrs) -- ["alt", "src", "title"] != [] do
-      md = "<img #{attrs_to_string(attrs)} />"
+  defp render_image(attrs) do
+    alt = get_attr(attrs, "alt", "")
+    src = get_attr(attrs, "src", "")
+    title = get_attr(attrs, "title", "")
 
-      ast_to_md(ast, [iodata, md])
+    if title == "" do
+      "![#{alt}](#{src})"
     else
-      alt = get_attr(attrs, "alt", "")
-      src = get_attr(attrs, "src", "")
-      title = get_attr(attrs, "title", "")
-
-      md =
-        if title == "" do
-          "![#{alt}](#{src})"
-        else
-          ~s/![#{alt}](#{src} "#{title}")/
-        end
-
-      ast_to_md(ast, [iodata, md])
+      ~s/![#{alt}](#{src} "#{title}")/
     end
   end
 
-  defp ast_to_md([{:comment, _, lines, %{comment: true}} | ast], iodata) do
-    md =
-      case lines do
-        [line] ->
-          line = String.trim(line)
-          "<!-- #{line} -->"
-
-        lines ->
-          lines =
-            lines
-            |> Enum.drop_while(&blank?/1)
-            |> Enum.reverse()
-            |> Enum.drop_while(&blank?/1)
-            |> Enum.reverse()
-
-          Enum.join(["<!--" | lines] ++ ["-->"], "\n")
-      end
-
-    ast_to_md(ast, [iodata, md])
+  defp render_comment([line]) do
+    line = String.trim(line)
+    "<!-- #{line} -->"
   end
 
-  defp ast_to_md([{"hr", attrs, [], %{}} | ast], iodata) do
+  defp render_comment(lines) do
+    lines =
+      lines
+      |> Enum.drop_while(&blank?/1)
+      |> Enum.reverse()
+      |> Enum.drop_while(&blank?/1)
+      |> Enum.reverse()
+
+    Enum.join(["<!--" | lines] ++ ["-->"], "\n")
+  end
+
+  defp render_ruler(attrs) do
     class = get_attr(attrs, "class", "thin")
-    md = ruler_by_class(class)
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
+
+    case class do
+      "thin" -> "---"
+      "medium" -> "___"
+      "thick" -> "***"
+    end
   end
 
-  defp ast_to_md([{"p", _, content, %{}} | ast], iodata) do
-    md = ast_to_markdown(content)
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
+  defp render_paragraph(content), do: markdown_from_ast(content)
+
+  defp render_heading(n, content) do
+    title = markdown_from_ast(content)
+    String.duplicate("#", n) <> " " <> title
   end
 
-  defp ast_to_md([{"h" <> n, _, content, %{}} | ast], iodata)
-       when n in ["1", "2", "3", "4", "5", "6"] do
-    title = ast_to_markdown(content)
-    n = String.to_integer(n)
-    md = String.duplicate("#", n) <> " " <> title
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
-  end
-
-  defp ast_to_md([{"pre", _, [{"code", attrs, [content], %{}}], %{}} | ast], iodata) do
+  defp render_code_block(content, attrs) do
     language = get_attr(attrs, "class", "")
-    ast_to_md(ast, [iodata, "\n", "```#{language}\n#{content}\n```", "\n"])
+    "```#{language}\n#{content}\n```"
   end
 
-  defp ast_to_md([{"blockquote", [], content, %{}} | ast], iodata) do
-    content_md = ast_to_markdown(content)
+  defp render_blockquote(content) do
+    inner = markdown_from_ast(content)
 
-    md =
-      content_md
-      |> String.split("\n")
-      |> Enum.map(&("> " <> &1))
-      |> Enum.join("\n")
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
+    inner
+    |> String.split("\n")
+    |> Enum.map(&("> " <> &1))
+    |> Enum.join("\n")
   end
 
-  defp ast_to_md(
-         [
-           {"table", _, [{"thead", _, [{"tr", _, head, %{}}], %{}}, {"tbody", _, rows, %{}}], %{}}
-           | ast
-         ],
-         iodata
-       ) do
-    alignments =
-      Enum.map(head, fn
-        {"th", [{"style", "text-align: left;"}], _, %{}} -> :left
-        {"th", [{"style", "text-align: center;"}], _, %{}} -> :center
-        {"th", [{"style", "text-align: right;"}], _, %{}} -> :right
+  defp render_table([{"thead", _, [head_row], %{}}, {"tbody", _, body_rows, %{}}]) do
+    alignments = alignments_from_row(head_row)
+    cell_grid = cell_grid_from_rows([head_row | body_rows])
+    column_widths = max_length_per_column(cell_grid)
+    [head_cells | body_cell_grid] = Enum.map(cell_grid, &pad_whitespace(&1, column_widths))
+    separator_cells = build_separator_cells(alignments, column_widths)
+    cell_grid_to_md_table([head_cells, separator_cells | body_cell_grid])
+  end
+
+  defp render_table([{"tbody", _, body_rows, %{}}]) do
+    cell_grid = cell_grid_from_rows(body_rows)
+    column_widths = max_length_per_column(cell_grid)
+    cell_grid = Enum.map(cell_grid, &pad_whitespace(&1, column_widths))
+    cell_grid_to_md_table(cell_grid)
+  end
+
+  defp cell_grid_from_rows(rows) do
+    Enum.map(rows, fn {"tr", _, columns, %{}} ->
+      Enum.map(columns, fn {tag, _, content, %{}} when tag in ["th", "td"] ->
+        markdown_from_ast(content)
       end)
+    end)
+  end
 
-    head = Enum.map(head, fn {"th", _, content, %{}} -> ast_to_markdown(content) end)
+  defp alignments_from_row({"tr", _, columns, %{}}) do
+    Enum.map(columns, fn {tag, attrs, _, %{}} when tag in ["th", "td"] ->
+      style = get_attr(attrs, "style", nil)
 
-    rows =
-      Enum.map(rows, fn {"tr", _, columns, %{}} ->
-        Enum.map(columns, fn {"td", _, content, %{}} -> ast_to_markdown(content) end)
-      end)
+      case style do
+        "text-align: left;" -> :left
+        "text-align: center;" -> :center
+        "text-align: right;" -> :right
+      end
+    end)
+  end
 
-    max_lenghts =
-      [head | rows]
-      |> List.zip()
-      |> Enum.map(&Tuple.to_list/1)
-      |> Enum.map(fn values ->
-        values
-        |> Enum.map(&String.length/1)
-        |> Enum.max()
-      end)
+  defp build_separator_cells(alignments, widths) do
+    alignments
+    |> Enum.zip(widths)
+    |> Enum.map(fn
+      {:left, length} -> String.duplicate("-", length)
+      {:center, length} -> ":" <> String.duplicate("-", length - 2) <> ":"
+      {:right, length} -> String.duplicate("-", length - 1) <> ":"
+    end)
+  end
 
-    head_cells =
-      head
-      |> Enum.zip(max_lenghts)
-      |> Enum.map(fn {value, length} ->
-        String.pad_trailing(value, length, " ")
-      end)
+  defp max_length_per_column(cell_grid) do
+    cell_grid
+    |> List.zip()
+    |> Enum.map(&Tuple.to_list/1)
+    |> Enum.map(fn cells ->
+      cells
+      |> Enum.map(&String.length/1)
+      |> Enum.max()
+    end)
+  end
 
-    rows_cells =
-      Enum.map(rows, fn row ->
-        row
-        |> Enum.zip(max_lenghts)
-        |> Enum.map(fn {value, length} ->
-          String.pad_trailing(value, length, " ")
+  defp pad_whitespace(cells, widths) do
+    cells
+    |> Enum.zip(widths)
+    |> Enum.map(fn {cell, width} ->
+      String.pad_trailing(cell, width, " ")
+    end)
+  end
+
+  defp cell_grid_to_md_table(cell_grid) do
+    cell_grid
+    |> Enum.map(fn cells ->
+      "| " <> Enum.join(cells, " | ") <> " |"
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp render_unordered_list(content) do
+    marker_fun = fn _index -> "* " end
+    render_list(content, marker_fun, "  ")
+  end
+
+  defp render_ordered_list(content) do
+    marker_fun = fn index -> "#{index + 1}. " end
+    render_list(content, marker_fun, "   ")
+  end
+
+  defp render_list(items, marker_fun, indent) do
+    spaced? = spaced_list_items?(items)
+    item_separator = if(spaced?, do: "\n\n", else: "\n")
+
+    items
+    |> Enum.map(fn {"li", _, content, %{}} -> markdown_from_ast(content) end)
+    |> Enum.with_index()
+    |> Enum.map(fn {inner, index} ->
+      [first_line | lines] = String.split(inner, "\n")
+
+      first_line = marker_fun.(index) <> first_line
+
+      lines =
+        Enum.map(lines, fn
+          "" -> ""
+          line -> indent <> line
         end)
-      end)
 
-    separator_cells =
-      alignments
-      |> Enum.zip(max_lenghts)
-      |> Enum.map(fn
-        {:left, length} -> String.duplicate("-", length)
-        {:center, length} -> ":" <> String.duplicate("-", length - 2) <> ":"
-        {:right, length} -> String.duplicate("-", length - 1) <> ":"
-      end)
-
-    head_line = "| " <> Enum.join(head_cells, " | ") <> " |"
-    separators_line = "| " <> Enum.join(separator_cells, " | ") <> " |"
-
-    row_lines =
-      Enum.map(rows_cells, fn row_cells ->
-        "| " <> Enum.join(row_cells, " | ") <> " |"
-      end)
-
-    md = Enum.join([head_line, separators_line | row_lines], "\n")
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
+      Enum.join([first_line | lines], "\n")
+    end)
+    |> Enum.join(item_separator)
   end
 
-  defp ast_to_md([{"table", _, [{"tbody", _, rows, %{}}], %{}} | ast], iodata) do
-    rows =
-      Enum.map(rows, fn {"tr", _, columns, %{}} ->
-        Enum.map(columns, fn {"td", _, content, %{}} -> ast_to_markdown(content) end)
-      end)
+  defp spaced_list_items?([{"li", _, [{"p", _, _content, %{}} | _], %{}} | _items]), do: true
+  defp spaced_list_items?([_ | items]), do: spaced_list_items?(items)
+  defp spaced_list_items?([]), do: false
 
-    max_lenghts =
-      rows
-      |> List.zip()
-      |> Enum.map(&Tuple.to_list/1)
-      |> Enum.map(fn values ->
-        values
-        |> Enum.map(&String.length/1)
-        |> Enum.max()
-      end)
-
-    rows_cells =
-      Enum.map(rows, fn row ->
-        row
-        |> Enum.zip(max_lenghts)
-        |> Enum.map(fn {value, length} ->
-          String.pad_trailing(value, length, " ")
-        end)
-      end)
-
-    row_lines =
-      Enum.map(rows_cells, fn row_cells ->
-        "| " <> Enum.join(row_cells, " | ") <> " |"
-      end)
-
-    md = Enum.join(row_lines, "\n")
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
-  end
-
-  defp ast_to_md([{"ul", _, items, %{}} | ast], iodata) do
-    star_fun = fn _index -> "* " end
-    md = list_items_to_md(items, star_fun, "  ")
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
-  end
-
-  defp ast_to_md([{"ol", _, items, %{}} | ast], iodata) do
-    numeric_fun = fn index -> "#{index + 1}. " end
-    md = list_items_to_md(items, numeric_fun, "   ")
-
-    ast_to_md(ast, [iodata, "\n", md, "\n"])
-  end
-
-  # ---
-
-  defp ruler_by_class("thin"), do: "---"
-  defp ruler_by_class("medium"), do: "___"
-  defp ruler_by_class("thick"), do: "***"
-
-  defp list_items_to_md(items, marker_fun, indent) do
-    spaced = spaced_list?(items)
-
-    md_items =
-      items
-      |> Enum.map(fn {"li", _, content, %{}} -> content end)
-      |> Enum.with_index()
-      |> Enum.map(fn {content, index} ->
-        md_item = ast_to_markdown(content)
-
-        [head | tail] = String.split(md_item, "\n")
-        head = marker_fun.(index) <> head
-
-        tail =
-          Enum.map(tail, fn
-            "" -> ""
-            line -> indent <> line
-          end)
-
-        Enum.join([head | tail], "\n")
-      end)
-
-    item_separator = if(spaced, do: "\n\n", else: "\n")
-
-    Enum.join(md_items, item_separator)
-  end
-
-  defp spaced_list?([{"li", _, [{"p", _, _content, %{}} | _], %{}} | _items]), do: true
-  defp spaced_list?([_ | items]), do: spaced_list?(items)
-  defp spaced_list?([]), do: false
+  # Helpers
 
   defp get_attr(attrs, key, default) do
     Enum.find_value(attrs, default, fn {attr_key, attr_value} ->
       attr_key == key && attr_value
     end)
-  end
-
-  defp attr_keys(attrs) do
-    Enum.map(attrs, &elem(&1, 0))
   end
 
   defp attrs_to_string(attrs) do

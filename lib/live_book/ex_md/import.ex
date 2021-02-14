@@ -53,7 +53,7 @@ defmodule LiveBook.ExMd.Import do
 
   defp to_notebook([{:cell, :markdown, md_ast} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
-    source = md_ast |> Enum.reverse() |> MarkdownRenderer.ast_to_markdown()
+    source = md_ast |> Enum.reverse() |> MarkdownRenderer.markdown_from_ast()
     cell = %{Notebook.Cell.new(:markdown) | source: source, metadata: metadata}
     to_notebook(elems, [cell | cells], sections)
   end
