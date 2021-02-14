@@ -1,6 +1,8 @@
 defmodule LiveBook.ExMd.MarkdownRenderer do
-  # TODO: handle html
-  # TODO: handle tags like html with additional atributes (e.g. width) - if there's only alt render markdown, otherwise render img tag
+  # TODO: split html/table/list rendering to submodules?
+
+  # https://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#void-element
+  @void_elements ~W(area base br col command embed hr img input keygen link meta param source track wbr)
 
   def ast_to_markdown(ast) do
     ast
@@ -13,6 +15,20 @@ defmodule LiveBook.ExMd.MarkdownRenderer do
 
   defp ast_to_md([string | ast], iodata) when is_binary(string) do
     ast_to_md(ast, [iodata, string])
+  end
+
+  defp ast_to_md([{tag, attrs, [], %{verbatim: true}} | ast], iodata)
+       when tag in @void_elements do
+    md = "<#{tag} #{attrs_to_string(attrs)} />"
+
+    ast_to_md(ast, [iodata, "\n", md, "\n"])
+  end
+
+  defp ast_to_md([{tag, attrs, lines, %{verbatim: true}} | ast], iodata) do
+    inner = Enum.join(lines, "\n")
+    md = "<#{tag} #{attrs_to_string(attrs)}>\n#{inner}\n</#{tag}>"
+
+    ast_to_md(ast, [iodata, "\n", md, "\n"])
   end
 
   defp ast_to_md([{"em", _, content, %{}} | ast], iodata) do
@@ -39,26 +55,6 @@ defmodule LiveBook.ExMd.MarkdownRenderer do
   defp ast_to_md([{"code", _, content, %{}} | ast], iodata) do
     md_content = ast_to_markdown(content)
     md = "`#{md_content}`"
-
-    ast_to_md(ast, [iodata, md])
-  end
-
-  defp ast_to_md([{:comment, _, lines, %{comment: true}} | ast], iodata) do
-    md =
-      case lines do
-        [line] ->
-          "<!-- #{line} -->"
-
-        lines ->
-          lines =
-            lines
-            |> Enum.drop_while(&blank?/1)
-            |> Enum.reverse()
-            |> Enum.drop_while(&blank?/1)
-            |> Enum.reverse()
-
-          Enum.join(["<!--" | lines] ++ ["-->"], "\n")
-      end
 
     ast_to_md(ast, [iodata, md])
   end
@@ -92,6 +88,27 @@ defmodule LiveBook.ExMd.MarkdownRenderer do
     end
   end
 
+  defp ast_to_md([{:comment, _, lines, %{comment: true}} | ast], iodata) do
+    md =
+      case lines do
+        [line] ->
+          line = String.trim(line)
+          "<!-- #{line} -->"
+
+        lines ->
+          lines =
+            lines
+            |> Enum.drop_while(&blank?/1)
+            |> Enum.reverse()
+            |> Enum.drop_while(&blank?/1)
+            |> Enum.reverse()
+
+          Enum.join(["<!--" | lines] ++ ["-->"], "\n")
+      end
+
+    ast_to_md(ast, [iodata, md])
+  end
+
   defp ast_to_md([{"hr", attrs, [], %{}} | ast], iodata) do
     class = get_attr(attrs, "class", "thin")
     md = ruler_by_class(class)
@@ -116,7 +133,17 @@ defmodule LiveBook.ExMd.MarkdownRenderer do
     ast_to_md(ast, [iodata, "\n", "```#{language}\n#{content}\n```", "\n"])
   end
 
-  # TODO: table without header
+  defp ast_to_md([{"blockquote", [], content, %{}} | ast], iodata) do
+    content_md = ast_to_markdown(content)
+
+    md =
+      content_md
+      |> String.split("\n")
+      |> Enum.map(&("> " <> &1))
+      |> Enum.join("\n")
+
+    ast_to_md(ast, [iodata, "\n", md, "\n"])
+  end
 
   defp ast_to_md(
          [
@@ -187,60 +214,51 @@ defmodule LiveBook.ExMd.MarkdownRenderer do
     ast_to_md(ast, [iodata, "\n", md, "\n"])
   end
 
-  defp ast_to_md([{"blockquote", [], content, %{}} | ast], iodata) do
-    content_md = ast_to_markdown(content)
+  defp ast_to_md([{"table", _, [{"tbody", _, rows, %{}}], %{}} | ast], iodata) do
+    rows =
+      Enum.map(rows, fn {"tr", _, columns, %{}} ->
+        Enum.map(columns, fn {"td", _, content, %{}} -> ast_to_markdown(content) end)
+      end)
 
-    md =
-      content_md
-      |> String.split("\n")
-      |> Enum.map(&("> " <> &1))
-      |> Enum.join("\n")
+    max_lenghts =
+      rows
+      |> List.zip()
+      |> Enum.map(&Tuple.to_list/1)
+      |> Enum.map(fn values ->
+        values
+        |> Enum.map(&String.length/1)
+        |> Enum.max()
+      end)
+
+    rows_cells =
+      Enum.map(rows, fn row ->
+        row
+        |> Enum.zip(max_lenghts)
+        |> Enum.map(fn {value, length} ->
+          String.pad_trailing(value, length, " ")
+        end)
+      end)
+
+    row_lines =
+      Enum.map(rows_cells, fn row_cells ->
+        "| " <> Enum.join(row_cells, " | ") <> " |"
+      end)
+
+    md = Enum.join(row_lines, "\n")
 
     ast_to_md(ast, [iodata, "\n", md, "\n"])
   end
 
   defp ast_to_md([{"ul", _, items, %{}} | ast], iodata) do
-    spaced = spaced_list?(items)
-
-    md_items =
-      items
-      |> Enum.map(&list_item_content/1)
-      |> Enum.map(fn content ->
-        md_item = ast_to_markdown(content)
-
-        [head | tail] = String.split(md_item, "\n")
-        head = "* " <> head
-        tail = Enum.map(tail, &("  " <> &1))
-        Enum.join([head | tail], "\n")
-      end)
-
-    item_separator = if(spaced, do: "\n\n", else: "\n")
-
-    md = Enum.join(md_items, item_separator)
+    star_fun = fn _index -> "* " end
+    md = list_items_to_md(items, star_fun, "  ")
 
     ast_to_md(ast, [iodata, "\n", md, "\n"])
   end
 
   defp ast_to_md([{"ol", _, items, %{}} | ast], iodata) do
-    spaced = spaced_list?(items)
-
-    md_items =
-      items
-      |> Enum.map(&list_item_content/1)
-      |> Enum.with_index()
-      |> Enum.map(fn {content, index} ->
-        number = index + 1
-        md_item = ast_to_markdown(content)
-
-        [head | tail] = String.split(md_item, "\n")
-        head = "#{number}. " <> head
-        tail = Enum.map(tail, &("  " <> &1))
-        Enum.join([head | tail], "\n")
-      end)
-
-    item_separator = if(spaced, do: "\n\n", else: "\n")
-
-    md = Enum.join(md_items, item_separator)
+    numeric_fun = fn index -> "#{index + 1}. " end
+    md = list_items_to_md(items, numeric_fun, "   ")
 
     ast_to_md(ast, [iodata, "\n", md, "\n"])
   end
@@ -251,12 +269,36 @@ defmodule LiveBook.ExMd.MarkdownRenderer do
   defp ruler_by_class("medium"), do: "___"
   defp ruler_by_class("thick"), do: "***"
 
-  defp spaced_list?([{"li", _, [{"p", _, _content, %{}}], %{}} | _items]), do: true
+  defp list_items_to_md(items, marker_fun, indent) do
+    spaced = spaced_list?(items)
+
+    md_items =
+      items
+      |> Enum.map(fn {"li", _, content, %{}} -> content end)
+      |> Enum.with_index()
+      |> Enum.map(fn {content, index} ->
+        md_item = ast_to_markdown(content)
+
+        [head | tail] = String.split(md_item, "\n")
+        head = marker_fun.(index) <> head
+
+        tail =
+          Enum.map(tail, fn
+            "" -> ""
+            line -> indent <> line
+          end)
+
+        Enum.join([head | tail], "\n")
+      end)
+
+    item_separator = if(spaced, do: "\n\n", else: "\n")
+
+    Enum.join(md_items, item_separator)
+  end
+
+  defp spaced_list?([{"li", _, [{"p", _, _content, %{}} | _], %{}} | _items]), do: true
   defp spaced_list?([_ | items]), do: spaced_list?(items)
   defp spaced_list?([]), do: false
-
-  defp list_item_content({"li", _, [{"p", _, content, %{}}], %{}}), do: content
-  defp list_item_content({"li", _, content, %{}}), do: content
 
   defp get_attr(attrs, key, default) do
     Enum.find_value(attrs, default, fn {attr_key, attr_value} ->
