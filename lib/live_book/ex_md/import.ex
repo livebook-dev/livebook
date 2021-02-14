@@ -82,7 +82,9 @@ defmodule LiveBook.ExMd.Import do
   defp grab_metadata(elems, metadata), do: {metadata, elems}
 
   defp parse_metaentry(metaentry) do
-    [key, value] = String.split(metaentry, ":", parts: 2)
+    [key_string, value_json] = String.split(metaentry, ":", parts: 2)
+    key = String.to_atom(key_string)
+    value = Jason.decode!(value_json)
     {key, value}
   end
 end

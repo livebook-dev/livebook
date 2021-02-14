@@ -1,57 +1,67 @@
 defmodule LiveBook.ExMd.Export do
+  alias LiveBook.Notebook
+
+  @doc """
+  Converts the given notebook into a Markdown document.
+  """
+  @spec notebook_to_markdown(Notebook.t()) :: String.t()
   def notebook_to_markdown(notebook) do
-    metadata = render_metadata(notebook.metadata)
+    render_notebook(notebook) <> "\n"
+  end
+
+  defp render_notebook(notebook) do
     name = "# #{notebook.name}"
+    sections = Enum.map(notebook.sections, &render_section/1)
 
-    sections =
-      notebook.sections
-      |> Enum.map(&render_section/1)
-      |> Enum.join("\n\n")
+    [name | sections]
+    |> Enum.join("\n\n")
+    |> prepend_metadata(notebook.metadata)
+  end
 
-    output = metadata <> "\n" <> name <> "\n\n" <> sections
-    String.trim(output) <> "\n"
+  defp render_section(section) do
+    name = "## #{section.name}"
+    cells = Enum.map(section.cells, &render_cell/1)
+
+    [name | cells]
+    |> Enum.join("\n\n")
+    |> prepend_metadata(section.metadata)
+  end
+
+  defp render_cell(%{type: :markdown} = cell) do
+    cell.source
+    |> reformat_markdown()
+    |> prepend_metadata(cell.metadata)
+  end
+
+  defp render_cell(%{type: :elixir} = cell) do
+    """
+    ```elixir
+    #{cell.source}
+    ```\
+    """
+    |> prepend_metadata(cell.metadata)
   end
 
   defp render_metadata(metadata) do
     metadata
     |> Enum.map(fn {key, value} ->
-      # TODO: store and parse value as json?
-      # TODO: what if the value has -->
-      "<!--live_book:#{key}:#{value}-->"
+      value_json = Jason.encode!(value)
+      "<!--live_book:#{key}:#{value_json}-->"
     end)
     |> Enum.join("\n")
   end
 
-  defp render_section(section) do
-    metadata = render_metadata(section.metadata)
-    name = "## #{section.name}"
+  defp prepend_metadata(markdown, metadata) when metadata == %{}, do: markdown
 
-    cells =
-      section.cells
-      |> Enum.map(&render_cell/1)
-      |> Enum.join("\n\n")
-
-    String.trim(metadata <> "\n" <> name <> "\n\n" <> cells)
+  defp prepend_metadata(markdown, metadata) do
+    render_metadata(metadata) <> "\n" <> markdown
   end
 
-  defp render_cell(%{type: :markdown} = cell) do
-    # TODO: reformat with Earmark parse -> markdown render (could actually do this for the whole noteobook)
-
-    metadata = render_metadata(cell.metadata)
-    md = cell.source
-
-    String.trim(metadata <> "\n" <> md)
-  end
-
-  defp render_cell(%{type: :elixir} = cell) do
-    metadata = render_metadata(cell.metadata)
-
-    md = """
-    ```elixir
-    #{cell.source}
-    ```
-    """
-
-    String.trim(metadata <> "\n" <> md)
+  # TODO: move reformat to separte module
+  defp reformat_markdown(markdown) do
+    markdown
+    |> EarmarkParser.as_ast()
+    |> elem(1)
+    |> LiveBook.ExMd.MarkdownRenderer.markdown_from_ast()
   end
 end
