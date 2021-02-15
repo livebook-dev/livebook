@@ -143,4 +143,130 @@ defmodule LiveBook.ExMd.ImportTest do
              ]
            } = notebook
   end
+
+  test "given multiple primary heading, downgrades all headings" do
+    markdown = """
+    # Probably section 1
+
+    ## Heading
+
+    Some markdown.
+
+    # Probably section 2
+
+    ###### Tiny heading
+    """
+
+    notebook = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "Untitled notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Probably section 1",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     metadata: %{},
+                     source: """
+                     ### Heading
+
+                     Some markdown.\
+                     """
+                   }
+                 ]
+               },
+               %Notebook.Section{
+                 name: "Probably section 2",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     metadata: %{},
+                     source: """
+                     **Tiny heading**\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
+  test "ignores markdown modifiers in notebok/section names" do
+    markdown = """
+    # My *Notebook*
+
+    ## [Section 1](https://example.com)
+    """
+
+    notebook = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1"
+               }
+             ]
+           } = notebook
+  end
+
+  test "adds a default section if there is some section-less content" do
+    markdown = """
+    # My Notebook
+
+    Some markdown.
+
+    ## Actual section
+    """
+
+    notebook = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     source: """
+                     Some markdown.\
+                     """
+                   }
+                 ]
+               },
+               %Notebook.Section{
+                 name: "Actual section"
+               }
+             ]
+           } = notebook
+  end
+
+  test "uses defaults if there are no headings" do
+    markdown = """
+    ```elixir
+    Enum.to_list(1..10)
+    ```
+    """
+
+    notebook = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "Untitled notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :elixir,
+                     source: """
+                     Enum.to_list(1..10)\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
 end

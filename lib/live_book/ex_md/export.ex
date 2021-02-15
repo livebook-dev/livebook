@@ -1,5 +1,5 @@
 defmodule LiveBook.ExMd.Export do
-  alias LiveBook.Notebook
+  alias LiveBook.{Notebook, Markdown}
 
   @doc """
   Converts the given notebook into a Markdown document.
@@ -29,7 +29,7 @@ defmodule LiveBook.ExMd.Export do
 
   defp render_cell(%{type: :markdown} = cell) do
     cell.source
-    |> reformat_markdown()
+    |> Markdown.reformat()
     |> prepend_metadata(cell.metadata)
   end
 
@@ -55,13 +55,5 @@ defmodule LiveBook.ExMd.Export do
 
   defp prepend_metadata(markdown, metadata) do
     render_metadata(metadata) <> "\n" <> markdown
-  end
-
-  # TODO: move reformat to separte module
-  defp reformat_markdown(markdown) do
-    markdown
-    |> EarmarkParser.as_ast()
-    |> elem(1)
-    |> LiveBook.ExMd.MarkdownRenderer.markdown_from_ast()
   end
 end

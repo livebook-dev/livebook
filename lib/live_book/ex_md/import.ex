@@ -1,6 +1,5 @@
 defmodule LiveBook.ExMd.Import do
-  alias LiveBook.ExMd.MarkdownRenderer
-  alias LiveBook.Notebook
+  alias LiveBook.{Notebook, Markdown}
 
   @doc """
   Converts the given Markdown document into a notebook data structure.
@@ -10,76 +9,123 @@ defmodule LiveBook.ExMd.Import do
     {_, ast, _} = EarmarkParser.as_ast(markdown)
 
     ast
-    |> walk_ast([])
-    |> to_notebook()
+    |> rewrite_ast()
+    |> group_elements()
+    |> build_notebook()
   end
 
-  defp walk_ast([{"h1", _, [content], _} | ast], elems) do
-    if Enum.all?(elems, &(elem(&1, 0) == :metaentry)) do
-      walk_ast(ast, [{:notebook, content} | elems])
+  # Does initial pre-processing of the AST, so that it conforms to the expected form.
+  defp rewrite_ast(ast) do
+    ast
+    |> rewrite_multiple_primary_headings()
+  end
+
+  # There should be only one h1 tag indicating notebook name,
+  # if there are many we downgrade all headings.
+  # This doesn't apply to documents exported from LiveBook,
+  # but may be the case for an arbitrary markdown file,
+  # so we do our best to preserve the intent.
+  defp rewrite_multiple_primary_headings(ast) do
+    primary_headings = Enum.count(ast, fn {tag, _, _, _} -> tag == "h1" end)
+
+    if primary_headings > 1 do
+      Enum.map(ast, &downgrade_heading/1)
     else
-      # TODO: error tuple or something?
-      raise "Unexpected h1"
+      ast
     end
   end
 
-  defp walk_ast([], elems), do: elems
+  defp downgrade_heading({"h1", attrs, content, meta}), do: {"h2", attrs, content, meta}
+  defp downgrade_heading({"h2", attrs, content, meta}), do: {"h3", attrs, content, meta}
+  defp downgrade_heading({"h3", attrs, content, meta}), do: {"h4", attrs, content, meta}
+  defp downgrade_heading({"h4", attrs, content, meta}), do: {"h5", attrs, content, meta}
+  defp downgrade_heading({"h5", attrs, content, meta}), do: {"h6", attrs, content, meta}
+  defp downgrade_heading({"h6", attrs, content, meta}), do: {"strong", attrs, content, meta}
+  defp downgrade_heading(ast_node), do: ast_node
 
-  defp walk_ast([{"h2", _, [content], _} | ast], elems) do
-    walk_ast(ast, [{:section, content} | elems])
+  # Builds a list of classified elements from the AST.
+  defp group_elements(ast, elems \\ [])
+
+  defp group_elements([], elems), do: elems
+
+  defp group_elements([{"h1", _, content, %{}} | ast], elems) do
+    group_elements(ast, [{:notebook_name, content} | elems])
   end
 
-  defp walk_ast([{:comment, _, ["live_book:" <> metaentry], %{comment: true}} | ast], elems) do
-    walk_ast(ast, [{:metaentry, metaentry} | elems])
+  defp group_elements([{"h2", _, content, %{}} | ast], elems) do
+    group_elements(ast, [{:section_name, content} | elems])
   end
 
-  defp walk_ast([{"pre", [], [{"code", [{"class", "elixir"}], [content], _}], _} | ast], elems) do
-    walk_ast(ast, [{:cell, :elixir, content} | elems])
+  defp group_elements([{:comment, _, ["live_book:" <> metaentry], %{comment: true}} | ast], elems) do
+    group_elements(ast, [{:metaentry, metaentry} | elems])
   end
 
-  defp walk_ast([ast_node | ast], [{:cell, :markdown, md_ast} | rest]) do
-    walk_ast(ast, [{:cell, :markdown, [ast_node | md_ast]} | rest])
+  defp group_elements(
+         [{"pre", _, [{"code", [{"class", "elixir"}], [source], %{}}], %{}} | ast],
+         elems
+       ) do
+    group_elements(ast, [{:cell, :elixir, source} | elems])
   end
 
-  defp walk_ast([ast_node | ast], elems) do
-    walk_ast(ast, [{:cell, :markdown, [ast_node]} | elems])
+  defp group_elements([ast_node | ast], [{:cell, :markdown, md_ast} | rest]) do
+    group_elements(ast, [{:cell, :markdown, [ast_node | md_ast]} | rest])
   end
 
-  # ---
+  defp group_elements([ast_node | ast], elems) do
+    group_elements(ast, [{:cell, :markdown, [ast_node]} | elems])
+  end
 
-  defp to_notebook(elems, cells \\ [], sections \\ [])
+  # Builds a notebook from the list of elements obtained in the previous step.
+  # Note that the list of elements is reversed:
+  # first we group elements by traversing Earmark AST top-down
+  # and then aggregate elements into data strictures going bottom-up.
+  defp build_notebook(elems, cells \\ [], sections \\ [])
 
-  defp to_notebook([{:cell, :elixir, source} | elems], cells, sections) do
+  defp build_notebook([{:cell, :elixir, source} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
     cell = %{Notebook.Cell.new(:elixir) | source: source, metadata: metadata}
-    to_notebook(elems, [cell | cells], sections)
+    build_notebook(elems, [cell | cells], sections)
   end
 
-  defp to_notebook([{:cell, :markdown, md_ast} | elems], cells, sections) do
+  defp build_notebook([{:cell, :markdown, md_ast} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
-    source = md_ast |> Enum.reverse() |> MarkdownRenderer.markdown_from_ast()
+    source = md_ast |> Enum.reverse() |> Markdown.Renderer.markdown_from_ast()
     cell = %{Notebook.Cell.new(:markdown) | source: source, metadata: metadata}
-    to_notebook(elems, [cell | cells], sections)
+    build_notebook(elems, [cell | cells], sections)
   end
 
-  defp to_notebook([{:section, name} | elems], cells, sections) do
+  defp build_notebook([{:section_name, content} | elems], cells, sections) do
+    name = Markdown.text_from_ast(content)
     {metadata, elems} = grab_metadata(elems)
     section = %{Notebook.Section.new() | name: name, cells: cells, metadata: metadata}
-    to_notebook(elems, [], [section | sections])
+    build_notebook(elems, [], [section | sections])
   end
 
-  defp to_notebook([{:notebook, name} | elems], [], sections) do
-    {metadata, _elems} = grab_metadata(elems)
+  # If there are section-less cells, put them in a default one.
+  defp build_notebook([{:notebook_name, _content} | _] = elems, cells, sections)
+       when cells != [] do
+    section = %{Notebook.Section.new() | cells: cells}
+    build_notebook(elems, [], [section | sections])
+  end
+
+  # If there are section-less cells, put them in a default one.
+  defp build_notebook([] = elems, cells, sections) when cells != [] do
+    section = %{Notebook.Section.new() | cells: cells}
+    build_notebook(elems, [], [section | sections])
+  end
+
+  defp build_notebook([{:notebook_name, content} | elems], [], sections) do
+    name = Markdown.text_from_ast(content)
+    {metadata, []} = grab_metadata(elems)
     %{Notebook.new() | name: name, sections: sections, metadata: metadata}
   end
 
-  # If there's no h1, use the default title.
-  defp to_notebook([], [], sections) do
+  # If there's no explicit notebook heading, use the defaults.
+  defp build_notebook([], [], sections) do
     %{Notebook.new() | sections: sections}
   end
 
-  # ---
-
+  # Aggregates leading metaentries into a map and returns {metadata, rest}.
   defp grab_metadata(elems, metadata \\ %{})
 
   defp grab_metadata([{:metaentry, metaentry} | elems], metadata) do
