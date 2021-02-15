@@ -1,4 +1,4 @@
-defmodule LiveBook.ExMd.Import do
+defmodule LiveBook.ExMarkdown.Import do
   alias LiveBook.{Notebook, Markdown}
 
   @doc """

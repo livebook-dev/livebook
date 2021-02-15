@@ -1,7 +1,7 @@
-defmodule LiveBook.ExMd.ImportTest do
+defmodule LiveBook.ExMarkdown.ImportTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.ExMd.Import
+  alias LiveBook.ExMarkdown.Import
   alias LiveBook.Notebook
 
   test "acceptance" do

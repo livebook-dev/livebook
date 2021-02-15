@@ -1,11 +1,11 @@
-defmodule LiveBook.ExMd do
+defmodule LiveBook.ExMarkdown do
   @moduledoc """
   Notebook file format used by LiveBook.
 
   The format is based off of Markdown and preserves compatibility,
-  in the sense that every ExMd file is a valid Markdown file.
-  ExMd uses HTML comments for storing metadata, so a Markdown standard
-  supporting that is assumed. Not every Markdown file is a valid ExMd file,
+  in the sense that every ExMarkdown file is a valid Markdown file.
+  ExMarkdown uses HTML comments for storing metadata, so a Markdown standard
+  supporting that is assumed. Not every Markdown file is a valid ExMarkdown file,
   but may be converted to such by applying tiny changes, which the import function does.
 
   Currently the format is straightforward and specifies the following:
@@ -19,7 +19,7 @@ defmodule LiveBook.ExMd do
 
   ## Example
 
-  Here's an example ExMd file:
+  Here's an example ExMarkdown file:
 
       # My Notebook
 
