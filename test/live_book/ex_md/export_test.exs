@@ -13,11 +13,11 @@ defmodule LiveBook.ExMd.ExportTest do
           %{
             Notebook.Section.new()
             | name: "Section 1",
-              metadata: %{created_at: ~D/2021-02-15/},
+              metadata: %{created_at: "2021-02-15"},
               cells: [
                 %{
                   Notebook.Cell.new(:markdown)
-                  | metadata: %{updated_at: ~D/2021-02-15/},
+                  | metadata: %{updated_at: "2021-02-15"},
                     source: """
                     Make sure to install:
 

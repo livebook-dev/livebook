@@ -2,8 +2,12 @@ defmodule LiveBook.ExMd.Import do
   alias LiveBook.ExMd.MarkdownRenderer
   alias LiveBook.Notebook
 
-  def markdown_to_notebook(markdown) do
-    {:ok, ast, _} = EarmarkParser.as_ast(markdown)
+  @doc """
+  Converts the given Markdown document into a notebook data structure.
+  """
+  @spec notebook_from_markdown(String.t()) :: Notebook.t()
+  def notebook_from_markdown(markdown) do
+    {_, ast, _} = EarmarkParser.as_ast(markdown)
 
     ast
     |> walk_ast([])
@@ -64,10 +68,14 @@ defmodule LiveBook.ExMd.Import do
     to_notebook(elems, [], [section | sections])
   end
 
-  # TODO: handle default title if no notebook
   defp to_notebook([{:notebook, name} | elems], [], sections) do
     {metadata, _elems} = grab_metadata(elems)
     %{Notebook.new() | name: name, sections: sections, metadata: metadata}
+  end
+
+  # If there's no h1, use the default title.
+  defp to_notebook([], [], sections) do
+    %{Notebook.new() | sections: sections}
   end
 
   # ---
