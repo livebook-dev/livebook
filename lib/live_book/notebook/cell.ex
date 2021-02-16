@@ -1,11 +1,11 @@
 defmodule LiveBook.Notebook.Cell do
-  @moduledoc """
-  Data structure representing a single cell in a notebook.
+  @moduledoc false
 
-  A cell is the smallest unit of work in a notebook.
-  It primarly consists of text content that the user can edit
-  and may potentially produce some output (e.g. during code evaluation).
-  """
+  # Data structure representing a single cell in a notebook.
+  #
+  # A cell is the smallest unit of work in a notebook.
+  # It primarly consists of text content that the user can edit
+  # and may potentially produce some output (e.g. during code evaluation).
 
   defstruct [:id, :type, :source, :outputs, :metadata]
 

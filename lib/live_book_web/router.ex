@@ -22,9 +22,4 @@ defmodule LiveBookWeb.Router do
     live "/sessions/:id", SessionLive, :page
     live "/sessions/:id/runtime", SessionLive, :runtime
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", LiveBookWeb do
-  #   pipe_through :api
-  # end
 end

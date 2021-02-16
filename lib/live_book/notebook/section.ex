@@ -1,10 +1,10 @@
 defmodule LiveBook.Notebook.Section do
-  @moduledoc """
-  Data structure representing a single section in a notebook.
+  @moduledoc false
 
-  Each section contains a number of cells and is isolated
-  in the sense that cells don't interfere with cells in other sections.
-  """
+  # Data structure representing a single section in a notebook.
+  #
+  # Each section contains a number of cells and is isolated
+  # in the sense that cells don't interfere with cells in other sections.
 
   defstruct [:id, :name, :cells, :metadata]
 

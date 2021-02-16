@@ -1,21 +1,5 @@
 defmodule LiveBookWeb do
-  @moduledoc """
-  The entrypoint for defining your web interface, such
-  as controllers, views, channels and so on.
-
-  This can be used in your application as:
-
-      use LiveBookWeb, :controller
-      use LiveBookWeb, :view
-
-  The definitions below will be executed for every view,
-  controller, etc, so keep them short and clean, focused
-  on imports, uses and aliases.
-
-  Do NOT define functions inside the quoted expressions
-  below. Instead, define any helper function in modules
-  and import those modules here.
-  """
+  @moduledoc false
 
   def controller do
     quote do
@@ -68,12 +52,6 @@ defmodule LiveBookWeb do
     end
   end
 
-  def channel do
-    quote do
-      use Phoenix.Channel
-    end
-  end
-
   defp view_helpers do
     quote do
       # Use all HTML functionality (forms, tags, etc)
@@ -84,8 +62,6 @@ defmodule LiveBookWeb do
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
-
-      import LiveBookWeb.ErrorHelpers
       alias LiveBookWeb.Router.Helpers, as: Routes
 
       # Custom helpers
