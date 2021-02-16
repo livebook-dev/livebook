@@ -1,5 +1,6 @@
 defmodule LiveBook.LiveMarkdown.Import do
-  alias LiveBook.{Notebook, Markdown}
+  alias LiveBook.Notebook
+  alias LiveBook.LiveMarkdown.MarkdownHelpers
 
   @doc """
   Converts the given Markdown document into a notebook data structure.
@@ -89,13 +90,13 @@ defmodule LiveBook.LiveMarkdown.Import do
 
   defp build_notebook([{:cell, :markdown, md_ast} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
-    source = md_ast |> Enum.reverse() |> Markdown.Renderer.markdown_from_ast()
+    source = md_ast |> Enum.reverse() |> MarkdownHelpers.Renderer.markdown_from_ast()
     cell = %{Notebook.Cell.new(:markdown) | source: source, metadata: metadata}
     build_notebook(elems, [cell | cells], sections)
   end
 
   defp build_notebook([{:section_name, content} | elems], cells, sections) do
-    name = Markdown.text_from_ast(content)
+    name = MarkdownHelpers.text_from_ast(content)
     {metadata, elems} = grab_metadata(elems)
     section = %{Notebook.Section.new() | name: name, cells: cells, metadata: metadata}
     build_notebook(elems, [], [section | sections])
@@ -115,7 +116,7 @@ defmodule LiveBook.LiveMarkdown.Import do
   end
 
   defp build_notebook([{:notebook_name, content} | elems], [], sections) do
-    name = Markdown.text_from_ast(content)
+    name = MarkdownHelpers.text_from_ast(content)
     {metadata, []} = grab_metadata(elems)
     %{Notebook.new() | name: name, sections: sections, metadata: metadata}
   end

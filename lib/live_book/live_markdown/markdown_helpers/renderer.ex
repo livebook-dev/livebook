@@ -1,4 +1,4 @@
-defmodule LiveBook.Markdown.Renderer do
+defmodule LiveBook.LiveMarkdown.MarkdownHelpers.Renderer do
   @doc """
   Renders Markdown string from the given `EarmarkParser` AST.
   """

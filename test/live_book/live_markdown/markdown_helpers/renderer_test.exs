@@ -1,7 +1,7 @@
-defmodule LiveBook.Markdown.RendererTest do
+defmodule LiveBook.LiveMarkdown.MarkdownHelpers.RendererTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Markdown.Renderer
+  alias LiveBook.LiveMarkdown.MarkdownHelpers
 
   test "emphasis" do
     markdown = "The Game, *Mrs Hudson*, is on!"
@@ -284,6 +284,6 @@ defmodule LiveBook.Markdown.RendererTest do
   # by comparing against the original content.
   defp reformat(markdown) do
     {:ok, ast, []} = EarmarkParser.as_ast(markdown)
-    Renderer.markdown_from_ast(ast)
+    MarkdownHelpers.Renderer.markdown_from_ast(ast)
   end
 end

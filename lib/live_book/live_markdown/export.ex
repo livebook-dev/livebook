@@ -1,5 +1,6 @@
 defmodule LiveBook.LiveMarkdown.Export do
-  alias LiveBook.{Notebook, Markdown}
+  alias LiveBook.Notebook
+  alias LiveBook.LiveMarkdown.MarkdownHelpers
 
   @doc """
   Converts the given notebook into a Markdown document.
@@ -31,7 +32,7 @@ defmodule LiveBook.LiveMarkdown.Export do
 
   defp render_cell(%{type: :markdown} = cell) do
     cell.source
-    |> Markdown.reformat()
+    |> MarkdownHelpers.reformat()
     |> prepend_metadata(cell.metadata)
   end
 

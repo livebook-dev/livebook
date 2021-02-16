@@ -1,5 +1,5 @@
-defmodule LiveBook.Markdown do
-  alias LiveBook.Markdown
+defmodule LiveBook.LiveMarkdown.MarkdownHelpers do
+  alias LiveBook.LiveMarkdown.MarkdownHelpers
 
   @doc """
   Reformats the given markdown document.
@@ -9,7 +9,7 @@ defmodule LiveBook.Markdown do
     markdown
     |> EarmarkParser.as_ast()
     |> elem(1)
-    |> Markdown.Renderer.markdown_from_ast()
+    |> MarkdownHelpers.Renderer.markdown_from_ast()
   end
 
   @doc """
