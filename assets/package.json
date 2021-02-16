@@ -6,7 +6,8 @@
     "deploy": "NODE_ENV=production webpack --mode production",
     "watch": "webpack --mode development --watch",
     "format": "prettier --trailing-comma es5 --write {js,test,css}/**/*.{js,json,css,scss,md}",
-    "test": "jest --watch"
+    "test": "jest",
+    "test:watch": "jest"
   },
   "dependencies": {
     "marked": "^1.2.8",
