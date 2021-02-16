@@ -62,7 +62,7 @@ defmodule LiveBook.LiveMarkdown.Export do
     |> EarmarkParser.as_ast()
     |> elem(1)
     |> rewrite_ast()
-    |> MarkdownHelpers.Renderer.markdown_from_ast()
+    |> MarkdownHelpers.markdown_from_ast()
   end
 
   # Alters AST of the user-entered markdown.
