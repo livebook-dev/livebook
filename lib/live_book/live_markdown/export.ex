@@ -6,7 +6,9 @@ defmodule LiveBook.LiveMarkdown.Export do
   """
   @spec notebook_to_markdown(Notebook.t()) :: String.t()
   def notebook_to_markdown(notebook) do
-    render_notebook(notebook) <> "\n"
+    iodata = render_notebook(notebook)
+    # Add trailing newline
+    IO.iodata_to_binary([iodata, "\n"])
   end
 
   defp render_notebook(notebook) do
@@ -14,7 +16,7 @@ defmodule LiveBook.LiveMarkdown.Export do
     sections = Enum.map(notebook.sections, &render_section/1)
 
     [name | sections]
-    |> Enum.join("\n\n")
+    |> Enum.intersperse("\n\n")
     |> prepend_metadata(notebook.metadata)
   end
 
@@ -23,7 +25,7 @@ defmodule LiveBook.LiveMarkdown.Export do
     cells = Enum.map(section.cells, &render_cell/1)
 
     [name | cells]
-    |> Enum.join("\n\n")
+    |> Enum.intersperse("\n\n")
     |> prepend_metadata(section.metadata)
   end
 
@@ -48,12 +50,13 @@ defmodule LiveBook.LiveMarkdown.Export do
       value_json = Jason.encode!(value)
       "<!--live_book:#{key}:#{value_json}-->"
     end)
-    |> Enum.join("\n")
+    |> Enum.intersperse("\n")
   end
 
-  defp prepend_metadata(markdown, metadata) when metadata == %{}, do: markdown
+  defp prepend_metadata(iodata, metadata) when metadata == %{}, do: iodata
 
-  defp prepend_metadata(markdown, metadata) do
-    render_metadata(metadata) <> "\n" <> markdown
+  defp prepend_metadata(iodata, metadata) do
+    content = render_metadata(metadata)
+    [content, "\n", iodata]
   end
 end
