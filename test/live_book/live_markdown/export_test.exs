@@ -133,4 +133,44 @@ defmodule LiveBook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "drops heading 1 and 2 in markdown cells" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:markdown)
+                  | metadata: %{},
+                    source: """
+                    # Heading 1
+
+                    ## Heading 2
+
+                    ### Heading 3
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ### Heading 3
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end

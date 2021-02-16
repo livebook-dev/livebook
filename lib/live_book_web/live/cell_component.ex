@@ -3,7 +3,7 @@ defmodule LiveBookWeb.CellComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>"
+    <div class="cell flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>"
       id="cell-<%= @cell.id %>"
       phx-hook="Cell"
       data-cell-id="<%= @cell.id %>"

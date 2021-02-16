@@ -32,7 +32,7 @@ defmodule LiveBook.LiveMarkdown.Export do
 
   defp render_cell(%{type: :markdown} = cell) do
     cell.source
-    |> MarkdownHelpers.reformat()
+    |> format_markdown_source()
     |> prepend_metadata(cell.metadata)
   end
 
@@ -55,5 +55,27 @@ defmodule LiveBook.LiveMarkdown.Export do
   defp prepend_metadata(iodata, metadata) do
     content = render_metadata(metadata)
     [content, "\n", iodata]
+  end
+
+  defp format_markdown_source(markdown) do
+    markdown
+    |> EarmarkParser.as_ast()
+    |> elem(1)
+    |> rewrite_ast()
+    |> MarkdownHelpers.Renderer.markdown_from_ast()
+  end
+
+  # Alters AST of the user-entered markdown.
+  defp rewrite_ast(ast) do
+    ast
+    |> remove_reserved_headings()
+  end
+
+  defp remove_reserved_headings(ast) do
+    Enum.filter(ast, fn
+      {"h1", _, _, _} -> false
+      {"h2", _, _, _} -> false
+      _ast_node -> true
+    end)
   end
 end
