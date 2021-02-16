@@ -4,15 +4,27 @@ defmodule LiveBook.LiveMarkdown.Import do
 
   @doc """
   Converts the given Markdown document into a notebook data structure.
-  """
-  @spec notebook_from_markdown(String.t()) :: Notebook.t()
-  def notebook_from_markdown(markdown) do
-    {_, ast, _} = EarmarkParser.as_ast(markdown)
 
-    ast
-    |> rewrite_ast()
-    |> group_elements()
-    |> build_notebook()
+  Returns the notebook structure and list if informative messages/warnings
+  related to the imported input.
+  """
+  @spec notebook_from_markdown(String.t()) :: {Notebook.t(), list(String.t())}
+  def notebook_from_markdown(markdown) do
+    {_, ast, earmark_messages} = EarmarkParser.as_ast(markdown)
+
+    notebook =
+      ast
+      |> rewrite_ast()
+      |> group_elements()
+      |> build_notebook()
+
+    messages = Enum.map(earmark_messages, &earmark_message_to_string/1)
+
+    {notebook, messages}
+  end
+
+  defp earmark_message_to_string({_severity, line_number, message}) do
+    "Line #{line_number}: #{message}"
   end
 
   # Does initial pre-processing of the AST, so that it conforms to the expected form.

@@ -33,7 +33,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     ```
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     # Match only on the relevant fields as some may be generated (ids).
 
@@ -100,7 +100,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     | Maine | ME | Augusta |
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -132,7 +132,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -157,7 +157,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     ###### Tiny heading
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -199,7 +199,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     ## [Section 1](https://example.com)
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -220,7 +220,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     ## Actual section
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -250,7 +250,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     ```
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -280,7 +280,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    notebook = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -301,5 +301,19 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
                }
              ]
            } = notebook
+  end
+
+  test "includes parsing warnings in the returned message list" do
+    markdown = """
+    # My notebook
+
+    `
+
+    Some markdown.
+    """
+
+    {_notebook, messages} = Import.notebook_from_markdown(markdown)
+
+    assert ["Line 3: Closing unclosed backquotes ` at end of input"] == messages
   end
 end
