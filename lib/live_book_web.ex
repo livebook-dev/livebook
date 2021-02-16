@@ -17,15 +17,6 @@ defmodule LiveBookWeb do
   and import those modules here.
   """
 
-  def controller do
-    quote do
-      use Phoenix.Controller, namespace: LiveBookWeb
-
-      import Plug.Conn
-      alias LiveBookWeb.Router.Helpers, as: Routes
-    end
-  end
-
   def view do
     quote do
       use Phoenix.View,
@@ -68,12 +59,6 @@ defmodule LiveBookWeb do
     end
   end
 
-  def channel do
-    quote do
-      use Phoenix.Channel
-    end
-  end
-
   defp view_helpers do
     quote do
       # Use all HTML functionality (forms, tags, etc)
@@ -84,8 +69,6 @@ defmodule LiveBookWeb do
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
-
-      import LiveBookWeb.ErrorHelpers
       alias LiveBookWeb.Router.Helpers, as: Routes
 
       # Custom helpers
