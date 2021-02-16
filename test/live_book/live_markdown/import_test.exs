@@ -6,20 +6,20 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
   test "acceptance" do
     markdown = """
-    <!--live_book:author:"Sherlock Holmes"-->
+    <!--live_book:{"author":"Sherlock Holmes"}-->
     # My Notebook
 
-    <!--live_book:created_at:"2021-02-15"-->
+    <!--live_book:{"created_at":"2021-02-15"}-->
     ## Section 1
 
-    <!--live_book:updated_at:"2021-02-15"-->
+    <!--live_book:{"updated_at":"2021-02-15"}-->
     Make sure to install:
 
     * Erlang
     * Elixir
     * PostgreSQL
 
-    <!--live_book:readonly:true-->
+    <!--live_book:{"readonly":true}-->
     ```elixir
     Enum.to_list(1..10)
     ```
@@ -39,15 +39,15 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
     assert %Notebook{
              name: "My Notebook",
-             metadata: %{author: "Sherlock Holmes"},
+             metadata: %{"author" => "Sherlock Holmes"},
              sections: [
                %Notebook.Section{
                  name: "Section 1",
-                 metadata: %{created_at: "2021-02-15"},
+                 metadata: %{"created_at" => "2021-02-15"},
                  cells: [
                    %Notebook.Cell{
                      type: :markdown,
-                     metadata: %{updated_at: "2021-02-15"},
+                     metadata: %{"updated_at" => "2021-02-15"},
                      source: """
                      Make sure to install:
 
@@ -58,7 +58,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
                    },
                    %Notebook.Cell{
                      type: :elixir,
-                     metadata: %{readonly: true},
+                     metadata: %{"readonly" => true},
                      source: """
                      Enum.to_list(1..10)\
                      """

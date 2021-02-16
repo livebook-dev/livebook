@@ -45,12 +45,8 @@ defmodule LiveBook.LiveMarkdown.Export do
   end
 
   defp render_metadata(metadata) do
-    metadata
-    |> Enum.map(fn {key, value} ->
-      value_json = Jason.encode!(value)
-      "<!--live_book:#{key}:#{value_json}-->"
-    end)
-    |> Enum.intersperse("\n")
+    metadata_json = Jason.encode!(metadata)
+    "<!--live_book:#{metadata_json}-->"
   end
 
   defp prepend_metadata(iodata, metadata) when metadata == %{}, do: iodata

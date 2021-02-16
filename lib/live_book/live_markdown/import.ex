@@ -56,8 +56,8 @@ defmodule LiveBook.LiveMarkdown.Import do
     group_elements(ast, [{:section_name, content} | elems])
   end
 
-  defp group_elements([{:comment, _, ["live_book:" <> metaentry], %{comment: true}} | ast], elems) do
-    group_elements(ast, [{:metaentry, metaentry} | elems])
+  defp group_elements([{:comment, _, ["live_book:" <> metadata_json], %{comment: true}} | ast], elems) do
+    group_elements(ast, [{:metadata, metadata_json} | elems])
   end
 
   defp group_elements(
@@ -125,20 +125,11 @@ defmodule LiveBook.LiveMarkdown.Import do
     %{Notebook.new() | sections: sections}
   end
 
-  # Aggregates leading metaentries into a map and returns {metadata, rest}.
-  defp grab_metadata(elems, metadata \\ %{})
-
-  defp grab_metadata([{:metaentry, metaentry} | elems], metadata) do
-    {key, value} = parse_metaentry(metaentry)
-    grab_metadata(elems, Map.put(metadata, key, value))
+  # Takes optional leading metadata JSON object and returns {metadata, rest}.
+  defp grab_metadata([{:metadata, metadata_json} | elems]) do
+    metadata = Jason.decode!(metadata_json)
+    {metadata, elems}
   end
 
-  defp grab_metadata(elems, metadata), do: {metadata, elems}
-
-  defp parse_metaentry(metaentry) do
-    [key_string, value_json] = String.split(metaentry, ":", parts: 2)
-    key = String.to_atom(key_string)
-    value = Jason.decode!(value_json)
-    {key, value}
-  end
+  defp grab_metadata(elems), do: {%{}, elems}
 end
