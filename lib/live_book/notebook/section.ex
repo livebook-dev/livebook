@@ -17,7 +17,7 @@ defmodule LiveBook.Notebook.Section do
           id: id(),
           name: String.t(),
           cells: list(Cell.t()),
-          metadata: %{atom() => term()}
+          metadata: %{String.t() => term()}
         }
 
   @doc """

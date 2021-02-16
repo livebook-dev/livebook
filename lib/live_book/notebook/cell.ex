@@ -19,7 +19,7 @@ defmodule LiveBook.Notebook.Cell do
           type: type(),
           source: String.t(),
           outputs: list(),
-          metadata: %{atom() => term()}
+          metadata: %{String.t() => term()}
         }
 
   @doc """

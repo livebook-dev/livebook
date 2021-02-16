@@ -19,7 +19,7 @@ defmodule LiveBook.Notebook do
           name: String.t(),
           version: String.t(),
           sections: list(Section.t()),
-          metadata: %{atom() => term()}
+          metadata: %{String.t() => term()}
         }
 
   @version "1.0"
