@@ -269,4 +269,37 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
              ]
            } = notebook
   end
+
+  test "moves the primary heading and preceding comments to the top" do
+    markdown = """
+    Cool notebook.
+
+    <!--live_book:{"author":"Sherlock Holmes"}-->
+    # My Notebook
+
+    Some markdown.
+    """
+
+    notebook = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             metadata: %{"author" => "Sherlock Holmes"},
+             sections: [
+               %Notebook.Section{
+                 name: "Section",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     source: """
+                     Cool notebook.
+
+                     Some markdown.\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
 end

@@ -19,6 +19,7 @@ defmodule LiveBook.LiveMarkdown.Import do
   defp rewrite_ast(ast) do
     ast
     |> rewrite_multiple_primary_headings()
+    |> move_primary_heading_top()
   end
 
   # There should be only one h1 tag indicating notebook name,
@@ -27,7 +28,7 @@ defmodule LiveBook.LiveMarkdown.Import do
   # but may be the case for an arbitrary markdown file,
   # so we do our best to preserve the intent.
   defp rewrite_multiple_primary_headings(ast) do
-    primary_headings = Enum.count(ast, fn {tag, _, _, _} -> tag == "h1" end)
+    primary_headings = Enum.count(ast, &(tag(&1) == "h1"))
 
     if primary_headings > 1 do
       Enum.map(ast, &downgrade_heading/1)
@@ -44,6 +45,27 @@ defmodule LiveBook.LiveMarkdown.Import do
   defp downgrade_heading({"h6", attrs, content, meta}), do: {"strong", attrs, content, meta}
   defp downgrade_heading(ast_node), do: ast_node
 
+  # This moves h1 together with any preceding comments to the top.
+  defp move_primary_heading_top(ast) do
+    case Enum.split_while(ast, &(tag(&1) != "h1")) do
+      {_ast, []} ->
+        ast
+
+      {leading, [heading | rest]} ->
+        {leading, comments} = split_while_right(leading, &(tag(&1) == :comment))
+        comments ++ [heading] ++ leading ++ rest
+    end
+  end
+
+  defp tag(ast_node)
+  defp tag({tag, _, _, _}), do: tag
+  defp tag(_), do: nil
+
+  defp split_while_right(list, fun) do
+    {right_rev, left_rev} = list |> Enum.reverse() |> Enum.split_while(fun)
+    {Enum.reverse(left_rev), Enum.reverse(right_rev)}
+  end
+
   # Builds a list of classified elements from the AST.
   defp group_elements(ast, elems \\ [])
 
@@ -57,7 +79,10 @@ defmodule LiveBook.LiveMarkdown.Import do
     group_elements(ast, [{:section_name, content} | elems])
   end
 
-  defp group_elements([{:comment, _, ["live_book:" <> metadata_json], %{comment: true}} | ast], elems) do
+  defp group_elements(
+         [{:comment, _, ["live_book:" <> metadata_json], %{comment: true}} | ast],
+         elems
+       ) do
     group_elements(ast, [{:metadata, metadata_json} | elems])
   end
 
