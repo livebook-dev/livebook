@@ -157,7 +157,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     ###### Tiny heading
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, messages} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -190,6 +190,8 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
                }
              ]
            } = notebook
+
+    assert ["Downgrading all headings, because 2 instances of heading 1 were found"] == messages
   end
 
   test "ignores markdown modifiers in notebok/section names" do
@@ -280,7 +282,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, messages} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -301,6 +303,8 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
                }
              ]
            } = notebook
+
+    assert ["Moving heading 1 to the top of the notebook"] == messages
   end
 
   test "includes parsing warnings in the returned message list" do

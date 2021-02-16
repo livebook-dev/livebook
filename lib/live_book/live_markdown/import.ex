@@ -11,16 +11,16 @@ defmodule LiveBook.LiveMarkdown.Import do
   @spec notebook_from_markdown(String.t()) :: {Notebook.t(), list(String.t())}
   def notebook_from_markdown(markdown) do
     {_, ast, earmark_messages} = EarmarkParser.as_ast(markdown)
+    earmark_messages = Enum.map(earmark_messages, &earmark_message_to_string/1)
+
+    {ast, rewrite_messages} = rewrite_ast(ast)
 
     notebook =
       ast
-      |> rewrite_ast()
       |> group_elements()
       |> build_notebook()
 
-    messages = Enum.map(earmark_messages, &earmark_message_to_string/1)
-
-    {notebook, messages}
+    {notebook, earmark_messages ++ rewrite_messages}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -28,10 +28,12 @@ defmodule LiveBook.LiveMarkdown.Import do
   end
 
   # Does initial pre-processing of the AST, so that it conforms to the expected form.
+  # Returns {altered_ast, messages}.
   defp rewrite_ast(ast) do
-    ast
-    |> rewrite_multiple_primary_headings()
-    |> move_primary_heading_top()
+    {ast, messages1} = rewrite_multiple_primary_headings(ast)
+    {ast, messages2} = move_primary_heading_top(ast)
+
+    {ast, messages1 ++ messages2}
   end
 
   # There should be only one h1 tag indicating notebook name,
@@ -43,9 +45,14 @@ defmodule LiveBook.LiveMarkdown.Import do
     primary_headings = Enum.count(ast, &(tag(&1) == "h1"))
 
     if primary_headings > 1 do
-      Enum.map(ast, &downgrade_heading/1)
+      ast = Enum.map(ast, &downgrade_heading/1)
+
+      message =
+        "Downgrading all headings, because #{primary_headings} instances of heading 1 were found"
+
+      {ast, [message]}
     else
-      ast
+      {ast, []}
     end
   end
 
@@ -61,11 +68,18 @@ defmodule LiveBook.LiveMarkdown.Import do
   defp move_primary_heading_top(ast) do
     case Enum.split_while(ast, &(tag(&1) != "h1")) do
       {_ast, []} ->
-        ast
+        {ast, []}
 
       {leading, [heading | rest]} ->
         {leading, comments} = split_while_right(leading, &(tag(&1) == :comment))
-        comments ++ [heading] ++ leading ++ rest
+
+        if leading == [] do
+          {ast, []}
+        else
+          ast = comments ++ [heading] ++ leading ++ rest
+          message = "Moving heading 1 to the top of the notebook"
+          {ast, [message]}
+        end
     end
   end
 
