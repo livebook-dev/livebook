@@ -295,4 +295,43 @@ defmodule LiveBook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "formats code in Elixir cells" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | metadata: %{},
+                    source: """
+                    [1,2,3] # Comment
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    # Comment
+    [1, 2, 3]
+    ```
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end
