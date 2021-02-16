@@ -316,4 +316,59 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
     assert ["Line 3: Closing unclosed backquotes ` at end of input"] == messages
   end
+
+  test "imports non-elixir code snippets as part of markdown cells" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    ```shell
+    mix deps.get
+    ```
+
+    ```elixir
+    Enum.to_list(1..10)
+    ```
+
+    ```erlang
+    spawn_link(fun() -> io:format("Hiya") end).
+    ```
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     source: """
+                     ```shell
+                     mix deps.get
+                     ```\
+                     """
+                   },
+                   %Notebook.Cell{
+                     type: :elixir,
+                     source: """
+                     Enum.to_list(1..10)\
+                     """
+                   },
+                   %Notebook.Cell{
+                     type: :markdown,
+                     source: """
+                     ```erlang
+                     spawn_link(fun() -> io:format("Hiya") end).
+                     ```\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
 end

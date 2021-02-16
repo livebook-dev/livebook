@@ -173,4 +173,52 @@ defmodule LiveBook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "keeps non-elixir code snippets" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:markdown)
+                  | metadata: %{},
+                    source: """
+                    ```shell
+                    mix deps.get
+                    ```
+
+                    ```erlang
+                    spawn_link(fun() -> io:format("Hiya") end).
+                    ```
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```shell
+    mix deps.get
+    ```
+
+    ```erlang
+    spawn_link(fun() -> io:format("Hiya") end).
+    ```
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end
