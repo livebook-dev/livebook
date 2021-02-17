@@ -3,3 +3,11 @@
 button:focus {
   outline: none;
 }
+
+body:not(.is-mac) .mac-only {
+  display: none;
+}
+
+body.is-mac .non-mac-only {
+  display: none;
+}
