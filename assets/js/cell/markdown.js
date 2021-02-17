@@ -1,5 +1,6 @@
 import marked from "marked";
 import morphdom from "morphdom";
+import DOMPurify from 'dompurify';
 
 /**
  * Renders markdown content in the given container.
@@ -28,9 +29,10 @@ class Markdown {
 
   __getHtml() {
     const html = marked(this.content);
+    const sanitizedHtml = DOMPurify.sanitize(html);
 
-    if (html) {
-      return html;
+    if (sanitizedHtml) {
+      return sanitizedHtml;
     } else {
       return `
         <div class="text-gray-300">

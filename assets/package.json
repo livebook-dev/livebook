@@ -10,6 +10,7 @@
     "test:watch": "jest"
   },
   "dependencies": {
+    "dompurify": "^2.2.6",
     "marked": "^1.2.8",
     "monaco-editor": "^0.21.2",
     "morphdom": "^2.6.1",
