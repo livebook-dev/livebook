@@ -1,4 +1,5 @@
 import { getAttributeOrThrow } from "../lib/attribute";
+import { isMacOS } from "../lib/utils";
 
 /**
  * A hook managing the whole session.
@@ -14,17 +15,24 @@ const Session = {
     this.props = getProps(this);
 
     // Keybindings
+    // Note: make sure to keep the shortcuts help modal up to date.
     this.handleDocumentKeydown = (event) => {
-      const key = event.key.toLowerCase();
+      const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+      const opt = event.altKey;
       const shift = event.shiftKey;
-      const alt = event.altKey;
-      const ctrl = event.ctrlKey;
+      // Generally it's good to use event.key for layout-independent checks,
+      // but when modifiers such as opt/alt/shift are used then event.key
+      // value varies (n, N, ń, Ń) and may depend on the system language.
+      // The other option is to use event.code that indicates the physical
+      // key pressed. The drawback is that the value is irrespective
+      // of the keyboard layout used.
+      const code = event.code;
 
       if (event.repeat) {
         return;
       }
 
-      if (shift && key === "enter") {
+      if (shift && code === "Enter") {
         cancelEvent(event);
 
         if (this.props.focusedCellType === "elixir") {
@@ -32,11 +40,11 @@ const Session = {
         }
 
         this.pushEvent("move_cell_focus", { offset: 1 });
-      } else if (alt && ctrl && key === "enter") {
+      } else if (cmd && opt && code === "Enter") {
         cancelEvent(event);
 
         this.pushEvent("queue_child_cells_evaluation", {});
-      } else if (ctrl && key === "enter") {
+      } else if (cmd && code === "Enter") {
         cancelEvent(event);
 
         if (this.props.focusedCellType === "elixir") {
@@ -46,15 +54,15 @@ const Session = {
         if (this.props.focusedCellType === "markdown") {
           this.pushEvent("toggle_cell_expanded");
         }
-      } else if (alt && key === "j") {
+      } else if (cmd && code === "KeyJ") {
         cancelEvent(event);
 
         this.pushEvent("move_cell_focus", { offset: 1 });
-      } else if (alt && key === "k") {
+      } else if (cmd && code === "KeyK") {
         cancelEvent(event);
 
         this.pushEvent("move_cell_focus", { offset: -1 });
-      } else if (alt && key === "n") {
+      } else if (cmd && opt && code === "KeyN") {
         cancelEvent(event);
 
         if (shift) {
@@ -62,7 +70,7 @@ const Session = {
         } else {
           this.pushEvent("insert_cell_below_focused", { type: "elixir" });
         }
-      } else if (alt && key === "m") {
+      } else if (cmd && opt && code === "KeyM") {
         cancelEvent(event);
 
         if (shift) {
@@ -70,7 +78,7 @@ const Session = {
         } else {
           this.pushEvent("insert_cell_below_focused", { type: "markdown" });
         }
-      } else if (alt && key === "w") {
+      } else if (cmd && opt && code === "KeyW") {
         cancelEvent(event);
 
         this.pushEvent("delete_focused_cell", {});
