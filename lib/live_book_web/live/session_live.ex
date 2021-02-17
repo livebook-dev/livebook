@@ -298,6 +298,10 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("show_shortcuts", %{}, socket) do
+    {:noreply, push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.assigns.data, operation) do

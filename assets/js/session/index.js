@@ -32,7 +32,11 @@ const Session = {
         return;
       }
 
-      if (cmd && shift && code === "Enter") {
+      if (event.key === "?") {
+        cancelEvent(event);
+
+        this.pushEvent("show_shortcuts", {});
+      } else if (cmd && shift && code === "Enter") {
         cancelEvent(event);
 
         this.pushEvent("queue_section_cells_evaluation", {});

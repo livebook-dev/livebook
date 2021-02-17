@@ -2,6 +2,7 @@ defmodule LiveBookWeb.ShortcutsComponent do
   use LiveBookWeb, :live_component
 
   @shortcuts [
+    %{combination: "?", description: "Open this help modal"},
     %{combination: "cmd + enter", description: "Evaluate Elixir cell / Toggle Markdown cell"},
     %{combination: "shift + enter", description: "Evaluate cell and focus next"},
     %{combination: "cmd + shift + enter", description: "Evaluate section"},
