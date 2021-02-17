@@ -4,6 +4,8 @@ defmodule LiveBookWeb.ShortcutsComponent do
   @shortcuts [
     %{combination: "cmd + enter", description: "Evaluate Elixir cell / Toggle Markdown cell"},
     %{combination: "shift + enter", description: "Evaluate cell and focus next"},
+    %{combination: "cmd + shift + enter", description: "Evaluate section"},
+    %{combination: "cmd + opt + enter", description: "Evaluate cells below"},
     %{combination: "cmd + j", description: "Focus next cell"},
     %{combination: "cmd + k", description: "Focus previous cell"},
     %{combination: "cmd + opt + n", description: "Insert Elixir cell below"},

@@ -32,7 +32,11 @@ const Session = {
         return;
       }
 
-      if (shift && code === "Enter") {
+      if (cmd && shift && code === "Enter") {
+        cancelEvent(event);
+
+        this.pushEvent("queue_section_cells_evaluation", {});
+      } else if (shift && code === "Enter") {
         cancelEvent(event);
 
         if (this.props.focusedCellType === "elixir") {
