@@ -16,13 +16,16 @@ defmodule LiveBookWeb.SessionLive do
           Session.get_data(session_id)
         end
 
-      {:ok, assign(socket, initial_assigns(session_id, data))}
+      connect_info = get_connect_info(socket)
+      user_agent = connect_info && Map.get(connect_info, :user_agent)
+
+      {:ok, assign(socket, initial_assigns(session_id, data, user_agent))}
     else
       {:ok, redirect(socket, to: Routes.sessions_path(socket, :page))}
     end
   end
 
-  defp initial_assigns(session_id, data) do
+  defp initial_assigns(session_id, data, user_agent) do
     first_section_id =
       case data.notebook.sections do
         [section | _] -> section.id
@@ -30,6 +33,7 @@ defmodule LiveBookWeb.SessionLive do
       end
 
     %{
+      user_agent: user_agent,
       session_id: session_id,
       data: data,
       selected_section_id: first_section_id,
@@ -53,6 +57,7 @@ defmodule LiveBookWeb.SessionLive do
     <%= if @live_action == :shortcuts do %>
       <%= live_modal @socket, LiveBookWeb.ShortcutsComponent,
             id: :shortcuts_modal,
+            user_agent: @user_agent,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 

@@ -16,13 +16,9 @@ defmodule LiveBookWeb.Helpers do
   @doc """
   Determines if the request comes from a Mac user based on the *User-Agent* header.
   """
-  def mac_user?(conn) do
-    case Plug.Conn.get_req_header(conn, "user-agent") do
-      [user_agent] ->
-        String.match?(user_agent, ~r/Mac OS X/)
-
-      _ ->
-        false
-    end
+  def mac_user_agent?(user_agent) when is_binary(user_agent) do
+    String.match?(user_agent, ~r/Mac OS X/)
   end
+
+  def mac_user_agent?(nil), do: false
 end

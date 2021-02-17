@@ -71,11 +71,8 @@ defmodule LiveBookWeb.ShortcutsComponent do
           <%= for shortcut <- @shortcuts do %>
             <li class="flex items-center my-3">
               <span class="w-1/3">
-                <span class="non-mac-only bg-editor text-editor py-1 px-2 rounded-md">
-                  <%= shortcut.combo %>
-                </span>
-                <span class="mac-only bg-editor text-editor py-1 px-2 rounded-md">
-                  <%= shortcut.mac_combo %>
+                <span class="bg-editor text-editor py-1 px-2 rounded-md">
+                  <%= if(mac_user_agent?(@user_agent), do: shortcut.mac_combo, else: shortcut.combo) %>
                 </span>
               </span>
               <span class="w-2/3">
