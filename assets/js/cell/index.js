@@ -1,8 +1,4 @@
-import {
-  getAttributeOrThrow,
-  parseBoolean,
-  parseInteger,
-} from "../lib/attribute";
+import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
 import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
 
@@ -17,7 +13,7 @@ import Markdown from "./markdown";
  *   * `data-cell-id` - id of the cell being edited
  *   * `data-type` - editor type (i.e. language), either "markdown" or "elixir" is expected
  *   * `data-focused` - whether the cell is currently focused
- *   * `data-expanded` - whether the cell is currently expanded (relevant for markdown cells)
+ *   * `data-insert-mode` - whether insert mode is currently enabled
  */
 const Cell = {
   mounted() {
@@ -93,7 +89,7 @@ function getProps(hook) {
     cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
     type: getAttributeOrThrow(hook.el, "data-type"),
     isFocused: getAttributeOrThrow(hook.el, "data-focused", parseBoolean),
-    isExpanded: getAttributeOrThrow(hook.el, "data-expanded", parseBoolean),
+    insertMode: getAttributeOrThrow(hook.el, "data-insert-mode", parseBoolean),
   };
 }
 
@@ -101,11 +97,7 @@ function getProps(hook) {
  * Checks if the cell editor is active and should have focus.
  */
 function isActive(props) {
-  if (props.type === "markdown") {
-    return props.isFocused && props.isExpanded;
-  } else {
-    return props.isFocused;
-  }
+  return props.isFocused && props.insertMode;
 }
 
 export default Cell;

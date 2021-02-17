@@ -39,7 +39,7 @@ defmodule LiveBookWeb.SessionLive do
       selected_section_id: first_section_id,
       focused_cell_id: nil,
       focused_cell_type: nil,
-      focused_cell_expanded: false
+      insert_mode: false
     }
   end
 
@@ -64,6 +64,7 @@ defmodule LiveBookWeb.SessionLive do
     <div class="flex flex-grow h-full"
          id="session"
          phx-hook="Session"
+         data-insert-mode="<%= @insert_mode %>"
          data-focused-cell-id="<%= @focused_cell_id %>"
          data-focused-cell-type="<%= @focused_cell_type %>">
       <div class="flex flex-col w-1/5 bg-gray-100 border-r-2 border-gray-200">
@@ -110,11 +111,18 @@ defmodule LiveBookWeb.SessionLive do
                   selected: section.id == @selected_section_id,
                   cell_infos: @data.cell_infos,
                   focused_cell_id: @focused_cell_id,
-                  focused_cell_expanded: @focused_cell_expanded %>
+                  insert_mode: @insert_mode %>
           <% end %>
         </div>
       </div>
     </div>
+
+    <%= if @insert_mode do %>
+      <%# Show a tiny insert indicator for clarity %>
+      <div class="fixed right-5 bottom-1 text-gray-500 text-semibold text-sm">
+        insert
+      </div>
+    <% end %>
     """
   end
 
@@ -247,9 +255,9 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  def handle_event("toggle_cell_expanded", %{}, socket) do
+  def handle_event("set_insert_mode", %{"enabled" => enabled}, socket) do
     if socket.assigns.focused_cell_id do
-      {:noreply, assign(socket, focused_cell_expanded: !socket.assigns.focused_cell_expanded)}
+      {:noreply, assign(socket, insert_mode: enabled)}
     else
       {:noreply, socket}
     end
@@ -295,7 +303,7 @@ defmodule LiveBookWeb.SessionLive do
 
       cells = Notebook.child_cells(socket.assigns.data.notebook, cell.id)
 
-      for cell <- [cell | cells], cell.type == :elixir do
+      for cell <- cells, cell.type == :elixir do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -304,7 +312,8 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event("show_shortcuts", %{}, socket) do
-    {:noreply, push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
+    {:noreply,
+     push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
   end
 
   @impl true
@@ -348,7 +357,7 @@ defmodule LiveBookWeb.SessionLive do
 
   defp after_operation(socket, _prev_socket, {:insert_cell, _, _, _, cell_id}) do
     {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
-    focus_cell(socket, cell, expanded: true)
+    focus_cell(socket, cell, insert_mode: true)
   end
 
   defp after_operation(socket, prev_socket, {:delete_cell, cell_id}) do
@@ -400,16 +409,16 @@ defmodule LiveBookWeb.SessionLive do
   defp focus_cell(socket, cell, opts \\ [])
 
   defp focus_cell(socket, nil = _cell, _opts) do
-    assign(socket, focused_cell_id: nil, focused_cell_type: nil, focused_cell_expanded: false)
+    assign(socket, focused_cell_id: nil, focused_cell_type: nil, insert_mode: false)
   end
 
   defp focus_cell(socket, cell, opts) do
-    expanded? = Keyword.get(opts, :expanded, false)
+    insert_mode? = Keyword.get(opts, :insert_mode, false)
 
     assign(socket,
       focused_cell_id: cell.id,
       focused_cell_type: cell.type,
-      focused_cell_expanded: expanded?
+      insert_mode: insert_mode?
     )
   end
 

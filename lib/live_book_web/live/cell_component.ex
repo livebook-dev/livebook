@@ -9,7 +9,7 @@ defmodule LiveBookWeb.CellComponent do
       data-cell-id="<%= @cell.id %>"
       data-type="<%= @cell.type %>"
       data-focused="<%= @focused %>"
-      data-expanded="<%= @expanded %>">
+      data-insert-mode="<%= @insert_mode %>">
       <%= render_cell_content(assigns) %>
     </div>
     """
@@ -25,7 +25,7 @@ defmodule LiveBookWeb.CellComponent do
       </div>
     <% end %>
 
-    <div class="<%= if @expanded, do: "mb-4", else: "hidden" %>">
+    <div class="<%= if @focused and @insert_mode, do: "mb-4", else: "hidden" %>">
       <%= render_editor(@cell, @cell_info) %>
     </div>
 

@@ -14,7 +14,7 @@ defmodule LiveBookWeb.Helpers do
   end
 
   @doc """
-  Determines if the request comes from a Mac user based on the *User-Agent* header.
+  Determines if the request comes from a Mac user based on the given *User-Agent* header.
   """
   def mac_user_agent?(user_agent) when is_binary(user_agent) do
     String.match?(user_agent, ~r/Mac OS X/)
