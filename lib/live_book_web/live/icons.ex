@@ -7,16 +7,6 @@ defmodule LiveBookWeb.Icons do
   """
   def svg(name, attrs \\ [])
 
-  def svg(:chevron_right, attrs) do
-    assigns = %{attrs: heroicon_svg_attrs(attrs)}
-
-    ~L"""
-    <%= tag(:svg, @attrs) %>
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-    </svg>
-    """
-  end
-
   def svg(:play, attrs) do
     assigns = %{attrs: heroicon_svg_attrs(attrs)}
 

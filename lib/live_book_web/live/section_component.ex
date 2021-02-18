@@ -4,10 +4,9 @@ defmodule LiveBookWeb.SectionComponent do
   def render(assigns) do
     ~L"""
     <div class="<%= if not @selected, do: "hidden" %>">
-      <div class="flex justify-between items-center">
-        <div class="flex space-x-2 items-center text-gray-600">
-          <%= Icons.svg(:chevron_right, class: "h-8") %>
-          <h2 class="text-3xl"
+      <div class="flex space-x-4 items-center">
+        <div class="flex flex-grow space-x-2 items-center text-gray-600">
+          <h2 class="flex-grow text-gray-900 font-semibold text-3xl py-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
             id="section-<%= @section.id %>-name"
             contenteditable
             spellcheck="false"
@@ -24,7 +23,7 @@ defmodule LiveBookWeb.SectionComponent do
           </button>
         </div>
       </div>
-      <div class="container py-4">
+      <div class="container py-2">
         <div class="flex flex-col space-y-2 pb-80">
           <%= live_component @socket, LiveBookWeb.InsertCellComponent,
                 id: "#{@section.id}:0",

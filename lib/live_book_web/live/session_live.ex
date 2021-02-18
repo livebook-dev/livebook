@@ -70,19 +70,19 @@ defmodule LiveBookWeb.SessionLive do
     <% end %>
 
     <div class="flex flex-grow h-full"
-         id="session"
-         phx-hook="Session"
-         data-insert-mode="<%= @insert_mode %>"
-         data-focused-cell-id="<%= @focused_cell_id %>"
-         data-focused-cell-type="<%= @focused_cell_type %>">
+      id="session"
+      phx-hook="Session"
+      data-insert-mode="<%= @insert_mode %>"
+      data-focused-cell-id="<%= @focused_cell_id %>"
+      data-focused-cell-type="<%= @focused_cell_type %>">
       <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
-        <h1 id="notebook-name"
-            contenteditable
-            spellcheck="false"
-            phx-blur="set_notebook_name"
-            phx-hook="ContentEditable"
-            data-update-attribute="phx-value-name"
-            class="p-8 text-2xl"><%= @data.notebook.name %></h1>
+        <h1 class="m-6 py-1 text-2xl border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+          id="notebook-name"
+          contenteditable
+          spellcheck="false"
+          phx-blur="set_notebook_name"
+          phx-hook="ContentEditable"
+          data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
 
         <div class="flex-grow flex flex-col space-y-2 pl-4">
           <%= for section <- @data.notebook.sections do %>
