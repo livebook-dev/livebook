@@ -1,6 +1,6 @@
 import marked from "marked";
 import morphdom from "morphdom";
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
 /**
  * Renders markdown content in the given container.

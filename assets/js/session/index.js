@@ -1,5 +1,5 @@
 import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
-import { isMacOS } from "../lib/utils";
+import { isMacOS, isEditableElement } from "../lib/utils";
 import KeyBuffer from "./key_buffer";
 
 /**
@@ -42,6 +42,11 @@ const Session = {
           this.pushEvent("queue_focused_cell_evaluation");
         }
       } else {
+        if (isEditableElement(event.target)) {
+          keyBuffer.reset();
+          return;
+        }
+
         keyBuffer.push(event.key);
 
         if (keyBuffer.tryMatch(["d", "d"])) {

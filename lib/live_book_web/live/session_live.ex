@@ -70,25 +70,25 @@ defmodule LiveBookWeb.SessionLive do
     <% end %>
 
     <div class="flex flex-grow h-full"
-         id="session"
-         phx-hook="Session"
-         data-insert-mode="<%= @insert_mode %>"
-         data-focused-cell-id="<%= @focused_cell_id %>"
-         data-focused-cell-type="<%= @focused_cell_type %>">
-      <div class="flex flex-col w-1/5 bg-gray-100 border-r-2 border-gray-200">
-        <h1 id="notebook-name"
-            contenteditable
-            spellcheck="false"
-            phx-blur="set_notebook_name"
-            phx-hook="ContentEditable"
-            data-update-attribute="phx-value-name"
-            class="p-8 text-2xl"><%= @data.notebook.name %></h1>
+      id="session"
+      phx-hook="Session"
+      data-insert-mode="<%= @insert_mode %>"
+      data-focused-cell-id="<%= @focused_cell_id %>"
+      data-focused-cell-type="<%= @focused_cell_type %>">
+      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
+        <h1 class="m-6 py-1 text-2xl border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+          id="notebook-name"
+          contenteditable
+          spellcheck="false"
+          phx-blur="set_notebook_name"
+          phx-hook="ContentEditable"
+          data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
 
         <div class="flex-grow flex flex-col space-y-2 pl-4">
           <%= for section <- @data.notebook.sections do %>
             <div phx-click="select_section"
                  phx-value-section_id="<%= section.id %>"
-                 class="py-2 px-4 rounded-l-md cursor-pointer text-gray-500 hover:text-current">
+                 class="py-2 px-4 rounded-l-md cursor-pointer hover:text-current border border-r-0 <%= if(section.id == @selected_section_id, do: "bg-white border-gray-200", else: "text-gray-500 border-transparent") %>">
               <span>
                 <%= section.name %>
               </span>
@@ -200,12 +200,6 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    Session.delete_cell(socket.assigns.session_id, cell_id)
-
-    {:noreply, socket}
-  end
-
   def handle_event("delete_focused_cell", %{}, socket) do
     if socket.assigns.focused_cell_id do
       Session.delete_cell(socket.assigns.session_id, socket.assigns.focused_cell_id)
@@ -271,10 +265,12 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
-
-    {:noreply, socket}
+  def handle_event("enable_insert_mode", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      {:noreply, assign(socket, insert_mode: true)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("queue_focused_cell_evaluation", %{}, socket) do

@@ -92,20 +92,6 @@ defmodule LiveBookWeb.SessionLiveTest do
                Session.get_data(session_id)
     end
 
-    test "queueing cell evaluation", %{conn: conn, session_id: session_id} do
-      section_id = insert_section(session_id)
-      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
-
-      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
-
-      view
-      |> element("#session")
-      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
-
-      assert %{cell_infos: %{^cell_id => %{evaluation_status: :evaluating}}} =
-               Session.get_data(session_id)
-    end
-
     test "queueing focused cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
