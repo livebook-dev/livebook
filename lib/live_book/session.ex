@@ -15,7 +15,7 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Runtime}
+  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Runtime, LiveMarkdown}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
@@ -30,6 +30,8 @@ defmodule LiveBook.Session do
   An id assigned to every running session process.
   """
   @type id :: Utils.id()
+
+  @autosave_interval 5_000
 
   ## API
 
@@ -171,6 +173,14 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends path update request to the server.
+  """
+  @spec set_path(id(), String.t() | nil) :: :ok
+  def set_path(session_id, path) do
+    GenServer.cast(name(session_id), {:set_path, path})
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -182,6 +192,8 @@ defmodule LiveBook.Session do
 
   @impl true
   def init(session_id: session_id) do
+    Process.send_after(self(), :autosave, @autosave_interval)
+
     {:ok,
      %{
        session_id: session_id,
@@ -277,6 +289,11 @@ defmodule LiveBook.Session do
      |> handle_operation({:set_runtime, nil})}
   end
 
+  def handle_cast({:set_path, path}, state) do
+    operation = {:set_path, path}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
     broadcast_info(state.session_id, "runtime node terminated unexpectedly")
@@ -298,6 +315,11 @@ defmodule LiveBook.Session do
   def handle_info({:evaluation_response, cell_id, response}, state) do
     operation = {:add_cell_evaluation_response, cell_id, response}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info(:autosave, state) do
+    Process.send_after(self(), :autosave, @autosave_interval)
+    {:noreply, maybe_save_notebook(state)}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -392,4 +414,20 @@ defmodule LiveBook.Session do
   end
 
   defp ensure_runtime(state), do: {:ok, state}
+
+  defp maybe_save_notebook(state) do
+    if state.data.path != nil and state.data.dirty do
+      content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
+      case File.write(state.data.path, content) do
+        :ok ->
+          handle_operation(state, :mark_saved)
+
+        {:error, reason} ->
+          broadcast_error(state.session_id, "failed to save notebook - #{reason}")
+          state
+      end
+    else
+      state
+    end
+  end
 end

@@ -57,7 +57,9 @@ defmodule LiveBookWeb.SessionLive do
     <%= if @live_action == :settings do %>
       <%= live_modal @socket, LiveBookWeb.SettingsComponent,
             id: :settings_modal,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session_id),
+            session_id: @session_id,
+            path: @data.path %>
     <% end %>
 
     <%= if @live_action == :runtime do %>
@@ -107,6 +109,18 @@ defmodule LiveBookWeb.SessionLive do
             </div>
           </button>
         </div>
+        <%= if @data.path do %>
+          <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center">
+            <%= if @data.dirty do %>
+              <%= Icons.svg(:dots_circle_horizontal, class: "h-4 text-blue-400") %>
+            <% else %>
+              <%= Icons.svg(:check_circle, class: "h-4 text-green-400") %>
+            <% end %>
+            <span>
+              <%= Path.basename(@data.path) %>
+            </span>
+          </div>
+        <% end %>
         <div class="p-4 flex space-x-2">
           <%= live_patch to: Routes.session_path(@socket, :settings, @session_id) do %>
             <%= Icons.svg(:adjustments, class: "h-6 w-6 text-gray-600 hover:text-current") %>

@@ -1,11 +1,13 @@
 defmodule LiveBookWeb.SettingsComponent do
   use LiveBookWeb, :live_component
 
-  @impl true
-  def mount(socket) do
-    # TODO: pass path from the LV
-    {:ok, assign(socket, path: nil)}
-  end
+  alias LiveBook.Session
+
+  # @impl true
+  # def mount(socket) do
+  #   # TODO: pass path from the LV
+  #   {:ok, assign(socket, path: nil)}
+  # end
 
   @impl true
   def render(assigns) do
@@ -59,6 +61,8 @@ defmodule LiveBookWeb.SettingsComponent do
   end
 
   def handle_event("done", %{}, socket) do
+    # TODO: check if taken and show err
+    Session.set_path(socket.assigns.session_id, socket.assigns.path)
     {:noreply, socket}
   end
 end

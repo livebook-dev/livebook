@@ -17,6 +17,7 @@ defmodule LiveBook.Session.Data do
   defstruct [
     :notebook,
     :path,
+    :dirty,
     :section_infos,
     :cell_infos,
     :deleted_sections,
@@ -30,6 +31,7 @@ defmodule LiveBook.Session.Data do
   @type t :: %__MODULE__{
           notebook: Notebook.t(),
           path: nil | String.t(),
+          dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
           cell_infos: %{Cell.id() => cell_info()},
           deleted_sections: list(Section.t()),
@@ -70,6 +72,8 @@ defmodule LiveBook.Session.Data do
           | {:set_section_name, Section.id(), String.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:set_runtime, Runtime.t() | nil}
+          | {:set_path, String.t() | nil}
+          | :mark_saved
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
@@ -85,6 +89,7 @@ defmodule LiveBook.Session.Data do
     %__MODULE__{
       notebook: Notebook.new(),
       path: nil,
+      dirty: false,
       section_infos: %{},
       cell_infos: %{},
       deleted_sections: [],
@@ -125,6 +130,7 @@ defmodule LiveBook.Session.Data do
     data
     |> with_actions()
     |> insert_section(index, section)
+    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -135,6 +141,7 @@ defmodule LiveBook.Session.Data do
       data
       |> with_actions()
       |> insert_cell(section_id, index, cell)
+      |> set_dirty()
       |> wrap_ok()
     end
   end
@@ -144,6 +151,7 @@ defmodule LiveBook.Session.Data do
       data
       |> with_actions()
       |> delete_section(section)
+      |> set_dirty()
       |> wrap_ok()
     end
   end
@@ -171,6 +179,7 @@ defmodule LiveBook.Session.Data do
       end
       |> delete_cell(cell)
       |> add_action({:forget_evaluation, cell, section})
+      |> set_dirty()
       |> wrap_ok()
     end
   end
@@ -245,6 +254,7 @@ defmodule LiveBook.Session.Data do
     data
     |> with_actions()
     |> set_notebook_name(name)
+    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -253,6 +263,7 @@ defmodule LiveBook.Session.Data do
       data
       |> with_actions()
       |> set_section_name(section, name)
+      |> set_dirty()
       |> wrap_ok()
     end
   end
@@ -264,6 +275,7 @@ defmodule LiveBook.Session.Data do
       data
       |> with_actions()
       |> apply_delta(from, cell, delta, revision)
+      |> set_dirty()
       |> wrap_ok()
     else
       _ -> :error
@@ -275,6 +287,21 @@ defmodule LiveBook.Session.Data do
     |> with_actions()
     |> set!(runtime: runtime)
     |> reduce(data.notebook.sections, &clear_section_evaluation/2)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:set_path, path}) do
+    data
+    |> with_actions()
+    |> set!(path: path)
+    |> set_dirty()
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, :mark_saved) do
+    data
+    |> with_actions()
+    |> set_dirty(false)
     |> wrap_ok()
   end
 
@@ -531,6 +558,10 @@ defmodule LiveBook.Session.Data do
 
   defp reduce(data_actions, list, reducer) do
     Enum.reduce(list, data_actions, fn elem, data_actions -> reducer.(data_actions, elem) end)
+  end
+
+  defp set_dirty(data_actions, dirty \\ true) do
+    set!(data_actions, dirty: dirty)
   end
 
   @doc """

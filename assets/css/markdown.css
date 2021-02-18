@@ -71,11 +71,21 @@
 }
 
 .markdown table th {
-  @apply p-2 font-bold;
+  @apply p-2 font-bold text-left;
 }
 
 .markdown table td {
-  @apply p-2;
+  @apply p-2 text-left;
+}
+
+.markdown table th[align="center"],
+.markdown table td[align="center"] {
+  @apply text-center;
+}
+
+.markdown table th[align="right"],
+.markdown table td[align="right"] {
+  @apply text-right;
 }
 
 .markdown table th:first-child,
