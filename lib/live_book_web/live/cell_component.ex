@@ -18,7 +18,7 @@ defmodule LiveBookWeb.CellComponent do
   def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
     ~L"""
     <%= if @focused do %>
-      <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
+      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10">
         <button phx-click="delete_cell" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
           <%= Icons.svg(:trash, class: "h-6") %>
         </button>
@@ -38,7 +38,7 @@ defmodule LiveBookWeb.CellComponent do
   def render_cell_content(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
     <%= if @focused do %>
-      <div class="flex flex-col items-center space-y-2 absolute right-0 top-0 -mr-10">
+      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10">
         <button phx-click="queue_cell_evaluation" phx-value-cell_id="<%= @cell.id %>" class="text-gray-500 hover:text-current">
           <%= Icons.svg(:play, class: "h-6") %>
         </button>

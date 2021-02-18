@@ -3,7 +3,7 @@ defmodule LiveBookWeb.InsertCellComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="opacity-0 hover:opacity-100 flex space-x-2 justify-center items-center">
+    <div class="<%= if(@persistent, do: "opacity-100", else: "opacity-0") %> hover:opacity-100 flex space-x-2 justify-center items-center">
       <%= line() %>
       <button class="py-1 px-2 rounded-md text-sm hover:bg-gray-100 border border-gray-200 bg-gray-50"
         phx-click="insert_cell"

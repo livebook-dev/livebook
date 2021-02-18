@@ -29,7 +29,8 @@ defmodule LiveBookWeb.SectionComponent do
           <%= live_component @socket, LiveBookWeb.InsertCellComponent,
                 id: "#{@section.id}:0",
                 section_id: @section.id,
-                index: 0 %>
+                index: 0,
+                persistent: @section.cells == [] %>
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
             <%= live_component @socket, LiveBookWeb.CellComponent,
                   id: cell.id,
@@ -40,7 +41,8 @@ defmodule LiveBookWeb.SectionComponent do
             <%= live_component @socket, LiveBookWeb.InsertCellComponent,
                   id: "#{@section.id}:#{index + 1}",
                   section_id: @section.id,
-                  index: index + 1 %>
+                  index: index + 1,
+                  persistent: false %>
           <% end %>
         </div>
       </div>
