@@ -41,55 +41,51 @@ defmodule LiveBookWeb.ShortcutsComponent do
         the notebook and execute commands, whereas in the <span class="font-semibold">insert mode</span>
         you have editor focus and directly modify the given cell content.
       </p>
-      <div class="flex space-x-4">
-        <div class="w-1/2">
-          <h3 class="text-lg font-medium text-gray-900">
-            Navigation mode
-          </h3>
-          <div class="mt-2">
-            <table>
-              <tbody>
-                <%= for shortcut <- @shortcuts.navigation_mode do %>
-                  <tr>
-                    <td class="py-1 pr-4">
-                      <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
-                        <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
-                      </span>
-                    </td>
-                    <td>
-                      <%= shortcut.desc %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="w-1/2">
-          <h3 class="text-lg font-medium text-gray-900">
-            Insert mode
-          </h3>
-          <div class="mt-2">
-            <table>
-              <tbody>
-                <%= for shortcut <- @shortcuts.insert_mode do %>
-                  <tr>
-                    <td class="py-1 pr-4">
-                      <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
-                        <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
-                      </span>
-                    </td>
-                    <td>
-                      <%= shortcut.desc %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <%= render_shortcuts_section("Navigation mode", @shortcuts.navigation_mode, @platform) %>
+      <%= render_shortcuts_section("Insert mode", @shortcuts.insert_mode, @platform) %>
+    </div>
+    """
+  end
+
+  defp render_shortcuts_section(title, shortcuts, platform) do
+    {left, right} = split_in_half(shortcuts)
+    assigns = %{title: title, left: left, right: right, platform: platform}
+
+    ~L"""
+    <h3 class="text-lg font-medium text-gray-900">
+      <%= @title %>
+    </h3>
+    <div class="mt-2 flex">
+      <div class="w-1/2">
+        <%= render_shortcuts_section_table(@left, @platform) %>
+      </div>
+      <div class="w-1/2">
+        <%= render_shortcuts_section_table(@right, @platform) %>
       </div>
     </div>
+    """
+  end
+
+  defp render_shortcuts_section_table(shortcuts, platform) do
+    assigns = %{shortcuts: shortcuts, platform: platform}
+
+    ~L"""
+    <table>
+      <tbody>
+        <%= for shortcut <- @shortcuts do %>
+          <tr>
+            <td class="py-1 pr-4">
+              <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
+                <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
+              </span>
+            </td>
+            <td>
+              <%= shortcut.desc %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
     """
   end
 
@@ -97,5 +93,10 @@ defmodule LiveBookWeb.ShortcutsComponent do
     seq
     |> String.replace("ctrl", "cmd")
     |> String.replace("alt", "option")
+  end
+
+  defp split_in_half(list) do
+    half_idx = list |> length() |> Kernel.+(1) |> div(2)
+    Enum.split(list, half_idx)
   end
 end
