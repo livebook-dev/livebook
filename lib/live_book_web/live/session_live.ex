@@ -75,7 +75,7 @@ defmodule LiveBookWeb.SessionLive do
          data-insert-mode="<%= @insert_mode %>"
          data-focused-cell-id="<%= @focused_cell_id %>"
          data-focused-cell-type="<%= @focused_cell_type %>">
-      <div class="flex flex-col w-1/5 bg-gray-100 border-r-2 border-gray-200">
+      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
         <h1 id="notebook-name"
             contenteditable
             spellcheck="false"
@@ -88,7 +88,7 @@ defmodule LiveBookWeb.SessionLive do
           <%= for section <- @data.notebook.sections do %>
             <div phx-click="select_section"
                  phx-value-section_id="<%= section.id %>"
-                 class="py-2 px-4 rounded-l-md cursor-pointer text-gray-500 hover:text-current">
+                 class="py-2 px-4 rounded-l-md cursor-pointer hover:text-current border border-r-0 <%= if(section.id == @selected_section_id, do: "bg-white border-gray-200", else: "text-gray-500 border-transparent") %>">
               <span>
                 <%= section.name %>
               </span>
