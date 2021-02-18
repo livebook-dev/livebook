@@ -16,13 +16,24 @@ defmodule LiveBookWeb.SessionLive do
           Session.get_data(session_id)
         end
 
-      {:ok, assign(socket, initial_assigns(session_id, data))}
+      platform = platform_from_socket(socket)
+
+      {:ok, assign(socket, initial_assigns(session_id, data, platform))}
     else
       {:ok, redirect(socket, to: Routes.sessions_path(socket, :page))}
     end
   end
 
-  defp initial_assigns(session_id, data) do
+  defp platform_from_socket(socket) do
+    with connect_info when connect_info != nil <- get_connect_info(socket),
+         {:ok, user_agent} <- Map.fetch(connect_info, :user_agent) do
+      platform_from_user_agent(user_agent)
+    else
+      _ -> nil
+    end
+  end
+
+  defp initial_assigns(session_id, data, platform) do
     first_section_id =
       case data.notebook.sections do
         [section | _] -> section.id
@@ -30,12 +41,13 @@ defmodule LiveBookWeb.SessionLive do
       end
 
     %{
+      platform: platform,
       session_id: session_id,
       data: data,
       selected_section_id: first_section_id,
       focused_cell_id: nil,
       focused_cell_type: nil,
-      focused_cell_expanded: false
+      insert_mode: false
     }
   end
 
@@ -45,15 +57,22 @@ defmodule LiveBookWeb.SessionLive do
     <%= if @live_action == :runtime do %>
       <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
             id: :runtime_modal,
-            action: :runtime,
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
             runtime: @data.runtime %>
     <% end %>
 
+    <%= if @live_action == :shortcuts do %>
+      <%= live_modal @socket, LiveBookWeb.ShortcutsComponent,
+            id: :shortcuts_modal,
+            platform: @platform,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
     <div class="flex flex-grow h-full"
          id="session"
          phx-hook="Session"
+         data-insert-mode="<%= @insert_mode %>"
          data-focused-cell-id="<%= @focused_cell_id %>"
          data-focused-cell-type="<%= @focused_cell_type %>">
       <div class="flex flex-col w-1/5 bg-gray-100 border-r-2 border-gray-200">
@@ -82,9 +101,12 @@ defmodule LiveBookWeb.SessionLive do
             </div>
           </button>
         </div>
-        <div class="p-4">
+        <div class="p-4 flex space-x-2 justify-between">
           <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
             <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+          <% end %>
+          <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
+            <%= Icons.svg(:question_mark_circle, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
         </div>
       </div>
@@ -97,11 +119,18 @@ defmodule LiveBookWeb.SessionLive do
                   selected: section.id == @selected_section_id,
                   cell_infos: @data.cell_infos,
                   focused_cell_id: @focused_cell_id,
-                  focused_cell_expanded: @focused_cell_expanded %>
+                  insert_mode: @insert_mode %>
           <% end %>
         </div>
       </div>
     </div>
+
+    <%= if @insert_mode do %>
+      <%# Show a tiny insert indicator for clarity %>
+      <div class="fixed right-5 bottom-1 text-gray-500 text-semibold text-sm">
+        insert
+      </div>
+    <% end %>
     """
   end
 
@@ -234,9 +263,9 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  def handle_event("toggle_cell_expanded", %{}, socket) do
+  def handle_event("set_insert_mode", %{"enabled" => enabled}, socket) do
     if socket.assigns.focused_cell_id do
-      {:noreply, assign(socket, focused_cell_expanded: !socket.assigns.focused_cell_expanded)}
+      {:noreply, assign(socket, insert_mode: enabled)}
     else
       {:noreply, socket}
     end
@@ -256,6 +285,22 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("queue_section_cells_evaluation", %{}, socket) do
+    if socket.assigns.selected_section_id do
+      {:ok, section} =
+        Notebook.fetch_section(
+          socket.assigns.data.notebook,
+          socket.assigns.selected_section_id
+        )
+
+      for cell <- section.cells, cell.type == :elixir do
+        Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+      end
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_child_cells_evaluation", %{}, socket) do
     if socket.assigns.focused_cell_id do
       {:ok, cell, _section} =
@@ -266,12 +311,17 @@ defmodule LiveBookWeb.SessionLive do
 
       cells = Notebook.child_cells(socket.assigns.data.notebook, cell.id)
 
-      for cell <- [cell | cells], cell.type == :elixir do
+      for cell <- cells, cell.type == :elixir do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
 
     {:noreply, socket}
+  end
+
+  def handle_event("show_shortcuts", %{}, socket) do
+    {:noreply,
+     push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
   end
 
   @impl true
@@ -315,7 +365,7 @@ defmodule LiveBookWeb.SessionLive do
 
   defp after_operation(socket, _prev_socket, {:insert_cell, _, _, _, cell_id}) do
     {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
-    focus_cell(socket, cell, expanded: true)
+    focus_cell(socket, cell, insert_mode: true)
   end
 
   defp after_operation(socket, prev_socket, {:delete_cell, cell_id}) do
@@ -367,16 +417,16 @@ defmodule LiveBookWeb.SessionLive do
   defp focus_cell(socket, cell, opts \\ [])
 
   defp focus_cell(socket, nil = _cell, _opts) do
-    assign(socket, focused_cell_id: nil, focused_cell_type: nil, focused_cell_expanded: false)
+    assign(socket, focused_cell_id: nil, focused_cell_type: nil, insert_mode: false)
   end
 
   defp focus_cell(socket, cell, opts) do
-    expanded? = Keyword.get(opts, :expanded, false)
+    insert_mode? = Keyword.get(opts, :insert_mode, false)
 
     assign(socket,
       focused_cell_id: cell.id,
       focused_cell_type: cell.type,
-      focused_cell_expanded: expanded?
+      insert_mode: insert_mode?
     )
   end
 

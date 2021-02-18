@@ -1,4 +1,6 @@
-import { getAttributeOrThrow } from "../lib/attribute";
+import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
+import { isMacOS } from "../lib/utils";
+import KeyBuffer from "./key_buffer";
 
 /**
  * A hook managing the whole session.
@@ -14,66 +16,62 @@ const Session = {
     this.props = getProps(this);
 
     // Keybindings
-    this.handleDocumentKeydown = (event) => {
-      const key = event.key.toLowerCase();
-      const shift = event.shiftKey;
-      const alt = event.altKey;
-      const ctrl = event.ctrlKey;
+    // Note: make sure to keep the shortcuts help modal up to date.
 
+    const keyBuffer = new KeyBuffer();
+
+    this.handleDocumentKeydown = (event) => {
       if (event.repeat) {
         return;
       }
 
-      if (shift && key === "enter") {
-        cancelEvent(event);
+      const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+      const key = event.key;
 
-        if (this.props.focusedCellType === "elixir") {
+      if (this.props.insertMode) {
+        keyBuffer.reset();
+
+        if (key === "Escape") {
+          this.pushEvent("set_insert_mode", { enabled: false });
+        } else if (
+          this.props.focusedCellType === "elixir" &&
+          cmd &&
+          key === "Enter"
+        ) {
+          cancelEvent(event);
           this.pushEvent("queue_focused_cell_evaluation");
         }
+      } else {
+        keyBuffer.push(event.key);
 
-        this.pushEvent("move_cell_focus", { offset: 1 });
-      } else if (alt && ctrl && key === "enter") {
-        cancelEvent(event);
-
-        this.pushEvent("queue_child_cells_evaluation", {});
-      } else if (ctrl && key === "enter") {
-        cancelEvent(event);
-
-        if (this.props.focusedCellType === "elixir") {
-          this.pushEvent("queue_focused_cell_evaluation");
-        }
-
-        if (this.props.focusedCellType === "markdown") {
-          this.pushEvent("toggle_cell_expanded");
-        }
-      } else if (alt && key === "j") {
-        cancelEvent(event);
-
-        this.pushEvent("move_cell_focus", { offset: 1 });
-      } else if (alt && key === "k") {
-        cancelEvent(event);
-
-        this.pushEvent("move_cell_focus", { offset: -1 });
-      } else if (alt && key === "n") {
-        cancelEvent(event);
-
-        if (shift) {
-          this.pushEvent("insert_cell_above_focused", { type: "elixir" });
-        } else {
+        if (keyBuffer.tryMatch(["d", "d"])) {
+          this.pushEvent("delete_focused_cell", {});
+        } else if (
+          this.props.focusedCellType === "elixir" &&
+          keyBuffer.tryMatch(["e", "e"])
+        ) {
+          this.pushEvent("queue_focused_cell_evaluation", {});
+        } else if (keyBuffer.tryMatch(["e", "s"])) {
+          this.pushEvent("queue_section_cells_evaluation", {});
+        } else if (keyBuffer.tryMatch(["e", "j"])) {
+          this.pushEvent("queue_child_cells_evaluation", {});
+        } else if (keyBuffer.tryMatch(["?"])) {
+          this.pushEvent("show_shortcuts", {});
+        } else if (key === "i") {
+          this.pushEvent("set_insert_mode", { enabled: true });
+        } else if (key === "j") {
+          this.pushEvent("move_cell_focus", { offset: 1 });
+        } else if (key === "k") {
+          this.pushEvent("move_cell_focus", { offset: -1 });
+        } else if (key === "n") {
           this.pushEvent("insert_cell_below_focused", { type: "elixir" });
-        }
-      } else if (alt && key === "m") {
-        cancelEvent(event);
-
-        if (shift) {
-          this.pushEvent("insert_cell_above_focused", { type: "markdown" });
-        } else {
+        } else if (key === "N") {
+          this.pushEvent("insert_cell_above_focused", { type: "elixir" });
+        } else if (key === "m") {
           this.pushEvent("insert_cell_below_focused", { type: "markdown" });
+        } else if (key === "M") {
+          this.pushEvent("insert_cell_above_focused", { type: "markdown" });
         }
-      } else if (alt && key === "w") {
-        cancelEvent(event);
-
-        this.pushEvent("delete_focused_cell", {});
       }
     };
 
@@ -86,6 +84,13 @@ const Session = {
       const cellId = cell ? cell.dataset.cellId : null;
       if (cellId !== this.props.focusedCellId) {
         this.pushEvent("focus_cell", { cell_id: cellId });
+      }
+
+      // Depending if the click targets editor or not disable/enable insert mode.
+      if (cell) {
+        const editorContainer = cell.querySelector("[data-editor-container]");
+        const editorClicked = editorContainer.contains(event.target);
+        this.pushEvent("set_insert_mode", { enabled: editorClicked });
       }
     };
 
@@ -104,6 +109,7 @@ const Session = {
 
 function getProps(hook) {
   return {
+    insertMode: getAttributeOrThrow(hook.el, "data-insert-mode", parseBoolean),
     focusedCellId: getAttributeOrThrow(
       hook.el,
       "data-focused-cell-id",

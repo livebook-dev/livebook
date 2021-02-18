@@ -36,7 +36,7 @@ defmodule LiveBookWeb.SectionComponent do
                   cell: cell,
                   cell_info: @cell_infos[cell.id],
                   focused: @selected and cell.id == @focused_cell_id,
-                  expanded: @selected and cell.id == @focused_cell_id and @focused_cell_expanded %>
+                  insert_mode: @insert_mode %>
             <%= live_component @socket, LiveBookWeb.InsertCellComponent,
                   id: "#{@section.id}:#{index + 1}",
                   section_id: @section.id,

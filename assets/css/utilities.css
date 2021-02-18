@@ -4,6 +4,10 @@
   background-color: #282c34;
 }
 
+.text-editor {
+  color: #abb2bf;
+}
+
 .font-editor {
   font-family: "Droid Sans Mono", monospace, monospace, "Droid Sans Fallback";
   font-size: 14px;

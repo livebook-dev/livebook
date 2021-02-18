@@ -21,5 +21,6 @@ defmodule LiveBookWeb.Router do
     live "/sessions", SessionsLive, :page
     live "/sessions/:id", SessionLive, :page
     live "/sessions/:id/runtime", SessionLive, :runtime
+    live "/sessions/:id/shortcuts", SessionLive, :shortcuts
   end
 end
