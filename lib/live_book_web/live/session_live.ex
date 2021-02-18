@@ -54,6 +54,12 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
+    <%= if @live_action == :settings do %>
+      <%= live_modal @socket, LiveBookWeb.SettingsComponent,
+            id: :settings_modal,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
     <%= if @live_action == :runtime do %>
       <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
             id: :runtime_modal,
@@ -101,10 +107,14 @@ defmodule LiveBookWeb.SessionLive do
             </div>
           </button>
         </div>
-        <div class="p-4 flex space-x-2 justify-between">
+        <div class="p-4 flex space-x-2">
+          <%= live_patch to: Routes.session_path(@socket, :settings, @session_id) do %>
+            <%= Icons.svg(:adjustments, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+          <% end %>
           <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
             <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
+          <div class="flex-grow"></div>
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
             <%= Icons.svg(:question_mark_circle, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
