@@ -25,6 +25,13 @@ const ContentEditable = {
       const text = event.clipboardData.getData("text/plain");
       document.execCommand("insertText", false, text);
     });
+
+    // Unfocus the element on Enter or Escape
+    this.el.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === "Escape") {
+        this.el.blur();
+      }
+    });
   },
 
   updated() {
