@@ -53,7 +53,7 @@ defmodule LiveBookWeb.ShortcutsComponent do
                   <tr>
                     <td class="py-1 pr-4">
                       <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
-                        <%= if(mac_user_agent?(@user_agent), do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
+                        <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
                       </span>
                     </td>
                     <td>
@@ -76,7 +76,7 @@ defmodule LiveBookWeb.ShortcutsComponent do
                   <tr>
                     <td class="py-1 pr-4">
                       <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
-                        <%= if(mac_user_agent?(@user_agent), do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
+                        <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
                       </span>
                     </td>
                     <td>
