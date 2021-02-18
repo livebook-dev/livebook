@@ -200,12 +200,6 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    Session.delete_cell(socket.assigns.session_id, cell_id)
-
-    {:noreply, socket}
-  end
-
   def handle_event("delete_focused_cell", %{}, socket) do
     if socket.assigns.focused_cell_id do
       Session.delete_cell(socket.assigns.session_id, socket.assigns.focused_cell_id)
@@ -271,10 +265,12 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
-
-    {:noreply, socket}
+  def handle_event("enable_insert_mode", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      {:noreply, assign(socket, insert_mode: true)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("queue_focused_cell_evaluation", %{}, socket) do
