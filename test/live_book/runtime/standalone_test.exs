@@ -26,7 +26,7 @@ defmodule LiveBook.Runtime.StandaloneTest do
     end
 
     test "loads necessary modules and starts manager process" do
-      assert {:ok, %{node: node} = runtime} = Runtime.Standalone.init(self())
+      assert {:ok, %{node: node}} = Runtime.Standalone.init(self())
 
       assert evaluator_module_loaded?(node)
       assert manager_started?(node)
