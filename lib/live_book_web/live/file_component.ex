@@ -54,9 +54,15 @@ defmodule LiveBookWeb.FileComponent do
 
   @impl true
   def handle_event("toggle_file", %{}, socket) do
-    default = File.cwd!() |> Path.join("notebook")
-    path = if(socket.assigns.path == nil, do: default, else: nil)
+    path =
+      if socket.assigns.path == nil do
+        default_path()
+      else
+        nil
+      end
+
     path_valid = path |> normalize_path() |> path_valid?(socket.assigns.running_paths)
+
     {:noreply, assign(socket, path: path, path_valid: path_valid)}
   end
 
@@ -71,6 +77,10 @@ defmodule LiveBookWeb.FileComponent do
 
     {:noreply,
      push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session_id))}
+  end
+
+  defp default_path() do
+    File.cwd!() |> Path.join("notebook")
   end
 
   defp path_valid?(nil, _running_paths), do: true

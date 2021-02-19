@@ -1,13 +1,18 @@
 defmodule LiveBookWeb.HomeLive do
   use LiveBookWeb, :live_view
 
-  alias LiveBook.SessionSupervisor
+  alias LiveBook.{SessionSupervisor, Session}
 
   @impl true
   def mount(_params, _session, socket) do
-    cwd = File.cwd!() <> "/"
-    running_paths = Enum.map(SessionSupervisor.get_session_summaries(), & &1.path)
-    {:ok, assign(socket, path: cwd, path_valid: false, running_paths: running_paths)}
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions")
+    end
+
+    session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
+
+    {:ok,
+     assign(socket, path: default_path(), path_valid: false, session_summaries: session_summaries)}
   end
 
   @impl true
@@ -16,7 +21,7 @@ defmodule LiveBookWeb.HomeLive do
     <header class="flex justify-center p-4 border-b">
       <h1 class="text-2xl font-medium">LiveBook</h1>
     </header>
-    <div class="mt-4 container max-w-4xl w-full mx-auto flex flex-col items-center space-y-4">
+    <div class="mt-4 container max-w-4xl w-full mx-auto flex flex-col items-center space-y-4 pb-8">
       <div class="w-full flex justify-end">
         <button class="button-base button-sm"
           phx-click="new">
@@ -27,7 +32,7 @@ defmodule LiveBookWeb.HomeLive do
         <%= live_component @socket, LiveBookWeb.PathSelectComponent,
           id: "path_select",
           path: @path,
-          running_paths: @running_paths,
+          running_paths: paths(@session_summaries),
           target: nil %>
         <div class="flex justify-end space-x-2">
           <%= content_tag :button, "Import",
@@ -40,13 +45,18 @@ defmodule LiveBookWeb.HomeLive do
             disabled: !@path_valid %>
         </div>
       </div>
+      <div class="w-full pt-24">
+        <%= live_component @socket, LiveBookWeb.SessionsComponent,
+          id: "sessions_list",
+          session_summaries: @session_summaries %>
+      </div>
     </div>
     """
   end
 
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
-    path_valid = path_valid?(path, socket.assigns.running_paths)
+    path_valid = path_valid?(path, paths(socket.assigns.session_summaries))
     {:noreply, assign(socket, path: path, path_valid: path_valid)}
   end
 
@@ -60,6 +70,30 @@ defmodule LiveBookWeb.HomeLive do
 
   def handle_event("open", %{}, socket) do
     create_session(socket, import_path: socket.assigns.path, keep_path: true)
+  end
+
+  @impl true
+  def handle_info({:session_created, id}, socket) do
+    summary = Session.get_summary(id)
+    session_summaries = sort_session_summaries([summary | socket.assigns.session_summaries])
+    {:noreply, assign(socket, session_summaries: session_summaries)}
+  end
+
+  def handle_info({:session_deleted, id}, socket) do
+    session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
+    {:noreply, assign(socket, session_summaries: session_summaries)}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp default_path(), do: File.cwd!() <> "/"
+
+  defp sort_session_summaries(session_summaries) do
+    Enum.sort_by(session_summaries, & &1.notebook_name)
+  end
+
+  defp paths(session_summaries) do
+    Enum.map(session_summaries, & &1.path)
   end
 
   defp path_valid?(path, running_paths) do
