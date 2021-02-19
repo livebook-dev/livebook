@@ -129,6 +129,9 @@ defmodule LiveBookWeb.SessionLive do
             <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
           <div class="flex-grow"></div>
+          <%= live_patch to: Routes.home_path(@socket, :page) do %>
+            <%= Icons.svg(:home, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+          <% end %>
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
             <%= Icons.svg(:question_mark_circle, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
