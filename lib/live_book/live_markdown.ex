@@ -47,4 +47,6 @@ defmodule LiveBook.LiveMarkdown do
   #
   # This file defines a notebook named *My Notebook* with two sections.
   # The first section includes 3 cells and the second section includes 1 Elixir cell.
+
+  def extension(), do: ".livemd"
 end

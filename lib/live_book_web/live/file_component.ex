@@ -1,12 +1,12 @@
 defmodule LiveBookWeb.FileComponent do
   use LiveBookWeb, :live_component
 
-  alias LiveBook.{Session, SessionSupervisor}
+  alias LiveBook.{Session, SessionSupervisor, LiveMarkdown}
 
   @impl true
   def mount(socket) do
-    running_paths = Enum.map(SessionSupervisor.get_session_summaries(), & &1.path)
-    {:ok, assign(socket, running_paths: running_paths, path_valid: true)}
+    session_summaries = SessionSupervisor.get_session_summaries()
+    {:ok, assign(socket, session_summaries: session_summaries)}
   end
 
   @impl true
@@ -33,7 +33,7 @@ defmodule LiveBookWeb.FileComponent do
             <%= live_component @socket, LiveBookWeb.PathSelectComponent,
               id: "path_select",
               path: @path,
-              running_paths: @running_paths,
+              running_paths: paths(@session_summaries),
               target: @myself %>
           </div>
           <div class="text-gray-500 text-sm">
@@ -46,7 +46,7 @@ defmodule LiveBookWeb.FileComponent do
           class: "button-base button-primary button-sm",
           phx_click: "done",
           phx_target: @myself,
-          disabled: !@path_valid %>
+          disabled: not path_savable?(normalize_path(@path), @session_summaries) %>
       </div>
     </div>
     """
@@ -61,14 +61,11 @@ defmodule LiveBookWeb.FileComponent do
         nil
       end
 
-    path_valid = path |> normalize_path() |> path_valid?(socket.assigns.running_paths)
-
-    {:noreply, assign(socket, path: path, path_valid: path_valid)}
+    {:noreply, assign(socket, path: path)}
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
-    path_valid = path |> normalize_path() |> path_valid?(socket.assigns.running_paths)
-    {:noreply, assign(socket, path: path, path_valid: path_valid)}
+    {:noreply, assign(socket, path: path)}
   end
 
   def handle_event("done", %{}, socket) do
@@ -83,10 +80,15 @@ defmodule LiveBookWeb.FileComponent do
     File.cwd!() |> Path.join("notebook")
   end
 
-  defp path_valid?(nil, _running_paths), do: true
+  defp paths(session_summaries) do
+    Enum.map(session_summaries, & &1.path)
+  end
 
-  defp path_valid?(path, running_paths) do
+  defp path_savable?(nil, _session_summaries), do: true
+
+  defp path_savable?(path, session_summaries) do
     if File.exists?(path) do
+      running_paths = paths(session_summaries)
       File.regular?(path) and path not in running_paths
     else
       dir = Path.dirname(path)
@@ -97,10 +99,10 @@ defmodule LiveBookWeb.FileComponent do
   defp normalize_path(nil), do: nil
 
   defp normalize_path(path) do
-    if String.ends_with?(path, ".livemd") do
+    if String.ends_with?(path, LiveMarkdown.extension()) do
       path
     else
-      path <> ".livemd"
+      path <> LiveMarkdown.extension()
     end
   end
 end

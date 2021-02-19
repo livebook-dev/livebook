@@ -11,8 +11,7 @@ defmodule LiveBookWeb.HomeLive do
 
     session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
 
-    {:ok,
-     assign(socket, path: default_path(), path_valid: false, session_summaries: session_summaries)}
+    {:ok, assign(socket, path: default_path(), session_summaries: session_summaries)}
   end
 
   @impl true
@@ -38,11 +37,11 @@ defmodule LiveBookWeb.HomeLive do
           <%= content_tag :button, "Import",
             class: "button-base button-sm",
             phx_click: "import",
-            disabled: !@path_valid %>
+            disabled: not path_importable?(@path) %>
           <%= content_tag :button, "Open",
             class: "button-base button-sm button-primary",
             phx_click: "open",
-            disabled: !@path_valid %>
+            disabled: not path_openable?(@path, @session_summaries) %>
         </div>
       </div>
       <div class="w-full pt-24">
@@ -56,8 +55,7 @@ defmodule LiveBookWeb.HomeLive do
 
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
-    path_valid = path_valid?(path, paths(socket.assigns.session_summaries))
-    {:noreply, assign(socket, path: path, path_valid: path_valid)}
+    {:noreply, assign(socket, path: path)}
   end
 
   def handle_event("new", %{}, socket) do
@@ -96,7 +94,12 @@ defmodule LiveBookWeb.HomeLive do
     Enum.map(session_summaries, & &1.path)
   end
 
-  defp path_valid?(path, running_paths) do
+  defp path_importable?(path) do
+    File.regular?(path)
+  end
+
+  defp path_openable?(path, session_summaries) do
+    running_paths = paths(session_summaries)
     File.regular?(path) and path not in running_paths
   end
 
