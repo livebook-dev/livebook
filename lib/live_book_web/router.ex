@@ -20,7 +20,7 @@ defmodule LiveBookWeb.Router do
     live "/", HomeLive, :page
     live "/sessions", SessionsLive, :page
     live "/sessions/:id", SessionLive, :page
-    live "/sessions/:id/settings", SessionLive, :settings
+    live "/sessions/:id/file", SessionLive, :file
     live "/sessions/:id/runtime", SessionLive, :runtime
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
   end

@@ -1,6 +1,8 @@
 defmodule LiveBookWeb.SessionsLive do
   use LiveBookWeb, :live_view
 
+  alias LiveBook.SessionSupervisor
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -33,26 +35,13 @@ defmodule LiveBookWeb.SessionsLive do
           </div>
         <% end %>
       </div>
-      <button phx-click="create_session" class="button-base button-primary shadow-md">
-        New session
-      </button>
     </div>
     """
   end
 
   @impl true
-  def handle_event("create_session", _params, socket) do
-    case LiveBook.SessionSupervisor.create_session() do
-      {:ok, id} ->
-        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
-
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
-    end
-  end
-
   def handle_event("delete_session", %{"id" => session_id}, socket) do
-    LiveBook.SessionSupervisor.delete_session(session_id)
+    SessionSupervisor.delete_session(session_id)
 
     {:noreply, socket}
   end

@@ -84,18 +84,31 @@ defmodule LiveBook.Session.Data do
   @doc """
   Returns a fresh notebook session state.
   """
-  @spec new() :: t()
-  def new() do
+  @spec new(Notebook.t()) :: t()
+  def new(notebook \\ Notebook.new()) do
     %__MODULE__{
-      notebook: Notebook.new(),
+      notebook: notebook,
       path: nil,
       dirty: false,
-      section_infos: %{},
-      cell_infos: %{},
+      section_infos: initial_section_infos(notebook),
+      cell_infos: initial_cell_infos(notebook),
       deleted_sections: [],
       deleted_cells: [],
       runtime: nil
     }
+  end
+
+  defp initial_section_infos(notebook) do
+    for section <- notebook.sections,
+        into: %{},
+        do: {section.id, new_section_info()}
+  end
+
+  defp initial_cell_infos(notebook) do
+    for section <- notebook.sections,
+        cell <- section.cells,
+        into: %{},
+        do: {cell.id, new_cell_info()}
   end
 
   @doc """

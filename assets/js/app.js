@@ -7,11 +7,13 @@ import { LiveSocket } from "phoenix_live_view";
 import ContentEditable from "./content_editable";
 import Cell from "./cell";
 import Session from "./session";
+import FocusOnUpdate from "./focus_on_update";
 
 const Hooks = {
   ContentEditable,
   Cell,
   Session,
+  FocusOnUpdate,
 };
 
 const csrfToken = document

@@ -1,51 +1,43 @@
 defmodule LiveBookWeb.HomeLive do
   use LiveBookWeb, :live_view
 
+  alias LiveBook.SessionSupervisor
+
   @impl true
   def mount(_params, _session, socket) do
-    cwd = File.cwd!()
-    {:ok, assign(socket, path: cwd)}
+    cwd = File.cwd!() <> "/"
+    running_paths = Enum.map(SessionSupervisor.get_session_summaries(), & &1.path)
+    {:ok, assign(socket, path: cwd, path_valid: false, running_paths: running_paths)}
   end
 
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="container p-4 flex flex-col items-center">
-      <h1 class="text-2xl">Welcome to LiveBook</h1>
-      <div class="container max-w-4xl mt-8 flex flex-col space-y-4">
-        <form phx-change="set_path">
-          <input class="input-base shadow"
-            type="text"
-            name="path"
-            placeholder="File"
-            value="<%= @path %>"
-            spellcheck="false" />
-        </form>
-        <div class="grid grid-cols-4 gap-2">
-          <%= for {filename, filepath} <- list_files(@path) do %>
-            <button class="flex space-x-2 items-center p-2 rounded-md cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-              phx-click="set_path"
-              phx-value-path="<%= filepath %>">
-              <span class="block">
-                <%= if File.dir?(filepath) do %>
-                  <%= Icons.svg(:folder, class: "h-5") %>
-                <% else %>
-                  <%= Icons.svg(:document_text, class: "h-5") %>
-                <% end %>
-              </span>
-              <span class="block overflow-hidden overflow-ellipsis whitespace-nowrap">
-                <%= filename %>
-              </span>
-            </button>
-          <% end %>
-        </div>
+    <header class="flex justify-center p-4 border-b">
+      <h1 class="text-2xl font-medium">LiveBook</h1>
+    </header>
+    <div class="mt-4 container max-w-4xl w-full mx-auto flex flex-col items-center space-y-4">
+      <div class="w-full flex justify-end">
+        <button class="button-base button-sm"
+          phx-click="new">
+          New notebook
+        </button>
+      </div>
+      <div class="container flex flex-col space-y-4">
+        <%= live_component @socket, LiveBookWeb.PathSelectComponent,
+          id: "path_select",
+          path: @path,
+          running_paths: @running_paths,
+          target: nil %>
         <div class="flex justify-end space-x-2">
-          <button class="button-base button-sm">
-            Import
-          </button>
-          <button class="button-base button-primary button-sm">
-            Open
-          </button>
+          <%= content_tag :button, "Import",
+            class: "button-base button-sm",
+            phx_click: "import",
+            disabled: !@path_valid %>
+          <%= content_tag :button, "Open",
+            class: "button-base button-sm button-primary",
+            phx_click: "open",
+            disabled: !@path_valid %>
         </div>
       </div>
     </div>
@@ -54,35 +46,33 @@ defmodule LiveBookWeb.HomeLive do
 
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
-    {:noreply, assign(socket, path: path)}
+    path_valid = path_valid?(path, socket.assigns.running_paths)
+    {:noreply, assign(socket, path: path, path_valid: path_valid)}
   end
 
-  defp list_files(path) do
-    {dir, basename} =
-      if File.dir?(path) do
-        {path, ""}
-      else
-        {Path.dirname(path), Path.basename(path)}
-      end
+  def handle_event("new", %{}, socket) do
+    create_session(socket)
+  end
 
-    if File.exists?(dir) do
-      files =
-        File.ls!(dir)
-        |> Enum.reject(&String.starts_with?(&1, "."))
-        |> Enum.filter(fn name ->
-          name |> String.downcase() |> String.starts_with?(String.downcase(basename))
-        end)
-        |> Enum.sort()
-        |> Enum.map(fn name ->
-          {name, Path.join(dir, name)}
-        end)
+  def handle_event("import", %{}, socket) do
+    create_session(socket, import_path: socket.assigns.path, keep_path: false)
+  end
 
-      parent = dir |> Path.join("..") |> Path.expand()
-      files = [{"..", parent} | files]
+  def handle_event("open", %{}, socket) do
+    create_session(socket, import_path: socket.assigns.path, keep_path: true)
+  end
 
-      files
-    else
-      []
+  defp path_valid?(path, running_paths) do
+    File.regular?(path) and path not in running_paths
+  end
+
+  defp create_session(socket, opts \\ []) do
+    case SessionSupervisor.create_session(opts) do
+      {:ok, id} ->
+        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
     end
   end
 end

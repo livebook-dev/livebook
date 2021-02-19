@@ -15,15 +15,20 @@ defmodule LiveBook.Session do
   use GenServer, restart: :temporary
 
   alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Runtime, LiveMarkdown}
+  alias LiveBook.{Utils, Notebook, Delta, Runtime, LiveMarkdown}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
           session_id: id(),
           data: Data.t(),
-          evaluators: %{Section.t() => Evaluator.t()},
           client_pids: list(pid()),
           runtime_monitor_ref: reference()
+        }
+
+  @type summary :: %{
+          session_id: id(),
+          notebook_name: String.t(),
+          path: String.t() | nil
         }
 
   @typedoc """
@@ -39,9 +44,10 @@ defmodule LiveBook.Session do
   Starts the server process and registers it globally using the `:global` module,
   so that it's identifiable by the given id.
   """
-  @spec start_link(id()) :: GenServer.on_start()
-  def start_link(session_id) do
-    GenServer.start_link(__MODULE__, [session_id: session_id], name: name(session_id))
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts) do
+    id = Keyword.fetch!(opts, :id)
+    GenServer.start_link(__MODULE__, opts, name: name(id))
   end
 
   defp name(session_id) do
@@ -71,11 +77,19 @@ defmodule LiveBook.Session do
   end
 
   @doc """
-  Returns the current session data.
+  Returns data of the given session.
   """
   @spec get_data(id()) :: Data.t()
   def get_data(session_id) do
     GenServer.call(name(session_id), :get_data)
+  end
+
+  @doc """
+  Returns basic information about the given session.
+  """
+  @spec get_summary(id()) :: summary()
+  def get_summary(session_id) do
+    GenServer.call(name(session_id), :get_summary)
   end
 
   @doc """
@@ -191,17 +205,38 @@ defmodule LiveBook.Session do
   ## Callbacks
 
   @impl true
-  def init(session_id: session_id) do
+  def init(opts) do
     Process.send_after(self(), :autosave, @autosave_interval)
+
+    id = Keyword.fetch!(opts, :id)
 
     {:ok,
      %{
-       session_id: session_id,
-       data: Data.new(),
+       session_id: id,
+       data: init_data(opts),
        client_pids: [],
-       evaluators: %{},
        runtime_monitor_ref: nil
      }}
+  end
+
+  defp init_data(opts) do
+    import_path = Keyword.get(opts, :import_path, nil)
+    keep_path = Keyword.get(opts, :keep_path, false)
+
+    if import_path do
+      notebook = import_notebook(import_path)
+      data = Data.new(notebook)
+      path = if(keep_path, do: import_path, else: nil)
+      %{data | path: path}
+    else
+      Data.new()
+    end
+  end
+
+  defp import_notebook(path) do
+    content = File.read!(path)
+    {notebook, _messages} = LiveMarkdown.Import.notebook_from_markdown(content)
+    notebook
   end
 
   @impl true
@@ -212,6 +247,10 @@ defmodule LiveBook.Session do
 
   def handle_call(:get_data, _from, state) do
     {:reply, state.data, state}
+  end
+
+  def handle_call(:get_summary, _from, state) do
+    {:reply, summary_from_state(state), state}
   end
 
   @impl true
@@ -326,6 +365,14 @@ defmodule LiveBook.Session do
 
   # ---
 
+  defp summary_from_state(state) do
+    %{
+      session_id: state.session_id,
+      notebook_name: state.data.notebook.name,
+      path: state.data.path
+    }
+  end
+
   # Given any opeation on `Data`, the process does the following:
   #
   #   * broadcasts the operation to all clients immediately,
@@ -418,6 +465,7 @@ defmodule LiveBook.Session do
   defp maybe_save_notebook(state) do
     if state.data.path != nil and state.data.dirty do
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
+
       case File.write(state.data.path, content) do
         :ok ->
           handle_operation(state, :mark_saved)

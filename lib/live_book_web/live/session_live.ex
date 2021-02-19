@@ -54,9 +54,9 @@ defmodule LiveBookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <%= if @live_action == :settings do %>
-      <%= live_modal @socket, LiveBookWeb.SettingsComponent,
-            id: :settings_modal,
+    <%= if @live_action == :file do %>
+      <%= live_modal @socket, LiveBookWeb.FileComponent,
+            id: :file_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
             path: @data.path %>
@@ -122,8 +122,8 @@ defmodule LiveBookWeb.SessionLive do
           </div>
         <% end %>
         <div class="p-4 flex space-x-2">
-          <%= live_patch to: Routes.session_path(@socket, :settings, @session_id) do %>
-            <%= Icons.svg(:adjustments, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+          <%= live_patch to: Routes.session_path(@socket, :file, @session_id) do %>
+            <%= Icons.svg(:document_text, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
           <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
             <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>

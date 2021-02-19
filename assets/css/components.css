@@ -1,7 +1,15 @@
 /* Buttons */
 
 .button-base {
-  @apply px-4 py-2 bg-white rounded-md border border-gray-300 font-medium text-gray-700 hover:bg-gray-50;
+  @apply px-4 py-2 bg-white rounded-md border border-gray-300 font-medium text-gray-700;
+}
+
+.button-base:not(:disabled) {
+  @apply hover:bg-gray-50;
+}
+
+.button-base:disabled {
+  @apply opacity-50 cursor-default;
 }
 
 .button-sm {
@@ -9,11 +17,19 @@
 }
 
 .button-danger {
-  @apply border border-red-300 text-red-500 hover:bg-red-50;
+  @apply border border-red-300 text-red-500;
+}
+
+.button-danger:not(:disabled) {
+  @apply hover:bg-red-50;
 }
 
 .button-primary {
-  @apply border-0 bg-blue-400 text-white hover:bg-blue-500;
+  @apply border-0 bg-blue-400 text-white;
+}
+
+.button-primary:not(:disabled) {
+  @apply hover:bg-blue-500;
 }
 
 /* Form fields */
