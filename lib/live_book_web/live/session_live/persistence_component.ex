@@ -21,11 +21,17 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
           Specify where the notebook should be automatically persisted.
         </p>
         <div>
-          <form phx-change="toggle_file" phx-target="<%= @myself %>">
-            <label class="inline-flex items-center space-x-3 cursor-pointer">
-              <%= tag :input, class: "checkbox-base", type: "checkbox", checked: @path != nil %>
-              <span>Save to file</span>
-            </label>
+          <form phx-change="set_persistence_type" phx-target="<%= @myself %>">
+            <div class="radio-button-group">
+              <label class="radio-button">
+                <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "file", checked: @path != nil %>
+                <span class="radio-button__label">Save to file</span>
+              </label>
+              <label class="radio-button">
+                <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "memory", checked: @path == nil %>
+                <span class="radio-button__label">Memory only</span>
+              </label>
+            </div>
           </form>
         </div>
         <%= if @path != nil do %>
@@ -53,12 +59,11 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
   end
 
   @impl true
-  def handle_event("toggle_file", %{}, socket) do
+  def handle_event("set_persistence_type", %{"type" => type}, socket) do
     path =
-      if socket.assigns.path == nil do
-        default_path()
-      else
-        nil
+      case type do
+        "file" -> default_path()
+        "memory" -> nil
       end
 
     {:noreply, assign(socket, path: path)}

@@ -51,6 +51,30 @@
   background-repeat: no-repeat;
 }
 
+.radio-button-group {
+  @apply flex;
+}
+
+.radio-button-group .radio-button:first-child .radio-button__label {
+  @apply rounded-l-md border-l;
+}
+
+.radio-button-group .radio-button:last-child .radio-button__label {
+  @apply rounded-r-md;
+}
+
+.radio-button .radio-button__label {
+  @apply block px-3 py-1 cursor-pointer border border-l-0 border-gray-700 text-gray-700 hover:bg-gray-100;
+}
+
+.radio-button .radio-button__input {
+  @apply hidden;
+}
+
+.radio-button .radio-button__input[checked] +  .radio-button__label {
+  @apply bg-gray-700 text-white;
+}
+
 /* Custom scrollbars */
 
 .tiny-scrollbar::-webkit-scrollbar {
