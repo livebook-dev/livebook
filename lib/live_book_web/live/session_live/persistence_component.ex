@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.FileComponent do
+defmodule LiveBookWeb.SessionLive.PersistenceComponent do
   use LiveBookWeb, :live_component
 
   alias LiveBook.{Session, SessionSupervisor, LiveMarkdown}

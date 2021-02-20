@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.ShortcutsComponent do
+defmodule LiveBookWeb.SessionLive.ShortcutsComponent do
   use LiveBookWeb, :live_component
 
   @shortcuts %{

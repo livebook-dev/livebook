@@ -55,7 +55,7 @@ defmodule LiveBookWeb.SessionLive do
   def render(assigns) do
     ~L"""
     <%= if @live_action == :file do %>
-      <%= live_modal @socket, LiveBookWeb.FileComponent,
+      <%= live_modal @socket, LiveBookWeb.SessionLive.PersistenceComponent,
             id: :file_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -63,7 +63,7 @@ defmodule LiveBookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :runtime do %>
-      <%= live_modal @socket, LiveBookWeb.RuntimeComponent,
+      <%= live_modal @socket, LiveBookWeb.SessionLive.RuntimeComponent,
             id: :runtime_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -71,7 +71,7 @@ defmodule LiveBookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
-      <%= live_modal @socket, LiveBookWeb.ShortcutsComponent,
+      <%= live_modal @socket, LiveBookWeb.SessionLive.ShortcutsComponent,
             id: :shortcuts_modal,
             platform: @platform,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
