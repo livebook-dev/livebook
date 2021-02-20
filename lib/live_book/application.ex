@@ -15,6 +15,8 @@ defmodule LiveBook.Application do
       {Phoenix.PubSub, name: LiveBook.PubSub},
       # Start the supervisor dynamically managing sessions
       LiveBook.SessionSupervisor,
+      # Start the server responsible for associating files with sessions
+      LiveBook.Session.FileGuard,
       # Start the Endpoint (http/https)
       LiveBookWeb.Endpoint
     ]

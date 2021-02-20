@@ -158,7 +158,7 @@ defmodule LiveBookWeb.HomeLive do
   end
 
   defp session_id_by_path(path, session_summaries) do
-    summary = Enum.find(session_summaries, & &1.path == path)
+    summary = Enum.find(session_summaries, &(&1.path == path))
     summary.session_id
   end
 end

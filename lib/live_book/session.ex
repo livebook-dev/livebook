@@ -14,7 +14,7 @@ defmodule LiveBook.Session do
 
   use GenServer, restart: :temporary
 
-  alias LiveBook.Session.Data
+  alias LiveBook.Session.{Data, FileGuard}
   alias LiveBook.{Utils, Notebook, Delta, Runtime, LiveMarkdown}
   alias LiveBook.Notebook.{Cell, Section}
 
@@ -218,13 +218,19 @@ defmodule LiveBook.Session do
 
     id = Keyword.fetch!(opts, :id)
 
-    {:ok,
-     %{
-       session_id: id,
-       data: init_data(opts),
-       client_pids: [],
-       runtime_monitor_ref: nil
-     }}
+    case init_data(opts) do
+      {:ok, data} ->
+        {:ok,
+         %{
+           session_id: id,
+           data: data,
+           client_pids: [],
+           runtime_monitor_ref: nil
+         }}
+
+      {:error, error} ->
+        {:stop, error}
+    end
   end
 
   defp init_data(opts) do
@@ -232,7 +238,18 @@ defmodule LiveBook.Session do
     path = Keyword.get(opts, :path)
 
     data = if(notebook, do: Data.new(notebook), else: Data.new())
-    if(path, do: %{data | path: path}, else: data)
+
+    if path do
+      case FileGuard.lock(path, self()) do
+        :ok ->
+          {:ok, %{data | path: path}}
+
+        {:error, :already_in_use} ->
+          {:error, "the given path is already in use"}
+      end
+    else
+      {:ok, data}
+    end
   end
 
   @impl true
@@ -325,8 +342,18 @@ defmodule LiveBook.Session do
   end
 
   def handle_cast({:set_path, path}, state) do
-    operation = {:set_path, path}
-    {:noreply, handle_operation(state, operation)}
+    case FileGuard.lock(path, self()) do
+      :ok ->
+        if state.data.path do
+          FileGuard.unlock(state.data.path, self())
+        end
+
+        {:noreply, handle_operation(state, {:set_path, path})}
+
+      {:error, :already_in_use} ->
+        broadcast_error(state.session_id, "failed to set new path because it is already in use")
+        {:noreply, state}
+    end
   end
 
   @impl true
