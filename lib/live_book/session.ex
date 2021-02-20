@@ -342,7 +342,12 @@ defmodule LiveBook.Session do
   end
 
   def handle_cast({:set_path, path}, state) do
-    case FileGuard.lock(path, self()) do
+    if path do
+      FileGuard.lock(path, self())
+    else
+      :ok
+    end
+    |> case do
       :ok ->
         if state.data.path do
           FileGuard.unlock(state.data.path, self())
