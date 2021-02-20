@@ -130,7 +130,11 @@ defmodule LiveBookWeb.HomeLive do
       |> Enum.map(fn message -> ["- ", message] end)
       |> Enum.intersperse("\n")
 
-    flash = IO.iodata_to_binary(["We found problems while importing the file and tried to autofix them:\n" | list])
+    flash =
+      IO.iodata_to_binary([
+        "We found problems while importing the file and tried to autofix them:\n" | list
+      ])
+
     put_flash(socket, :info, flash)
   end
 end

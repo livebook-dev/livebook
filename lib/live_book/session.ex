@@ -464,7 +464,7 @@ defmodule LiveBook.Session do
 
       case File.write(state.data.path, content) do
         :ok ->
-          handle_operation(state, :mark_saved)
+          handle_operation(state, :mark_as_not_dirty)
 
         {:error, reason} ->
           broadcast_error(state.session_id, "failed to save notebook - #{reason}")

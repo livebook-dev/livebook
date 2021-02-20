@@ -73,7 +73,7 @@ defmodule LiveBook.Session.Data do
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:set_runtime, Runtime.t() | nil}
           | {:set_path, String.t() | nil}
-          | :mark_saved
+          | :mark_as_not_dirty
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
@@ -311,7 +311,7 @@ defmodule LiveBook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, :mark_saved) do
+  def apply_operation(data, :mark_as_not_dirty) do
     data
     |> with_actions()
     |> set_dirty(false)

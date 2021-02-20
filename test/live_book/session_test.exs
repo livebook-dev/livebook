@@ -5,7 +5,7 @@ defmodule LiveBook.SessionTest do
 
   setup do
     session_id = Utils.random_id()
-    {:ok, _} = Session.start_link(session_id)
+    {:ok, _} = Session.start_link(id: session_id)
     # By default, use the current node for evaluation,
     # rather than starting a standalone one.
     {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
@@ -125,8 +125,7 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "connect_runtime/2" do
-    test "sends a runtime update operation to subscribers",
-         %{session_id: session_id} do
+    test "sends a runtime update operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
@@ -137,13 +136,22 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "disconnect_runtime/1" do
-    test "sends a runtime update operation to subscribers",
-         %{session_id: session_id} do
+    test "sends a runtime update operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       Session.disconnect_runtime(session_id)
 
       assert_receive {:operation, {:set_runtime, nil}}
+    end
+  end
+
+  describe "set_path/1" do
+    test "sends a path update operation to subscribers", %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      Session.set_path(session_id, "new_path")
+
+      assert_receive {:operation, {:set_path, "new_path"}}
     end
   end
 
@@ -153,7 +161,7 @@ defmodule LiveBook.SessionTest do
 
   test "starts a standalone runtime upon first evaluation if there was none set explicitly" do
     session_id = Utils.random_id()
-    {:ok, _} = Session.start_link(session_id)
+    {:ok, _} = Session.start_link(id: session_id)
 
     Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
@@ -166,7 +174,7 @@ defmodule LiveBook.SessionTest do
 
   test "if the runtime node goes down, notifies the subscribers" do
     session_id = Utils.random_id()
-    {:ok, _} = Session.start_link(session_id)
+    {:ok, _} = Session.start_link(id: session_id)
     {:ok, runtime} = Runtime.Standalone.init(self())
 
     Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
