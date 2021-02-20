@@ -44,7 +44,7 @@ defmodule LiveBookWeb.HomeLiveTest do
 
       assert assert {:error, {:live_redirect, %{to: to}}} =
                       view
-                      |> element("button", "Import")
+                      |> element("button", "Fork")
                       |> render_click()
 
       assert to =~ "/sessions/"
@@ -60,7 +60,7 @@ defmodule LiveBookWeb.HomeLiveTest do
       |> render_change(%{path: path})
 
       assert view
-             |> element("button[disabled]", "Import")
+             |> element("button[disabled]", "Fork")
              |> has_element?()
     end
 
@@ -74,7 +74,7 @@ defmodule LiveBookWeb.HomeLiveTest do
       |> render_change(%{path: path})
 
       assert view
-             |> element("button[disabled]", "Import")
+             |> element("button[disabled]", "Fork")
              |> has_element?()
     end
   end

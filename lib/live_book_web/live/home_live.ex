@@ -38,10 +38,15 @@ defmodule LiveBookWeb.HomeLive do
             class: "button-base button-sm",
             phx_click: "fork",
             disabled: not path_forkable?(@path) %>
-          <%= content_tag :button, "Open",
-            class: "button-base button-sm button-primary",
-            phx_click: "open",
-            disabled: not path_openable?(@path, @session_summaries) %>
+          <%= if path_running?(@path, @session_summaries) do %>
+            <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
+              class: "button-base button-sm button-primary" %>
+          <% else %>
+            <%= content_tag :button, "Open",
+              class: "button-base button-sm button-primary",
+              phx_click: "open",
+              disabled: not path_openable?(@path, @session_summaries) %>
+          <% end %>
         </div>
       </div>
       <div class="w-full pt-24">
@@ -113,8 +118,12 @@ defmodule LiveBookWeb.HomeLive do
   end
 
   defp path_openable?(path, session_summaries) do
+    File.regular?(path) and not path_running?(path, session_summaries)
+  end
+
+  defp path_running?(path, session_summaries) do
     running_paths = paths(session_summaries)
-    File.regular?(path) and path not in running_paths
+    path in running_paths
   end
 
   defp create_session(socket, opts \\ []) do
@@ -146,5 +155,10 @@ defmodule LiveBookWeb.HomeLive do
       ])
 
     put_flash(socket, :info, flash)
+  end
+
+  defp session_id_by_path(path, session_summaries) do
+    summary = Enum.find(session_summaries, & &1.path == path)
+    summary.session_id
   end
 end
