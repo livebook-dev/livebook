@@ -1,7 +1,7 @@
 defmodule LiveBookWeb.HomeLive do
   use LiveBookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session}
+  alias LiveBook.{SessionSupervisor, Session, LiveMarkdown}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -63,11 +63,15 @@ defmodule LiveBookWeb.HomeLive do
   end
 
   def handle_event("import", %{}, socket) do
-    create_session(socket, import_path: socket.assigns.path, keep_path: false)
+    {notebook, messages} = import_notebook(socket.assigns.path)
+    socket = put_import_flash_messages(socket, messages)
+    create_session(socket, notebook: notebook)
   end
 
   def handle_event("open", %{}, socket) do
-    create_session(socket, import_path: socket.assigns.path, keep_path: true)
+    {notebook, messages} = import_notebook(socket.assigns.path)
+    socket = put_import_flash_messages(socket, messages)
+    create_session(socket, notebook: notebook, path: socket.assigns.path)
   end
 
   @impl true
@@ -111,5 +115,22 @@ defmodule LiveBookWeb.HomeLive do
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
     end
+  end
+
+  defp import_notebook(path) do
+    content = File.read!(path)
+    LiveMarkdown.Import.notebook_from_markdown(content)
+  end
+
+  defp put_import_flash_messages(socket, []), do: socket
+
+  defp put_import_flash_messages(socket, messages) do
+    list =
+      messages
+      |> Enum.map(fn message -> ["- ", message] end)
+      |> Enum.intersperse("\n")
+
+    flash = IO.iodata_to_binary(["We found problems while importing the file and tried to autofix them:\n" | list])
+    put_flash(socket, :info, flash)
   end
 end

@@ -43,6 +43,14 @@ defmodule LiveBook.Session do
   @doc """
   Starts the server process and registers it globally using the `:global` module,
   so that it's identifiable by the given id.
+
+  ## Options
+
+  * `:id` (**required**) - a unique identifier to register the session under
+
+  * `:notebook` - the inital `Notebook` structure (e.g. imported from a file)
+
+  * `:path` - the file to which the notebook should be saved
   """
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) do
@@ -220,23 +228,11 @@ defmodule LiveBook.Session do
   end
 
   defp init_data(opts) do
-    import_path = Keyword.get(opts, :import_path, nil)
-    keep_path = Keyword.get(opts, :keep_path, false)
+    notebook = Keyword.get(opts, :notebook)
+    path = Keyword.get(opts, :path)
 
-    if import_path do
-      notebook = import_notebook(import_path)
-      data = Data.new(notebook)
-      path = if(keep_path, do: import_path, else: nil)
-      %{data | path: path}
-    else
-      Data.new()
-    end
-  end
-
-  defp import_notebook(path) do
-    content = File.read!(path)
-    {notebook, _messages} = LiveMarkdown.Import.notebook_from_markdown(content)
-    notebook
+    data = if(notebook, do: Data.new(notebook), else: Data.new())
+    if(path, do: %{data | path: path}, else: data)
   end
 
   @impl true

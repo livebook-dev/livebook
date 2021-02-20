@@ -22,7 +22,7 @@ defmodule LiveBook.SessionSupervisor do
   end
 
   @doc """
-  Spawns a new session process.
+  Spawns a new `Session` process with the given options.
 
   Broadcasts `{:session_created, id}` message under the `"sessions"` topic.
   """
