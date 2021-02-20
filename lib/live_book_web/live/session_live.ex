@@ -109,8 +109,8 @@ defmodule LiveBookWeb.SessionLive do
             </div>
           </button>
         </div>
-        <%= if @data.path do %>
-          <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center">
+        <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center">
+          <%= if @data.path do %>
             <%= if @data.dirty do %>
               <%= Icons.svg(:dots_circle_horizontal, class: "h-4 text-blue-400") %>
             <% else %>
@@ -119,8 +119,12 @@ defmodule LiveBookWeb.SessionLive do
             <span>
               <%= Path.basename(@data.path) %>
             </span>
-          </div>
-        <% end %>
+          <% else %>
+            <span>
+              No file choosen
+            </span>
+          <% end %>
+        </div>
         <div class="p-4 flex space-x-2">
           <%= live_patch to: Routes.session_path(@socket, :file, @session_id) do %>
             <%= Icons.svg(:document_text, class: "h-6 w-6 text-gray-600 hover:text-current") %>
