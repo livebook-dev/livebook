@@ -20,7 +20,7 @@ defmodule LiveBookWeb.SessionLive do
 
       {:ok, assign(socket, initial_assigns(session_id, data, platform))}
     else
-      {:ok, redirect(socket, to: Routes.sessions_path(socket, :page))}
+      {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
   end
 
