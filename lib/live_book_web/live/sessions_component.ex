@@ -6,9 +6,6 @@ defmodule LiveBookWeb.SessionsComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <h3 class="text-xl font-medium text-gray-900">
-      Running sessions
-    </h3>
     <div class="mt-3 flex flex-col space-y-2">
       <%= for summary <- @session_summaries do %>
         <div class="shadow rounded-md p-2">

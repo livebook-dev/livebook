@@ -45,9 +45,18 @@ defmodule LiveBookWeb.HomeLive do
         </div>
       </div>
       <div class="w-full pt-24">
-        <%= live_component @socket, LiveBookWeb.SessionsComponent,
-          id: "sessions_list",
-          session_summaries: @session_summaries %>
+        <h3 class="text-xl font-medium text-gray-900">
+          Running sessions
+        </h3>
+        <%= if @session_summaries == [] do %>
+          <div class="mt-3 text-gray-500 text-medium">
+            No sessions currently running, you can create one above.
+          </div>
+        <% else %>
+          <%= live_component @socket, LiveBookWeb.SessionsComponent,
+            id: "sessions_list",
+            session_summaries: @session_summaries %>
+        <% end %>
       </div>
     </div>
     """
