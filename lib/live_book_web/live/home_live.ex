@@ -34,10 +34,10 @@ defmodule LiveBookWeb.HomeLive do
           running_paths: paths(@session_summaries),
           target: nil %>
         <div class="flex justify-end space-x-2">
-          <%= content_tag :button, "Import",
+          <%= content_tag :button, "Fork",
             class: "button-base button-sm",
-            phx_click: "import",
-            disabled: not path_importable?(@path) %>
+            phx_click: "fork",
+            disabled: not path_forkable?(@path) %>
           <%= content_tag :button, "Open",
             class: "button-base button-sm button-primary",
             phx_click: "open",
@@ -71,9 +71,10 @@ defmodule LiveBookWeb.HomeLive do
     create_session(socket)
   end
 
-  def handle_event("import", %{}, socket) do
+  def handle_event("fork", %{}, socket) do
     {notebook, messages} = import_notebook(socket.assigns.path)
     socket = put_import_flash_messages(socket, messages)
+    notebook = %{notebook | name: notebook.name <> " - fork"}
     create_session(socket, notebook: notebook)
   end
 
@@ -107,7 +108,7 @@ defmodule LiveBookWeb.HomeLive do
     Enum.map(session_summaries, & &1.path)
   end
 
-  defp path_importable?(path) do
+  defp path_forkable?(path) do
     File.regular?(path)
   end
 
