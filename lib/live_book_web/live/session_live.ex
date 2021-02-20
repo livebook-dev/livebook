@@ -1,7 +1,7 @@
 defmodule LiveBookWeb.SessionLive do
   use LiveBookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session, Delta, Notebook}
+  alias LiveBook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -109,30 +109,32 @@ defmodule LiveBookWeb.SessionLive do
             </div>
           </button>
         </div>
-        <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center">
-          <%= if @data.path do %>
-            <%= if @data.dirty do %>
-              <%= Icons.svg(:dots_circle_horizontal, class: "h-4 text-blue-400") %>
+        <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
+          <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
+            <%= Icons.svg(:chip, class: "h-5 text-gray-400") %>
+            <span><%= runtime_description(@data.runtime) %></span>
+          </div>
+        <% end %>
+        <%= live_patch to: Routes.session_path(@socket, :file, @session_id) do %>
+          <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
+            <%= if @data.path do %>
+              <%= if @data.dirty do %>
+                <%= Icons.svg(:dots_circle_horizontal, class: "h-5 text-blue-400") %>
+              <% else %>
+                <%= Icons.svg(:check_circle, class: "h-5 text-green-400") %>
+              <% end %>
+              <span>
+                <%= Path.basename(@data.path) %>
+              </span>
             <% else %>
-              <%= Icons.svg(:check_circle, class: "h-4 text-green-400") %>
+              <%= Icons.svg(:document_text, class: "h-5 text-gray-400") %>
+              <span>
+                No file choosen
+              </span>
             <% end %>
-            <span>
-              <%= Path.basename(@data.path) %>
-            </span>
-          <% else %>
-            <span>
-              No file choosen
-            </span>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
         <div class="p-4 flex space-x-2">
-          <%= live_patch to: Routes.session_path(@socket, :file, @session_id) do %>
-            <%= Icons.svg(:document_text, class: "h-6 w-6 text-gray-600 hover:text-current") %>
-          <% end %>
-          <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
-            <%= Icons.svg(:chip, class: "h-6 w-6 text-gray-600 hover:text-current") %>
-          <% end %>
-          <div class="flex-grow"></div>
           <%= live_patch to: Routes.home_path(@socket, :page) do %>
             <%= Icons.svg(:home, class: "h-6 w-6 text-gray-600 hover:text-current") %>
           <% end %>
@@ -496,4 +498,8 @@ defmodule LiveBookWeb.SessionLive do
         :error
     end
   end
+
+  defp runtime_description(nil), do: "No runtime"
+  defp runtime_description(%Runtime.Standalone{}), do: "Standalone runtime"
+  defp runtime_description(%Runtime.Attached{}), do: "Attached runtime"
 end
