@@ -8,9 +8,9 @@ defmodule LiveBook.Session.FileGuardTest do
     assert {:error, :already_in_use} = FileGuard.lock("/some/path", self())
   end
 
-  test "unlock/2 unlocks the given path" do
+  test "unlock/1 unlocks the given path" do
     assert :ok = FileGuard.lock("/some/path", self())
-    :ok = FileGuard.unlock("/some/path", self())
+    :ok = FileGuard.unlock("/some/path")
     assert :ok = FileGuard.lock("/some/path", self())
   end
 

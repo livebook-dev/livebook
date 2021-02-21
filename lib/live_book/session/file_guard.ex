@@ -10,10 +10,8 @@ defmodule LiveBook.Session.FileGuard do
   use GenServer
 
   @type state :: %{
-          path_with_owner: %{String.t() => owner()}
+          path_with_owner_ref: %{String.t() => reference()}
         }
-
-  @type owner :: %{pid: pid(), monitor_ref: reference()}
 
   @name __MODULE__
 
@@ -36,61 +34,43 @@ defmodule LiveBook.Session.FileGuard do
   end
 
   @doc """
-  Unlocks the given file if the given process is the one that locked it.
+  Unlocks the given file.
   """
-  @spec unlock(String.t(), pid()) :: :ok
-  def unlock(path, owner_pid) do
-    GenServer.cast(@name, {:unlock, path, owner_pid})
+  @spec unlock(String.t()) :: :ok
+  def unlock(path) do
+    GenServer.cast(@name, {:unlock, path})
   end
 
   # Callbacks
 
   @impl true
   def init(_opts) do
-    {:ok, %{path_with_owner: %{}}}
+    {:ok, %{path_with_owner_ref: %{}}}
   end
 
   @impl true
   def handle_call({:lock, path, owner_pid}, _from, state) do
-    if Map.has_key?(state.path_with_owner, path) do
+    if Map.has_key?(state.path_with_owner_ref, path) do
       {:reply, {:error, :already_in_use}, state}
     else
       monitor_ref = Process.monitor(owner_pid)
-      owner = %{pid: owner_pid, monitor_ref: monitor_ref}
-      state = put_in(state.path_with_owner[path], owner)
+      state = put_in(state.path_with_owner_ref[path], monitor_ref)
       {:reply, :ok, state}
     end
   end
 
   @impl true
-  def handle_cast({:unlock, path, owner_pid}, state) do
-    state =
-      if Map.has_key?(state.path_with_owner, path) and
-           state.path_with_owner[path].pid == owner_pid do
-        owner = state.path_with_owner[path]
-        Process.demonitor(owner.monitor_ref)
-        {_, state} = pop_in(state.path_with_owner[path])
-        state
-      else
-        state
-      end
+  def handle_cast({:unlock, path}, state) do
+    {maybe_ref, state} = pop_in(state.path_with_owner_ref[path])
+    maybe_ref && Process.demonitor(maybe_ref, [:flush])
 
     {:noreply, state}
   end
 
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, state) do
-    state = %{
-      state
-      | path_with_owner:
-          for(
-            {path, owner} <- state.path_with_owner,
-            owner.monitor_ref != ref,
-            into: %{},
-            do: {path, owner}
-          )
-    }
-
+    {path, ^ref} = Enum.find(state.path_with_owner_ref, &elem(&1, 1) == ref)
+    {_, state} = pop_in(state.path_with_owner_ref[path])
     {:noreply, state}
   end
 end

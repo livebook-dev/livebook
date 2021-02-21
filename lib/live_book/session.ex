@@ -362,7 +362,7 @@ defmodule LiveBook.Session do
     |> case do
       :ok ->
         if state.data.path do
-          FileGuard.unlock(state.data.path, self())
+          FileGuard.unlock(state.data.path)
         end
 
         {:noreply, handle_operation(state, {:set_path, path})}
