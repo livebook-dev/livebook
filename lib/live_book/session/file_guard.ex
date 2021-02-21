@@ -10,9 +10,10 @@ defmodule LiveBook.Session.FileGuard do
   use GenServer
 
   @type state :: %{
-          owner_with_monitor: %{pid() => reference()},
-          path_with_owner: %{String.t() => pid()}
+          path_with_owner: %{String.t() => owner()}
         }
+
+  @type owner :: %{pid: pid(), monitor_ref: reference()}
 
   @name __MODULE__
 
@@ -46,7 +47,7 @@ defmodule LiveBook.Session.FileGuard do
 
   @impl true
   def init(_opts) do
-    {:ok, %{owner_with_monitor: %{}, path_with_owner: %{}}}
+    {:ok, %{path_with_owner: %{}}}
   end
 
   @impl true
@@ -54,8 +55,9 @@ defmodule LiveBook.Session.FileGuard do
     if Map.has_key?(state.path_with_owner, path) do
       {:reply, {:error, :already_in_use}, state}
     else
-      state = %{state | path_with_owner: Map.put(state.path_with_owner, path, owner_pid)}
-      state = maybe_monitor(state, owner_pid)
+      monitor_ref = Process.monitor(owner_pid)
+      owner = %{pid: owner_pid, monitor_ref: monitor_ref}
+      state = put_in(state.path_with_owner[path], owner)
       {:reply, :ok, state}
     end
   end
@@ -63,9 +65,12 @@ defmodule LiveBook.Session.FileGuard do
   @impl true
   def handle_cast({:unlock, path, owner_pid}, state) do
     state =
-      if {path, owner_pid} in state.path_with_owner do
-        state = %{state | path_with_owner: Map.delete(state.path_with_owner, path)}
-        maybe_demonitor(state, owner_pid)
+      if Map.has_key?(state.path_with_owner, path) and
+           state.path_with_owner[path].pid == owner_pid do
+        owner = state.path_with_owner[path]
+        Process.demonitor(owner.monitor_ref)
+        {_, state} = pop_in(state.path_with_owner[path])
+        state
       else
         state
       end
@@ -74,38 +79,18 @@ defmodule LiveBook.Session.FileGuard do
   end
 
   @impl true
-  def handle_info({:DOWN, _, :process, pid, _}, state) do
+  def handle_info({:DOWN, ref, :process, _, _}, state) do
     state = %{
       state
       | path_with_owner:
           for(
-            {path, owner_pid} <- state.path_with_owner,
-            owner_pid != pid,
+            {path, owner} <- state.path_with_owner,
+            owner.monitor_ref != ref,
             into: %{},
-            do: {path, owner_pid}
+            do: {path, owner}
           )
     }
 
-    state = %{state | owner_with_monitor: Map.delete(state.owner_with_monitor, pid)}
     {:noreply, state}
-  end
-
-  defp maybe_monitor(state, owner_pid) do
-    if Map.has_key?(state.owner_with_monitor, owner_pid) do
-      state
-    else
-      monitor_ref = Process.monitor(owner_pid)
-      %{state | owner_with_monitor: Map.put(state.owner_with_monitor, owner_pid, monitor_ref)}
-    end
-  end
-
-  defp maybe_demonitor(state, owner_pid) do
-    if owner_pid in Map.values(state.path_with_owner) do
-      state
-    else
-      monitor_ref = state.owner_with_monitor[owner_pid]
-      Process.demonitor(monitor_ref)
-      %{state | owner_with_monitor: Map.delete(state.owner_with_monitor, owner_pid)}
-    end
   end
 end
