@@ -60,47 +60,81 @@ defmodule LiveBookWeb.PathSelectComponent do
   end
 
   defp list_matching_files(path, running_paths) do
+    # Note: to provide an intuitive behavior when typing the path
+    # we enter a new directory when it has a trailing slash,
+    # so given "/foo/bar" we list files in "foo" and given "/foo/bar/
+    # we list files in "bar".
+    #
+    # The basename is kinda like search within the current directory,
+    # so we show only files starting with that string.
+
     {dir, basename} = split_path(path)
+    dir = Path.expand(dir)
 
     if File.exists?(dir) do
+      file_names =
+        case File.ls(dir) do
+          {:ok, names} -> names
+          {:error, _} -> []
+        end
+
       file_infos =
-        File.ls!(dir)
+        file_names
         |> Enum.map(fn name ->
-          path = dir |> Path.join(name) |> Path.expand()
+          path = Path.join(dir, name)
           is_dir = File.dir?(path)
 
           %{
             name: name,
-            path: if(is_dir, do: path <> "/", else: path),
+            path: if(is_dir, do: ensure_trailing_slash(path), else: path),
             is_dir: is_dir,
             is_running: path in running_paths
           }
         end)
-        |> Enum.reject(&String.starts_with?(&1.name, "."))
         |> Enum.filter(fn file ->
-          file.is_dir or String.ends_with?(file.name, LiveMarkdown.extension())
+          not hidden?(file.name) and String.starts_with?(file.name, basename) and
+            (file.is_dir or notebook_file?(file.name))
         end)
-        |> Enum.filter(&String.starts_with?(&1.name, basename))
         |> Enum.sort_by(fn file -> {!file.is_dir, file.name} end)
 
-      parent_dir = %{
-        name: "..",
-        path: (dir |> Path.join("..") |> Path.expand()) <> "/",
-        is_dir: true,
-        is_running: false
-      }
+      if dir == "/" do
+        file_infos
+      else
+        parent_dir = %{
+          name: "..",
+          path: dir |> Path.join("..") |> Path.expand() |> ensure_trailing_slash(),
+          is_dir: true,
+          is_running: false
+        }
 
-      [parent_dir | file_infos]
+        [parent_dir | file_infos]
+      end
     else
       []
     end
   end
 
+  defp hidden?(filename) do
+    String.starts_with?(filename, ".")
+  end
+
+  defp notebook_file?(filename) do
+    String.ends_with?(filename, LiveMarkdown.extension())
+  end
+
   defp split_path(path) do
-    if File.dir?(path) do
+    if String.ends_with?(path, "/") do
       {path, ""}
     else
       {Path.dirname(path), Path.basename(path)}
+    end
+  end
+
+  defp ensure_trailing_slash(path) do
+    if String.ends_with?(path, "/") do
+      path
+    else
+      path <> "/"
     end
   end
 end

@@ -69,7 +69,7 @@ defmodule LiveBook.Session.FileGuard do
 
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, state) do
-    {path, ^ref} = Enum.find(state.path_with_owner_ref, &elem(&1, 1) == ref)
+    {path, ^ref} = Enum.find(state.path_with_owner_ref, &(elem(&1, 1) == ref))
     {_, state} = pop_in(state.path_with_owner_ref[path])
     {:noreply, state}
   end

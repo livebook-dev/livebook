@@ -26,7 +26,7 @@ defmodule LiveBookWeb.HomeLiveTest do
     test "updates the list of files as the input changes", %{conn: conn} do
       {:ok, view, _} = live(conn, "/")
 
-      path = Path.expand("../../../lib", __DIR__)
+      path = Path.expand("../../../lib", __DIR__) <> "/"
 
       assert view
              |> element("form")
