@@ -97,7 +97,7 @@ defmodule LiveBookWeb.PathSelectComponent do
         end)
         |> Enum.sort_by(fn file -> {!file.is_dir, file.name} end)
 
-      if dir == "/" do
+      if dir == "/" or basename != "" do
         file_infos
       else
         parent_dir = %{
