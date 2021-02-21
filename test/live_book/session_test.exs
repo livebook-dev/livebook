@@ -187,6 +187,28 @@ defmodule LiveBook.SessionTest do
     end
   end
 
+  describe "close/1" do
+    @tag :tmp_dir
+    test "saves the notebook and notifies subscribers once the session is closed",
+         %{session_id: session_id, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "notebook.livemd")
+      Session.set_path(session_id, path)
+      # Perform a change, so the notebook is dirty
+      Session.set_notebook_name(session_id, "My notebook")
+
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      refute File.exists?(path)
+
+      Process.flag(:trap_exit, true)
+      Session.close(session_id)
+
+      assert_receive :session_closed
+      assert File.exists?(path)
+      assert File.read!(path) =~ "My notebook"
+    end
+  end
+
   describe "start_link/1" do
     @tag :tmp_dir
     test "fails if the given path is already in use", %{tmp_dir: tmp_dir} do

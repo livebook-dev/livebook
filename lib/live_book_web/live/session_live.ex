@@ -382,6 +382,13 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, put_flash(socket, :info, message)}
   end
 
+  def handle_info(:session_closed, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, "Session has been closed")
+     |> push_redirect(to: Routes.home_path(socket, :page))}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp after_operation(socket, _prev_socket, {:insert_section, _index, section_id}) do
