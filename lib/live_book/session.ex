@@ -203,6 +203,18 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends save request to the server.
+
+  If there's a path ser and the notebook changed since the last save,
+  it will be persisted to said path.
+  Note that notebooks are automatically persisted every @autosave_interval milliseconds.
+  """
+  @spec save(id()) :: :ok
+  def save(session_id) do
+    GenServer.cast(name(session_id), :save)
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -359,6 +371,10 @@ defmodule LiveBook.Session do
         broadcast_error(state.session_id, "failed to set new path because it is already in use")
         {:noreply, state}
     end
+  end
+
+  def handle_cast(:save, state) do
+    {:noreply, maybe_save_notebook(state)}
   end
 
   @impl true
