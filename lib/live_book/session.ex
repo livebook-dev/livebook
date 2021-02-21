@@ -205,7 +205,7 @@ defmodule LiveBook.Session do
   @doc """
   Asynchronously sends save request to the server.
 
-  If there's a path ser and the notebook changed since the last save,
+  If there's a path set and the notebook changed since the last save,
   it will be persisted to said path.
   Note that notebooks are automatically persisted every @autosave_interval milliseconds.
   """
