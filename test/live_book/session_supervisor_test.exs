@@ -23,9 +23,11 @@ defmodule LiveBook.SessionSupervisorTest do
     test "stops the session process identified by the given id" do
       {:ok, id} = SessionSupervisor.create_session()
       {:ok, pid} = SessionSupervisor.get_session_pid(id)
+      ref = Process.monitor(pid)
 
       SessionSupervisor.delete_session(id)
 
+      assert_receive {:DOWN, ^ref, :process, _, _}
       refute has_child_with_pid?(SessionSupervisor, pid)
     end
 

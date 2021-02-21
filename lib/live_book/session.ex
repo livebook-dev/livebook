@@ -215,11 +215,14 @@ defmodule LiveBook.Session do
   end
 
   @doc """
-  Synchronously stops the server.
+  Asynchronously sends a close request to the server.
+
+  This results in saving the file and broadcasting
+  a :closed message to the session topic.
   """
-  @spec stop(id()) :: :ok
-  def stop(session_id) do
-    GenServer.stop(name(session_id))
+  @spec close(id()) :: :ok
+  def close(session_id) do
+    GenServer.cast(name(session_id), :close)
   end
 
   ## Callbacks
@@ -375,6 +378,13 @@ defmodule LiveBook.Session do
 
   def handle_cast(:save, state) do
     {:noreply, maybe_save_notebook(state)}
+  end
+
+  def handle_cast(:close, state) do
+    maybe_save_notebook(state)
+    broadcast_message(state.session_id, :session_closed)
+
+    {:stop, :shutdown, state}
   end
 
   @impl true
