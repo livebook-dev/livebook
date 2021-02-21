@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.RuntimeComponent do
+defmodule LiveBookWeb.SessionLive.RuntimeComponent do
   use LiveBookWeb, :live_component
 
   alias LiveBook.{Session, Runtime, Utils}

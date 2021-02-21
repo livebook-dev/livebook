@@ -2,7 +2,28 @@ defmodule LiveBook.Session.DataTest do
   use ExUnit.Case, async: true
 
   alias LiveBook.Session.Data
-  alias LiveBook.Delta
+  alias LiveBook.{Delta, Notebook}
+
+  describe "new/1" do
+    test "called with no arguments defaults to a blank notebook" do
+      empty_map = %{}
+
+      assert %{notebook: %{sections: []}, cell_infos: ^empty_map, section_infos: ^empty_map} =
+               Data.new()
+    end
+
+    test "called with a notebook, sets default cell and section infos" do
+      cell = Notebook.Cell.new(:elixir)
+      section = %{Notebook.Section.new() | cells: [cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      cell_id = cell.id
+      section_id = section.id
+
+      assert %{cell_infos: %{^cell_id => %{}}, section_infos: %{^section_id => %{}}} =
+               Data.new(notebook)
+    end
+  end
 
   describe "apply_operation/2 given :insert_section" do
     test "adds new section to notebook and session info" do
@@ -669,6 +690,28 @@ defmodule LiveBook.Session.DataTest do
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
                 }
               }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_path" do
+    test "updates data with the given path" do
+      data = Data.new()
+      operation = {:set_path, "path"}
+
+      assert {:ok, %{path: "path"}, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :mark_as_not_dirty" do
+    test "sets dirty flag to false" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"}
+        ])
+
+      operation = :mark_as_not_dirty
+
+      assert {:ok, %{dirty: false}, []} = Data.apply_operation(data, operation)
     end
   end
 

@@ -5,9 +5,7 @@
         phx-click="lv:clear-flash"
         phx-value-key="info">
         <%= Icons.svg(:information_circle, class: "h-6 w-6") %>
-        <span>
-          <%= live_flash(@flash, :info) %>
-        </span>
+        <span class="whitespace-pre"><%= live_flash(@flash, :info) %></span>
       </div>
     <% end %>
 
@@ -16,9 +14,7 @@
         phx-click="lv:clear-flash"
         phx-value-key="error">
         <%= Icons.svg(:exclamation_circle, class: "h-6 w-6") %>
-        <span>
-          <%= live_flash(@flash, :error) %>
-        </span>
+        <span class="whitespace-pre"><%= live_flash(@flash, :error) %></span>
       </div>
     <% end %>
   </div>

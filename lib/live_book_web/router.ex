@@ -18,8 +18,8 @@ defmodule LiveBookWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive, :page
-    live "/sessions", SessionsLive, :page
     live "/sessions/:id", SessionLive, :page
+    live "/sessions/:id/file", SessionLive, :file
     live "/sessions/:id/runtime", SessionLive, :runtime
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
   end

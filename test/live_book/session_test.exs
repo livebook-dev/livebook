@@ -4,12 +4,7 @@ defmodule LiveBook.SessionTest do
   alias LiveBook.{Session, Delta, Runtime, Utils}
 
   setup do
-    session_id = Utils.random_id()
-    {:ok, _} = Session.start_link(session_id)
-    # By default, use the current node for evaluation,
-    # rather than starting a standalone one.
-    {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
-    Session.connect_runtime(session_id, runtime)
+    session_id = start_session()
     %{session_id: session_id}
   end
 
@@ -125,8 +120,7 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "connect_runtime/2" do
-    test "sends a runtime update operation to subscribers",
-         %{session_id: session_id} do
+    test "sends a runtime update operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
@@ -137,13 +131,70 @@ defmodule LiveBook.SessionTest do
   end
 
   describe "disconnect_runtime/1" do
-    test "sends a runtime update operation to subscribers",
-         %{session_id: session_id} do
+    test "sends a runtime update operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
       Session.disconnect_runtime(session_id)
 
       assert_receive {:operation, {:set_runtime, nil}}
+    end
+  end
+
+  describe "set_path/1" do
+    @tag :tmp_dir
+    test "sends a path update operation to subscribers",
+         %{session_id: session_id, tmp_dir: tmp_dir} do
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      path = Path.join(tmp_dir, "notebook.livemd")
+      Session.set_path(session_id, path)
+
+      assert_receive {:operation, {:set_path, ^path}}
+    end
+
+    @tag :tmp_dir
+    test "broadcasts an error if the path is already in use",
+         %{session_id: session_id, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "notebook.livemd")
+      start_session(path: path)
+
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      Session.set_path(session_id, path)
+
+      assert_receive {:error, "failed to set new path because it is already in use"}
+    end
+  end
+
+  describe "save/1" do
+    @tag :tmp_dir
+    test "persists the notebook to the associated file and notifies subscribers",
+         %{session_id: session_id, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "notebook.livemd")
+      Session.set_path(session_id, path)
+      # Perform a change, so the notebook is dirty
+      Session.set_notebook_name(session_id, "My notebook")
+
+      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+
+      refute File.exists?(path)
+
+      Session.save(session_id)
+
+      assert_receive {:operation, :mark_as_not_dirty}
+      assert File.exists?(path)
+      assert File.read!(path) =~ "My notebook"
+    end
+  end
+
+  describe "start_link/1" do
+    @tag :tmp_dir
+    test "fails if the given path is already in use", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "notebook.livemd")
+      start_session(path: path)
+
+      assert {:error, "the given path is already in use"} ==
+               Session.start_link(id: Utils.random_id(), path: path)
     end
   end
 
@@ -153,7 +204,7 @@ defmodule LiveBook.SessionTest do
 
   test "starts a standalone runtime upon first evaluation if there was none set explicitly" do
     session_id = Utils.random_id()
-    {:ok, _} = Session.start_link(session_id)
+    {:ok, _} = Session.start_link(id: session_id)
 
     Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 
@@ -166,7 +217,7 @@ defmodule LiveBook.SessionTest do
 
   test "if the runtime node goes down, notifies the subscribers" do
     session_id = Utils.random_id()
-    {:ok, _} = Session.start_link(session_id)
+    {:ok, _} = Session.start_link(id: session_id)
     {:ok, runtime} = Runtime.Standalone.init(self())
 
     Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
@@ -180,6 +231,16 @@ defmodule LiveBook.SessionTest do
 
     assert_receive {:operation, {:set_runtime, nil}}
     assert_receive {:info, "runtime node terminated unexpectedly"}
+  end
+
+  defp start_session(opts \\ []) do
+    session_id = Utils.random_id()
+    {:ok, _} = Session.start_link(Keyword.merge(opts, id: session_id))
+    # By default, use the current node for evaluation,
+    # rather than starting a standalone one.
+    {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+    Session.connect_runtime(session_id, runtime)
+    session_id
   end
 
   defp insert_section_and_cell(session_id) do

@@ -14,16 +14,21 @@ defmodule LiveBook.Session do
 
   use GenServer, restart: :temporary
 
-  alias LiveBook.Session.Data
-  alias LiveBook.{Evaluator, Utils, Notebook, Delta, Runtime}
+  alias LiveBook.Session.{Data, FileGuard}
+  alias LiveBook.{Utils, Notebook, Delta, Runtime, LiveMarkdown}
   alias LiveBook.Notebook.{Cell, Section}
 
   @type state :: %{
           session_id: id(),
           data: Data.t(),
-          evaluators: %{Section.t() => Evaluator.t()},
           client_pids: list(pid()),
           runtime_monitor_ref: reference()
+        }
+
+  @type summary :: %{
+          session_id: id(),
+          notebook_name: String.t(),
+          path: String.t() | nil
         }
 
   @typedoc """
@@ -31,15 +36,26 @@ defmodule LiveBook.Session do
   """
   @type id :: Utils.id()
 
+  @autosave_interval 5_000
+
   ## API
 
   @doc """
   Starts the server process and registers it globally using the `:global` module,
   so that it's identifiable by the given id.
+
+  ## Options
+
+  * `:id` (**required**) - a unique identifier to register the session under
+
+  * `:notebook` - the inital `Notebook` structure (e.g. imported from a file)
+
+  * `:path` - the file to which the notebook should be saved
   """
-  @spec start_link(id()) :: GenServer.on_start()
-  def start_link(session_id) do
-    GenServer.start_link(__MODULE__, [session_id: session_id], name: name(session_id))
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts) do
+    id = Keyword.fetch!(opts, :id)
+    GenServer.start_link(__MODULE__, opts, name: name(id))
   end
 
   defp name(session_id) do
@@ -69,11 +85,19 @@ defmodule LiveBook.Session do
   end
 
   @doc """
-  Returns the current session data.
+  Returns data of the given session.
   """
   @spec get_data(id()) :: Data.t()
   def get_data(session_id) do
     GenServer.call(name(session_id), :get_data)
+  end
+
+  @doc """
+  Returns basic information about the given session.
+  """
+  @spec get_summary(id()) :: summary()
+  def get_summary(session_id) do
+    GenServer.call(name(session_id), :get_summary)
   end
 
   @doc """
@@ -171,6 +195,26 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends path update request to the server.
+  """
+  @spec set_path(id(), String.t() | nil) :: :ok
+  def set_path(session_id, path) do
+    GenServer.cast(name(session_id), {:set_path, path})
+  end
+
+  @doc """
+  Asynchronously sends save request to the server.
+
+  If there's a path set and the notebook changed since the last save,
+  it will be persisted to said path.
+  Note that notebooks are automatically persisted every @autosave_interval milliseconds.
+  """
+  @spec save(id()) :: :ok
+  def save(session_id) do
+    GenServer.cast(name(session_id), :save)
+  end
+
+  @doc """
   Synchronously stops the server.
   """
   @spec stop(id()) :: :ok
@@ -181,15 +225,43 @@ defmodule LiveBook.Session do
   ## Callbacks
 
   @impl true
-  def init(session_id: session_id) do
-    {:ok,
-     %{
-       session_id: session_id,
-       data: Data.new(),
-       client_pids: [],
-       evaluators: %{},
-       runtime_monitor_ref: nil
-     }}
+  def init(opts) do
+    Process.send_after(self(), :autosave, @autosave_interval)
+
+    id = Keyword.fetch!(opts, :id)
+
+    case init_data(opts) do
+      {:ok, data} ->
+        {:ok,
+         %{
+           session_id: id,
+           data: data,
+           client_pids: [],
+           runtime_monitor_ref: nil
+         }}
+
+      {:error, error} ->
+        {:stop, error}
+    end
+  end
+
+  defp init_data(opts) do
+    notebook = Keyword.get(opts, :notebook)
+    path = Keyword.get(opts, :path)
+
+    data = if(notebook, do: Data.new(notebook), else: Data.new())
+
+    if path do
+      case FileGuard.lock(path, self()) do
+        :ok ->
+          {:ok, %{data | path: path}}
+
+        {:error, :already_in_use} ->
+          {:error, "the given path is already in use"}
+      end
+    else
+      {:ok, data}
+    end
   end
 
   @impl true
@@ -200,6 +272,10 @@ defmodule LiveBook.Session do
 
   def handle_call(:get_data, _from, state) do
     {:reply, state.data, state}
+  end
+
+  def handle_call(:get_summary, _from, state) do
+    {:reply, summary_from_state(state), state}
   end
 
   @impl true
@@ -277,6 +353,30 @@ defmodule LiveBook.Session do
      |> handle_operation({:set_runtime, nil})}
   end
 
+  def handle_cast({:set_path, path}, state) do
+    if path do
+      FileGuard.lock(path, self())
+    else
+      :ok
+    end
+    |> case do
+      :ok ->
+        if state.data.path do
+          FileGuard.unlock(state.data.path)
+        end
+
+        {:noreply, handle_operation(state, {:set_path, path})}
+
+      {:error, :already_in_use} ->
+        broadcast_error(state.session_id, "failed to set new path because it is already in use")
+        {:noreply, state}
+    end
+  end
+
+  def handle_cast(:save, state) do
+    {:noreply, maybe_save_notebook(state)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
     broadcast_info(state.session_id, "runtime node terminated unexpectedly")
@@ -300,9 +400,22 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info(:autosave, state) do
+    Process.send_after(self(), :autosave, @autosave_interval)
+    {:noreply, maybe_save_notebook(state)}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   # ---
+
+  defp summary_from_state(state) do
+    %{
+      session_id: state.session_id,
+      notebook_name: state.data.notebook.name,
+      path: state.data.path
+    }
+  end
 
   # Given any opeation on `Data`, the process does the following:
   #
@@ -392,4 +505,21 @@ defmodule LiveBook.Session do
   end
 
   defp ensure_runtime(state), do: {:ok, state}
+
+  defp maybe_save_notebook(state) do
+    if state.data.path != nil and state.data.dirty do
+      content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
+
+      case File.write(state.data.path, content) do
+        :ok ->
+          handle_operation(state, :mark_as_not_dirty)
+
+        {:error, reason} ->
+          broadcast_error(state.session_id, "failed to save notebook - #{reason}")
+          state
+      end
+    else
+      state
+    end
+  end
 end
