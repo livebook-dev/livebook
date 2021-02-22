@@ -156,18 +156,20 @@ defmodule LiveBookWeb.CellComponent do
   end
 
   defp render_output(output) when is_binary(output) do
-    assigns = %{output: output}
+    output_html = ansi_string_to_html(output)
+    assigns = %{output_html: output_html}
 
     ~L"""
-    <div class="whitespace-pre text-gray-500"><%= @output %></div>
+    <div class="whitespace-pre text-gray-500"><%= @output_html %></div>
     """
   end
 
-  defp render_output({:inspect_html, inspected_html}) do
+  defp render_output({:inspect, inspected}) do
+    inspected_html = ansi_string_to_html(inspected)
     assigns = %{inspected_html: inspected_html}
 
     ~L"""
-    <div class="whitespace-pre text-gray-500 elixir-inspect"><%= raw @inspected_html %></div>
+    <div class="whitespace-pre text-gray-500"><%= @inspected_html %></div>
     """
   end
 
