@@ -108,6 +108,26 @@ defmodule LiveBookWeb.SessionLiveTest do
                Session.get_data(session_id)
     end
 
+    test "cancelling focused cell evaluation", %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(2000)")
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      focus_cell(view, cell_id)
+
+      view
+      |> element("#session")
+      |> render_hook("queue_focused_cell_evaluation", %{})
+
+      view
+      |> element("#session")
+      |> render_hook("cancel_focused_cell_evaluation", %{})
+
+      assert %{cell_infos: %{^cell_id => %{evaluation_status: :ready}}} =
+               Session.get_data(session_id)
+    end
+
     test "inserting a cell below the focused cell", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir)

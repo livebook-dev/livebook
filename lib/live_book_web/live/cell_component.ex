@@ -44,9 +44,15 @@ defmodule LiveBookWeb.CellComponent do
     ~L"""
     <%= if @focused do %>
       <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10">
-        <button phx-click="queue_focused_cell_evaluation" class="text-gray-500 hover:text-current">
-          <%= Icons.svg(:play, class: "h-6") %>
-        </button>
+        <%= if @cell_info.evaluation_status == :ready do %>
+          <button phx-click="queue_focused_cell_evaluation" class="text-gray-500 hover:text-current">
+            <%= Icons.svg(:play, class: "h-6") %>
+          </button>
+        <% else %>
+          <button phx-click="cancel_focused_cell_evaluation" class="text-gray-500 hover:text-current">
+            <%= Icons.svg(:stop, class: "h-6") %>
+          </button>
+        <% end %>
         <button phx-click="delete_focused_cell" class="text-gray-500 hover:text-current">
           <%= Icons.svg(:trash, class: "h-6") %>
         </button>

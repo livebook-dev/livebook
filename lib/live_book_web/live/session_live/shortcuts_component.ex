@@ -18,7 +18,8 @@ defmodule LiveBookWeb.SessionLive.ShortcutsComponent do
       %{seq: "dd", desc: "Delete cell"},
       %{seq: "ee", desc: "Evaluate cell"},
       %{seq: "es", desc: "Evaluate section"},
-      %{seq: "ej", desc: "Evaluate cells below"}
+      %{seq: "ej", desc: "Evaluate cells below"},
+      %{seq: "ex", desc: "Cancel cell evaluation"}
     ]
   }
 
