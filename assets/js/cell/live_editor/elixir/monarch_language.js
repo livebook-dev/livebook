@@ -192,7 +192,15 @@ const ElixirMonarchLanguage = {
       [
         // In-scope call - an identifier followed by ( or .(
         /(@variableName)(?=\s*\.?\s*\()/,
-        ["function.call"],
+        {
+          cases: {
+            // Tokenize as keyword in cases like `if(..., do: ..., else: ...)`
+            "@declarationKeywords": "keyword.declaration",
+            "@namespaceKeywords": "keyword",
+            "@otherKeywords": "keyword",
+            "@default": "function.call"
+          }
+        },
       ],
       [
         // Referencing function in a module

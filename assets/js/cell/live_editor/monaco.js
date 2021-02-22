@@ -25,7 +25,7 @@ monaco.editor.defineTheme("custom", {
   inherit: false,
   rules: [
     { token: "", foreground: "#abb2bf" },
-    { token: "variable", foreground: "#abb2bf" },
+    { token: "variable", foreground: "#e06c75" },
     { token: "constant", foreground: "#61afef" },
     { token: "constant.character.escape", foreground: "#61afef" },
     { token: "comment", foreground: "#5c6370" },
