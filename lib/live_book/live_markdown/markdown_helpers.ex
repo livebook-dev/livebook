@@ -89,7 +89,7 @@ defmodule LiveBook.LiveMarkdown.MarkdownHelpers do
 
   defp build_md(iodata, [{:comment, _, lines, %{comment: true}} | ast]) do
     render_comment(lines)
-    |> append_inline(iodata)
+    |> append_block(iodata)
     |> build_md(ast)
   end
 
