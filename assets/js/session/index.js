@@ -60,6 +60,8 @@ const Session = {
           this.pushEvent("queue_section_cells_evaluation", {});
         } else if (keyBuffer.tryMatch(["e", "j"])) {
           this.pushEvent("queue_child_cells_evaluation", {});
+        } else if (keyBuffer.tryMatch(["e", "x"])) {
+          this.pushEvent("cancel_focused_cell_evaluation", {});
         } else if (keyBuffer.tryMatch(["?"])) {
           this.pushEvent("show_shortcuts", {});
         } else if (key === "i") {
