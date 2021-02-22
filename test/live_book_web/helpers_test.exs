@@ -5,7 +5,7 @@ defmodule LiveBookWeb.HelpersTest do
 
   describe "ansi_string_to_html/1" do
     test "converts ANSI escape codes to span tags" do
-      assert ~s{<span class="blue">:cat</span>} ==
+      assert ~s{<span class="ansi blue">:cat</span>} ==
                Helpers.ansi_string_to_html("\e[34m:cat\e[0m") |> Phoenix.HTML.safe_to_string()
     end
 

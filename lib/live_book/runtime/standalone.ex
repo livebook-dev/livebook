@@ -58,8 +58,9 @@ defmodule LiveBook.Runtime.Standalone do
             eval,
             # Minimize shedulers busy wait threshold,
             # so that they go to sleep immediately after evaluation.
+            # Enable ANSI escape codes as we handle them with HTML.
             "--erl",
-            "+sbwt none +sbwtdcpu none +sbwtdio none"
+            "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true"
           ]
         ])
 
