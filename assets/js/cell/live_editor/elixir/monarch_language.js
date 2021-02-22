@@ -198,8 +198,8 @@ const ElixirMonarchLanguage = {
             "@declarationKeywords": "keyword.declaration",
             "@namespaceKeywords": "keyword",
             "@otherKeywords": "keyword",
-            "@default": "function.call"
-          }
+            "@default": "function.call",
+          },
         },
       ],
       [
