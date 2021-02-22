@@ -1,0 +1,70 @@
+/*
+Classes for HTML-ized ANSI string.
+
+Many colors are taken from the One Dark theme
+to be consistent with the editor.
+*/
+
+.ansi.black {
+  @apply text-black;
+}
+
+.ansi.red {
+  color: #e06c75;
+}
+
+.ansi.green {
+  color: #98c379;
+}
+
+.ansi.yellow {
+  color: #e5c07b;
+}
+
+.ansi.blue {
+  color: #61afef;
+}
+
+.ansi.magenta {
+  color: #c678dd;
+}
+
+.ansi.cyan {
+  color: #56b6c2;
+}
+
+.ansi.white {
+  @apply text-white;
+}
+
+.ansi.light-black {
+  color: #5c6370;
+}
+
+.ansi.light-red {
+  @apply text-red-400;
+}
+
+.ansi.light-green {
+  @apply text-green-400;
+}
+
+.ansi.light-yellow {
+  @apply text-yellow-300;
+}
+
+.ansi.light-blue {
+  @apply text-blue-300;
+}
+
+.ansi.light-magenta {
+  @apply text-pink-400;
+}
+
+.ansi.light-cyan {
+  color: #6be3f2;
+}
+
+.ansi.light-white {
+  @apply text-white;
+}
