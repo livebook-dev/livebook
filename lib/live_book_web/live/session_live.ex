@@ -348,6 +348,14 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("cancel_focused_cell_evaluation", %{}, socket) do
+    if socket.assigns.focused_cell_id do
+      Session.cancel_cell_evaluation(socket.assigns.session_id, socket.assigns.focused_cell_id)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("show_shortcuts", %{}, socket) do
     {:noreply,
      push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
