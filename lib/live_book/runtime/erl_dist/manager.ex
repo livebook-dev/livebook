@@ -93,11 +93,22 @@ defmodule LiveBook.Runtime.ErlDist.Manager do
 
     Process.send_after(self(), :check_owner, @await_owner_timeout)
 
-    {:ok, %{owner: nil, evaluators: %{}}}
+    # Set `ignore_module_conflict` only for the Manager lifetime.
+    initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
+    Code.compiler_options(ignore_module_conflict: true)
+
+    {:ok,
+     %{
+       owner: nil,
+       evaluators: %{},
+       initial_ignore_module_conflict: initial_ignore_module_conflict
+     }}
   end
 
   @impl true
-  def terminate(_reason, _state) do
+  def terminate(_reason, state) do
+    Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
+
     ErlDist.unload_required_modules()
 
     :ok
