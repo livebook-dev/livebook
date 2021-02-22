@@ -38,5 +38,23 @@ defmodule LiveBook.Runtime.ErlDist.ManagerTest do
 
       Manager.stop(node())
     end
+
+    test "prevents from module redefinition warning being printed to standard error" do
+      Manager.start()
+      Manager.set_owner(node(), self())
+
+      stderr =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation1)
+          Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation2)
+
+          assert_receive {:evaluation_response, :evaluation1, _}
+          assert_receive {:evaluation_response, :evaluation2, _}
+        end)
+
+      assert stderr == ""
+
+      Manager.stop(node())
+    end
   end
 end
