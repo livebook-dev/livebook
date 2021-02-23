@@ -310,14 +310,14 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:apply_cell_delta, from, cell_id, delta, revision}) do
+  def apply_operation(data, {:apply_cell_delta, client_pid, cell_id, delta, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          cell_info <- data.cell_infos[cell.id],
          true <- 0 < revision and revision <= cell_info.revision + 1,
-         true <- from in data.client_pids do
+         true <- client_pid in data.client_pids do
       data
       |> with_actions()
-      |> apply_delta(from, cell, delta, revision)
+      |> apply_delta(client_pid, cell, delta, revision)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -325,14 +325,14 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:report_cell_revision, from, cell_id, revision}) do
+  def apply_operation(data, {:report_cell_revision, client_pid, cell_id, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          cell_info <- data.cell_infos[cell.id],
          true <- 0 < revision and revision <= cell_info.revision,
-         true <- from in data.client_pids do
+         true <- client_pid in data.client_pids do
       data
       |> with_actions()
-      |> report_revision(from, cell, revision)
+      |> report_revision(client_pid, cell, revision)
       |> wrap_ok()
     else
       _ -> :error
@@ -555,7 +555,7 @@ defmodule LiveBook.Session.Data do
     end)
   end
 
-  defp apply_delta({data, _} = data_actions, from, cell, delta, revision) do
+  defp apply_delta({data, _} = data_actions, client_pid, cell, delta, revision) do
     info = data.cell_infos[cell.id]
 
     deltas_ahead = Enum.take(info.deltas, -(info.revision - revision + 1))
@@ -573,16 +573,16 @@ defmodule LiveBook.Session.Data do
       info = %{info | deltas: info.deltas ++ [transformed_new_delta], revision: info.revision + 1}
       # Before receiving acknowledgement, the client receives all the other deltas,
       # so we can assume they are in sync with the server and have the same revision.
-      info = put_in(info.revision_by_client_pid[from], info.revision)
+      info = put_in(info.revision_by_client_pid[client_pid], info.revision)
       purge_deltas(info)
     end)
-    |> add_action({:broadcast_delta, from, %{cell | source: new_source}, transformed_new_delta})
+    |> add_action({:broadcast_delta, client_pid, %{cell | source: new_source}, transformed_new_delta})
   end
 
-  defp report_revision(data_actions, from, cell, revision) do
+  defp report_revision(data_actions, client_pid, cell, revision) do
     data_actions
     |> update_cell_info!(cell.id, fn info ->
-      info = put_in(info.revision_by_client_pid[from], revision)
+      info = put_in(info.revision_by_client_pid[client_pid], revision)
       purge_deltas(info)
     end)
   end

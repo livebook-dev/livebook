@@ -168,8 +168,8 @@ defmodule LiveBook.Session do
   Asynchronously sends a cell delta to apply to the server.
   """
   @spec apply_cell_delta(id(), pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
-  def apply_cell_delta(session_id, from, cell_id, delta, revision) do
-    GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
+  def apply_cell_delta(session_id, client_pid, cell_id, delta, revision) do
+    GenServer.cast(name(session_id), {:apply_cell_delta, client_pid, cell_id, delta, revision})
   end
 
   @doc """
@@ -178,8 +178,8 @@ defmodule LiveBook.Session do
   This helps to remove old deltas that are no longer necessary.
   """
   @spec report_cell_revision(id(), pid(), Cell.id(), Data.cell_revision()) :: :ok
-  def report_cell_revision(session_id, from, cell_id, revision) do
-    GenServer.cast(name(session_id), {:report_cell_revision, from, cell_id, revision})
+  def report_cell_revision(session_id, client_pid, cell_id, revision) do
+    GenServer.cast(name(session_id), {:report_cell_revision, client_pid, cell_id, revision})
   end
 
   @doc """
@@ -342,13 +342,13 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:apply_cell_delta, from, cell_id, delta, revision}, state) do
-    operation = {:apply_cell_delta, from, cell_id, delta, revision}
+  def handle_cast({:apply_cell_delta, client_pid, cell_id, delta, revision}, state) do
+    operation = {:apply_cell_delta, client_pid, cell_id, delta, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:report_cell_revision, from, cell_id, revision}, state) do
-    operation = {:report_cell_revision, from, cell_id, revision}
+  def handle_cast({:report_cell_revision, client_pid, cell_id, revision}, state) do
+    operation = {:report_cell_revision, client_pid, cell_id, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
