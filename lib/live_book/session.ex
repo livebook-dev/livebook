@@ -21,7 +21,6 @@ defmodule LiveBook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
-          client_pids: list(pid()),
           runtime_monitor_ref: reference()
         }
 
@@ -239,7 +238,6 @@ defmodule LiveBook.Session do
          %{
            session_id: id,
            data: data,
-           client_pids: [],
            runtime_monitor_ref: nil
          }}
 
@@ -270,7 +268,10 @@ defmodule LiveBook.Session do
   @impl true
   def handle_call({:register_client, pid}, _from, state) do
     Process.monitor(pid)
-    {:reply, state.data, %{state | client_pids: [pid | state.client_pids]}}
+
+    state = handle_operation(state, {:client_join, pid})
+
+    {:reply, state.data, state}
   end
 
   def handle_call(:get_data, _from, state) do
@@ -397,7 +398,14 @@ defmodule LiveBook.Session do
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
-    {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
+    state =
+      if pid in state.data.client_pids do
+        handle_operation(state, {:client_leave, pid})
+      else
+        state
+      end
+
+    {:noreply, state}
   end
 
   def handle_info({:evaluation_stdout, cell_id, string}, state) do
