@@ -54,7 +54,7 @@ export default class HookServerAdapter {
    * but is not itself sending any delta at the moment.
    */
   reportRevision(revision) {
-    this.hook.pushEvent("report_revision", {
+    this.hook.pushEvent("report_cell_revision", {
       cell_id: this.cellId,
       revision,
     });

@@ -177,9 +177,9 @@ defmodule LiveBook.Session do
 
   This helps to remove old deltas that are no longer necessary.
   """
-  @spec report_revision(id(), pid(), Cell.id(), Data.cell_revision()) :: :ok
-  def report_revision(session_id, from, cell_id, revision) do
-    GenServer.cast(name(session_id), {:report_revision, from, cell_id, revision})
+  @spec report_cell_revision(id(), pid(), Cell.id(), Data.cell_revision()) :: :ok
+  def report_cell_revision(session_id, from, cell_id, revision) do
+    GenServer.cast(name(session_id), {:report_cell_revision, from, cell_id, revision})
   end
 
   @doc """
@@ -347,8 +347,8 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:report_revision, from, cell_id, revision}, state) do
-    operation = {:report_revision, from, cell_id, revision}
+  def handle_cast({:report_cell_revision, from, cell_id, revision}, state) do
+    operation = {:report_cell_revision, from, cell_id, revision}
     {:noreply, handle_operation(state, operation)}
   end
 

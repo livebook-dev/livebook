@@ -267,11 +267,11 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event(
-        "report_revision",
+        "report_cell_revision",
         %{"cell_id" => cell_id, "revision" => revision},
         socket
       ) do
-    Session.report_revision(socket.assigns.session_id, self(), cell_id, revision)
+    Session.report_cell_revision(socket.assigns.session_id, self(), cell_id, revision)
 
     {:noreply, socket}
   end

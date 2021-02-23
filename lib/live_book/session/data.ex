@@ -76,7 +76,7 @@ defmodule LiveBook.Session.Data do
           | {:client_join, pid()}
           | {:client_leave, pid()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
-          | {:report_revision, pid(), Cell.id(), cell_revision()}
+          | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
           | {:set_runtime, Runtime.t() | nil}
           | {:set_path, String.t() | nil}
           | :mark_as_not_dirty
@@ -313,7 +313,8 @@ defmodule LiveBook.Session.Data do
   def apply_operation(data, {:apply_cell_delta, from, cell_id, delta, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          cell_info <- data.cell_infos[cell.id],
-         true <- 0 < revision and revision <= cell_info.revision + 1 do
+         true <- 0 < revision and revision <= cell_info.revision + 1,
+         true <- from in data.client_pids do
       data
       |> with_actions()
       |> apply_delta(from, cell, delta, revision)
@@ -324,10 +325,11 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:report_revision, from, cell_id, revision}) do
+  def apply_operation(data, {:report_cell_revision, from, cell_id, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          cell_info <- data.cell_infos[cell.id],
-         true <- 0 < revision and revision <= cell_info.revision do
+         true <- 0 < revision and revision <= cell_info.revision,
+         true <- from in data.client_pids do
       data
       |> with_actions()
       |> report_revision(from, cell, revision)
