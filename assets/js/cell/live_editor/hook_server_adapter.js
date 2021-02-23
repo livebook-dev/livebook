@@ -53,8 +53,8 @@ export default class HookServerAdapter {
    * This should be invoked if the client received updates,
    * but is not itself sending any delta at the moment.
    */
-  confirmDelta(revision) {
-    this.hook.pushEvent("confirm_cell_delta", {
+  reportRevision(revision) {
+    this.hook.pushEvent("report_revision", {
       cell_id: this.cellId,
       revision,
     });
