@@ -76,6 +76,7 @@ defmodule LiveBook.Session.Data do
           | {:client_join, pid()}
           | {:client_leave, pid()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
+          | {:confirm_cell_delta, pid(), Cell.id(), cell_revision()}
           | {:set_runtime, Runtime.t() | nil}
           | {:set_path, String.t() | nil}
           | :mark_as_not_dirty
@@ -99,7 +100,8 @@ defmodule LiveBook.Session.Data do
       cell_infos: initial_cell_infos(notebook),
       deleted_sections: [],
       deleted_cells: [],
-      runtime: nil
+      runtime: nil,
+      client_pids: []
     }
   end
 
@@ -113,7 +115,7 @@ defmodule LiveBook.Session.Data do
     for section <- notebook.sections,
         cell <- section.cells,
         into: %{},
-        do: {cell.id, new_cell_info()}
+        do: {cell.id, new_cell_info([])}
   end
 
   @doc """
@@ -322,6 +324,19 @@ defmodule LiveBook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:confirm_cell_delta, from, cell_id, revision}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         cell_info <- data.cell_infos[cell.id],
+         true <- 0 < revision and revision <= cell_info.revision do
+      data
+      |> with_actions()
+      |> confirm_delta(from, cell, revision)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   def apply_operation(data, {:set_runtime, runtime}) do
     data
     |> with_actions()
@@ -363,7 +378,7 @@ defmodule LiveBook.Session.Data do
     data_actions
     |> set!(
       notebook: Notebook.insert_cell(data.notebook, section_id, index, cell),
-      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info())
+      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(data.client_pids))
     )
   end
 
@@ -534,7 +549,7 @@ defmodule LiveBook.Session.Data do
     |> set!(client_pids: List.delete(data.client_pids, pid))
     |> update_every_cell_info(fn info ->
       {_, info} = pop_in(info.revision_by_client_pid[pid])
-      info
+      purge_deltas(info)
     end)
   end
 
@@ -552,11 +567,42 @@ defmodule LiveBook.Session.Data do
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
-    |> set_cell_info!(cell.id,
-      deltas: info.deltas ++ [transformed_new_delta],
-      revision: info.revision + 1
-    )
+    |> update_cell_info!(cell.id, fn info ->
+      info = %{info | deltas: info.deltas ++ [transformed_new_delta], revision: info.revision + 1}
+      # Before receiving acknowledgement, the client receives all the other deltas,
+      # so we can assume they are in sync with the server and have the same revision.
+      info = put_in(info.revision_by_client_pid[from], info.revision)
+      purge_deltas(info)
+    end)
     |> add_action({:broadcast_delta, from, %{cell | source: new_source}, transformed_new_delta})
+  end
+
+  defp confirm_delta(data_actions, from, cell, revision) do
+    data_actions
+    |> update_cell_info!(cell.id, fn info ->
+      info = put_in(info.revision_by_client_pid[from], revision)
+      purge_deltas(info)
+    end)
+  end
+
+  defp purge_deltas(cell_info) do
+    # Given client at revision X and upstream revision Y,
+    # we need Y - X last deltas that the client is not aware of,
+    # so that later we can use them to transform whatever
+    # the client sends us as an update.
+    #
+    # We find the client that is the most behind and keep
+    # as many deltas as we need for them.
+
+    min_client_revision =
+      cell_info.revision_by_client_pid
+      |> Map.values()
+      |> Enum.min(fn -> cell_info.revision end)
+
+    necessary_deltas = cell_info.revision - min_client_revision
+    deltas = Enum.take(cell_info.deltas, -necessary_deltas)
+
+    %{cell_info | deltas: deltas}
   end
 
   defp add_action({data, actions}, action) do
@@ -570,11 +616,11 @@ defmodule LiveBook.Session.Data do
     }
   end
 
-  defp new_cell_info() do
+  defp new_cell_info(client_pids) do
     %{
       revision: 0,
       deltas: [],
-      revision_by_client_pid: %{},
+      revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
       evaluated_at: nil
@@ -602,9 +648,10 @@ defmodule LiveBook.Session.Data do
   end
 
   defp update_every_cell_info({data, _} = data_actions, fun) do
-    cell_infos = Map.new(data.cell_infos, fn {cell_id, info} ->
-      {cell_id, fun.(info)}
-    end)
+    cell_infos =
+      Map.new(data.cell_infos, fn {cell_id, info} ->
+        {cell_id, fun.(info)}
+      end)
 
     set!(data_actions, cell_infos: cell_infos)
   end
