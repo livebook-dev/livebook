@@ -118,24 +118,30 @@ defmodule LiveBook.LiveMarkdown.Import do
     group_elements(ast, [{:section_name, content} | elems])
   end
 
-  # The <!-- live_book_force_md --> annotation forces the next node
+  # The <!-- livebook:{"force_markdown":true} --> annotation forces the next node
   # to be interpreted as Markdown cell content.
   defp group_elements(
-         [{:comment, _, ["live_book_force_md"], %{comment: true}}, ast_node | ast],
+         [
+           {:comment, _, [~s/livebook:{"force_markdown":true}/], %{comment: true}},
+           ast_node | ast
+         ],
          [{:cell, :markdown, md_ast} | rest]
        ) do
     group_elements(ast, [{:cell, :markdown, [ast_node | md_ast]} | rest])
   end
 
   defp group_elements(
-         [{:comment, _, ["live_book_force_md"], %{comment: true}}, ast_node | ast],
+         [
+           {:comment, _, [~s/livebook:{"force_markdown":true}/], %{comment: true}},
+           ast_node | ast
+         ],
          elems
        ) do
     group_elements(ast, [{:cell, :markdown, [ast_node]} | elems])
   end
 
   defp group_elements(
-         [{:comment, _, ["live_book_meta:" <> metadata_json], %{comment: true}} | ast],
+         [{:comment, _, ["livebook:" <> metadata_json], %{comment: true}} | ast],
          elems
        ) do
     group_elements(ast, [{:metadata, metadata_json} | elems])

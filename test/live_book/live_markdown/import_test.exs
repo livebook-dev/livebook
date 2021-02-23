@@ -6,15 +6,15 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
   test "acceptance" do
     markdown = """
-    <!-- live_book_meta:{"author":"Sherlock Holmes"} -->
+    <!-- livebook:{"author":"Sherlock Holmes"} -->
 
     # My Notebook
 
-    <!-- live_book_meta:{"created_at":"2021-02-15"} -->
+    <!-- livebook:{"created_at":"2021-02-15"} -->
 
     ## Section 1
 
-    <!-- live_book_meta:{"updated_at":"2021-02-15"} -->
+    <!-- livebook:{"updated_at":"2021-02-15"} -->
 
     Make sure to install:
 
@@ -22,7 +22,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     * Elixir
     * PostgreSQL
 
-    <!-- live_book_meta:{"readonly":true} -->
+    <!-- livebook:{"readonly":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -280,7 +280,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     markdown = """
     Cool notebook.
 
-    <!-- live_book_meta:{"author":"Sherlock Holmes"} -->
+    <!-- livebook:{"author":"Sherlock Holmes"} -->
 
     # My Notebook
 
@@ -387,7 +387,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
     ## Section 1
 
-    <!-- live_book_force_md -->
+    <!-- livebook:{"force_markdown":true} -->
 
     ```elixir
     [1, 2, 3]
@@ -397,7 +397,7 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
     Some markdown.
 
-    <!-- live_book_force_md -->
+    <!-- livebook:{"force_markdown":true} -->
 
     ```elixir
     [1, 2, 3]

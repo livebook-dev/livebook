@@ -47,7 +47,7 @@ defmodule LiveBook.LiveMarkdown.Export do
 
   defp render_metadata(metadata) do
     metadata_json = Jason.encode!(metadata)
-    "<!-- live_book_meta:#{metadata_json} -->"
+    "<!-- livebook:#{metadata_json} -->"
   end
 
   defp prepend_metadata(iodata, metadata) when metadata == %{}, do: iodata
@@ -83,7 +83,7 @@ defmodule LiveBook.LiveMarkdown.Export do
   defp add_markdown_annotation_before_elixir_block(ast) do
     Enum.flat_map(ast, fn
       {"pre", _, [{"code", [{"class", "elixir"}], [_source], %{}}], %{}} = ast_node ->
-        [{:comment, [], ["live_book_force_md"], %{comment: true}}, ast_node]
+        [{:comment, [], [~s/livebook:{"force_markdown":true}/], %{comment: true}}, ast_node]
 
       ast_node ->
         [ast_node]
