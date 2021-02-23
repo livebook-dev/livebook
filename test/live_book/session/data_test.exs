@@ -48,7 +48,7 @@ defmodule LiveBook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "insert_cell adds new cell to notebook and session info" do
+    test "insert_cell adds new cell to notebook and cell info" do
       data =
         data_after_operations!([
           {:insert_section, 0, "s1"}
@@ -64,6 +64,23 @@ defmodule LiveBook.Session.DataTest do
                   ]
                 },
                 cell_infos: %{"c1" => _}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "initializes client-revision map" do
+      client_pid = self()
+
+      data =
+        data_after_operations!([
+          {:client_join, client_pid},
+          {:insert_section, 0, "s1"}
+        ])
+
+      operation = {:insert_cell, "s1", 0, :elixir, "c1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{revision_by_client_pid: %{^client_pid => 0}}}
               }, []} = Data.apply_operation(data, operation)
     end
   end
@@ -559,16 +576,120 @@ defmodule LiveBook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :client_join" do
+    test "returns an error if the given process is already a client" do
+      data =
+        data_after_operations!([
+          {:client_join, self()}
+        ])
+
+      operation = {:client_join, self()}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "adds the given process to the client list" do
+      client_pid = self()
+      data = Data.new()
+
+      operation = {:client_join, client_pid}
+      assert {:ok, %{client_pids: [^client_pid]}, []} = Data.apply_operation(data, operation)
+    end
+
+    test "adds new entry to the cell revisions map for the client with the latest revision" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+        ])
+
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+      operation = {:client_join, client2_pid}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{revision_by_client_pid: %{^client2_pid => 1}}}
+              }, _} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :client_leave" do
+    test "returns an error if the given process is not a client" do
+      data = Data.new()
+
+      operation = {:client_leave, self()}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "removes the given process from the client list" do
+      data =
+        data_after_operations!([
+          {:client_join, self()}
+        ])
+
+      operation = {:client_leave, self()}
+      assert {:ok, %{client_pids: []}, []} = Data.apply_operation(data, operation)
+    end
+
+    test "removes an entry in the the cell revisions map for the client and purges deltas" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid},
+          {:client_join, client2_pid},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+        ])
+
+      operation = {:client_leave, client2_pid}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{deltas: [], revision_by_client_pid: revision_by_client_pid}
+                }
+              }, _} = Data.apply_operation(data, operation)
+
+      assert revision_by_client_pid == %{client1_pid => 1}
+    end
+  end
+
   describe "apply_operation/2 given :apply_cell_delta" do
     test "returns an error given invalid cell id" do
-      data = Data.new()
+      data =
+        data_after_operations!([
+          {:client_join, self()}
+        ])
+
       operation = {:apply_cell_delta, self(), "nonexistent", Delta.new(), 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given non-joined client pid" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, self(), "c1", delta, 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
     test "returns an error given invalid revision" do
       data =
         data_after_operations!([
+          {:client_join, self()},
           {:insert_section, 0, "s1"},
           {:insert_cell, "s1", 0, :elixir, "c1"}
         ])
@@ -582,6 +703,7 @@ defmodule LiveBook.Session.DataTest do
     test "updates cell source according to the given delta" do
       data =
         data_after_operations!([
+          {:client_join, self()},
           {:insert_section, 0, "s1"},
           {:insert_cell, "s1", 0, :elixir, "c1"}
         ])
@@ -601,17 +723,22 @@ defmodule LiveBook.Session.DataTest do
     end
 
     test "transforms the delta if the revision is not the most recent" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
       delta1 = Delta.new() |> Delta.insert("cats")
 
       data =
         data_after_operations!([
+          {:client_join, client1_pid},
+          {:client_join, client2_pid},
           {:insert_section, 0, "s1"},
           {:insert_cell, "s1", 0, :elixir, "c1"},
-          {:apply_cell_delta, self(), "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
       delta2 = Delta.new() |> Delta.insert("tea")
-      operation = {:apply_cell_delta, self(), "c1", delta2, 1}
+      operation = {:apply_cell_delta, client2_pid, "c1", delta2, 1}
 
       assert {:ok,
               %{
@@ -625,23 +752,132 @@ defmodule LiveBook.Session.DataTest do
     end
 
     test "returns broadcast delta action with the transformed delta" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
       delta1 = Delta.new() |> Delta.insert("cats")
 
       data =
         data_after_operations!([
+          {:client_join, client1_pid},
+          {:client_join, client2_pid},
           {:insert_section, 0, "s1"},
           {:insert_cell, "s1", 0, :elixir, "c1"},
-          {:apply_cell_delta, self(), "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
       delta2 = Delta.new() |> Delta.insert("tea")
-      operation = {:apply_cell_delta, self(), "c1", delta2, 1}
+      operation = {:apply_cell_delta, client2_pid, "c1", delta2, 1}
 
-      from = self()
       transformed_delta2 = Delta.new() |> Delta.retain(4) |> Delta.insert("tea")
 
-      assert {:ok, _data, [{:broadcast_delta, ^from, _cell, ^transformed_delta2}]} =
+      assert {:ok, _data, [{:broadcast_delta, ^client2_pid, _cell, ^transformed_delta2}]} =
                Data.apply_operation(data, operation)
+    end
+
+    test "given single client, does not keep deltas" do
+      client_pid = self()
+
+      data =
+        data_after_operations!([
+          {:client_join, client_pid},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, client_pid, "c1", delta, 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{deltas: []}}
+              }, _} = Data.apply_operation(data, operation)
+    end
+
+    test "given multiple client, keeps the delta" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid},
+          {:client_join, client2_pid},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, client1_pid, "c1", delta, 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{deltas: [^delta]}}
+              }, _} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :report_cell_revision" do
+    test "returns an error given invalid cell id" do
+      data =
+        data_after_operations!([
+          {:client_join, self()}
+        ])
+
+      operation = {:report_cell_revision, self(), "nonexistent", 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given non-joined client pid" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:apply_cell_delta, client1_pid, "c1", Delta.new(insert: "cats"), 1}
+        ])
+
+      operation = {:report_cell_revision, client2_pid, "c1", 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given invalid revision" do
+      data =
+        data_after_operations!([
+          {:client_join, self()},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"}
+        ])
+
+      operation = {:report_cell_revision, self(), "c1", 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates client entry in the revisions map and purges unnecessary deltas" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid},
+          {:client_join, client2_pid},
+          {:insert_section, 0, "s1"},
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+        ])
+
+      operation = {:report_cell_revision, client2_pid, "c1", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{deltas: [], revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}}
+                }
+              }, _} = Data.apply_operation(data, operation)
     end
   end
 

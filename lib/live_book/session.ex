@@ -21,7 +21,6 @@ defmodule LiveBook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
-          client_pids: list(pid()),
           runtime_monitor_ref: reference()
         }
 
@@ -169,8 +168,18 @@ defmodule LiveBook.Session do
   Asynchronously sends a cell delta to apply to the server.
   """
   @spec apply_cell_delta(id(), pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
-  def apply_cell_delta(session_id, from, cell_id, delta, revision) do
-    GenServer.cast(name(session_id), {:apply_cell_delta, from, cell_id, delta, revision})
+  def apply_cell_delta(session_id, client_pid, cell_id, delta, revision) do
+    GenServer.cast(name(session_id), {:apply_cell_delta, client_pid, cell_id, delta, revision})
+  end
+
+  @doc """
+  Asynchronously informs at what revision the given client is.
+
+  This helps to remove old deltas that are no longer necessary.
+  """
+  @spec report_cell_revision(id(), pid(), Cell.id(), Data.cell_revision()) :: :ok
+  def report_cell_revision(session_id, client_pid, cell_id, revision) do
+    GenServer.cast(name(session_id), {:report_cell_revision, client_pid, cell_id, revision})
   end
 
   @doc """
@@ -239,7 +248,6 @@ defmodule LiveBook.Session do
          %{
            session_id: id,
            data: data,
-           client_pids: [],
            runtime_monitor_ref: nil
          }}
 
@@ -270,7 +278,10 @@ defmodule LiveBook.Session do
   @impl true
   def handle_call({:register_client, pid}, _from, state) do
     Process.monitor(pid)
-    {:reply, state.data, %{state | client_pids: [pid | state.client_pids]}}
+
+    state = handle_operation(state, {:client_join, pid})
+
+    {:reply, state.data, state}
   end
 
   def handle_call(:get_data, _from, state) do
@@ -331,8 +342,13 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:apply_cell_delta, from, cell_id, delta, revision}, state) do
-    operation = {:apply_cell_delta, from, cell_id, delta, revision}
+  def handle_cast({:apply_cell_delta, client_pid, cell_id, delta, revision}, state) do
+    operation = {:apply_cell_delta, client_pid, cell_id, delta, revision}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:report_cell_revision, client_pid, cell_id, revision}, state) do
+    operation = {:report_cell_revision, client_pid, cell_id, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -397,7 +413,14 @@ defmodule LiveBook.Session do
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
-    {:noreply, %{state | client_pids: List.delete(state.client_pids, pid)}}
+    state =
+      if pid in state.data.client_pids do
+        handle_operation(state, {:client_leave, pid})
+      else
+        state
+      end
+
+    {:noreply, state}
   end
 
   def handle_info({:evaluation_stdout, cell_id, string}, state) do

@@ -80,6 +80,10 @@ export default class EditorClient {
   sendDelta(delta) {
     this.serverAdapter.sendDelta(delta, this.revision + 1);
   }
+
+  reportCurrentRevision() {
+    this.serverAdapter.reportRevision(this.revision);
+  }
 }
 
 /**
@@ -87,17 +91,37 @@ export default class EditorClient {
  * (the client is fully in sync with the server).
  */
 class Synchronized {
-  constructor(client) {
+  constructor(client, reportRevisionTimeout = 5000) {
     this.client = client;
+    this.reportRevisionTimeoutId = null;
+    this.reportRevisionTimeout = reportRevisionTimeout;
   }
 
   onClientDelta(delta) {
+    // Cancel the report request if scheduled,
+    // as the client is about to send the revision
+    // along with own delta.
+    if (this.reportRevisionTimeoutId !== null) {
+      clearTimeout(this.reportRevisionTimeoutId);
+      this.reportRevisionTimeoutId = null;
+    }
+
     this.client.sendDelta(delta);
-    return new AwaitingConfirm(this.client, delta);
+    return new AwaitingAcknowledgement(this.client, delta);
   }
 
   onServerDelta(delta) {
     this.client.applyDelta(delta);
+
+    // The client received a new delta, so let's schedule
+    // a request to report the new revision.
+    if (this.reportRevisionTimeoutId === null) {
+      this.reportRevisionTimeoutId = setTimeout(() => {
+        this.client.reportCurrentRevision();
+        this.reportRevisionTimeoutId = null;
+      }, this.reportRevisionTimeout);
+    }
+
     return this;
   }
 
@@ -110,7 +134,7 @@ class Synchronized {
  * Client is in this state when the client sent one delta and waits
  * for an acknowledgement, while there are no other deltas in a buffer.
  */
-class AwaitingConfirm {
+class AwaitingAcknowledgement {
   constructor(client, awaitedDelta) {
     this.client = client;
     this.awaitedDelta = awaitedDelta;
@@ -126,7 +150,7 @@ class AwaitingConfirm {
     const deltaPrime = this.awaitedDelta.transform(delta, "right");
     this.client.applyDelta(deltaPrime);
     const awaitedDeltaPrime = delta.transform(this.awaitedDelta, "left");
-    return new AwaitingConfirm(this.client, awaitedDeltaPrime);
+    return new AwaitingAcknowledgement(this.client, awaitedDeltaPrime);
   }
 
   onServerAcknowledgement() {
@@ -169,6 +193,6 @@ class AwaitingWithBuffer {
 
   onServerAcknowledgement() {
     this.client.sendDelta(this.buffer);
-    return new AwaitingConfirm(this.client, this.buffer);
+    return new AwaitingAcknowledgement(this.client, this.buffer);
   }
 }
