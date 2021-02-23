@@ -45,4 +45,18 @@ export default class HookServerAdapter {
       revision,
     });
   }
+
+  /**
+   * Sends an information to the server that the client
+   * is at the specified revision.
+   *
+   * This should be invoked if the client received updates,
+   * but is not itself sending any delta at the moment.
+   */
+  confirmDelta(revision) {
+    this.hook.pushEvent("confirm_cell_delta", {
+      cell_id: this.cellId,
+      revision,
+    });
+  }
 }

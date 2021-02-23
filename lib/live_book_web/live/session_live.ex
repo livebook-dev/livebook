@@ -266,6 +266,16 @@ defmodule LiveBookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event(
+        "confirm_cell_delta",
+        %{"cell_id" => cell_id, "revision" => revision},
+        socket
+      ) do
+    Session.confirm_cell_delta(socket.assigns.session_id, self(), cell_id, revision)
+
+    {:noreply, socket}
+  end
+
   def handle_event("focus_cell", %{"cell_id" => nil}, socket) do
     {:noreply, focus_cell(socket, nil)}
   end

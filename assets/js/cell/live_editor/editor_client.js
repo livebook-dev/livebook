@@ -80,6 +80,10 @@ export default class EditorClient {
   sendDelta(delta) {
     this.serverAdapter.sendDelta(delta, this.revision + 1);
   }
+
+  confirmRevision() {
+    this.serverAdapter.confirmDelta(this.revision);
+  }
 }
 
 /**
@@ -87,17 +91,32 @@ export default class EditorClient {
  * (the client is fully in sync with the server).
  */
 class Synchronized {
-  constructor(client) {
+  constructor(client, confirmTimeout = 5000) {
     this.client = client;
+    this.confirmTimeoutId = null;
+    this.confirmTimeout = confirmTimeout;
   }
 
   onClientDelta(delta) {
+    if (this.confirmTimeoutId !== null) {
+      clearTimeout(this.confirmTimeoutId);
+      this.confirmTimeoutId = null;
+    }
+
     this.client.sendDelta(delta);
     return new AwaitingConfirm(this.client, delta);
   }
 
   onServerDelta(delta) {
     this.client.applyDelta(delta);
+
+    if (this.confirmTimeoutId === null) {
+      this.confirmTimeoutId = setTimeout(() => {
+        this.client.confirmRevision();
+        this.confirmTimeoutId = null;
+      }, this.confirmTimeout);
+    }
+
     return this;
   }
 
