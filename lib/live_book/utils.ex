@@ -32,4 +32,13 @@ defmodule LiveBook.Utils do
       :"#{name}@#{host}"
     end
   end
+
+  defmacro registered_as(pid, name, do: block) do
+    quote do
+      Process.register(unquote(pid), unquote(name))
+      result = unquote(block)
+      Process.unregister(unquote(name))
+      result
+    end
+  end
 end

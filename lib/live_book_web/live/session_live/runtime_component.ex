@@ -104,6 +104,7 @@ defmodule LiveBookWeb.SessionLive.RuntimeComponent do
   end
 
   defp runtime_type_label(%Runtime.Standalone{}), do: "Standalone"
+  defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
   defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
 
   @impl true
@@ -115,7 +116,7 @@ defmodule LiveBookWeb.SessionLive.RuntimeComponent do
 
   def handle_event("init_standalone", _params, socket) do
     session_pid = Session.get_pid(socket.assigns.session_id)
-    handle_runtime_init_result(socket, Runtime.Standalone.init(session_pid))
+    handle_runtime_init_result(socket, Runtime.MixStandalone.init(session_pid, "/home/jonatanklosko/dev/wca-live/server"))
   end
 
   def handle_event("init_attached", %{"node" => %{"name" => name}}, socket) do
