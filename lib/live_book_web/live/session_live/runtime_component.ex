@@ -67,7 +67,7 @@ defmodule LiveBookWeb.SessionLive.RuntimeComponent do
             </label>
           </div>
         </form>
-        <div class="<%= if @runtime, do: "opacity-50 pointer-events-none" %>">
+        <div>
           <%= if @type == "elixir_standalone" do %>
             <%= live_render @socket, LiveBookWeb.SessionLive.ElixirStandaloneLive,
               id: :elixir_standalone_runtime,
