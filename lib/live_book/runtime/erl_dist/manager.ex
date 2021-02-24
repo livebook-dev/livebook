@@ -97,6 +97,11 @@ defmodule LiveBook.Runtime.ErlDist.Manager do
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
+    {:ok, pid} = LiveBook.Runtime.ErlDist.IOForwardGL.start_link()
+
+    Process.unregister(:standard_error)
+    Process.register(pid, :standard_error)
+
     {:ok,
      %{
        owner: nil,
