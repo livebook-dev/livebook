@@ -96,6 +96,8 @@ defmodule LiveBook.Runtime.MixStandalone do
 
     receive do
       {:node_started, init_ref, ^node, primary_pid} ->
+        Port.demonitor(port_ref)
+
         # Having the other process pid we can send the owner pid as a message.
         send(primary_pid, {:node_acknowledged, init_ref, owner_pid})
 
