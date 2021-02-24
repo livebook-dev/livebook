@@ -576,7 +576,9 @@ defmodule LiveBook.Session.Data do
       info = put_in(info.revision_by_client_pid[client_pid], info.revision)
       purge_deltas(info)
     end)
-    |> add_action({:broadcast_delta, client_pid, %{cell | source: new_source}, transformed_new_delta})
+    |> add_action(
+      {:broadcast_delta, client_pid, %{cell | source: new_source}, transformed_new_delta}
+    )
   end
 
   defp report_revision(data_actions, client_pid, cell, revision) do

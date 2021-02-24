@@ -3,6 +3,9 @@ defmodule LiveBook.Runtime.ErlDist.IOForwardGL do
 
   # An IO device process forwarding all requests to sender's group leader.
   #
+  # We use this device as `:standard_error` on connected runtime node,
+  # so that all evaluation warnings are treated as stdout.
+  #
   # The process implements [The Erlang I/O Protocol](https://erlang.org/doc/apps/stdlib/io_protocol.html)
   # and can be thought of as a *virtual* IO device.
 
