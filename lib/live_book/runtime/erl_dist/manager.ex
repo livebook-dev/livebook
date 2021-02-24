@@ -88,26 +88,40 @@ defmodule LiveBook.Runtime.ErlDist.Manager do
 
   @impl true
   def init(_opts) do
-    Process.flag(:trap_exit, true)
-    ErlDist.EvaluatorSupervisor.start_link()
-
     Process.send_after(self(), :check_owner, @await_owner_timeout)
+
+    ## Initialize the node
+
+    Process.flag(:trap_exit, true)
+
+    {:ok, _} = ErlDist.EvaluatorSupervisor.start_link()
+    {:ok, io_forward_gl_pid} = LiveBook.Runtime.ErlDist.IOForwardGL.start_link()
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
+    # Register our own standard error IO devices that proxies
+    # to sender's group leader.
+    original_standard_error = Process.whereis(:standard_error)
+    Process.unregister(:standard_error)
+    Process.register(io_forward_gl_pid, :standard_error)
+
     {:ok,
      %{
        owner: nil,
        evaluators: %{},
-       initial_ignore_module_conflict: initial_ignore_module_conflict
+       initial_ignore_module_conflict: initial_ignore_module_conflict,
+       original_standard_error: original_standard_error
      }}
   end
 
   @impl true
   def terminate(_reason, state) do
     Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
+
+    Process.unregister(:standard_error)
+    Process.register(state.original_standard_error, :standard_error)
 
     ErlDist.unload_required_modules()
 

@@ -56,5 +56,16 @@ defmodule LiveBook.Runtime.ErlDist.ManagerTest do
 
       Manager.stop(node())
     end
+
+    test "proxies evaluation stderr to stdout" do
+      Manager.start()
+      Manager.set_owner(node(), self())
+
+      Manager.evaluate_code(node(), ~s{IO.puts(:stderr, "error")}, :container1, :evaluation1)
+
+      assert_receive {:evaluation_stdout, :evaluation1, "error\n"}
+
+      Manager.stop(node())
+    end
   end
 end

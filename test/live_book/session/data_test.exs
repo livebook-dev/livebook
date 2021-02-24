@@ -875,7 +875,10 @@ defmodule LiveBook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{deltas: [], revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}}
+                  "c1" => %{
+                    deltas: [],
+                    revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}
+                  }
                 }
               }, _} = Data.apply_operation(data, operation)
     end

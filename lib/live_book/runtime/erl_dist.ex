@@ -23,7 +23,8 @@ defmodule LiveBook.Runtime.ErlDist do
     LiveBook.Evaluator.StringFormatter,
     LiveBook.Runtime.ErlDist,
     LiveBook.Runtime.ErlDist.Manager,
-    LiveBook.Runtime.ErlDist.EvaluatorSupervisor
+    LiveBook.Runtime.ErlDist.EvaluatorSupervisor,
+    LiveBook.Runtime.ErlDist.IOForwardGL
   ]
 
   @doc """
