@@ -11,6 +11,8 @@ defmodule LiveBook.Runtime.ErlDist.IOForwardGL do
 
   use GenServer
 
+  @type state :: %{(reply_as :: term()) => from :: pid()}
+
   ## API
 
   @spec start_link() :: GenServer.on_start()
@@ -22,24 +24,28 @@ defmodule LiveBook.Runtime.ErlDist.IOForwardGL do
 
   @impl true
   def init(_opts) do
-    {:ok, %{requests: %{}}}
+    {:ok, %{}}
   end
 
   @impl true
   def handle_info({:io_request, from, reply_as, req}, state) do
-    # Forward the request to sender's group leader
-    # and instruct it to get back to us.
-    {:group_leader, group_leader} = Process.info(from, :group_leader)
-    send(group_leader, {:io_request, self(), reply_as, req})
+    case Process.info(from, :group_leader) do
+      {:group_leader, group_leader} ->
+        # Forward the request to sender's group leader
+        # and instruct it to get back to us.
+        send(group_leader, {:io_request, self(), reply_as, req})
+        state = Map.put(state, reply_as, from)
 
-    state = put_in(state.requests[reply_as], from)
+        {:noreply, state}
 
-    {:noreply, state}
+      _ ->
+        {:noreply, state}
+    end
   end
 
   def handle_info({:io_reply, reply_as, reply}, state) do
-    # Send forward the reply from group leader to the original client.
-    {initially_from, state} = pop_in(state.requests[reply_as])
+    # Forward the reply from group leader to the original client.
+    {initially_from, state} = Map.pop(state, reply_as)
     send(initially_from, {:io_reply, reply_as, reply})
 
     {:noreply, state}
