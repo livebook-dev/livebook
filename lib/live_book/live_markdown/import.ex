@@ -32,6 +32,7 @@ defmodule LiveBook.LiveMarkdown.Import do
   defp rewrite_ast(ast) do
     {ast, messages1} = rewrite_multiple_primary_headings(ast)
     {ast, messages2} = move_primary_heading_top(ast)
+    ast = trim_comments(ast)
 
     {ast, messages1 ++ messages2}
   end
@@ -92,6 +93,18 @@ defmodule LiveBook.LiveMarkdown.Import do
     {Enum.reverse(left_rev), Enum.reverse(right_rev)}
   end
 
+  # Trims one-line comments to allow nice pattern matching
+  # on LiveBook-specific annotations with no regard to surrounding whitespace.
+  defp trim_comments(ast) do
+    Enum.map(ast, fn
+      {:comment, attrs, [line], %{comment: true}} ->
+        {:comment, attrs, [String.trim(line)], %{comment: true}}
+
+      ast_node ->
+        ast_node
+    end)
+  end
+
   # Builds a list of classified elements from the AST.
   defp group_elements(ast, elems \\ [])
 
@@ -105,8 +118,30 @@ defmodule LiveBook.LiveMarkdown.Import do
     group_elements(ast, [{:section_name, content} | elems])
   end
 
+  # The <!-- livebook:{"force_markdown":true} --> annotation forces the next node
+  # to be interpreted as Markdown cell content.
   defp group_elements(
-         [{:comment, _, ["live_book:" <> metadata_json], %{comment: true}} | ast],
+         [
+           {:comment, _, [~s/livebook:{"force_markdown":true}/], %{comment: true}},
+           ast_node | ast
+         ],
+         [{:cell, :markdown, md_ast} | rest]
+       ) do
+    group_elements(ast, [{:cell, :markdown, [ast_node | md_ast]} | rest])
+  end
+
+  defp group_elements(
+         [
+           {:comment, _, [~s/livebook:{"force_markdown":true}/], %{comment: true}},
+           ast_node | ast
+         ],
+         elems
+       ) do
+    group_elements(ast, [{:cell, :markdown, [ast_node]} | elems])
+  end
+
+  defp group_elements(
+         [{:comment, _, ["livebook:" <> metadata_json], %{comment: true}} | ast],
          elems
        ) do
     group_elements(ast, [{:metadata, metadata_json} | elems])

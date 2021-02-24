@@ -1,6 +1,23 @@
 import marked from "marked";
 import morphdom from "morphdom";
 import DOMPurify from "dompurify";
+import monaco from "./live_editor/monaco";
+
+// Reuse Monaco highlighter for Markdown code blocks
+marked.setOptions({
+  highlight: (code, lang, callback) => {
+    monaco.editor
+      .colorize(code, lang)
+      .then((result) => {
+        // `colorize` always adds additional newline, so we remove it
+        result = result.replace(/<br\/>$/, "");
+        callback(null, result);
+      })
+      .catch((error) => {
+        callback(error, null);
+      });
+  },
+});
 
 /**
  * Renders markdown content in the given container.
@@ -19,27 +36,31 @@ class Markdown {
   }
 
   __render() {
-    const html = this.__getHtml();
-    // Wrap the HTML in another element, so that we
-    // can use morphdom's childrenOnly option.
-    const wrappedHtml = `<div>${html}</div>`;
+    this.__getHtml().then((html) => {
+      // Wrap the HTML in another element, so that we
+      // can use morphdom's childrenOnly option.
+      const wrappedHtml = `<div>${html}</div>`;
 
-    morphdom(this.container, wrappedHtml, { childrenOnly: true });
+      morphdom(this.container, wrappedHtml, { childrenOnly: true });
+    });
   }
 
   __getHtml() {
-    const html = marked(this.content);
-    const sanitizedHtml = DOMPurify.sanitize(html);
+    return new Promise((resolve, reject) => {
+      marked(this.content, (error, html) => {
+        const sanitizedHtml = DOMPurify.sanitize(html);
 
-    if (sanitizedHtml) {
-      return sanitizedHtml;
-    } else {
-      return `
-        <div class="text-gray-300">
-          Empty markdown cell
-        </div>
-      `;
-    }
+        if (sanitizedHtml) {
+          resolve(sanitizedHtml);
+        } else {
+          resolve(`
+            <div class="text-gray-300">
+              Empty markdown cell
+            </div>
+          `);
+        }
+      });
+    });
   }
 }
 

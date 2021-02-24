@@ -71,7 +71,7 @@
   @apply hidden;
 }
 
-.radio-button .radio-button__input[checked] +  .radio-button__label {
+.radio-button .radio-button__input[checked] + .radio-button__label {
   @apply bg-gray-700 text-white;
 }
 

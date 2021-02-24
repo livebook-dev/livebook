@@ -15,8 +15,10 @@ defmodule LiveBook.LiveMarkdown do
   # 2. Every *Heading 2* starts a new section.
   # 3. Every Elixir code block maps to an Elixir cell.
   # 4. Adjacent regular Markdown text maps to a Markdown cell.
-  # 5. Comments of the form `<!--live_book:json_object-->` hold metadata
+  # 5. Comments of the form `<!-- livebook:json_object -->` hold metadata
   #    any apply to the element they directly precede (e.g. an Elixir cell).
+  #    Such comments may appear anywhere, for instance `<!-- livebook:{"force_markdown":true} -->`
+  #    forces the next Markdown block to be treated as prat of Markdown cell (even if it's Elixir code block).
   #
   # ## Example
   #
@@ -32,7 +34,8 @@ defmodule LiveBook.LiveMarkdown do
   #     * Elixir
   #     * PostgreSQL
   #
-  #     <!--live_book:{"readonly":true}-->
+  #     <!-- livebook:{"readonly":true} -->
+  #
   #     ```elixir
   #     Enum.to_list(1..10)
   #     ```

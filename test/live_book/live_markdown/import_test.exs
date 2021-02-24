@@ -6,20 +6,24 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
 
   test "acceptance" do
     markdown = """
-    <!--live_book:{"author":"Sherlock Holmes"}-->
+    <!-- livebook:{"author":"Sherlock Holmes"} -->
+
     # My Notebook
 
-    <!--live_book:{"created_at":"2021-02-15"}-->
+    <!-- livebook:{"created_at":"2021-02-15"} -->
+
     ## Section 1
 
-    <!--live_book:{"updated_at":"2021-02-15"}-->
+    <!-- livebook:{"updated_at":"2021-02-15"} -->
+
     Make sure to install:
 
     * Erlang
     * Elixir
     * PostgreSQL
 
-    <!--live_book:{"readonly":true}-->
+    <!-- livebook:{"readonly":true} -->
+
     ```elixir
     Enum.to_list(1..10)
     ```
@@ -276,7 +280,8 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
     markdown = """
     Cool notebook.
 
-    <!--live_book:{"author":"Sherlock Holmes"}-->
+    <!-- livebook:{"author":"Sherlock Holmes"} -->
+
     # My Notebook
 
     Some markdown.
@@ -367,6 +372,66 @@ defmodule LiveBook.LiveMarkdown.ImportTest do
                      source: """
                      ```erlang
                      spawn_link(fun() -> io:format("Hiya") end).
+                     ```\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
+  test "imports elixir snippets as part of markdown cells if marked as such" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    <!-- livebook:{"force_markdown":true} -->
+
+    ```elixir
+    [1, 2, 3]
+    ```
+
+    ## Section 2
+
+    Some markdown.
+
+    <!-- livebook:{"force_markdown":true} -->
+
+    ```elixir
+    [1, 2, 3]
+    ```
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     source: """
+                     ```elixir
+                     [1, 2, 3]
+                     ```\
+                     """
+                   }
+                 ]
+               },
+               %Notebook.Section{
+                 name: "Section 2",
+                 cells: [
+                   %Notebook.Cell{
+                     type: :markdown,
+                     source: """
+                     Some markdown.
+
+                     ```elixir
+                     [1, 2, 3]
                      ```\
                      """
                    }
