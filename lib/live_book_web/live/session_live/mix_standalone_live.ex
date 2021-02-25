@@ -7,7 +7,7 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
 
   @impl true
   def mount(_params, %{"session_id" => session_id}, socket) do
-    {:ok, assign(socket, session_id: session_id, outputs: [], status: :initial), temporary_assigns: [outputs: []]}
+    {:ok, assign(socket, session_id: session_id, outputs: [], status: :initial, path: default_path()), temporary_assigns: [outputs: []]}
   end
 
   @impl true
@@ -18,7 +18,14 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
         You can start a new local node to handle code evaluation.
         This happens automatically as soon as you evaluate the first cell.
       </p>
-      <%= content_tag :button, "Connect", class: "button-base button-sm", phx_click: "init", disabled: @status == :initializing %>
+      <%= if @status == :initial do %>
+        <%= live_component @socket, LiveBookWeb.PathSelectComponent,
+          id: "path_select",
+          path: @path,
+          running_paths: [],
+          target: nil %>
+        <%= content_tag :button, "Connect", class: "button-base button-sm", phx_click: "init", disabled: @status == :initializing %>
+      <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
           <pre><code class="max-h-40 overflow-y-auto tiny-scrollbar"
@@ -33,9 +40,13 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
   end
 
   @impl true
+  def handle_event("set_path", %{"path" => path}, socket) do
+    {:noreply, assign(socket, path: path)}
+  end
+
   def handle_event("init", _params, socket) do
     session_pid = Session.get_pid(socket.assigns.session_id)
-    Runtime.MixStandalone.init_async(session_pid, "/home/jonatanklosko/dev/wca-live/server")
+    Runtime.MixStandalone.init_async(session_pid, socket.assigns.path)
     {:noreply, assign(socket, status: :initializing)}
   end
 
@@ -54,4 +65,6 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
     IO.inspect({:error, error})
     {:noreply, socket |> assign(status: :finished) |> put_flash(:error, error)}
   end
+
+  defp default_path(), do: File.cwd!() <> "/"
 end
