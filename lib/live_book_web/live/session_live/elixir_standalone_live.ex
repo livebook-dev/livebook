@@ -32,7 +32,7 @@ defmodule LiveBookWeb.SessionLive.ElixirStandaloneLive do
   @impl true
   def handle_event("init", _params, socket) do
     session_pid = Session.get_pid(socket.assigns.session_id)
-    {:ok, runtime} = Runtime.Standalone.init(session_pid)
+    {:ok, runtime} = Runtime.ElixirStandalone.init(session_pid)
     Session.connect_runtime(socket.assigns.session_id, runtime)
     {:noreply, socket}
   end

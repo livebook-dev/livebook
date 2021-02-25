@@ -240,7 +240,7 @@ defmodule LiveBook.SessionTest do
   test "if the runtime node goes down, notifies the subscribers" do
     session_id = Utils.random_id()
     {:ok, _} = Session.start_link(id: session_id)
-    {:ok, runtime} = Runtime.Standalone.init(self())
+    {:ok, runtime} = Runtime.ElixirStandalone.init(self())
 
     Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
 

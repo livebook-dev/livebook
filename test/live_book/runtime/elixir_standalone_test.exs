@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.StandaloneTest do
+defmodule LiveBook.Runtime.ElixirStandaloneTest do
   use ExUnit.Case, async: true
 
   alias LiveBook.Runtime
@@ -12,7 +12,7 @@ defmodule LiveBook.Runtime.StandaloneTest do
           end
         end)
 
-      assert {:ok, %{node: node}} = Runtime.Standalone.init(owner)
+      assert {:ok, %{node: node}} = Runtime.ElixirStandalone.init(owner)
 
       # Make sure the node is running.
       Node.monitor(node, true)
@@ -26,7 +26,7 @@ defmodule LiveBook.Runtime.StandaloneTest do
     end
 
     test "loads necessary modules and starts manager process" do
-      assert {:ok, %{node: node}} = Runtime.Standalone.init(self())
+      assert {:ok, %{node: node}} = Runtime.ElixirStandalone.init(self())
 
       assert evaluator_module_loaded?(node)
       assert manager_started?(node)
@@ -34,7 +34,7 @@ defmodule LiveBook.Runtime.StandaloneTest do
   end
 
   test "Runtime.disconnect/1 makes the node terminate" do
-    assert {:ok, %{node: node} = runtime} = Runtime.Standalone.init(self())
+    assert {:ok, %{node: node} = runtime} = Runtime.ElixirStandalone.init(self())
 
     # Make sure the node is running.
     Node.monitor(node, true)

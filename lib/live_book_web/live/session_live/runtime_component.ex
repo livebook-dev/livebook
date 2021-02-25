@@ -89,7 +89,7 @@ defmodule LiveBookWeb.SessionLive.RuntimeComponent do
     """
   end
 
-  defp runtime_type_label(%Runtime.Standalone{}), do: "Standalone"
+  defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
   defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
   defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
 

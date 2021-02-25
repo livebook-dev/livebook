@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.Standalone do
+defmodule LiveBook.Runtime.ElixirStandalone do
   defstruct [:node, :primary_pid, :init_ref]
 
   # A runtime backed by a standalone Elixir node managed by LiveBook.
@@ -111,7 +111,7 @@ defmodule LiveBook.Runtime.Standalone do
   end
 end
 
-defimpl LiveBook.Runtime, for: LiveBook.Runtime.Standalone do
+defimpl LiveBook.Runtime, for: LiveBook.Runtime.ElixirStandalone do
   alias LiveBook.Runtime.ErlDist
 
   def connect(runtime) do
