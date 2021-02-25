@@ -8,12 +8,14 @@ import ContentEditable from "./content_editable";
 import Cell from "./cell";
 import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
+import ScrollOnUpdate from "./scroll_on_update";
 
 const Hooks = {
   ContentEditable,
   Cell,
   Session,
   FocusOnUpdate,
+  ScrollOnUpdate,
 };
 
 const csrfToken = document

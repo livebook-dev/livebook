@@ -24,6 +24,7 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
           <pre><code class="max-h-40 overflow-y-auto tiny-scrollbar"
             id="mix-standalone-init-output"
             phx-update="append"
+            phx-hook="ScrollOnUpdate"
             ><%= for {output, i} <- @outputs do %><span id="output-<%= i %>"><%= ansi_string_to_html(output) %></span><% end %></code></pre>
         </div>
       <% end %>
