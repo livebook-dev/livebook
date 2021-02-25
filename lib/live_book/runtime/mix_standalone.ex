@@ -28,30 +28,32 @@ defmodule LiveBook.Runtime.MixStandalone do
   Note: to start the node it is required that `elixir` is a recognised
   executable within the system.
   """
-  @spec init(pid(), String.t()) :: :ok
-  def init(owner_pid, project_path) do
+  @spec init_async(pid(), String.t()) :: :ok
+  def init_async(owner_pid, project_path) do
     stream_to = self()
 
     spawn_link(fn ->
-      with {:ok, elixir_path} <- find_elixir_executable(stream_to),
-           :ok <- run_mix_task(stream_to, "deps.get", project_path),
-           :ok <- run_mix_task(stream_to, "compile", project_path) do
-        id = Utils.random_short_id()
-        node = Utils.node_from_name("live_book_runtime_#{id}")
-        # The new Elixir node receives a code to evaluate
-        # and we have to pass the current pid there, but since pid
-        # is not a type we can include directly in the code,
-        # we temporarily register the current process under a name.
-        waiter = :"live_book_waiter_#{id}"
+      parent_node = node()
+      {child_node, waiter} = init_parameteres()
 
-        Utils.registered_as self(), waiter do
-          eval = child_node_eval(waiter, node()) |> Macro.to_string()
-          port = start_elixir_node(elixir_path, node, eval, project_path)
+      Utils.registered_as self(), waiter do
+        with {:ok, elixir_path} <- find_elixir_executable(),
+             :ok <- run_mix_task("deps.get", project_path, stream_to),
+             :ok <- run_mix_task("compile", project_path, stream_to),
+             eval <- child_node_eval_ast(parent_node, waiter) |> Macro.to_string(),
+             port <- start_elixir_node(elixir_path, child_node, eval, project_path),
+             {:ok, primary_pid, init_ref} <- parent_init_sequence(child_node, port, owner_pid, stream_to) do
+          runtime = %__MODULE__{
+            node: child_node,
+            primary_pid: primary_pid,
+            init_ref: init_ref,
+            project_path: project_path
+          }
 
-          with {:ok, primary_pid, init_ref} <- parent_node_init(stream_to, node, port, owner_pid) do
-            runtime = %__MODULE__{node: node, primary_pid: primary_pid, init_ref: init_ref, project_path: project_path}
-            send(stream_to, {:runtime_init, {:ok, runtime}})
-          end
+          stream_info(stream_to, {:ok, runtime})
+        else
+          {:error, error} ->
+            stream_info(stream_to, {:error, error})
         end
       end
     end)
@@ -59,46 +61,58 @@ defmodule LiveBook.Runtime.MixStandalone do
     :ok
   end
 
-  defp find_elixir_executable(stream_to) do
-    case System.find_executable("elixir") do
-      nil ->
-        send(stream_to, {:runtime_init, {:error, :no_elixir_executable}})
-        :error
+  defp init_parameteres() do
+    id = Utils.random_short_id()
+    node = Utils.node_from_name("live_book_runtime_#{id}")
+    # The new Elixir node receives a code to evaluate
+    # and we have to pass the current pid there, but since pid
+    # is not a type we can include directly in the code,
+    # we temporarily register the current process under a name.
+    waiter = :"live_book_waiter_#{id}"
 
-      path ->
-        {:ok, path}
+    {node, waiter}
+  end
+
+  defp find_elixir_executable() do
+    case System.find_executable("elixir") do
+      nil -> {:error, "no Elixir executable found in PATH"}
+      path -> {:ok, path}
     end
   end
 
   # TODO: add description
-  defmodule Caller do
+  defmodule CallerSink do
     defstruct [:pid]
   end
 
-  defimpl Collectable, for: Caller do
+  defimpl Collectable, for: CallerSink do
     def into(original) do
       collector_fun = fn
-        caller, {:cont, output} ->
-          send(caller.pid, {:runtime_init, {:output, output}})
-          caller
-        caller, :done -> caller
-        _caller, :halt -> :ok
+        caller_sink, {:cont, output} ->
+          send(caller_sink.pid, {:runtime_init, {:output, output}})
+          caller_sink
+
+        caller_sink, :done ->
+          caller_sink
+
+        _caller_sink, :halt ->
+          :ok
       end
 
       {original, collector_fun}
     end
   end
 
-  defp run_mix_task(stream_to, task, project_path) do
-    send(stream_to, {:runtime_init, {:output, "Running mix #{task}...\n"}})
+  defp run_mix_task(task, project_path, stream_to) do
+    stream_info(stream_to, {:output, "Running mix #{task}...\n"})
 
-    case System.cmd("mix", [task], cd: project_path, stderr_to_stdout: true, into: %Caller{pid: stream_to}) do
-      {_output, 0} ->
-        :ok
-
-      {_output, _status} ->
-        send(stream_to, {:runtime_init, {:error, :failed}})
-        :error
+    case System.cmd("mix", [task],
+           cd: project_path,
+           stderr_to_stdout: true,
+           into: %CallerSink{pid: stream_to}
+         ) do
+      {_output, 0} -> :ok
+      {_output, _status} -> {:error, "running mix #{task} failed, see output for more details"}
     end
   end
 
@@ -125,38 +139,54 @@ defmodule LiveBook.Runtime.MixStandalone do
     ])
   end
 
-  defp parent_node_init(stream_to, node, port, owner_pid) do
+  # The process proceedes as follows:
+  #
+  # 1. Waits for the child node to send an initial message.
+  # 2. Responds with acknowledgement (handshake).
+  # 3. Initializes the remote node with necessary modules and processes.
+  #
+  # Handles timeouts and unexpected crashes.
+  # Returns {:ok, primary_pid, init_ref} or {:error, message}.
+  defp parent_init_sequence(child_node, port, owner_pid, stream_to) do
     port_ref = Port.monitor(port)
 
     loop = fn loop ->
       receive do
-        {:node_started, init_ref, ^node, primary_pid} ->
+        {:node_started, init_ref, ^child_node, primary_pid} ->
           Port.demonitor(port_ref)
 
           # Having the other process pid we can send the owner pid as a message.
           send(primary_pid, {:node_acknowledged, init_ref, owner_pid})
 
           # There should be no problem initializing the new node
-          :ok = LiveBook.Runtime.ErlDist.initialize(node)
+          :ok = LiveBook.Runtime.ErlDist.initialize(child_node)
 
           {:ok, primary_pid, init_ref}
 
         {^port, {:data, output}} ->
-          send(stream_to, {:runtime_init, {:output, output}})
+          stream_info(stream_to, {:output, output})
           loop.(loop)
 
         {:DOWN, ^port_ref, :port, _object, _reason} ->
-          {:error, :external}
+          {:error, "Elixir process terminated unexpectedly"}
       after
         10_000 ->
-          {:error, :timeout}
+          {:error, "connection timed out"}
       end
     end
 
     loop.(loop)
   end
 
-  defp child_node_eval(waiter, parent_node) do
+  # The process proceedes as follows:
+  #
+  # 1. Sends an initial message to the parent node to establish communication.
+  # 2. Waits for the parent node to send acknowledgement (handshake).
+  # 3. Starts monitoring the specified owner process and freezes
+  #    until it terminates or an explicit stop request is sent.
+  #
+  # Handles timeouts and unexpected crashes.
+  defp child_node_eval_ast(parent_node, waiter) do
     # This is the code that's gonna be evaluated in the newly
     # spawned Elixir runtime. This is the primary process
     # and as soon as it finishes, the runtime terminates.
@@ -182,6 +212,10 @@ defmodule LiveBook.Runtime.MixStandalone do
         10_000 -> :timeout
       end
     end
+  end
+
+  defp stream_info(stream_to, message) do
+    send(stream_to, {:runtime_init, message})
   end
 end
 

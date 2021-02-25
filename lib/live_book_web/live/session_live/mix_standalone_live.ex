@@ -34,7 +34,7 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
   @impl true
   def handle_event("init", _params, socket) do
     session_pid = Session.get_pid(socket.assigns.session_id)
-    Runtime.MixStandalone.init(session_pid, "/home/jonatanklosko/dev/wca-live/server")
+    Runtime.MixStandalone.init_async(session_pid, "/home/jonatanklosko/dev/wca-live/server")
     {:noreply, assign(socket, status: :initializing)}
   end
 
