@@ -8,7 +8,7 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
   @impl true
   def mount(_params, %{"session_id" => session_id}, socket) do
     {:ok,
-     assign(socket, session_id: session_id, outputs: [], status: :initial, path: default_path()),
+     assign(socket, session_id: session_id, status: :initial, path: default_path(), outputs: []),
      temporary_assigns: [outputs: []]}
   end
 
@@ -17,7 +17,7 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
     ~L"""
     <div class="flex-col space-y-3">
       <p class="text-gray-500">
-        Start a new local node in the context of a mix project.
+        Start a new local node in the context of a Mix project.
         This way all your code and dependencies will be available
         within the notebook.
       </p>

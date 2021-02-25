@@ -7,7 +7,7 @@ defmodule LiveBook.Runtime.Attached do
   # LiveBook doesn't manage its lifetime in any way
   # and only loads/unloads the necessary elements.
   # The node can be an oridinary Elixir runtime,
-  # a mix project shell, a running release or anything else.
+  # a Mix project shell, a running release or anything else.
 
   defstruct [:node]
 

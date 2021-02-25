@@ -3,9 +3,8 @@ defmodule LiveBook.Runtime.MixStandalone do
 
   # A runtime backed by a standalone Elixir node managed by LiveBook.
   #
-  # LiveBook is responsible for starting and terminating the node.
-  # Most importantly we have to make sure the started node doesn't
-  # stay in the system when the session or the entire LiveBook terminates.
+  # This runtime is similar to `LiveBook.Runtime.ElixirStandalone`,
+  # but the node is started in the context of a Mix project.
 
   alias LiveBook.Utils
   require LiveBook.Utils
@@ -20,6 +19,17 @@ defmodule LiveBook.Runtime.MixStandalone do
   @doc """
   Starts a new Elixir node (i.e. a system process) and initializes
   it with LiveBook-specific modules and processes.
+
+  The node is started together with a Mix environment appropriate
+  for the given `project_path`. The setup may involve
+  long-running steps (like fetching dependencies, compiling the project),
+  so the initialization is asynchronous. This function spawns and links
+  a process responsible for initialization, which then sends
+  notifications to the caller:
+
+  * `{:runtime_init, {:output, string}}` - arbitrary output/info sent as the initialization proceeds
+  * `{:runtime_init, {:ok, runtime}}` - a final message indicating successful initialization
+  * `{:runtime_init, {:error, message}}` - a final message indicating failure
 
   The new node monitors the given owner process and terminates
   as soon as it terminates. It may also be terminated manually
