@@ -25,11 +25,10 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
         <%= live_component @socket, LiveBookWeb.PathSelectComponent,
           id: "path_select",
           path: @path,
+          extnames: [],
           running_paths: [],
           target: nil %>
-        <button class="button-base button-sm" phx-click="init">
-          Connect
-        </button>
+        <%= content_tag :button, "Connect", class: "button-base button-sm", phx_click: "init", disabled: not mix_project_root?(@path) %>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
@@ -74,4 +73,8 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
   end
 
   defp default_path(), do: File.cwd!() <> "/"
+
+  defp mix_project_root?(path) do
+    File.dir?(path) and File.exists?(Path.join(path, "mix.exs"))
+  end
 end

@@ -39,6 +39,7 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
             <%= live_component @socket, LiveBookWeb.PathSelectComponent,
               id: "path_select",
               path: @path,
+              extnames: [LiveMarkdown.extension()],
               running_paths: paths(@session_summaries),
               target: @myself %>
           </div>
