@@ -9,14 +9,14 @@ defmodule LiveBook.Runtime.StandaloneInit do
 
   def init_parameteres() do
     id = Utils.random_short_id()
-    node = Utils.node_from_name("live_book_runtime_#{id}")
-    # The new Elixir node receives a code to evaluate
-    # and we have to pass the current pid there, but since pid
-    # is not a type we can include directly in the code,
-    # we have to register the current process under a name.
-    waiter = :"live_book_waiter_#{id}"
+    child_node = Utils.node_from_name("live_book_runtime_#{id}")
+    # We have to pass parent process pid to the new Elixir node.
+    # The node receives code to evaluate as string, so we cannot
+    # directly embed the pid there, but we can temporarily register
+    # the process under a random name and pass this name to the child node.
+    parent_process_name = :"live_book_parent_process_name_#{id}"
 
-    {node, waiter}
+    {child_node, parent_process_name}
   end
 
   def find_elixir_executable() do
@@ -41,12 +41,12 @@ defmodule LiveBook.Runtime.StandaloneInit do
   # The process proceedes as follows:
   #
   # 1. Waits for the child node to send an initial message.
-  # 2. Responds with acknowledgement (handshake).
-  # 3. Initializes the remote node with necessary modules and processes.
+  # 2. Initializes the remote node with necessary modules and processes.
+  # 3. Responds to the child node indicating that initialization has finished (finishdes handshake).
   #
   # Handles timeouts and unexpected crashes.
-  # Returns {:ok, primary_pid, init_ref} or {:error, message}.
-  def parent_init_sequence(child_node, port, owner_pid, handle_output \\ fn _ -> :ok end) do
+  # Returns {:ok, primary_pid} or {:error, message}.
+  def parent_init_sequence(child_node, port, handle_output \\ fn _ -> :ok end) do
     port_ref = Port.monitor(port)
 
     loop = fn loop ->
@@ -54,13 +54,12 @@ defmodule LiveBook.Runtime.StandaloneInit do
         {:node_started, init_ref, ^child_node, primary_pid} ->
           Port.demonitor(port_ref)
 
-          # Having the other process pid we can send the owner pid as a message.
-          send(primary_pid, {:node_acknowledged, init_ref, owner_pid})
-
-          # There should be no problem initializing the new node
+          # We've just created the node, so it is surely not in use
           :ok = LiveBook.Runtime.ErlDist.initialize(child_node)
 
-          {:ok, primary_pid, init_ref}
+          send(primary_pid, {:node_initialized, init_ref})
+
+          {:ok, primary_pid}
 
         {^port, {:data, output}} ->
           handle_output.(output)
@@ -80,31 +79,31 @@ defmodule LiveBook.Runtime.StandaloneInit do
   # The process proceedes as follows:
   #
   # 1. Sends an initial message to the parent node to establish communication.
-  # 2. Waits for the parent node to send acknowledgement (handshake).
-  # 3. Starts monitoring the specified owner process and freezes
+  # 2. Waits for the parent node to initialize this node and send a message back (handshake).
+  # 3. Starts monitoring the specified the Manager process and freezes
   #    until it terminates or an explicit stop request is sent.
   #
   # Handles timeouts and unexpected crashes.
-  def child_node_ast(parent_node, waiter) do
+  def child_node_ast(parent_node, parent_process_name) do
     # This is the code that's gonna be evaluated in the newly
     # spawned Elixir runtime. This is the primary process
     # and as soon as it finishes, the runtime terminates.
     quote do
       # Initiate communication with the waiting process on the parent node.
       init_ref = make_ref()
-      send({unquote(waiter), unquote(parent_node)}, {:node_started, init_ref, node(), self()})
+
+      send(
+        {unquote(parent_process_name), unquote(parent_node)},
+        {:node_started, init_ref, node(), self()}
+      )
 
       receive do
-        {:node_acknowledged, ^init_ref, owner_pid} ->
-          owner_ref = Process.monitor(owner_pid)
+        {:node_initialized, ^init_ref} ->
+          manager_ref = Process.monitor(LiveBook.Runtime.ErlDist.Manager)
 
-          # Wait until either the owner process terminates
-          # or we receives an explicit stop request.
+          # Wait until the Manager process terminates.
           receive do
-            {:DOWN, ^owner_ref, :process, _object, _reason} ->
-              :ok
-
-            {:stop, ^init_ref} ->
+            {:DOWN, ^manager_ref, :process, _object, _reason} ->
               :ok
           end
       after

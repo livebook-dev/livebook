@@ -1,19 +1,19 @@
 defmodule LiveBook.Runtime.MixStandalone do
-  defstruct [:node, :primary_pid, :init_ref, :project_path]
+  defstruct [:node, :primary_pid, :project_path]
 
   # A runtime backed by a standalone Elixir node managed by LiveBook.
   #
   # This runtime is similar to `LiveBook.Runtime.ElixirStandalone`,
   # but the node is started in the context of a Mix project.
 
+  import LiveBook.Runtime.StandaloneInit
+
   alias LiveBook.Utils
   require LiveBook.Utils
-  import LiveBook.Runtime.StandaloneInit
 
   @type t :: %__MODULE__{
           node: node(),
           primary_pid: pid(),
-          init_ref: reference(),
           project_path: String.t()
         }
 
@@ -32,34 +32,33 @@ defmodule LiveBook.Runtime.MixStandalone do
   * `{:runtime_init, {:ok, runtime}}` - a final message indicating successful initialization
   * `{:runtime_init, {:error, message}}` - a final message indicating failure
 
-  The new node monitors the given owner process and terminates
-  as soon as it terminates. It may also be terminated manually
-  by using `Runtime.disconnect/1`.
+  If no process calls `Runtime.connect/1` for a period of time,
+  the node automatically terminates. Whoever connects, becomes the owner
+  and as soon as it terminates, the node terminates as well.
+  The node may also be terminated manually by using `Runtime.disconnect/1`.
 
   Note: to start the node it is required that `elixir` is a recognised
   executable within the system.
   """
-  @spec init_async(pid(), String.t()) :: :ok
-  def init_async(owner_pid, project_path) do
+  @spec init_async(String.t()) :: :ok
+  def init_async(project_path) do
     stream_to = self()
     handle_output = fn output -> stream_info(stream_to, {:output, output}) end
 
     spawn_link(fn ->
       parent_node = node()
-      {child_node, waiter} = init_parameteres()
+      {child_node, parent_process_name} = init_parameteres()
 
-      Utils.registered_as self(), waiter do
+      Utils.registered_as self(), parent_process_name do
         with {:ok, elixir_path} <- find_elixir_executable(),
              :ok <- run_mix_task("deps.get", project_path, handle_output),
              :ok <- run_mix_task("compile", project_path, handle_output),
-             eval <- child_node_ast(parent_node, waiter) |> Macro.to_string(),
+             eval <- child_node_ast(parent_node, parent_process_name) |> Macro.to_string(),
              port <- start_elixir_node(elixir_path, child_node, eval, project_path),
-             {:ok, primary_pid, init_ref} <-
-               parent_init_sequence(child_node, port, owner_pid, handle_output) do
+             {:ok, primary_pid} <- parent_init_sequence(child_node, port, handle_output) do
           runtime = %__MODULE__{
             node: child_node,
             primary_pid: primary_pid,
-            init_ref: init_ref,
             project_path: project_path
           }
 
@@ -112,8 +111,6 @@ defimpl LiveBook.Runtime, for: LiveBook.Runtime.MixStandalone do
 
   def disconnect(runtime) do
     ErlDist.Manager.stop(runtime.node)
-    # Instruct the other node to terminate
-    send(runtime.primary_pid, {:stop, runtime.init_ref})
   end
 
   def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do

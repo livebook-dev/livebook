@@ -1,5 +1,5 @@
 defmodule LiveBook.Runtime.ElixirStandalone do
-  defstruct [:node, :primary_pid, :init_ref]
+  defstruct [:node, :primary_pid]
 
   # A runtime backed by a standalone Elixir node managed by LiveBook.
   #
@@ -7,41 +7,41 @@ defmodule LiveBook.Runtime.ElixirStandalone do
   # Most importantly we have to make sure the started node doesn't
   # stay in the system when the session or the entire LiveBook terminates.
 
+  import LiveBook.Runtime.StandaloneInit
+
   alias LiveBook.Utils
   require LiveBook.Utils
-  import LiveBook.Runtime.StandaloneInit
 
   @type t :: %__MODULE__{
           node: node(),
-          primary_pid: pid(),
-          init_ref: reference()
+          primary_pid: pid()
         }
 
   @doc """
   Starts a new Elixir node (i.e. a system process) and initializes
   it with LiveBook-specific modules and processes.
 
-  The new node monitors the given owner process and terminates
-  as soon as it terminates. It may also be terminated manually
-  by using `Runtime.disconnect/1`.
+  If no process calls `Runtime.connect/1` for a period of time,
+  the node automatically terminates. Whoever connects, becomes the owner
+  and as soon as it terminates, the node terminates as well.
+  The node may also be terminated manually by using `Runtime.disconnect/1`.
 
   Note: to start the node it is required that `elixir` is a recognised
   executable within the system.
   """
-  @spec init(pid()) :: {:ok, t()} | {:error, String.t()}
-  def init(owner_pid) do
+  @spec init() :: {:ok, t()} | {:error, String.t()}
+  def init() do
     parent_node = node()
-    {child_node, waiter} = init_parameteres()
+    {child_node, parent_process_name} = init_parameteres()
 
-    Utils.registered_as self(), waiter do
+    Utils.registered_as self(), parent_process_name do
       with {:ok, elixir_path} <- find_elixir_executable(),
-           eval <- child_node_ast(parent_node, waiter) |> Macro.to_string(),
+           eval <- child_node_ast(parent_node, parent_process_name) |> Macro.to_string(),
            port <- start_elixir_node(elixir_path, child_node, eval),
-           {:ok, primary_pid, init_ref} <- parent_init_sequence(child_node, port, owner_pid) do
+           {:ok, primary_pid} <- parent_init_sequence(child_node, port) do
         runtime = %__MODULE__{
           node: child_node,
-          primary_pid: primary_pid,
-          init_ref: init_ref
+          primary_pid: primary_pid
         }
 
         {:ok, runtime}
@@ -71,8 +71,6 @@ defimpl LiveBook.Runtime, for: LiveBook.Runtime.ElixirStandalone do
 
   def disconnect(runtime) do
     ErlDist.Manager.stop(runtime.node)
-    # Instruct the other node to terminate
-    send(runtime.primary_pid, {:stop, runtime.init_ref})
   end
 
   def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
