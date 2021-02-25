@@ -55,18 +55,20 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
 
   @impl true
   def handle_info({:runtime_init, {:output, output}}, socket) do
-    {:noreply, assign(socket, outputs: [{output, Utils.random_id()}])}
+    {:noreply, add_output(socket, output)}
   end
 
   def handle_info({:runtime_init, {:ok, runtime}}, socket) do
     Session.connect_runtime(socket.assigns.session_id, runtime)
-    {:noreply, assign(socket, status: :finished)}
+    {:noreply, socket |> assign(status: :finished) |> add_output("Connected successfully")}
   end
 
   def handle_info({:runtime_init, {:error, error}}, socket) do
-    # TODO: what now
-    IO.inspect({:error, error})
-    {:noreply, socket |> assign(status: :finished) |> put_flash(:error, error)}
+    {:noreply, socket |> assign(status: :finished) |> add_output("Error: #{error}")}
+  end
+
+  defp add_output(socket, output) do
+    assign(socket, outputs: socket.assigns.outputs ++ [{output, Utils.random_id()}])
   end
 
   defp default_path(), do: File.cwd!() <> "/"
