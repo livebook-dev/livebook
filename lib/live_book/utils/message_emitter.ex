@@ -9,9 +9,9 @@ defmodule LiveBook.Utils.MessageEmitter do
   defstruct [:terget_pid, :transform]
 
   @type t :: %__MODULE__{
-                terget_pid: pid(),
-                transform: transform()
-              }
+          terget_pid: pid(),
+          transform: transform()
+        }
 
   @type transform :: (term() -> term())
 

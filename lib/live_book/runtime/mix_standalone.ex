@@ -42,7 +42,8 @@ defmodule LiveBook.Runtime.MixStandalone do
              :ok <- run_mix_task("compile", project_path, stream_to),
              eval <- child_node_eval_ast(parent_node, waiter) |> Macro.to_string(),
              port <- start_elixir_node(elixir_path, child_node, eval, project_path),
-             {:ok, primary_pid, init_ref} <- parent_init_sequence(child_node, port, owner_pid, stream_to) do
+             {:ok, primary_pid, init_ref} <-
+               parent_init_sequence(child_node, port, owner_pid, stream_to) do
           runtime = %__MODULE__{
             node: child_node,
             primary_pid: primary_pid,
@@ -86,9 +87,10 @@ defmodule LiveBook.Runtime.MixStandalone do
     case System.cmd("mix", [task],
            cd: project_path,
            stderr_to_stdout: true,
-           into: Utils.MessageEmitter.new(stream_to, fn output ->
-             {:runtime_init, {:output, output}}
-           end)
+           into:
+             Utils.MessageEmitter.new(stream_to, fn output ->
+               {:runtime_init, {:output, output}}
+             end)
          ) do
       {_emitter, 0} -> :ok
       {_emitter, _status} -> {:error, "running mix #{task} failed, see output for more details"}

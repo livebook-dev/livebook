@@ -7,7 +7,9 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
 
   @impl true
   def mount(_params, %{"session_id" => session_id}, socket) do
-    {:ok, assign(socket, session_id: session_id, outputs: [], status: :initial, path: default_path()), temporary_assigns: [outputs: []]}
+    {:ok,
+     assign(socket, session_id: session_id, outputs: [], status: :initial, path: default_path()),
+     temporary_assigns: [outputs: []]}
   end
 
   @impl true

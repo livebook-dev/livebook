@@ -47,6 +47,7 @@ defmodule LiveBookWeb.SessionLive.AttachedLive do
   @impl true
   def handle_event("init", %{"node" => %{"name" => name}}, socket) do
     node = Utils.node_from_name(name)
+
     case Runtime.Attached.init(node) do
       {:ok, runtime} ->
         Session.connect_runtime(socket.assigns.session_id, runtime)
@@ -59,5 +60,7 @@ defmodule LiveBookWeb.SessionLive.AttachedLive do
   end
 
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"
-  defp runtime_error_to_message(:already_in_use), do: "Another session is already connected to this node"
+
+  defp runtime_error_to_message(:already_in_use),
+    do: "Another session is already connected to this node"
 end
