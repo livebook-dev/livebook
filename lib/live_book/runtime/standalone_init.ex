@@ -7,18 +7,31 @@ defmodule LiveBook.Runtime.StandaloneInit do
 
   alias LiveBook.Utils
 
-  def init_parameteres() do
-    id = Utils.random_short_id()
-    child_node = Utils.node_from_name("live_book_runtime_#{id}")
-    # We have to pass parent process pid to the new Elixir node.
-    # The node receives code to evaluate as string, so we cannot
-    # directly embed the pid there, but we can temporarily register
-    # the process under a random name and pass this name to the child node.
-    parent_process_name = :"live_book_parent_process_name_#{id}"
-
-    {child_node, parent_process_name}
+  @doc """
+  Returns a random name for a dynamically spawned node.
+  """
+  @spec random_node_name() :: atom()
+  def random_node_name() do
+    Utils.node_from_name("live_book_runtime_#{Utils.random_short_id()}")
   end
 
+  @doc """
+  Returns random name to register a process under.
+
+  We have to pass parent process pid to the new Elixir node.
+  The node receives code to evaluate as string, so we cannot
+  directly embed the pid there, but we can temporarily register
+  the process under a random name and pass this name to the child node.
+  """
+  @spec random_process_name() :: atom()
+  def random_process_name() do
+    :"live_book_parent_process_name_#{Utils.random_short_id()}"
+  end
+
+  @doc """
+  Tries locating Elixir executable in PATH.
+  """
+  @spec find_elixir_executable() :: {:ok, String.t()} | {:error, String.t()}
   def find_elixir_executable() do
     case System.find_executable("elixir") do
       nil -> {:error, "no Elixir executable found in PATH"}
@@ -26,6 +39,10 @@ defmodule LiveBook.Runtime.StandaloneInit do
     end
   end
 
+  @doc """
+  A list of common flags used for spawned Elixir runtimes.
+  """
+  @spec elixir_flags(node()) :: list()
   def elixir_flags(node_name) do
     [
       if(LiveBook.Config.shortnames?(), do: "--sname", else: "--name"),
@@ -38,14 +55,38 @@ defmodule LiveBook.Runtime.StandaloneInit do
     ]
   end
 
-  # The process proceedes as follows:
+  # ---
   #
-  # 1. Waits for the child node to send an initial message.
-  # 2. Initializes the remote node with necessary modules and processes.
-  # 3. Responds to the child node indicating that initialization has finished (finishdes handshake).
+  # Once the new node is spawned we need to establish a connection,
+  # initialize it and make sure it correctly reacts to the parent node terminating.
   #
-  # Handles timeouts and unexpected crashes.
-  # Returns {:ok, primary_pid} or {:error, message}.
+  # The procedure goes as follows:
+  #
+  # 1. The child sends {:node_initialized, ref} message to the parent
+  #    to communicate it's ready for initialization.
+  #
+  # 2. The parent initializes the child node - loads necessary modules
+  #    and starts the Manager process.
+  #
+  # 3. The parent sends {:node_initialized, ref} message back to the child,
+  #    to communicate successful initialization.
+  #
+  # 4. The child starts monitoring the Manager process and freezes
+  #    until the Manager process terminates. The Manager process
+  #    serves as the leading remote process and represents the node from now on.
+  #
+  # The nodes either successfully go through this flow or return an error,
+  # either if the other node dies or is not responding for too long.
+  #
+  # ---
+
+  @doc """
+  Performs the parent side of the initialization contract.
+
+  Should be called by the initializing process on the parent node.
+  """
+  @spec parent_init_sequence(node(), port(), (term() -> term())) ::
+          {:ok, pid()} | {:error, String.t()}
   def parent_init_sequence(child_node, port, handle_output \\ fn _ -> :ok end) do
     port_ref = Port.monitor(port)
 
@@ -62,6 +103,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
           {:ok, primary_pid}
 
         {^port, {:data, output}} ->
+          # Pass all the outputs through the given callback.
           handle_output.(output)
           loop.(loop)
 
@@ -76,26 +118,19 @@ defmodule LiveBook.Runtime.StandaloneInit do
     loop.(loop)
   end
 
-  # The process proceedes as follows:
-  #
-  # 1. Sends an initial message to the parent node to establish communication.
-  # 2. Waits for the parent node to initialize this node and send a message back (handshake).
-  # 3. Starts monitoring the specified the Manager process and freezes
-  #    until it terminates or an explicit stop request is sent.
-  #
-  # Handles timeouts and unexpected crashes.
-  def child_node_ast(parent_node, parent_process_name) do
-    # This is the code that's gonna be evaluated in the newly
-    # spawned Elixir runtime. This is the primary process
-    # and as soon as it finishes, the runtime terminates.
-    quote do
-      # Initiate communication with the waiting process on the parent node.
-      init_ref = make_ref()
+  @doc """
+  Performs the child side of the initialization contract.
 
-      send(
-        {unquote(parent_process_name), unquote(parent_node)},
-        {:node_started, init_ref, node(), self()}
-      )
+  This function returns AST that should be evaluated in primary
+  process on the newly spawned child node.
+  """
+  def child_node_ast(parent_node, parent_process_name) do
+    # This is the primary process, so as soon as it finishes, the runtime terminates.
+    quote do
+      # Initiate communication with the parent process (on the parent node).
+      init_ref = make_ref()
+      parent_process = {unquote(parent_process_name), unquote(parent_node)}
+      send(parent_process, {:node_started, init_ref, node(), self()})
 
       receive do
         {:node_initialized, ^init_ref} ->
@@ -103,8 +138,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
 
           # Wait until the Manager process terminates.
           receive do
-            {:DOWN, ^manager_ref, :process, _object, _reason} ->
-              :ok
+            {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
           end
       after
         10_000 -> :timeout

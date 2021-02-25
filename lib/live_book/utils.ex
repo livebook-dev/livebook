@@ -33,7 +33,7 @@ defmodule LiveBook.Utils do
     end
   end
 
-  defmacro registered_as(pid, name, do: block) do
+  defmacro temporarily_register(pid, name, do: block) do
     quote do
       Process.register(unquote(pid), unquote(name))
       result = unquote(block)
