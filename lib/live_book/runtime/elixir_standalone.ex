@@ -8,6 +8,8 @@ defmodule LiveBook.Runtime.ElixirStandalone do
   # stay in the system when the session or the entire LiveBook terminates.
 
   alias LiveBook.Utils
+  require LiveBook.Utils
+  import LiveBook.Runtime.StandaloneInit
 
   @type t :: %__MODULE__{
           node: node(),
@@ -26,88 +28,36 @@ defmodule LiveBook.Runtime.ElixirStandalone do
   Note: to start the node it is required that `elixir` is a recognised
   executable within the system.
   """
-  @spec init(pid()) :: {:ok, t()} | {:error, :no_elixir_executable | :timeout}
+  @spec init(pid()) :: {:ok, t()} | {:error, String.t()}
   def init(owner_pid) do
-    case System.find_executable("elixir") do
-      nil ->
-        {:error, :no_elixir_executable}
+    parent_node = node()
+    {child_node, waiter} = init_parameteres()
 
-      elixir_path ->
-        id = Utils.random_short_id()
+    Utils.registered_as self(), waiter do
+      with {:ok, elixir_path} <- find_elixir_executable(),
+           eval <- child_node_ast(parent_node, waiter) |> Macro.to_string(),
+           port <- start_elixir_node(elixir_path, child_node, eval),
+           {:ok, primary_pid, init_ref} <- parent_init_sequence(child_node, port, owner_pid) do
+        runtime = %__MODULE__{
+          node: child_node,
+          primary_pid: primary_pid,
+          init_ref: init_ref
+        }
 
-        node = Utils.node_from_name("live_book_runtime_#{id}")
-
-        # The new Elixir node receives a code to evaluate
-        # and we have to pass the current pid there, but since pid
-        # is not a type we can include directly in the code,
-        # we temporarily register the current process under a name.
-        waiter = :"live_book_waiter_#{id}"
-        Process.register(self(), waiter)
-
-        eval = child_node_eval(waiter, node()) |> Macro.to_string()
-
-        # Here we create a port to start the system process in a non-blocking way.
-        Port.open({:spawn_executable, elixir_path}, [
-          # Don't use stdio, so that the caller does not receive
-          # unexpected messages if the process produces some output.
-          :nouse_stdio,
-          args: [
-            if(LiveBook.Config.shortnames?(), do: "--sname", else: "--name"),
-            to_string(node),
-            "--eval",
-            eval,
-            # Minimize shedulers busy wait threshold,
-            # so that they go to sleep immediately after evaluation.
-            # Enable ANSI escape codes as we handle them with HTML.
-            "--erl",
-            "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true"
-          ]
-        ])
-
-        receive do
-          {:node_started, init_ref, ^node, primary_pid} ->
-            # Unregister the temporary name as it's no longer needed.
-            Process.unregister(waiter)
-            # Having the other process pid we can send the owner pid as a message.
-            send(primary_pid, {:node_acknowledged, init_ref, owner_pid})
-
-            # There should be no problem initializing the new node
-            :ok = LiveBook.Runtime.ErlDist.initialize(node)
-
-            {:ok, %__MODULE__{node: node, primary_pid: primary_pid, init_ref: init_ref}}
-        after
-          10_000 ->
-            {:error, :timeout}
-        end
+        {:ok, runtime}
+      else
+        {:error, error} ->
+          {:error, error}
+      end
     end
   end
 
-  defp child_node_eval(waiter, parent_node) do
-    # This is the code that's gonna be evaluated in the newly
-    # spawned Elixir runtime. This is the primary process
-    # and as soon as it finishes, the runtime terminates.
-    quote do
-      # Initiate communication with the waiting process on the parent node.
-      init_ref = make_ref()
-      send({unquote(waiter), unquote(parent_node)}, {:node_started, init_ref, node(), self()})
-
-      receive do
-        {:node_acknowledged, ^init_ref, owner_pid} ->
-          owner_ref = Process.monitor(owner_pid)
-
-          # Wait until either the owner process terminates
-          # or we receives an explicit stop request.
-          receive do
-            {:DOWN, ^owner_ref, :process, _object, _reason} ->
-              :ok
-
-            {:stop, ^init_ref} ->
-              :ok
-          end
-      after
-        10_000 -> :timeout
-      end
-    end
+  defp start_elixir_node(elixir_path, node_name, eval) do
+    # Here we create a port to start the system process in a non-blocking way.
+    Port.open({:spawn_executable, elixir_path}, [
+      :nouse_stdio,
+      args: elixir_flags(node_name) ++ ["--eval", eval]
+    ])
   end
 end
 
