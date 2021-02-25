@@ -81,22 +81,31 @@ defmodule LiveBook.Runtime.MixStandalone do
   end
 
   # TODO: add description
-  defmodule CallerSink do
-    defstruct [:pid]
+  defmodule MessageEmitter do
+    defstruct [:terget_pid, :transform]
+
+    @type t :: %{
+      terget_pid: pid(),
+      transform: (term() -> term())
+    }
+
+    def new(terget_pid, transform) do
+      %__MODULE__{terget_pid: terget_pid, transform: transform}
+    end
+
+    def emit(emitter, item) do
+      message = emitter.transform.(item)
+      send(emitter.terget_pid, message)
+      emitter
+    end
   end
 
-  defimpl Collectable, for: CallerSink do
+  defimpl Collectable, for: MessageEmitter do
     def into(original) do
       collector_fun = fn
-        caller_sink, {:cont, output} ->
-          send(caller_sink.pid, {:runtime_init, {:output, output}})
-          caller_sink
-
-        caller_sink, :done ->
-          caller_sink
-
-        _caller_sink, :halt ->
-          :ok
+        emitter, {:cont, item} -> MessageEmitter.emit(emitter, item)
+        emitter, :done -> emitter
+        _emitter, :halt -> :ok
       end
 
       {original, collector_fun}
@@ -109,7 +118,9 @@ defmodule LiveBook.Runtime.MixStandalone do
     case System.cmd("mix", [task],
            cd: project_path,
            stderr_to_stdout: true,
-           into: %CallerSink{pid: stream_to}
+           into: MessageEmitter.new(stream_to, fn output ->
+             {:runtime_init, {:output, output}}
+           end)
          ) do
       {_output, 0} -> :ok
       {_output, _status} -> {:error, "running mix #{task} failed, see output for more details"}
