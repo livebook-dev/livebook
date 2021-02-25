@@ -13,8 +13,9 @@ defmodule LiveBookWeb.SessionLive.ElixirStandaloneLive do
     ~L"""
     <div class="flex-col space-y-3">
       <p class="text-gray-500">
-        You can start a new local node to handle code evaluation.
-        This happens automatically as soon as you evaluate the first cell.
+        Start a new local node to handle code evaluation.
+        This is the default runtime and is started automatically
+        as soon as you evaluate the first cell.
       </p>
       <button class="button-base button-sm" phx-click="init">
         Connect

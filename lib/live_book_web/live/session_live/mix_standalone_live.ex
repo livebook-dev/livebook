@@ -15,8 +15,9 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
     ~L"""
     <div class="flex-col space-y-3">
       <p class="text-gray-500">
-        You can start a new local node to handle code evaluation.
-        This happens automatically as soon as you evaluate the first cell.
+        Start a new local node in the context of a mix project.
+        This way all your code and dependencies will be available
+        within the notebook.
       </p>
       <%= if @status == :initial do %>
         <%= live_component @socket, LiveBookWeb.PathSelectComponent,
@@ -24,7 +25,9 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
           path: @path,
           running_paths: [],
           target: nil %>
-        <%= content_tag :button, "Connect", class: "button-base button-sm", phx_click: "init", disabled: @status == :initializing %>
+        <button class="button-base button-sm" phx-click="init">
+          Connect
+        </button>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">

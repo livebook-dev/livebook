@@ -18,16 +18,17 @@ defmodule LiveBookWeb.SessionLive.AttachedLive do
         </div>
       <% end %>
       <p class="text-gray-500">
-        You can connect the session to an already running node
+        Connect the session to an already running node
         and evaluate code in the context of that node.
-        This is especially handy when developing mix projects.
-        Make sure to give the node a name:
+        Thanks to this approach you can work with
+        an arbitrary Elixir runtime.
+        Make sure to give the node a name, for example:
       </p>
       <div class="text-gray-500 markdown">
       <%= if LiveBook.Config.shortnames? do %>
-        <pre><code>iex --sname test -S mix</code></pre>
+        <pre><code>iex --sname test</code></pre>
       <% else %>
-        <pre><code>iex --name test@127.0.0.1 -S mix</code></pre>
+        <pre><code>iex --name test@127.0.0.1</code></pre>
       <% end %>
       </div>
       <p class="text-gray-500">
