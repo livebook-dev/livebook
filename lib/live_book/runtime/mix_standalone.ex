@@ -9,7 +9,6 @@ defmodule LiveBook.Runtime.MixStandalone do
   import LiveBook.Runtime.StandaloneInit
 
   alias LiveBook.Utils
-  require LiveBook.Utils
 
   @type t :: %__MODULE__{
           node: node(),
@@ -37,8 +36,8 @@ defmodule LiveBook.Runtime.MixStandalone do
   and as soon as it terminates, the node terminates as well.
   The node may also be terminated manually by using `Runtime.disconnect/1`.
 
-  Note: to start the node it is required that `elixir` is a recognised
-  executable within the system.
+  Note: to start the node it is required that both `elixir` and `mix` are
+  recognised executables within the system.
   """
   @spec init_async(String.t()) :: :ok
   def init_async(project_path) do
@@ -50,7 +49,7 @@ defmodule LiveBook.Runtime.MixStandalone do
       child_node = random_node_name()
       parent_process_name = random_process_name()
 
-      Utils.temporarily_register self(), parent_process_name do
+      Utils.temporarily_register(self(), parent_process_name, fn ->
         with {:ok, elixir_path} <- find_elixir_executable(),
              :ok <- run_mix_task("deps.get", project_path, handle_output),
              :ok <- run_mix_task("compile", project_path, handle_output),
@@ -68,7 +67,7 @@ defmodule LiveBook.Runtime.MixStandalone do
           {:error, error} ->
             stream_info(stream_to, {:error, error})
         end
-      end
+      end)
     end)
 
     :ok

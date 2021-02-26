@@ -10,7 +10,6 @@ defmodule LiveBook.Runtime.ElixirStandalone do
   import LiveBook.Runtime.StandaloneInit
 
   alias LiveBook.Utils
-  require LiveBook.Utils
 
   @type t :: %__MODULE__{
           node: node(),
@@ -35,7 +34,7 @@ defmodule LiveBook.Runtime.ElixirStandalone do
     child_node = random_node_name()
     parent_process_name = random_process_name()
 
-    Utils.temporarily_register self(), parent_process_name do
+    Utils.temporarily_register(self(), parent_process_name, fn ->
       with {:ok, elixir_path} <- find_elixir_executable(),
            eval <- child_node_ast(parent_node, parent_process_name) |> Macro.to_string(),
            port <- start_elixir_node(elixir_path, child_node, eval),
@@ -50,7 +49,7 @@ defmodule LiveBook.Runtime.ElixirStandalone do
         {:error, error} ->
           {:error, error}
       end
-    end
+    end)
   end
 
   defp start_elixir_node(elixir_path, node_name, eval) do

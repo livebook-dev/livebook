@@ -34,15 +34,13 @@ defmodule LiveBook.Utils do
   end
 
   @doc """
-  Registers the given process under the given name
-  until evaluation leaves the given block.
+  Registers the given process under `name` for the time of `fun` evaluation.
   """
-  defmacro temporarily_register(pid, name, do: block) do
-    quote do
-      Process.register(unquote(pid), unquote(name))
-      result = unquote(block)
-      Process.unregister(unquote(name))
-      result
-    end
+  @spec temporarily_register(pid(), atom(), (... -> any())) :: any()
+  def temporarily_register(pid, name, fun) do
+    Process.register(pid, name)
+    fun.()
+  after
+    Process.unregister(name)
   end
 end
