@@ -33,6 +33,10 @@ defmodule LiveBook.Utils do
     end
   end
 
+  @doc """
+  Registers the given process under the given name
+  until evaluation leaves the given block.
+  """
   defmacro temporarily_register(pid, name, do: block) do
     quote do
       Process.register(unquote(pid), unquote(name))
