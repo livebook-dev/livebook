@@ -525,6 +525,7 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   defp runtime_description(nil), do: "No runtime"
-  defp runtime_description(%Runtime.Standalone{}), do: "Standalone runtime"
+  defp runtime_description(%Runtime.ElixirStandalone{}), do: "Elixir standalone runtime"
+  defp runtime_description(%Runtime.MixStandalone{}), do: "Mix standalone runtime"
   defp runtime_description(%Runtime.Attached{}), do: "Attached runtime"
 end

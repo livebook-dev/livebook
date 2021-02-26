@@ -12,7 +12,7 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-4">
+    <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-3">
       <h3 class="text-lg font-medium text-gray-900">
         Configure file
       </h3>
@@ -39,6 +39,7 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
             <%= live_component @socket, LiveBookWeb.PathSelectComponent,
               id: "path_select",
               path: @path,
+              extnames: [LiveMarkdown.extension()],
               running_paths: paths(@session_summaries),
               target: @myself %>
           </div>

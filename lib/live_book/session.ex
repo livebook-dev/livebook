@@ -528,7 +528,7 @@ defmodule LiveBook.Session do
   # Checks if a runtime already set, and if that's not the case
   # starts a new standlone one.
   defp ensure_runtime(%{data: %{runtime: nil}} = state) do
-    with {:ok, runtime} <- Runtime.Standalone.init(self()) do
+    with {:ok, runtime} <- Runtime.ElixirStandalone.init() do
       runtime_monitor_ref = Runtime.connect(runtime)
 
       {:ok,

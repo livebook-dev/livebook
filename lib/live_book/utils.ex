@@ -32,4 +32,15 @@ defmodule LiveBook.Utils do
       :"#{name}@#{host}"
     end
   end
+
+  @doc """
+  Registers the given process under `name` for the time of `fun` evaluation.
+  """
+  @spec temporarily_register(pid(), atom(), (... -> any())) :: any()
+  def temporarily_register(pid, name, fun) do
+    Process.register(pid, name)
+    fun.()
+  after
+    Process.unregister(name)
+  end
 end

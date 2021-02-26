@@ -6,10 +6,9 @@ defmodule LiveBookWeb.PathSelectComponent do
   # * `path` - the currently entered path
   # * `running_paths` - the list of notebook paths that are already linked to running sessions
   # * `target` - id of the component to send update events to or nil to send to the parent LV
+  # * `extnames` - a list of file extensions that should be shown
   #
   # The target receives `set_path` events with `%{"path" => path}` payload.
-
-  alias LiveBook.LiveMarkdown
 
   @impl true
   def render(assigns) do
@@ -26,7 +25,7 @@ defmodule LiveBookWeb.PathSelectComponent do
     </form>
     <div class="h-80 -m-1 p-1 overflow-y-auto tiny-scrollbar">
       <div class="grid grid-cols-4 gap-2">
-        <%= for file <- list_matching_files(@path, @running_paths) do %>
+        <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
           <%= render_file(file, @target) %>
         <% end %>
       </div>
@@ -59,7 +58,7 @@ defmodule LiveBookWeb.PathSelectComponent do
     """
   end
 
-  defp list_matching_files(path, running_paths) do
+  defp list_matching_files(path, extnames, running_paths) do
     # Note: to provide an intuitive behavior when typing the path
     # we enter a new directory when it has a trailing slash,
     # so given "/foo/bar" we list files in "foo" and given "/foo/bar/
@@ -93,7 +92,7 @@ defmodule LiveBookWeb.PathSelectComponent do
         end)
         |> Enum.filter(fn file ->
           not hidden?(file.name) and String.starts_with?(file.name, basename) and
-            (file.is_dir or notebook_file?(file.name))
+            (file.is_dir or valid_extension?(file.name, extnames))
         end)
         |> Enum.sort_by(fn file -> {!file.is_dir, file.name} end)
 
@@ -118,8 +117,8 @@ defmodule LiveBookWeb.PathSelectComponent do
     String.starts_with?(filename, ".")
   end
 
-  defp notebook_file?(filename) do
-    String.ends_with?(filename, LiveMarkdown.extension())
+  defp valid_extension?(filename, extnames) do
+    Path.extname(filename) in extnames
   end
 
   defp split_path(path) do
