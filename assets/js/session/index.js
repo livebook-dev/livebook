@@ -53,7 +53,7 @@ const Session = {
           this.pushEvent("delete_focused_cell", {});
         } else if (
           this.props.focusedCellType === "elixir" &&
-          keyBuffer.tryMatch(["e", "e"])
+          (keyBuffer.tryMatch(["e", "e"]) || (cmd && key === "Enter"))
         ) {
           this.pushEvent("queue_focused_cell_evaluation", {});
         } else if (keyBuffer.tryMatch(["e", "s"])) {
