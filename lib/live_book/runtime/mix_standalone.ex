@@ -42,7 +42,7 @@ defmodule LiveBook.Runtime.MixStandalone do
   """
   @spec init_async(String.t(), Emitter.t()) :: :ok
   def init_async(project_path, emitter) do
-    output_emitter = Emitter.map(emitter, fn output -> {:output, output} end)
+    output_emitter = Emitter.mapper(emitter, fn output -> {:output, output} end)
 
     spawn_link(fn ->
       parent_node = node()

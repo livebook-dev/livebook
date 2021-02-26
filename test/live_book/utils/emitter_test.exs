@@ -17,7 +17,7 @@ defmodule LiveBook.Utils.EmitterTest do
     test "returns a modified emitter that transforms items before they are sent" do
       emitter = Emitter.new(self())
       ref = emitter.ref
-      string_emitter = Emitter.map(emitter, &to_string/1)
+      string_emitter = Emitter.mapper(emitter, &to_string/1)
       Emitter.emit(string_emitter, :hey)
 
       assert_receive {:emitter, ^ref, "hey"}
@@ -26,8 +26,8 @@ defmodule LiveBook.Utils.EmitterTest do
     test "supports chaining" do
       emitter = Emitter.new(self())
       ref = emitter.ref
-      string_emitter = Emitter.map(emitter, &to_string/1)
-      duplicate_emitter = Emitter.map(string_emitter, fn x -> {x, x} end)
+      string_emitter = Emitter.mapper(emitter, &to_string/1)
+      duplicate_emitter = Emitter.mapper(string_emitter, fn x -> {x, x} end)
       Emitter.emit(duplicate_emitter, :hey)
 
       assert_receive {:emitter, ^ref, {"hey", "hey"}}

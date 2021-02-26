@@ -3,10 +3,10 @@ defmodule LiveBook.Utils.Emitter do
 
   # A wrapper struct for sending messages to the specified process.
 
-  defstruct [:terget_pid, :ref, :mapper]
+  defstruct [:target_pid, :ref, :mapper]
 
   @type t :: %__MODULE__{
-          terget_pid: pid(),
+          target_pid: pid(),
           ref: reference(),
           mapper: mapper()
         }
@@ -18,28 +18,28 @@ defmodule LiveBook.Utils.Emitter do
   the process that will receive all emitted items.
   """
   @spec new(pid()) :: t()
-  def new(terget_pid) do
-    %__MODULE__{terget_pid: terget_pid, ref: make_ref(), mapper: &Function.identity/1}
+  def new(target_pid) do
+    %__MODULE__{target_pid: target_pid, ref: make_ref(), mapper: &Function.identity/1}
   end
 
   @doc """
-  Sends {:emitter, ref, item} message to the `taret_pid`.
+  Sends {:emitter, ref, item} message to the `target_pid`.
 
   Note that item may be transformed with emitter's `mapper`
-  if there is one, see `Emitter.map/2`.
+  if there is one, see `Emitter.mapper/2`.
   """
   @spec emit(t(), term()) :: :ok
   def emit(emitter, item) do
     message = {:emitter, emitter.ref, emitter.mapper.(item)}
-    send(emitter.terget_pid, message)
+    send(emitter.target_pid, message)
     :ok
   end
 
   @doc """
   Returns a new emitter that maps all emitted items with `mapper`.
   """
-  @spec map(t(), mapper()) :: t()
-  def map(emitter, mapper) do
+  @spec mapper(t(), mapper()) :: t()
+  def mapper(emitter, mapper) do
     mapper = fn x -> mapper.(emitter.mapper.(x)) end
     %{emitter | mapper: mapper}
   end
