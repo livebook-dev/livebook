@@ -6,6 +6,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
   # and MixStandalone runtimes.
 
   alias LiveBook.Utils
+  alias LiveBook.Utils.Emitter
 
   @doc """
   Returns a random name for a dynamically spawned node.
@@ -85,9 +86,9 @@ defmodule LiveBook.Runtime.StandaloneInit do
 
   Should be called by the initializing process on the parent node.
   """
-  @spec parent_init_sequence(node(), port(), (term() -> term())) ::
+  @spec parent_init_sequence(node(), port(), Emitter.t() | nil) ::
           {:ok, pid()} | {:error, String.t()}
-  def parent_init_sequence(child_node, port, handle_output \\ fn _ -> :ok end) do
+  def parent_init_sequence(child_node, port, emitter \\ nil) do
     port_ref = Port.monitor(port)
 
     loop = fn loop ->
@@ -103,8 +104,8 @@ defmodule LiveBook.Runtime.StandaloneInit do
           {:ok, primary_pid}
 
         {^port, {:data, output}} ->
-          # Pass all the outputs through the given callback.
-          handle_output.(output)
+          # Pass all the outputs through the given emitter.
+          emitter && Emitter.emit(emitter, output)
           loop.(loop)
 
         {:DOWN, ^port_ref, :port, _object, _reason} ->

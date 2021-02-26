@@ -9,6 +9,7 @@ defmodule LiveBook.Runtime.MixStandalone do
   import LiveBook.Runtime.StandaloneInit
 
   alias LiveBook.Utils
+  alias LiveBook.Utils.Emitter
 
   @type t :: %__MODULE__{
           node: node(),
@@ -24,12 +25,12 @@ defmodule LiveBook.Runtime.MixStandalone do
   for the given `project_path`. The setup may involve
   long-running steps (like fetching dependencies, compiling the project),
   so the initialization is asynchronous. This function spawns and links
-  a process responsible for initialization, which then sends
-  notifications to the caller:
+  a process responsible for initialization, which then uses `emitter`
+  to emit the following notifications:
 
-  * `{:runtime_init, {:output, string}}` - arbitrary output/info sent as the initialization proceeds
-  * `{:runtime_init, {:ok, runtime}}` - a final message indicating successful initialization
-  * `{:runtime_init, {:error, message}}` - a final message indicating failure
+  * `{:output, string}` - arbitrary output/info sent as the initialization proceeds
+  * `{:ok, runtime}` - a final message indicating successful initialization
+  * `{:error, message}` - a final message indicating failure
 
   If no process calls `Runtime.connect/1` for a period of time,
   the node automatically terminates. Whoever connects, becomes the owner
@@ -39,10 +40,9 @@ defmodule LiveBook.Runtime.MixStandalone do
   Note: to start the node it is required that both `elixir` and `mix` are
   recognised executables within the system.
   """
-  @spec init_async(String.t()) :: :ok
-  def init_async(project_path) do
-    stream_to = self()
-    handle_output = fn output -> stream_info(stream_to, {:output, output}) end
+  @spec init_async(String.t(), Emitter.t()) :: :ok
+  def init_async(project_path, emitter) do
+    output_emitter = Emitter.map(emitter, fn output -> {:output, output} end)
 
     spawn_link(fn ->
       parent_node = node()
@@ -51,21 +51,21 @@ defmodule LiveBook.Runtime.MixStandalone do
 
       Utils.temporarily_register(self(), parent_process_name, fn ->
         with {:ok, elixir_path} <- find_elixir_executable(),
-             :ok <- run_mix_task("deps.get", project_path, handle_output),
-             :ok <- run_mix_task("compile", project_path, handle_output),
+             :ok <- run_mix_task("deps.get", project_path, output_emitter),
+             :ok <- run_mix_task("compile", project_path, output_emitter),
              eval <- child_node_ast(parent_node, parent_process_name) |> Macro.to_string(),
              port <- start_elixir_mix_node(elixir_path, child_node, eval, project_path),
-             {:ok, primary_pid} <- parent_init_sequence(child_node, port, handle_output) do
+             {:ok, primary_pid} <- parent_init_sequence(child_node, port, output_emitter) do
           runtime = %__MODULE__{
             node: child_node,
             primary_pid: primary_pid,
             project_path: project_path
           }
 
-          stream_info(stream_to, {:ok, runtime})
+          Emitter.emit(emitter, {:ok, runtime})
         else
           {:error, error} ->
-            stream_info(stream_to, {:error, error})
+            Emitter.emit(emitter, {:error, error})
         end
       end)
     end)
@@ -73,13 +73,13 @@ defmodule LiveBook.Runtime.MixStandalone do
     :ok
   end
 
-  defp run_mix_task(task, project_path, handle_output) do
-    handle_output.("Running mix #{task}...\n")
+  defp run_mix_task(task, project_path, output_emitter) do
+    Emitter.emit(output_emitter, "Running mix #{task}...\n")
 
     case System.cmd("mix", [task],
            cd: project_path,
            stderr_to_stdout: true,
-           into: Utils.Callback.new(handle_output)
+           into: output_emitter
          ) do
       {_callback, 0} -> :ok
       {_callback, _status} -> {:error, "running mix #{task} failed, see output for more details"}
@@ -94,10 +94,6 @@ defmodule LiveBook.Runtime.MixStandalone do
       args: elixir_flags(node_name) ++ ["-S", "mix", "run", "--eval", eval],
       cd: project_path
     ])
-  end
-
-  defp stream_info(stream_to, message) do
-    send(stream_to, {:runtime_init, message})
   end
 end
 

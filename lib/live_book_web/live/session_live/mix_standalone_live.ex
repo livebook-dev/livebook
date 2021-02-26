@@ -8,8 +8,13 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
   @impl true
   def mount(_params, %{"session_id" => session_id}, socket) do
     {:ok,
-     assign(socket, session_id: session_id, status: :initial, path: default_path(), outputs: []),
-     temporary_assigns: [outputs: []]}
+     assign(socket,
+       session_id: session_id,
+       status: :initial,
+       path: default_path(),
+       outputs: [],
+       emitter: nil
+     ), temporary_assigns: [outputs: []]}
   end
 
   @impl true
@@ -49,23 +54,27 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
   end
 
   def handle_event("init", _params, socket) do
-    Runtime.MixStandalone.init_async(socket.assigns.path)
-    {:noreply, assign(socket, status: :initializing)}
+    emitter = Utils.Emitter.new(self())
+    Runtime.MixStandalone.init_async(socket.assigns.path, emitter)
+    {:noreply, assign(socket, status: :initializing, emitter: emitter)}
   end
 
   @impl true
-  def handle_info({:runtime_init, {:output, output}}, socket) do
-    {:noreply, add_output(socket, output)}
+  def handle_info({:emitter, ref, message}, %{assigns: %{emitter: %{ref: ref}}} = socket) do
+    case message do
+      {:output, output} ->
+        {:noreply, add_output(socket, output)}
+
+      {:ok, runtime} ->
+        Session.connect_runtime(socket.assigns.session_id, runtime)
+        {:noreply, socket |> assign(status: :finished) |> add_output("Connected successfully")}
+
+      {:error, error} ->
+        {:noreply, socket |> assign(status: :finished) |> add_output("Error: #{error}")}
+    end
   end
 
-  def handle_info({:runtime_init, {:ok, runtime}}, socket) do
-    Session.connect_runtime(socket.assigns.session_id, runtime)
-    {:noreply, socket |> assign(status: :finished) |> add_output("Connected successfully")}
-  end
-
-  def handle_info({:runtime_init, {:error, error}}, socket) do
-    {:noreply, socket |> assign(status: :finished) |> add_output("Error: #{error}")}
-  end
+  def handle_info(_, socket), do: {:noreply, socket}
 
   defp add_output(socket, output) do
     assign(socket, outputs: socket.assigns.outputs ++ [{output, Utils.random_id()}])
