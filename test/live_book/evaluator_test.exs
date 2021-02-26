@@ -25,11 +25,13 @@ defmodule LiveBook.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
       assert_receive {:evaluation_response, :code_1, _}
 
-      Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
+      ignore_warnings(fn ->
+        Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
 
-      assert_receive {:evaluation_response, :code_2,
-                      {:error, _kind, %CompileError{description: "undefined function x/0"},
-                       _stacktrace}}
+        assert_receive {:evaluation_response, :code_2,
+                        {:error, _kind, %CompileError{description: "undefined function x/0"},
+                         _stacktrace}}
+      end)
     end
 
     test "given prev_ref sees previous evaluation context", %{evaluator: evaluator} do
@@ -91,17 +93,19 @@ defmodule LiveBook.EvaluatorTest do
       LiveBook.EvaluatorTest.Stacktrace.Cat.meow()
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
+      ignore_warnings(fn ->
+        Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
-      expected_stacktrace = [
-        {LiveBook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
-        {LiveBook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: 'nofile', line: 10]}
-      ]
+        expected_stacktrace = [
+          {LiveBook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
+          {LiveBook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: 'nofile', line: 10]}
+        ]
 
-      # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
-      assert_receive {:evaluation_response, :code_1,
-                      {:error, _kind, _error, ^expected_stacktrace}},
-                     1000
+        # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
+        assert_receive {:evaluation_response, :code_1,
+                        {:error, _kind, _error, ^expected_stacktrace}},
+                       1000
+      end)
     end
   end
 
@@ -111,11 +115,23 @@ defmodule LiveBook.EvaluatorTest do
       assert_receive {:evaluation_response, :code_1, _}
 
       Evaluator.forget_evaluation(evaluator, :code_1)
-      Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
 
-      assert_receive {:evaluation_response, :code_2,
-                      {:error, _kind, %CompileError{description: "undefined function x/0"},
-                       _stacktrace}}
+      ignore_warnings(fn ->
+        Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
+
+        assert_receive {:evaluation_response, :code_2,
+                        {:error, _kind, %CompileError{description: "undefined function x/0"},
+                         _stacktrace}}
+      end)
     end
+  end
+
+  # Helpers
+
+  # Some of the code passed to Evaluator above is expected
+  # to produce compilation warnings, so we ignore them.
+  defp ignore_warnings(fun) do
+    ExUnit.CaptureIO.capture_io(:stderr, fun)
+    :ok
   end
 end
