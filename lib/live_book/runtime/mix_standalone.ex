@@ -82,8 +82,8 @@ defmodule LiveBook.Runtime.MixStandalone do
            stderr_to_stdout: true,
            into: Utils.Callback.new(handle_output)
          ) do
-      {_emitter, 0} -> :ok
-      {_emitter, _status} -> {:error, "running mix #{task} failed, see output for more details"}
+      {_callback, 0} -> :ok
+      {_callback, _status} -> {:error, "running mix #{task} failed, see output for more details"}
     end
   end
 
