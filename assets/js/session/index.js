@@ -53,7 +53,7 @@ const Session = {
           this.pushEvent("delete_focused_cell", {});
         } else if (
           this.props.focusedCellType === "elixir" &&
-          keyBuffer.tryMatch(["e", "e"])
+          (keyBuffer.tryMatch(["e", "e"]) || (cmd && key === "Enter"))
         ) {
           this.pushEvent("queue_focused_cell_evaluation", {});
         } else if (keyBuffer.tryMatch(["e", "s"])) {
@@ -85,7 +85,11 @@ const Session = {
     document.addEventListener("keydown", this.handleDocumentKeydown, true);
 
     // Focus/unfocus a cell when the user clicks somewhere
-    this.handleDocumentClick = (event) => {
+    // Note: we use mousedown event to more reliably focus editor
+    // (e.g. if the user selects some text within the editor
+    // and mouseup happens outside the editor)
+
+    this.handleDocumentMouseDown = (event) => {
       // Find the parent with cell id info, if there is one
       const cell = event.target.closest("[data-cell-id]");
       const cellId = cell ? cell.dataset.cellId : null;
@@ -101,7 +105,7 @@ const Session = {
       }
     };
 
-    document.addEventListener("click", this.handleDocumentClick);
+    document.addEventListener("mousedown", this.handleDocumentMouseDown);
   },
 
   updated() {
@@ -110,7 +114,7 @@ const Session = {
 
   destroyed() {
     document.removeEventListener("keydown", this.handleDocumentKeydown);
-    document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("mousedown", this.handleDocumentMouseDown);
   },
 };
 
