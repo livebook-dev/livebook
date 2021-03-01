@@ -70,6 +70,10 @@ const Session = {
           this.pushEvent("move_cell_focus", { offset: 1 });
         } else if (key === "k") {
           this.pushEvent("move_cell_focus", { offset: -1 });
+        } else if (key === "J") {
+          this.pushEvent("move_cell", { offset: 1 });
+        } else if (key === "K") {
+          this.pushEvent("move_cell", { offset: -1 });
         } else if (key === "n") {
           this.pushEvent("insert_cell_below_focused", { type: "elixir" });
         } else if (key === "N") {

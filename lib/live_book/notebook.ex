@@ -163,13 +163,30 @@ defmodule LiveBook.Notebook do
   end
 
   @doc """
+  Moves cell within the given section at the specified position to a new position.
+  """
+  @spec move_cell(t(), Section.id(), non_neg_integer(), non_neg_integer()) :: t()
+  def move_cell(notebook, section_id, from_idx, to_idx) do
+    update_section(notebook, section_id, fn section ->
+      {cell, cells} = List.pop_at(section.cells, from_idx)
+
+      if cell do
+        cells = List.insert_at(cells, to_idx, cell)
+        %{section | cells: cells}
+      else
+        section
+      end
+    end)
+  end
+
+  @doc """
   Returns a list of Elixir cells that the given cell depends on.
 
   The cells are ordered starting from the most direct parent.
   """
   @spec parent_cells(t(), Cell.id()) :: list(Cell.t())
   def parent_cells(notebook, cell_id) do
-    with {:ok, _, section} <- LiveBook.Notebook.fetch_cell_and_section(notebook, cell_id) do
+    with {:ok, _, section} <- fetch_cell_and_section(notebook, cell_id) do
       # A cell depends on all previous cells within the same section.
       section.cells
       |> Enum.take_while(&(&1.id != cell_id))
@@ -187,7 +204,7 @@ defmodule LiveBook.Notebook do
   """
   @spec child_cells(t(), Cell.id()) :: list(Cell.t())
   def child_cells(notebook, cell_id) do
-    with {:ok, _, section} <- LiveBook.Notebook.fetch_cell_and_section(notebook, cell_id) do
+    with {:ok, _, section} <- fetch_cell_and_section(notebook, cell_id) do
       # A cell affects all the cells below it within the same section.
       section.cells
       |> Enum.drop_while(&(&1.id != cell_id))

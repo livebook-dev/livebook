@@ -67,6 +67,7 @@ defmodule LiveBook.Session.Data do
           | {:insert_cell, Section.id(), index(), Cell.type(), Cell.id()}
           | {:delete_section, Section.id()}
           | {:delete_cell, Cell.id()}
+          | {:move_cell, Cell.id(), offset :: integer()}
           | {:queue_cell_evaluation, Cell.id()}
           | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
           | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
@@ -201,6 +202,19 @@ defmodule LiveBook.Session.Data do
       |> add_action({:forget_evaluation, cell, section})
       |> set_dirty()
       |> wrap_ok()
+    end
+  end
+
+  def apply_operation(data, {:move_cell, id, offset}) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         true <- offset != 0 do
+      data
+      |> with_actions()
+      |> move_cell(cell, section, offset)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -406,6 +420,24 @@ defmodule LiveBook.Session.Data do
   defp delete_cell_info({data, _} = data_actions, cell) do
     data_actions
     |> set!(cell_infos: Map.delete(data.cell_infos, cell.id))
+  end
+
+  defp move_cell({data, _} = data_actions, cell, section, offset) do
+    idx = Enum.find_index(section.cells, &(&1 == cell))
+    new_idx = (idx + offset) |> max(0) |> min(length(section.cells) - 1)
+    affected_from_idx = min(idx, new_idx)
+
+    # Note: the list contains the proper elements even before moving the cell around.
+    invalidated_cells =
+      if cell.type == :elixir do
+        Enum.slice(section.cells, affected_from_idx..-1)
+      else
+        []
+      end
+
+    data_actions
+    |> set!(notebook: Notebook.move_cell(data.notebook, section.id, idx, new_idx))
+    |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, validity_status: :stale))
   end
 
   defp queue_cell_evaluation(data_actions, cell, section) do
