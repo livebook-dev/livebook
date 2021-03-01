@@ -291,6 +291,8 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   def handle_event("move_cell_focus", %{"offset" => offset}, socket) do
+    offset = ensure_integer(offset)
+
     case new_focused_cell_from_offset(socket.assigns, offset) do
       {:ok, cell} ->
         {:noreply, focus_cell(socket, cell)}
@@ -300,7 +302,9 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
-  def handle_event("move_cell", %{"offset" => offset}, socket) do
+  def handle_event("move_focused_cell", %{"offset" => offset}, socket) do
+    offset = ensure_integer(offset)
+
     if socket.assigns.focused_cell_id do
       Session.move_cell(socket.assigns.session_id, socket.assigns.focused_cell_id, offset)
     end
@@ -536,4 +540,7 @@ defmodule LiveBookWeb.SessionLive do
   defp runtime_description(%Runtime.ElixirStandalone{}), do: "Elixir standalone runtime"
   defp runtime_description(%Runtime.MixStandalone{}), do: "Mix standalone runtime"
   defp runtime_description(%Runtime.Attached{}), do: "Attached runtime"
+
+  defp ensure_integer(n) when is_integer(n), do: n
+  defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)
 end

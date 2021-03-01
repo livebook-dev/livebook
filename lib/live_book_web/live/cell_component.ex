@@ -27,6 +27,16 @@ defmodule LiveBookWeb.CellComponent do
         <button phx-click="delete_focused_cell" class="text-gray-500 hover:text-current">
           <%= Icons.svg(:trash, class: "h-6") %>
         </button>
+        <button class="text-gray-500 hover:text-current"
+          phx-click="move_focused_cell"
+          phx-value-offset="-1">
+          <%= Icons.svg(:chevron_up, class: "h-6") %>
+        </button>
+        <button class="text-gray-500 hover:text-current"
+          phx-click="move_focused_cell"
+          phx-value-offset="1">
+          <%= Icons.svg(:chevron_down, class: "h-6") %>
+        </button>
       </div>
     <% end %>
 
@@ -55,6 +65,16 @@ defmodule LiveBookWeb.CellComponent do
         <% end %>
         <button phx-click="delete_focused_cell" class="text-gray-500 hover:text-current">
           <%= Icons.svg(:trash, class: "h-6") %>
+        </button>
+        <button class="text-gray-500 hover:text-current"
+          phx-click="move_focused_cell"
+          phx-value-offset="-1">
+          <%= Icons.svg(:chevron_up, class: "h-6") %>
+        </button>
+        <button class="text-gray-500 hover:text-current"
+          phx-click="move_focused_cell"
+          phx-value-offset="1">
+          <%= Icons.svg(:chevron_down, class: "h-6") %>
         </button>
       </div>
     <% end %>

@@ -149,6 +149,26 @@ defmodule LiveBookWeb.Icons do
     """
   end
 
+  def svg(:chevron_up, attrs) do
+    assigns = %{attrs: heroicon_svg_attrs(attrs)}
+
+    ~L"""
+    <%= tag(:svg, @attrs) %>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+    </svg>
+    """
+  end
+
+  def svg(:chevron_down, attrs) do
+    assigns = %{attrs: heroicon_svg_attrs(attrs)}
+
+    ~L"""
+    <%= tag(:svg, @attrs) %>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+    """
+  end
+
   # https://heroicons.com
   defp heroicon_svg_attrs(attrs) do
     heroicon_svg_attrs = [
