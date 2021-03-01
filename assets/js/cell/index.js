@@ -1,4 +1,8 @@
-import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
+import {
+  getAttributeOrThrow,
+  parseBoolean,
+  parseInteger,
+} from "../lib/attribute";
 import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
 
@@ -52,13 +56,19 @@ const Cell = {
 
       // New cells are initially focused, so check for such case.
 
-      if (isActive(this.props)) {
+      if (isEditorActive(this.props)) {
         this.liveEditor.focus();
       }
 
       if (this.props.isFocused) {
         this.el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+
+      this.liveEditor.onBlur(() => {
+        if (isEditorActive(this.props)) {
+          this.liveEditor.focus();
+        }
+      });
     });
   },
 
@@ -69,11 +79,11 @@ const Cell = {
     // Note: this.liveEditor is crated once we receive initial data
     // so here we have to make sure it's defined.
 
-    if (!isActive(prevProps) && isActive(this.props)) {
+    if (!isEditorActive(prevProps) && isEditorActive(this.props)) {
       this.liveEditor && this.liveEditor.focus();
     }
 
-    if (isActive(prevProps) && !isActive(this.props)) {
+    if (isEditorActive(prevProps) && !isEditorActive(this.props)) {
       this.liveEditor && this.liveEditor.blur();
     }
 
@@ -96,7 +106,7 @@ function getProps(hook) {
 /**
  * Checks if the cell editor is active and should have focus.
  */
-function isActive(props) {
+function isEditorActive(props) {
   return props.isFocused && props.insertMode;
 }
 

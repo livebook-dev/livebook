@@ -18,7 +18,7 @@ defmodule LiveBookWeb.CellComponent do
   def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
     ~L"""
     <%= if @focused do %>
-      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10">
+      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-cell-actions>
         <%= unless @insert_mode do %>
           <button phx-click="enable_insert_mode" class="text-gray-500 hover:text-current">
             <%= Icons.svg(:pencil, class: "h-6") %>
@@ -53,7 +53,7 @@ defmodule LiveBookWeb.CellComponent do
   def render_cell_content(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
     <%= if @focused do %>
-      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10">
+      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-cell-actions>
         <%= if @cell_info.evaluation_status == :ready do %>
           <button phx-click="queue_focused_cell_evaluation" class="text-gray-500 hover:text-current">
             <%= Icons.svg(:play, class: "h-6") %>

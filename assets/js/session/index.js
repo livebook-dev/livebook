@@ -90,10 +90,14 @@ const Session = {
 
     // Focus/unfocus a cell when the user clicks somewhere
     // Note: we use mousedown event to more reliably focus editor
-    // (e.g. if the user selects some text within the editor
-    // and mouseup happens outside the editor)
+    // (e.g. if the user starts selecting some text within the editor)
 
     this.handleDocumentMouseDown = (event) => {
+      // If click targets cell actions, keep the focus as is
+      if (event.target.closest("[data-cell-actions]")) {
+        return;
+      }
+
       // Find the parent with cell id info, if there is one
       const cell = event.target.closest("[data-cell-id]");
       const cellId = cell ? cell.dataset.cellId : null;
