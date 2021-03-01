@@ -13,6 +13,7 @@ class LiveEditor {
     this.type = type;
     this.source = source;
     this._onChange = null;
+    this._onBlur = null;
 
     this.__mountEditor();
 
@@ -28,6 +29,10 @@ class LiveEditor {
       this.source = delta.applyToString(this.source);
       this._onChange && this._onChange(this.source);
     });
+
+    this.editor.onDidBlurEditorWidget(() => {
+      this._onBlur && this._onBlur();
+    });
   }
 
   /**
@@ -35,6 +40,13 @@ class LiveEditor {
    */
   onChange(callback) {
     this._onChange = callback;
+  }
+
+  /**
+   * Registers a callback called whenever the editor loses focus.
+   */
+  onBlur(callback) {
+    this._onBlur = callback;
   }
 
   focus() {
