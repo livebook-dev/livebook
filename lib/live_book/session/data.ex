@@ -62,6 +62,14 @@ defmodule LiveBook.Session.Data do
 
   @type index :: non_neg_integer()
 
+  # Note that all operations carry the pid of whatever
+  # process originated the operation. Some operations
+  # like :apply_cell_delta and :report_cell_revision
+  # require the pid to be a registered client, as in these
+  # cases it's necessary for the operation to be properly applied.
+  # For other operations the pid can represent an arbitrary process
+  # and is passed for informative purposes only.
+
   @type operation ::
           {:insert_section, pid(), index(), Section.id()}
           | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id()}

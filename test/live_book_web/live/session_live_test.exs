@@ -197,7 +197,7 @@ defmodule LiveBookWeb.SessionLiveTest do
     %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_id)
 
     delta = Delta.new(insert: content)
-    Session.apply_cell_delta(session_id, self(), cell.id, delta, 1)
+    Session.apply_cell_delta(session_id, cell.id, delta, 1)
 
     cell.id
   end

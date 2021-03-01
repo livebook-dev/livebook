@@ -208,7 +208,7 @@ defmodule LiveBook.Session do
   """
   @spec disconnect_runtime(id()) :: :ok
   def disconnect_runtime(session_id) do
-    GenServer.cast(name(session_id), :disconnect_runtime)
+    GenServer.cast(name(session_id), {:disconnect_runtime, self()})
   end
 
   @doc """
@@ -377,12 +377,12 @@ defmodule LiveBook.Session do
      |> handle_operation({:set_runtime, client_pid, runtime})}
   end
 
-  def handle_cast(:disconnect_runtime, state) do
+  def handle_cast({:disconnect_runtime, client_pid}, state) do
     Runtime.disconnect(state.data.runtime)
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, self(), nil})}
+     |> handle_operation({:set_runtime, client_pid, nil})}
   end
 
   def handle_cast({:set_path, client_pid, path}, state) do
