@@ -261,7 +261,7 @@ defmodule LiveBookWeb.SessionLive do
         socket
       ) do
     delta = Delta.from_compressed(delta)
-    Session.apply_cell_delta(socket.assigns.session_id, self(), cell_id, delta, revision)
+    Session.apply_cell_delta(socket.assigns.session_id, cell_id, delta, revision)
 
     {:noreply, socket}
   end
@@ -271,7 +271,7 @@ defmodule LiveBookWeb.SessionLive do
         %{"cell_id" => cell_id, "revision" => revision},
         socket
       ) do
-    Session.report_cell_revision(socket.assigns.session_id, self(), cell_id, revision)
+    Session.report_cell_revision(socket.assigns.session_id, cell_id, revision)
 
     {:noreply, socket}
   end
@@ -421,20 +421,34 @@ defmodule LiveBookWeb.SessionLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp after_operation(socket, _prev_socket, {:insert_section, _index, section_id}) do
-    assign(socket, selected_section_id: section_id)
+  defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
+    if client_pid == self() do
+      assign(socket, selected_section_id: section_id)
+    else
+      socket
+    end
   end
 
-  defp after_operation(socket, _prev_socket, {:delete_section, _section_id}) do
-    assign(socket, selected_section_id: nil)
+  defp after_operation(socket, _prev_socket, {:delete_section, _client_pid, section_id}) do
+    if section_id == socket.assigns.selected_section_id do
+      assign(socket, selected_section_id: nil)
+    else
+      socket
+    end
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_cell, _, _, _, cell_id}) do
-    {:ok, cell, _section} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
-    focus_cell(socket, cell, insert_mode: true)
+  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
+    if client_pid == self() do
+      {:ok, cell, _section} =
+        Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
+
+      focus_cell(socket, cell, insert_mode: true)
+    else
+      socket
+    end
   end
 
-  defp after_operation(socket, prev_socket, {:delete_cell, cell_id}) do
+  defp after_operation(socket, prev_socket, {:delete_cell, _client_pid, cell_id}) do
     if cell_id == socket.assigns.focused_cell_id do
       case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, 1) do
         {:ok, next_cell} ->
@@ -460,8 +474,8 @@ defmodule LiveBookWeb.SessionLive do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:broadcast_delta, from, cell, delta}) do
-    if from == self() do
+  defp handle_action(socket, {:broadcast_delta, client_pid, cell, delta}) do
+    if client_pid == self() do
       push_event(socket, "cell_acknowledgement:#{cell.id}", %{})
     else
       push_event(socket, "cell_delta:#{cell.id}", %{delta: Delta.to_compressed(delta)})
