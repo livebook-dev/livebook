@@ -330,6 +330,28 @@ defmodule LiveBook.Session.DataTest do
                 }
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "affected queued cell is unqueued" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          # Add cells
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :elixir, "c2"},
+          # Evaluate the Elixir cell
+          {:queue_cell_evaluation, "c1"},
+          {:queue_cell_evaluation, "c2"}
+        ])
+
+      operation = {:move_cell, "c2", -1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{evaluation_status: :ready}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :queue_cell_evaluation" do

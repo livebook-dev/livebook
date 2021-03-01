@@ -424,23 +424,25 @@ defmodule LiveBook.Session.Data do
 
   defp move_cell({data, _} = data_actions, cell, section, offset) do
     idx = Enum.find_index(section.cells, &(&1 == cell))
-    new_idx = (idx + offset) |> max(0) |> min(length(section.cells) - 1)
-    affected_from_idx = min(idx, new_idx)
+    new_idx = (idx + offset) |> clamp_index(section.cells)
 
-    # Note: the list contains the proper elements even before moving the cell around.
-    invalidated_cells =
+    affected_cells =
       if cell.type == :elixir do
-        section.cells
-        |> Enum.slice(affected_from_idx..-1)
-        |> Enum.filter(&(&1.type == :elixir))
-        |> Enum.filter(fn cell -> data.cell_infos[cell.id].validity_status == :evaluated end)
+        affected_from_idx = min(idx, new_idx)
+        # Note: the list contains the proper elements even before moving the cell around.
+        Enum.slice(section.cells, affected_from_idx..-1)
       else
         []
       end
 
     data_actions
     |> set!(notebook: Notebook.move_cell(data.notebook, section.id, idx, new_idx))
-    |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, validity_status: :stale))
+    |> mark_cells_as_stale(affected_cells)
+    |> unqueue_cells_evaluation(affected_cells, section)
+  end
+
+  defp clamp_index(index, list) do
+    index |> max(0) |> min(length(list) - 1)
   end
 
   defp queue_cell_evaluation(data_actions, cell, section) do
@@ -499,10 +501,15 @@ defmodule LiveBook.Session.Data do
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
+    child_cells = Notebook.child_cells(data.notebook, cell.id)
+    mark_cells_as_stale(data_actions, child_cells)
+  end
+
+  defp mark_cells_as_stale({data, _} = data_actions, cells) do
     invalidated_cells =
-      data.notebook
-      |> Notebook.child_cells(cell.id)
-      |> Enum.filter(fn cell -> data.cell_infos[cell.id].validity_status == :evaluated end)
+      Enum.filter(cells, fn cell ->
+        cell.type == :elixir and data.cell_infos[cell.id].validity_status == :evaluated
+      end)
 
     data_actions
     |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, validity_status: :stale))
@@ -554,13 +561,16 @@ defmodule LiveBook.Session.Data do
   end
 
   defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell, section) do
-    queued_dependent_cells =
-      data.notebook
-      |> Notebook.child_cells(cell.id)
-      |> Enum.filter(fn cell -> data.cell_infos[cell.id].evaluation_status == :queued end)
+    dependent_cells = Notebook.child_cells(data.notebook, cell.id)
+    unqueue_cells_evaluation(data_actions, dependent_cells, section)
+  end
+
+  defp unqueue_cells_evaluation({data, _} = data_actions, cells, section) do
+    queued_cells =
+      Enum.filter(cells, fn cell -> data.cell_infos[cell.id].evaluation_status == :queued end)
 
     data_actions
-    |> reduce(queued_dependent_cells, &unqueue_cell_evaluation(&1, &2, section))
+    |> reduce(queued_cells, &unqueue_cell_evaluation(&1, &2, section))
   end
 
   defp set_notebook_name({data, _} = data_actions, name) do
