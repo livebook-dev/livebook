@@ -300,6 +300,14 @@ defmodule LiveBookWeb.SessionLive do
     end
   end
 
+  def handle_event("move_cell", %{"offset" => offset}, socket) do
+    if socket.assigns.focused_cell_id do
+      Session.move_cell(socket.assigns.session_id, socket.assigns.focused_cell_id, offset)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("set_insert_mode", %{"enabled" => enabled}, socket) do
     if socket.assigns.focused_cell_id do
       {:noreply, assign(socket, insert_mode: enabled)}

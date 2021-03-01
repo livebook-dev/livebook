@@ -10,6 +10,8 @@ defmodule LiveBookWeb.SessionLive.ShortcutsComponent do
       %{seq: "?", desc: "Open this help modal"},
       %{seq: "j", desc: "Focus next cell"},
       %{seq: "k", desc: "Focus previous cell"},
+      %{seq: "J", desc: "Move cell down"},
+      %{seq: "K", desc: "Move cell up"},
       %{seq: "i", desc: "Switch to insert mode"},
       %{seq: "n", desc: "Insert Elixir cell below"},
       %{seq: "m", desc: "Insert Markdown cell below"},

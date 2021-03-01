@@ -67,6 +67,7 @@ defmodule LiveBook.Session.Data do
           | {:insert_cell, Section.id(), index(), Cell.type(), Cell.id()}
           | {:delete_section, Section.id()}
           | {:delete_cell, Cell.id()}
+          | {:move_cell, Cell.id(), offset :: integer()}
           | {:queue_cell_evaluation, Cell.id()}
           | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
           | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
@@ -201,6 +202,19 @@ defmodule LiveBook.Session.Data do
       |> add_action({:forget_evaluation, cell, section})
       |> set_dirty()
       |> wrap_ok()
+    end
+  end
+
+  def apply_operation(data, {:move_cell, id, offset}) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         true <- offset != 0 do
+      data
+      |> with_actions()
+      |> move_cell(cell, section, offset)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -408,6 +422,41 @@ defmodule LiveBook.Session.Data do
     |> set!(cell_infos: Map.delete(data.cell_infos, cell.id))
   end
 
+  defp move_cell({data, _} = data_actions, cell, section, offset) do
+    idx = Enum.find_index(section.cells, &(&1 == cell))
+    new_idx = (idx + offset) |> clamp_index(section.cells)
+
+    updated_notebook = Notebook.move_cell(data.notebook, section.id, idx, new_idx)
+    {:ok, updated_section} = Notebook.fetch_section(updated_notebook, section.id)
+
+    elixir_cell_ids_before = elixir_cell_ids(section.cells)
+    elixir_cell_ids_after = elixir_cell_ids(updated_section.cells)
+
+    # If the order of Elixir cells stays the same, no need to invalidate anything
+    affected_cells =
+      if elixir_cell_ids_before != elixir_cell_ids_after do
+        affected_from_idx = min(idx, new_idx)
+        Enum.slice(updated_section.cells, affected_from_idx..-1)
+      else
+        []
+      end
+
+    data_actions
+    |> set!(notebook: updated_notebook)
+    |> mark_cells_as_stale(affected_cells)
+    |> unqueue_cells_evaluation(affected_cells, section)
+  end
+
+  defp elixir_cell_ids(cells) do
+    cells
+    |> Enum.filter(&(&1.type == :elixir))
+    |> Enum.map(& &1.id)
+  end
+
+  defp clamp_index(index, list) do
+    index |> max(0) |> min(length(list) - 1)
+  end
+
   defp queue_cell_evaluation(data_actions, cell, section) do
     data_actions
     |> update_section_info!(section.id, fn section ->
@@ -464,10 +513,15 @@ defmodule LiveBook.Session.Data do
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
+    child_cells = Notebook.child_cells(data.notebook, cell.id)
+    mark_cells_as_stale(data_actions, child_cells)
+  end
+
+  defp mark_cells_as_stale({data, _} = data_actions, cells) do
     invalidated_cells =
-      data.notebook
-      |> Notebook.child_cells(cell.id)
-      |> Enum.filter(fn cell -> data.cell_infos[cell.id].validity_status == :evaluated end)
+      Enum.filter(cells, fn cell ->
+        cell.type == :elixir and data.cell_infos[cell.id].validity_status == :evaluated
+      end)
 
     data_actions
     |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, validity_status: :stale))
@@ -519,13 +573,16 @@ defmodule LiveBook.Session.Data do
   end
 
   defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell, section) do
-    queued_dependent_cells =
-      data.notebook
-      |> Notebook.child_cells(cell.id)
-      |> Enum.filter(fn cell -> data.cell_infos[cell.id].evaluation_status == :queued end)
+    dependent_cells = Notebook.child_cells(data.notebook, cell.id)
+    unqueue_cells_evaluation(data_actions, dependent_cells, section)
+  end
+
+  defp unqueue_cells_evaluation({data, _} = data_actions, cells, section) do
+    queued_cells =
+      Enum.filter(cells, fn cell -> data.cell_infos[cell.id].evaluation_status == :queued end)
 
     data_actions
-    |> reduce(queued_dependent_cells, &unqueue_cell_evaluation(&1, &2, section))
+    |> reduce(queued_cells, &unqueue_cell_evaluation(&1, &2, section))
   end
 
   defp set_notebook_name({data, _} = data_actions, name) do
