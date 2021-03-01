@@ -430,7 +430,10 @@ defmodule LiveBook.Session.Data do
     # Note: the list contains the proper elements even before moving the cell around.
     invalidated_cells =
       if cell.type == :elixir do
-        Enum.slice(section.cells, affected_from_idx..-1)
+        section.cells
+        |> Enum.slice(affected_from_idx..-1)
+        |> Enum.filter(&(&1.type == :elixir))
+        |> Enum.filter(fn cell -> data.cell_infos[cell.id].validity_status == :evaluated end)
       else
         []
       end
