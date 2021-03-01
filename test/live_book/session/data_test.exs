@@ -352,6 +352,32 @@ defmodule LiveBook.Session.DataTest do
                 }
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "does not invalidate the moved cell if the order of Elixir cells stays the same" do
+      data =
+        data_after_operations!([
+          {:insert_section, 0, "s1"},
+          # Add cells
+          {:insert_cell, "s1", 0, :elixir, "c1"},
+          {:insert_cell, "s1", 1, :markdown, "c2"},
+          {:insert_cell, "s1", 2, :elixir, "c3"},
+          # Evaluate cells
+          {:queue_cell_evaluation, "c1"},
+          {:add_cell_evaluation_response, "c1", {:ok, nil}},
+          {:queue_cell_evaluation, "c3"},
+          {:add_cell_evaluation_response, "c3", {:ok, nil}}
+        ])
+
+      operation = {:move_cell, "c1", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c3" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :queue_cell_evaluation" do
