@@ -104,7 +104,7 @@ defmodule LiveBook.Session do
   """
   @spec insert_section(id(), non_neg_integer()) :: :ok
   def insert_section(session_id, index) do
-    GenServer.cast(name(session_id), {:insert_section, index})
+    GenServer.cast(name(session_id), {:insert_section, self(), index})
   end
 
   @doc """
@@ -113,7 +113,7 @@ defmodule LiveBook.Session do
   @spec insert_cell(id(), Section.id(), non_neg_integer(), Cell.type()) ::
           :ok
   def insert_cell(session_id, section_id, index, type) do
-    GenServer.cast(name(session_id), {:insert_cell, section_id, index, type})
+    GenServer.cast(name(session_id), {:insert_cell, self(), section_id, index, type})
   end
 
   @doc """
@@ -121,7 +121,7 @@ defmodule LiveBook.Session do
   """
   @spec delete_section(id(), Section.id()) :: :ok
   def delete_section(session_id, section_id) do
-    GenServer.cast(name(session_id), {:delete_section, section_id})
+    GenServer.cast(name(session_id), {:delete_section, self(), section_id})
   end
 
   @doc """
@@ -129,7 +129,7 @@ defmodule LiveBook.Session do
   """
   @spec delete_cell(id(), Cell.id()) :: :ok
   def delete_cell(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:delete_cell, cell_id})
+    GenServer.cast(name(session_id), {:delete_cell, self(), cell_id})
   end
 
   @doc """
@@ -137,7 +137,7 @@ defmodule LiveBook.Session do
   """
   @spec move_cell(id(), Cell.id(), integer()) :: :ok
   def move_cell(session_id, cell_id, offset) do
-    GenServer.cast(name(session_id), {:move_cell, cell_id, offset})
+    GenServer.cast(name(session_id), {:move_cell, self(), cell_id, offset})
   end
 
   @doc """
@@ -145,7 +145,7 @@ defmodule LiveBook.Session do
   """
   @spec queue_cell_evaluation(id(), Cell.id()) :: :ok
   def queue_cell_evaluation(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:queue_cell_evaluation, cell_id})
+    GenServer.cast(name(session_id), {:queue_cell_evaluation, self(), cell_id})
   end
 
   @doc """
@@ -153,7 +153,7 @@ defmodule LiveBook.Session do
   """
   @spec cancel_cell_evaluation(id(), Cell.id()) :: :ok
   def cancel_cell_evaluation(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:cancel_cell_evaluation, cell_id})
+    GenServer.cast(name(session_id), {:cancel_cell_evaluation, self(), cell_id})
   end
 
   @doc """
@@ -161,7 +161,7 @@ defmodule LiveBook.Session do
   """
   @spec set_notebook_name(id(), String.t()) :: :ok
   def set_notebook_name(session_id, name) do
-    GenServer.cast(name(session_id), {:set_notebook_name, name})
+    GenServer.cast(name(session_id), {:set_notebook_name, self(), name})
   end
 
   @doc """
@@ -169,15 +169,15 @@ defmodule LiveBook.Session do
   """
   @spec set_section_name(id(), Section.id(), String.t()) :: :ok
   def set_section_name(session_id, section_id, name) do
-    GenServer.cast(name(session_id), {:set_section_name, section_id, name})
+    GenServer.cast(name(session_id), {:set_section_name, self(), section_id, name})
   end
 
   @doc """
   Asynchronously sends a cell delta to apply to the server.
   """
-  @spec apply_cell_delta(id(), pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
-  def apply_cell_delta(session_id, client_pid, cell_id, delta, revision) do
-    GenServer.cast(name(session_id), {:apply_cell_delta, client_pid, cell_id, delta, revision})
+  @spec apply_cell_delta(id(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
+  def apply_cell_delta(session_id, cell_id, delta, revision) do
+    GenServer.cast(name(session_id), {:apply_cell_delta, self(), cell_id, delta, revision})
   end
 
   @doc """
@@ -185,9 +185,9 @@ defmodule LiveBook.Session do
 
   This helps to remove old deltas that are no longer necessary.
   """
-  @spec report_cell_revision(id(), pid(), Cell.id(), Data.cell_revision()) :: :ok
-  def report_cell_revision(session_id, client_pid, cell_id, revision) do
-    GenServer.cast(name(session_id), {:report_cell_revision, client_pid, cell_id, revision})
+  @spec report_cell_revision(id(), Cell.id(), Data.cell_revision()) :: :ok
+  def report_cell_revision(session_id, cell_id, revision) do
+    GenServer.cast(name(session_id), {:report_cell_revision, self(), cell_id, revision})
   end
 
   @doc """
@@ -198,7 +198,7 @@ defmodule LiveBook.Session do
   """
   @spec connect_runtime(id(), Runtime.t()) :: :ok
   def connect_runtime(session_id, runtime) do
-    GenServer.cast(name(session_id), {:connect_runtime, runtime})
+    GenServer.cast(name(session_id), {:connect_runtime, self(), runtime})
   end
 
   @doc """
@@ -208,7 +208,7 @@ defmodule LiveBook.Session do
   """
   @spec disconnect_runtime(id()) :: :ok
   def disconnect_runtime(session_id) do
-    GenServer.cast(name(session_id), :disconnect_runtime)
+    GenServer.cast(name(session_id), {:disconnect_runtime, self()})
   end
 
   @doc """
@@ -216,7 +216,7 @@ defmodule LiveBook.Session do
   """
   @spec set_path(id(), String.t() | nil) :: :ok
   def set_path(session_id, path) do
-    GenServer.cast(name(session_id), {:set_path, path})
+    GenServer.cast(name(session_id), {:set_path, self(), path})
   end
 
   @doc """
@@ -301,37 +301,37 @@ defmodule LiveBook.Session do
   end
 
   @impl true
-  def handle_cast({:insert_section, index}, state) do
+  def handle_cast({:insert_section, client_pid, index}, state) do
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section, index, Utils.random_id()}
+    operation = {:insert_section, client_pid, index, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:insert_cell, section_id, index, type}, state) do
+  def handle_cast({:insert_cell, client_pid, section_id, index, type}, state) do
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_cell, section_id, index, type, Utils.random_id()}
+    operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:delete_section, section_id}, state) do
-    operation = {:delete_section, section_id}
+  def handle_cast({:delete_section, client_pid, section_id}, state) do
+    operation = {:delete_section, client_pid, section_id}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:delete_cell, cell_id}, state) do
-    operation = {:delete_cell, cell_id}
+  def handle_cast({:delete_cell, client_pid, cell_id}, state) do
+    operation = {:delete_cell, client_pid, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:move_cell, cell_id, offset}, state) do
-    operation = {:move_cell, cell_id, offset}
+  def handle_cast({:move_cell, client_pid, cell_id, offset}, state) do
+    operation = {:move_cell, client_pid, cell_id, offset}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:queue_cell_evaluation, cell_id}, state) do
+  def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
     case ensure_runtime(state) do
       {:ok, state} ->
-        operation = {:queue_cell_evaluation, cell_id}
+        operation = {:queue_cell_evaluation, client_pid, cell_id}
         {:noreply, handle_operation(state, operation)}
 
       {:error, error} ->
@@ -340,18 +340,18 @@ defmodule LiveBook.Session do
     end
   end
 
-  def handle_cast({:cancel_cell_evaluation, cell_id}, state) do
-    operation = {:cancel_cell_evaluation, cell_id}
+  def handle_cast({:cancel_cell_evaluation, client_pid, cell_id}, state) do
+    operation = {:cancel_cell_evaluation, client_pid, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:set_notebook_name, name}, state) do
-    operation = {:set_notebook_name, name}
+  def handle_cast({:set_notebook_name, client_pid, name}, state) do
+    operation = {:set_notebook_name, client_pid, name}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:set_section_name, section_id, name}, state) do
-    operation = {:set_section_name, section_id, name}
+  def handle_cast({:set_section_name, client_pid, section_id, name}, state) do
+    operation = {:set_section_name, client_pid, section_id, name}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -365,7 +365,7 @@ defmodule LiveBook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:connect_runtime, runtime}, state) do
+  def handle_cast({:connect_runtime, client_pid, runtime}, state) do
     if state.data.runtime do
       Runtime.disconnect(state.data.runtime)
     end
@@ -374,18 +374,18 @@ defmodule LiveBook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: runtime_monitor_ref}
-     |> handle_operation({:set_runtime, runtime})}
+     |> handle_operation({:set_runtime, client_pid, runtime})}
   end
 
-  def handle_cast(:disconnect_runtime, state) do
+  def handle_cast({:disconnect_runtime, client_pid}, state) do
     Runtime.disconnect(state.data.runtime)
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, nil})}
+     |> handle_operation({:set_runtime, client_pid, nil})}
   end
 
-  def handle_cast({:set_path, path}, state) do
+  def handle_cast({:set_path, client_pid, path}, state) do
     if path do
       FileGuard.lock(path, self())
     else
@@ -397,7 +397,7 @@ defmodule LiveBook.Session do
           FileGuard.unlock(state.data.path)
         end
 
-        {:noreply, handle_operation(state, {:set_path, path})}
+        {:noreply, handle_operation(state, {:set_path, client_pid, path})}
 
       {:error, :already_in_use} ->
         broadcast_error(state.session_id, "failed to set new path because it is already in use")
@@ -422,7 +422,7 @@ defmodule LiveBook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, nil})}
+     |> handle_operation({:set_runtime, self(), nil})}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
@@ -437,12 +437,12 @@ defmodule LiveBook.Session do
   end
 
   def handle_info({:evaluation_stdout, cell_id, string}, state) do
-    operation = {:add_cell_evaluation_stdout, cell_id, string}
+    operation = {:add_cell_evaluation_stdout, self(), cell_id, string}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:evaluation_response, cell_id, response}, state) do
-    operation = {:add_cell_evaluation_response, cell_id, response}
+    operation = {:add_cell_evaluation_response, self(), cell_id, response}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -546,7 +546,7 @@ defmodule LiveBook.Session do
 
       {:ok,
        %{state | runtime_monitor_ref: runtime_monitor_ref}
-       |> handle_operation({:set_runtime, runtime})}
+       |> handle_operation({:set_runtime, self(), runtime})}
     end
   end
 
@@ -558,7 +558,7 @@ defmodule LiveBook.Session do
 
       case File.write(state.data.path, content) do
         :ok ->
-          handle_operation(state, :mark_as_not_dirty)
+          handle_operation(state, {:mark_as_not_dirty, self()})
 
         {:error, reason} ->
           broadcast_error(state.session_id, "failed to save notebook - #{reason}")

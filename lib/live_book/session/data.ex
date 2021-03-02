@@ -62,25 +62,33 @@ defmodule LiveBook.Session.Data do
 
   @type index :: non_neg_integer()
 
+  # Note that all operations carry the pid of whatever
+  # process originated the operation. Some operations
+  # like :apply_cell_delta and :report_cell_revision
+  # require the pid to be a registered client, as in these
+  # cases it's necessary for the operation to be properly applied.
+  # For other operations the pid can represent an arbitrary process
+  # and is passed for informative purposes only.
+
   @type operation ::
-          {:insert_section, index(), Section.id()}
-          | {:insert_cell, Section.id(), index(), Cell.type(), Cell.id()}
-          | {:delete_section, Section.id()}
-          | {:delete_cell, Cell.id()}
-          | {:move_cell, Cell.id(), offset :: integer()}
-          | {:queue_cell_evaluation, Cell.id()}
-          | {:add_cell_evaluation_stdout, Cell.id(), String.t()}
-          | {:add_cell_evaluation_response, Cell.id(), Evaluator.evaluation_response()}
-          | {:cancel_cell_evaluation, Cell.id()}
-          | {:set_notebook_name, String.t()}
-          | {:set_section_name, Section.id(), String.t()}
+          {:insert_section, pid(), index(), Section.id()}
+          | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id()}
+          | {:delete_section, pid(), Section.id()}
+          | {:delete_cell, pid(), Cell.id()}
+          | {:move_cell, pid(), Cell.id(), offset :: integer()}
+          | {:queue_cell_evaluation, pid(), Cell.id()}
+          | {:add_cell_evaluation_stdout, pid(), Cell.id(), String.t()}
+          | {:add_cell_evaluation_response, pid(), Cell.id(), Evaluator.evaluation_response()}
+          | {:cancel_cell_evaluation, pid(), Cell.id()}
+          | {:set_notebook_name, pid(), String.t()}
+          | {:set_section_name, pid(), Section.id(), String.t()}
           | {:client_join, pid()}
           | {:client_leave, pid()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
-          | {:set_runtime, Runtime.t() | nil}
-          | {:set_path, String.t() | nil}
-          | :mark_as_not_dirty
+          | {:set_runtime, pid(), Runtime.t() | nil}
+          | {:set_path, pid(), String.t() | nil}
+          | {:mark_as_not_dirty, pid()}
 
   @type action ::
           {:start_evaluation, Cell.t(), Section.t()}
@@ -145,7 +153,7 @@ defmodule LiveBook.Session.Data do
   @spec apply_operation(t(), operation()) :: {:ok, t(), list(action())} | :error
   def apply_operation(data, operation)
 
-  def apply_operation(data, {:insert_section, index, id}) do
+  def apply_operation(data, {:insert_section, _client_pid, index, id}) do
     section = %{Section.new() | id: id}
 
     data
@@ -155,7 +163,7 @@ defmodule LiveBook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:insert_cell, section_id, index, type, id}) do
+  def apply_operation(data, {:insert_cell, _client_pid, section_id, index, type, id}) do
     with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
       cell = %{Cell.new(type) | id: id}
 
@@ -167,7 +175,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:delete_section, id}) do
+  def apply_operation(data, {:delete_section, _client_pid, id}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id) do
       data
       |> with_actions()
@@ -177,7 +185,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:delete_cell, id}) do
+  def apply_operation(data, {:delete_cell, _client_pid, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       case data.cell_infos[cell.id].evaluation_status do
         :evaluating ->
@@ -205,7 +213,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:move_cell, id, offset}) do
+  def apply_operation(data, {:move_cell, _client_pid, id, offset}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          true <- offset != 0 do
       data
@@ -218,7 +226,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:queue_cell_evaluation, id}) do
+  def apply_operation(data, {:queue_cell_evaluation, _client_pid, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :elixir <- cell.type,
          :ready <- data.cell_infos[cell.id].evaluation_status do
@@ -233,7 +241,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_stdout, id, string}) do
+  def apply_operation(data, {:add_cell_evaluation_stdout, _client_pid, id, string}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :evaluating <- data.cell_infos[cell.id].evaluation_status do
       data
@@ -245,7 +253,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_response, id, response}) do
+  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, response}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :evaluating <- data.cell_infos[cell.id].evaluation_status do
       data
@@ -260,7 +268,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:cancel_cell_evaluation, id}) do
+  def apply_operation(data, {:cancel_cell_evaluation, _client_pid, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       case data.cell_infos[cell.id].evaluation_status do
         :evaluating ->
@@ -284,7 +292,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_notebook_name, name}) do
+  def apply_operation(data, {:set_notebook_name, _client_pid, name}) do
     data
     |> with_actions()
     |> set_notebook_name(name)
@@ -292,7 +300,7 @@ defmodule LiveBook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_section_name, section_id, name}) do
+  def apply_operation(data, {:set_section_name, _client_pid, section_id, name}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, section_id) do
       data
       |> with_actions()
@@ -353,7 +361,7 @@ defmodule LiveBook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_runtime, runtime}) do
+  def apply_operation(data, {:set_runtime, _client_pid, runtime}) do
     data
     |> with_actions()
     |> set!(runtime: runtime)
@@ -361,7 +369,7 @@ defmodule LiveBook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_path, path}) do
+  def apply_operation(data, {:set_path, _client_pid, path}) do
     data
     |> with_actions()
     |> set!(path: path)
@@ -369,7 +377,7 @@ defmodule LiveBook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, :mark_as_not_dirty) do
+  def apply_operation(data, {:mark_as_not_dirty, _client_pid}) do
     data
     |> with_actions()
     |> set_dirty(false)
