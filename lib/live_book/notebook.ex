@@ -15,11 +15,13 @@ defmodule LiveBook.Notebook do
 
   alias LiveBook.Notebook.{Section, Cell}
 
+  @type metadata :: %{String.t() => term()}
+
   @type t :: %__MODULE__{
           name: String.t(),
           version: String.t(),
           sections: list(Section.t()),
-          metadata: %{String.t() => term()}
+          metadata: metadata()
         }
 
   @version "1.0"

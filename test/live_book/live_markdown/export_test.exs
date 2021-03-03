@@ -295,4 +295,83 @@ defmodule LiveBook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "formats code in Elixir cells" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | metadata: %{},
+                    source: """
+                    [1,2,3] # Comment
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    # Comment
+    [1, 2, 3]
+    ```
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
+
+  test "does not format code in Elixir cells which explicitly state so in metadata" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | metadata: %{"disable_formatting" => true},
+                    source: """
+                    [1,2,3] # Comment\
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    <!-- livebook:{"disable_formatting":true} -->
+
+    ```elixir
+    [1,2,3] # Comment
+    ```
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end

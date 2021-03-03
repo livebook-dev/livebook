@@ -37,13 +37,20 @@ defmodule LiveBook.LiveMarkdown.Export do
   end
 
   defp render_cell(%{type: :elixir} = cell) do
+    code = get_elixir_cell_code(cell)
+
     """
     ```elixir
-    #{cell.source}
+    #{code}
     ```\
     """
     |> prepend_metadata(cell.metadata)
   end
+
+  defp get_elixir_cell_code(%{source: source, metadata: %{"disable_formatting" => true}}),
+    do: source
+
+  defp get_elixir_cell_code(%{source: source}), do: format_code(source)
 
   defp render_metadata(metadata) do
     metadata_json = Jason.encode!(metadata)
@@ -88,5 +95,13 @@ defmodule LiveBook.LiveMarkdown.Export do
       ast_node ->
         [ast_node]
     end)
+  end
+
+  defp format_code(code) do
+    try do
+      Code.format_string!(code)
+    rescue
+      _ -> code
+    end
   end
 end

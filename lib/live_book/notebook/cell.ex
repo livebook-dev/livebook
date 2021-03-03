@@ -14,12 +14,22 @@ defmodule LiveBook.Notebook.Cell do
   @type id :: Utils.id()
   @type type :: :markdown | :elixir
 
+  @typedoc """
+  Arbitrary cell information persisted as part of the notebook.
+
+  ## Recognised entries
+
+  * `disable_formatting` - whether this particular cell should no be automatically formatted.
+     Relevant for Elixir cells only.
+  """
+  @type metadata :: %{String.t() => term()}
+
   @type t :: %__MODULE__{
           id: id(),
           type: type(),
           source: String.t(),
           outputs: list(),
-          metadata: %{String.t() => term()}
+          metadata: metadata()
         }
 
   @doc """

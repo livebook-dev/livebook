@@ -78,8 +78,7 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
     path = normalize_path(socket.assigns.path)
     Session.set_path(socket.assigns.session_id, path)
 
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session_id))}
+    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 
   defp default_path() do
