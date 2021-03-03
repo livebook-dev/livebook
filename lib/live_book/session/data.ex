@@ -86,6 +86,7 @@ defmodule LiveBook.Session.Data do
           | {:client_leave, pid()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
+          | {:set_cell_metadata, pid(), Cell.id(), Cell.metadata()}
           | {:set_runtime, pid(), Runtime.t() | nil}
           | {:set_path, pid(), String.t() | nil}
           | {:mark_as_not_dirty, pid()}
@@ -355,6 +356,18 @@ defmodule LiveBook.Session.Data do
       data
       |> with_actions()
       |> report_revision(client_pid, cell, revision)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_cell_metadata, _client_pid, cell_id, metadata}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+      data
+      |> with_actions()
+      |> set_cell_metadata(cell, metadata)
+      |> set_dirty()
       |> wrap_ok()
     else
       _ -> :error
@@ -652,6 +665,11 @@ defmodule LiveBook.Session.Data do
       info = put_in(info.revision_by_client_pid[client_pid], revision)
       purge_deltas(info)
     end)
+  end
+
+  defp set_cell_metadata({data, _} = data_actions, cell, metadata) do
+    data_actions
+    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | metadata: metadata}))
   end
 
   defp purge_deltas(cell_info) do

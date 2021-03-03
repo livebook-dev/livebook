@@ -33,6 +33,7 @@ defmodule LiveBookWeb.SectionComponent do
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
             <%= live_component @socket, LiveBookWeb.CellComponent,
                   id: cell.id,
+                  session_id: @session_id,
                   cell: cell,
                   cell_info: @cell_infos[cell.id],
                   focused: @selected and cell.id == @focused_cell_id,

@@ -77,6 +77,14 @@ defmodule LiveBookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 
+    <%= if @live_action == :cell_settings do %>
+      <%= live_modal @socket, LiveBookWeb.SessionLive.CellSettingsComponent,
+            id: :cell_settings_modal,
+            session_id: @session_id,
+            cell: @cell,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
     <div class="flex flex-grow h-full"
       id="session"
       phx-hook="Session"
@@ -148,6 +156,7 @@ defmodule LiveBookWeb.SessionLive do
           <%= for section <- @data.notebook.sections do %>
             <%= live_component @socket, LiveBookWeb.SectionComponent,
                   id: section.id,
+                  session_id: @session_id,
                   section: section,
                   selected: section.id == @selected_section_id,
                   cell_infos: @data.cell_infos,
@@ -168,6 +177,11 @@ defmodule LiveBookWeb.SessionLive do
   end
 
   @impl true
+  def handle_params(%{"cell_id" => cell_id}, _url, socket) do
+    {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
+    {:noreply, assign(socket, cell: cell)}
+  end
+
   def handle_params(_params, _url, socket) do
     {:noreply, socket}
   end

@@ -191,6 +191,14 @@ defmodule LiveBook.Session do
   end
 
   @doc """
+  Asynchronously sends a cell metadata update to the server.
+  """
+  @spec set_cell_metadata(id(), Cell.id(), Cell.metadata()) :: :ok
+  def set_cell_metadata(session_id, cell_id, metadata) do
+    GenServer.cast(name(session_id), {:set_cell_metadata, self(), cell_id, metadata})
+  end
+
+  @doc """
   Asynchronously connects to the given runtime.
 
   Note that this results in initializing the corresponding remote node
@@ -362,6 +370,11 @@ defmodule LiveBook.Session do
 
   def handle_cast({:report_cell_revision, client_pid, cell_id, revision}, state) do
     operation = {:report_cell_revision, client_pid, cell_id, revision}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:set_cell_metadata, client_pid, cell_id, metadata}, state) do
+    operation = {:set_cell_metadata, client_pid, cell_id, metadata}
     {:noreply, handle_operation(state, operation)}
   end
 
