@@ -66,7 +66,6 @@ defmodule LiveBookWeb.CellComponent do
         <button phx-click="delete_focused_cell" class="text-gray-500 hover:text-current">
           <%= Icons.svg(:trash, class: "h-6") %>
         </button>
-        <!--todo: make this a url-->
         <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-500 hover:text-current" do %>
           <%= Icons.svg(:adjustments, class: "h-6") %>
         <% end %>
