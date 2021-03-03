@@ -55,7 +55,7 @@ defmodule LiveBookWeb.ANSI do
         {{modifiers, content}, modifiers}
       end)
 
-    pairs = Enum.filter(pairs, fn {_modifiers, content} -> IO.iodata_length(content) > 0 end)
+    pairs = Enum.filter(pairs, fn {_modifiers, content} -> content not in ["", []] end)
 
     tail_html = pairs_to_html(pairs)
 
@@ -105,18 +105,12 @@ defmodule LiveBookWeb.ANSI do
   end
 
   defp bit8_prefix_to_color(string) do
-    case Regex.run(~r/^(\d+)m(.*)/, string) do
-      [_, n, rest] ->
-        code = String.to_integer(n)
+    case Integer.parse(string) do
+      {n, "m" <> rest} when n in 0..255 ->
+        color = color_from_code(n)
+        {:ok, color, rest}
 
-        if code in 0..255 do
-          color = color_from_code(code)
-          {:ok, color, rest}
-        else
-          {:error, string}
-        end
-
-      nil ->
+      _ ->
         {:error, string}
     end
   end
