@@ -1,4 +1,6 @@
 defmodule LiveBook.ANSI.Modifier do
+  @moduledoc false
+
   defmacro defmodifier(modifier, code, terminator \\ "m") do
     quote bind_quoted: [modifier: modifier, code: code, terminator: terminator] do
       defp ansi_prefix_to_modifier(unquote("#{code}#{terminator}") <> rest) do
@@ -45,46 +47,25 @@ defmodule LiveBookWeb.ANSI do
               modifiers = add_modifier(modifiers, modifier)
               {modifiers, rest}
 
-            {:error, rest} ->
-              {modifiers, rest}
+            {:error, _rest} ->
+              {modifiers, "\e[" <> string}
           end
 
         {:safe, content} = Phoenix.HTML.html_escape(rest)
         {{modifiers, content}, modifiers}
       end)
 
+    pairs = Enum.filter(pairs, fn {_modifiers, content} -> IO.iodata_length(content) > 0 end)
+
     tail_html = pairs_to_html(pairs)
 
     Phoenix.HTML.raw([head_html, tail_html])
   end
 
-  defp pairs_to_html(pairs, iodata \\ [])
-
-  defp pairs_to_html([], iodata), do: iodata
-
-  defp pairs_to_html([{_, ""} | pairs], iodata) do
-    # Every content already has its list of modifiers, so just skip empty content alltogether
-    pairs_to_html(pairs, iodata)
-  end
-
-  defp pairs_to_html([{modifiers, content1}, {modifiers, content2} | pairs], iodata) do
-    # Merge content with the same modifiers, so we don't produce unnecessary tags
-    pairs_to_html([{modifiers, content1 <> content2} | pairs], iodata)
-  end
-
-  defp pairs_to_html([{modifiers, content} | pairs], iodata) when modifiers == %{} do
-    pairs_to_html(pairs, [iodata, content])
-  end
-
-  defp pairs_to_html([{modifiers, content} | pairs], iodata) do
-    style = modifiers_to_css(modifiers)
-    pairs_to_html(pairs, [iodata, ~s{<span style="#{style}">}, content, ~s{</span>}])
-  end
-
-  defp add_modifier(modifiers, :ignored), do: modifiers
-  defp add_modifier(_modifiers, :reset), do: %{}
-  defp add_modifier(modifiers, {key, :reset}), do: Map.delete(modifiers, key)
-  defp add_modifier(modifiers, {key, value}), do: Map.put(modifiers, key, value)
+  # Below goes a number of `ansi_prefix_to_modifier` function definitions,
+  # that take a string like "32msomething" (starting with ANSI code without the leading "\e[")
+  # and parse the prefix into the corresponding modifier.
+  # The function returns either {:ok, modifier, rest} or {:error, rest}
 
   defmodifier(:reset, 0)
 
@@ -96,6 +77,9 @@ defmodule LiveBookWeb.ANSI do
     defmodifier({:foreground_color, :"light_#{color}"}, 90 + index)
     defmodifier({:background_color, :"light_#{color}"}, 100 + index)
   end
+
+  defmodifier({:foreground_color, :reset}, 39)
+  defmodifier({:background_color, :reset}, 49)
 
   defmodifier({:font_weight, :bold}, 1)
   defmodifier({:font_weight, :light}, 2)
@@ -151,7 +135,7 @@ defmodule LiveBookWeb.ANSI do
   defmodifier(:ignored, 2, "K")
   defmodifier(:ignored, "", "H")
 
-  defp ansi_prefix_to_modifier(string), do: {nil, string}
+  defp ansi_prefix_to_modifier(string), do: {:error, string}
 
   defp color_from_code(code) when code in 0..7 do
     Enum.at(@colors, code)
@@ -174,6 +158,31 @@ defmodule LiveBookWeb.ANSI do
   defp color_from_code(code) when code in 232..255 do
     level = code - 232
     {:grayscale24, level}
+  end
+
+  defp add_modifier(modifiers, :ignored), do: modifiers
+  defp add_modifier(_modifiers, :reset), do: %{}
+  defp add_modifier(modifiers, {key, :reset}), do: Map.delete(modifiers, key)
+  defp add_modifier(modifiers, {key, value}), do: Map.put(modifiers, key, value)
+
+  # Converts a list of {modifiers, html_content} pairs
+  # into HTML with appropriate styling.
+  defp pairs_to_html(pairs, iodata \\ [])
+
+  defp pairs_to_html([], iodata), do: iodata
+
+  defp pairs_to_html([{modifiers, content1}, {modifiers, content2} | pairs], iodata) do
+    # Merge content with the same modifiers, so we don't produce unnecessary tags
+    pairs_to_html([{modifiers, [content1, content2]} | pairs], iodata)
+  end
+
+  defp pairs_to_html([{modifiers, content} | pairs], iodata) when modifiers == %{} do
+    pairs_to_html(pairs, [iodata, content])
+  end
+
+  defp pairs_to_html([{modifiers, content} | pairs], iodata) do
+    style = modifiers_to_css(modifiers)
+    pairs_to_html(pairs, [iodata, ~s{<span style="#{style}">}, content, ~s{</span>}])
   end
 
   defp modifiers_to_css(modifiers) do
@@ -212,8 +221,6 @@ defmodule LiveBookWeb.ANSI do
   defp color_to_css(:light_cyan), do: "var(--ansi-color-light-cyan)"
   defp color_to_css(:white), do: "var(--ansi-color-white)"
   defp color_to_css(:light_white), do: "var(--ansi-color-light-white)"
-  defp color_to_css(:reset), do: "var(--ansi-color-reset)"
-  defp color_to_css(:light_reset), do: "var(--ansi-color-light-reset)"
 
   defp color_to_css({:rgb6, r, g, b}) do
     r = div(255 * r, 5)
