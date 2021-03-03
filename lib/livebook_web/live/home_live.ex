@@ -18,7 +18,7 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~L"""
     <header class="flex justify-center p-4 border-b">
-      <h1 class="text-2xl font-medium">LiveBook</h1>
+      <h1 class="text-2xl font-medium">Livebook</h1>
     </header>
     <div class="container max-w-5xl w-full mx-auto p-4 pb-8 flex flex-col items-center space-y-4">
       <div class="w-full flex justify-end">
