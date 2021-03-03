@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.ConnCase do
+defmodule LivebookWeb.ConnCase do
   use ExUnit.CaseTemplate
 
   using do
@@ -6,12 +6,12 @@ defmodule LiveBookWeb.ConnCase do
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
-      import LiveBookWeb.ConnCase
+      import LivebookWeb.ConnCase
 
-      alias LiveBookWeb.Router.Helpers, as: Routes
+      alias LivebookWeb.Router.Helpers, as: Routes
 
       # The default endpoint for testing
-      @endpoint LiveBookWeb.Endpoint
+      @endpoint LivebookWeb.Endpoint
     end
   end
 
