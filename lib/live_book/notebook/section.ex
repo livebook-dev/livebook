@@ -1,4 +1,4 @@
-defmodule LiveBook.Notebook.Section do
+defmodule Livebook.Notebook.Section do
   @moduledoc false
 
   # Data structure representing a single section in a notebook.
@@ -8,8 +8,8 @@ defmodule LiveBook.Notebook.Section do
 
   defstruct [:id, :name, :cells, :metadata]
 
-  alias LiveBook.Notebook.Cell
-  alias LiveBook.Utils
+  alias Livebook.Notebook.Cell
+  alias Livebook.Utils
 
   @type id :: Utils.id()
   @type metadata :: %{String.t() => term()}

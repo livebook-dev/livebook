@@ -1,5 +1,5 @@
-defmodule LiveBookWeb.SessionLive.ShortcutsComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.SessionLive.ShortcutsComponent do
+  use LivebookWeb, :live_component
 
   @shortcuts %{
     insert_mode: [
@@ -38,7 +38,7 @@ defmodule LiveBookWeb.SessionLive.ShortcutsComponent do
         Keyboard shortcuts
       </h3>
       <p class="text-gray-500">
-        LiveBook highly embraces keyboard navigation to improve your productivity.
+        Livebook highly embraces keyboard navigation to improve your productivity.
         It operates in one of two modes similarly to the Vim text editor.
         In <span class="font-semibold">navigation mode</span> you move around
         the notebook and execute commands, whereas in the <span class="font-semibold">insert mode</span>

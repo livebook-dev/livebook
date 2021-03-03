@@ -1,4 +1,4 @@
-defmodule LiveBook.ANSI.Modifier do
+defmodule Livebook.ANSI.Modifier do
   @moduledoc false
 
   defmacro defmodifier(modifier, code, terminator \\ "m") do
@@ -10,10 +10,10 @@ defmodule LiveBook.ANSI.Modifier do
   end
 end
 
-defmodule LiveBookWeb.ANSI do
+defmodule LivebookWeb.ANSI do
   @moduledoc false
 
-  import LiveBook.ANSI.Modifier
+  import Livebook.ANSI.Modifier
 
   # modifier ::
   #   :reset

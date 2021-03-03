@@ -1,7 +1,7 @@
 /**
  * Delta is a format used to represent a set of changes introduced to a text document.
  *
- * See `LiveBook.Delta` for more details.
+ * See `Livebook.Delta` for more details.
  *
  * Also see https://github.com/quilljs/delta
  * for a complete implementation of the Delta specification.
@@ -47,7 +47,7 @@ export default class Delta {
   /**
    * Appends the given operation.
    *
-   * See `LiveBook.Delta.append/2` for more details.
+   * See `Livebook.Delta.append/2` for more details.
    */
   append(op) {
     if (this.ops.length === 0) {
@@ -122,7 +122,7 @@ export default class Delta {
    * The method takes a `priority` argument indicates which delta
    * is considered to have happened first and is used for conflict resolution.
    *
-   * See `LiveBook.Delta.Transformation` for more details.
+   * See `Livebook.Delta.Transformation` for more details.
    */
   transform(other, priority) {
     if (priority !== "left" && priority !== "right") {

@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionsComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.SessionsComponent do
+  use LivebookWeb, :live_component
 
-  alias LiveBook.SessionSupervisor
+  alias Livebook.SessionSupervisor
 
   @impl true
   def render(assigns) do

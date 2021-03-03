@@ -1,7 +1,7 @@
-defmodule LiveBook.Runtime.ErlDist.IOForwardGLTest do
+defmodule Livebook.Runtime.ErlDist.IOForwardGLTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Runtime.ErlDist.IOForwardGL
+  alias Livebook.Runtime.ErlDist.IOForwardGL
 
   test "forwards requests to sender's group leader" do
     {:ok, pid} = IOForwardGL.start_link()

@@ -1,4 +1,4 @@
-defmodule LiveBook.Delta.Transformation do
+defmodule Livebook.Delta.Transformation do
   @moduledoc false
 
   # Implementation of the Operational Transformation concept for deltas.
@@ -18,8 +18,8 @@ defmodule LiveBook.Delta.Transformation do
   # A reasonable solution is to have a server process where all
   # the clients send deltas, as it naturally imposes the necessary ordering.
 
-  alias LiveBook.Delta
-  alias LiveBook.Delta.Operation
+  alias Livebook.Delta
+  alias Livebook.Delta.Operation
 
   @type priority :: :left | :right
 

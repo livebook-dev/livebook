@@ -1,7 +1,7 @@
-defmodule LiveBook.Utils.EmitterTest do
+defmodule Livebook.Utils.EmitterTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Utils.Emitter
+  alias Livebook.Utils.Emitter
 
   describe "emit/2" do
     test "sends the item as a message to the specified process" do

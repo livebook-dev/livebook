@@ -1,5 +1,5 @@
-defmodule LiveBookWeb.PathSelectComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.PathSelectComponent do
+  use LivebookWeb, :live_component
 
   # The component expects:
   #

@@ -1,7 +1,7 @@
-defmodule LiveBook.SessionSupervisorTest do
+defmodule Livebook.SessionSupervisorTest do
   use ExUnit.Case
 
-  alias LiveBook.SessionSupervisor
+  alias Livebook.SessionSupervisor
 
   describe "create_session/0" do
     test "creates a new session process and returns its id" do
@@ -12,7 +12,7 @@ defmodule LiveBook.SessionSupervisorTest do
     end
 
     test "broadcasts a message" do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
       {:ok, id} = SessionSupervisor.create_session()
 
       assert_receive {:session_created, ^id}
@@ -32,7 +32,7 @@ defmodule LiveBook.SessionSupervisorTest do
     end
 
     test "broadcasts a message" do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
       {:ok, id} = SessionSupervisor.create_session()
 
       SessionSupervisor.delete_session(id)

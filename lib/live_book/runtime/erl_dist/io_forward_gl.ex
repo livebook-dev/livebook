@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.ErlDist.IOForwardGL do
+defmodule Livebook.Runtime.ErlDist.IOForwardGL do
   @moduledoc false
 
   # An IO device process forwarding all requests to sender's group leader.

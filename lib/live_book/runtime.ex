@@ -1,4 +1,4 @@
-defprotocol LiveBook.Runtime do
+defprotocol Livebook.Runtime do
   @moduledoc false
 
   # This protocol defines an interface for evaluation backends.

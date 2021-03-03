@@ -1,12 +1,12 @@
-defmodule LiveBookWeb.Endpoint do
-  use Phoenix.Endpoint, otp_app: :live_book
+defmodule LivebookWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :livebook
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options [
     store: :cookie,
-    key: "_live_book_key",
+    key: "_livebook_key",
     signing_salt: "SqUy8vWM"
   ]
 
@@ -19,7 +19,7 @@ defmodule LiveBookWeb.Endpoint do
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/",
-    from: :live_book,
+    from: :livebook,
     gzip: false,
     only: ~w(css fonts images js favicon.ico robots.txt)
 
@@ -42,5 +42,5 @@ defmodule LiveBookWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug LiveBookWeb.Router
+  plug LivebookWeb.Router
 end

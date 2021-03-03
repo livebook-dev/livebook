@@ -1,14 +1,14 @@
-defmodule LiveBookWeb.HomeLiveTest do
-  use LiveBookWeb.ConnCase
+defmodule LivebookWeb.HomeLiveTest do
+  use LivebookWeb.ConnCase
 
   import Phoenix.LiveViewTest
 
-  alias LiveBook.SessionSupervisor
+  alias Livebook.SessionSupervisor
 
   test "disconnected and connected render", %{conn: conn} do
     {:ok, view, disconnected_html} = live(conn, "/")
-    assert disconnected_html =~ "LiveBook"
-    assert render(view) =~ "LiveBook"
+    assert disconnected_html =~ "Livebook"
+    assert render(view) =~ "Livebook"
   end
 
   test "redirects to session upon creation", %{conn: conn} do
@@ -30,7 +30,7 @@ defmodule LiveBookWeb.HomeLiveTest do
 
       assert view
              |> element("form")
-             |> render_change(%{path: path}) =~ "live_book_web"
+             |> render_change(%{path: path}) =~ "livebook_web"
     end
 
     test "allows importing when a notebook file is selected", %{conn: conn} do

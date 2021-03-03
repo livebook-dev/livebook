@@ -1,15 +1,15 @@
-defmodule LiveBook.Runtime.MixStandalone do
+defmodule Livebook.Runtime.MixStandalone do
   defstruct [:node, :primary_pid, :project_path]
 
-  # A runtime backed by a standalone Elixir node managed by LiveBook.
+  # A runtime backed by a standalone Elixir node managed by Livebook.
   #
-  # This runtime is similar to `LiveBook.Runtime.ElixirStandalone`,
+  # This runtime is similar to `Livebook.Runtime.ElixirStandalone`,
   # but the node is started in the context of a Mix project.
 
-  import LiveBook.Runtime.StandaloneInit
+  import Livebook.Runtime.StandaloneInit
 
-  alias LiveBook.Utils
-  alias LiveBook.Utils.Emitter
+  alias Livebook.Utils
+  alias Livebook.Utils.Emitter
 
   @type t :: %__MODULE__{
           node: node(),
@@ -19,7 +19,7 @@ defmodule LiveBook.Runtime.MixStandalone do
 
   @doc """
   Starts a new Elixir node (i.e. a system process) and initializes
-  it with LiveBook-specific modules and processes.
+  it with Livebook-specific modules and processes.
 
   The node is started together with a Mix environment appropriate
   for the given `project_path`. The setup may involve
@@ -97,8 +97,8 @@ defmodule LiveBook.Runtime.MixStandalone do
   end
 end
 
-defimpl LiveBook.Runtime, for: LiveBook.Runtime.MixStandalone do
-  alias LiveBook.Runtime.ErlDist
+defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
+  alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
     ErlDist.Manager.set_owner(runtime.node, self())

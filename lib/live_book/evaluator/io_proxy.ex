@@ -1,4 +1,4 @@
-defmodule LiveBook.Evaluator.IOProxy do
+defmodule Livebook.Evaluator.IOProxy do
   @moduledoc false
 
   # An IO device process used by `Evaluator` as its `:stdio`.
@@ -15,7 +15,7 @@ defmodule LiveBook.Evaluator.IOProxy do
 
   use GenServer
 
-  alias LiveBook.Evaluator
+  alias Livebook.Evaluator
 
   ## API
 

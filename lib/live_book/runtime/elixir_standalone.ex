@@ -1,15 +1,15 @@
-defmodule LiveBook.Runtime.ElixirStandalone do
+defmodule Livebook.Runtime.ElixirStandalone do
   defstruct [:node, :primary_pid]
 
-  # A runtime backed by a standalone Elixir node managed by LiveBook.
+  # A runtime backed by a standalone Elixir node managed by Livebook.
   #
-  # LiveBook is responsible for starting and terminating the node.
+  # Livebook is responsible for starting and terminating the node.
   # Most importantly we have to make sure the started node doesn't
-  # stay in the system when the session or the entire LiveBook terminates.
+  # stay in the system when the session or the entire Livebook terminates.
 
-  import LiveBook.Runtime.StandaloneInit
+  import Livebook.Runtime.StandaloneInit
 
-  alias LiveBook.Utils
+  alias Livebook.Utils
 
   @type t :: %__MODULE__{
           node: node(),
@@ -18,7 +18,7 @@ defmodule LiveBook.Runtime.ElixirStandalone do
 
   @doc """
   Starts a new Elixir node (i.e. a system process) and initializes
-  it with LiveBook-specific modules and processes.
+  it with Livebook-specific modules and processes.
 
   If no process calls `Runtime.connect/1` for a period of time,
   the node automatically terminates. Whoever connects, becomes the owner
@@ -61,8 +61,8 @@ defmodule LiveBook.Runtime.ElixirStandalone do
   end
 end
 
-defimpl LiveBook.Runtime, for: LiveBook.Runtime.ElixirStandalone do
-  alias LiveBook.Runtime.ErlDist
+defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
+  alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
     ErlDist.Manager.set_owner(runtime.node, self())

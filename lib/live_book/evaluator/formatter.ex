@@ -1,4 +1,4 @@
-defmodule LiveBook.Evaluator.Formatter do
+defmodule Livebook.Evaluator.Formatter do
   @moduledoc false
 
   # Behaviour defining how evaluation results are transformed.
@@ -10,7 +10,7 @@ defmodule LiveBook.Evaluator.Formatter do
   # By defining a custom formatter the client can instruct
   # the `Evaluator` to send already transformed data.
 
-  alias LiveBook.Evaluator
+  alias Livebook.Evaluator
 
   @doc """
   Transforms the evaluation response.

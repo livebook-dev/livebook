@@ -1,4 +1,4 @@
-defmodule LiveBook.Notebook.Cell do
+defmodule Livebook.Notebook.Cell do
   @moduledoc false
 
   # Data structure representing a single cell in a notebook.
@@ -9,7 +9,7 @@ defmodule LiveBook.Notebook.Cell do
 
   defstruct [:id, :type, :source, :outputs, :metadata]
 
-  alias LiveBook.Utils
+  alias Livebook.Utils
 
   @type id :: Utils.id()
   @type type :: :markdown | :elixir

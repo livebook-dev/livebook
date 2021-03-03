@@ -1,7 +1,7 @@
-defmodule LiveBook.LiveMarkdown.MarkdownHelpersTest do
+defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.LiveMarkdown.MarkdownHelpers
+  alias Livebook.LiveMarkdown.MarkdownHelpers
 
   describe "markdown_from_ast/1" do
     test "emphasis" do

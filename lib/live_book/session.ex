@@ -1,4 +1,4 @@
-defmodule LiveBook.Session do
+defmodule Livebook.Session do
   @moduledoc false
 
   # Server corresponding to a single notebook session.
@@ -14,9 +14,9 @@ defmodule LiveBook.Session do
 
   use GenServer, restart: :temporary
 
-  alias LiveBook.Session.{Data, FileGuard}
-  alias LiveBook.{Utils, Notebook, Delta, Runtime, LiveMarkdown}
-  alias LiveBook.Notebook.{Cell, Section}
+  alias Livebook.Session.{Data, FileGuard}
+  alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown}
+  alias Livebook.Notebook.{Cell, Section}
 
   @type state :: %{
           session_id: id(),
@@ -536,7 +536,7 @@ defmodule LiveBook.Session do
   end
 
   defp broadcast_message(session_id, message) do
-    Phoenix.PubSub.broadcast(LiveBook.PubSub, "sessions:#{session_id}", message)
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
 
   defp start_evaluation(state, cell, section) do

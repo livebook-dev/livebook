@@ -1,8 +1,8 @@
-defmodule LiveBook.NotebookTest do
+defmodule Livebook.NotebookTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Notebook
-  alias LiveBook.Notebook.{Section, Cell}
+  alias Livebook.Notebook
+  alias Livebook.Notebook.{Section, Cell}
 
   describe "fetch_cell_sibling/3" do
     test "returns error given invalid cell id" do

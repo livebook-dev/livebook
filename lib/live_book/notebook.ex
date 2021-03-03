@@ -1,4 +1,4 @@
-defmodule LiveBook.Notebook do
+defmodule Livebook.Notebook do
   @moduledoc false
 
   # Data structure representing a notebook.
@@ -13,7 +13,7 @@ defmodule LiveBook.Notebook do
 
   defstruct [:name, :version, :sections, :metadata]
 
-  alias LiveBook.Notebook.{Section, Cell}
+  alias Livebook.Notebook.{Section, Cell}
 
   @type metadata :: %{String.t() => term()}
 

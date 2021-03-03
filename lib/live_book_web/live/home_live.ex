@@ -1,12 +1,12 @@
-defmodule LiveBookWeb.HomeLive do
-  use LiveBookWeb, :live_view
+defmodule LivebookWeb.HomeLive do
+  use LivebookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session, LiveMarkdown}
+  alias Livebook.{SessionSupervisor, Session, LiveMarkdown}
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
     end
 
     session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
@@ -28,7 +28,7 @@ defmodule LiveBookWeb.HomeLive do
         </button>
       </div>
       <div class="container flex flex-col space-y-4">
-        <%= live_component @socket, LiveBookWeb.PathSelectComponent,
+        <%= live_component @socket, LivebookWeb.PathSelectComponent,
           id: "path_select",
           path: @path,
           extnames: [LiveMarkdown.extension()],
@@ -59,7 +59,7 @@ defmodule LiveBookWeb.HomeLive do
             No sessions currently running, you can create one above.
           </div>
         <% else %>
-          <%= live_component @socket, LiveBookWeb.SessionsComponent,
+          <%= live_component @socket, LivebookWeb.SessionsComponent,
             id: "sessions_list",
             session_summaries: @session_summaries %>
         <% end %>

@@ -1,9 +1,9 @@
-defmodule LiveBookWeb.SessionLiveTest do
-  use LiveBookWeb.ConnCase
+defmodule LivebookWeb.SessionLiveTest do
+  use LivebookWeb.ConnCase
 
   import Phoenix.LiveViewTest
 
-  alias LiveBook.{SessionSupervisor, Session, Delta}
+  alias Livebook.{SessionSupervisor, Session, Delta}
 
   setup do
     {:ok, session_id} = SessionSupervisor.create_session()

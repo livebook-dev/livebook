@@ -8,10 +8,10 @@
 import Config
 
 # Configures the endpoint
-config :live_book, LiveBookWeb.Endpoint,
+config :livebook, LivebookWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "9hHHeOiAA8wrivUfuS//jQMurHxoMYUtF788BQMx2KO7mYUE8rVrGGG09djBNQq7",
-  pubsub_server: LiveBook.PubSub,
+  pubsub_server: Livebook.PubSub,
   live_view: [signing_salt: "mAPgPEM4"],
   # We are always in debug mode since we are executing code anyway
   debug_errors: true
@@ -25,9 +25,9 @@ config :logger, :console,
 config :phoenix, :json_library, Jason
 
 # Configure the type of names used for distribution
-# and the name of the main LiveBook node.
-config :live_book, :node_name, {:shortnames, :live_book}
-# config :live_book, :node_name, {:longnames, :"livebook@127.0.0.1"}
+# and the name of the main Livebook node.
+config :livebook, :node_name, {:shortnames, :livebook}
+# config :livebook, :node_name, {:longnames, :"livebook@127.0.0.1"}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

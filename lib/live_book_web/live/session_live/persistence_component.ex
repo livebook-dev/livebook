@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive.PersistenceComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.SessionLive.PersistenceComponent do
+  use LivebookWeb, :live_component
 
-  alias LiveBook.{Session, SessionSupervisor, LiveMarkdown}
+  alias Livebook.{Session, SessionSupervisor, LiveMarkdown}
 
   @impl true
   def mount(socket) do
@@ -36,7 +36,7 @@ defmodule LiveBookWeb.SessionLive.PersistenceComponent do
         </div>
         <%= if @path != nil do %>
           <div class="w-full container flex flex-col space-y-4">
-            <%= live_component @socket, LiveBookWeb.PathSelectComponent,
+            <%= live_component @socket, LivebookWeb.PathSelectComponent,
               id: "path_select",
               path: @path,
               extnames: [LiveMarkdown.extension()],

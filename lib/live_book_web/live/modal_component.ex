@@ -1,5 +1,5 @@
-defmodule LiveBookWeb.ModalComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.ModalComponent do
+  use LivebookWeb, :live_component
 
   @impl true
   def render(assigns) do

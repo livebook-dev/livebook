@@ -1,7 +1,7 @@
-defmodule LiveBook.Runtime.ErlDist.Manager do
+defmodule Livebook.Runtime.ErlDist.Manager do
   @moduledoc false
 
-  # The primary LiveBook process started on a remote node.
+  # The primary Livebook process started on a remote node.
   #
   # This process is responsible for monitoring the owner
   # process on the main node and cleaning up if it terminates.
@@ -10,8 +10,8 @@ defmodule LiveBook.Runtime.ErlDist.Manager do
 
   use GenServer
 
-  alias LiveBook.Evaluator
-  alias LiveBook.Runtime.ErlDist
+  alias Livebook.Evaluator
+  alias Livebook.Runtime.ErlDist
 
   @name __MODULE__
 
@@ -79,7 +79,7 @@ defmodule LiveBook.Runtime.ErlDist.Manager do
   @doc """
   Stops the manager.
 
-  This results in all LiveBook-related modules being unloaded from this node.
+  This results in all Livebook-related modules being unloaded from this node.
   """
   @spec stop(node()) :: :ok
   def stop(node) do
@@ -95,7 +95,7 @@ defmodule LiveBook.Runtime.ErlDist.Manager do
     Process.flag(:trap_exit, true)
 
     {:ok, _} = ErlDist.EvaluatorSupervisor.start_link()
-    {:ok, io_forward_gl_pid} = LiveBook.Runtime.ErlDist.IOForwardGL.start_link()
+    {:ok, io_forward_gl_pid} = Livebook.Runtime.ErlDist.IOForwardGL.start_link()
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]

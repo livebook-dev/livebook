@@ -1,20 +1,20 @@
-defmodule LiveBookWeb do
+defmodule LivebookWeb do
   @moduledoc false
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: LiveBookWeb
+      use Phoenix.Controller, namespace: LivebookWeb
 
       import Plug.Conn
-      alias LiveBookWeb.Router.Helpers, as: Routes
+      alias LivebookWeb.Router.Helpers, as: Routes
     end
   end
 
   def view do
     quote do
       use Phoenix.View,
-        root: "lib/live_book_web/templates",
-        namespace: LiveBookWeb
+        root: "lib/livebook_web/templates",
+        namespace: LivebookWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller,
@@ -28,7 +28,7 @@ defmodule LiveBookWeb do
   def live_view do
     quote do
       use Phoenix.LiveView,
-        layout: {LiveBookWeb.LayoutView, "live.html"}
+        layout: {LivebookWeb.LayoutView, "live.html"}
 
       unquote(view_helpers())
     end
@@ -62,11 +62,11 @@ defmodule LiveBookWeb do
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
-      alias LiveBookWeb.Router.Helpers, as: Routes
+      alias LivebookWeb.Router.Helpers, as: Routes
 
       # Custom helpers
-      import LiveBookWeb.Helpers
-      alias LiveBookWeb.Icons
+      import LivebookWeb.Helpers
+      alias LivebookWeb.Icons
     end
   end
 

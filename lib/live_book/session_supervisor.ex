@@ -1,4 +1,4 @@
-defmodule LiveBook.SessionSupervisor do
+defmodule Livebook.SessionSupervisor do
   @moduledoc false
 
   # Supervisor responsible for managing running notebook sessions.
@@ -8,7 +8,7 @@ defmodule LiveBook.SessionSupervisor do
 
   use DynamicSupervisor
 
-  alias LiveBook.{Session, Utils}
+  alias Livebook.{Session, Utils}
 
   @name __MODULE__
 
@@ -62,7 +62,7 @@ defmodule LiveBook.SessionSupervisor do
   end
 
   defp broadcast_sessions_message(message) do
-    Phoenix.PubSub.broadcast(LiveBook.PubSub, "sessions", message)
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions", message)
   end
 
   @doc """

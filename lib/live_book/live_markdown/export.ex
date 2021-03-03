@@ -1,6 +1,6 @@
-defmodule LiveBook.LiveMarkdown.Export do
-  alias LiveBook.Notebook
-  alias LiveBook.LiveMarkdown.MarkdownHelpers
+defmodule Livebook.LiveMarkdown.Export do
+  alias Livebook.Notebook
+  alias Livebook.LiveMarkdown.MarkdownHelpers
 
   @doc """
   Converts the given notebook into a Markdown document.

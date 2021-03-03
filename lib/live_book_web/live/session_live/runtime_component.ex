@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive.RuntimeComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.SessionLive.RuntimeComponent do
+  use LivebookWeb, :live_component
 
-  alias LiveBook.{Session, Runtime}
+  alias Livebook.{Session, Runtime}
 
   @impl true
   def mount(socket) do
@@ -69,17 +69,17 @@ defmodule LiveBookWeb.SessionLive.RuntimeComponent do
         </form>
         <div>
           <%= if @type == "elixir_standalone" do %>
-            <%= live_render @socket, LiveBookWeb.SessionLive.ElixirStandaloneLive,
+            <%= live_render @socket, LivebookWeb.SessionLive.ElixirStandaloneLive,
               id: :elixir_standalone_runtime,
               session: %{"session_id" => @session_id} %>
           <% end %>
           <%= if @type == "mix_standalone" do %>
-            <%= live_render @socket, LiveBookWeb.SessionLive.MixStandaloneLive,
+            <%= live_render @socket, LivebookWeb.SessionLive.MixStandaloneLive,
               id: :mix_standalone_runtime,
               session: %{"session_id" => @session_id} %>
           <% end %>
           <%= if @type == "attached" do %>
-            <%= live_render @socket, LiveBookWeb.SessionLive.AttachedLive,
+            <%= live_render @socket, LivebookWeb.SessionLive.AttachedLive,
               id: :attached_runtime,
               session: %{"session_id" => @session_id} %>
           <% end %>

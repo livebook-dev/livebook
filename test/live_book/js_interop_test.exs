@@ -1,7 +1,7 @@
-defmodule LiveBook.JSInteropTest do
+defmodule Livebook.JSInteropTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.{JSInterop, Delta}
+  alias Livebook.{JSInterop, Delta}
 
   describe "apply_delta_to_string/2" do
     test "prepend" do

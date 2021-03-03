@@ -1,4 +1,4 @@
-defmodule LiveBook.Delta do
+defmodule Livebook.Delta do
   @moduledoc false
 
   # Delta is a format used to represent a set of changes
@@ -11,15 +11,15 @@ defmodule LiveBook.Delta do
   # and https://quilljs.com/guides/designing-the-delta-format.
   # The specification covers rich-text editing, while we only
   # need to work with plain-text, so we use a subset of the specification
-  # with operations listed in `LiveBook.Delta.Operation`.
+  # with operations listed in `Livebook.Delta.Operation`.
   #
   # Also see https://hexdocs.pm/text_delta/TextDelta.html
   # for a complete implementation of the Delta specification.
 
   defstruct ops: []
 
-  alias LiveBook.Delta
-  alias LiveBook.Delta.{Operation, Transformation}
+  alias Livebook.Delta
+  alias Livebook.Delta.{Operation, Transformation}
 
   @type t :: %Delta{ops: list(Operation.t())}
 
@@ -127,8 +127,8 @@ defmodule LiveBook.Delta do
 
   ## Examples
 
-      iex> delta = %LiveBook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
-      iex> LiveBook.Delta.to_compressed(delta)
+      iex> delta = %Livebook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
+      iex> Livebook.Delta.to_compressed(delta)
       [2, "hey", -3]
   """
   @spec to_compressed(t()) :: list(Operation.compressed_t())
@@ -141,8 +141,8 @@ defmodule LiveBook.Delta do
 
   ## Examples
 
-      iex> LiveBook.Delta.from_compressed([2, "hey", -3])
-      %LiveBook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
+      iex> Livebook.Delta.from_compressed([2, "hey", -3])
+      %Livebook.Delta{ops: [retain: 2, insert: "hey", delete: 3]}
   """
   @spec from_compressed(list(Operation.compressed_t())) :: t()
   def from_compressed(list) do

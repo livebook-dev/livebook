@@ -1,9 +1,9 @@
-defmodule LiveBook.Evaluator.StringFormatter do
+defmodule Livebook.Evaluator.StringFormatter do
   @moduledoc false
 
-  # The formatter used by LiveBook for rendering the results.
+  # The formatter used by Livebook for rendering the results.
 
-  @behaviour LiveBook.Evaluator.Formatter
+  @behaviour Livebook.Evaluator.Formatter
 
   @impl true
   def format({:ok, value}) do

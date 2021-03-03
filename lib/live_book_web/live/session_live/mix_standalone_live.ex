@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
-  use LiveBookWeb, :live_view
+defmodule LivebookWeb.SessionLive.MixStandaloneLive do
+  use LivebookWeb, :live_view
 
-  alias LiveBook.{Session, Runtime, Utils}
+  alias Livebook.{Session, Runtime, Utils}
 
   @type status :: :initial | :initializing | :finished
 
@@ -27,7 +27,7 @@ defmodule LiveBookWeb.SessionLive.MixStandaloneLive do
         within the notebook.
       </p>
       <%= if @status == :initial do %>
-        <%= live_component @socket, LiveBookWeb.PathSelectComponent,
+        <%= live_component @socket, LivebookWeb.PathSelectComponent,
           id: "path_select",
           path: @path,
           extnames: [],

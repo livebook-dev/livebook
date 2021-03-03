@@ -1,7 +1,7 @@
-defmodule LiveBook.SessionTest do
+defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.{Session, Delta, Runtime, Utils}
+  alias Livebook.{Session, Delta, Runtime, Utils}
 
   setup do
     session_id = start_session()
@@ -10,7 +10,7 @@ defmodule LiveBook.SessionTest do
 
   describe "insert_section/2" do
     test "sends an insert opreation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       Session.insert_section(session_id, 0)
@@ -20,7 +20,7 @@ defmodule LiveBook.SessionTest do
 
   describe "insert_cell/4" do
     test "sends an insert opreation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       Session.insert_section(session_id, 0)
@@ -33,7 +33,7 @@ defmodule LiveBook.SessionTest do
 
   describe "delete_section/2" do
     test "sends a delete opreation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {section_id, _cell_id} = insert_section_and_cell(session_id)
@@ -45,7 +45,7 @@ defmodule LiveBook.SessionTest do
 
   describe "delete_cell/2" do
     test "sends a delete opreation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
@@ -57,7 +57,7 @@ defmodule LiveBook.SessionTest do
 
   describe "queue_cell_evaluation/2" do
     test "sends a queue evaluation operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
@@ -68,7 +68,7 @@ defmodule LiveBook.SessionTest do
 
     test "triggers evaluation and sends update operation once it finishes",
          %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
 
@@ -79,7 +79,7 @@ defmodule LiveBook.SessionTest do
 
   describe "cancel_cell_evaluation/2" do
     test "sends a cancel evaluation operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
@@ -92,7 +92,7 @@ defmodule LiveBook.SessionTest do
 
   describe "set_notebook_name/2" do
     test "sends a notebook name update operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       Session.set_notebook_name(session_id, "Cat's guide to life")
@@ -102,7 +102,7 @@ defmodule LiveBook.SessionTest do
 
   describe "set_section_name/3" do
     test "sends a section name update operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {section_id, _cell_id} = insert_section_and_cell(session_id)
@@ -114,7 +114,7 @@ defmodule LiveBook.SessionTest do
 
   describe "apply_cell_delta/4" do
     test "sends a cell delta operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
@@ -129,7 +129,7 @@ defmodule LiveBook.SessionTest do
 
   describe "report_cell_revision/3" do
     test "sends a revision report operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
@@ -142,7 +142,7 @@ defmodule LiveBook.SessionTest do
 
   describe "set_cell_metadata/3" do
     test "sends a metadata update operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
@@ -155,10 +155,10 @@ defmodule LiveBook.SessionTest do
 
   describe "connect_runtime/2" do
     test "sends a runtime update operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
-      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
       Session.connect_runtime(session_id, runtime)
 
       assert_receive {:operation, {:set_runtime, ^pid, ^runtime}}
@@ -167,7 +167,7 @@ defmodule LiveBook.SessionTest do
 
   describe "disconnect_runtime/1" do
     test "sends a runtime update operation to subscribers", %{session_id: session_id} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       Session.disconnect_runtime(session_id)
@@ -180,7 +180,7 @@ defmodule LiveBook.SessionTest do
     @tag :tmp_dir
     test "sends a path update operation to subscribers",
          %{session_id: session_id, tmp_dir: tmp_dir} do
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       path = Path.join(tmp_dir, "notebook.livemd")
@@ -195,7 +195,7 @@ defmodule LiveBook.SessionTest do
       path = Path.join(tmp_dir, "notebook.livemd")
       start_session(path: path)
 
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
       Session.set_path(session_id, path)
 
@@ -212,7 +212,7 @@ defmodule LiveBook.SessionTest do
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
 
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
       refute File.exists?(path)
 
@@ -233,7 +233,7 @@ defmodule LiveBook.SessionTest do
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
 
-      Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
       refute File.exists?(path)
 
@@ -265,7 +265,7 @@ defmodule LiveBook.SessionTest do
     session_id = Utils.random_id()
     {:ok, _} = Session.start_link(id: session_id)
 
-    Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
     {_section_id, cell_id} = insert_section_and_cell(session_id)
 
@@ -279,7 +279,7 @@ defmodule LiveBook.SessionTest do
     {:ok, _} = Session.start_link(id: session_id)
     {:ok, runtime} = Runtime.ElixirStandalone.init()
 
-    Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
     # Wait for the runtime to be set
     Session.connect_runtime(session_id, runtime)
@@ -297,7 +297,7 @@ defmodule LiveBook.SessionTest do
     {:ok, _} = Session.start_link(Keyword.merge(opts, id: session_id))
     # By default, use the current node for evaluation,
     # rather than starting a standalone one.
-    {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+    {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
     Session.connect_runtime(session_id, runtime)
     session_id
   end

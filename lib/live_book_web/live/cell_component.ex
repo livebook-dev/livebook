@@ -1,5 +1,5 @@
-defmodule LiveBookWeb.CellComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.CellComponent do
+  use LivebookWeb, :live_component
 
   def render(assigns) do
     ~L"""

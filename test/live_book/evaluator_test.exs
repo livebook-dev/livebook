@@ -1,7 +1,7 @@
-defmodule LiveBook.EvaluatorTest do
+defmodule Livebook.EvaluatorTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Evaluator
+  alias Livebook.Evaluator
 
   setup do
     {:ok, evaluator} = Evaluator.start_link()
@@ -76,29 +76,29 @@ defmodule LiveBook.EvaluatorTest do
       evaluator: evaluator
     } do
       code = """
-      defmodule LiveBook.EvaluatorTest.Stacktrace.Math do
+      defmodule Livebook.EvaluatorTest.Stacktrace.Math do
         def bad_math do
           result = 1 / 0
           {:ok, result}
         end
       end
 
-      defmodule LiveBook.EvaluatorTest.Stacktrace.Cat do
+      defmodule Livebook.EvaluatorTest.Stacktrace.Cat do
         def meow do
-          LiveBook.EvaluatorTest.Stacktrace.Math.bad_math()
+          Livebook.EvaluatorTest.Stacktrace.Math.bad_math()
           :ok
         end
       end
 
-      LiveBook.EvaluatorTest.Stacktrace.Cat.meow()
+      Livebook.EvaluatorTest.Stacktrace.Cat.meow()
       """
 
       ignore_warnings(fn ->
         Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
         expected_stacktrace = [
-          {LiveBook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
-          {LiveBook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: 'nofile', line: 10]}
+          {Livebook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
+          {Livebook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: 'nofile', line: 10]}
         ]
 
         # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.

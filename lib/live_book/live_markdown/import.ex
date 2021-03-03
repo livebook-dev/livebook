@@ -1,6 +1,6 @@
-defmodule LiveBook.LiveMarkdown.Import do
-  alias LiveBook.Notebook
-  alias LiveBook.LiveMarkdown.MarkdownHelpers
+defmodule Livebook.LiveMarkdown.Import do
+  alias Livebook.Notebook
+  alias Livebook.LiveMarkdown.MarkdownHelpers
 
   @doc """
   Converts the given Markdown document into a notebook data structure.
@@ -39,7 +39,7 @@ defmodule LiveBook.LiveMarkdown.Import do
 
   # There should be only one h1 tag indicating notebook name,
   # if there are many we downgrade all headings.
-  # This doesn't apply to documents exported from LiveBook,
+  # This doesn't apply to documents exported from Livebook,
   # but may be the case for an arbitrary markdown file,
   # so we do our best to preserve the intent.
   defp rewrite_multiple_primary_headings(ast) do
@@ -94,7 +94,7 @@ defmodule LiveBook.LiveMarkdown.Import do
   end
 
   # Trims one-line comments to allow nice pattern matching
-  # on LiveBook-specific annotations with no regard to surrounding whitespace.
+  # on Livebook-specific annotations with no regard to surrounding whitespace.
   defp trim_comments(ast) do
     Enum.map(ast, fn
       {:comment, attrs, [line], %{comment: true}} ->

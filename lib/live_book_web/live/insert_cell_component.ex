@@ -1,5 +1,5 @@
-defmodule LiveBookWeb.InsertCellComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.InsertCellComponent do
+  use LivebookWeb, :live_component
 
   def render(assigns) do
     ~L"""

@@ -1,4 +1,4 @@
-defmodule LiveBookTest.Runtime.SingleEvaluator do
+defmodule LivebookTest.Runtime.SingleEvaluator do
   @moduledoc false
 
   # A simple runtime backed by a single evaluator process
@@ -10,14 +10,14 @@ defmodule LiveBookTest.Runtime.SingleEvaluator do
   defstruct [:evaluator]
 
   def init() do
-    with {:ok, evaluator} <- LiveBook.Evaluator.start_link() do
+    with {:ok, evaluator} <- Livebook.Evaluator.start_link() do
       {:ok, %__MODULE__{evaluator: evaluator}}
     end
   end
 end
 
-defimpl LiveBook.Runtime, for: LiveBookTest.Runtime.SingleEvaluator do
-  alias LiveBook.Evaluator
+defimpl Livebook.Runtime, for: LivebookTest.Runtime.SingleEvaluator do
+  alias Livebook.Evaluator
 
   def connect(runtime) do
     Process.monitor(runtime.evaluator)

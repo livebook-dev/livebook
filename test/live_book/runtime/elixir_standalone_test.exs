@@ -1,7 +1,7 @@
-defmodule LiveBook.Runtime.ElixirStandaloneTest do
+defmodule Livebook.Runtime.ElixirStandaloneTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Runtime
+  alias Livebook.Runtime
 
   describe "init/1" do
     test "starts a new Elixir runtime in distribution mode and ties its lifetime to the Manager process" do
@@ -13,7 +13,7 @@ defmodule LiveBook.Runtime.ElixirStandaloneTest do
       assert :pong = Node.ping(node)
 
       # Tell the owner process to stop.
-      LiveBook.Runtime.ErlDist.Manager.stop(node)
+      Livebook.Runtime.ErlDist.Manager.stop(node)
 
       # Once Manager terminates, the node should terminate as well.
       assert_receive {:nodedown, ^node}
@@ -42,10 +42,10 @@ defmodule LiveBook.Runtime.ElixirStandaloneTest do
   end
 
   defp evaluator_module_loaded?(node) do
-    :rpc.call(node, :code, :is_loaded, [LiveBook.Evaluator]) != false
+    :rpc.call(node, :code, :is_loaded, [Livebook.Evaluator]) != false
   end
 
   defp manager_started?(node) do
-    :rpc.call(node, Process, :whereis, [LiveBook.Runtime.ErlDist.Manager]) != nil
+    :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.Manager]) != nil
   end
 end

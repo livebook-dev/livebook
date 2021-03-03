@@ -1,4 +1,4 @@
-defmodule LiveBook.Session.Data do
+defmodule Livebook.Session.Data do
   @moduledoc false
 
   # A structure with shared session data.
@@ -26,8 +26,8 @@ defmodule LiveBook.Session.Data do
     :client_pids
   ]
 
-  alias LiveBook.{Notebook, Evaluator, Delta, Runtime, JSInterop}
-  alias LiveBook.Notebook.{Cell, Section}
+  alias Livebook.{Notebook, Evaluator, Delta, Runtime, JSInterop}
+  alias Livebook.Notebook.{Cell, Section}
 
   @type t :: %__MODULE__{
           notebook: Notebook.t(),

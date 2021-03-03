@@ -1,4 +1,4 @@
-defmodule LiveBook.Session.FileGuard do
+defmodule Livebook.Session.FileGuard do
   @moduledoc false
 
   # Serves as a locking mechanism for notebook files.

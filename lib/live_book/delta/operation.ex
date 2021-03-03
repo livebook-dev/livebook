@@ -1,4 +1,4 @@
-defmodule LiveBook.Delta.Operation do
+defmodule Livebook.Delta.Operation do
   @moduledoc false
 
   # An peration represents an atomic change applicable to a text.
@@ -79,7 +79,7 @@ defmodule LiveBook.Delta.Operation do
 
       iex> left = [{:insert, "cat"}]
       iex> right = [{:retain, 2}, {:delete, 2}]
-      iex> LiveBook.Delta.Operation.align_heads(left, right)
+      iex> Livebook.Delta.Operation.align_heads(left, right)
       {
         [{:insert, "ca"}, {:insert, "t"}],
         [{:retain, 2}, {:delete, 2}]

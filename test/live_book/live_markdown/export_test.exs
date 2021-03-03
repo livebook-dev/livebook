@@ -1,8 +1,8 @@
-defmodule LiveBook.LiveMarkdown.ExportTest do
+defmodule Livebook.LiveMarkdown.ExportTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.LiveMarkdown.Export
-  alias LiveBook.Notebook
+  alias Livebook.LiveMarkdown.Export
+  alias Livebook.Notebook
 
   test "acceptance" do
     notebook = %{

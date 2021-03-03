@@ -1,19 +1,19 @@
-defmodule LiveBook.Runtime.StandaloneInit do
+defmodule Livebook.Runtime.StandaloneInit do
   @moduledoc false
 
   # Generic functionality related to starting and setting up
   # a new Elixir system process. It's used by both ElixirStandalone
   # and MixStandalone runtimes.
 
-  alias LiveBook.Utils
-  alias LiveBook.Utils.Emitter
+  alias Livebook.Utils
+  alias Livebook.Utils.Emitter
 
   @doc """
   Returns a random name for a dynamically spawned node.
   """
   @spec random_node_name() :: atom()
   def random_node_name() do
-    Utils.node_from_name("live_book_runtime_#{Utils.random_short_id()}")
+    Utils.node_from_name("livebook_runtime_#{Utils.random_short_id()}")
   end
 
   @doc """
@@ -26,7 +26,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
   """
   @spec random_process_name() :: atom()
   def random_process_name() do
-    :"live_book_parent_process_name_#{Utils.random_short_id()}"
+    :"livebook_parent_process_name_#{Utils.random_short_id()}"
   end
 
   @doc """
@@ -46,7 +46,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
   @spec elixir_flags(node()) :: list()
   def elixir_flags(node_name) do
     [
-      if(LiveBook.Config.shortnames?(), do: "--sname", else: "--name"),
+      if(Livebook.Config.shortnames?(), do: "--sname", else: "--name"),
       to_string(node_name),
       "--erl",
       # Minimize shedulers busy wait threshold,
@@ -97,7 +97,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
           Port.demonitor(port_ref)
 
           # We've just created the node, so it is surely not in use
-          :ok = LiveBook.Runtime.ErlDist.initialize(child_node)
+          :ok = Livebook.Runtime.ErlDist.initialize(child_node)
 
           send(primary_pid, {:node_initialized, init_ref})
 
@@ -135,7 +135,7 @@ defmodule LiveBook.Runtime.StandaloneInit do
 
       receive do
         {:node_initialized, ^init_ref} ->
-          manager_ref = Process.monitor(LiveBook.Runtime.ErlDist.Manager)
+          manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager)
 
           # Wait until the Manager process terminates.
           receive do

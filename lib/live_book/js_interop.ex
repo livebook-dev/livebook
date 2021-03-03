@@ -1,7 +1,7 @@
-defmodule LiveBook.JSInterop do
+defmodule Livebook.JSInterop do
   @moduledoc false
 
-  alias LiveBook.Delta
+  alias Livebook.Delta
 
   @doc """
   Returns the result of applying `delta` to `string`.

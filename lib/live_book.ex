@@ -1,5 +1,5 @@
-defmodule LiveBook do
+defmodule Livebook do
   @moduledoc """
-  LiveBook.
+  Livebook.
   """
 end

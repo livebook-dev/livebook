@@ -1,7 +1,7 @@
-defmodule LiveBook.Delta.TransformationText do
+defmodule Livebook.Delta.TransformationText do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Delta
+  alias Livebook.Delta
 
   describe "transform" do
     test "insert against insert" do

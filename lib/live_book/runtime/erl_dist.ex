@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.ErlDist do
+defmodule Livebook.Runtime.ErlDist do
   @moduledoc false
 
   # This module allows for initializing nodes connected using
@@ -7,29 +7,29 @@ defmodule LiveBook.Runtime.ErlDist do
   # To ensure proper isolation between sessions,
   # code evaluation may take place in a separate Elixir runtime,
   # which also makes it easy to terminate the whole
-  # evaluation environment without stopping LiveBook.
+  # evaluation environment without stopping Livebook.
   # This is what both `Runtime.ElixirStandalone` and `Runtime.Attached` do
   # and this module containes the shared functionality they need.
   #
   # To work with a separate node, we have to inject the necessary
-  # LiveBook modules there and also start the relevant processes
+  # Livebook modules there and also start the relevant processes
   # related to evaluation. Fortunately Erlang allows us to send modules
   # binary representation to the other node and load them dynamically.
 
   # Modules to load into the connected node.
   @required_modules [
-    LiveBook.Evaluator,
-    LiveBook.Evaluator.IOProxy,
-    LiveBook.Evaluator.StringFormatter,
-    LiveBook.Runtime.ErlDist,
-    LiveBook.Runtime.ErlDist.Manager,
-    LiveBook.Runtime.ErlDist.EvaluatorSupervisor,
-    LiveBook.Runtime.ErlDist.IOForwardGL
+    Livebook.Evaluator,
+    Livebook.Evaluator.IOProxy,
+    Livebook.Evaluator.StringFormatter,
+    Livebook.Runtime.ErlDist,
+    Livebook.Runtime.ErlDist.Manager,
+    Livebook.Runtime.ErlDist.EvaluatorSupervisor,
+    Livebook.Runtime.ErlDist.IOForwardGL
   ]
 
   @doc """
   Loads the necessary modules into the given node
-  and starts the primary LiveBook remote process.
+  and starts the primary Livebook remote process.
 
   The initialization may be invoked only once on the given
   node until its disconnected.
@@ -54,18 +54,18 @@ defmodule LiveBook.Runtime.ErlDist do
   end
 
   defp start_manager(node) do
-    :rpc.call(node, LiveBook.Runtime.ErlDist.Manager, :start, [])
+    :rpc.call(node, Livebook.Runtime.ErlDist.Manager, :start, [])
   end
 
   defp initialized?(node) do
-    case :rpc.call(node, Process, :whereis, [LiveBook.Runtime.ErlDist.Manager]) do
+    case :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.Manager]) do
       nil -> false
       _pid -> true
     end
   end
 
   @doc """
-  Unloads the previously loaded LiveBook modules from the caller node.
+  Unloads the previously loaded Livebook modules from the caller node.
   """
   def unload_required_modules() do
     for module <- @required_modules do

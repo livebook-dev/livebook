@@ -1,7 +1,7 @@
-defmodule LiveBook.Evaluator.IOProxyTest do
+defmodule Livebook.Evaluator.IOProxyTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Evaluator.IOProxy
+  alias Livebook.Evaluator.IOProxy
 
   setup do
     {:ok, io} = IOProxy.start_link()

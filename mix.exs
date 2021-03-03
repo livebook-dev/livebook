@@ -1,9 +1,9 @@
-defmodule LiveBook.MixProject do
+defmodule Livebook.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :live_book,
+      app: :livebook,
       version: "0.1.0",
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -19,7 +19,7 @@ defmodule LiveBook.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {LiveBook.Application, []},
+      mod: {Livebook.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

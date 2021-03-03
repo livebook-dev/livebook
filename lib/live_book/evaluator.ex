@@ -1,4 +1,4 @@
-defmodule LiveBook.Evaluator do
+defmodule Livebook.Evaluator do
   @moduledoc false
 
   # A process responsible for evaluating notebook code.
@@ -13,7 +13,7 @@ defmodule LiveBook.Evaluator do
 
   use GenServer, restart: :temporary
 
-  alias LiveBook.Evaluator
+  alias Livebook.Evaluator
 
   @type t :: GenServer.server()
 
@@ -46,7 +46,7 @@ defmodule LiveBook.Evaluator do
 
   Options:
 
-  * `formatter` - a module implementing the `LiveBook.Evaluator.Formatter` behaviour,
+  * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
     used for transforming evaluation response before it's sent to the client
   """
   def start_link(opts \\ []) do

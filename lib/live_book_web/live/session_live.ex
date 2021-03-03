@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive do
-  use LiveBookWeb, :live_view
+defmodule LivebookWeb.SessionLive do
+  use LivebookWeb, :live_view
 
-  alias LiveBook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -9,7 +9,7 @@ defmodule LiveBookWeb.SessionLive do
       data =
         if connected?(socket) do
           data = Session.register_client(session_id, self())
-          Phoenix.PubSub.subscribe(LiveBook.PubSub, "sessions:#{session_id}")
+          Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
           data
         else
@@ -55,7 +55,7 @@ defmodule LiveBookWeb.SessionLive do
   def render(assigns) do
     ~L"""
     <%= if @live_action == :file do %>
-      <%= live_modal @socket, LiveBookWeb.SessionLive.PersistenceComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceComponent,
             id: :file_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -63,7 +63,7 @@ defmodule LiveBookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :runtime do %>
-      <%= live_modal @socket, LiveBookWeb.SessionLive.RuntimeComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
             id: :runtime_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -71,14 +71,14 @@ defmodule LiveBookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
-      <%= live_modal @socket, LiveBookWeb.SessionLive.ShortcutsComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.ShortcutsComponent,
             id: :shortcuts_modal,
             platform: @platform,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 
     <%= if @live_action == :cell_settings do %>
-      <%= live_modal @socket, LiveBookWeb.SessionLive.CellSettingsComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.CellSettingsComponent,
             id: :cell_settings_modal,
             session_id: @session_id,
             cell: @cell,
@@ -154,7 +154,7 @@ defmodule LiveBookWeb.SessionLive do
       <div class="flex-grow px-6 py-8 flex overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto">
           <%= for section <- @data.notebook.sections do %>
-            <%= live_component @socket, LiveBookWeb.SectionComponent,
+            <%= live_component @socket, LivebookWeb.SectionComponent,
                   id: section.id,
                   session_id: @session_id,
                   section: section,

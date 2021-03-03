@@ -1,8 +1,8 @@
-defmodule LiveBook.DeltaTest do
+defmodule Livebook.DeltaTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Delta
-  alias LiveBook.Delta.Operation
+  alias Livebook.Delta
+  alias Livebook.Delta.Operation
 
   doctest Delta
 

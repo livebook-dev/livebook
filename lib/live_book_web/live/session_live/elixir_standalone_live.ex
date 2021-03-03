@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive.ElixirStandaloneLive do
-  use LiveBookWeb, :live_view
+defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
+  use LivebookWeb, :live_view
 
-  alias LiveBook.{Session, Runtime}
+  alias Livebook.{Session, Runtime}
 
   @impl true
   def mount(_params, %{"session_id" => session_id}, socket) do

@@ -1,11 +1,11 @@
-defmodule LiveBookWeb.Router do
-  use LiveBookWeb, :router
+defmodule LivebookWeb.Router do
+  use LivebookWeb, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, {LiveBookWeb.LayoutView, :root}
+    plug :put_root_layout, {LivebookWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
@@ -14,7 +14,7 @@ defmodule LiveBookWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", LiveBookWeb do
+  scope "/", LivebookWeb do
     pipe_through :browser
 
     live "/", HomeLive, :page

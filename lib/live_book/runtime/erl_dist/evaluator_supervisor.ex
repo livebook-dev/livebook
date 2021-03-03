@@ -1,4 +1,4 @@
-defmodule LiveBook.Runtime.ErlDist.EvaluatorSupervisor do
+defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   @moduledoc false
 
   # Supervisor responsible for dynamically spawning
@@ -6,7 +6,7 @@ defmodule LiveBook.Runtime.ErlDist.EvaluatorSupervisor do
 
   use DynamicSupervisor
 
-  alias LiveBook.Evaluator
+  alias Livebook.Evaluator
 
   @name __MODULE__
 

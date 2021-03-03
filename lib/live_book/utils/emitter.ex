@@ -1,4 +1,4 @@
-defmodule LiveBook.Utils.Emitter do
+defmodule Livebook.Utils.Emitter do
   @moduledoc false
 
   # A wrapper struct for sending messages to the specified process.
@@ -45,8 +45,8 @@ defmodule LiveBook.Utils.Emitter do
   end
 end
 
-defimpl Collectable, for: LiveBook.Utils.Emitter do
-  alias LiveBook.Utils.Emitter
+defimpl Collectable, for: Livebook.Utils.Emitter do
+  alias Livebook.Utils.Emitter
 
   def into(emitter) do
     collector_fun = fn

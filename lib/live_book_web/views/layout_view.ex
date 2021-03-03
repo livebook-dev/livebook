@@ -1,3 +1,3 @@
-defmodule LiveBookWeb.LayoutView do
-  use LiveBookWeb, :view
+defmodule LivebookWeb.LayoutView do
+  use LivebookWeb, :view
 end

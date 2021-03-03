@@ -1,8 +1,8 @@
-defmodule LiveBookWeb.Helpers do
+defmodule LivebookWeb.Helpers do
   import Phoenix.LiveView.Helpers
 
   @doc """
-  Renders a component inside the `LiveBook.ModalComponent` component.
+  Renders a component inside the `Livebook.ModalComponent` component.
 
   The rendered modal receives a `:return_to` option to properly update
   the URL when the modal is closed.
@@ -10,7 +10,7 @@ defmodule LiveBookWeb.Helpers do
   def live_modal(socket, component, opts) do
     path = Keyword.fetch!(opts, :return_to)
     modal_opts = [id: :modal, return_to: path, component: component, opts: opts]
-    live_component(socket, LiveBookWeb.ModalComponent, modal_opts)
+    live_component(socket, LivebookWeb.ModalComponent, modal_opts)
   end
 
   @doc """
@@ -30,5 +30,5 @@ defmodule LiveBookWeb.Helpers do
   defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
-  defdelegate ansi_string_to_html(string), to: LiveBookWeb.ANSI
+  defdelegate ansi_string_to_html(string), to: LivebookWeb.ANSI
 end

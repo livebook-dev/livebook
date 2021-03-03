@@ -1,4 +1,4 @@
-defmodule LiveBook.Utils do
+defmodule Livebook.Utils do
   @moduledoc false
 
   @type id :: binary()

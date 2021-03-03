@@ -1,7 +1,7 @@
-defmodule LiveBook.Session.FileGuardTest do
+defmodule Livebook.Session.FileGuardTest do
   use ExUnit.Case, async: false
 
-  alias LiveBook.Session.FileGuard
+  alias Livebook.Session.FileGuard
 
   test "lock/2 returns an error if the given path is already locked" do
     assert :ok = FileGuard.lock("/some/path", self())

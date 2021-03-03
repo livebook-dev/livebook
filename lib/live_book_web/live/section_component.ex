@@ -1,5 +1,5 @@
-defmodule LiveBookWeb.SectionComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.SectionComponent do
+  use LivebookWeb, :live_component
 
   def render(assigns) do
     ~L"""
@@ -25,20 +25,20 @@ defmodule LiveBookWeb.SectionComponent do
       </div>
       <div class="container py-2">
         <div class="flex flex-col space-y-2 pb-80">
-          <%= live_component @socket, LiveBookWeb.InsertCellComponent,
+          <%= live_component @socket, LivebookWeb.InsertCellComponent,
                 id: "#{@section.id}:0",
                 section_id: @section.id,
                 index: 0,
                 persistent: @section.cells == [] %>
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
-            <%= live_component @socket, LiveBookWeb.CellComponent,
+            <%= live_component @socket, LivebookWeb.CellComponent,
                   id: cell.id,
                   session_id: @session_id,
                   cell: cell,
                   cell_info: @cell_infos[cell.id],
                   focused: @selected and cell.id == @focused_cell_id,
                   insert_mode: @insert_mode %>
-            <%= live_component @socket, LiveBookWeb.InsertCellComponent,
+            <%= live_component @socket, LivebookWeb.InsertCellComponent,
                   id: "#{@section.id}:#{index + 1}",
                   section_id: @section.id,
                   index: index + 1,

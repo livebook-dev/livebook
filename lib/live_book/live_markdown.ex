@@ -1,7 +1,7 @@
-defmodule LiveBook.LiveMarkdown do
+defmodule Livebook.LiveMarkdown do
   @moduledoc false
 
-  # Notebook file format used by LiveBook.
+  # Notebook file format used by Livebook.
   #
   # The format is based off of Markdown and preserves compatibility,
   # in the sense that every LiveMarkdown file is a valid Markdown file.

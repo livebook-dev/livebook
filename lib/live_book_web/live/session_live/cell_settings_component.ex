@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive.CellSettingsComponent do
-  use LiveBookWeb, :live_component
+defmodule LivebookWeb.SessionLive.CellSettingsComponent do
+  use LivebookWeb, :live_component
 
-  alias LiveBook.Session
+  alias Livebook.Session
 
   @impl true
   def update(assigns, socket) do

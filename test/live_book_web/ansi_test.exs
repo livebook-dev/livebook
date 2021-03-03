@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.ANSITest do
+defmodule LivebookWeb.ANSITest do
   use ExUnit.Case, async: true
 
-  alias LiveBookWeb.ANSI
+  alias LivebookWeb.ANSI
 
   describe "ansi_string_to_html/1" do
     test "converts ANSI escape codes to span tags" do

@@ -1,4 +1,4 @@
-# LiveBook
+# Livebook
 
 To start your Phoenix server:
 

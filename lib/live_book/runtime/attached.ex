@@ -1,10 +1,10 @@
-defmodule LiveBook.Runtime.Attached do
+defmodule Livebook.Runtime.Attached do
   @moduledoc false
 
   # A runtime backed by an Elixir node managed externally.
   #
   # Such node must be already started and available,
-  # LiveBook doesn't manage its lifetime in any way
+  # Livebook doesn't manage its lifetime in any way
   # and only loads/unloads the necessary elements.
   # The node can be an oridinary Elixir runtime,
   # a Mix project shell, a running release or anything else.
@@ -17,13 +17,13 @@ defmodule LiveBook.Runtime.Attached do
 
   @doc """
   Checks if the given node is available for use and initializes
-  it with LiveBook-specific modules and processes.
+  it with Livebook-specific modules and processes.
   """
   @spec init(node()) :: {:ok, t()} | {:error, :unreachable | :already_in_use}
   def init(node) do
     case Node.ping(node) do
       :pong ->
-        case LiveBook.Runtime.ErlDist.initialize(node) do
+        case Livebook.Runtime.ErlDist.initialize(node) do
           :ok ->
             {:ok, %__MODULE__{node: node}}
 
@@ -37,8 +37,8 @@ defmodule LiveBook.Runtime.Attached do
   end
 end
 
-defimpl LiveBook.Runtime, for: LiveBook.Runtime.Attached do
-  alias LiveBook.Runtime.ErlDist
+defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
+  alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
     ErlDist.Manager.set_owner(runtime.node, self())

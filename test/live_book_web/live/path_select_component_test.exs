@@ -1,9 +1,9 @@
-defmodule LiveBookWeb.PathSelectComponentTest do
-  use LiveBookWeb.ConnCase
+defmodule LivebookWeb.PathSelectComponentTest do
+  use LivebookWeb.ConnCase
 
   import Phoenix.LiveViewTest
 
-  alias LiveBookWeb.PathSelectComponent
+  alias LivebookWeb.PathSelectComponent
 
   test "when the path has a trailing slash, lists that directory" do
     path = notebooks_path() <> "/"

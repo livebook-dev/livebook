@@ -1,7 +1,7 @@
-defmodule LiveBookWeb.SessionLive.AttachedLive do
-  use LiveBookWeb, :live_view
+defmodule LivebookWeb.SessionLive.AttachedLive do
+  use LivebookWeb, :live_view
 
-  alias LiveBook.{Session, Runtime, Utils}
+  alias Livebook.{Session, Runtime, Utils}
 
   @impl true
   def mount(_params, %{"session_id" => session_id}, socket) do
@@ -25,7 +25,7 @@ defmodule LiveBookWeb.SessionLive.AttachedLive do
         Make sure to give the node a name, for example:
       </p>
       <div class="text-gray-500 markdown">
-      <%= if LiveBook.Config.shortnames? do %>
+      <%= if Livebook.Config.shortnames? do %>
         <pre><code>iex --sname test</code></pre>
       <% else %>
         <pre><code>iex --name test@127.0.0.1</code></pre>
@@ -36,7 +36,7 @@ defmodule LiveBookWeb.SessionLive.AttachedLive do
       </p>
       <%= f = form_for :node, "#", phx_submit: "init" %>
         <%= text_input f, :name, class: "input-base shadow",
-              placeholder: if(LiveBook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
+              placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
         <%= submit "Connect", class: "mt-3 button-base button-sm" %>
       </form>

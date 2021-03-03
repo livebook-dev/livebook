@@ -1,8 +1,8 @@
-defmodule LiveBook.Session.DataTest do
+defmodule Livebook.Session.DataTest do
   use ExUnit.Case, async: true
 
-  alias LiveBook.Session.Data
-  alias LiveBook.{Delta, Notebook}
+  alias Livebook.Session.Data
+  alias Livebook.{Delta, Notebook}
 
   describe "new/1" do
     test "called with no arguments defaults to a blank notebook" do
@@ -1084,7 +1084,7 @@ defmodule LiveBook.Session.DataTest do
     test "updates data with the given runtime" do
       data = Data.new()
 
-      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
 
       operation = {:set_runtime, self(), runtime}
 
@@ -1108,7 +1108,7 @@ defmodule LiveBook.Session.DataTest do
           {:queue_cell_evaluation, self(), "c4"}
         ])
 
-      {:ok, runtime} = LiveBookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
 
       operation = {:set_runtime, self(), runtime}
 

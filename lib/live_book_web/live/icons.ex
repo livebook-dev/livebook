@@ -1,4 +1,4 @@
-defmodule LiveBookWeb.Icons do
+defmodule LivebookWeb.Icons do
   import Phoenix.HTML.Tag
   import Phoenix.LiveView.Helpers
 
