@@ -25,7 +25,16 @@ const VirtualizedLines = {
     this.lineHeight = parseInt(computedStyle.lineHeight, 10);
 
     this.templateElement = this.el.querySelector('[data-template]');
+
+    if (!this.templateElement) {
+      throw new Error('VirtualizedLines must have a child with data-template attribute');
+    }
+
     this.contentElement = this.el.querySelector('[data-content]');
+
+    if (!this.templateElement) {
+      throw new Error('VirtualizedLines must have a child with data-content');
+    }
 
     const config = hyperListConfig(
       this.templateElement,
