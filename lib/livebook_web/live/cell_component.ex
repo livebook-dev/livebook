@@ -183,11 +183,13 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{lines: lines, id: id}
 
     ~L"""
-    <%= live_component @socket, LivebookWeb.VirtualizedLinesComponent,
+    <%= content_tag :div, "",
+      class: "overflow-auto whitespace-pre text-gray-500 tiny-scrollbar",
       id: @id,
-      max_height: 300,
-      lines: @lines,
-      class: "whitespace-pre text-gray-500 tiny-scrollbar" %>
+      phx_hook: "VirtualizedLines",
+      phx_update: "ignore",
+      data_lines: Jason.encode!(@lines),
+      data_max_height: 300 %>
     """
   end
 
@@ -196,11 +198,13 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{lines: lines, id: id}
 
     ~L"""
-    <%= live_component @socket, LivebookWeb.VirtualizedLinesComponent,
+    <%= content_tag :div, "",
+      class: "overflow-auto whitespace-pre text-gray-500 tiny-scrollbar",
       id: @id,
-      max_height: 300,
-      lines: @lines,
-      class: "whitespace-pre text-gray-500 tiny-scrollbar" %>
+      phx_hook: "VirtualizedLines",
+      phx_update: "ignore",
+      data_lines: Jason.encode!(@lines),
+      data_max_height: 300 %>
     """
   end
 
