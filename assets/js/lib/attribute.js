@@ -33,3 +33,7 @@ export function parseInteger(value) {
 
   return number;
 }
+
+export function parseJSON(value) {
+  return JSON.parse(value);
+}
