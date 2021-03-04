@@ -183,13 +183,14 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{lines: lines, id: id}
 
     ~L"""
-    <%= content_tag :div, "",
-      class: "overflow-auto whitespace-pre text-gray-500 tiny-scrollbar",
+    <%= content_tag :div,
+      class: "",
       id: @id,
       phx_hook: "VirtualizedLines",
-      phx_update: "ignore",
-      data_lines: Jason.encode!(@lines),
-      data_max_height: 300 %>
+      data_max_height: 300 do %>
+      <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
+      <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
+    <% end %>
     """
   end
 
@@ -198,13 +199,14 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{lines: lines, id: id}
 
     ~L"""
-    <%= content_tag :div, "",
-      class: "overflow-auto whitespace-pre text-gray-500 tiny-scrollbar",
+    <%= content_tag :div,
+      class: "",
       id: @id,
       phx_hook: "VirtualizedLines",
-      phx_update: "ignore",
-      data_lines: Jason.encode!(@lines),
-      data_max_height: 300 %>
+      data_max_height: 300 do %>
+      <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
+      <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
+    <% end %>
     """
   end
 
