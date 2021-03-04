@@ -183,14 +183,10 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{lines: lines, id: id}
 
     ~L"""
-    <%= content_tag :div,
-      class: "",
-      id: @id,
-      phx_hook: "VirtualizedLines",
-      data_max_height: 300 do %>
+    <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300">
       <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
       <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
-    <% end %>
+    </div>
     """
   end
 
@@ -199,14 +195,10 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{lines: lines, id: id}
 
     ~L"""
-    <%= content_tag :div,
-      class: "",
-      id: @id,
-      phx_hook: "VirtualizedLines",
-      data_max_height: 300 do %>
+    <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300">
       <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
       <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
-    <% end %>
+    </div>
     """
   end
 
