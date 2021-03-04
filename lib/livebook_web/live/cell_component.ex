@@ -86,7 +86,7 @@ defmodule LivebookWeb.CellComponent do
 
     <%= if @cell.outputs != [] do %>
       <div class="mt-2">
-        <%= render_outputs(@cell.outputs) %>
+        <%= render_outputs(@cell.outputs, @cell.id) %>
       </div>
     <% end %>
     """
@@ -162,15 +162,15 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_outputs(outputs) do
-    assigns = %{outputs: outputs}
+  defp render_outputs(outputs, cell_id) do
+    assigns = %{outputs: outputs, cell_id: cell_id}
 
     ~L"""
     <div class="flex flex-col rounded-md border border-gray-200 divide-y divide-gray-200 font-editor">
-      <%= for output <- Enum.reverse(@outputs) do %>
+      <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index() do %>
         <div class="p-4">
-          <div class="max-h-80 overflow-auto tiny-scrollbar">
-            <%= render_output(output) %>
+          <div class="">
+            <%= render_output(output, "#{@cell_id}-output#{index}") %>
           </div>
         </div>
       <% end %>
@@ -178,30 +178,43 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_output(output) when is_binary(output) do
-    output_html = ansi_string_to_html(output)
-    assigns = %{output_html: output_html}
+  defp render_output(output, id) when is_binary(output) do
+    lines = ansi_to_html_lines(output)
+    assigns = %{lines: lines, id: id}
 
     ~L"""
-    <div class="whitespace-pre text-gray-500"><%= @output_html %></div>
+    <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300">
+      <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
+      <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
+    </div>
     """
   end
 
-  defp render_output({:inspect, inspected}) do
-    inspected_html = ansi_string_to_html(inspected)
-    assigns = %{inspected_html: inspected_html}
+  defp render_output({:inspect, inspected}, id) do
+    lines = ansi_to_html_lines(inspected)
+    assigns = %{lines: lines, id: id}
 
     ~L"""
-    <div class="whitespace-pre text-gray-500"><%= @inspected_html %></div>
+    <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300">
+      <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
+      <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
+    </div>
     """
   end
 
-  defp render_output({:error, formatted}) do
+  defp render_output({:error, formatted}, _id) do
     assigns = %{formatted: formatted}
 
     ~L"""
     <div class="whitespace-pre text-red-600"><%= @formatted %></div>
     """
+  end
+
+  defp ansi_to_html_lines(string) do
+    string
+    |> ansi_string_to_html()
+    |> Phoenix.HTML.safe_to_string()
+    |> String.split("\n")
   end
 
   defp render_cell_status(%{evaluation_status: :evaluating}) do

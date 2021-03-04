@@ -9,6 +9,7 @@ import Cell from "./cell";
 import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
 import ScrollOnUpdate from "./scroll_on_update";
+import VirtualizedLines from "./virtualized_lines";
 
 const Hooks = {
   ContentEditable,
@@ -16,6 +17,7 @@ const Hooks = {
   Session,
   FocusOnUpdate,
   ScrollOnUpdate,
+  VirtualizedLines,
 };
 
 const csrfToken = document
