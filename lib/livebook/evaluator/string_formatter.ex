@@ -17,17 +17,21 @@ defmodule Livebook.Evaluator.StringFormatter do
   end
 
   defp syntax_colors() do
+    # Note: we intentionally don't specify colors
+    # for `:binary`, `:list`, `:map` and `:tuple`
+    # and rely on these using the default text color.
+    # This way we avoid a bunch of HTML tags for coloring commas, etc.
     [
       atom: :blue,
-      binary: :light_black,
+      # binary: :light_black,
       boolean: :magenta,
-      list: :light_black,
-      map: :light_black,
+      # list: :light_black,
+      # map: :light_black,
       number: :blue,
       nil: :magenta,
       regex: :red,
       string: :green,
-      tuple: :light_black,
+      # tuple: :light_black,
       reset: :reset
     ]
   end
