@@ -182,38 +182,39 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Returns a list of Elixir cells that the given cell depends on.
-
-  The cells are ordered starting from the most direct parent.
+  Returns a list of `{cell, section}` pairs including all Elixir cells in order.
   """
-  @spec parent_cells(t(), Cell.id()) :: list(Cell.t())
-  def parent_cells(notebook, cell_id) do
-    with {:ok, _, section} <- fetch_cell_and_section(notebook, cell_id) do
-      # A cell depends on all previous cells within the same section.
-      section.cells
-      |> Enum.take_while(&(&1.id != cell_id))
-      |> Enum.reverse()
-      |> Enum.filter(&(&1.type == :elixir))
-    else
-      _ -> []
-    end
+  @spec elixir_cells_with_section(t()) :: list({Cell.t(), Section.t()})
+  def elixir_cells_with_section(notebook) do
+    for section <- notebook.sections,
+        cell <- section.cells,
+        cell.type == :elixir,
+        do: {cell, section}
   end
 
   @doc """
-  Returns a list of Elixir cells that depend on the given cell.
+  Returns a list of Elixir cells (each with section) that the given cell depends on.
+
+  The cells are ordered starting from the most direct parent.
+  """
+  @spec parent_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
+  def parent_cells_with_section(notebook, cell_id) do
+    notebook
+    |> elixir_cells_with_section()
+    |> Enum.take_while(fn {cell, _} -> cell.id != cell_id end)
+    |> Enum.reverse()
+  end
+
+  @doc """
+  Returns a list of Elixir cells (each with section) that depend on the given cell.
 
   The cells are ordered starting from the most direct child.
   """
-  @spec child_cells(t(), Cell.id()) :: list(Cell.t())
-  def child_cells(notebook, cell_id) do
-    with {:ok, _, section} <- fetch_cell_and_section(notebook, cell_id) do
-      # A cell affects all the cells below it within the same section.
-      section.cells
-      |> Enum.drop_while(&(&1.id != cell_id))
-      |> Enum.drop(1)
-      |> Enum.filter(&(&1.type == :elixir))
-    else
-      _ -> []
-    end
+  @spec child_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
+  def child_cells_with_section(notebook, cell_id) do
+    notebook
+    |> elixir_cells_with_section()
+    |> Enum.drop_while(fn {cell, _} -> cell.id != cell_id end)
+    |> Enum.drop(1)
   end
 end
