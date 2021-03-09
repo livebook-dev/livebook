@@ -67,19 +67,19 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Finds a cell being `offset` from the given cell within the same section.
+  Finds a cell being `offset` from the given cell (with regard to all sections).
   """
   @spec fetch_cell_sibling(t(), Cell.id(), integer()) :: {:ok, Cell.t()} | :error
   def fetch_cell_sibling(notebook, cell_id, offset) do
-    with {:ok, cell, section} <- fetch_cell_and_section(notebook, cell_id) do
-      idx = Enum.find_index(section.cells, &(&1 == cell))
-      sibling_idx = idx + offset
+    all_cells = for(section <- notebook.sections, cell <- section.cells, do: cell)
 
-      if sibling_idx >= 0 and sibling_idx < length(section.cells) do
-        {:ok, Enum.at(section.cells, sibling_idx)}
-      else
-        :error
-      end
+    idx = Enum.find_index(all_cells, &(&1.id == cell_id))
+    sibling_idx = idx + offset
+
+    if sibling_idx >= 0 and sibling_idx < length(all_cells) do
+      {:ok, Enum.at(all_cells, sibling_idx)}
+    else
+      :error
     end
   end
 

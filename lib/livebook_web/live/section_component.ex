@@ -3,7 +3,7 @@ defmodule LivebookWeb.SectionComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="<%= if not @selected, do: "hidden" %>">
+    <div>
       <div class="flex space-x-4 items-center">
         <div class="flex flex-grow space-x-2 items-center text-gray-600">
           <h2 class="flex-grow text-gray-900 font-semibold text-3xl py-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
@@ -24,7 +24,7 @@ defmodule LivebookWeb.SectionComponent do
         </div>
       </div>
       <div class="container py-2">
-        <div class="flex flex-col space-y-2 pb-80">
+        <div class="flex flex-col space-y-2">
           <%= live_component @socket, LivebookWeb.InsertCellComponent,
                 id: "#{@section.id}:0",
                 section_id: @section.id,
@@ -36,7 +36,7 @@ defmodule LivebookWeb.SectionComponent do
                   session_id: @session_id,
                   cell: cell,
                   cell_info: @cell_infos[cell.id],
-                  focused: @selected and cell.id == @focused_cell_id,
+                  focused: cell.id == @focused_cell_id,
                   insert_mode: @insert_mode %>
             <%= live_component @socket, LivebookWeb.InsertCellComponent,
                   id: "#{@section.id}:#{index + 1}",
