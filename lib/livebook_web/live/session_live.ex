@@ -374,9 +374,7 @@ defmodule LivebookWeb.SessionLive do
           socket.assigns.focused_cell_id
         )
 
-      cells = Notebook.child_cells(socket.assigns.data.notebook, cell.id)
-
-      for cell <- cells, cell.type == :elixir do
+      for {cell, _} <- Notebook.child_cells_with_section(socket.assigns.data.notebook, cell.id) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end

@@ -192,14 +192,14 @@ defmodule Livebook.Session.Data do
         :evaluating ->
           data
           |> with_actions()
-          |> clear_section_evaluation(section)
+          |> clear_evaluation()
           |> add_action({:stop_evaluation, section})
 
         :queued ->
           data
           |> with_actions()
           |> unqueue_cell_evaluation(cell, section)
-          |> unqueue_dependent_cells_evaluation(cell, section)
+          |> unqueue_dependent_cells_evaluation(cell)
           |> mark_dependent_cells_as_stale(cell)
 
         _ ->
@@ -233,7 +233,7 @@ defmodule Livebook.Session.Data do
          :ready <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
-      |> queue_prerequisite_cells_evaluation(cell, section)
+      |> queue_prerequisite_cells_evaluation(cell)
       |> queue_cell_evaluation(cell, section)
       |> maybe_evaluate_queued()
       |> wrap_ok()
@@ -275,7 +275,7 @@ defmodule Livebook.Session.Data do
         :evaluating ->
           data
           |> with_actions()
-          |> clear_section_evaluation(section)
+          |> clear_evaluation()
           |> add_action({:stop_evaluation, section})
           |> wrap_ok()
 
@@ -283,7 +283,7 @@ defmodule Livebook.Session.Data do
           data
           |> with_actions()
           |> unqueue_cell_evaluation(cell, section)
-          |> unqueue_dependent_cells_evaluation(cell, section)
+          |> unqueue_dependent_cells_evaluation(cell)
           |> mark_dependent_cells_as_stale(cell)
           |> wrap_ok()
 
@@ -378,7 +378,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set!(runtime: runtime)
-    |> reduce(data.notebook.sections, &clear_section_evaluation/2)
+    |> clear_evaluation()
     |> wrap_ok()
   end
 
@@ -448,30 +448,22 @@ defmodule Livebook.Session.Data do
     new_idx = (idx + offset) |> clamp_index(section.cells)
 
     updated_notebook = Notebook.move_cell(data.notebook, section.id, idx, new_idx)
-    {:ok, updated_section} = Notebook.fetch_section(updated_notebook, section.id)
 
-    elixir_cell_ids_before = elixir_cell_ids(section.cells)
-    elixir_cell_ids_after = elixir_cell_ids(updated_section.cells)
+    cells_with_section_before = Notebook.elixir_cells_with_section(data.notebook)
+    cells_with_section_after = Notebook.elixir_cells_with_section(updated_notebook)
 
-    # If the order of Elixir cells stays the same, no need to invalidate anything
-    affected_cells =
-      if elixir_cell_ids_before != elixir_cell_ids_after do
-        affected_from_idx = min(idx, new_idx)
-        Enum.slice(updated_section.cells, affected_from_idx..-1)
-      else
-        []
-      end
+    affected_cells_with_section =
+      cells_with_section_after
+      |> Enum.zip(cells_with_section_before)
+      |> Enum.drop_while(fn {{cell_before, _}, {cell_after, _}} ->
+        cell_before.id == cell_after.id
+      end)
+      |> Enum.map(fn {new, _old} -> new end)
 
     data_actions
     |> set!(notebook: updated_notebook)
-    |> mark_cells_as_stale(affected_cells)
-    |> unqueue_cells_evaluation(affected_cells, section)
-  end
-
-  defp elixir_cell_ids(cells) do
-    cells
-    |> Enum.filter(&(&1.type == :elixir))
-    |> Enum.map(& &1.id)
+    |> mark_cells_as_stale(affected_cells_with_section)
+    |> unqueue_cells_evaluation(affected_cells_with_section)
   end
 
   defp clamp_index(index, list) do
@@ -534,13 +526,15 @@ defmodule Livebook.Session.Data do
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
-    child_cells = Notebook.child_cells(data.notebook, cell.id)
+    child_cells = Notebook.child_cells_with_section(data.notebook, cell.id)
     mark_cells_as_stale(data_actions, child_cells)
   end
 
-  defp mark_cells_as_stale({data, _} = data_actions, cells) do
+  defp mark_cells_as_stale({data, _} = data_actions, cells_with_section) do
     invalidated_cells =
-      Enum.filter(cells, fn cell ->
+      cells_with_section
+      |> Enum.map(fn {cell, _section} -> cell end)
+      |> Enum.filter(fn cell ->
         cell.type == :elixir and data.cell_infos[cell.id].validity_status == :evaluated
       end)
 
@@ -548,26 +542,39 @@ defmodule Livebook.Session.Data do
     |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, validity_status: :stale))
   end
 
-  # If there are idle sections with non-empty evaluation queue,
-  # the next queued cell for evaluation.
   defp maybe_evaluate_queued({data, _} = data_actions) do
-    Enum.reduce(data.notebook.sections, data_actions, fn section, data_actions ->
-      {data, _} = data_actions
+    ongoing_evaluation? =
+      Enum.any?(data.notebook.sections, fn section ->
+        data.section_infos[section.id].evaluating_cell_id != nil
+      end)
 
-      case data.section_infos[section.id] do
-        %{evaluating_cell_id: nil, evaluation_queue: [id | ids]} ->
-          cell = Enum.find(section.cells, &(&1.id == id))
+    if ongoing_evaluation? do
+      # A section is evaluating, so we don't start any new evaluation
+      data_actions
+    else
+      Enum.find_value(data.notebook.sections, data_actions, fn section ->
+        case data.section_infos[section.id] do
+          %{evaluating_cell_id: nil, evaluation_queue: [id | ids]} ->
+            # The section is idle and has cells queued for evaluation, so let's start the evaluation
+            cell = Enum.find(section.cells, &(&1.id == id))
 
-          data_actions
-          |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
-          |> set_cell_info!(id, evaluation_status: :evaluating)
-          |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
-          |> add_action({:start_evaluation, cell, section})
+            data_actions
+            |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
+            |> set_cell_info!(id, evaluation_status: :evaluating)
+            |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
+            |> add_action({:start_evaluation, cell, section})
 
-        _ ->
-          data_actions
-      end
-    end)
+          _ ->
+            # The section is neither evaluating nor queued, so let's check the next section
+            nil
+        end
+      end)
+    end
+  end
+
+  defp clear_evaluation({data, _} = data_actions) do
+    data_actions
+    |> reduce(data.notebook.sections, &clear_section_evaluation/2)
   end
 
   defp clear_section_evaluation(data_actions, section) do
@@ -579,31 +586,37 @@ defmodule Livebook.Session.Data do
     )
   end
 
-  defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell, section) do
+  defp queue_prerequisite_cells_evaluation({data, _} = data_actions, cell) do
     prerequisites_queue =
       data.notebook
-      |> Notebook.parent_cells(cell.id)
-      |> Enum.take_while(fn parent ->
-        info = data.cell_infos[parent.id]
-        info.validity_status == :fresh and info.evaluation_status == :ready
+      |> Notebook.parent_cells_with_section(cell.id)
+      |> Enum.take_while(fn {parent_cell, _section} ->
+        info = data.cell_infos[parent_cell.id]
+        info.validity_status != :evaluated and info.evaluation_status == :ready
       end)
       |> Enum.reverse()
 
     data_actions
-    |> reduce(prerequisites_queue, &queue_cell_evaluation(&1, &2, section))
+    |> reduce(prerequisites_queue, fn data_actions, {cell, section} ->
+      queue_cell_evaluation(data_actions, cell, section)
+    end)
   end
 
-  defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell, section) do
-    dependent_cells = Notebook.child_cells(data.notebook, cell.id)
-    unqueue_cells_evaluation(data_actions, dependent_cells, section)
+  defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell) do
+    dependent_cells = Notebook.child_cells_with_section(data.notebook, cell.id)
+    unqueue_cells_evaluation(data_actions, dependent_cells)
   end
 
-  defp unqueue_cells_evaluation({data, _} = data_actions, cells, section) do
-    queued_cells =
-      Enum.filter(cells, fn cell -> data.cell_infos[cell.id].evaluation_status == :queued end)
+  defp unqueue_cells_evaluation({data, _} = data_actions, cells_with_section) do
+    queued_cells_with_section =
+      Enum.filter(cells_with_section, fn {cell, _} ->
+        data.cell_infos[cell.id].evaluation_status == :queued
+      end)
 
     data_actions
-    |> reduce(queued_cells, &unqueue_cell_evaluation(&1, &2, section))
+    |> reduce(queued_cells_with_section, fn data_actions, {cell, section} ->
+      unqueue_cell_evaluation(data_actions, cell, section)
+    end)
   end
 
   defp set_notebook_name({data, _} = data_actions, name) do

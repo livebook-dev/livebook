@@ -505,17 +505,17 @@ defmodule Livebook.Session do
     start_evaluation(state, cell, section)
   end
 
-  defp handle_action(state, {:stop_evaluation, section}) do
+  defp handle_action(state, {:stop_evaluation, _section}) do
     if state.data.runtime do
-      Runtime.drop_container(state.data.runtime, section.id)
+      Runtime.drop_container(state.data.runtime, :main)
     end
 
     state
   end
 
-  defp handle_action(state, {:forget_evaluation, cell, section}) do
+  defp handle_action(state, {:forget_evaluation, cell, _section}) do
     if state.data.runtime do
-      Runtime.forget_evaluation(state.data.runtime, section.id, cell.id)
+      Runtime.forget_evaluation(state.data.runtime, :main, cell.id)
     end
 
     state
@@ -539,14 +539,14 @@ defmodule Livebook.Session do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
 
-  defp start_evaluation(state, cell, section) do
+  defp start_evaluation(state, cell, _section) do
     prev_ref =
-      case Notebook.parent_cells(state.data.notebook, cell.id) do
-        [parent | _] -> parent.id
+      case Notebook.parent_cells_with_section(state.data.notebook, cell.id) do
+        [{parent, _} | _] -> parent.id
         [] -> :initial
       end
 
-    Runtime.evaluate_code(state.data.runtime, cell.source, section.id, cell.id, prev_ref)
+    Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref)
 
     state
   end

@@ -309,6 +309,31 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
+    test "marks relevant cells in further sections as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          # Evaluate cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}}
+        ])
+
+      operation = {:move_cell, self(), "c1", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c3" => %{validity_status: :stale}}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
     test "moving a markdown cell does not change validity" do
       data =
         data_after_operations!([
@@ -456,6 +481,75 @@ defmodule Livebook.Session.DataTest do
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "marks the cell as queued if a previous section is already evaluating" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:queue_cell_evaluation, self(), "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{evaluation_status: :queued}},
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c2"]}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "queues previous unevaluated and stale cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          # Evaluate first 2 cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, [1, 2, 3]}},
+          # Evaluate the first cell, so the second becomes stale
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+        ])
+
+      # The above leads to:
+      #
+      # Section 1:
+      # * cell 1 - evaluated
+      # * cell 2 - stale
+      # Section 2:
+      # * cell 3 - fresh
+      # * cell 4 - fresh
+      #
+      # Queuing cell 4 should also queue cell 3 and cell 2,
+      # so that they all become evaluated.
+
+      operation = {:queue_cell_evaluation, self(), "c4"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{evaluation_status: :evaluating},
+                  "c3" => %{evaluation_status: :queued},
+                  "c4" => %{evaluation_status: :queued}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c2", evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c3", "c4"]}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_stdout" do
@@ -567,6 +661,31 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
+    test "marks next queued cell in a further section as evaluating if there is one" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:queue_cell_evaluation, self(), "c2"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{evaluation_status: :evaluating}},
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: "c2", evaluation_queue: []}
+                }
+              },
+              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
+               Data.apply_operation(data, operation)
+    end
+
     test "if parent cells are not executed, marks them for evaluation first" do
       data =
         data_after_operations!([
@@ -595,11 +714,15 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          # Evaluate both cells
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          # Evaluate all cells
           {:queue_cell_evaluation, self(), "c1"},
           {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}},
           {:queue_cell_evaluation, self(), "c2"},
           {:add_cell_evaluation_response, self(), "c2", {:ok, [1, 2, 3]}},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", {:ok, [1, 2, 3]}},
           # Queue the first cell again
           {:queue_cell_evaluation, self(), "c1"}
         ])
@@ -608,7 +731,10 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{validity_status: :stale}}
+                cell_infos: %{
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale}
+                }
               }, []} = Data.apply_operation(data, operation)
     end
   end
@@ -633,26 +759,32 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "if the cell is evaluating, clears the corresponding section evaluation and the queue" do
+    test "if the cell is evaluating, clears all sections evaluation and queues" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
           {:queue_cell_evaluation, self(), "c1"},
-          {:queue_cell_evaluation, self(), "c2"}
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"}
         ])
 
-      operation = {:cancel_cell_evaluation, self(), "c1"}
+      operation = {:cancel_cell_evaluation, self(), "c2"}
 
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :fresh},
-                  "c2" => %{validity_status: :fresh}
+                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
                 },
                 section_infos: %{
-                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
