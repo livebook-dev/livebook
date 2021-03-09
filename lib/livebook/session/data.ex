@@ -215,11 +215,11 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:move_cell, _client_pid, id, offset}) do
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          true <- offset != 0 do
       data
       |> with_actions()
-      |> move_cell(cell, section, offset)
+      |> move_cell(cell, offset)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -443,11 +443,8 @@ defmodule Livebook.Session.Data do
     |> set!(cell_infos: Map.delete(data.cell_infos, cell.id))
   end
 
-  defp move_cell({data, _} = data_actions, cell, section, offset) do
-    idx = Enum.find_index(section.cells, &(&1 == cell))
-    new_idx = (idx + offset) |> clamp_index(section.cells)
-
-    updated_notebook = Notebook.move_cell(data.notebook, section.id, idx, new_idx)
+  defp move_cell({data, _} = data_actions, cell, offset) do
+    updated_notebook = Notebook.move_cell(data.notebook, cell.id, offset)
 
     cells_with_section_before = Notebook.elixir_cells_with_section(data.notebook)
     cells_with_section_after = Notebook.elixir_cells_with_section(updated_notebook)
@@ -464,10 +461,6 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: updated_notebook)
     |> mark_cells_as_stale(affected_cells_with_section)
     |> unqueue_cells_evaluation(affected_cells_with_section)
-  end
-
-  defp clamp_index(index, list) do
-    index |> max(0) |> min(length(list) - 1)
   end
 
   defp queue_cell_evaluation(data_actions, cell, section) do

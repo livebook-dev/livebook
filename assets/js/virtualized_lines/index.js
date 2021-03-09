@@ -1,5 +1,6 @@
 import HyperList from "hyperlist";
 import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import { getLineHeight } from "../lib/utils";
 
 /**
  * A hook used to render text lines as a virtual list,
@@ -20,39 +21,46 @@ import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
 const VirtualizedLines = {
   mounted() {
     this.props = getProps(this);
+    this.state = {
+      lineHeight: null,
+      templateElement: null,
+      contentElement: null,
+      virtualizedList: null,
+    };
 
-    const computedStyle = window.getComputedStyle(this.el);
-    this.lineHeight = parseInt(computedStyle.lineHeight, 10);
+    this.state.lineHeight = getLineHeight(this.el);
 
-    this.templateElement = this.el.querySelector('[data-template]');
+    this.state.templateElement = this.el.querySelector("[data-template]");
 
-    if (!this.templateElement) {
-      throw new Error('VirtualizedLines must have a child with data-template attribute');
+    if (!this.state.templateElement) {
+      throw new Error(
+        "VirtualizedLines must have a child with data-template attribute"
+      );
     }
 
-    this.contentElement = this.el.querySelector('[data-content]');
+    this.state.contentElement = this.el.querySelector("[data-content]");
 
-    if (!this.templateElement) {
-      throw new Error('VirtualizedLines must have a child with data-content');
+    if (!this.state.templateElement) {
+      throw new Error("VirtualizedLines must have a child with data-content");
     }
 
     const config = hyperListConfig(
-      this.templateElement,
+      this.state.templateElement,
       this.props.maxHeight,
-      this.lineHeight
+      this.state.lineHeight
     );
-    this.virtualizedList = new HyperList(this.contentElement, config);
+    this.virtualizedList = new HyperList(this.state.contentElement, config);
   },
 
   updated() {
     this.props = getProps(this);
 
     const config = hyperListConfig(
-      this.templateElement,
+      this.state.templateElement,
       this.props.maxHeight,
-      this.lineHeight
+      this.state.lineHeight
     );
-    this.virtualizedList.refresh(this.contentElement, config);
+    this.virtualizedList.refresh(this.state.contentElement, config);
   },
 };
 

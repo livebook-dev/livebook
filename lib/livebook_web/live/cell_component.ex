@@ -3,13 +3,12 @@ defmodule LivebookWeb.CellComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="cell flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100 <%= if @focused, do: "border-blue-300 border-opacity-100"%>"
+    <div class="cell flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100"
+      data-element="cell"
       id="cell-<%= @cell.id %>"
       phx-hook="Cell"
       data-cell-id="<%= @cell.id %>"
-      data-type="<%= @cell.type %>"
-      data-focused="<%= @focused %>"
-      data-insert-mode="<%= @insert_mode %>">
+      data-type="<%= @cell.type %>">
       <%= render_cell_content(assigns) %>
     </div>
     """
@@ -17,34 +16,34 @@ defmodule LivebookWeb.CellComponent do
 
   def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
     ~L"""
-    <%= if @focused do %>
-      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-cell-actions>
-        <%= unless @insert_mode do %>
-          <button phx-click="enable_insert_mode" class="text-gray-500 hover:text-current">
-            <%= Icons.svg(:pencil, class: "h-6") %>
-          </button>
-        <% end %>
-        <button phx-click="delete_focused_cell" class="text-gray-500 hover:text-current">
-          <%= Icons.svg(:trash, class: "h-6") %>
-        </button>
-        <button class="text-gray-500 hover:text-current"
-          phx-click="move_focused_cell"
-          phx-value-offset="-1">
-          <%= Icons.svg(:chevron_up, class: "h-6") %>
-        </button>
-        <button class="text-gray-500 hover:text-current"
-          phx-click="move_focused_cell"
-          phx-value-offset="1">
-          <%= Icons.svg(:chevron_down, class: "h-6") %>
-        </button>
-      </div>
-    <% end %>
+    <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
+      <button class="text-gray-500 hover:text-current" data-element="enable-insert-mode-button">
+        <%= Icons.svg(:pencil, class: "h-6") %>
+      </button>
+      <button class="text-gray-500 hover:text-current"
+        phx-click="delete_cell"
+        phx-value-cell_id="<%= @cell.id %>">
+        <%= Icons.svg(:trash, class: "h-6") %>
+      </button>
+      <button class="text-gray-500 hover:text-current"
+        phx-click="move_cell"
+        phx-value-cell_id="<%= @cell.id %>"
+        phx-value-offset="-1">
+        <%= Icons.svg(:chevron_up, class: "h-6") %>
+      </button>
+      <button class="text-gray-500 hover:text-current"
+        phx-click="move_cell"
+        phx-value-cell_id="<%= @cell.id %>"
+        phx-value-offset="1">
+        <%= Icons.svg(:chevron_down, class: "h-6") %>
+      </button>
+    </div>
 
-    <div class="<%= if @focused and @insert_mode, do: "mb-4", else: "hidden" %>">
+    <div class="pb-4" data-element="editor-box">
       <%= render_editor(@cell, @cell_info) %>
     </div>
 
-    <div class="markdown" data-markdown-container id="markdown-container-<%= @cell.id %>" phx-update="ignore">
+    <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
       <%= render_markdown_content_placeholder(@cell.source) %>
     </div>
     """
@@ -52,35 +51,41 @@ defmodule LivebookWeb.CellComponent do
 
   def render_cell_content(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
-    <%= if @focused do %>
-      <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-cell-actions>
-        <%= if @cell_info.evaluation_status == :ready do %>
-          <button phx-click="queue_focused_cell_evaluation" class="text-gray-500 hover:text-current">
-            <%= Icons.svg(:play, class: "h-6") %>
-          </button>
-        <% else %>
-          <button phx-click="cancel_focused_cell_evaluation" class="text-gray-500 hover:text-current">
-            <%= Icons.svg(:stop, class: "h-6") %>
-          </button>
-        <% end %>
-        <button phx-click="delete_focused_cell" class="text-gray-500 hover:text-current">
-          <%= Icons.svg(:trash, class: "h-6") %>
-        </button>
-        <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-500 hover:text-current" do %>
-          <%= Icons.svg(:adjustments, class: "h-6") %>
-        <% end %>
+    <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
+      <%= if @cell_info.evaluation_status == :ready do %>
         <button class="text-gray-500 hover:text-current"
-          phx-click="move_focused_cell"
-          phx-value-offset="-1">
-          <%= Icons.svg(:chevron_up, class: "h-6") %>
+          phx-click="queue_cell_evaluation"
+          phx-value-cell_id="<%= @cell.id %>">
+          <%= Icons.svg(:play, class: "h-6") %>
         </button>
+      <% else %>
         <button class="text-gray-500 hover:text-current"
-          phx-click="move_focused_cell"
-          phx-value-offset="1">
-          <%= Icons.svg(:chevron_down, class: "h-6") %>
+          phx-click="cancel_cell_evaluation"
+          phx-value-cell_id="<%= @cell.id %>">
+          <%= Icons.svg(:stop, class: "h-6") %>
         </button>
-      </div>
-    <% end %>
+      <% end %>
+      <button class="text-gray-500 hover:text-current"
+        phx-click="delete_cell"
+        phx-value-cell_id="<%= @cell.id %>">
+        <%= Icons.svg(:trash, class: "h-6") %>
+      </button>
+      <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-500 hover:text-current" do %>
+        <%= Icons.svg(:adjustments, class: "h-6") %>
+      <% end %>
+      <button class="text-gray-500 hover:text-current"
+        phx-click="move_cell"
+        phx-value-cell_id="<%= @cell.id %>"
+        phx-value-offset="-1">
+        <%= Icons.svg(:chevron_up, class: "h-6") %>
+      </button>
+      <button class="text-gray-500 hover:text-current"
+        phx-click="move_cell"
+        phx-value-cell_id="<%= @cell.id %>"
+        phx-value-offset="1">
+        <%= Icons.svg(:chevron_down, class: "h-6") %>
+      </button>
+    </div>
 
     <%= render_editor(@cell, @cell_info, show_status: true) %>
 
@@ -100,7 +105,7 @@ defmodule LivebookWeb.CellComponent do
     <div class="py-3 rounded-md overflow-hidden bg-editor relative">
       <div
         id="editor-container-<%= @cell.id %>"
-        data-editor-container
+        data-element="editor-container"
         phx-update="ignore">
         <%= render_editor_content_placeholder(@cell.source) %>
       </div>
