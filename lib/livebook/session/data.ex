@@ -585,7 +585,7 @@ defmodule Livebook.Session.Data do
       |> Notebook.parent_cells(cell.id)
       |> Enum.take_while(fn parent ->
         info = data.cell_infos[parent.id]
-        info.validity_status == :fresh and info.evaluation_status == :ready
+        info.validity_status != :evaluated and info.evaluation_status == :ready
       end)
       |> Enum.reverse()
 

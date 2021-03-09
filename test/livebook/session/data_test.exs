@@ -456,6 +456,40 @@ defmodule Livebook.Session.DataTest do
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "queues previous unevaluated and stale cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
+          # Evaluate first 2 cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, [1, 2, 3]}},
+          # Evaluate the first cell, so the second becomes stale
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+        ])
+
+      # Queuing cell 4 should queue the unevaluated cell 3 and the stale cell 2
+      operation = {:queue_cell_evaluation, self(), "c4"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{evaluation_status: :evaluating},
+                  "c3" => %{evaluation_status: :queued},
+                  "c4" => %{evaluation_status: :queued}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c2", evaluation_queue: ["c3", "c4"]}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_stdout" do
