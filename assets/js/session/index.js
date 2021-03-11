@@ -109,6 +109,8 @@ function handleDocumentKeyDown(hook, event) {
       (keyBuffer.tryMatch(["e", "e"]) || (cmd && key === "Enter"))
     ) {
       queueFocusedCellEvaluation(hook);
+    } else if (keyBuffer.tryMatch(["e", "a"])) {
+      queueAllCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "s"])) {
       queueFocusedSectionEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "j"])) {
@@ -177,6 +179,12 @@ function handleDocumentMouseDown(hook, event) {
 
 // User action handlers (mostly keybindings)
 
+function deleteFocusedCell(hook) {
+  if (hook.state.focusedCellId) {
+    hook.pushEvent("delete_cell", { cell_id: hook.state.focusedCellId });
+  }
+}
+
 function queueFocusedCellEvaluation(hook) {
   if (hook.state.focusedCellId) {
     hook.pushEvent("queue_cell_evaluation", {
@@ -185,10 +193,8 @@ function queueFocusedCellEvaluation(hook) {
   }
 }
 
-function deleteFocusedCell(hook) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("delete_cell", { cell_id: hook.state.focusedCellId });
-  }
+function queueAllCellsEvaluation(hook) {
+  hook.pushEvent("queue_all_cells_evaluation", {});
 }
 
 function queueFocusedSectionEvaluation(hook) {

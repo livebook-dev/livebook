@@ -289,6 +289,17 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("queue_all_cells_evaluation", _params, socket) do
+    data = socket.assigns.data
+
+    for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
+        data.cell_infos[cell.id].validity_status != :evaluated do
+      Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
     with {:ok, cell, _section} <-
            Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id) do
