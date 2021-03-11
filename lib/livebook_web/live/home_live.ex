@@ -17,17 +17,14 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <header class="flex justify-center p-4 border-b">
-      <h1 class="text-2xl font-medium">Livebook</h1>
-    </header>
-    <div class="container max-w-5xl w-full mx-auto p-4 pb-8 flex flex-col items-center space-y-4">
+    <div class="container max-w-4xl w-full mx-auto p-4 pb-8 flex flex-col items-center space-y-4">
       <div class="w-full flex justify-end">
-        <button class="button-base button-sm"
+        <button class="button-base button-primary"
           phx-click="new">
-          New notebook
+          New Notebook
         </button>
       </div>
-      <div class="container flex flex-col space-y-4">
+      <div class="w-full flex flex-col space-y-4">
         <%= live_component @socket, LivebookWeb.PathSelectComponent,
           id: "path_select",
           path: @path,
@@ -35,27 +32,30 @@ defmodule LivebookWeb.HomeLive do
           running_paths: paths(@session_summaries),
           target: nil %>
         <div class="flex justify-end space-x-2">
-          <%= content_tag :button, "Fork",
-            class: "button-base button-sm",
+          <%= content_tag :button,
+            class: "button-base",
             phx_click: "fork",
-            disabled: not path_forkable?(@path) %>
+            disabled: not path_forkable?(@path) do %>
+            <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
+            <span>Fork</span>
+          <% end %>
           <%= if path_running?(@path, @session_summaries) do %>
             <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
-              class: "button-base button-sm button-primary" %>
+              class: "button-base button-primary" %>
           <% else %>
             <%= content_tag :button, "Open",
-              class: "button-base button-sm button-primary",
+              class: "button-base button-primary",
               phx_click: "open",
               disabled: not path_openable?(@path, @session_summaries) %>
           <% end %>
         </div>
       </div>
       <div class="w-full pt-24">
-        <h3 class="text-xl font-medium text-gray-900">
-          Running sessions
+        <h3 class="text-xl font-semibold text-gray-800 mb-5">
+          Running Sessions
         </h3>
         <%= if @session_summaries == [] do %>
-          <div class="mt-3 text-gray-500 text-medium">
+          <div class="text-gray-500 text-medium">
             No sessions currently running, you can create one above.
           </div>
         <% else %>

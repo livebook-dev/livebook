@@ -106,7 +106,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
             <%= if @data.path do %>
               <%= if @data.dirty do %>
-                <%= remix_icon("refresh-line", class: "text-xl text-blue-400") %>
+                <%= remix_icon("refresh-line", class: "text-xl text-blue-600") %>
               <% else %>
                 <%= remix_icon("checkbox-circle-line", class: "text-xl text-green-400") %>
               <% end %>

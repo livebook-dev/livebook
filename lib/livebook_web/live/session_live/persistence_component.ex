@@ -50,7 +50,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         </div>
       <div class="flex justify-end">
         <%= content_tag :button, "Done",
-          class: "button-base button-primary button-sm",
+          class: "button-base button-primary",
           phx_click: "done",
           phx_target: @myself,
           disabled: not path_savable?(normalize_path(@path), @session_summaries) %>

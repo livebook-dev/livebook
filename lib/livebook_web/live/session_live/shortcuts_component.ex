@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         <%= for shortcut <- @shortcuts do %>
           <tr>
             <td class="py-1 pr-4">
-              <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
+              <span class="bg-editor text-editor py-0.5 px-2 rounded-lg inline-flex items-center">
                 <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
               </span>
             </td>

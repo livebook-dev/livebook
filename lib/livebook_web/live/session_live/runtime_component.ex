@@ -20,7 +20,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           The code is evaluated in a separate Elixir runtime (node),
           which you can configure yourself here.
         </p>
-        <div class="shadow rounded-md p-2">
+        <div class="border border-gray-200 rounded-lg p-2">
           <%= if @runtime do %>
             <table class="w-full text-center text-sm">
               <thead>
@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
                   <td><%= runtime_type_label(@runtime) %></td>
                   <td><%= @runtime.node %></td>
                   <td>
-                    <button class="button-base text-sm button-sm button-danger"
+                    <button class="button-base text-sm button-danger"
                       type="button"
                       phx-click="disconnect"
                       phx-target="<%= @myself %>">

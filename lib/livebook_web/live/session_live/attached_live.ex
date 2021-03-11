@@ -13,7 +13,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
     ~L"""
     <div class="flex-col space-y-3">
       <%= if @error_message do %>
-        <div class="mb-3 rounded-md px-4 py-2 bg-red-100 text-red-400 font-medium">
+        <div class="mb-3 rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium">
           <%= @error_message %>
         </div>
       <% end %>
@@ -35,10 +35,10 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Then enter the name of the node below:
       </p>
       <%= f = form_for :node, "#", phx_submit: "init" %>
-        <%= text_input f, :name, class: "input-base shadow",
+        <%= text_input f, :name, class: "input-base",
               placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
-        <%= submit "Connect", class: "mt-3 button-base button-sm" %>
+        <%= submit "Connect", class: "mt-3 button-base" %>
       </form>
     </div>
     """

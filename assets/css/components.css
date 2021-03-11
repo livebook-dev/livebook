@@ -1,7 +1,7 @@
 /* Buttons */
 
 .button-base {
-  @apply px-4 py-2 bg-white rounded-md border border-gray-300 font-medium text-gray-700;
+  @apply px-5 py-2 bg-white rounded-lg border border-gray-200 font-medium text-sm text-gray-600;
 }
 
 .button-base:not(:disabled) {
@@ -25,7 +25,7 @@
 }
 
 .button-primary {
-  @apply border-0 bg-blue-400 text-white;
+  @apply border-transparent bg-blue-600 text-white;
 }
 
 .button-primary:not(:disabled) {
@@ -35,11 +35,11 @@
 /* Form fields */
 
 .input-base {
-  @apply w-full px-3 py-3 bg-white rounded-md placeholder-gray-400 text-gray-700;
+  @apply w-full p-3 bg-white border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
 }
 
 .checkbox-base {
-  @apply h-5 w-5 appearance-none border border-gray-300 rounded text-blue-400 cursor-pointer;
+  @apply h-5 w-5 appearance-none border border-gray-300 rounded text-blue-600 cursor-pointer;
 }
 
 .checkbox-base:checked {

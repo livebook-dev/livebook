@@ -1,7 +1,7 @@
 <main role="main" class="flex-grow flex flex-col h-screen">
   <div class="fixed right-5 bottom-5 z-50 flex flex-col space-y-3">
     <%= if live_flash(@flash, :info) do %>
-      <div class="flex items-center space-x-2 rounded-md px-4 py-2 bg-blue-100 text-blue-400 hover:opacity-75 cursor-pointer" role="alert"
+      <div class="flex items-center space-x-2 rounded-lg px-4 py-2 bg-blue-100 text-blue-600 hover:opacity-75 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
         phx-value-key="info">
         <%= remix_icon("information-line", class: "text-2xl") %>
@@ -10,7 +10,7 @@
     <% end %>
 
     <%= if live_flash(@flash, :error) do %>
-      <div class="flex items-center space-x-2 rounded-md px-4 py-2 bg-red-100 text-red-400 hover:opacity-75 cursor-pointer" role="alert"
+      <div class="flex items-center space-x-2 rounded-lg px-4 py-2 bg-red-100 text-red-400 hover:opacity-75 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
         phx-value-key="error">
         <%= remix_icon("error-warning-line", class: "text-2xl") %>
