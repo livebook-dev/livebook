@@ -44,7 +44,7 @@ module.exports = (env, options) => {
           ],
         },
         {
-          test: /\.ttf$/,
+          test: /\.(ttf|woff|woff2|eot|svg)$/,
           use: ['file-loader'],
         },
       ]

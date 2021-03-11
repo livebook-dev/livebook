@@ -1,4 +1,5 @@
 import "../css/app.css";
+import 'remixicon/fonts/remixicon.css'
 
 import "phoenix_html";
 import { Socket } from "phoenix";
