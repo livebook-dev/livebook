@@ -23,15 +23,25 @@ const Session = {
       keyBuffer: new KeyBuffer(),
     };
 
+    // DOM events
+
     this.handleDocumentKeyDown = (event) => {
       handleDocumentKeyDown(this, event);
     };
+
     document.addEventListener("keydown", this.handleDocumentKeyDown, true);
 
     this.handleDocumentMouseDown = (event) => {
       handleDocumentMouseDown(this, event);
     };
+
     document.addEventListener("mousedown", this.handleDocumentMouseDown);
+
+    this.el.querySelector(`[data-element="section-list"]`).addEventListener("click", event => {
+      handleSectionListClick(this, event);
+    });
+
+    // Server events
 
     this.handleEvent("cell_inserted", ({ cell_id: cellId }) => {
       handleCellInserted(this, cellId);
@@ -174,6 +184,18 @@ function handleDocumentMouseDown(hook, event) {
     if (hook.state.insertMode !== insertMode) {
       setInsertMode(hook, insertMode);
     }
+  }
+}
+
+/**
+ * Handles section link clicks in the section list.
+ */
+function handleSectionListClick(hook, event) {
+  const sectionButton = event.target.closest(`[data-element="section-list-item"]`);
+  if (sectionButton) {
+    const sectionId = sectionButton.getAttribute("data-section-id");
+    const section = getSectionById(sectionId);
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 

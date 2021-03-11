@@ -80,13 +80,14 @@ defmodule LivebookWeb.SessionLive do
       data-element="session"
       phx-hook="Session">
       <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
-        <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4">
+        <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
+          data-element="section-list">
           <%= for section <- @data.notebook.sections do %>
-            <div class="py-2 px-4 rounded-l-md cursor-pointer hover:text-current text-gray-500">
-              <span>
-                <%= section.name %>
-              </span>
-            </div>
+            <button class="py-2 px-4 rounded-l-md text-left hover:text-current text-gray-500"
+              data-element="section-list-item"
+              data-section-id="<%= section.id %>">
+              <%= section.name %>
+            </button>
           <% end %>
           <button phx-click="add_section" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-300 hover:text-gray-400">
             <div class="flex items-center space-x-2">
