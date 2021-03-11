@@ -34,20 +34,10 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp initial_assigns(session_id, data, platform) do
-    first_section_id =
-      case data.notebook.sections do
-        [section | _] -> section.id
-        [] -> nil
-      end
-
     %{
       platform: platform,
       session_id: session_id,
-      data: data,
-      selected_section_id: first_section_id,
-      focused_cell_id: nil,
-      focused_cell_type: nil,
-      insert_mode: false
+      data: data
     }
   end
 
@@ -87,28 +77,17 @@ defmodule LivebookWeb.SessionLive do
 
     <div class="flex flex-grow h-full"
       id="session"
-      phx-hook="Session"
-      data-insert-mode="<%= @insert_mode %>"
-      data-focused-cell-id="<%= @focused_cell_id %>"
-      data-focused-cell-type="<%= @focused_cell_type %>">
+      data-element="session"
+      phx-hook="Session">
       <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
-        <h1 class="m-6 py-1 text-2xl border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
-          id="notebook-name"
-          contenteditable
-          spellcheck="false"
-          phx-blur="set_notebook_name"
-          phx-hook="ContentEditable"
-          data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
-
-        <div class="flex-grow flex flex-col space-y-2 pl-4">
+        <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
+          data-element="section-list">
           <%= for section <- @data.notebook.sections do %>
-            <div phx-click="select_section"
-                 phx-value-section_id="<%= section.id %>"
-                 class="py-2 px-4 rounded-l-md cursor-pointer hover:text-current border border-r-0 <%= if(section.id == @selected_section_id, do: "bg-white border-gray-200", else: "text-gray-500 border-transparent") %>">
-              <span>
-                <%= section.name %>
-              </span>
-            </div>
+            <button class="py-2 px-4 rounded-l-md text-left hover:text-current text-gray-500"
+              data-element="section-list-item"
+              data-section-id="<%= section.id %>">
+              <%= section.name %>
+            </button>
           <% end %>
           <button phx-click="add_section" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-300 hover:text-gray-400">
             <div class="flex items-center space-x-2">
@@ -153,26 +132,31 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex-grow px-6 py-8 flex overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto">
-          <%= for section <- @data.notebook.sections do %>
-            <%= live_component @socket, LivebookWeb.SectionComponent,
-                  id: section.id,
-                  session_id: @session_id,
-                  section: section,
-                  selected: section.id == @selected_section_id,
-                  cell_infos: @data.cell_infos,
-                  focused_cell_id: @focused_cell_id,
-                  insert_mode: @insert_mode %>
-          <% end %>
+          <div class="mb-8">
+            <h1 class="text-gray-900 font-semibold text-4xl pb-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+              id="notebook-name"
+              contenteditable
+              spellcheck="false"
+              phx-blur="set_notebook_name"
+              phx-hook="ContentEditable"
+              data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
+          </div>
+          <div class="flex flex-col space-y-16 pb-80">
+            <%= for section <- @data.notebook.sections do %>
+              <%= live_component @socket, LivebookWeb.SectionComponent,
+                    id: section.id,
+                    session_id: @session_id,
+                    section: section,
+                    cell_infos: @data.cell_infos %>
+            <% end %>
+          </div>
         </div>
       </div>
-    </div>
-
-    <%= if @insert_mode do %>
       <%# Show a tiny insert indicator for clarity %>
-      <div class="fixed right-5 bottom-1 text-gray-500 text-semibold text-sm">
+      <div class="fixed right-5 bottom-1 text-gray-500 text-semibold text-sm" data-element="insert-indicator">
         insert
       </div>
-    <% end %>
+    </div>
     """
   end
 
@@ -217,40 +201,34 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("select_section", %{"section_id" => section_id}, socket) do
-    {:noreply, assign(socket, selected_section_id: section_id)}
-  end
-
   def handle_event(
         "insert_cell",
         %{"section_id" => section_id, "index" => index, "type" => type},
         socket
       ) do
-    index = String.to_integer(index) |> max(0)
+    index = ensure_integer(index) |> max(0)
     type = String.to_atom(type)
     Session.insert_cell(socket.assigns.session_id, section_id, index, type)
 
     {:noreply, socket}
   end
 
-  def handle_event("insert_cell_below_focused", %{"type" => type}, socket) do
+  def handle_event("insert_cell_below", %{"cell_id" => cell_id, "type" => type}, socket) do
     type = String.to_atom(type)
-    insert_cell_next_to_focused(socket.assigns, type, idx_offset: 1)
+    insert_cell_next_to(socket.assigns, cell_id, type, idx_offset: 1)
 
     {:noreply, socket}
   end
 
-  def handle_event("insert_cell_above_focused", %{"type" => type}, socket) do
+  def handle_event("insert_cell_above", %{"cell_id" => cell_id, "type" => type}, socket) do
     type = String.to_atom(type)
-    insert_cell_next_to_focused(socket.assigns, type, idx_offset: 0)
+    insert_cell_next_to(socket.assigns, cell_id, type, idx_offset: 0)
 
     {:noreply, socket}
   end
 
-  def handle_event("delete_focused_cell", %{}, socket) do
-    if socket.assigns.focused_cell_id do
-      Session.delete_cell(socket.assigns.session_id, socket.assigns.focused_cell_id)
-    end
+  def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
+    Session.delete_cell(socket.assigns.session_id, cell_id)
 
     {:noreply, socket}
   end
@@ -290,74 +268,20 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("focus_cell", %{"cell_id" => nil}, socket) do
-    {:noreply, focus_cell(socket, nil)}
-  end
-
-  def handle_event("focus_cell", %{"cell_id" => cell_id}, socket) do
-    case Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id) do
-      {:ok, cell, _section} ->
-        {:noreply, focus_cell(socket, cell)}
-
-      :error ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("move_cell_focus", %{"offset" => offset}, socket) do
+  def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
-
-    case new_focused_cell_from_offset(socket.assigns, offset) do
-      {:ok, cell} ->
-        {:noreply, focus_cell(socket, cell)}
-
-      :error ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_event("move_focused_cell", %{"offset" => offset}, socket) do
-    offset = ensure_integer(offset)
-
-    if socket.assigns.focused_cell_id do
-      Session.move_cell(socket.assigns.session_id, socket.assigns.focused_cell_id, offset)
-    end
+    Session.move_cell(socket.assigns.session_id, cell_id, offset)
 
     {:noreply, socket}
   end
 
-  def handle_event("set_insert_mode", %{"enabled" => enabled}, socket) do
-    if socket.assigns.focused_cell_id do
-      {:noreply, assign(socket, insert_mode: enabled)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_event("enable_insert_mode", %{}, socket) do
-    if socket.assigns.focused_cell_id do
-      {:noreply, assign(socket, insert_mode: true)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_event("queue_focused_cell_evaluation", %{}, socket) do
-    if socket.assigns.focused_cell_id do
-      Session.queue_cell_evaluation(socket.assigns.session_id, socket.assigns.focused_cell_id)
-    end
-
+  def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
     {:noreply, socket}
   end
 
-  def handle_event("queue_section_cells_evaluation", %{}, socket) do
-    if socket.assigns.selected_section_id do
-      {:ok, section} =
-        Notebook.fetch_section(
-          socket.assigns.data.notebook,
-          socket.assigns.selected_section_id
-        )
-
+  def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
+    with {:ok, section} <- Notebook.fetch_section(socket.assigns.data.notebook, section_id) do
       for cell <- section.cells, cell.type == :elixir do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
@@ -366,14 +290,20 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("queue_child_cells_evaluation", %{}, socket) do
-    if socket.assigns.focused_cell_id do
-      {:ok, cell, _section} =
-        Notebook.fetch_cell_and_section(
-          socket.assigns.data.notebook,
-          socket.assigns.focused_cell_id
-        )
+  def handle_event("queue_all_cells_evaluation", _params, socket) do
+    data = socket.assigns.data
 
+    for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
+        data.cell_infos[cell.id].validity_status != :evaluated do
+      Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
+    with {:ok, cell, _section} <-
+           Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id) do
       for {cell, _} <- Notebook.child_cells_with_section(socket.assigns.data.notebook, cell.id) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
@@ -382,10 +312,8 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("cancel_focused_cell_evaluation", %{}, socket) do
-    if socket.assigns.focused_cell_id do
-      Session.cancel_cell_evaluation(socket.assigns.session_id, socket.assigns.focused_cell_id)
-    end
+  def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    Session.cancel_cell_evaluation(socket.assigns.session_id, cell_id)
 
     {:noreply, socket}
   end
@@ -435,46 +363,44 @@ defmodule LivebookWeb.SessionLive do
 
   defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
     if client_pid == self() do
-      assign(socket, selected_section_id: section_id)
+      push_event(socket, "section_inserted", %{section_id: section_id})
     else
       socket
     end
   end
 
   defp after_operation(socket, _prev_socket, {:delete_section, _client_pid, section_id}) do
-    if section_id == socket.assigns.selected_section_id do
-      assign(socket, selected_section_id: nil)
-    else
-      socket
-    end
+    push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
     if client_pid == self() do
-      {:ok, cell, _section} =
-        Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
-
-      focus_cell(socket, cell, insert_mode: true)
+      push_event(socket, "cell_inserted", %{cell_id: cell_id})
     else
       socket
     end
   end
 
   defp after_operation(socket, prev_socket, {:delete_cell, _client_pid, cell_id}) do
-    if cell_id == socket.assigns.focused_cell_id do
+    # Find a sibling cell that the client would focus if the deleted cell has focus.
+    sibling_cell_id =
       case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, 1) do
         {:ok, next_cell} ->
-          focus_cell(socket, next_cell)
+          next_cell.id
 
         :error ->
           case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, -1) do
-            {:ok, previous_cell} ->
-              focus_cell(socket, previous_cell)
-
-            :error ->
-              focus_cell(socket, nil)
+            {:ok, previous_cell} -> previous_cell.id
+            :error -> nil
           end
       end
+
+    push_event(socket, "cell_deleted", %{cell_id: cell_id, sibling_cell_id: sibling_cell_id})
+  end
+
+  defp after_operation(socket, _prev_socket, {:move_cell, client_pid, cell_id, _offset}) do
+    if client_pid == self() do
+      push_event(socket, "cell_moved", %{cell_id: cell_id})
     else
       socket
     end
@@ -506,60 +432,10 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp focus_cell(socket, cell, opts \\ [])
-
-  defp focus_cell(socket, nil = _cell, _opts) do
-    assign(socket, focused_cell_id: nil, focused_cell_type: nil, insert_mode: false)
-  end
-
-  defp focus_cell(socket, cell, opts) do
-    insert_mode? = Keyword.get(opts, :insert_mode, false)
-
-    assign(socket,
-      focused_cell_id: cell.id,
-      focused_cell_type: cell.type,
-      insert_mode: insert_mode?
-    )
-  end
-
-  defp insert_cell_next_to_focused(assigns, type, idx_offset: idx_offset) do
-    if assigns.focused_cell_id do
-      {:ok, cell, section} =
-        Notebook.fetch_cell_and_section(assigns.data.notebook, assigns.focused_cell_id)
-
-      index = Enum.find_index(section.cells, &(&1 == cell))
-      Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
-    else
-      append_cell_to_section(assigns, type)
-    end
-  end
-
-  defp append_cell_to_section(assigns, type) do
-    if assigns.selected_section_id do
-      {:ok, section} = Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
-
-      end_index = length(section.cells)
-
-      Session.insert_cell(assigns.session_id, section.id, end_index, type)
-    end
-  end
-
-  defp new_focused_cell_from_offset(assigns, offset) do
-    cond do
-      assigns.focused_cell_id ->
-        # If a cell is focused, look up the appropriate sibling
-        Notebook.fetch_cell_sibling(assigns.data.notebook, assigns.focused_cell_id, offset)
-
-      assigns.selected_section_id ->
-        # If no cell is focused, focus the first one for easier keyboard navigation.
-        {:ok, section} =
-          Notebook.fetch_section(assigns.data.notebook, assigns.selected_section_id)
-
-        Enum.fetch(section.cells, 0)
-
-      true ->
-        :error
-    end
+  defp insert_cell_next_to(assigns, cell_id, type, idx_offset: idx_offset) do
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(assigns.data.notebook, cell_id)
+    index = Enum.find_index(section.cells, &(&1 == cell))
+    Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
   end
 
   defp runtime_description(nil), do: "No runtime"

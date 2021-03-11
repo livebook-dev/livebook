@@ -309,6 +309,31 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
+    test "allows moving cells between sections" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4"}
+        ])
+
+      operation = {:move_cell, self(), "c2", 1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{cells: [%{id: "c1"}]},
+                    %{cells: [%{id: "c2"}, %{id: "c3"}, %{id: "c4"}]}
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
     test "marks relevant cells in further sections as stale" do
       data =
         data_after_operations!([

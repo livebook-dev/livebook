@@ -3,10 +3,11 @@ defmodule LivebookWeb.SectionComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="<%= if not @selected, do: "hidden" %>">
+    <div data-element="section" data-section-id="<%= @section.id %>">
       <div class="flex space-x-4 items-center">
         <div class="flex flex-grow space-x-2 items-center text-gray-600">
           <h2 class="flex-grow text-gray-900 font-semibold text-3xl py-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+            data-section-name
             id="section-<%= @section.id %>-name"
             contenteditable
             spellcheck="false"
@@ -18,13 +19,13 @@ defmodule LivebookWeb.SectionComponent do
               because we want the content to exactly match @section.name. %>
         </div>
         <div class="flex space-x-2 items-center">
-          <button phx-click="delete_section" phx-value-section_id="<%= @section.id %>" class="text-gray-600 hover:text-current">
+          <button phx-click="delete_section" phx-value-section_id="<%= @section.id %>" class="text-gray-600 hover:text-current" tabindex="-1">
             <%= Icons.svg(:trash, class: "h-6") %>
           </button>
         </div>
       </div>
       <div class="container py-2">
-        <div class="flex flex-col space-y-2 pb-80">
+        <div class="flex flex-col space-y-2">
           <%= live_component @socket, LivebookWeb.InsertCellComponent,
                 id: "#{@section.id}:0",
                 section_id: @section.id,
@@ -35,9 +36,7 @@ defmodule LivebookWeb.SectionComponent do
                   id: cell.id,
                   session_id: @session_id,
                   cell: cell,
-                  cell_info: @cell_infos[cell.id],
-                  focused: @selected and cell.id == @focused_cell_id,
-                  insert_mode: @insert_mode %>
+                  cell_info: @cell_infos[cell.id] %>
             <%= live_component @socket, LivebookWeb.InsertCellComponent,
                   id: "#{@section.id}:#{index + 1}",
                   section_id: @section.id,

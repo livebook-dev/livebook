@@ -92,85 +92,75 @@ defmodule LivebookWeb.SessionLiveTest do
                Session.get_data(session_id)
     end
 
-    test "queueing focused cell evaluation", %{conn: conn, session_id: session_id} do
+    test "queueing cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
-      focus_cell(view, cell_id)
-
       view
       |> element("#session")
-      |> render_hook("queue_focused_cell_evaluation", %{})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert %{cell_infos: %{^cell_id => %{evaluation_status: :evaluating}}} =
                Session.get_data(session_id)
     end
 
-    test "cancelling focused cell evaluation", %{conn: conn, session_id: session_id} do
+    test "cancelling cell evaluation", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(2000)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
-      focus_cell(view, cell_id)
+      view
+      |> element("#session")
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       view
       |> element("#session")
-      |> render_hook("queue_focused_cell_evaluation", %{})
-
-      view
-      |> element("#session")
-      |> render_hook("cancel_focused_cell_evaluation", %{})
+      |> render_hook("cancel_cell_evaluation", %{"cell_id" => cell_id})
 
       assert %{cell_infos: %{^cell_id => %{evaluation_status: :ready}}} =
                Session.get_data(session_id)
     end
 
-    test "inserting a cell below the focused cell", %{conn: conn, session_id: session_id} do
+    test "inserting a cell below the given cell", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir)
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
-      focus_cell(view, cell_id)
-
       view
       |> element("#session")
-      |> render_hook("insert_cell_below_focused", %{"type" => "markdown"})
+      |> render_hook("insert_cell_below", %{"cell_id" => cell_id, "type" => "markdown"})
 
       assert %{notebook: %{sections: [%{cells: [_first_cell, %{type: :markdown}]}]}} =
                Session.get_data(session_id)
     end
 
-    test "inserting a cell above the focused cell", %{conn: conn, session_id: session_id} do
+    test "inserting a cell above the given cell", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir)
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
-      focus_cell(view, cell_id)
-
       view
       |> element("#session")
-      |> render_hook("insert_cell_above_focused", %{"type" => "markdown"})
+      |> render_hook("insert_cell_above", %{"cell_id" => cell_id, "type" => "markdown"})
 
       assert %{notebook: %{sections: [%{cells: [%{type: :markdown}, _first_cell]}]}} =
                Session.get_data(session_id)
     end
 
-    test "deleting the focused cell", %{conn: conn, session_id: session_id} do
+    test "deleting the given cell", %{conn: conn, session_id: session_id} do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir)
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
-      focus_cell(view, cell_id)
-
       view
       |> element("#session")
-      |> render_hook("delete_focused_cell", %{})
+      |> render_hook("delete_cell", %{"cell_id" => cell_id})
 
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session_id)
     end
@@ -200,11 +190,5 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.apply_cell_delta(session_id, cell.id, delta, 1)
 
     cell.id
-  end
-
-  defp focus_cell(view, cell_id) do
-    view
-    |> element("#session")
-    |> render_hook("focus_cell", %{"cell_id" => cell_id})
   end
 end

@@ -1,10 +1,8 @@
-import {
-  getAttributeOrThrow,
-  parseBoolean,
-  parseInteger,
-} from "../lib/attribute";
+import { getAttributeOrThrow } from "../lib/attribute";
 import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
+import { globalPubSub } from "../lib/pub_sub";
+import { smoothlyScrollToElement } from "../lib/utils";
 
 /**
  * A hook managing a single cell.
@@ -16,24 +14,27 @@ import Markdown from "./markdown";
  *
  *   * `data-cell-id` - id of the cell being edited
  *   * `data-type` - editor type (i.e. language), either "markdown" or "elixir" is expected
- *   * `data-focused` - whether the cell is currently focused
- *   * `data-insert-mode` - whether insert mode is currently enabled
  */
 const Cell = {
   mounted() {
     this.props = getProps(this);
+    this.state = {
+      liveEditor: null,
+      isFocused: false,
+      insertMode: false,
+    };
 
     this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
       const { source, revision } = payload;
 
-      const editorContainer = this.el.querySelector("[data-editor-container]");
+      const editorContainer = this.el.querySelector(`[data-element="editor-container"]`);
       // Remove the content placeholder.
       editorContainer.firstElementChild.remove();
       // Create an empty container for the editor to be mounted in.
       const editorElement = document.createElement("div");
       editorContainer.appendChild(editorElement);
       // Setup the editor instance.
-      this.liveEditor = new LiveEditor(
+      this.state.liveEditor = new LiveEditor(
         this,
         editorElement,
         this.props.cellId,
@@ -45,52 +46,43 @@ const Cell = {
       // Setup markdown rendering.
       if (this.props.type === "markdown") {
         const markdownContainer = this.el.querySelector(
-          "[data-markdown-container]"
+          `[data-element="markdown-container"]`
         );
         const markdown = new Markdown(markdownContainer, source);
 
-        this.liveEditor.onChange((newSource) => {
+        this.state.liveEditor.onChange((newSource) => {
           markdown.setContent(newSource);
         });
       }
 
-      // New cells are initially focused, so check for such case.
-
-      if (isEditorActive(this.props)) {
-        this.liveEditor.focus();
+      // Once the editor is created, reflect the current state.
+      if (this.state.isFocused && this.state.insertMode) {
+        this.state.liveEditor.focus();
+        // If the element is being scrolled to, focus interrupts it,
+        // so ensure the scrolling continues.
+        smoothlyScrollToElement(this.el);
       }
 
-      if (this.props.isFocused) {
-        this.el.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-
-      this.liveEditor.onBlur(() => {
-        if (isEditorActive(this.props)) {
-          this.liveEditor.focus();
+      this.state.liveEditor.onBlur(() => {
+        // Prevent from blurring unless the state changes.
+        // For example when we move cell using buttons
+        // the editor should keep focus.
+        if (this.state.isFocused && this.state.insertMode) {
+          this.state.liveEditor.focus();
         }
       });
     });
+
+    this.handleSessionEvent = (event) => handleSessionEvent(this, event);
+    globalPubSub.subscribe("session", this.handleSessionEvent);
+  },
+
+  destroyed() {
+    globalPubSub.unsubscribe("session", this.handleSessionEvent);
   },
 
   updated() {
-    const prevProps = this.props;
     this.props = getProps(this);
-
-    // Note: this.liveEditor is crated once we receive initial data
-    // so here we have to make sure it's defined.
-
-    if (!isEditorActive(prevProps) && isEditorActive(this.props)) {
-      this.liveEditor && this.liveEditor.focus();
-    }
-
-    if (isEditorActive(prevProps) && !isEditorActive(this.props)) {
-      this.liveEditor && this.liveEditor.blur();
-    }
-
-    if (!prevProps.isFocused && this.props.isFocused) {
-      // Note: it's important to trigger scrolling after focus, so it doesn't get interrupted.
-      this.el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
   },
 };
 
@@ -98,16 +90,49 @@ function getProps(hook) {
   return {
     cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
     type: getAttributeOrThrow(hook.el, "data-type"),
-    isFocused: getAttributeOrThrow(hook.el, "data-focused", parseBoolean),
-    insertMode: getAttributeOrThrow(hook.el, "data-insert-mode", parseBoolean),
   };
 }
 
 /**
- * Checks if the cell editor is active and should have focus.
+ * Handles client-side session event.
  */
-function isEditorActive(props) {
-  return props.isFocused && props.insertMode;
+function handleSessionEvent(hook, event) {
+  if (event.type === "cell_focused") {
+    handleCellFocused(hook, event.cellId);
+  } else if (event.type === "insert_mode_changed") {
+    handleInsertModeChanged(hook, event.enabled);
+  } else if (event.type === "cell_moved") {
+    handleCellMoved(hook, event.cellId);
+  }
+}
+
+function handleCellFocused(hook, cellId) {
+  if (hook.props.cellId === cellId) {
+    hook.state.isFocused = true;
+    hook.el.setAttribute("data-js-focused", "true");
+    smoothlyScrollToElement(hook.el);
+  } else if (hook.state.isFocused) {
+    hook.state.isFocused = false;
+    hook.el.removeAttribute("data-js-focused");
+  }
+}
+
+function handleInsertModeChanged(hook, insertMode) {
+  if (hook.state.isFocused) {
+    hook.state.insertMode = insertMode;
+
+    if (hook.state.insertMode) {
+      hook.state.liveEditor && hook.state.liveEditor.focus();
+    } else {
+      hook.state.liveEditor && hook.state.liveEditor.blur();
+    }
+  }
+}
+
+function handleCellMoved(hook, cellId) {
+  if (hook.state.isFocused && cellId === hook.props.cellId) {
+    smoothlyScrollToElement(hook.el);
+  }
 }
 
 export default Cell;

@@ -1,0 +1,40 @@
+/*
+Conditional notebook elements display.
+
+The Section and Cell hooks dynamically set attributes
+based on which we hide/show certain elements.
+This way we don't have to engage the server in
+solely client-side operations like moving the focus
+and entering/escaping insert mode.
+*/
+
+[data-element="session"]:not([data-js-insert-mode])
+  [data-element="insert-indicator"] {
+  @apply hidden;
+}
+
+[data-element="session"]
+  [data-element="cell"][data-type="markdown"]
+  [data-element="editor-box"] {
+  @apply hidden;
+}
+
+[data-element="session"][data-js-insert-mode]
+  [data-element="cell"][data-type="markdown"][data-js-focused]
+  [data-element="editor-box"] {
+  @apply block;
+}
+
+[data-element="session"][data-js-insert-mode]
+  [data-element="cell"][data-type="markdown"][data-js-focused]
+  [data-element="enable-insert-mode-button"] {
+  @apply hidden;
+}
+
+[data-element="cell"][data-js-focused] {
+  @apply border-blue-300 border-opacity-100;
+}
+
+[data-element="cell"]:not([data-js-focused]) [data-element="actions"] {
+  @apply hidden;
+}

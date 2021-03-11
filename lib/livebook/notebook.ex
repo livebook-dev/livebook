@@ -67,19 +67,18 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Finds a cell being `offset` from the given cell within the same section.
+  Finds a cell being `offset` from the given cell (with regard to all sections).
   """
   @spec fetch_cell_sibling(t(), Cell.id(), integer()) :: {:ok, Cell.t()} | :error
   def fetch_cell_sibling(notebook, cell_id, offset) do
-    with {:ok, cell, section} <- fetch_cell_and_section(notebook, cell_id) do
-      idx = Enum.find_index(section.cells, &(&1 == cell))
-      sibling_idx = idx + offset
+    all_cells = for(section <- notebook.sections, cell <- section.cells, do: cell)
 
-      if sibling_idx >= 0 and sibling_idx < length(section.cells) do
-        {:ok, Enum.at(section.cells, sibling_idx)}
-      else
-        :error
-      end
+    with idx when idx != nil <- Enum.find_index(all_cells, &(&1.id == cell_id)),
+         sibling_idx <- idx + offset,
+         true <- 0 <= sibling_idx and sibling_idx < length(all_cells) do
+      {:ok, Enum.at(all_cells, sibling_idx)}
+    else
+      _ -> :error
     end
   end
 
@@ -165,20 +164,48 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Moves cell within the given section at the specified position to a new position.
-  """
-  @spec move_cell(t(), Section.id(), non_neg_integer(), non_neg_integer()) :: t()
-  def move_cell(notebook, section_id, from_idx, to_idx) do
-    update_section(notebook, section_id, fn section ->
-      {cell, cells} = List.pop_at(section.cells, from_idx)
+  Moves cell by the given offset.
 
-      if cell do
-        cells = List.insert_at(cells, to_idx, cell)
-        %{section | cells: cells}
-      else
-        section
-      end
-    end)
+  The cell may move to another section if the offset indicates so.
+  """
+  @spec move_cell(t(), Cell.id(), integer()) :: t()
+  def move_cell(notebook, cell_id, offset) do
+    # We firstly create a flat list of cells interspersed with `:separator`
+    # at section boundaries. Then we move the given cell by the given offset.
+    # Finally we split the flat list back into cell lists
+    # and put them in the corresponding sections.
+
+    separated_cells =
+      notebook.sections
+      |> Enum.map_intersperse(:separator, & &1.cells)
+      |> List.flatten()
+
+    idx =
+      Enum.find_index(separated_cells, fn
+        :separator -> false
+        cell -> cell.id == cell_id
+      end)
+
+    new_idx = (idx + offset) |> clamp_index(separated_cells)
+
+    {cell, separated_cells} = List.pop_at(separated_cells, idx)
+    separated_cells = List.insert_at(separated_cells, new_idx, cell)
+
+    cell_groups =
+      separated_cells
+      |> Enum.chunk_by(&(&1 == :separator))
+      |> Enum.reject(&(&1 == [:separator]))
+
+    sections =
+      notebook.sections
+      |> Enum.zip(cell_groups)
+      |> Enum.map(fn {section, cells} -> %{section | cells: cells} end)
+
+    %{notebook | sections: sections}
+  end
+
+  defp clamp_index(index, list) do
+    index |> max(0) |> min(length(list) - 1)
   end
 
   @doc """

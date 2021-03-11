@@ -21,7 +21,8 @@ defmodule LivebookWeb.PathSelectComponent do
         name="path"
         placeholder="File"
         value="<%= @path %>"
-        spellcheck="false" />
+        spellcheck="false"
+        autocomplete="off" />
     </form>
     <div class="h-80 -m-1 p-1 overflow-y-auto tiny-scrollbar">
       <div class="grid grid-cols-4 gap-2">
