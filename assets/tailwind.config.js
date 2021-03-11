@@ -7,6 +7,10 @@ module.exports = {
   ],
   darkMode: false,
   theme: {
+    fontFamily: {
+      'sans': ['Inter'],
+      'mono': ['JetBrains Mono'],
+     },
     extend: {},
   },
   variants: {

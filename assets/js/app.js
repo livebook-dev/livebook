@@ -1,6 +1,9 @@
 import "../css/app.css";
 import 'remixicon/fonts/remixicon.css'
 
+import "@fontsource/inter";
+import "@fontsource/jetbrains-mono";
+
 import "phoenix_html";
 import { Socket } from "phoenix";
 import NProgress from "nprogress";
