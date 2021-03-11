@@ -6,7 +6,7 @@ import {
   smoothlyScrollToElement,
 } from "../lib/utils";
 import KeyBuffer from "./key_buffer";
-import { globalPubSub } from "../lib/pubsub";
+import { globalPubSub } from "../lib/pub_sub";
 
 /**
  * A hook managing the whole session.

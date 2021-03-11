@@ -6,6 +6,12 @@ export default class PubSub {
     this.subscribersByTopic = {};
   }
 
+  /**
+   * Links the given function to the given topic.
+   *
+   * Subsequent calls to `broadcast` with this topic
+   * will result in this function being called.
+   */
   subscribe(topic, callback) {
     if (!Array.isArray(this.subscribersByTopic[topic])) {
       this.subscribersByTopic[topic] = [];
@@ -14,6 +20,12 @@ export default class PubSub {
     this.subscribersByTopic[topic].push(callback);
   }
 
+  /**
+   * Unlinks the given function from the given topic.
+   *
+   * Note that you must pass the same function reference
+   * as you passed to `subscribe`.
+   */
   unsubscribe(topic, callback) {
     const idx = this.subscribersByTopic[topic].indexOf(callback);
 
@@ -22,6 +34,10 @@ export default class PubSub {
     }
   }
 
+  /**
+   * Calls all functions linked to the given topic
+   * and passes `payload` as the argument.
+   */
   broadcast(topic, payload) {
     if (Array.isArray(this.subscribersByTopic[topic])) {
       this.subscribersByTopic[topic].forEach((callback) => {

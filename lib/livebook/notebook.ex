@@ -73,13 +73,12 @@ defmodule Livebook.Notebook do
   def fetch_cell_sibling(notebook, cell_id, offset) do
     all_cells = for(section <- notebook.sections, cell <- section.cells, do: cell)
 
-    idx = Enum.find_index(all_cells, &(&1.id == cell_id))
-    sibling_idx = idx + offset
-
-    if sibling_idx >= 0 and sibling_idx < length(all_cells) do
+    with idx when idx != nil <- Enum.find_index(all_cells, &(&1.id == cell_id)),
+         sibling_idx <- idx + offset,
+         true <- 0 <= sibling_idx and sibling_idx < length(all_cells) do
       {:ok, Enum.at(all_cells, sibling_idx)}
     else
-      :error
+      _ -> :error
     end
   end
 

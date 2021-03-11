@@ -7,7 +7,7 @@
     "watch": "webpack --mode development --watch",
     "format": "prettier --trailing-comma es5 --write {js,test,css}/**/*.{js,json,css,scss,md}",
     "test": "jest",
-    "test:watch": "jest"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "dompurify": "^2.2.6",

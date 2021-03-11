@@ -1,7 +1,7 @@
 import { getAttributeOrThrow } from "../lib/attribute";
 import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
-import { globalPubSub } from "../lib/pubsub";
+import { globalPubSub } from "../lib/pub_sub";
 import { smoothlyScrollToElement } from "../lib/utils";
 
 /**
