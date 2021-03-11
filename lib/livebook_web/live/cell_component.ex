@@ -18,24 +18,24 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
       <button class="text-gray-500 hover:text-current" data-element="enable-insert-mode-button">
-        <%= Icons.svg(:pencil, class: "h-6") %>
+        <%= remix_icon("pencil-line", class: "text-2xl") %>
       </button>
       <button class="text-gray-500 hover:text-current"
         phx-click="delete_cell"
         phx-value-cell_id="<%= @cell.id %>">
-        <%= Icons.svg(:trash, class: "h-6") %>
+        <%= remix_icon("delete-bin-line", class: "text-2xl") %>
       </button>
       <button class="text-gray-500 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="-1">
-        <%= Icons.svg(:chevron_up, class: "h-6") %>
+        <%= remix_icon("arrow-up-s-line", class: "text-2xl") %>
       </button>
       <button class="text-gray-500 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="1">
-        <%= Icons.svg(:chevron_down, class: "h-6") %>
+        <%= remix_icon("arrow-down-s-line", class: "text-2xl") %>
       </button>
     </div>
 
@@ -56,34 +56,34 @@ defmodule LivebookWeb.CellComponent do
         <button class="text-gray-500 hover:text-current"
           phx-click="queue_cell_evaluation"
           phx-value-cell_id="<%= @cell.id %>">
-          <%= Icons.svg(:play, class: "h-6") %>
+          <%= remix_icon("play-circle-line", class: "text-2xl") %>
         </button>
       <% else %>
         <button class="text-gray-500 hover:text-current"
           phx-click="cancel_cell_evaluation"
           phx-value-cell_id="<%= @cell.id %>">
-          <%= Icons.svg(:stop, class: "h-6") %>
+          <%= remix_icon("stop-circle-line", class: "text-2xl") %>
         </button>
       <% end %>
       <button class="text-gray-500 hover:text-current"
         phx-click="delete_cell"
         phx-value-cell_id="<%= @cell.id %>">
-        <%= Icons.svg(:trash, class: "h-6") %>
+        <%= remix_icon("delete-bin-line", class: "text-2xl") %>
       </button>
       <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-500 hover:text-current" do %>
-        <%= Icons.svg(:adjustments, class: "h-6") %>
+        <%= remix_icon("list-settings-line", class: "text-2xl") %>
       <% end %>
       <button class="text-gray-500 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="-1">
-        <%= Icons.svg(:chevron_up, class: "h-6") %>
+        <%= remix_icon("arrow-up-s-line", class: "text-2xl") %>
       </button>
       <button class="text-gray-500 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="1">
-        <%= Icons.svg(:chevron_down, class: "h-6") %>
+        <%= remix_icon("arrow-down-s-line", class: "text-2xl") %>
       </button>
     </div>
 

@@ -21,7 +21,7 @@ defmodule LivebookWeb.SessionsComponent do
               phx-value-id="<%= summary.session_id %>"
               phx-target="<%= @myself %>"
               aria-label="delete">
-              <%= Icons.svg(:trash, class: "h-6") %>
+              <%= remix_icon("delete-bin-line", class: "text-2xl") %>
             </button>
           </div>
         </div>

@@ -66,7 +66,6 @@ defmodule LivebookWeb do
 
       # Custom helpers
       import LivebookWeb.Helpers
-      alias LivebookWeb.Icons
     end
   end
 

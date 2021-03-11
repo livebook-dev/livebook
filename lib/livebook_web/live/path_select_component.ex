@@ -37,9 +37,9 @@ defmodule LivebookWeb.PathSelectComponent do
   defp render_file(file, target) do
     icon =
       case file do
-        %{is_running: true} -> :play
-        %{is_dir: true} -> :folder
-        _ -> :document_text
+        %{is_running: true} -> "play-circle-line"
+        %{is_dir: true} -> "folder-fill"
+        _ -> "file-code-line"
       end
 
     assigns = %{file: file, icon: icon}
@@ -50,7 +50,7 @@ defmodule LivebookWeb.PathSelectComponent do
       phx-value-path="<%= file.path %>"
       <%= if target, do: "phx-target=#{target}" %>>
       <span class="block">
-        <%= Icons.svg(@icon, class: "h-5") %>
+        <%= remix_icon(@icon, class: "text-xl") %>
       </span>
       <span class="block overflow-hidden overflow-ellipsis whitespace-nowrap">
         <%= file.name %>
