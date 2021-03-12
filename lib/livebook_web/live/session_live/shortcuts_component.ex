@@ -113,7 +113,10 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   end
 
   defp render_key(key) do
-    content_tag("span", key, class: "bg-editor text-gray-200 text-sm font-semibold h-8 w-8 flex items-center justify-center rounded-lg inline-flex items-center")
+    content_tag("span", key,
+      class:
+        "bg-editor text-gray-200 text-sm font-semibold h-8 w-8 flex items-center justify-center rounded-lg inline-flex items-center"
+    )
   end
 
   defp seq_for_mac(seq) do
