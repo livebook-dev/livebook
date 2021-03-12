@@ -1,5 +1,5 @@
 import "../css/app.css";
-import 'remixicon/fonts/remixicon.css'
+import "remixicon/fonts/remixicon.css";
 
 import "@fontsource/inter";
 import "@fontsource/inter/500.css";

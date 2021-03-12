@@ -7,7 +7,7 @@ defmodule LivebookWeb.SectionComponent do
       <div class="flex space-x-4 items-center">
         <div class="flex flex-grow space-x-2 items-center text-gray-600">
           <h2 class="flex-grow text-gray-900 font-semibold text-3xl py-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
-            data-section-name
+            data-element="section-name"
             id="section-<%= @section.id %>-name"
             contenteditable
             spellcheck="false"
