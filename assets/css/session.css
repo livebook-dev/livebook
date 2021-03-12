@@ -38,3 +38,7 @@ and entering/escaping insert mode.
 [data-element="cell"]:not([data-js-focused]) [data-element="actions"] {
   @apply hidden;
 }
+
+[data-element="section-list-item"][data-js-is-viewed] {
+  @apply text-current;
+}

@@ -130,7 +130,7 @@ defmodule LivebookWeb.SessionLive do
           <% end %>
         </div>
       </div>
-      <div class="flex-grow px-6 py-8 flex overflow-y-auto">
+      <div class="flex-grow px-6 py-8 flex overflow-y-auto" data-element="notebook">
         <div class="max-w-screen-lg w-full mx-auto">
           <div class="mb-8">
             <h1 class="text-gray-900 font-semibold text-4xl pb-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
@@ -141,7 +141,7 @@ defmodule LivebookWeb.SessionLive do
               phx-hook="ContentEditable"
               data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
           </div>
-          <div class="flex flex-col space-y-16 pb-80">
+          <div class="flex flex-col space-y-16">
             <%= for section <- @data.notebook.sections do %>
               <%= live_component @socket, LivebookWeb.SectionComponent,
                     id: section.id,
@@ -149,6 +149,7 @@ defmodule LivebookWeb.SessionLive do
                     section: section,
                     cell_infos: @data.cell_infos %>
             <% end %>
+            <div style="height: 80vh"></div>
           </div>
         </div>
       </div>

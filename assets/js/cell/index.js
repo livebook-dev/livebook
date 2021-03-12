@@ -27,7 +27,9 @@ const Cell = {
     this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
       const { source, revision } = payload;
 
-      const editorContainer = this.el.querySelector(`[data-element="editor-container"]`);
+      const editorContainer = this.el.querySelector(
+        `[data-element="editor-container"]`
+      );
       // Remove the content placeholder.
       editorContainer.firstElementChild.remove();
       // Create an empty container for the editor to be mounted in.

@@ -191,10 +191,7 @@ defmodule Livebook.Notebook do
     {cell, separated_cells} = List.pop_at(separated_cells, idx)
     separated_cells = List.insert_at(separated_cells, new_idx, cell)
 
-    cell_groups =
-      separated_cells
-      |> Enum.chunk_by(&(&1 == :separator))
-      |> Enum.reject(&(&1 == [:separator]))
+    cell_groups = group_cells(separated_cells)
 
     sections =
       notebook.sections
@@ -202,6 +199,30 @@ defmodule Livebook.Notebook do
       |> Enum.map(fn {section, cells} -> %{section | cells: cells} end)
 
     %{notebook | sections: sections}
+  end
+
+  defp group_cells(separated_cells) do
+    separated_cells
+    |> Enum.reverse()
+    |> do_group_cells([])
+  end
+
+  defp do_group_cells([], groups), do: groups
+
+  defp do_group_cells([:separator | separated_cells], []) do
+    do_group_cells(separated_cells, [[], []])
+  end
+
+  defp do_group_cells([:separator | separated_cells], groups) do
+    do_group_cells(separated_cells, [[] | groups])
+  end
+
+  defp do_group_cells([cell | separated_cells], []) do
+    do_group_cells(separated_cells, [[cell]])
+  end
+
+  defp do_group_cells([cell | separated_cells], [group | groups]) do
+    do_group_cells(separated_cells, [[cell | group] | groups])
   end
 
   defp clamp_index(index, list) do

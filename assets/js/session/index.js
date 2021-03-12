@@ -37,8 +37,14 @@ const Session = {
 
     document.addEventListener("mousedown", this.handleDocumentMouseDown);
 
-    this.el.querySelector(`[data-element="section-list"]`).addEventListener("click", event => {
+    getSectionList().addEventListener("click", (event) => {
       handleSectionListClick(this, event);
+    });
+
+    updateSectionListHighlight();
+
+    getNotebook().addEventListener("scroll", (event) => {
+      updateSectionListHighlight()
     });
 
     // Server events
@@ -178,7 +184,9 @@ function handleDocumentMouseDown(hook, event) {
 
   // Depending on whether the click targets editor disable/enable insert mode
   if (cell) {
-    const editorContainer = cell.querySelector(`[data-element="editor-container"]`);
+    const editorContainer = cell.querySelector(
+      `[data-element="editor-container"]`
+    );
     const editorClicked = editorContainer.contains(event.target);
     const insertMode = editorClicked;
     if (hook.state.insertMode !== insertMode) {
@@ -191,11 +199,43 @@ function handleDocumentMouseDown(hook, event) {
  * Handles section link clicks in the section list.
  */
 function handleSectionListClick(hook, event) {
-  const sectionButton = event.target.closest(`[data-element="section-list-item"]`);
+  const sectionButton = event.target.closest(
+    `[data-element="section-list-item"]`
+  );
   if (sectionButton) {
     const sectionId = sectionButton.getAttribute("data-section-id");
     const section = getSectionById(sectionId);
     section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+/**
+ * Handles the main notebook area being scrolled.
+ */
+function updateSectionListHighlight() {
+  const currentListItem = document.querySelector(
+    `[data-element="section-list-item"][data-js-is-viewed]`
+  );
+
+  if (currentListItem) {
+    currentListItem.removeAttribute("data-js-is-viewed");
+  }
+
+  // Consider a section being viewed if it is within the top 35% of the screen
+  const viewedSection = getSections()
+    .reverse()
+    .find((section) => {
+      const { top } = section.getBoundingClientRect();
+      const scrollTop = document.documentElement.scrollTop;
+      return top <= scrollTop + window.innerHeight * 0.35;
+    });
+
+  if (viewedSection) {
+    const sectionId = viewedSection.getAttribute("data-section-id");
+    const listItem = document.querySelector(
+      `[data-element="section-list-item"][data-section-id="${sectionId}"]`
+    );
+    listItem.setAttribute("data-js-is-viewed", "true");
   }
 }
 
@@ -376,7 +416,7 @@ function handleCellMoved(hook, cellId) {
 
 function handleSectionInserted(hook, sectionId) {
   const section = getSectionById(sectionId);
-  const nameElement = section.querySelector("[data-section-name]");
+  const nameElement = section.querySelector(`[data-element="section-name"]`);
   nameElement.focus({ preventScroll: true });
   selectElementContent(nameElement);
   smoothlyScrollToElement(nameElement);
@@ -443,6 +483,14 @@ function getSectionById(sectionId) {
   return document.querySelector(
     `[data-element="section"][data-section-id="${sectionId}"]`
   );
+}
+
+function getSectionList() {
+  return document.querySelector(`[data-element="section-list"]`);
+}
+
+function getNotebook() {
+  return document.querySelector(`[data-element="notebook"]`);
 }
 
 function cancelEvent(event) {
