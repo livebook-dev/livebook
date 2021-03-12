@@ -214,11 +214,11 @@ function handleSectionListClick(hook, event) {
  */
 function updateSectionListHighlight() {
   const currentListItem = document.querySelector(
-    `[data-element="section-list-item"][data-js-has-scroll]`
+    `[data-element="section-list-item"][data-js-is-viewed]`
   );
 
   if (currentListItem) {
-    currentListItem.removeAttribute("data-js-has-scroll");
+    currentListItem.removeAttribute("data-js-is-viewed");
   }
 
   // Consider a section being viewed if it is within the top 35% of the screen
@@ -235,7 +235,7 @@ function updateSectionListHighlight() {
     const listItem = document.querySelector(
       `[data-element="section-list-item"][data-section-id="${sectionId}"]`
     );
-    listItem.setAttribute("data-js-has-scroll", "true");
+    listItem.setAttribute("data-js-is-viewed", "true");
   }
 }
 

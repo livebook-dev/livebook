@@ -39,6 +39,6 @@ and entering/escaping insert mode.
   @apply hidden;
 }
 
-[data-element="section-list-item"][data-js-has-scroll] {
+[data-element="section-list-item"][data-js-is-viewed] {
   @apply text-current;
 }
