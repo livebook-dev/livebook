@@ -1,5 +1,6 @@
 defmodule LivebookWeb.Helpers do
   import Phoenix.LiveView.Helpers
+  import Phoenix.HTML.Tag
 
   @doc """
   Renders a component inside the `Livebook.ModalComponent` component.
@@ -31,4 +32,13 @@ defmodule LivebookWeb.Helpers do
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
   defdelegate ansi_string_to_html(string), to: LivebookWeb.ANSI
+
+  @doc """
+  Returns [Remix](https://remixicon.com) icon tag.
+  """
+  def remix_icon(name, attrs \\ []) do
+    icon_class = "ri-#{name}"
+    attrs = Keyword.update(attrs, :class, icon_class, fn class -> "#{icon_class} #{class}" end)
+    content_tag(:i, "", attrs)
+  end
 end

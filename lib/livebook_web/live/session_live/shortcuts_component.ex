@@ -3,26 +3,26 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
 
   @shortcuts %{
     insert_mode: [
-      %{seq: "esc", desc: "Switch back to navigation mode"},
-      %{seq: "ctrl + enter", desc: "Evaluate cell and stay in insert mode"}
+      %{seq: ["esc"], desc: "Switch back to navigation mode"},
+      %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"}
     ],
     navigation_mode: [
-      %{seq: "?", desc: "Open this help modal"},
-      %{seq: "j", desc: "Focus next cell"},
-      %{seq: "k", desc: "Focus previous cell"},
-      %{seq: "J", desc: "Move cell down"},
-      %{seq: "K", desc: "Move cell up"},
-      %{seq: "i", desc: "Switch to insert mode"},
-      %{seq: "n", desc: "Insert Elixir cell below"},
-      %{seq: "m", desc: "Insert Markdown cell below"},
-      %{seq: "N", desc: "Insert Elixir cell above"},
-      %{seq: "M", desc: "Insert Markdown cell above"},
-      %{seq: "dd", desc: "Delete cell"},
-      %{seq: "ee", desc: "Evaluate cell"},
-      %{seq: "es", desc: "Evaluate section"},
-      %{seq: "ea", desc: "Evaluate all stale/new cells"},
-      %{seq: "ej", desc: "Evaluate cells below"},
-      %{seq: "ex", desc: "Cancel cell evaluation"}
+      %{seq: ["?"], desc: "Open this help modal"},
+      %{seq: ["j"], desc: "Focus next cell"},
+      %{seq: ["k"], desc: "Focus previous cell"},
+      %{seq: ["J"], desc: "Move cell down"},
+      %{seq: ["K"], desc: "Move cell up"},
+      %{seq: ["i"], desc: "Switch to insert mode"},
+      %{seq: ["n"], desc: "Insert Elixir cell below"},
+      %{seq: ["m"], desc: "Insert Markdown cell below"},
+      %{seq: ["N"], desc: "Insert Elixir cell above"},
+      %{seq: ["M"], desc: "Insert Markdown cell above"},
+      %{seq: ["dd"], desc: "Delete cell"},
+      %{seq: ["ee"], desc: "Evaluate cell"},
+      %{seq: ["es"], desc: "Evaluate section"},
+      %{seq: ["ea"], desc: "Evaluate all stale/new cells"},
+      %{seq: ["ej"], desc: "Evaluate cells below"},
+      %{seq: ["ex"], desc: "Cancel cell evaluation"}
     ]
   }
 
@@ -35,10 +35,10 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   def render(assigns) do
     ~L"""
     <div class="p-6 sm:max-w-4xl sm:w-full flex flex-col space-y-3">
-      <h3 class="text-lg font-medium text-gray-900">
+      <h3 class="text-2xl font-semibold text-gray-800">
         Keyboard shortcuts
       </h3>
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Livebook highly embraces keyboard navigation to improve your productivity.
         It operates in one of two modes similarly to the Vim text editor.
         In <span class="font-semibold">navigation mode</span> you move around
@@ -78,10 +78,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <tbody>
         <%= for shortcut <- @shortcuts do %>
           <tr>
-            <td class="py-1 pr-4">
-              <span class="bg-editor text-editor py-0.5 px-2 rounded-md inline-flex items-center">
-                <%= if(@platform == :mac, do: seq_for_mac(shortcut.seq), else: shortcut.seq) %>
-              </span>
+            <td class="py-2 pr-3">
+              <%= render_seq(shortcut.seq, @platform) %>
             </td>
             <td>
               <%= shortcut.desc %>
@@ -93,10 +91,40 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     """
   end
 
+  defp render_seq(seq, platform) do
+    seq = if(platform == :mac, do: seq_for_mac(seq), else: seq)
+
+    joiner = remix_icon("add-line", class: "text-xl text-gray-600")
+
+    elements =
+      seq
+      |> Enum.map(&render_key/1)
+      |> Enum.intersperse(joiner)
+
+    assigns = %{elements: elements}
+
+    ~L"""
+    <div class="flex space-x-1 items-center">
+      <%= for element <- @elements do %>
+        <%= element %>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp render_key(key) do
+    content_tag("span", key,
+      class:
+        "bg-editor text-gray-200 text-sm font-semibold h-8 w-8 flex items-center justify-center rounded-lg inline-flex items-center"
+    )
+  end
+
   defp seq_for_mac(seq) do
-    seq
-    |> String.replace("ctrl", "cmd")
-    |> String.replace("alt", "option")
+    Enum.map(seq, fn
+      "ctrl" -> "⌘"
+      "alt" -> "⌥"
+      key -> key
+    end)
   end
 
   defp split_in_half(list) do

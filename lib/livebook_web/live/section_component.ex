@@ -20,7 +20,7 @@ defmodule LivebookWeb.SectionComponent do
         </div>
         <div class="flex space-x-2 items-center">
           <button phx-click="delete_section" phx-value-section_id="<%= @section.id %>" class="text-gray-600 hover:text-current" tabindex="-1">
-            <%= Icons.svg(:trash, class: "h-6") %>
+            <%= remix_icon("delete-bin-line", class: "text-2xl") %>
           </button>
         </div>
       </div>

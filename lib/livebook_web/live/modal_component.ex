@@ -19,9 +19,14 @@ defmodule LivebookWeb.ModalComponent do
           phx-page-loading></div>
 
         <!-- Modal box -->
-        <div class="relative max-h-full overflow-y-auto bg-white rounded-md shadow-xl"
+        <div class="relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl"
           role="dialog"
           aria-modal="true">
+
+          <%= live_patch to: @return_to, class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center" do %>
+            <span class="text-sm">(esc)</span>
+            <%= remix_icon("close-line", class: "text-2xl") %>
+          <% end %>
 
           <%= live_component @socket, @component, @opts %>
         </div>

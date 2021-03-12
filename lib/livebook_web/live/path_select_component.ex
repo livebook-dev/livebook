@@ -14,7 +14,7 @@ defmodule LivebookWeb.PathSelectComponent do
   def render(assigns) do
     ~L"""
     <form phx-change="set_path" phx-submit="set_path" <%= if @target, do: "phx-target=#{@target}" %>>
-      <input class="input-base shadow"
+      <input class="input-base"
         id="input-path"
         phx-hook="FocusOnUpdate"
         type="text"
@@ -37,22 +37,22 @@ defmodule LivebookWeb.PathSelectComponent do
   defp render_file(file, target) do
     icon =
       case file do
-        %{is_running: true} -> :play
-        %{is_dir: true} -> :folder
-        _ -> :document_text
+        %{is_running: true} -> "play-circle-line"
+        %{is_dir: true} -> "folder-fill"
+        _ -> "file-code-line"
       end
 
     assigns = %{file: file, icon: icon}
 
     ~L"""
-    <button class="flex space-x-2 items-center p-2 rounded-md hover:bg-gray-100 focus:ring-1 focus:ring-blue-400 <%= if(@file.is_running, do: "text-green-400 opacity-75", else: "text-gray-700") %>"
+    <button class="flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
       phx-click="set_path"
       phx-value-path="<%= file.path %>"
       <%= if target, do: "phx-target=#{target}" %>>
       <span class="block">
-        <%= Icons.svg(@icon, class: "h-5") %>
+        <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
       </span>
-      <span class="block overflow-hidden overflow-ellipsis whitespace-nowrap">
+      <span class="block font-medium overflow-hidden overflow-ellipsis whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
         <%= file.name %>
       </span>
     </button>

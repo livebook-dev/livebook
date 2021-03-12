@@ -6,24 +6,23 @@ defmodule LivebookWeb.SessionsComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="mt-3 flex flex-col space-y-2">
+    <div class="flex flex-col space-y-4">
       <%= for summary <- @session_summaries do %>
-        <div class="shadow rounded-md p-2">
-          <div class="p-3 flex items-center">
-            <div class="flex-grow flex flex-col space-y-1 text-gray-700 text-lg hover:text-gray-900">
-              <%= live_redirect summary.notebook_name, to: Routes.session_path(@socket, :page, summary.session_id) %>
-              <div class="text-gray-500 text-sm">
-                <%= summary.path || "No file" %>
-              </div>
+        <div class="p-5 flex items-center border border-gray-200 rounded-lg">
+          <div class="flex-grow flex flex-col space-y-1">
+            <%= live_redirect summary.notebook_name, to: Routes.session_path(@socket, :page, summary.session_id),
+              class: "font-semibold text-gray-800 hover:text-gray-900" %>
+            <div class="text-gray-600 text-sm">
+              <%= summary.path || "No file" %>
             </div>
-            <button class="text-gray-500 hover:text-current"
-              phx-click="delete_session"
-              phx-value-id="<%= summary.session_id %>"
-              phx-target="<%= @myself %>"
-              aria-label="delete">
-              <%= Icons.svg(:trash, class: "h-6") %>
-            </button>
           </div>
+          <button class="text-gray-400 hover:text-current"
+            phx-click="delete_session"
+            phx-value-id="<%= summary.session_id %>"
+            phx-target="<%= @myself %>"
+            aria-label="delete">
+            <%= remix_icon("delete-bin-line", class: "text-xl") %>
+          </button>
         </div>
       <% end %>
     </div>

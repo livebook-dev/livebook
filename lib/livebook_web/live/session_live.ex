@@ -91,14 +91,14 @@ defmodule LivebookWeb.SessionLive do
           <% end %>
           <button phx-click="add_section" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-300 hover:text-gray-400">
             <div class="flex items-center space-x-2">
-              <%= Icons.svg(:plus, class: "h-6") %>
+              <%= remix_icon("add-line", class: "text-2xl") %>
               <span>New section</span>
             </div>
           </button>
         </div>
         <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
           <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
-            <%= Icons.svg(:chip, class: "h-5 text-gray-400") %>
+            <%= remix_icon("cpu-line", class: "text-xl text-gray-400") %>
             <span><%= runtime_description(@data.runtime) %></span>
           </div>
         <% end %>
@@ -106,15 +106,15 @@ defmodule LivebookWeb.SessionLive do
           <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
             <%= if @data.path do %>
               <%= if @data.dirty do %>
-                <%= Icons.svg(:dots_circle_horizontal, class: "h-5 text-blue-400") %>
+                <%= remix_icon("refresh-line", class: "text-xl text-blue-600") %>
               <% else %>
-                <%= Icons.svg(:check_circle, class: "h-5 text-green-400") %>
+                <%= remix_icon("checkbox-circle-line", class: "text-xl text-green-400") %>
               <% end %>
               <span>
                 <%= Path.basename(@data.path) %>
               </span>
             <% else %>
-              <%= Icons.svg(:document_text, class: "h-5 text-gray-400") %>
+              <%= remix_icon("file-code-line", class: "text-xl text-gray-400") %>
               <span>
                 No file choosen
               </span>
@@ -123,10 +123,10 @@ defmodule LivebookWeb.SessionLive do
         <% end %>
         <div class="p-4 flex space-x-2">
           <%= live_patch to: Routes.home_path(@socket, :page) do %>
-            <%= Icons.svg(:home, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+            <%= remix_icon("home-2-line", class: "text-2xl text-gray-600 hover:text-current") %>
           <% end %>
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
-            <%= Icons.svg(:question_mark_circle, class: "h-6 w-6 text-gray-600 hover:text-current") %>
+            <%= remix_icon("question-line", class: "text-2xl text-gray-600 hover:text-current") %>
           <% end %>
         </div>
       </div>

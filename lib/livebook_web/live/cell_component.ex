@@ -17,25 +17,25 @@ defmodule LivebookWeb.CellComponent do
   def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
     ~L"""
     <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
-      <button class="text-gray-500 hover:text-current" data-element="enable-insert-mode-button">
-        <%= Icons.svg(:pencil, class: "h-6") %>
+      <button class="text-gray-400 hover:text-current" data-element="enable-insert-mode-button">
+        <%= remix_icon("pencil-line", class: "text-2xl") %>
       </button>
-      <button class="text-gray-500 hover:text-current"
+      <button class="text-gray-400 hover:text-current"
         phx-click="delete_cell"
         phx-value-cell_id="<%= @cell.id %>">
-        <%= Icons.svg(:trash, class: "h-6") %>
+        <%= remix_icon("delete-bin-line", class: "text-2xl") %>
       </button>
-      <button class="text-gray-500 hover:text-current"
+      <button class="text-gray-400 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="-1">
-        <%= Icons.svg(:chevron_up, class: "h-6") %>
+        <%= remix_icon("arrow-up-s-line", class: "text-2xl") %>
       </button>
-      <button class="text-gray-500 hover:text-current"
+      <button class="text-gray-400 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="1">
-        <%= Icons.svg(:chevron_down, class: "h-6") %>
+        <%= remix_icon("arrow-down-s-line", class: "text-2xl") %>
       </button>
     </div>
 
@@ -53,37 +53,37 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
       <%= if @cell_info.evaluation_status == :ready do %>
-        <button class="text-gray-500 hover:text-current"
+        <button class="text-gray-400 hover:text-current"
           phx-click="queue_cell_evaluation"
           phx-value-cell_id="<%= @cell.id %>">
-          <%= Icons.svg(:play, class: "h-6") %>
+          <%= remix_icon("play-circle-line", class: "text-2xl") %>
         </button>
       <% else %>
-        <button class="text-gray-500 hover:text-current"
+        <button class="text-gray-400 hover:text-current"
           phx-click="cancel_cell_evaluation"
           phx-value-cell_id="<%= @cell.id %>">
-          <%= Icons.svg(:stop, class: "h-6") %>
+          <%= remix_icon("stop-circle-line", class: "text-2xl") %>
         </button>
       <% end %>
-      <button class="text-gray-500 hover:text-current"
+      <button class="text-gray-400 hover:text-current"
         phx-click="delete_cell"
         phx-value-cell_id="<%= @cell.id %>">
-        <%= Icons.svg(:trash, class: "h-6") %>
+        <%= remix_icon("delete-bin-line", class: "text-2xl") %>
       </button>
-      <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-500 hover:text-current" do %>
-        <%= Icons.svg(:adjustments, class: "h-6") %>
+      <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-400 hover:text-current" do %>
+        <%= remix_icon("list-settings-line", class: "text-2xl") %>
       <% end %>
-      <button class="text-gray-500 hover:text-current"
+      <button class="text-gray-400 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="-1">
-        <%= Icons.svg(:chevron_up, class: "h-6") %>
+        <%= remix_icon("arrow-up-s-line", class: "text-2xl") %>
       </button>
-      <button class="text-gray-500 hover:text-current"
+      <button class="text-gray-400 hover:text-current"
         phx-click="move_cell"
         phx-value-cell_id="<%= @cell.id %>"
         phx-value-offset="1">
-        <%= Icons.svg(:chevron_down, class: "h-6") %>
+        <%= remix_icon("arrow-down-s-line", class: "text-2xl") %>
       </button>
     </div>
 
@@ -102,7 +102,7 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{cell: cell, cell_info: cell_info, show_status: show_status}
 
     ~L"""
-    <div class="py-3 rounded-md overflow-hidden bg-editor relative">
+    <div class="py-3 rounded-lg overflow-hidden bg-editor relative">
       <div
         id="editor-container-<%= @cell.id %>"
         data-element="editor-container"
@@ -137,9 +137,9 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
-        <div class="h-4 bg-gray-200 rounded-md w-3/4"></div>
-        <div class="h-4 bg-gray-200 rounded-md"></div>
-        <div class="h-4 bg-gray-200 rounded-md w-5/6"></div>
+        <div class="h-4 bg-gray-200 rounded-lg w-3/4"></div>
+        <div class="h-4 bg-gray-200 rounded-lg"></div>
+        <div class="h-4 bg-gray-200 rounded-lg w-5/6"></div>
       </div>
     </div>
     """
@@ -159,9 +159,9 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="px-8 max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4 py-1">
-        <div class="h-4 bg-gray-500 rounded-md w-3/4"></div>
-        <div class="h-4 bg-gray-500 rounded-md"></div>
-        <div class="h-4 bg-gray-500 rounded-md w-5/6"></div>
+        <div class="h-4 bg-gray-500 rounded-lg w-3/4"></div>
+        <div class="h-4 bg-gray-500 rounded-lg"></div>
+        <div class="h-4 bg-gray-500 rounded-lg w-5/6"></div>
       </div>
     </div>
     """
@@ -171,7 +171,7 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{outputs: outputs, cell_id: cell_id}
 
     ~L"""
-    <div class="flex flex-col rounded-md border border-gray-200 divide-y divide-gray-200 font-editor">
+    <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index() do %>
         <div class="p-4">
           <div class="">
@@ -230,7 +230,7 @@ defmodule LivebookWeb.CellComponent do
       <div class="text-xs text-gray-400">Evaluating</div>
       <span class="flex relative h-3 w-3">
         <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-300 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-400"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
       </span>
     </div>
     """

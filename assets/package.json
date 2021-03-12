@@ -10,6 +10,8 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@fontsource/inter": "^4.2.2",
+    "@fontsource/jetbrains-mono": "^4.2.2",
     "dompurify": "^2.2.6",
     "hyperlist": "^1.0.0",
     "marked": "^1.2.8",
@@ -18,7 +20,8 @@
     "nprogress": "^0.2.0",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
-    "phoenix_live_view": "file:../deps/phoenix_live_view"
+    "phoenix_live_view": "file:../deps/phoenix_live_view",
+    "remixicon": "^2.5.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",

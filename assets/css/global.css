@@ -3,3 +3,7 @@
 button:focus {
   outline: none;
 }
+
+body {
+  font-family: "Inter";
+}
