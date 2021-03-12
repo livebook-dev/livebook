@@ -45,4 +45,22 @@ defmodule Livebook.NotebookTest do
       assert :error == Notebook.fetch_cell_sibling(notebook, cell2.id, 2)
     end
   end
+
+  describe "move_cell/3" do
+    test "preserves empty sections" do
+      cell1 = %{Cell.new(:markdown) | id: "1"}
+
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Section.new() | cells: [cell1]},
+            %{Section.new() | cells: []}
+          ]
+      }
+
+      new_notebook = Notebook.move_cell(notebook, cell1.id, 1)
+
+      assert %{sections: [%{cells: []}, %{cells: [^cell1]}]} = new_notebook
+    end
+  end
 end
