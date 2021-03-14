@@ -10,7 +10,9 @@ defmodule Livebook.MixProject do
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      escript: escript(),
+      preferred_cli_env: preferred_cli_env()
     ]
   end
 
@@ -54,7 +56,21 @@ defmodule Livebook.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "cmd npm install --prefix assets"]
+      setup: ["deps.get", "cmd npm install --prefix assets"],
+      build: ["cmd npm run deploy --prefix ./assets", "phx.digest", "escript.build"]
+    ]
+  end
+
+  defp escript() do
+    [
+      main_module: LivebookCLI,
+      path: "_build/bin/livebook"
+    ]
+  end
+
+  defp preferred_cli_env() do
+    [
+      build: :prod
     ]
   end
 end
