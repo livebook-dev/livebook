@@ -6,8 +6,9 @@ import Config
 config :livebook, LivebookWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 8080]
 
-# Do not print debug messages in production
-config :logger, level: :info
+# The output is shown to the end user,
+# so limit the amount of information we show.
+config :logger, level: :notice
 
 # ## SSL Support
 #
