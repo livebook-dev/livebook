@@ -32,8 +32,11 @@ defmodule LivebookWeb.StaticInMemoryProvider do
 
       # Force recompilation if the static files change.
       def __mix_recompile__? do
-        current_paths = LivebookWeb.StaticInMemoryProvider.__paths__(unquote(static_path), unquote(opts))
-        current_paths |> Enum.sort() |> :erlang.md5() != unquote(paths |> Enum.sort() |> :erlang.md5())
+        current_paths =
+          LivebookWeb.StaticInMemoryProvider.__paths__(unquote(static_path), unquote(opts))
+
+        current_paths |> Enum.sort() |> :erlang.md5() !=
+          unquote(paths |> Enum.sort() |> :erlang.md5())
       end
     end
   end

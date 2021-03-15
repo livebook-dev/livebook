@@ -44,7 +44,10 @@ defmodule LivebookWeb.StaticProvidedPlug do
   end
 
   @impl true
-  def call(%Plug.Conn{method: meth} = conn, %{file_provider: file_provider, at: at, gzip?: gzip?} = options)
+  def call(
+        %Plug.Conn{method: meth} = conn,
+        %{file_provider: file_provider, at: at, gzip?: gzip?} = options
+      )
       when meth in @allowed_methods do
     segments = subset(at, conn.path_info)
     path = segments_to_path(segments)
