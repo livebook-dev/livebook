@@ -4,6 +4,8 @@ defmodule LivebookCLI do
   @version Mix.Project.config()[:version]
 
   def main(args) do
+    {:ok, _} = Application.ensure_all_started(:elixir)
+
     case check_for_shortcuts(args) do
       :help ->
         IO.puts("Livebook is an interactive notebook system for Elixir\n")
