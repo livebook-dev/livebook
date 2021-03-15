@@ -20,12 +20,16 @@ defmodule LivebookWeb.Endpoint do
     # To overcome this we load contents of those files at compilation time,
     # so that they become a part of the executable and can be served
     # from memory.
-    plug LivebookWeb.StaticFromMemoryPlug,
-      at: "/",
-      files: LivebookWeb.StaticFromMemoryPlug.preload_files!(
+
+    defmodule AssetsProvider do
+      use LivebookWeb.StaticInMemoryProvider,
         from: :livebook,
         only: ~w(css fonts images js favicon.ico robots.txt)
-      ),
+    end
+
+    plug LivebookWeb.StaticProvidedPlug,
+      at: "/",
+      file_provider: AssetsProvider,
       gzip: true
   else
     plug Plug.Static,
