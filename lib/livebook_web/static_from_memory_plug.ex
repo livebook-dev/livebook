@@ -1,9 +1,9 @@
 defmodule LivebookWeb.StaticFromMemoryPlug.File do
   @moduledoc false
 
-  defstruct [:stat, :content]
+  defstruct [:content, :digest]
 
-  @type t :: %__MODULE__{stat: File.Stat.t(), content: binary()}
+  @type t :: %__MODULE__{content: binary(), digest: String.t()}
 end
 
 defmodule LivebookWeb.StaticFromMemoryPlug do
@@ -70,9 +70,9 @@ defmodule LivebookWeb.StaticFromMemoryPlug do
 
     Map.new(paths, fn path ->
       abs_path = Path.join(static_path, path)
-      stat = File.stat!(abs_path)
       content = File.read!(abs_path)
-      {path, %StaticFromMemoryPlug.File{stat: stat, content: content}}
+      digest = content |> :erlang.md5() |> Base.encode16(case: :lower)
+      {path, %StaticFromMemoryPlug.File{content: content, digest: digest}}
     end)
   end
 
@@ -130,7 +130,7 @@ defmodule LivebookWeb.StaticFromMemoryPlug do
   defp segments_to_path(segments), do: Path.join(segments)
 
   defp serve_static(conn, content_encoding, file, segments, options) do
-    case put_cache_header(conn, file.stat) do
+    case put_cache_header(conn, file) do
       {:stale, conn} ->
         filename = List.last(segments)
         content_type = MIME.from_path(filename)
@@ -162,8 +162,8 @@ defmodule LivebookWeb.StaticFromMemoryPlug do
 
   defp maybe_add_vary(conn, _options), do: conn
 
-  defp put_cache_header(conn, file_stat) do
-    etag = etag_for_path(file_stat)
+  defp put_cache_header(conn, file) do
+    etag = etag_for_file(file)
 
     conn =
       conn
@@ -177,9 +177,8 @@ defmodule LivebookWeb.StaticFromMemoryPlug do
     end
   end
 
-  defp etag_for_path(file_stat) do
-    %{size: size, mtime: mtime} = file_stat
-    <<?", {size, mtime} |> :erlang.phash2() |> Integer.to_string(16)::binary, ?">>
+  defp etag_for_file(file) do
+    <<?", file.digest::binary, ?">>
   end
 
   defp encoding_with_file(conn, files, path, gzip?) do
