@@ -9,8 +9,13 @@ end
 defmodule LivebookWeb.StaticProvidedPlug.Provider do
   @moduledoc false
 
-  @callback valid_path?(String.t()) :: boolean()
-  @callback get_file(String.t()) :: LivebookWeb.StaticProvidedPlug.File.t()
+  @type segments :: list(String.t())
+  @type compression :: :gzip | nil
+
+  @doc """
+  Returns file data for the given path (given as list of segments) and compression type.
+  """
+  @callback get_file(segments(), compression()) :: LivebookWeb.StaticProvidedPlug.File.t() | nil
 end
 
 defmodule LivebookWeb.StaticProvidedPlug do
@@ -50,9 +55,8 @@ defmodule LivebookWeb.StaticProvidedPlug do
       )
       when meth in @allowed_methods do
     segments = subset(at, conn.path_info)
-    path = segments_to_path(segments)
 
-    case encoding_with_file(conn, file_provider, path, gzip?) do
+    case encoding_with_file(conn, file_provider, segments, gzip?) do
       {encoding, file} ->
         serve_static(conn, encoding, file, segments, options)
 
@@ -64,9 +68,6 @@ defmodule LivebookWeb.StaticProvidedPlug do
   def call(conn, _options) do
     conn
   end
-
-  defp segments_to_path([]), do: ""
-  defp segments_to_path(segments), do: Path.join(segments)
 
   defp serve_static(conn, content_encoding, file, segments, options) do
     case put_cache_header(conn, file) do
@@ -120,13 +121,13 @@ defmodule LivebookWeb.StaticProvidedPlug do
     <<?", file.digest::binary, ?">>
   end
 
-  defp encoding_with_file(conn, file_provider, path, gzip?) do
+  defp encoding_with_file(conn, file_provider, segments, gzip?) do
     cond do
-      gzip? and accept_encoding?(conn, "gzip") && file_provider.valid_path?(path <> ".gz") ->
-        {"gzip", file_provider.get_file(path <> ".gz")}
+      file = gzip? and accept_encoding?(conn, "gzip") && file_provider.get_file(segments, :gzip) ->
+        {"gzip", file}
 
-      file_provider.valid_path?(path) ->
-        {nil, file_provider.get_file(path)}
+      file = file_provider.get_file(segments, nil) ->
+        {nil, file}
 
       true ->
         :error

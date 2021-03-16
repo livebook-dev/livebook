@@ -24,7 +24,7 @@ defmodule LivebookWeb.Endpoint do
     defmodule AssetsProvider do
       use LivebookWeb.StaticInMemoryProvider,
         from: :livebook,
-        only: ~w(css fonts images js favicon.ico robots.txt)
+        gzip: true
     end
 
     plug LivebookWeb.StaticProvidedPlug,

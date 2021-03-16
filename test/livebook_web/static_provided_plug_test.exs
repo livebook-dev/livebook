@@ -6,14 +6,15 @@ defmodule LivebookWeb.StaticProvidedPlugTest do
     @behaviour LivebookWeb.StaticProvidedPlug.Provider
 
     @impl true
-    def valid_path?(path) do
-      path in ["app.js.gz", "app.js", "icon.ico"]
-    end
-
-    @impl true
-    def get_file(_path) do
+    def get_file(["app.js"], :gzip) do
       %LivebookWeb.StaticProvidedPlug.File{content: "content", digest: "digest"}
     end
+
+    def get_file(["icon.ico"], nil) do
+      %LivebookWeb.StaticProvidedPlug.File{content: "content", digest: "digest"}
+    end
+
+    def get_file(_path, _compression), do: nil
   end
 
   defmodule MyPlug do

@@ -1,42 +1,43 @@
 defmodule LivebookWeb.StaticInMemoryProvider do
   @moduledoc false
 
+  @gzippable_exts ~w(.js .css .txt .text .html .json .svg .eot .ttf)
+
   # Configurable implementation of `LivebookWeb.StaticProvidedPlug.Provider` behaviour.
   #
   # ## `use` options
   #
   # * `:from` (**required**) - where to read the static files from. See `Plug.Static` for more details.
   #
-  # * `:only` - filters which files to load. For every static file path
-  #   we check if its first part matches one of the filters.
+  # * `:gzip` - whether to bundle gzipped version of the files,
+  #   in which case the uncompressed files are not included. Defaults to `false`.
 
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
       @behaviour LivebookWeb.StaticProvidedPlug.Provider
 
       static_path = LivebookWeb.StaticInMemoryProvider.__static_path_from_opts__!(opts)
-      paths = LivebookWeb.StaticInMemoryProvider.__paths__(static_path, opts)
-      files = LivebookWeb.StaticInMemoryProvider.__preload_files__!(static_path, paths)
+      paths = LivebookWeb.StaticInMemoryProvider.__paths__(static_path)
+      files = LivebookWeb.StaticInMemoryProvider.__preload_files__!(static_path, paths, opts)
 
-      @files files
-
-      @impl true
-      def valid_path?(path) do
-        Map.has_key?(@files, path)
+      for path <- paths do
+        abs_path = Path.join(static_path, path)
+        @external_resource Path.relative_to_cwd(abs_path)
       end
 
       @impl true
-      def get_file(path) do
-        Map.get(@files, path)
+      def get_file(segments, compression)
+
+      for {segments, compression, file} <- files do
+        def get_file(unquote(segments), unquote(compression)), do: unquote(Macro.escape(file))
       end
+
+      def get_file(_, _), do: nil
 
       # Force recompilation if the static files change.
       def __mix_recompile__? do
-        current_paths =
-          LivebookWeb.StaticInMemoryProvider.__paths__(unquote(static_path), unquote(opts))
-
-        current_paths |> Enum.sort() |> :erlang.md5() !=
-          unquote(paths |> Enum.sort() |> :erlang.md5())
+        current_paths = LivebookWeb.StaticInMemoryProvider.__paths__(unquote(static_path))
+        :erlang.md5(current_paths) != unquote(:erlang.md5(paths))
       end
     end
   end
@@ -59,44 +60,31 @@ defmodule LivebookWeb.StaticInMemoryProvider do
     end
   end
 
-  def __preload_files__!(static_path, paths) do
-    Map.new(paths, fn path ->
+  def __preload_files__!(static_path, paths, opts) do
+    gzip? = Keyword.get(opts, :gzip, false)
+
+    Enum.map(paths, fn path ->
+      segments = Path.split(path)
       abs_path = Path.join(static_path, path)
       content = File.read!(abs_path)
       digest = content |> :erlang.md5() |> Base.encode16(case: :lower)
-      {path, %LivebookWeb.StaticProvidedPlug.File{content: content, digest: digest}}
-    end)
-  end
 
-  def __paths__(static_path, opts) do
-    only = Keyword.get(opts, :only, nil)
+      if gzip? and Path.extname(path) in @gzippable_exts do
+        gzipped_content = :zlib.gzip(content)
 
-    paths = static_file_paths!(static_path)
-    paths = Enum.filter(paths, &allowed?(only, &1))
-
-    Enum.map(paths, fn file ->
-      abs_path = Path.join(static_path, file)
-
-      # If there's a gzipped version, don't include the uncompressed one,
-      # as we have to load all the contents into the memory.
-      if File.exists?(abs_path <> ".gz") do
-        file <> ".gz"
+        {segments, :gzip,
+         %LivebookWeb.StaticProvidedPlug.File{content: gzipped_content, digest: digest}}
       else
-        file
+        {segments, nil, %LivebookWeb.StaticProvidedPlug.File{content: content, digest: digest}}
       end
     end)
   end
 
-  defp static_file_paths!(static_path) do
-    cache_manifest_path = Path.join(static_path, "cache_manifest.json")
-    %{"latest" => latest} = cache_manifest_path |> File.read!() |> Jason.decode!()
-    Map.keys(latest)
-  end
-
-  defp allowed?(nil, _path), do: true
-
-  defp allowed?(only, path) do
-    [part | _] = Path.split(path)
-    part in only
+  def __paths__(static_path) do
+    Path.join(static_path, "**")
+    |> Path.wildcard()
+    |> Enum.reject(&File.dir?/1)
+    |> Enum.map(&String.replace_leading(&1, static_path <> "/", ""))
+    |> Enum.sort()
   end
 end
