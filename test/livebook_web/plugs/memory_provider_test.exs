@@ -1,9 +1,9 @@
-defmodule LivebookWeb.StaticInMemoryProviderTest do
+defmodule LivebookWeb.MemoryProviderTest do
   use ExUnit.Case, async: true
 
   defmodule MyProvider do
-    use LivebookWeb.StaticInMemoryProvider,
-      from: Path.expand("../support/static", __DIR__),
+    use LivebookWeb.MemoryProvider,
+      from: Path.expand("../../support/static", __DIR__),
       gzip: true
   end
 

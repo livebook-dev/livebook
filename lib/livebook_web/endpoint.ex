@@ -13,31 +13,30 @@ defmodule LivebookWeb.Endpoint do
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [:user_agent, session: @session_options]]
 
-  # Serve at "/" the static files from "priv/static" directory.
-  if Mix.env() == :prod do
-    # We use Escript for distributing Livebook, so we don't
-    # have access to the files in priv/static at runtime.
-    # To overcome this we load contents of those files at compilation time,
-    # so that they become a part of the executable and can be served
-    # from memory.
 
-    defmodule AssetsProvider do
-      use LivebookWeb.StaticInMemoryProvider,
-        from: :livebook,
-        gzip: true
-    end
-
-    plug LivebookWeb.StaticProvidedPlug,
-      at: "/",
-      file_provider: AssetsProvider,
+  # We use Escript for distributing Livebook, so we don't
+  # have access to the files in priv/static at runtime in the prod environment.
+  # To overcome this we load contents of those files at compilation time,
+  # so that they become a part of the executable and can be served
+  # from memory.
+  defmodule AssetsMemoryProvider do
+    use LivebookWeb.MemoryProvider,
+      from: :livebook,
       gzip: true
-  else
-    plug Plug.Static,
-      at: "/",
-      from: {:livebook, "priv/static_dev"},
-      gzip: false,
-      only: ~w(css fonts images js favicon.ico robots.txt)
   end
+
+  defmodule AssetsFileSystemProvider do
+    use LivebookWeb.FileSystemProvider,
+      from: {:livebook, "priv/static_dev"}
+  end
+
+  file_provider = if(Mix.env() == :prod, do: AssetsMemoryProvider, else: AssetsFileSystemProvider)
+
+  # Serve static failes at "/"
+  plug LivebookWeb.StaticProvidedPlug,
+    at: "/",
+    file_provider: file_provider,
+    gzip: true
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

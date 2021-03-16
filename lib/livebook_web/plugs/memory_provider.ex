@@ -1,9 +1,10 @@
-defmodule LivebookWeb.StaticInMemoryProvider do
+defmodule LivebookWeb.MemoryProvider do
   @moduledoc false
 
   @gzippable_exts ~w(.js .css .txt .text .html .json .svg .eot .ttf)
 
-  # Configurable implementation of `LivebookWeb.StaticProvidedPlug.Provider` behaviour.
+  # Configurable implementation of `LivebookWeb.StaticProvidedPlug.Provider` behaviour,
+  # that bundles the files into the module compiled source.
   #
   # ## `use` options
   #
@@ -16,9 +17,9 @@ defmodule LivebookWeb.StaticInMemoryProvider do
     quote bind_quoted: [opts: opts] do
       @behaviour LivebookWeb.StaticProvidedPlug.Provider
 
-      static_path = LivebookWeb.StaticInMemoryProvider.__static_path_from_opts__!(opts)
-      paths = LivebookWeb.StaticInMemoryProvider.__paths__(static_path)
-      files = LivebookWeb.StaticInMemoryProvider.__preload_files__!(static_path, paths, opts)
+      static_path = LivebookWeb.MemoryProvider.__static_path_from_opts__!(opts)
+      paths = LivebookWeb.MemoryProvider.__paths__(static_path)
+      files = LivebookWeb.MemoryProvider.__preload_files__!(static_path, paths, opts)
 
       for path <- paths do
         abs_path = Path.join(static_path, path)
@@ -36,7 +37,7 @@ defmodule LivebookWeb.StaticInMemoryProvider do
 
       # Force recompilation if the static files change.
       def __mix_recompile__? do
-        current_paths = LivebookWeb.StaticInMemoryProvider.__paths__(unquote(static_path))
+        current_paths = LivebookWeb.MemoryProvider.__paths__(unquote(static_path))
         :erlang.md5(current_paths) != unquote(:erlang.md5(paths))
       end
     end
