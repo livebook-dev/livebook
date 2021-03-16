@@ -34,7 +34,7 @@ defmodule LivebookWeb.Endpoint do
   else
     plug Plug.Static,
       at: "/",
-      from: :livebook,
+      from: {:livebook, "priv/static_dev"},
       gzip: false,
       only: ~w(css fonts images js favicon.ico robots.txt)
   end

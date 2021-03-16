@@ -57,6 +57,8 @@ defmodule Livebook.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "cmd npm install --prefix assets"],
+      # Update the assets bundle to be committed into the repository
+      # and also builds the Escript.
       build: ["cmd npm run deploy --prefix ./assets", "escript.build"]
     ]
   end
