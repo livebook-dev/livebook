@@ -64,7 +64,6 @@ defmodule Livebook.MixProject do
   defp escript() do
     [
       main_module: LivebookCLI,
-      path: "_build/bin/livebook",
       app: nil
     ]
   end

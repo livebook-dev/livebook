@@ -35,3 +35,6 @@ npm-debug.log
 
 # The directory used by ExUnit :tmp_dir
 /tmp/
+
+# The built Escript
+/livebook
