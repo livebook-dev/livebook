@@ -1,10 +1,9 @@
 defmodule LivebookCLI do
   @moduledoc false
 
-  @version Mix.Project.config()[:version]
-
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
+    :ok = Application.load(:livebook)
 
     case check_for_shortcuts(args) do
       :help ->
@@ -58,6 +57,10 @@ defmodule LivebookCLI do
   end
 
   defp display_version do
-    IO.puts("Livebook " <> @version)
+    IO.puts(:erlang.system_info(:system_version))
+    IO.puts("Elixir " <> System.build_info()[:build])
+
+    version = Application.spec(:livebook, :vsn)
+    IO.puts("\nLivebook #{version}")
   end
 end
