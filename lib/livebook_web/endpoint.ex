@@ -32,7 +32,7 @@ defmodule LivebookWeb.Endpoint do
   file_provider = if(Mix.env() == :prod, do: AssetsMemoryProvider, else: AssetsFileSystemProvider)
 
   # Serve static failes at "/"
-  plug LivebookWeb.StaticProvidedPlug,
+  plug LivebookWeb.StaticPlug,
     at: "/",
     file_provider: file_provider,
     gzip: true

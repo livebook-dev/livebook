@@ -1,4 +1,4 @@
-defmodule LivebookWeb.StaticProvidedPlug.File do
+defmodule LivebookWeb.StaticPlug.File do
   @moduledoc false
 
   defstruct [:content, :digest]
@@ -6,7 +6,7 @@ defmodule LivebookWeb.StaticProvidedPlug.File do
   @type t :: %__MODULE__{content: binary(), digest: String.t()}
 end
 
-defmodule LivebookWeb.StaticProvidedPlug.Provider do
+defmodule LivebookWeb.StaticPlug.Provider do
   @moduledoc false
 
   @type segments :: list(String.t())
@@ -15,7 +15,7 @@ defmodule LivebookWeb.StaticProvidedPlug.Provider do
   @doc """
   Returns file data for the given path (given as list of segments) and compression type.
   """
-  @callback get_file(segments(), compression()) :: LivebookWeb.StaticProvidedPlug.File.t() | nil
+  @callback get_file(segments(), compression()) :: LivebookWeb.StaticPlug.File.t() | nil
 
   @doc """
   Parses static files location usually passed as the `:from` option
@@ -34,7 +34,7 @@ defmodule LivebookWeb.StaticProvidedPlug.Provider do
   def static_path(app) when is_atom(app), do: static_path({app, "priv/static"})
 end
 
-defmodule LivebookWeb.StaticProvidedPlug do
+defmodule LivebookWeb.StaticPlug do
   @moduledoc false
 
   # This is a simplified version of `Plug.Static` meant
@@ -42,7 +42,7 @@ defmodule LivebookWeb.StaticProvidedPlug do
   #
   # ## Options
   #
-  # * `:file_provider` (**required**) - a module implementing `LivebookWeb.StaticProvidedPlug.Provider`
+  # * `:file_provider` (**required**) - a module implementing `LivebookWeb.StaticPlug.Provider`
   #   behaviour, responsible for resolving file requests
   #
   # * `:at`, `:gzip` - same as `Plug.Static`

@@ -1,17 +1,17 @@
-defmodule LivebookWeb.StaticProvidedPlugTest do
+defmodule LivebookWeb.StaticPlugTest do
   use ExUnit.Case, async: true
   use Plug.Test
 
   defmodule MyProvider do
-    @behaviour LivebookWeb.StaticProvidedPlug.Provider
+    @behaviour LivebookWeb.StaticPlug.Provider
 
     @impl true
     def get_file(["app.js"], :gzip) do
-      %LivebookWeb.StaticProvidedPlug.File{content: "content", digest: "digest"}
+      %LivebookWeb.StaticPlug.File{content: "content", digest: "digest"}
     end
 
     def get_file(["icon.ico"], nil) do
-      %LivebookWeb.StaticProvidedPlug.File{content: "content", digest: "digest"}
+      %LivebookWeb.StaticPlug.File{content: "content", digest: "digest"}
     end
 
     def get_file(_path, _compression), do: nil
@@ -20,7 +20,7 @@ defmodule LivebookWeb.StaticProvidedPlugTest do
   defmodule MyPlug do
     use Plug.Builder
 
-    plug LivebookWeb.StaticProvidedPlug,
+    plug LivebookWeb.StaticPlug,
       at: "/",
       file_provider: MyProvider,
       gzip: true

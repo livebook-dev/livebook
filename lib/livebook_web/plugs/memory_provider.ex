@@ -3,7 +3,7 @@ defmodule LivebookWeb.MemoryProvider do
 
   @gzippable_exts ~w(.js .css .txt .text .html .json .svg .eot .ttf)
 
-  # Configurable implementation of `LivebookWeb.StaticProvidedPlug.Provider` behaviour,
+  # Configurable implementation of `LivebookWeb.StaticPlug.Provider` behaviour,
   # that bundles the files into the module compiled source.
   #
   # ## `use` options
@@ -15,10 +15,10 @@ defmodule LivebookWeb.MemoryProvider do
 
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts] do
-      @behaviour LivebookWeb.StaticProvidedPlug.Provider
+      @behaviour LivebookWeb.StaticPlug.Provider
 
       from = Keyword.fetch!(opts, :from)
-      static_path = LivebookWeb.StaticProvidedPlug.Provider.static_path(from)
+      static_path = LivebookWeb.StaticPlug.Provider.static_path(from)
       paths = LivebookWeb.MemoryProvider.__paths__(static_path)
       files = LivebookWeb.MemoryProvider.__preload_files__!(static_path, paths, opts)
 
@@ -57,9 +57,9 @@ defmodule LivebookWeb.MemoryProvider do
         gzipped_content = :zlib.gzip(content)
 
         {segments, :gzip,
-         %LivebookWeb.StaticProvidedPlug.File{content: gzipped_content, digest: digest}}
+         %LivebookWeb.StaticPlug.File{content: gzipped_content, digest: digest}}
       else
-        {segments, nil, %LivebookWeb.StaticProvidedPlug.File{content: content, digest: digest}}
+        {segments, nil, %LivebookWeb.StaticPlug.File{content: content, digest: digest}}
       end
     end)
   end
