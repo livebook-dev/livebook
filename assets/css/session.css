@@ -39,6 +39,10 @@ and entering/escaping insert mode.
   @apply invisible;
 }
 
+[data-element="cell"]:not([data-js-focused]):hover [data-element="primary-actions"] {
+  @apply visible;
+}
+
 [data-element="section-list-item"][data-js-is-viewed] {
   @apply text-current;
 }

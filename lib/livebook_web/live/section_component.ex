@@ -25,7 +25,7 @@ defmodule LivebookWeb.SectionComponent do
         </div>
       </div>
       <div class="container py-2">
-        <div class="flex flex-col space-y-2">
+        <div class="flex flex-col space-y-1">
           <%= live_component @socket, LivebookWeb.InsertCellComponent,
                 id: "#{@section.id}:0",
                 section_id: @section.id,
