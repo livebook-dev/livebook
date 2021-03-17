@@ -7,6 +7,9 @@ const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
+// Make sure NODE_ENV is set, so that @tailwindcss/jit is in watch mode in development.
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 module.exports = (env, options) => {
   const devMode = options.mode !== 'production';
 
