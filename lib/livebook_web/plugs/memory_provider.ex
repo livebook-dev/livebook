@@ -17,7 +17,8 @@ defmodule LivebookWeb.MemoryProvider do
     quote bind_quoted: [opts: opts] do
       @behaviour LivebookWeb.StaticProvidedPlug.Provider
 
-      static_path = LivebookWeb.MemoryProvider.__static_path_from_opts__!(opts)
+      from = Keyword.fetch!(opts, :from)
+      static_path = LivebookWeb.StaticProvidedPlug.Provider.static_path(from)
       paths = LivebookWeb.MemoryProvider.__paths__(static_path)
       files = LivebookWeb.MemoryProvider.__preload_files__!(static_path, paths, opts)
 
@@ -40,24 +41,6 @@ defmodule LivebookWeb.MemoryProvider do
         current_paths = LivebookWeb.MemoryProvider.__paths__(unquote(static_path))
         :erlang.md5(current_paths) != unquote(:erlang.md5(paths))
       end
-    end
-  end
-
-  def __static_path_from_opts__!(opts) do
-    from =
-      case Keyword.fetch!(opts, :from) do
-        {_, _} = from -> from
-        from when is_atom(from) -> {from, "priv/static"}
-        from when is_binary(from) -> from
-        _ -> raise ArgumentError, ":from must be an atom, a binary or a tuple"
-      end
-
-    case from do
-      {app, from} when is_atom(app) and is_binary(from) ->
-        Path.join(Application.app_dir(app), from)
-
-      from ->
-        from
     end
   end
 

@@ -16,6 +16,22 @@ defmodule LivebookWeb.StaticProvidedPlug.Provider do
   Returns file data for the given path (given as list of segments) and compression type.
   """
   @callback get_file(segments(), compression()) :: LivebookWeb.StaticProvidedPlug.File.t() | nil
+
+  @doc """
+  Parses static files location usually passed as the `:from` option
+  when configuring provider.
+
+  See `Plug.Static` for more details.
+  """
+  @spec static_path({atom(), binary()} | atom() | binary()) :: binary()
+  def static_path(from)
+
+  def static_path({app, path}) when is_atom(app) and is_binary(path) do
+    Path.join(Application.app_dir(app), path)
+  end
+
+  def static_path(path) when is_binary(path), do: path
+  def static_path(app) when is_atom(app), do: static_path({app, "priv/static"})
 end
 
 defmodule LivebookWeb.StaticProvidedPlug do
@@ -29,7 +45,7 @@ defmodule LivebookWeb.StaticProvidedPlug do
   # * `:file_provider` (**required**) - a module implementing `LivebookWeb.StaticProvidedPlug.Provider`
   #   behaviour, responsible for resolving file requests
   #
-  # * `:at`, `:gzip` - same as `Plug.static`
+  # * `:at`, `:gzip` - same as `Plug.Static`
 
   @behaviour Plug
 
@@ -50,10 +66,10 @@ defmodule LivebookWeb.StaticProvidedPlug do
 
   @impl true
   def call(
-        %Plug.Conn{method: meth} = conn,
+        %Plug.Conn{method: method} = conn,
         %{file_provider: file_provider, at: at, gzip?: gzip?} = options
       )
-      when meth in @allowed_methods do
+      when method in @allowed_methods do
     segments = subset(at, conn.path_info)
 
     case encoding_with_file(conn, file_provider, segments, gzip?) do

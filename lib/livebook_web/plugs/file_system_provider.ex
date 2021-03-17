@@ -12,39 +12,27 @@ defmodule LivebookWeb.FileSystemProvider do
     quote bind_quoted: [opts: opts] do
       @behaviour LivebookWeb.StaticProvidedPlug.Provider
 
-      static_path = LivebookWeb.FileSystemProvider.__static_path_from_opts__!(opts)
+      from = Keyword.fetch!(opts, :from)
+      static_path = LivebookWeb.StaticProvidedPlug.Provider.static_path(from)
 
       @impl true
-      def get_file(segments, nil) do
-        abs_path = Path.join([unquote(static_path) | segments])
-        if File.regular?(abs_path) do
-          content = File.read!(abs_path)
-          digest = content |> :erlang.md5() |> Base.encode16(case: :lower)
-          %LivebookWeb.StaticProvidedPlug.File{content: content, digest: digest}
-        else
-          nil
-        end
+      def get_file(segments, compression) do
+        LivebookWeb.FileSystemProvider.__get_file__(unquote(static_path), segments, compression)
       end
-
-      def get_file(_, _), do: nil
     end
   end
 
-  def __static_path_from_opts__!(opts) do
-    from =
-      case Keyword.fetch!(opts, :from) do
-        {_, _} = from -> from
-        from when is_atom(from) -> {from, "priv/static"}
-        from when is_binary(from) -> from
-        _ -> raise ArgumentError, ":from must be an atom, a binary or a tuple"
-      end
+  def __get_file__(static_path, segments, nil) do
+    abs_path = Path.join([static_path | segments])
 
-    case from do
-      {app, from} when is_atom(app) and is_binary(from) ->
-        Path.join(Application.app_dir(app), from)
-
-      from ->
-        from
+    if File.regular?(abs_path) do
+      content = File.read!(abs_path)
+      digest = content |> :erlang.md5() |> Base.encode16(case: :lower)
+      %LivebookWeb.StaticProvidedPlug.File{content: content, digest: digest}
+    else
+      nil
     end
   end
+
+  def __get_file__(_static_path, _segments, _compression), do: nil
 end
