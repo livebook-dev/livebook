@@ -35,7 +35,7 @@
 /* Form fields */
 
 .input-base {
-  @apply w-full p-3 bg-white border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
+  @apply w-full p-3 bg-gray-50 border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
 }
 
 .checkbox-base {
@@ -89,4 +89,18 @@
 
 .tiny-scrollbar::-webkit-scrollbar-track {
   @apply bg-gray-100;
+}
+
+/* Tabs */
+
+.tabs {
+  @apply w-full flex;
+}
+
+.tabs .tab {
+  @apply px-3 py-2 border-b-2 text-gray-400 border-gray-100;
+}
+
+.tabs .tab.active {
+  @apply text-blue-600 border-blue-600;
 }

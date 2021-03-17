@@ -19,9 +19,8 @@ defmodule LivebookWeb.Router do
 
     live "/", HomeLive, :page
     live "/sessions/:id", SessionLive, :page
-    live "/sessions/:id/file", SessionLive, :file
-    live "/sessions/:id/runtime", SessionLive, :runtime
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
+    live "/sessions/:id/settings/:tab", SessionLive, :settings
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
   end
 end

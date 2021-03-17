@@ -12,49 +12,44 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-3">
-      <h3 class="text-lg font-medium text-gray-900">
-        Configure file
-      </h3>
-      <div class="w-full flex-col space-y-3">
-        <p class="text-gray-500">
-          Specify where the notebook should be automatically persisted.
-        </p>
-        <div>
-          <form phx-change="set_persistence_type" phx-target="<%= @myself %>">
-            <div class="radio-button-group">
-              <label class="radio-button">
-                <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "file", checked: @path != nil %>
-                <span class="radio-button__label">Save to file</span>
-              </label>
-              <label class="radio-button">
-                <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "memory", checked: @path == nil %>
-                <span class="radio-button__label">Memory only</span>
-              </label>
-            </div>
-          </form>
-        </div>
-        <%= if @path != nil do %>
-          <div class="w-full container flex flex-col space-y-4">
-            <%= live_component @socket, LivebookWeb.PathSelectComponent,
-              id: "path_select",
-              path: @path,
-              extnames: [LiveMarkdown.extension()],
-              running_paths: paths(@session_summaries),
-              target: @myself %>
+    <div class="w-full flex-col space-y-3">
+      <p class="text-gray-700">
+        Specify where the notebook should be automatically persisted.
+      </p>
+      <div>
+        <form phx-change="set_persistence_type" phx-target="<%= @myself %>">
+          <div class="radio-button-group">
+            <label class="radio-button">
+              <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "file", checked: @path != nil %>
+              <span class="radio-button__label">Save to file</span>
+            </label>
+            <label class="radio-button">
+              <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "memory", checked: @path == nil %>
+              <span class="radio-button__label">Memory only</span>
+            </label>
           </div>
-          <div class="text-gray-500 text-sm">
-            <%= normalize_path(@path) %>
-          </div>
-        <% end %>
-        </div>
-      <div class="flex justify-end">
-        <%= content_tag :button, "Done",
-          class: "button-base button-primary",
-          phx_click: "done",
-          phx_target: @myself,
-          disabled: not path_savable?(normalize_path(@path), @session_summaries) %>
+        </form>
       </div>
+      <%= if @path != nil do %>
+        <div class="w-full container flex flex-col space-y-4">
+          <%= live_component @socket, LivebookWeb.PathSelectComponent,
+            id: "path_select",
+            path: @path,
+            extnames: [LiveMarkdown.extension()],
+            running_paths: paths(@session_summaries),
+            target: @myself %>
+        </div>
+        <div class="text-gray-500 text-sm">
+          <%= normalize_path(@path) %>
+        </div>
+      <% end %>
+      </div>
+    <div class="flex justify-end">
+      <%= content_tag :button, "Done",
+        class: "button-base button-primary",
+        phx_click: "done",
+        phx_target: @myself,
+        disabled: not path_savable?(normalize_path(@path), @session_summaries) %>
     </div>
     """
   end

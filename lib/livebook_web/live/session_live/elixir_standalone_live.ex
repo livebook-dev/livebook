@@ -12,7 +12,7 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
   def render(assigns) do
     ~L"""
     <div class="flex-col space-y-3">
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Start a new local node to handle code evaluation.
         This is the default runtime and is started automatically
         as soon as you evaluate the first cell.

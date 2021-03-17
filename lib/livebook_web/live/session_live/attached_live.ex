@@ -17,21 +17,21 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           <%= @error_message %>
         </div>
       <% end %>
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
         Thanks to this approach you can work with
         an arbitrary Elixir runtime.
         Make sure to give the node a name, for example:
       </p>
-      <div class="text-gray-500 markdown">
+      <div class="text-gray-700 markdown">
       <%= if Livebook.Config.shortnames? do %>
         <pre><code>iex --sname test</code></pre>
       <% else %>
         <pre><code>iex --name test@127.0.0.1</code></pre>
       <% end %>
       </div>
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Then enter the name of the node below:
       </p>
       <%= f = form_for :node, "#", phx_submit: "init" %>
