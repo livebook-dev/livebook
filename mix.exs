@@ -10,7 +10,9 @@ defmodule Livebook.MixProject do
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      escript: escript(),
+      preferred_cli_env: preferred_cli_env()
     ]
   end
 
@@ -54,7 +56,23 @@ defmodule Livebook.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "cmd npm install --prefix assets"]
+      setup: ["deps.get", "cmd npm install --prefix assets"],
+      # Update the assets bundle to be committed into the repository
+      # and also builds the Escript.
+      build: ["cmd npm run deploy --prefix ./assets", "escript.build"]
+    ]
+  end
+
+  defp escript() do
+    [
+      main_module: LivebookCLI,
+      app: nil
+    ]
+  end
+
+  defp preferred_cli_env() do
+    [
+      build: :prod
     ]
   end
 end
