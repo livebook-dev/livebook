@@ -3,7 +3,7 @@ defmodule LivebookWeb.CellComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="cell flex flex-col relative"
+    <div class="flex flex-col relative"
       data-element="cell"
       id="cell-<%= @cell.id %>"
       phx-hook="Cell"
@@ -39,12 +39,18 @@ defmodule LivebookWeb.CellComponent do
       </button>
     </div>
 
-    <div class="pb-4" data-element="editor-box">
-      <%= render_editor(@cell, @cell_info) %>
-    </div>
+    <div class="flex">
+      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+      </div>
+      <div class="flex-grow">
+        <div class="pb-4" data-element="editor-box">
+          <%= render_editor(@cell, @cell_info) %>
+        </div>
 
-    <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
-      <%= render_markdown_content_placeholder(@cell.source) %>
+        <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
+          <%= render_markdown_content_placeholder(@cell.source) %>
+        </div>
+      </div>
     </div>
     """
   end
@@ -94,13 +100,19 @@ defmodule LivebookWeb.CellComponent do
       </button>
     </div>
 
-    <%= render_editor(@cell, @cell_info, show_status: true) %>
-
-    <%= if @cell.outputs != [] do %>
-      <div class="mt-2">
-        <%= render_outputs(@cell.outputs, @cell.id) %>
+    <div class="flex">
+      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
-    <% end %>
+      <div class="flex-grow">
+        <%= render_editor(@cell, @cell_info, show_status: true) %>
+
+        <%= if @cell.outputs != [] do %>
+          <div class="mt-2">
+            <%= render_outputs(@cell.outputs, @cell.id) %>
+          </div>
+        <% end %>
+      </div>
+    </div>
     """
   end
 

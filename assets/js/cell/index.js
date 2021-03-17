@@ -125,6 +125,7 @@ function handleInsertModeChanged(hook, insertMode) {
 
     if (hook.state.insertMode) {
       hook.state.liveEditor && hook.state.liveEditor.focus();
+      smoothlyScrollToElement(hook.el);
     } else {
       hook.state.liveEditor && hook.state.liveEditor.blur();
     }

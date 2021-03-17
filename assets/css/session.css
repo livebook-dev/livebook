@@ -42,3 +42,11 @@ and entering/escaping insert mode.
 [data-element="section-list-item"][data-js-is-viewed] {
   @apply text-current;
 }
+
+[data-element="cell"]:not([data-js-focused]):hover [data-element="cell-focus-indicator"] {
+  @apply bg-blue-200;
+}
+
+[data-element="cell"][data-js-focused] [data-element="cell-focus-indicator"] {
+  @apply bg-blue-300;
+}
