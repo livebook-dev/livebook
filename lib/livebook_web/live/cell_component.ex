@@ -248,8 +248,8 @@ defmodule LivebookWeb.CellComponent do
     <div class="flex items-center space-x-2">
       <div class="text-xs text-gray-400">Evaluating</div>
       <span class="flex relative h-3 w-3">
-        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-300 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
       </span>
     </div>
     """

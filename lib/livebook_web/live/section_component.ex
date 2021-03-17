@@ -5,8 +5,8 @@ defmodule LivebookWeb.SectionComponent do
     ~L"""
     <div data-element="section" data-section-id="<%= @section.id %>">
       <div class="flex space-x-4 items-center">
-        <div class="flex flex-grow space-x-2 items-center text-gray-600">
-          <h2 class="flex-grow text-gray-900 font-semibold text-3xl py-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+        <div class="flex-grow">
+          <h2 class="flex-grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border  border-transparent hover:border-blue-200 focus:border-blue-300"
             data-element="section-name"
             id="section-<%= @section.id %>-name"
             contenteditable
@@ -20,7 +20,7 @@ defmodule LivebookWeb.SectionComponent do
         </div>
         <div class="flex space-x-2 items-center">
           <button phx-click="delete_section" phx-value-section_id="<%= @section.id %>" class="text-gray-400 hover:text-current" tabindex="-1">
-            <%= remix_icon("delete-bin-line", class: "text-2xl") %>
+            <%= remix_icon("delete-bin-line", class: "text-xl") %>
           </button>
         </div>
       </div>

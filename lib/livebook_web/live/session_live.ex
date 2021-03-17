@@ -132,8 +132,8 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex-grow px-6 py-8 flex overflow-y-auto" data-element="notebook">
         <div class="max-w-screen-lg w-full mx-auto">
-          <div class="mb-8">
-            <h1 class="text-gray-900 font-semibold text-4xl pb-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+          <div class="pb-4 mb-6 border-b-2 border-gray-200">
+            <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
               contenteditable
               spellcheck="false"

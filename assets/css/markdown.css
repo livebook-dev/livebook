@@ -5,27 +5,27 @@
 }
 
 .markdown h1 {
-  @apply text-gray-900 font-semibold text-4xl my-4;
+  @apply text-gray-800 font-semibold text-3xl my-4;
 }
 
 .markdown h2 {
-  @apply text-gray-900 font-semibold text-3xl my-4;
+  @apply text-gray-800 font-semibold text-2xl my-4;
 }
 
 .markdown h3 {
-  @apply text-gray-900 font-semibold text-2xl my-4;
+  @apply text-gray-800 font-semibold text-xl my-4;
 }
 
 .markdown h4 {
-  @apply text-gray-900 font-semibold text-xl my-4;
+  @apply text-gray-800 font-semibold text-lg my-4;
 }
 
 .markdown h5 {
-  @apply text-gray-900 font-semibold text-lg my-4;
+  @apply text-gray-800 font-semibold text-base my-4;
 }
 
 .markdown h6 {
-  @apply text-gray-900 font-semibold text-base my-4;
+  @apply text-gray-800 font-semibold text-base my-4;
 }
 
 .markdown p {
