@@ -36,7 +36,7 @@ and entering/escaping insert mode.
 }
 
 [data-element="cell"]:not([data-js-focused]) [data-element="actions"] {
-  @apply hidden;
+  @apply invisible;
 }
 
 [data-element="section-list-item"][data-js-is-viewed] {
