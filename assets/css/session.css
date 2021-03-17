@@ -39,7 +39,8 @@ and entering/escaping insert mode.
   @apply invisible;
 }
 
-[data-element="cell"]:not([data-js-focused]):hover [data-element="primary-actions"] {
+[data-element="cell"]:not([data-js-focused]):hover
+  [data-element="primary-actions"] {
   @apply visible;
 }
 
@@ -47,10 +48,21 @@ and entering/escaping insert mode.
   @apply text-current;
 }
 
-[data-element="cell"]:not([data-js-focused]):hover [data-element="cell-focus-indicator"] {
+[data-element="cell"]:not([data-js-focused]):hover
+  [data-element="cell-focus-indicator"] {
   @apply bg-blue-200;
 }
 
 [data-element="cell"][data-js-focused] [data-element="cell-focus-indicator"] {
   @apply bg-blue-300;
+}
+
+[data-element="session"]:not([data-js-sections-panel-expanded])
+  [data-element="sections-panel"] {
+  @apply hidden;
+}
+
+[data-element="session"][data-js-sections-panel-expanded]
+  [data-element="sections-panel-toggle"] {
+  @apply text-gray-50;
 }

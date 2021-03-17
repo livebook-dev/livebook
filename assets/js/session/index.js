@@ -44,8 +44,14 @@ const Session = {
     updateSectionListHighlight();
 
     getNotebook().addEventListener("scroll", (event) => {
-      updateSectionListHighlight()
+      updateSectionListHighlight();
     });
+
+    document
+      .querySelector(`[data-element="sections-panel-toggle"]`)
+      .addEventListener("click", (event) => {
+        this.el.toggleAttribute("data-js-sections-panel-expanded");
+      });
 
     // Server events
 

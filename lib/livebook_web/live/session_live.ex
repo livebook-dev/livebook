@@ -79,11 +79,28 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
+      <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
+        <%= live_patch to: Routes.home_path(@socket, :page) do %>
+          <div class="h-10 w-10 flex items-center justify-center text-white bg-blue-600 font-semibold rounded-lg">
+            Lb
+          </div>
+        <% end %>
+        <button class="text-2xl text-gray-600 hover:text-gray-50" data-element="sections-panel-toggle">
+          <%= remix_icon("booklet-fill") %>
+        </button>
+        <button class="text-2xl text-gray-600 hover:text-gray-50">
+          <%= remix_icon("settings-4-fill") %>
+        </button>
+        <div class="flex-grow"></div>
+        <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
+          <%= remix_icon("keyboard-box-fill", class: "text-2xl text-gray-600 hover:text-gray-50") %>
+        <% end %>
+      </div>
+      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200" data-element="sections-panel">
         <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
           data-element="section-list">
           <%= for section <- @data.notebook.sections do %>
-            <button class="py-2 px-4 rounded-l-md text-left hover:text-current text-gray-500"
+            <button class="py-2 px-4 text-left hover:text-current text-gray-500"
               data-element="section-list-item"
               data-section-id="<%= section.id %>">
               <%= section.name %>
@@ -121,14 +138,6 @@ defmodule LivebookWeb.SessionLive do
             <% end %>
           </div>
         <% end %>
-        <div class="p-4 flex space-x-2">
-          <%= live_patch to: Routes.home_path(@socket, :page) do %>
-            <%= remix_icon("home-2-line", class: "text-2xl text-gray-600 hover:text-current") %>
-          <% end %>
-          <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
-            <%= remix_icon("question-line", class: "text-2xl text-gray-600 hover:text-current") %>
-          <% end %>
-        </div>
       </div>
       <div class="flex-grow px-6 py-8 flex overflow-y-auto" data-element="notebook">
         <div class="max-w-screen-lg w-full mx-auto">
