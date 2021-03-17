@@ -11,7 +11,10 @@ defmodule LivebookWeb.Endpoint do
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [:user_agent, session: @session_options]]
+    # Don't check the origin as we don't know how the web app is gonna be accessed.
+    # It runs locally, but may be exposed via IP or domain name.
+    # The WebSocket connection is already protected from CSWSH by using CSRF token.
+    websocket: [check_origin: false, connect_info: [:user_agent, session: @session_options]]
 
   # We use Escript for distributing Livebook, so we don't
   # have access to the files in priv/static at runtime in the prod environment.
