@@ -88,3 +88,9 @@
 .tabs .tab.active {
   @apply text-blue-600 border-blue-600;
 }
+
+/* Icons */
+
+.action-icon {
+  @apply text-gray-400 hover:text-gray-800;
+}

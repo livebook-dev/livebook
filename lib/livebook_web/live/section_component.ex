@@ -19,8 +19,8 @@ defmodule LivebookWeb.SectionComponent do
               because we want the content to exactly match @section.name. %>
         </div>
         <div class="flex space-x-2 items-center">
-          <button phx-click="delete_section" phx-value-section_id="<%= @section.id %>" class="text-gray-400 hover:text-current" tabindex="-1">
-            <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
+          <button phx-click="delete_section" phx-value-section_id="<%= @section.id %>" tabindex="-1">
+            <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
           </button>
         </div>
       </div>

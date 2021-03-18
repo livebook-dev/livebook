@@ -93,7 +93,7 @@ defmodule LivebookWeb.SessionLive do
         <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
           data-element="section-list">
           <%= for section <- @data.notebook.sections do %>
-            <button class="py-2 px-4 text-left hover:text-current text-gray-500"
+            <button class="py-2 px-4 text-left hover:text-gray-800 text-gray-500"
               data-element="section-list-item"
               data-section-id="<%= section.id %>">
               <%= section.name %>

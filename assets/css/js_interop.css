@@ -52,7 +52,7 @@ solely client-side operations.
 }
 
 [data-element="section-list-item"][data-js-is-viewed] {
-  @apply text-current;
+  @apply text-gray-800;
 }
 
 [data-element="cell"]:not([data-js-focused]):hover
