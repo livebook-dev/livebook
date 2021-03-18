@@ -32,6 +32,14 @@
   @apply hover:bg-blue-700;
 }
 
+.choice-button {
+  @apply px-5 py-2 rounded-lg border text-gray-700 bg-white border-gray-200;
+}
+
+.choice-button.active {
+  @apply bg-blue-100 border-blue-600;
+}
+
 /* Form fields */
 
 .input-base {
@@ -49,30 +57,6 @@
   background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
-}
-
-.radio-button-group {
-  @apply flex;
-}
-
-.radio-button-group .radio-button:first-child .radio-button__label {
-  @apply rounded-l-md border-l;
-}
-
-.radio-button-group .radio-button:last-child .radio-button__label {
-  @apply rounded-r-md;
-}
-
-.radio-button .radio-button__label {
-  @apply block px-3 py-1 cursor-pointer border border-l-0 border-gray-700 text-gray-700 hover:bg-gray-100;
-}
-
-.radio-button .radio-button__input {
-  @apply hidden;
-}
-
-.radio-button .radio-button__input[checked] + .radio-button__label {
-  @apply bg-gray-700 text-white;
 }
 
 /* Custom scrollbars */

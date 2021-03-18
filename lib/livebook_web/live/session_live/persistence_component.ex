@@ -16,19 +16,17 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       <p class="text-gray-700">
         Specify where the notebook should be automatically persisted.
       </p>
-      <div>
-        <form phx-change="set_persistence_type" phx-target="<%= @myself %>">
-          <div class="radio-button-group">
-            <label class="radio-button">
-              <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "file", checked: @path != nil %>
-              <span class="radio-button__label">Save to file</span>
-            </label>
-            <label class="radio-button">
-              <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "memory", checked: @path == nil %>
-              <span class="radio-button__label">Memory only</span>
-            </label>
-          </div>
-        </form>
+      <div class="flex space-x-4">
+        <%= content_tag :button, "Save to file",
+          class: "choice-button #{if(@path != nil, do: "active")}",
+          phx_click: "set_persistence_type",
+          phx_value_type: "file",
+          phx_target: @myself %>
+        <%= content_tag :button, "Memory only",
+          class: "choice-button #{if(@path == nil, do: "active")}",
+          phx_click: "set_persistence_type",
+          phx_value_type: "memory",
+          phx_target: @myself %>
       </div>
       <%= if @path != nil do %>
         <div class="h-full h-52">
@@ -39,12 +37,16 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             running_paths: paths(@session_summaries),
             target: @myself %>
         </div>
-        <div class="text-gray-500 text-sm">
-          <%= normalize_path(@path) %>
-        </div>
       <% end %>
       </div>
-    <div class="flex justify-end">
+    <div class="flex items-end justify-between">
+      <div>
+        <%= if @path != nil do %>
+          <div class="text-gray-500 text-sm">
+            <%= normalize_path(@path) %>
+          </div>
+        <% end %>
+      </div>
       <%= content_tag :button, "Save",
         class: "button-base button-primary",
         phx_click: "save",

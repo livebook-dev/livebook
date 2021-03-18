@@ -46,22 +46,23 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           </p>
         <% end %>
       </div>
-      <form phx-change="set_runtime_type" phx-target="<%= @myself %>">
-        <div class="radio-button-group">
-          <label class="radio-button">
-            <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "elixir_standalone", checked: @type == "elixir_standalone" %>
-            <span class="radio-button__label">Elixir standalone</span>
-          </label>
-          <label class="radio-button">
-            <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "mix_standalone", checked: @type == "mix_standalone" %>
-            <span class="radio-button__label">Mix standalone</span>
-          </label>
-          <label class="radio-button">
-            <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "attached", checked: @type == "attached" %>
-            <span class="radio-button__label">Attached node</span>
-          </label>
-        </div>
-      </form>
+      <div class="flex space-x-4">
+        <%= content_tag :button, "Elixir standalone",
+          class: "choice-button #{if(@type == "elixir_standalone", do: "active")}",
+          phx_click: "set_runtime_type",
+          phx_value_type: "elixir_standalone",
+          phx_target: @myself %>
+        <%= content_tag :button, "Mix standalone",
+          class: "choice-button #{if(@type == "mix_standalone", do: "active")}",
+          phx_click: "set_runtime_type",
+          phx_value_type: "mix_standalone",
+          phx_target: @myself %>
+        <%= content_tag :button, "Attached node",
+          class: "choice-button #{if(@type == "attached", do: "active")}",
+          phx_click: "set_runtime_type",
+          phx_value_type: "attached",
+          phx_target: @myself %>
+      </div>
       <div>
         <%= if @type == "elixir_standalone" do %>
           <%= live_render @socket, LivebookWeb.SessionLive.ElixirStandaloneLive,
