@@ -17,19 +17,19 @@ defmodule LivebookWeb.SessionLive.CellSettingsComponent do
   def render(assigns) do
     ~L"""
     <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-3">
-      <h3 class="text-lg font-medium text-gray-900">
+      <h3 class="text-2xl font-semibold text-gray-800">
         Cell settings
       </h3>
       <form phx-submit="save" phx-target="<%= @myself %>">
         <div class="w-full flex-col space-y-3">
           <label class="flex space-x-3 items-center cursor-pointer">
-            <%= tag :input, class: "checkbox-base", type: "checkbox", name: "disable_formatting", checked: @disable_formatting %>
+            <%= tag :input, class: "checkbox", type: "checkbox", name: "disable_formatting", checked: @disable_formatting %>
             <span>Disable code formatting (when saving to file)</span>
           </label>
         </div>
         <div class="mt-6 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button-base" %>
-          <button class="button-base button-primary" type="submit">
+          <%= live_patch "Cancel", to: @return_to, class: "button" %>
+          <button class="button button-primary" type="submit">
             Save
           </button>
         </div>

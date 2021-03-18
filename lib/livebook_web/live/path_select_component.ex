@@ -28,7 +28,7 @@ defmodule LivebookWeb.PathSelectComponent do
           phx-change="set_path"
           phx-submit="set_path"
           <%= if @target, do: "phx-target=#{@target}" %>>
-          <input class="input-base"
+          <input class="input"
             id="input-path"
             phx-hook="FocusOnUpdate"
             type="text"

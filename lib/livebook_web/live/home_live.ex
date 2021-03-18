@@ -31,7 +31,7 @@ defmodule LivebookWeb.HomeLive do
             <div class="text-2xl text-gray-800 font-semibold">
               Livebook
             </div>
-            <button class="button-base button-primary"
+            <button class="button button-primary"
               phx-click="new">
               New Notebook
             </button>
@@ -45,7 +45,7 @@ defmodule LivebookWeb.HomeLive do
               target: nil do %>
               <div class="flex justify-end space-x-2">
                 <%= content_tag :button,
-                  class: "button-base",
+                  class: "button",
                   phx_click: "fork",
                   disabled: not path_forkable?(@path) do %>
                   <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
@@ -53,10 +53,10 @@ defmodule LivebookWeb.HomeLive do
                 <% end %>
                 <%= if path_running?(@path, @session_summaries) do %>
                   <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
-                    class: "button-base button-primary" %>
+                    class: "button button-primary" %>
                 <% else %>
                   <%= content_tag :button, "Open",
-                    class: "button-base button-primary",
+                    class: "button button-primary",
                     phx_click: "open",
                     disabled: not path_openable?(@path, @session_summaries) %>
                 <% end %>

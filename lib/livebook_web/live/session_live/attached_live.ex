@@ -35,10 +35,10 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Then enter the name of the node below:
       </p>
       <%= f = form_for :node, "#", phx_submit: "init" %>
-        <%= text_input f, :name, class: "input-base",
+        <%= text_input f, :name, class: "input",
               placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
-        <%= submit "Connect", class: "mt-3 button-base" %>
+        <%= submit "Connect", class: "mt-3 button" %>
       </form>
     </div>
     """
