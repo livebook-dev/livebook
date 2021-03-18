@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -107,9 +107,9 @@ defmodule LivebookWeb.SessionLive do
           </button>
         </div>
       </div>
-      <div class="flex-grow px-6 py-8 flex overflow-y-auto" data-element="notebook">
+      <div class="flex-grow px-6 py-8 overflow-y-auto" data-element="notebook">
         <div class="max-w-screen-lg w-full mx-auto">
-          <div class="pb-4 mb-6 border-b-2 border-gray-200">
+          <div class="pb-4 mb-6 border-b border-gray-200">
             <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
               contenteditable
@@ -118,7 +118,7 @@ defmodule LivebookWeb.SessionLive do
               phx-hook="ContentEditable"
               data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
           </div>
-          <div class="flex flex-col space-y-16">
+          <div class="flex flex-col w-full space-y-16">
             <%= for section <- @data.notebook.sections do %>
               <%= live_component @socket, LivebookWeb.SectionComponent,
                     id: section.id,
@@ -140,7 +140,6 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
-    IO.inspect(:hanle_p)
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
@@ -420,11 +419,6 @@ defmodule LivebookWeb.SessionLive do
     index = Enum.find_index(section.cells, &(&1 == cell))
     Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
   end
-
-  defp runtime_description(nil), do: "No runtime"
-  defp runtime_description(%Runtime.ElixirStandalone{}), do: "Elixir standalone runtime"
-  defp runtime_description(%Runtime.MixStandalone{}), do: "Mix standalone runtime"
-  defp runtime_description(%Runtime.Attached{}), do: "Attached runtime"
 
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)

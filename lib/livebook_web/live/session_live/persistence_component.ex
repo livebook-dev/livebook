@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         </form>
       </div>
       <%= if @path != nil do %>
-        <div class="w-full container flex flex-col space-y-4">
+        <div class="h-full h-52">
           <%= live_component @socket, LivebookWeb.PathSelectComponent,
             id: "path_select",
             path: @path,
@@ -45,11 +45,11 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       <% end %>
       </div>
     <div class="flex justify-end">
-      <%= content_tag :button, "Done",
+      <%= content_tag :button, "Save",
         class: "button-base button-primary",
-        phx_click: "done",
+        phx_click: "save",
         phx_target: @myself,
-        disabled: not path_savable?(normalize_path(@path), @session_summaries) %>
+        disabled: not path_savable?(normalize_path(@path), @session_summaries) or normalize_path(@path) == @current_path %>
     </div>
     """
   end
@@ -69,11 +69,10 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     {:noreply, assign(socket, path: path)}
   end
 
-  def handle_event("done", %{}, socket) do
+  def handle_event("save", %{}, socket) do
     path = normalize_path(socket.assigns.path)
     Session.set_path(socket.assigns.session_id, path)
-
-    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+    {:noreply, socket}
   end
 
   defp default_path() do

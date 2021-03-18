@@ -56,8 +56,7 @@ defmodule LivebookWeb.MemoryProvider do
       if gzip? and Path.extname(path) in @gzippable_exts do
         gzipped_content = :zlib.gzip(content)
 
-        {segments, :gzip,
-         %LivebookWeb.StaticPlug.File{content: gzipped_content, digest: digest}}
+        {segments, :gzip, %LivebookWeb.StaticPlug.File{content: gzipped_content, digest: digest}}
       else
         {segments, nil, %LivebookWeb.StaticPlug.File{content: content, digest: digest}}
       end

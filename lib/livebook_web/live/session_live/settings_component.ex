@@ -10,19 +10,15 @@ defmodule LivebookWeb.SessionLive.SettingsComponent do
       </h3>
       <div class="tabs">
         <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
-          class: "flex space-x-1 items-center tab #{if(@tab == "file", do: "active")}" do %>
-          <span>
-            <%= remix_icon("file-settings-line") %>
-          </span>
+          class: "tab #{if(@tab == "file", do: "active")}" do %>
+          <%= remix_icon("file-settings-line", class: "align-middle") %>
           <span class="font-medium">
             File
           </span>
         <% end %>
         <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "runtime"),
-          class: "flex space-x-1 items-center tab #{if(@tab == "runtime", do: "active")}" do %>
-          <span>
-            <%= remix_icon("play-circle-line") %>
-          </span>
+          class: "tab #{if(@tab == "runtime", do: "active")}" do %>
+          <%= remix_icon("play-circle-line", class: "align-middle") %>
           <span class="font-medium">
             Runtime
           </span>
@@ -35,6 +31,7 @@ defmodule LivebookWeb.SessionLive.SettingsComponent do
           <%= live_component @socket, LivebookWeb.SessionLive.PersistenceComponent,
             id: :persistence,
             session_id: @session_id,
+            current_path: @data.path,
             path: @data.path %>
         <% end %>
         <%= if @tab == "runtime" do %>

@@ -27,12 +27,14 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         within the notebook.
       </p>
       <%= if @status == :initial do %>
-        <%= live_component @socket, LivebookWeb.PathSelectComponent,
-          id: "path_select",
-          path: @path,
-          extnames: [],
-          running_paths: [],
-          target: nil %>
+        <div class="h-full h-52">
+          <%= live_component @socket, LivebookWeb.PathSelectComponent,
+            id: "path_select",
+            path: @path,
+            extnames: [],
+            running_paths: [],
+            target: nil %>
+        </div>
         <%= content_tag :button, "Connect", class: "button-base", phx_click: "init", disabled: not mix_project_root?(@path) %>
       <% end %>
       <%= if @status != :initial do %>
