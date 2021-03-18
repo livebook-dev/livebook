@@ -44,7 +44,7 @@ defmodule LivebookWeb.PathSelectComponent do
           </div>
         <% end %>
       </div>
-      <div class="flex-grow -m-1 p-1 -mr-2 pr-1 overflow-y-auto tiny-scrollbar">
+      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
         <div class="grid grid-cols-4 gap-2">
           <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
             <%= render_file(file, @target) %>

@@ -1,12 +1,19 @@
 /*
-Conditional notebook elements display.
+Conditional elements display.
 
-The Section and Cell hooks dynamically set attributes
+Verious hooks and callbacks dynamically set attributes
 based on which we hide/show certain elements.
 This way we don't have to engage the server in
-solely client-side operations like moving the focus
-and entering/escaping insert mode.
+solely client-side operations.
 */
+
+/* === Global === */
+
+[data-element="menu"]:not([data-js-shown]) {
+  @apply hidden;
+}
+
+/* === Session === */
 
 [data-element="session"]:not([data-js-insert-mode])
   [data-element="insert-indicator"] {

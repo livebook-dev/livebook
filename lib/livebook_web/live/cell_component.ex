@@ -36,7 +36,7 @@ defmodule LivebookWeb.CellComponent do
         <button class="text-gray-400 hover:text-current"
           phx-click="delete_cell"
           phx-value-cell_id="<%= @cell.id %>">
-          <%= remix_icon("delete-bin-line", class: "text-xl") %>
+          <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
         </button>
       </div>
     </div>
@@ -100,7 +100,7 @@ defmodule LivebookWeb.CellComponent do
         <button class="text-gray-400 hover:text-current"
           phx-click="delete_cell"
           phx-value-cell_id="<%= @cell.id %>">
-          <%= remix_icon("delete-bin-line", class: "text-xl") %>
+          <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
         </button>
       </div>
     </div>

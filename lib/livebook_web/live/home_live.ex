@@ -63,7 +63,7 @@ defmodule LivebookWeb.HomeLive do
               </div>
             <% end %>
           </div>
-          <div class="w-full pt-12">
+          <div class="w-full py-12">
             <h3 class="text-xl font-semibold text-gray-800 mb-5">
               Running Sessions
             </h3>
@@ -125,6 +125,12 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:session_deleted, id}, socket) do
     session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
     {:noreply, assign(socket, session_summaries: session_summaries)}
+  end
+
+  def handle_info({:fork_session, id}, socket) do
+    data = Session.get_data(id)
+    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
+    create_session(socket, notebook: notebook)
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
