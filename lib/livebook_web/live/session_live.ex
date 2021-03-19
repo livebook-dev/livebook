@@ -107,8 +107,8 @@ defmodule LivebookWeb.SessionLive do
           </button>
         </div>
       </div>
-      <div class="flex-grow px-6 py-8 overflow-y-auto" data-element="notebook">
-        <div class="max-w-screen-lg w-full mx-auto">
+      <div class="flex-grow overflow-y-auto" data-element="notebook">
+        <div class="py-8 px-16 max-w-screen-lg w-full mx-auto">
           <div class="pb-4 mb-6 border-b border-gray-200">
             <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
