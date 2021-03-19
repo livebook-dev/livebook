@@ -12,7 +12,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="w-full flex-col space-y-3">
+    <div class="w-full flex-col space-y-5">
       <p class="text-gray-700">
         Specify where the notebook should be automatically persisted.
       </p>

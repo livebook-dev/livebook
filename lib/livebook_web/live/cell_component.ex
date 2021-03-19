@@ -64,7 +64,7 @@ defmodule LivebookWeb.CellComponent do
             phx-value-cell_id="<%= @cell.id %>">
             <%= remix_icon("play-circle-fill", class: "text-xl") %>
             <span class="text-sm font-medium">
-              Evaluate
+              <%= if(@cell_info.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
             </span>
           </button>
         <% else %>
@@ -192,9 +192,7 @@ defmodule LivebookWeb.CellComponent do
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index() do %>
         <div class="p-4">
-          <div class="">
-            <%= render_output(output, "#{@cell_id}-output#{index}") %>
-          </div>
+          <%= render_output(output, "#{@cell_id}-output#{index}") %>
         </div>
       <% end %>
     </div>
@@ -229,7 +227,7 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{formatted: formatted}
 
     ~L"""
-    <div class="whitespace-pre text-red-600"><%= @formatted %></div>
+    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @formatted %></div>
     """
   end
 

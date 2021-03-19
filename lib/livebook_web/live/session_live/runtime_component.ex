@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="w-full flex-col space-y-3">
+    <div class="w-full flex-col space-y-5">
       <p class="text-gray-700">
         The code is evaluated in a separate Elixir runtime (node),
         which you can configure yourself here.

@@ -82,7 +82,7 @@ defmodule LivebookWeb.SessionLive do
           <%= remix_icon("booklet-fill") %>
         </button>
         <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file") do %>
-          <%= remix_icon("settings-4-fill", class: "text-2xl text-gray-600 hover:text-gray-50") %>
+          <%= remix_icon("settings-4-fill", class: "text-2xl text-gray-600 hover:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}") %>
         <% end %>
         <div class="flex-grow"></div>
         <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
