@@ -5,7 +5,26 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, type: "elixir_standalone")}
+    {:ok, assign(socket, type: nil)}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    assigns =
+      if socket.assigns.type == nil do
+        type =
+          if assigns.runtime do
+            runtime_type(assigns.runtime)
+          else
+            "elixir_standalone"
+          end
+
+        Map.put(assigns, :type, type)
+      else
+        assigns
+      end
+
+    {:ok, assign(socket, assigns)}
   end
 
   @impl true
@@ -72,12 +91,18 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         <%= if @type == "mix_standalone" do %>
           <%= live_render @socket, LivebookWeb.SessionLive.MixStandaloneLive,
             id: :mix_standalone_runtime,
-            session: %{"session_id" => @session_id} %>
+            session: %{
+              "session_id" => @session_id,
+              "current_runtime" => if_matches_type(@runtime, @type)
+            } %>
         <% end %>
         <%= if @type == "attached" do %>
           <%= live_render @socket, LivebookWeb.SessionLive.AttachedLive,
             id: :attached_runtime,
-            session: %{"session_id" => @session_id} %>
+            session: %{
+              "session_id" => @session_id,
+              "current_runtime" => if_matches_type(@runtime, @type)
+            } %>
         <% end %>
       </div>
     </div>
@@ -87,6 +112,18 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
   defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
   defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
+
+  def if_matches_type(runtime, type) do
+    if runtime && runtime_type(runtime) == type do
+      runtime
+    else
+      nil
+    end
+  end
+
+  defp runtime_type(%Runtime.ElixirStandalone{}), do: "elixir_standalone"
+  defp runtime_type(%Runtime.MixStandalone{}), do: "mix_standalone"
+  defp runtime_type(%Runtime.Attached{}), do: "attached"
 
   @impl true
   def handle_event("set_runtime_type", %{"type" => type}, socket) do

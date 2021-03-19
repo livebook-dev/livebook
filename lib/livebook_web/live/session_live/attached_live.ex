@@ -4,8 +4,13 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   alias Livebook.{Session, Runtime, Utils}
 
   @impl true
-  def mount(_params, %{"session_id" => session_id}, socket) do
-    {:ok, assign(socket, session_id: session_id, error_message: nil)}
+  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
+    {:ok,
+     assign(socket,
+       session_id: session_id,
+       error_message: nil,
+       name: if(current_runtime, do: current_runtime.node, else: "")
+     )}
   end
 
   @impl true
@@ -35,7 +40,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Then enter the name of the node below:
       </p>
       <%= f = form_for :node, "#", phx_submit: "init" %>
-        <%= text_input f, :name, class: "input",
+        <%= text_input f, :name, value: @name, class: "input",
               placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
         <%= submit "Connect", class: "mt-3 button" %>
@@ -51,11 +56,11 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
     case Runtime.Attached.init(node) do
       {:ok, runtime} ->
         Session.connect_runtime(socket.assigns.session_id, runtime)
-        {:noreply, assign(socket, error_message: nil)}
+        {:noreply, assign(socket, name: name, error_message: nil)}
 
       {:error, error} ->
         message = runtime_error_to_message(error)
-        {:noreply, assign(socket, error_message: message)}
+        {:noreply, assign(socket, name: name, error_message: message)}
     end
   end
 

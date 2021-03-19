@@ -6,12 +6,12 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   @type status :: :initial | :initializing | :finished
 
   @impl true
-  def mount(_params, %{"session_id" => session_id}, socket) do
+  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
     {:ok,
      assign(socket,
        session_id: session_id,
        status: :initial,
-       path: default_path(),
+       path: if(current_runtime, do: current_runtime.project_path, else: default_path()),
        outputs: [],
        emitter: nil
      ), temporary_assigns: [outputs: []]}
