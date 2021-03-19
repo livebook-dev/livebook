@@ -41,7 +41,7 @@ defmodule LivebookWeb.CellComponent do
     <div class="flex">
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
-      <div class="flex-grow">
+      <div class="w-full">
         <div class="pb-4" data-element="editor-box">
           <%= render_editor(@cell, @cell_info) %>
         </div>
@@ -102,7 +102,7 @@ defmodule LivebookWeb.CellComponent do
     <div class="flex">
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
-      <div class="flex-grow">
+      <div class="w-full">
         <%= render_editor(@cell, @cell_info, show_status: true) %>
 
         <%= if @cell.outputs != [] do %>
