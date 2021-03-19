@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.SettingsComponent do
     ~L"""
     <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Settings
+        Notebook settings
       </h3>
       <div class="tabs">
         <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
