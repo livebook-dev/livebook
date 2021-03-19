@@ -108,12 +108,13 @@ function handleDocumentKeyDown(hook, event) {
         escapeInsertMode(hook);
       }
     } else if (
-      hook.state.focusedCellType === "elixir" &&
       cmd &&
       key === "Enter"
     ) {
       cancelEvent(event);
-      queueFocusedCellEvaluation(hook);
+      if (hook.state.focusedCellType === "elixir") {
+        queueFocusedCellEvaluation(hook);
+      }
     }
   } else {
     // Ignore inputs and notebook/section title fields
