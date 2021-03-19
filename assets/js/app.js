@@ -16,7 +16,7 @@ import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
 import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
-import morphdomCallbacks from './morphdom_callbacks';
+import morphdomCallbacks from "./morphdom_callbacks";
 
 const hooks = {
   ContentEditable,

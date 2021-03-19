@@ -14,7 +14,7 @@ const callbacks = {
         initializeMenuToggle(node);
       }
     }
-  }
+  },
 };
 
 function initializeMenuToggle(element) {
@@ -28,13 +28,17 @@ function initializeMenuToggle(element) {
         menu.setAttribute("data-js-shown", "true");
         // Postpone callback registration until the current click finishes bubbling.
         setTimeout(() => {
-          document.addEventListener("click", (event) => {
-            menu.removeAttribute("data-js-shown");
-          }, { once: true });
+          document.addEventListener(
+            "click",
+            (event) => {
+              menu.removeAttribute("data-js-shown");
+            },
+            { once: true }
+          );
         }, 0);
       }
     }
-  })
+  });
 }
 
 export default callbacks;
