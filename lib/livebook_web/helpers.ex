@@ -31,7 +31,7 @@ defmodule LivebookWeb.Helpers do
   defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
-  defdelegate ansi_string_to_html(string), to: LivebookWeb.ANSI
+  defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI
 
   @doc """
   Returns [Remix](https://remixicon.com) icon tag.

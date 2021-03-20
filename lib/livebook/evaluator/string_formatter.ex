@@ -6,6 +6,13 @@ defmodule Livebook.Evaluator.StringFormatter do
   @behaviour Livebook.Evaluator.Formatter
 
   @impl true
+  def format({:ok, :"do not show this result in output"}) do
+    # Functions in the `IEx.Helpers` module return this specific value
+    # to indicate no result should be printed in the iex shell,
+    # so we respect that as well.
+    :ignored
+  end
+
   def format({:ok, value}) do
     inspected = inspect(value, pretty: true, width: 100, syntax_colors: syntax_colors())
     {:inspect, inspected}

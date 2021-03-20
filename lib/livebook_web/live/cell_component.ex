@@ -190,7 +190,7 @@ defmodule LivebookWeb.CellComponent do
 
     ~L"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
-      <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index() do %>
+      <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4">
           <%= render_output(output, "#{@cell_id}-output#{index}") %>
         </div>
@@ -233,7 +233,18 @@ defmodule LivebookWeb.CellComponent do
 
   defp ansi_to_html_lines(string) do
     string
-    |> ansi_string_to_html()
+    |> ansi_string_to_html(
+      # Make sure every line is styled separately,
+      # so tht later we can safely split the whole HTML
+      # into valid HTML lines.
+      renderer: fn style, content ->
+        content
+        |> IO.iodata_to_binary()
+        |> String.split("\n")
+        |> Enum.map(&[~s{<span style="#{style}">}, &1, ~s{</span>}])
+        |> Enum.intersperse("\n")
+      end
+    )
     |> Phoenix.HTML.safe_to_string()
     |> String.split("\n")
   end
