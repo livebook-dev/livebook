@@ -68,5 +68,15 @@ defmodule LivebookWeb.ANSITest do
     test "escapes HTML in the resulting string" do
       assert ~s{&lt;div&gt;} == ANSI.ansi_string_to_html("<div>") |> Phoenix.HTML.safe_to_string()
     end
+
+    test "given custom renderer uses it to generate HTML" do
+      div_renderer = fn style, content ->
+        [~s{<div style="#{style}">}, content, ~s{</div>}]
+      end
+
+      assert ~s{<div style="color: var(--ansi-color-blue);">cat</div>} ==
+               ANSI.ansi_string_to_html("\e[34mcat\e[0m", renderer: div_renderer)
+               |> Phoenix.HTML.safe_to_string()
+    end
   end
 end
