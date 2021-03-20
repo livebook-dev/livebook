@@ -6,6 +6,10 @@ defmodule Livebook.Evaluator.StringFormatter do
   @behaviour Livebook.Evaluator.Formatter
 
   @impl true
+  def format({:ok, :"do not show this result in output"}) do
+    :ignored
+  end
+
   def format({:ok, value}) do
     inspected = inspect(value, pretty: true, width: 100, syntax_colors: syntax_colors())
     {:inspect, inspected}

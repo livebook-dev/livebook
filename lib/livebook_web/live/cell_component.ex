@@ -190,7 +190,7 @@ defmodule LivebookWeb.CellComponent do
 
     ~L"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
-      <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index() do %>
+      <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4">
           <%= render_output(output, "#{@cell_id}-output#{index}") %>
         </div>
