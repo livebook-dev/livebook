@@ -86,23 +86,17 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         <%= if @type == "elixir_standalone" do %>
           <%= live_render @socket, LivebookWeb.SessionLive.ElixirStandaloneLive,
             id: :elixir_standalone_runtime,
-            session: %{"session_id" => @session_id} %>
+            session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
         <% end %>
         <%= if @type == "mix_standalone" do %>
           <%= live_render @socket, LivebookWeb.SessionLive.MixStandaloneLive,
             id: :mix_standalone_runtime,
-            session: %{
-              "session_id" => @session_id,
-              "current_runtime" => if_matches_type(@runtime, @type)
-            } %>
+            session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
         <% end %>
         <%= if @type == "attached" do %>
           <%= live_render @socket, LivebookWeb.SessionLive.AttachedLive,
             id: :attached_runtime,
-            session: %{
-              "session_id" => @session_id,
-              "current_runtime" => if_matches_type(@runtime, @type)
-            } %>
+            session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
         <% end %>
       </div>
     </div>
@@ -112,14 +106,6 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
   defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
   defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
-
-  def if_matches_type(runtime, type) do
-    if runtime && runtime_type(runtime) == type do
-      runtime
-    else
-      nil
-    end
-  end
 
   defp runtime_type(%Runtime.ElixirStandalone{}), do: "elixir_standalone"
   defp runtime_type(%Runtime.MixStandalone{}), do: "mix_standalone"
