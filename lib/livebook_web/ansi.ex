@@ -36,7 +36,7 @@ defmodule LivebookWeb.ANSI do
 
   * `:renderer` - a function used to render styled HTML content.
     The function receives HTML styles string and HTML-escaped content (iodata).
-    By default the renderer wraps the wole content in a single `<span>` tag with the given style.
+    By default the renderer wraps the whole content in a single `<span>` tag with the given style.
   """
   @spec ansi_string_to_html(String.t(), keyword()) :: Phoenix.HTML.safe()
   def ansi_string_to_html(string, opts \\ []) do

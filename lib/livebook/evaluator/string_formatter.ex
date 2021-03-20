@@ -8,7 +8,7 @@ defmodule Livebook.Evaluator.StringFormatter do
   @impl true
   def format({:ok, :"do not show this result in output"}) do
     # Functions in the `IEx.Helpers` module return this specific value
-    # to indicate no result should be printed in the iex schell,
+    # to indicate no result should be printed in the iex shell,
     # so we respect that as well.
     :ignored
   end
