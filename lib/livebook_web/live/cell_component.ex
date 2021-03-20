@@ -3,7 +3,7 @@ defmodule LivebookWeb.CellComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="cell flex flex-col relative mr-10 border-l-4 pl-4 -ml-4 border-blue-100 border-opacity-0 hover:border-opacity-100"
+    <div class="flex flex-col relative"
       data-element="cell"
       id="cell-<%= @cell.id %>"
       phx-hook="Cell"
@@ -16,84 +16,102 @@ defmodule LivebookWeb.CellComponent do
 
   def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
     ~L"""
-    <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
-      <button class="text-gray-400 hover:text-current" data-element="enable-insert-mode-button">
-        <%= remix_icon("pencil-line", class: "text-2xl") %>
-      </button>
-      <button class="text-gray-400 hover:text-current"
-        phx-click="delete_cell"
-        phx-value-cell_id="<%= @cell.id %>">
-        <%= remix_icon("delete-bin-line", class: "text-2xl") %>
-      </button>
-      <button class="text-gray-400 hover:text-current"
-        phx-click="move_cell"
-        phx-value-cell_id="<%= @cell.id %>"
-        phx-value-offset="-1">
-        <%= remix_icon("arrow-up-s-line", class: "text-2xl") %>
-      </button>
-      <button class="text-gray-400 hover:text-current"
-        phx-click="move_cell"
-        phx-value-cell_id="<%= @cell.id %>"
-        phx-value-offset="1">
-        <%= remix_icon("arrow-down-s-line", class: "text-2xl") %>
-      </button>
+    <div class="mb-1 flex items-center justify-end" data-element="actions">
+      <div class="relative z-10 flex items-center justify-end space-x-2">
+        <button data-element="enable-insert-mode-button">
+          <%= remix_icon("pencil-line", class: "text-xl action-icon") %>
+        </button>
+        <button phx-click="move_cell"
+          phx-value-cell_id="<%= @cell.id %>"
+          phx-value-offset="-1">
+          <%= remix_icon("arrow-up-s-line", class: "text-xl action-icon") %>
+        </button>
+        <button phx-click="move_cell"
+          phx-value-cell_id="<%= @cell.id %>"
+          phx-value-offset="1">
+          <%= remix_icon("arrow-down-s-line", class: "text-xl action-icon") %>
+        </button>
+        <button phx-click="delete_cell"
+          phx-value-cell_id="<%= @cell.id %>">
+          <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
+        </button>
+      </div>
     </div>
 
-    <div class="pb-4" data-element="editor-box">
-      <%= render_editor(@cell, @cell_info) %>
-    </div>
+    <div class="flex">
+      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+      </div>
+      <div class="w-full">
+        <div class="pb-4" data-element="editor-box">
+          <%= render_editor(@cell, @cell_info) %>
+        </div>
 
-    <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
-      <%= render_markdown_content_placeholder(@cell.source) %>
+        <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
+          <%= render_markdown_content_placeholder(@cell.source) %>
+        </div>
+      </div>
     </div>
     """
   end
 
   def render_cell_content(%{cell: %{type: :elixir}} = assigns) do
     ~L"""
-    <div class="flex flex-col items-center space-y-2 absolute z-50 right-0 top-0 -mr-10" data-element="actions">
-      <%= if @cell_info.evaluation_status == :ready do %>
-        <button class="text-gray-400 hover:text-current"
-          phx-click="queue_cell_evaluation"
-          phx-value-cell_id="<%= @cell.id %>">
-          <%= remix_icon("play-circle-line", class: "text-2xl") %>
+    <div class="mb-1 flex justify-between" data-element="actions">
+      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="primary-actions">
+        <%= if @cell_info.evaluation_status == :ready do %>
+          <button class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
+            phx-click="queue_cell_evaluation"
+            phx-value-cell_id="<%= @cell.id %>">
+            <%= remix_icon("play-circle-fill", class: "text-xl") %>
+            <span class="text-sm font-medium">
+              <%= if(@cell_info.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
+            </span>
+          </button>
+        <% else %>
+          <button class="text-gray-600 hover:text-gray-800 flex space-x-1 items-center"
+            phx-click="cancel_cell_evaluation"
+            phx-value-cell_id="<%= @cell.id %>">
+            <%= remix_icon("stop-circle-fill", class: "text-xl") %>
+            <span class="text-sm font-medium">
+              Stop
+            </span>
+          </button>
+        <% end %>
+      </div>
+      <div class="relative z-10 flex items-center justify-end space-x-2">
+        <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id) do %>
+          <%= remix_icon("list-settings-line", class: "text-xl action-icon") %>
+        <% end %>
+        <button phx-click="move_cell"
+          phx-value-cell_id="<%= @cell.id %>"
+          phx-value-offset="-1">
+          <%= remix_icon("arrow-up-s-line", class: "text-xl action-icon") %>
         </button>
-      <% else %>
-        <button class="text-gray-400 hover:text-current"
-          phx-click="cancel_cell_evaluation"
-          phx-value-cell_id="<%= @cell.id %>">
-          <%= remix_icon("stop-circle-line", class: "text-2xl") %>
+        <button phx-click="move_cell"
+          phx-value-cell_id="<%= @cell.id %>"
+          phx-value-offset="1">
+          <%= remix_icon("arrow-down-s-line", class: "text-xl action-icon") %>
         </button>
-      <% end %>
-      <button class="text-gray-400 hover:text-current"
-        phx-click="delete_cell"
-        phx-value-cell_id="<%= @cell.id %>">
-        <%= remix_icon("delete-bin-line", class: "text-2xl") %>
-      </button>
-      <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "text-gray-400 hover:text-current" do %>
-        <%= remix_icon("list-settings-line", class: "text-2xl") %>
-      <% end %>
-      <button class="text-gray-400 hover:text-current"
-        phx-click="move_cell"
-        phx-value-cell_id="<%= @cell.id %>"
-        phx-value-offset="-1">
-        <%= remix_icon("arrow-up-s-line", class: "text-2xl") %>
-      </button>
-      <button class="text-gray-400 hover:text-current"
-        phx-click="move_cell"
-        phx-value-cell_id="<%= @cell.id %>"
-        phx-value-offset="1">
-        <%= remix_icon("arrow-down-s-line", class: "text-2xl") %>
-      </button>
+        <button phx-click="delete_cell"
+          phx-value-cell_id="<%= @cell.id %>">
+          <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
+        </button>
+      </div>
     </div>
 
-    <%= render_editor(@cell, @cell_info, show_status: true) %>
-
-    <%= if @cell.outputs != [] do %>
-      <div class="mt-2">
-        <%= render_outputs(@cell.outputs, @cell.id) %>
+    <div class="flex">
+      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
-    <% end %>
+      <div class="w-full">
+        <%= render_editor(@cell, @cell_info, show_status: true) %>
+
+        <%= if @cell.outputs != [] do %>
+          <div class="mt-2">
+            <%= render_outputs(@cell.outputs, @cell.id) %>
+          </div>
+        <% end %>
+      </div>
+    </div>
     """
   end
 
@@ -174,9 +192,7 @@ defmodule LivebookWeb.CellComponent do
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index() do %>
         <div class="p-4">
-          <div class="">
-            <%= render_output(output, "#{@cell_id}-output#{index}") %>
-          </div>
+          <%= render_output(output, "#{@cell_id}-output#{index}") %>
         </div>
       <% end %>
     </div>
@@ -211,7 +227,7 @@ defmodule LivebookWeb.CellComponent do
     assigns = %{formatted: formatted}
 
     ~L"""
-    <div class="whitespace-pre text-red-600"><%= @formatted %></div>
+    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @formatted %></div>
     """
   end
 
@@ -229,8 +245,8 @@ defmodule LivebookWeb.CellComponent do
     <div class="flex items-center space-x-2">
       <div class="text-xs text-gray-400">Evaluating</div>
       <span class="flex relative h-3 w-3">
-        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-300 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
       </span>
     </div>
     """

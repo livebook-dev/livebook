@@ -16,8 +16,9 @@ import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
 import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
+import morphdomCallbacks from "./morphdom_callbacks";
 
-const Hooks = {
+const hooks = {
   ContentEditable,
   Cell,
   Session,
@@ -32,18 +33,8 @@ const csrfToken = document
 
 const liveSocket = new LiveSocket("/live", Socket, {
   params: { _csrf_token: csrfToken },
-  hooks: Hooks,
-  dom: {
-    onBeforeElUpdated(from, to) {
-      // Keep element attributes starting with data-js-
-      // which we set on the client.
-      for (const attr of from.attributes) {
-        if (attr.name.startsWith("data-js-")) {
-          to.setAttribute(attr.name, attr.value);
-        }
-      }
-    },
-  },
+  hooks: hooks,
+  dom: morphdomCallbacks,
 });
 
 // Show progress bar on live navigation and form submits

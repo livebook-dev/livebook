@@ -4,8 +4,13 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   alias Livebook.{Session, Runtime, Utils}
 
   @impl true
-  def mount(_params, %{"session_id" => session_id}, socket) do
-    {:ok, assign(socket, session_id: session_id, error_message: nil)}
+  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
+    {:ok,
+     assign(socket,
+       session_id: session_id,
+       error_message: nil,
+       name: if(current_runtime, do: current_runtime.node, else: "")
+     )}
   end
 
   @impl true
@@ -17,28 +22,28 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           <%= @error_message %>
         </div>
       <% end %>
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
         Thanks to this approach you can work with
         an arbitrary Elixir runtime.
         Make sure to give the node a name, for example:
       </p>
-      <div class="text-gray-500 markdown">
+      <div class="text-gray-700 markdown">
       <%= if Livebook.Config.shortnames? do %>
         <pre><code>iex --sname test</code></pre>
       <% else %>
         <pre><code>iex --name test@127.0.0.1</code></pre>
       <% end %>
       </div>
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Then enter the name of the node below:
       </p>
       <%= f = form_for :node, "#", phx_submit: "init" %>
-        <%= text_input f, :name, class: "input-base",
+        <%= text_input f, :name, value: @name, class: "input",
               placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
-        <%= submit "Connect", class: "mt-3 button-base" %>
+        <%= submit "Connect", class: "mt-3 button" %>
       </form>
     </div>
     """
@@ -51,11 +56,11 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
     case Runtime.Attached.init(node) do
       {:ok, runtime} ->
         Session.connect_runtime(socket.assigns.session_id, runtime)
-        {:noreply, assign(socket, error_message: nil)}
+        {:noreply, assign(socket, name: name, error_message: nil)}
 
       {:error, error} ->
         message = runtime_error_to_message(error)
-        {:noreply, assign(socket, error_message: message)}
+        {:noreply, assign(socket, name: name, error_message: message)}
     end
   end
 

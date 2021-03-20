@@ -44,7 +44,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
       assert assert {:error, {:live_redirect, %{to: to}}} =
                       view
-                      |> element("button", "Fork")
+                      |> element(~s{button[phx-click="fork"]}, "Fork")
                       |> render_click()
 
       assert to =~ "/sessions/"
@@ -60,7 +60,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_change(%{path: path})
 
       assert view
-             |> element("button[disabled]", "Fork")
+             |> element(~s{button[phx-click="fork"][disabled]}, "Fork")
              |> has_element?()
     end
 
@@ -74,7 +74,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_change(%{path: path})
 
       assert view
-             |> element("button[disabled]", "Fork")
+             |> element(~s{button[phx-click="fork"][disabled]}, "Fork")
              |> has_element?()
     end
   end

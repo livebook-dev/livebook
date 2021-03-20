@@ -1,0 +1,79 @@
+/*
+Conditional elements display.
+
+Verious hooks and callbacks dynamically set attributes
+based on which we hide/show certain elements.
+This way we don't have to engage the server in
+solely client-side operations.
+*/
+
+/* === Global === */
+
+[data-element="menu"]:not([data-js-shown]) {
+  @apply hidden;
+}
+
+/* === Session === */
+
+[data-element="session"]:not([data-js-insert-mode])
+  [data-element="insert-indicator"] {
+  @apply hidden;
+}
+
+[data-element="session"]
+  [data-element="cell"][data-type="markdown"]
+  [data-element="editor-box"] {
+  @apply hidden;
+}
+
+[data-element="session"][data-js-insert-mode]
+  [data-element="cell"][data-type="markdown"][data-js-focused]
+  [data-element="editor-box"] {
+  @apply block;
+}
+
+[data-element="session"][data-js-insert-mode]
+  [data-element="cell"][data-type="markdown"][data-js-focused]
+  [data-element="enable-insert-mode-button"] {
+  @apply hidden;
+}
+
+[data-element="cell"][data-js-focused] {
+  @apply border-blue-300 border-opacity-100;
+}
+
+[data-element="cell"]:not([data-js-focused]) [data-element="actions"] {
+  @apply invisible;
+}
+
+[data-element="cell"]:not([data-js-focused]):hover
+  [data-element="primary-actions"] {
+  @apply visible;
+}
+
+[data-element="section-list-item"][data-js-is-viewed] {
+  @apply text-gray-800;
+}
+
+[data-element="cell"]:not([data-js-focused]):hover
+  [data-element="cell-focus-indicator"] {
+  @apply bg-blue-200;
+}
+
+[data-element="cell"][data-js-focused] [data-element="cell-focus-indicator"] {
+  @apply bg-blue-300;
+}
+
+[data-element="session"]:not([data-js-sections-panel-expanded])
+  [data-element="sections-panel"] {
+  @apply hidden;
+}
+
+[data-element="session"][data-js-sections-panel-expanded]
+  [data-element="sections-panel-toggle"] {
+  @apply text-gray-50;
+}
+
+[data-element="section-headline"]:not(:hover) [data-element="section-name"]:not(:focus) + [data-element="section-actions"] {
+  @apply hidden;
+}

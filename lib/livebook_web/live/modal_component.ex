@@ -4,7 +4,7 @@ defmodule LivebookWeb.ModalComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="fixed z-10 inset-0"
+    <div class="fixed z-40 inset-0"
       id="<%= @id %>">
 
       <!-- Modal container -->

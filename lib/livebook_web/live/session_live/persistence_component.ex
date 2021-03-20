@@ -12,49 +12,46 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-3">
-      <h3 class="text-lg font-medium text-gray-900">
-        Configure file
-      </h3>
-      <div class="w-full flex-col space-y-3">
-        <p class="text-gray-500">
-          Specify where the notebook should be automatically persisted.
-        </p>
-        <div>
-          <form phx-change="set_persistence_type" phx-target="<%= @myself %>">
-            <div class="radio-button-group">
-              <label class="radio-button">
-                <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "file", checked: @path != nil %>
-                <span class="radio-button__label">Save to file</span>
-              </label>
-              <label class="radio-button">
-                <%= tag :input, class: "radio-button__input", type: "radio", name: "type", value: "memory", checked: @path == nil %>
-                <span class="radio-button__label">Memory only</span>
-              </label>
-            </div>
-          </form>
+    <div class="w-full flex-col space-y-5">
+      <p class="text-gray-700">
+        Specify where the notebook should be automatically persisted.
+      </p>
+      <div class="flex space-x-4">
+        <%= content_tag :button, "Save to file",
+          class: "choice-button #{if(@path != nil, do: "active")}",
+          phx_click: "set_persistence_type",
+          phx_value_type: "file",
+          phx_target: @myself %>
+        <%= content_tag :button, "Memory only",
+          class: "choice-button #{if(@path == nil, do: "active")}",
+          phx_click: "set_persistence_type",
+          phx_value_type: "memory",
+          phx_target: @myself %>
+      </div>
+      <%= if @path != nil do %>
+        <div class="h-full h-52">
+          <%= live_component @socket, LivebookWeb.PathSelectComponent,
+            id: "path_select",
+            path: @path,
+            extnames: [LiveMarkdown.extension()],
+            running_paths: paths(@session_summaries),
+            target: @myself %>
         </div>
+      <% end %>
+      </div>
+    <div class="flex items-end justify-between">
+      <div>
         <%= if @path != nil do %>
-          <div class="w-full container flex flex-col space-y-4">
-            <%= live_component @socket, LivebookWeb.PathSelectComponent,
-              id: "path_select",
-              path: @path,
-              extnames: [LiveMarkdown.extension()],
-              running_paths: paths(@session_summaries),
-              target: @myself %>
-          </div>
           <div class="text-gray-500 text-sm">
             <%= normalize_path(@path) %>
           </div>
         <% end %>
-        </div>
-      <div class="flex justify-end">
-        <%= content_tag :button, "Done",
-          class: "button-base button-primary",
-          phx_click: "done",
-          phx_target: @myself,
-          disabled: not path_savable?(normalize_path(@path), @session_summaries) %>
       </div>
+      <%= content_tag :button, "Save",
+        class: "button button-primary",
+        phx_click: "save",
+        phx_target: @myself,
+        disabled: not path_savable?(normalize_path(@path), @session_summaries) or normalize_path(@path) == @current_path %>
     </div>
     """
   end
@@ -74,11 +71,10 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     {:noreply, assign(socket, path: path)}
   end
 
-  def handle_event("done", %{}, socket) do
+  def handle_event("save", %{}, socket) do
     path = normalize_path(socket.assigns.path)
     Session.set_path(socket.assigns.session_id, path)
-
-    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+    {:noreply, socket}
   end
 
   defp default_path() do

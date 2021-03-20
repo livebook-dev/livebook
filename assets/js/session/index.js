@@ -44,8 +44,14 @@ const Session = {
     updateSectionListHighlight();
 
     getNotebook().addEventListener("scroll", (event) => {
-      updateSectionListHighlight()
+      updateSectionListHighlight();
     });
+
+    document
+      .querySelector(`[data-element="sections-panel-toggle"]`)
+      .addEventListener("click", (event) => {
+        this.el.toggleAttribute("data-js-sections-panel-expanded");
+      });
 
     // Server events
 
@@ -102,12 +108,13 @@ function handleDocumentKeyDown(hook, event) {
         escapeInsertMode(hook);
       }
     } else if (
-      hook.state.focusedCellType === "elixir" &&
       cmd &&
       key === "Enter"
     ) {
       cancelEvent(event);
-      queueFocusedCellEvaluation(hook);
+      if (hook.state.focusedCellType === "elixir") {
+        queueFocusedCellEvaluation(hook);
+      }
     }
   } else {
     // Ignore inputs and notebook/section title fields

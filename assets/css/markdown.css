@@ -5,27 +5,27 @@
 }
 
 .markdown h1 {
-  @apply text-gray-900 font-semibold text-4xl my-4;
+  @apply text-gray-800 font-semibold text-3xl my-4;
 }
 
 .markdown h2 {
-  @apply text-gray-900 font-semibold text-3xl my-4;
+  @apply text-gray-800 font-semibold text-2xl my-4;
 }
 
 .markdown h3 {
-  @apply text-gray-900 font-semibold text-2xl my-4;
+  @apply text-gray-800 font-semibold text-xl my-4;
 }
 
 .markdown h4 {
-  @apply text-gray-900 font-semibold text-xl my-4;
+  @apply text-gray-800 font-semibold text-lg my-4;
 }
 
 .markdown h5 {
-  @apply text-gray-900 font-semibold text-lg my-4;
+  @apply text-gray-800 font-semibold text-base my-4;
 }
 
 .markdown h6 {
-  @apply text-gray-900 font-semibold text-base my-4;
+  @apply text-gray-800 font-semibold text-base my-4;
 }
 
 .markdown p {
@@ -122,13 +122,13 @@
 
 /* Overrides for user-entered markdown */
 
-.cell .markdown h1,
-.cell .markdown h2 {
+[data-element="cell"] .markdown h1,
+[data-element="cell"] .markdown h2 {
   font-size: 0;
 }
 
-.cell .markdown h1:after,
-.cell .markdown h2:after {
+[data-element="cell"] .markdown h1:after,
+[data-element="cell"] .markdown h2:after {
   @apply text-red-400 text-base font-medium;
   content: "warning: heading levels 1 and 2 are reserved for notebook and section names, please use heading 3 and above.";
 }

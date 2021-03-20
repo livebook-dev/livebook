@@ -9,26 +9,47 @@ defmodule LivebookWeb.PathSelectComponent do
   # * `extnames` - a list of file extensions that should be shown
   #
   # The target receives `set_path` events with `%{"path" => path}` payload.
+  #
+  # Optionally inner block may be passed (e.g. with action buttons)
+  # and it's rendered next to the text input.
+
+  @impl true
+  def mount(socket) do
+    inner_block = Map.get(socket.assigns, :inner_block, nil)
+    {:ok, assign(socket, inner_block: inner_block)}
+  end
 
   @impl true
   def render(assigns) do
     ~L"""
-    <form phx-change="set_path" phx-submit="set_path" <%= if @target, do: "phx-target=#{@target}" %>>
-      <input class="input-base"
-        id="input-path"
-        phx-hook="FocusOnUpdate"
-        type="text"
-        name="path"
-        placeholder="File"
-        value="<%= @path %>"
-        spellcheck="false"
-        autocomplete="off" />
-    </form>
-    <div class="h-80 -m-1 p-1 overflow-y-auto tiny-scrollbar">
-      <div class="grid grid-cols-4 gap-2">
-        <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
-          <%= render_file(file, @target) %>
+    <div class="h-full flex flex-col">
+      <div class="flex space-x-5 items-center mb-4">
+        <form class="flex-grow"
+          phx-change="set_path"
+          phx-submit="set_path"
+          <%= if @target, do: "phx-target=#{@target}" %>>
+          <input class="input"
+            id="input-path"
+            phx-hook="FocusOnUpdate"
+            type="text"
+            name="path"
+            placeholder="File"
+            value="<%= @path %>"
+            spellcheck="false"
+            autocomplete="off" />
+        </form>
+        <%= if @inner_block do %>
+          <div>
+            <%= render_block(@inner_block) %>
+          </div>
         <% end %>
+      </div>
+      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
+        <div class="grid grid-cols-4 gap-2">
+          <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
+            <%= render_file(file, @target) %>
+          <% end %>
+        </div>
       </div>
     </div>
     """

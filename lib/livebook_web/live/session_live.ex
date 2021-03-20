@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook}
 
   @impl true
   def mount(%{"id" => session_id}, _session, socket) do
@@ -44,20 +44,13 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <%= if @live_action == :file do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceComponent,
-            id: :file_modal,
+    <%= if @live_action == :settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.SettingsComponent,
+            id: :settings_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
+            tab: @tab,
             session_id: @session_id,
-            path: @data.path %>
-    <% end %>
-
-    <%= if @live_action == :runtime do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
-            id: :runtime_modal,
-            return_to: Routes.session_path(@socket, :page, @session_id),
-            session_id: @session_id,
-            runtime: @data.runtime %>
+            data: @data %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -79,11 +72,28 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200">
+      <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
+        <%= live_patch to: Routes.home_path(@socket, :page) do %>
+          <div class="h-10 w-10 flex items-center justify-center text-white bg-blue-600 font-semibold rounded-lg">
+            Lb
+          </div>
+        <% end %>
+        <button class="text-2xl text-gray-600 hover:text-gray-50" data-element="sections-panel-toggle">
+          <%= remix_icon("booklet-fill") %>
+        </button>
+        <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file") do %>
+          <%= remix_icon("settings-4-fill", class: "text-2xl text-gray-600 hover:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}") %>
+        <% end %>
+        <div class="flex-grow"></div>
+        <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
+          <%= remix_icon("keyboard-box-fill", class: "text-2xl text-gray-600 hover:text-gray-50") %>
+        <% end %>
+      </div>
+      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200" data-element="sections-panel">
         <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
           data-element="section-list">
           <%= for section <- @data.notebook.sections do %>
-            <button class="py-2 px-4 rounded-l-md text-left hover:text-current text-gray-500"
+            <button class="py-2 px-4 text-left hover:text-gray-800 text-gray-500"
               data-element="section-list-item"
               data-section-id="<%= section.id %>">
               <%= section.name %>
@@ -96,44 +106,11 @@ defmodule LivebookWeb.SessionLive do
             </div>
           </button>
         </div>
-        <%= live_patch to: Routes.session_path(@socket, :runtime, @session_id) do %>
-          <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
-            <%= remix_icon("cpu-line", class: "text-xl text-gray-400") %>
-            <span><%= runtime_description(@data.runtime) %></span>
-          </div>
-        <% end %>
-        <%= live_patch to: Routes.session_path(@socket, :file, @session_id) do %>
-          <div class="text-sm text-gray-500 text-medium px-4 py-2 border-b border-gray-200 flex space-x-2 items-center hover:bg-gray-200">
-            <%= if @data.path do %>
-              <%= if @data.dirty do %>
-                <%= remix_icon("refresh-line", class: "text-xl text-blue-600") %>
-              <% else %>
-                <%= remix_icon("checkbox-circle-line", class: "text-xl text-green-400") %>
-              <% end %>
-              <span>
-                <%= Path.basename(@data.path) %>
-              </span>
-            <% else %>
-              <%= remix_icon("file-code-line", class: "text-xl text-gray-400") %>
-              <span>
-                No file choosen
-              </span>
-            <% end %>
-          </div>
-        <% end %>
-        <div class="p-4 flex space-x-2">
-          <%= live_patch to: Routes.home_path(@socket, :page) do %>
-            <%= remix_icon("home-2-line", class: "text-2xl text-gray-600 hover:text-current") %>
-          <% end %>
-          <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
-            <%= remix_icon("question-line", class: "text-2xl text-gray-600 hover:text-current") %>
-          <% end %>
-        </div>
       </div>
-      <div class="flex-grow px-6 py-8 flex overflow-y-auto" data-element="notebook">
-        <div class="max-w-screen-lg w-full mx-auto">
-          <div class="mb-8">
-            <h1 class="text-gray-900 font-semibold text-4xl pb-2 border-b-2 border-transparent hover:border-blue-100 focus:border-blue-300"
+      <div class="flex-grow overflow-y-auto" data-element="notebook">
+        <div class="py-8 px-16 max-w-screen-lg w-full mx-auto">
+          <div class="pb-4 mb-6 border-b border-gray-200">
+            <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
               contenteditable
               spellcheck="false"
@@ -141,7 +118,7 @@ defmodule LivebookWeb.SessionLive do
               phx-hook="ContentEditable"
               data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
           </div>
-          <div class="flex flex-col space-y-16">
+          <div class="flex flex-col w-full space-y-16">
             <%= for section <- @data.notebook.sections do %>
               <%= live_component @socket, LivebookWeb.SectionComponent,
                     id: section.id,
@@ -165,6 +142,10 @@ defmodule LivebookWeb.SessionLive do
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
+  end
+
+  def handle_params(%{"tab" => tab}, _url, socket) do
+    {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -438,11 +419,6 @@ defmodule LivebookWeb.SessionLive do
     index = Enum.find_index(section.cells, &(&1 == cell))
     Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
   end
-
-  defp runtime_description(nil), do: "No runtime"
-  defp runtime_description(%Runtime.ElixirStandalone{}), do: "Elixir standalone runtime"
-  defp runtime_description(%Runtime.MixStandalone{}), do: "Mix standalone runtime"
-  defp runtime_description(%Runtime.Attached{}), do: "Attached runtime"
 
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)

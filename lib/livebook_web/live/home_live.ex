@@ -17,56 +17,81 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="container max-w-4xl w-full mx-auto p-4 pb-8 flex flex-col items-center space-y-4">
-      <div class="w-full flex justify-end">
-        <button class="button-base button-primary"
-          phx-click="new">
-          New Notebook
-        </button>
-      </div>
-      <div class="w-full flex flex-col space-y-4">
-        <%= live_component @socket, LivebookWeb.PathSelectComponent,
-          id: "path_select",
-          path: @path,
-          extnames: [LiveMarkdown.extension()],
-          running_paths: paths(@session_summaries),
-          target: nil %>
-        <div class="flex justify-end space-x-2">
-          <%= content_tag :button,
-            class: "button-base",
-            phx_click: "fork",
-            disabled: not path_forkable?(@path) do %>
-            <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
-            <span>Fork</span>
-          <% end %>
-          <%= if path_running?(@path, @session_summaries) do %>
-            <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
-              class: "button-base button-primary" %>
-          <% else %>
-            <%= content_tag :button, "Open",
-              class: "button-base button-primary",
-              phx_click: "open",
-              disabled: not path_openable?(@path, @session_summaries) %>
-          <% end %>
-        </div>
-      </div>
-      <div class="w-full pt-24">
-        <h3 class="text-xl font-semibold text-gray-800 mb-5">
-          Running Sessions
-        </h3>
-        <%= if @session_summaries == [] do %>
-          <div class="text-gray-500 text-medium">
-            No sessions currently running, you can create one above.
+    <div class="flex flex-grow h-full">
+      <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
+        <%= live_patch to: Routes.home_path(@socket, :page) do %>
+          <div class="h-10 w-10 flex items-center justify-center text-white bg-blue-600 font-semibold rounded-lg">
+            Lb
           </div>
-        <% else %>
-          <%= live_component @socket, LivebookWeb.SessionsComponent,
-            id: "sessions_list",
-            session_summaries: @session_summaries %>
         <% end %>
+      </div>
+      <div class="flex-grow px-6 py-8 overflow-y-auto">
+        <div class="max-w-screen-lg w-full mx-auto p-4 pb-8 flex flex-col items-center space-y-4">
+          <div class="w-full flex items-center justify-between pb-4 border-b border-gray-200">
+            <div class="text-2xl text-gray-800 font-semibold">
+              Livebook
+            </div>
+            <button class="button button-primary"
+              phx-click="new">
+              New Notebook
+            </button>
+          </div>
+          <div class="w-full h-80">
+            <%= live_component @socket, LivebookWeb.PathSelectComponent,
+              id: "path_select",
+              path: @path,
+              extnames: [LiveMarkdown.extension()],
+              running_paths: paths(@session_summaries),
+              target: nil do %>
+              <div class="flex justify-end space-x-2">
+                <%= content_tag :button,
+                  class: "button",
+                  phx_click: "fork",
+                  disabled: not path_forkable?(@path) do %>
+                  <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
+                  <span>Fork</span>
+                <% end %>
+                <%= if path_running?(@path, @session_summaries) do %>
+                  <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
+                    class: "button button-primary" %>
+                <% else %>
+                  <%= content_tag :button, "Open",
+                    class: "button button-primary",
+                    phx_click: "open",
+                    disabled: not path_openable?(@path, @session_summaries) %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          <div class="w-full py-12">
+            <h3 class="text-xl font-semibold text-gray-800 mb-5">
+              Running Sessions
+            </h3>
+            <%= if @session_summaries == [] do %>
+              <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+                <div>
+                  <%= remix_icon("windy-line", class: "text-gray-400 text-xl") %>
+                </div>
+                <div class="text-gray-600">
+                  You do not have any running sessions.
+                  <br>
+                  Please create a new one by clicking <span class="font-semibold">“New Notebook”</span>
+                </div>
+              </div>
+            <% else %>
+              <%= live_component @socket, LivebookWeb.SessionsComponent,
+                id: "sessions_list",
+                session_summaries: @session_summaries %>
+            <% end %>
+          </div>
+        </div>
       </div>
     </div>
     """
   end
+
+  @impl true
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
@@ -100,6 +125,12 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:session_deleted, id}, socket) do
     session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
     {:noreply, assign(socket, session_summaries: session_summaries)}
+  end
+
+  def handle_info({:fork_session, id}, socket) do
+    data = Session.get_data(id)
+    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
+    create_session(socket, notebook: notebook)
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

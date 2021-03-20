@@ -1,15 +1,15 @@
 /* Buttons */
 
-.button-base {
+.button {
   @apply px-5 py-2 bg-white rounded-lg border border-gray-200 font-medium text-sm text-gray-600;
 }
 
-.button-base:not(:disabled) {
+.button:not(:disabled) {
   @apply hover:bg-gray-50;
 }
 
-.button-base:disabled {
-  @apply opacity-50 cursor-default;
+.button:disabled {
+  @apply cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400;
 }
 
 .button-sm {
@@ -17,11 +17,11 @@
 }
 
 .button-danger {
-  @apply border border-red-300 text-red-500;
+  @apply bg-red-50 border border-red-600 text-red-600;
 }
 
 .button-danger:not(:disabled) {
-  @apply hover:bg-red-50;
+  @apply hover:bg-red-100;
 }
 
 .button-primary {
@@ -29,50 +29,34 @@
 }
 
 .button-primary:not(:disabled) {
-  @apply hover:bg-blue-500;
+  @apply hover:bg-blue-700;
+}
+
+.choice-button {
+  @apply px-5 py-2 rounded-lg border text-gray-700 bg-white border-gray-200;
+}
+
+.choice-button.active {
+  @apply bg-blue-100 border-blue-600;
 }
 
 /* Form fields */
 
-.input-base {
-  @apply w-full p-3 bg-white border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
+.input {
+  @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
 }
 
-.checkbox-base {
+.checkbox {
   @apply h-5 w-5 appearance-none border border-gray-300 rounded text-blue-600 cursor-pointer;
 }
 
-.checkbox-base:checked {
+.checkbox:checked {
   background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
   border-color: transparent;
   background-color: currentColor;
   background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
-}
-
-.radio-button-group {
-  @apply flex;
-}
-
-.radio-button-group .radio-button:first-child .radio-button__label {
-  @apply rounded-l-md border-l;
-}
-
-.radio-button-group .radio-button:last-child .radio-button__label {
-  @apply rounded-r-md;
-}
-
-.radio-button .radio-button__label {
-  @apply block px-3 py-1 cursor-pointer border border-l-0 border-gray-700 text-gray-700 hover:bg-gray-100;
-}
-
-.radio-button .radio-button__input {
-  @apply hidden;
-}
-
-.radio-button .radio-button__input[checked] + .radio-button__label {
-  @apply bg-gray-700 text-white;
 }
 
 /* Custom scrollbars */
@@ -89,4 +73,24 @@
 
 .tiny-scrollbar::-webkit-scrollbar-track {
   @apply bg-gray-100;
+}
+
+/* Tabs */
+
+.tabs {
+  @apply w-full flex;
+}
+
+.tabs .tab {
+  @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100;
+}
+
+.tabs .tab.active {
+  @apply text-blue-600 border-blue-600;
+}
+
+/* Icons */
+
+.action-icon {
+  @apply text-gray-400 hover:text-gray-800;
 }

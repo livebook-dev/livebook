@@ -6,12 +6,12 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   @type status :: :initial | :initializing | :finished
 
   @impl true
-  def mount(_params, %{"session_id" => session_id}, socket) do
+  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
     {:ok,
      assign(socket,
        session_id: session_id,
        status: :initial,
-       path: default_path(),
+       path: if(current_runtime, do: current_runtime.project_path, else: default_path()),
        outputs: [],
        emitter: nil
      ), temporary_assigns: [outputs: []]}
@@ -21,19 +21,21 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   def render(assigns) do
     ~L"""
     <div class="flex-col space-y-3">
-      <p class="text-gray-500">
+      <p class="text-gray-700">
         Start a new local node in the context of a Mix project.
         This way all your code and dependencies will be available
         within the notebook.
       </p>
       <%= if @status == :initial do %>
-        <%= live_component @socket, LivebookWeb.PathSelectComponent,
-          id: "path_select",
-          path: @path,
-          extnames: [],
-          running_paths: [],
-          target: nil %>
-        <%= content_tag :button, "Connect", class: "button-base", phx_click: "init", disabled: not mix_project_root?(@path) %>
+        <div class="h-full h-52">
+          <%= live_component @socket, LivebookWeb.PathSelectComponent,
+            id: "path_select",
+            path: @path,
+            extnames: [],
+            running_paths: [],
+            target: nil %>
+        </div>
+        <%= content_tag :button, "Connect", class: "button", phx_click: "init", disabled: not mix_project_root?(@path) %>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
