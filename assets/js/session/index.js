@@ -37,6 +37,12 @@ const Session = {
 
     document.addEventListener("mousedown", this.handleDocumentMouseDown);
 
+    this.handleDocumentDoubleClick = (event) => {
+      handleDocumentDoubleClick(this, event);
+    };
+
+    document.addEventListener("dblclick", this.handleDocumentDoubleClick);
+
     getSectionList().addEventListener("click", (event) => {
       handleSectionListClick(this, event);
     });
@@ -82,6 +88,7 @@ const Session = {
   destroyed() {
     document.removeEventListener("keydown", this.handleDocumentKeyDown);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
+    document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
   },
 };
 
@@ -107,10 +114,7 @@ function handleDocumentKeyDown(hook, event) {
       if (!event.target.closest(".monaco-inputbox")) {
         escapeInsertMode(hook);
       }
-    } else if (
-      cmd &&
-      key === "Enter"
-    ) {
+    } else if (cmd && key === "Enter") {
       cancelEvent(event);
       if (hook.state.focusedCellType === "elixir") {
         queueFocusedCellEvaluation(hook);
@@ -199,6 +203,19 @@ function handleDocumentMouseDown(hook, event) {
     if (hook.state.insertMode !== insertMode) {
       setInsertMode(hook, insertMode);
     }
+  }
+}
+
+/**
+ * Enters insert mode when a markdown cell is double-clicked.
+ */
+function handleDocumentDoubleClick(hook, event) {
+  const markdownCell = event.target.closest(
+    `[data-element="cell"][data-type="markdown"]`
+  );
+
+  if (markdownCell && hook.state.focusedCellId && !hook.state.insertMode) {
+    setInsertMode(hook, true);
   }
 }
 
