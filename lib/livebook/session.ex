@@ -546,7 +546,10 @@ defmodule Livebook.Session do
         [] -> :initial
       end
 
-    Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref)
+    file = (state.data.path || "") <> "#cell"
+    opts = [file: file]
+
+    Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref, opts)
 
     state
   end

@@ -8,7 +8,7 @@ defmodule Livebook.EvaluatorTest do
     %{evaluator: evaluator}
   end
 
-  describe "evaluate_code/4" do
+  describe "evaluate_code/6" do
     test "given a valid code returns evaluation result", %{evaluator: evaluator} do
       code = """
       x = 1
@@ -106,6 +106,17 @@ defmodule Livebook.EvaluatorTest do
                         {:error, _kind, _error, ^expected_stacktrace}},
                        1000
       end)
+    end
+
+    test "given file option sets it in evaluation environment", %{evaluator: evaluator} do
+      code = """
+      __DIR__
+      """
+
+      opts = [file: "/path/dir/file"]
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, :initial, opts)
+
+      assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"}}
     end
   end
 

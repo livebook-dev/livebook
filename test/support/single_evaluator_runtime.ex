@@ -30,9 +30,17 @@ defimpl Livebook.Runtime, for: LivebookTest.Runtime.SingleEvaluator do
         code,
         _container_ref,
         evaluation_ref,
-        prev_evaluation_ref \\ :initial
+        prev_evaluation_ref \\ :initial,
+        opts \\ []
       ) do
-    Evaluator.evaluate_code(runtime.evaluator, self(), code, evaluation_ref, prev_evaluation_ref)
+    Evaluator.evaluate_code(
+      runtime.evaluator,
+      self(),
+      code,
+      evaluation_ref,
+      prev_evaluation_ref,
+      opts
+    )
 
     :ok
   end
