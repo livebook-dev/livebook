@@ -67,7 +67,7 @@ defmodule Livebook.Evaluator do
 
   ## Options
 
-  * `:file` - file to which the evaluated code belonds. Most importantly,
+  * `:file` - file to which the evaluated code belongs. Most importantly,
     this has an impact on the value of `__DIR__`.
   """
   @spec evaluate_code(t(), pid(), String.t(), ref(), ref(), keyword()) :: :ok

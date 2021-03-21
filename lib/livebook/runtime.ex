@@ -44,7 +44,7 @@ defprotocol Livebook.Runtime do
 
   ## Options
 
-  * `:file` - file to which the evaluated code belonds. Most importantly,
+  * `:file` - file to which the evaluated code belongs. Most importantly,
     this has an impact on the value of `__DIR__`.
   """
   @spec evaluate_code(t(), String.t(), ref(), ref(), ref(), keyword()) :: :ok
