@@ -1,3 +1,5 @@
+import monaco from "../monaco";
+
 /**
  * Defines custom auto-formatting behavior for Elixir.
  *
