@@ -73,13 +73,21 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     ErlDist.Manager.stop(runtime.node)
   end
 
-  def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
+  def evaluate_code(
+        runtime,
+        code,
+        container_ref,
+        evaluation_ref,
+        prev_evaluation_ref \\ :initial,
+        opts \\ []
+      ) do
     ErlDist.Manager.evaluate_code(
       runtime.node,
       code,
       container_ref,
       evaluation_ref,
-      prev_evaluation_ref
+      prev_evaluation_ref,
+      opts
     )
   end
 

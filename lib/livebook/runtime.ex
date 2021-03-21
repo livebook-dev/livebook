@@ -41,9 +41,21 @@ defprotocol Livebook.Runtime do
 
   * `{:evaluation_stdout, ref, string}` - output captured during evaluation
   * `{:evaluation_response, ref, response}` - final result of the evaluation
+
+  ## Options
+
+  * `:file` - file to which the evaluated code belongs. Most importantly,
+    this has an impact on the value of `__DIR__`.
   """
-  @spec evaluate_code(t(), String.t(), ref(), ref(), ref()) :: :ok
-  def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial)
+  @spec evaluate_code(t(), String.t(), ref(), ref(), ref(), keyword()) :: :ok
+  def evaluate_code(
+        runtime,
+        code,
+        container_ref,
+        evaluation_ref,
+        prev_evaluation_ref \\ :initial,
+        opts \\ []
+      )
 
   @doc """
   Disposes of evaluation identified by the given ref.

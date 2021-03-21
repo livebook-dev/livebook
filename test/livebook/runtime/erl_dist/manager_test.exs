@@ -28,7 +28,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
     end
   end
 
-  describe "evaluate_code/2" do
+  describe "evaluate_code/6" do
     test "spawns a new evaluator when necessary" do
       Manager.start()
       Manager.set_owner(node(), self())

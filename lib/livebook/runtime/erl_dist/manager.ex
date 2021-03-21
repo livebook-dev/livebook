@@ -49,12 +49,25 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
   See `Evaluator` for more details.
   """
-  @spec evaluate_code(node(), String.t(), Evaluator.ref(), Evaluator.ref(), Evaluator.ref()) ::
-          :ok
-  def evaluate_code(node, code, container_ref, evaluation_ref, prev_evaluation_ref \\ :initial) do
+  @spec evaluate_code(
+          node(),
+          String.t(),
+          Evaluator.ref(),
+          Evaluator.ref(),
+          Evaluator.ref(),
+          keyword()
+        ) :: :ok
+  def evaluate_code(
+        node,
+        code,
+        container_ref,
+        evaluation_ref,
+        prev_evaluation_ref \\ :initial,
+        opts \\ []
+      ) do
     GenServer.cast(
       {@name, node},
-      {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref}
+      {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref, opts}
     )
   end
 
@@ -153,7 +166,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   end
 
   def handle_cast(
-        {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref},
+        {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
@@ -163,7 +176,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
       state.owner,
       code,
       evaluation_ref,
-      prev_evaluation_ref
+      prev_evaluation_ref,
+      opts
     )
 
     {:noreply, state}

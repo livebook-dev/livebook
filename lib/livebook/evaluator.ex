@@ -64,10 +64,16 @@ defmodule Livebook.Evaluator do
 
   Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response}`.
   Note that response is transformed with the configured formatter (identity by default).
+
+  ## Options
+
+  * `:file` - file to which the evaluated code belongs. Most importantly,
+    this has an impact on the value of `__DIR__`.
   """
-  @spec evaluate_code(t(), pid(), String.t(), ref(), ref()) :: :ok
-  def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ :initial) when ref != :initial do
-    GenServer.cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref})
+  @spec evaluate_code(t(), pid(), String.t(), ref(), ref(), keyword()) :: :ok
+  def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ :initial, opts \\ [])
+      when ref != :initial do
+    GenServer.cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref, opts})
   end
 
   @doc """
@@ -107,10 +113,13 @@ defmodule Livebook.Evaluator do
   end
 
   @impl true
-  def handle_cast({:evaluate_code, send_to, code, ref, prev_ref}, state) do
+  def handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
 
     context = Map.get(state.contexts, prev_ref, state.contexts.initial)
+
+    file = Keyword.get(opts, :file, "nofile")
+    context = put_in(context.env.file, file)
 
     case eval(code, context.binding, context.env) do
       {:ok, result, binding, env} ->
