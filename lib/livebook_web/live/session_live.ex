@@ -78,16 +78,22 @@ defmodule LivebookWeb.SessionLive do
             Lb
           </div>
         <% end %>
-        <button class="text-2xl text-gray-600 hover:text-gray-50" data-element="sections-panel-toggle">
-          <%= remix_icon("booklet-fill") %>
-        </button>
-        <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file") do %>
-          <%= remix_icon("settings-4-fill", class: "text-2xl text-gray-600 hover:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}") %>
-        <% end %>
+        <span class="tooltip right distant" aria-label="Sections">
+          <button class="text-2xl text-gray-600 hover:text-gray-50" data-element="sections-panel-toggle">
+            <%= remix_icon("booklet-fill") %>
+          </button>
+        </span>
+        <span class="tooltip right distant" aria-label="Notebook settings">
+          <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file") do %>
+            <%= remix_icon("settings-4-fill", class: "text-2xl text-gray-600 hover:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}") %>
+          <% end %>
+        </span>
         <div class="flex-grow"></div>
-        <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
-          <%= remix_icon("keyboard-box-fill", class: "text-2xl text-gray-600 hover:text-gray-50") %>
-        <% end %>
+        <span class="tooltip right distant" aria-label="Keyboard shortcuts">
+          <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id) do %>
+            <%= remix_icon("keyboard-box-fill", class: "text-2xl text-gray-600 hover:text-gray-50") %>
+          <% end %>
+        </span>
       </div>
       <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200" data-element="sections-panel">
         <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"

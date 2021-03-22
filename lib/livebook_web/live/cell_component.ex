@@ -18,23 +18,31 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="mb-1 flex items-center justify-end" data-element="actions">
       <div class="relative z-10 flex items-center justify-end space-x-2">
-        <button data-element="enable-insert-mode-button">
-          <%= remix_icon("pencil-line", class: "text-xl action-icon") %>
-        </button>
-        <button phx-click="move_cell"
-          phx-value-cell_id="<%= @cell.id %>"
-          phx-value-offset="-1">
-          <%= remix_icon("arrow-up-s-line", class: "text-xl action-icon") %>
-        </button>
-        <button phx-click="move_cell"
-          phx-value-cell_id="<%= @cell.id %>"
-          phx-value-offset="1">
-          <%= remix_icon("arrow-down-s-line", class: "text-xl action-icon") %>
-        </button>
-        <button phx-click="delete_cell"
-          phx-value-cell_id="<%= @cell.id %>">
-          <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
-        </button>
+        <span class="tooltip top" aria-label="Edit content">
+          <button data-element="enable-insert-mode-button">
+            <%= remix_icon("pencil-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Move up">
+          <button phx-click="move_cell"
+            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-offset="-1">
+            <%= remix_icon("arrow-up-s-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Move down">
+          <button phx-click="move_cell"
+            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-offset="1">
+            <%= remix_icon("arrow-down-s-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Delete">
+          <button phx-click="delete_cell"
+            phx-value-cell_id="<%= @cell.id %>">
+            <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
       </div>
     </div>
 
@@ -79,23 +87,31 @@ defmodule LivebookWeb.CellComponent do
         <% end %>
       </div>
       <div class="relative z-10 flex items-center justify-end space-x-2">
-        <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id) do %>
-          <%= remix_icon("list-settings-line", class: "text-xl action-icon") %>
-        <% end %>
-        <button phx-click="move_cell"
-          phx-value-cell_id="<%= @cell.id %>"
-          phx-value-offset="-1">
-          <%= remix_icon("arrow-up-s-line", class: "text-xl action-icon") %>
-        </button>
-        <button phx-click="move_cell"
-          phx-value-cell_id="<%= @cell.id %>"
-          phx-value-offset="1">
-          <%= remix_icon("arrow-down-s-line", class: "text-xl action-icon") %>
-        </button>
-        <button phx-click="delete_cell"
-          phx-value-cell_id="<%= @cell.id %>">
-          <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
-        </button>
+        <span class="tooltip top" aria-label="Cell settings">
+          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id) do %>
+            <%= remix_icon("list-settings-line", class: "text-xl action-icon") %>
+          <% end %>
+        </span>
+        <span class="tooltip top" aria-label="Move up">
+          <button phx-click="move_cell"
+            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-offset="-1">
+            <%= remix_icon("arrow-up-s-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Move down">
+          <button phx-click="move_cell"
+            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-offset="1">
+            <%= remix_icon("arrow-down-s-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Delete">
+          <button phx-click="delete_cell"
+            phx-value-cell_id="<%= @cell.id %>">
+            <%= remix_icon("delete-bin-6-line", class: "text-xl action-icon") %>
+          </button>
+        </span>
       </div>
     </div>
 
