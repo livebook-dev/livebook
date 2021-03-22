@@ -16,6 +16,8 @@ jobs:
           elixir-version: '1.11.3'
       - name: Install mix dependencies
         run: mix deps.get
+      - name: Check formatting
+        run: mix format --check-formatted
       - name: Run tests
         run: mix test
       - name: Install Node
@@ -24,5 +26,7 @@ jobs:
           node-version: '14.x'
       - name: Install npm dependencies
         run: npm ci --prefix assets
-      - name: Run tests
+      - name: Check assets formatting
+        run: npm run format-check --prefix assets
+      - name: Run assets tests
         run: npm test --prefix assets
