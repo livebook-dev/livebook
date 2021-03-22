@@ -1,5 +1,9 @@
 import HyperList from "hyperlist";
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import {
+  getAttributeOrThrow,
+  parseBoolean,
+  parseInteger,
+} from "../lib/attribute";
 import { getLineHeight } from "../lib/utils";
 
 /**
@@ -9,6 +13,8 @@ import { getLineHeight } from "../lib/utils";
  * Configuration:
  *
  *   * `data-max-height` - the maximum height of the element, exceeding this height enables scrolling
+ *
+ *   * `data-follow` - whether to automatically scroll to the bottom as new lines appear
  *
  * The element should have two children:
  *
@@ -60,7 +66,19 @@ const VirtualizedLines = {
       this.props.maxHeight,
       this.state.lineHeight
     );
+
+    const scrollTop = Math.round(this.state.contentElement.scrollTop);
+    const maxScrollTop = Math.round(
+      this.state.contentElement.scrollHeight -
+        this.state.contentElement.clientHeight
+    );
+    const isAtTheEnd = scrollTop === maxScrollTop;
+
     this.virtualizedList.refresh(this.state.contentElement, config);
+
+    if (this.props.follow && isAtTheEnd) {
+      this.state.contentElement.scrollTop = this.state.contentElement.scrollHeight;
+    }
   },
 };
 
@@ -81,6 +99,7 @@ function hyperListConfig(templateElement, maxHeight, lineHeight) {
 function getProps(hook) {
   return {
     maxHeight: getAttributeOrThrow(hook.el, "data-max-height", parseInteger),
+    follow: getAttributeOrThrow(hook.el, "data-follow", parseBoolean),
   };
 }
 
