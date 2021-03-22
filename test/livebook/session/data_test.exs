@@ -665,6 +665,32 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
+    test "updates cell evaluation digest" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      %{cell_infos: %{"c1" => %{digest: digest}}} = data
+
+      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{
+                    validity_status: :evaluated,
+                    evaluation_status: :ready,
+                    evaluation_digest: ^digest
+                  }
+                },
+                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
     test "marks next queued cell in this section as evaluating if there is one" do
       data =
         data_after_operations!([
@@ -1046,6 +1072,25 @@ defmodule Livebook.Session.DataTest do
                 },
                 cell_infos: %{"c1" => %{revision: 1}}
               }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "updates cell digest based on the new content" do
+      data =
+        data_after_operations!([
+          {:client_join, self()},
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+        ])
+
+      %{cell_infos: %{"c1" => %{digest: digest}}} = data
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, self(), "c1", delta, 1}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{digest: new_digest}}}, _actions} =
+               Data.apply_operation(data, operation)
+
+      assert digest != new_digest
     end
 
     test "transforms the delta if the revision is not the most recent" do

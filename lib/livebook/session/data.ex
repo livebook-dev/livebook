@@ -52,7 +52,8 @@ defmodule Livebook.Session.Data do
           revision: cell_revision(),
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
-          evaluated_at: DateTime.t()
+          digest: String.t(),
+          evaluation_digest: String.t() | nil
         }
 
   @type cell_revision :: non_neg_integer()
@@ -125,7 +126,7 @@ defmodule Livebook.Session.Data do
     for section <- notebook.sections,
         cell <- section.cells,
         into: %{},
-        do: {cell.id, new_cell_info([])}
+        do: {cell.id, new_cell_info(cell, [])}
   end
 
   @doc """
@@ -415,7 +416,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(
       notebook: Notebook.insert_cell(data.notebook, section_id, index, cell),
-      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(data.client_pids))
+      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(cell, data.client_pids))
     )
   end
 
@@ -512,8 +513,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set_cell_info!(cell.id,
       validity_status: :evaluated,
-      evaluation_status: :ready,
-      evaluated_at: DateTime.utc_now()
+      evaluation_status: :ready
     )
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
@@ -553,7 +553,9 @@ defmodule Livebook.Session.Data do
 
             data_actions
             |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
-            |> set_cell_info!(id, evaluation_status: :evaluating)
+            |> update_cell_info!(id, fn info ->
+              %{info | evaluation_status: :evaluating, evaluation_digest: info.digest}
+            end)
             |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
             |> add_action({:start_evaluation, cell, section})
 
@@ -575,7 +577,11 @@ defmodule Livebook.Session.Data do
     |> set_section_info!(section.id, evaluating_cell_id: nil, evaluation_queue: [])
     |> reduce(
       section.cells,
-      &set_cell_info!(&1, &2.id, validity_status: :fresh, evaluation_status: :ready)
+      &set_cell_info!(&1, &2.id,
+        validity_status: :fresh,
+        evaluation_status: :ready,
+        evaluation_digest: nil
+      )
     )
   end
 
@@ -651,10 +657,18 @@ defmodule Livebook.Session.Data do
 
     new_source = JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
 
+    new_digest = compute_digest(new_source)
+
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
     |> update_cell_info!(cell.id, fn info ->
-      info = %{info | deltas: info.deltas ++ [transformed_new_delta], revision: info.revision + 1}
+      info = %{
+        info
+        | deltas: info.deltas ++ [transformed_new_delta],
+          revision: info.revision + 1,
+          digest: new_digest
+      }
+
       # Before receiving acknowledgement, the client receives all the other deltas,
       # so we can assume they are in sync with the server and have the same revision.
       info = put_in(info.revision_by_client_pid[client_pid], info.revision)
@@ -709,14 +723,15 @@ defmodule Livebook.Session.Data do
     }
   end
 
-  defp new_cell_info(client_pids) do
+  defp new_cell_info(cell, client_pids) do
     %{
       revision: 0,
       deltas: [],
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      evaluated_at: nil
+      digest: compute_digest(cell.source),
+      evaluation_digest: nil
     }
   end
 
@@ -769,6 +784,8 @@ defmodule Livebook.Session.Data do
   defp set_dirty(data_actions, dirty \\ true) do
     set!(data_actions, dirty: dirty)
   end
+
+  defp compute_digest(source), do: :erlang.md5(source)
 
   @doc """
   Finds the cell that's currently being evaluated in the given section.

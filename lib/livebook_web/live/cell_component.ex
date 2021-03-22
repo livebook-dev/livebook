@@ -249,55 +249,53 @@ defmodule LivebookWeb.CellComponent do
     |> String.split("\n")
   end
 
-  defp render_cell_status(%{evaluation_status: :evaluating}) do
-    assigns = %{}
-
-    ~L"""
-    <div class="flex items-center space-x-2">
-      <div class="text-xs text-gray-400">Evaluating</div>
-      <span class="flex relative h-3 w-3">
-        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-      </span>
-    </div>
-    """
+  defp render_cell_status(%{evaluation_status: :evaluating} = info) do
+    render_status_indicator(
+      "Evaluating",
+      "bg-blue-500",
+      "bg-blue-400",
+      info.digest != info.evaluation_digest
+    )
   end
 
   defp render_cell_status(%{evaluation_status: :queued}) do
-    assigns = %{}
+    render_status_indicator("Queued", "bg-gray-500", "bg-gray-400", false)
+  end
+
+  defp render_cell_status(%{validity_status: :evaluated} = info) do
+    render_status_indicator(
+      "Evaluated",
+      "bg-green-400",
+      nil,
+      info.digest != info.evaluation_digest
+    )
+  end
+
+  defp render_cell_status(%{validity_status: :stale} = info) do
+    render_status_indicator("Stale", "bg-yellow-200", nil, info.digest != info.evaluation_digest)
+  end
+
+  defp render_cell_status(_), do: nil
+
+  defp render_status_indicator(text, circle_class, animated_circle_class, show_changed) do
+    assigns = %{
+      text: text,
+      circle_class: circle_class,
+      animated_circle_class: animated_circle_class,
+      show_changed: show_changed
+    }
 
     ~L"""
-    <div class="flex items-center space-x-2">
-      <div class="text-xs text-gray-400">Queued</div>
+    <div class="flex items-center space-x-1">
+      <div class="flex text-xs text-gray-400">
+        <%= @text %>
+        <span class="<%= unless(@show_changed, do: "invisible") %>">*</span>
+      </div>
       <span class="flex relative h-3 w-3">
-        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-gray-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3 w-3 bg-gray-500"></span>
+        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
       </span>
     </div>
     """
   end
-
-  defp render_cell_status(%{validity_status: :evaluated}) do
-    assigns = %{}
-
-    ~L"""
-    <div class="flex items-center space-x-2">
-      <div class="text-xs text-gray-400">Evaluated</div>
-      <div class="h-3 w-3 rounded-full bg-green-400"></div>
-    </div>
-    """
-  end
-
-  defp render_cell_status(%{validity_status: :stale}) do
-    assigns = %{}
-
-    ~L"""
-    <div class="flex items-center space-x-2">
-      <div class="text-xs text-gray-400">Stale</div>
-      <div class="h-3 w-3 rounded-full bg-yellow-200"></div>
-    </div>
-    """
-  end
-
-  defp render_cell_status(_), do: nil
 end
