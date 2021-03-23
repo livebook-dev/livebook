@@ -11,7 +11,7 @@ Example usage:
 /* Tooltip element wrapping the actual hoverable element */
 .tooltip {
   position: relative;
-  --distance: 0px;
+  --distance: 4px;
   --arrow-size: 5px;
   --show-delay: 0.5s;
 }
@@ -55,12 +55,14 @@ Example usage:
   transition-delay: 0s;
 }
 
-.tooltip:hover:before {
+.tooltip:hover:before,
+.tooltip:focus-within:before {
   visibility: visible;
   transition-delay: var(--show-delay);
 }
 
-.tooltip:hover:after {
+.tooltip:hover:after,
+.tooltip:focus-within:after {
   visibility: visible;
   transition-delay: var(--show-delay);
 }

@@ -5,7 +5,7 @@
 }
 
 .button:not(:disabled) {
-  @apply hover:bg-gray-50;
+  @apply hover:bg-gray-50 focus:bg-gray-50;
 }
 
 .button:disabled {
@@ -21,7 +21,7 @@
 }
 
 .button-danger:not(:disabled) {
-  @apply hover:bg-red-100;
+  @apply hover:bg-red-100 focus:bg-red-100;
 }
 
 .button-primary {
@@ -29,7 +29,7 @@
 }
 
 .button-primary:not(:disabled) {
-  @apply hover:bg-blue-700;
+  @apply hover:bg-blue-700 focus:bg-blue-700;
 }
 
 .choice-button {
@@ -38,6 +38,18 @@
 
 .choice-button.active {
   @apply bg-blue-100 border-blue-600;
+}
+
+.icon-button {
+  @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800;
+}
+
+.icon-button:focus {
+  @apply rounded-full bg-gray-100;
+}
+
+.icon-button i {
+  line-height: 1;
 }
 
 /* Form fields */
@@ -87,10 +99,4 @@
 
 .tabs .tab.active {
   @apply text-blue-600 border-blue-600;
-}
-
-/* Icons */
-
-.action-icon {
-  @apply text-gray-400 hover:text-gray-800;
 }

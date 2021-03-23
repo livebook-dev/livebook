@@ -78,6 +78,7 @@ class LiveEditor {
       renderLineHighlight: "none",
       theme: "custom",
       fontFamily: "JetBrains Mono",
+      tabIndex: -1,
     });
 
     this.editor.getModel().updateOptions({
