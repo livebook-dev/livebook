@@ -17,8 +17,8 @@ defmodule LivebookWeb.SessionsComponent do
             </div>
           </div>
           <div class="relative">
-            <button data-element="menu-toggle">
-              <%= remix_icon("more-2-fill", class: "text-xl action-icon") %>
+            <button class="icon-button" data-element="menu-toggle">
+              <%= remix_icon("more-2-fill", class: "text-xl") %>
             </button>
             <div class="absolute right-0 z-20 rounded-lg shadow-center bg-white flex flex-col py-2" data-element="menu">
               <button class="flex space-x-3 px-5 py-2 items-center text-gray-500 hover:bg-gray-50"

@@ -91,6 +91,14 @@
 
 /* Icons */
 
-.action-icon {
-  @apply text-gray-400 hover:text-gray-800;
+.icon-button {
+  @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800;
+}
+
+.icon-button:focus {
+  @apply rounded-full bg-gray-100;
+}
+
+.icon-button i {
+  line-height: 1;
 }
