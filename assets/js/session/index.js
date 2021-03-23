@@ -56,7 +56,7 @@ const Session = {
     document
       .querySelector(`[data-element="sections-panel-toggle"]`)
       .addEventListener("click", (event) => {
-        this.el.toggleAttribute("data-js-sections-panel-expanded");
+        toggleSectionsPanel(this);
       });
 
     // Server events
@@ -142,6 +142,10 @@ function handleDocumentKeyDown(hook, event) {
       queueFocusedSectionEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "j"])) {
       queueChildCellsEvaluation(hook);
+    } else if (keyBuffer.tryMatch(["s", "s"])) {
+      toggleSectionsPanel(hook);
+    } else if (keyBuffer.tryMatch(["s", "n"])) {
+      showNotebookSettings(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
       cancelFocusedCellEvaluation(hook);
     } else if (keyBuffer.tryMatch(["?"])) {
@@ -264,6 +268,14 @@ function updateSectionListHighlight() {
 }
 
 // User action handlers (mostly keybindings)
+
+function toggleSectionsPanel(hook) {
+  hook.el.toggleAttribute("data-js-sections-panel-expanded");
+}
+
+function showNotebookSettings(hook) {
+  hook.pushEvent("show_notebook_settings", {});
+}
 
 function deleteFocusedCell(hook) {
   if (hook.state.focusedCellId) {
