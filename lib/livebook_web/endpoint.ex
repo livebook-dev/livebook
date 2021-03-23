@@ -19,8 +19,7 @@ defmodule LivebookWeb.Endpoint do
   # We use Escript for distributing Livebook, so we don't
   # have access to the files in priv/static at runtime in the prod environment.
   # To overcome this we load contents of those files at compilation time,
-  # so that they become a part of the executable and can be served
-  # from memory.
+  # so that they become a part of the executable and can be served from memory.
   defmodule AssetsMemoryProvider do
     use LivebookWeb.MemoryProvider,
       from: :livebook,
@@ -32,12 +31,21 @@ defmodule LivebookWeb.Endpoint do
       from: {:livebook, "priv/static_dev"}
   end
 
-  file_provider = if(Mix.env() == :prod, do: AssetsMemoryProvider, else: AssetsFileSystemProvider)
-
   # Serve static failes at "/"
+
+  if code_reloading? do
+    # In development we use assets from priv/static_dev (rebuilt dynamically on every change).
+    # Note that this directory doesn't contain predefined files (e.g. images),
+    # so we also use `AssetsMemoryProvider` to serve those from priv/static.
+    plug LivebookWeb.StaticPlug,
+      at: "/",
+      file_provider: AssetsFileSystemProvider,
+      gzip: false
+  end
+
   plug LivebookWeb.StaticPlug,
     at: "/",
-    file_provider: file_provider,
+    file_provider: AssetsMemoryProvider,
     gzip: true
 
   # Code reloading can be explicitly enabled under the

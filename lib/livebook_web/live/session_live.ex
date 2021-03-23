@@ -74,9 +74,7 @@ defmodule LivebookWeb.SessionLive do
       phx-hook="Session">
       <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
-          <div class="h-10 w-10 flex items-center justify-center text-white bg-blue-600 font-semibold rounded-lg">
-            Lb
-          </div>
+          <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
         <span class="tooltip right distant" aria-label="Sections (ss)">
           <button class="text-2xl text-gray-600 hover:text-gray-50 focus:text-gray-50" data-element="sections-panel-toggle">
@@ -92,12 +90,12 @@ defmodule LivebookWeb.SessionLive do
         <div class="flex-grow"></div>
         <span class="tooltip right distant" aria-label="Keyboard shortcuts (?)">
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
-            class: "text-gray-600 hover:text-gray-50 focus:text-gray-50" do %>
+            class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
           <% end %>
         </span>
       </div>
-      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200" data-element="sections-panel">
+      <div class="flex flex-col w-1/5 bg-gray-50 border-r border-gray-100" data-element="sections-panel">
         <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
           data-element="section-list">
           <%= for section <- @data.notebook.sections do %>

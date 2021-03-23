@@ -20,9 +20,7 @@ defmodule LivebookWeb.HomeLive do
     <div class="flex flex-grow h-full">
       <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
-          <div class="h-10 w-10 flex items-center justify-center text-white bg-blue-600 font-semibold rounded-lg">
-            Lb
-          </div>
+          <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
       </div>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
