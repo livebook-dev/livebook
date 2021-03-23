@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{SessionSupervisor, Session, Delta}
+  alias Livebook.{SessionSupervisor, Session, Delta, Runtime}
 
   setup do
     {:ok, session_id} = SessionSupervisor.create_session()
@@ -165,6 +165,30 @@ defmodule LivebookWeb.SessionLiveTest do
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session_id)
     end
   end
+
+  describe "runtime settings" do
+    test "connecting to elixir standalone updates connect button to reconnect",
+         %{conn: conn, session_id: session_id} do
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/runtime")
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+
+      [elixir_standalone_view] = live_children(view)
+
+      elixir_standalone_view
+      |> element("button", "Connect")
+      |> render_click()
+
+      assert_receive {:operation, {:set_runtime, _pid, %Runtime.ElixirStandalone{} = runtime}}
+
+      page = render(view)
+      assert page =~ Atom.to_string(runtime.node)
+      assert page =~ "Reconnect"
+      assert page =~ "Disconnect"
+    end
+  end
+
+  # Helpers
 
   defp wait_for_session_update(session_id) do
     # This call is synchronous, so it gives the session time

@@ -7,11 +7,16 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   @impl true
   def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+    end
+
     {:ok,
      assign(socket,
        session_id: session_id,
        status: :initial,
-       path: if(current_runtime, do: current_runtime.project_path, else: default_path()),
+       current_runtime: current_runtime,
+       path: initial_path(current_runtime),
        outputs: [],
        emitter: nil
      ), temporary_assigns: [outputs: []]}
@@ -35,7 +40,10 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
             running_paths: [],
             target: nil %>
         </div>
-        <%= content_tag :button, "Connect", class: "button button-primary", phx_click: "init", disabled: not mix_project_root?(@path) %>
+        <%= content_tag :button, if(matching_runtime?(@current_runtime, @path), do: "Reconnect", else: "Connect"),
+          class: "button button-primary",
+          phx_click: "init",
+          disabled: not mix_project_root?(@path) %>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
@@ -49,6 +57,12 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
     </div>
     """
   end
+
+  defp matching_runtime?(%Runtime.MixStandalone{} = runtime, path) do
+    Path.expand(runtime.project_path) == Path.expand(path)
+  end
+
+  defp matching_runtime?(_runtime, _path), do: false
 
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
@@ -76,13 +90,21 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
     end
   end
 
+  def handle_info({:operation, {:set_runtime, _pid, runtime}}, socket) do
+    {:noreply, assign(socket, current_runtime: runtime)}
+  end
+
   def handle_info(_, socket), do: {:noreply, socket}
 
   defp add_output(socket, output) do
     assign(socket, outputs: socket.assigns.outputs ++ [{output, Utils.random_id()}])
   end
 
-  defp default_path(), do: File.cwd!() <> "/"
+  defp initial_path(%Runtime.MixStandalone{} = current_runtime) do
+    current_runtime.project_path
+  end
+
+  defp initial_path(_runtime), do: File.cwd!() <> "/"
 
   defp mix_project_root?(path) do
     File.dir?(path) and File.exists?(Path.join(path, "mix.exs"))
