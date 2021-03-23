@@ -22,7 +22,9 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["es"], desc: "Evaluate section"},
       %{seq: ["ea"], desc: "Evaluate all stale/new cells"},
       %{seq: ["ej"], desc: "Evaluate cells below"},
-      %{seq: ["ex"], desc: "Cancel cell evaluation"}
+      %{seq: ["ex"], desc: "Cancel cell evaluation"},
+      %{seq: ["ss"], desc: "Toggle sections panel"},
+      %{seq: ["sn"], desc: "Show notebook settings"}
     ]
   }
 
