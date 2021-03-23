@@ -55,12 +55,14 @@ Example usage:
   transition-delay: 0s;
 }
 
-.tooltip:hover:before {
+.tooltip:hover:before,
+.tooltip:focus-within:before {
   visibility: visible;
   transition-delay: var(--show-delay);
 }
 
-.tooltip:hover:after {
+.tooltip:hover:after,
+.tooltip:focus-within:after {
   visibility: visible;
   transition-delay: var(--show-delay);
 }
