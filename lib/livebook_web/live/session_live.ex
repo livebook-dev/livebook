@@ -74,9 +74,7 @@ defmodule LivebookWeb.SessionLive do
       phx-hook="Session">
       <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
-          <div class="h-10 w-10 flex items-center justify-center text-white bg-blue-600 font-semibold rounded-lg">
-            Lb
-          </div>
+          <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
         <span class="tooltip right distant" aria-label="Sections">
           <button class="text-2xl text-gray-600 hover:text-gray-50 focus:text-gray-50" data-element="sections-panel-toggle">
