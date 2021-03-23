@@ -33,7 +33,7 @@ defmodule LivebookWeb.Endpoint do
 
   # Serve static failes at "/"
 
-  if Mix.env() != :prod do
+  if code_reloading? do
     # In development we use assets from priv/static_dev (rebuilt dynamically on every change).
     # Note that this directory doesn't contain predefined files (e.g. images),
     # so we also use `AssetsMemoryProvider` to serve those from priv/static.
