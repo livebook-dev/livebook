@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
             running_paths: [],
             target: nil %>
         </div>
-        <%= content_tag :button, "Connect", class: "button", phx_click: "init", disabled: not mix_project_root?(@path) %>
+        <%= content_tag :button, "Connect", class: "button button-primary", phx_click: "init", disabled: not mix_project_root?(@path) %>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">

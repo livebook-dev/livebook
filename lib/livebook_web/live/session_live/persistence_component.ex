@@ -38,20 +38,20 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             target: @myself %>
         </div>
       <% end %>
-      </div>
-    <div class="flex items-end justify-between">
-      <div>
+      <div class="flex flex-col space-y-2">
         <%= if @path != nil do %>
           <div class="text-gray-500 text-sm">
-            <%= normalize_path(@path) %>
+            File: <%= normalize_path(@path) %>
           </div>
         <% end %>
+        <div>
+          <%= content_tag :button, "Save",
+            class: "button button-primary",
+            phx_click: "save",
+            phx_target: @myself,
+            disabled: not path_savable?(normalize_path(@path), @session_summaries) or normalize_path(@path) == @current_path %>
+        </div>
       </div>
-      <%= content_tag :button, "Save",
-        class: "button button-primary",
-        phx_click: "save",
-        phx_target: @myself,
-        disabled: not path_savable?(normalize_path(@path), @session_summaries) or normalize_path(@path) == @current_path %>
     </div>
     """
   end

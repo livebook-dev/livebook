@@ -17,7 +17,7 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
         This is the default runtime and is started automatically
         as soon as you evaluate the first cell.
       </p>
-      <button class="button" phx-click="init">
+      <button class="button button-primary" phx-click="init">
         Connect
       </button>
       <%= if @output do %>

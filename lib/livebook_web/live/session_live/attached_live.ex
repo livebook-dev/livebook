@@ -43,7 +43,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         <%= text_input f, :name, value: @name, class: "input",
               placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
-        <%= submit "Connect", class: "mt-3 button" %>
+        <%= submit "Connect", class: "mt-3 button button-primary" %>
       </form>
     </div>
     """

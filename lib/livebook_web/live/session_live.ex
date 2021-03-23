@@ -90,12 +90,12 @@ defmodule LivebookWeb.SessionLive do
         <div class="flex-grow"></div>
         <span class="tooltip right distant" aria-label="Keyboard shortcuts">
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
-            class: "text-gray-600 hover:text-gray-50 focus:text-gray-50" do %>
+            class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
           <% end %>
         </span>
       </div>
-      <div class="flex flex-col w-1/5 bg-gray-100 border-r border-gray-200" data-element="sections-panel">
+      <div class="flex flex-col w-1/5 bg-gray-50 border-r border-gray-100" data-element="sections-panel">
         <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
           data-element="section-list">
           <%= for section <- @data.notebook.sections do %>
