@@ -224,7 +224,7 @@ defmodule LivebookWeb.CellComponent do
   defp render_output(output, id) when is_binary(output) do
     # Captured output usually has a trailing newline that we can ignore,
     # because each line is itself a block anyway.
-    output = String.replace(output, ~r/\n$/, "")
+    output = String.replace_suffix(output, "\n", "")
     lines = ansi_to_html_lines(output)
     assigns = %{lines: lines, id: id}
 
