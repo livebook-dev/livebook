@@ -28,7 +28,6 @@ defmodule LivebookWeb.SectionComponent do
         <div class="flex flex-col space-y-1">
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
             <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
-                  id: "#{@section.id}:#{index}",
                   persistent: false do %>
               <button class="button button-sm"
                 phx-click="insert_cell"
@@ -50,7 +49,6 @@ defmodule LivebookWeb.SectionComponent do
                   cell_info: @cell_infos[cell.id] %>
           <% end %>
           <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
-                id: "#{@section.id}:last",
                 persistent: @section.cells == [] do %>
             <button class="button button-sm"
               phx-click="insert_cell"
