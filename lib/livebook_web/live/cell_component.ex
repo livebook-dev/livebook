@@ -149,11 +149,11 @@ defmodule LivebookWeb.CellComponent do
 
       <%= if @cell.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= live_component @socket, LivebookWeb.CellStatusComponent,
-                id: @cell.id,
-                evaluation_status: @cell_info.evaluation_status,
-                validity_status: @cell_info.validity_status,
-                changed: @cell_info.digest != @cell_info.evaluation_digest %>
+          <%= render_cell_status(
+                @cell_info.validity_status,
+                @cell_info.evaluation_status,
+                @cell_info.digest != @cell_info.evaluation_digest
+              ) %>
         </div>
       <% end %>
     </div>
@@ -271,5 +271,55 @@ defmodule LivebookWeb.CellComponent do
     )
     |> Phoenix.HTML.safe_to_string()
     |> String.split("\n")
+  end
+
+  defp render_cell_status(_, :evaluating, changed) do
+    render_status_indicator(
+      "Evaluating",
+      "bg-blue-500",
+      "bg-blue-400",
+      changed
+    )
+  end
+
+  defp render_cell_status(_, :queued, _) do
+    render_status_indicator("Queued", "bg-gray-500", "bg-gray-400", false)
+  end
+
+  defp render_cell_status(:evaluated, _, changed) do
+    render_status_indicator(
+      "Evaluated",
+      "bg-green-400",
+      nil,
+      changed
+    )
+  end
+
+  defp render_cell_status(:stale, _, changed) do
+    render_status_indicator("Stale", "bg-yellow-200", nil, changed)
+  end
+
+  defp render_cell_status(_, _, _), do: nil
+
+  defp render_status_indicator(text, circle_class, animated_circle_class, show_changed) do
+    assigns = %{
+      text: text,
+      circle_class: circle_class,
+      animated_circle_class: animated_circle_class,
+      show_changed: show_changed
+    }
+
+    ~L"""
+    <div class="flex items-center space-x-1">
+      <div class="flex text-xs text-gray-400">
+        <%= @text %>
+        <span class="<%= unless(@show_changed, do: "invisible") %>">*</span>
+      </div>
+      <span class="flex relative h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
+      </span>
+    </div>
+    """
   end
 end
