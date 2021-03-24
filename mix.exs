@@ -59,7 +59,8 @@ defmodule Livebook.MixProject do
       setup: ["deps.get", "cmd npm install --prefix assets"],
       # Update the assets bundle to be committed into the repository
       # and also builds the Escript.
-      build: ["cmd npm run deploy --prefix ./assets", "escript.build"]
+      build: ["cmd npm run deploy --prefix ./assets", "escript.build"],
+      "format.all": ["format", "cmd npm run format --prefix ./assets"]
     ]
   end
 

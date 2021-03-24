@@ -169,6 +169,8 @@ function handleDocumentKeyDown(hook, event) {
       insertCellBelowFocused(hook, "markdown");
     } else if (keyBuffer.tryMatch(["M"])) {
       insertCellAboveFocused(hook, "markdown");
+    } else if (keyBuffer.tryMatch(["S"])) {
+      addSection(hook);
     }
   }
 }
@@ -378,6 +380,10 @@ function insertCellAboveFocused(hook, type) {
       insertFirstCell(hook, type);
     }
   }
+}
+
+function addSection(hook) {
+  hook.pushEvent("add_section", {});
 }
 
 function insertFirstCell(hook, type) {

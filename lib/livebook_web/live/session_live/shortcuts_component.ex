@@ -18,6 +18,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["N"], desc: "Insert Elixir cell above"},
       %{seq: ["M"], desc: "Insert Markdown cell above"},
       %{seq: ["dd"], desc: "Delete cell"},
+      %{seq: ["S"], desc: "Add section"},
       %{seq: ["ee"], desc: "Evaluate cell"},
       %{seq: ["es"], desc: "Evaluate section"},
       %{seq: ["ea"], desc: "Evaluate all stale/new cells"},

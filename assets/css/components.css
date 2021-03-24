@@ -5,7 +5,7 @@
 }
 
 .button:not(:disabled) {
-  @apply hover:bg-gray-50 focus:bg-gray-50;
+  @apply hover:bg-gray-100 focus:bg-gray-100;
 }
 
 .button:disabled {
@@ -13,7 +13,7 @@
 }
 
 .button-sm {
-  @apply px-3 py-1;
+  @apply px-2 py-1;
 }
 
 .button-danger {
