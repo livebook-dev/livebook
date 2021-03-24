@@ -83,14 +83,14 @@ defmodule LivebookWeb.SessionLive do
         </span>
         <span class="tooltip right distant" aria-label="Notebook settings (sn)">
           <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
-            class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}" do %>
+                class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}" do %>
             <%= remix_icon("settings-4-fill", class: "text-2xl") %>
           <% end %>
         </span>
         <div class="flex-grow"></div>
         <span class="tooltip right distant" aria-label="Keyboard shortcuts (?)">
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
-            class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
+                class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
           <% end %>
         </span>
@@ -125,9 +125,18 @@ defmodule LivebookWeb.SessionLive do
               data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
           </div>
           <div class="flex flex-col w-full space-y-16">
-            <%= for section <- @data.notebook.sections do %>
+            <%= if @data.notebook.sections == [] do %>
+              <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
+                    id: "insert_first_section",
+                    persistent: true,
+                    buttons: [
+                      %{label: "+ Section", attrs: [phx_click: "insert_section", phx_value_index: 0]}
+                    ] %>
+            <% end %>
+            <%= for {section, index} <- Enum.with_index(@data.notebook.sections) do %>
               <%= live_component @socket, LivebookWeb.SectionComponent,
                     id: section.id,
+                    index: index,
                     session_id: @session_id,
                     section: section,
                     cell_infos: @data.cell_infos %>
@@ -183,6 +192,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("insert_section", %{"index" => index}, socket) do
+    index = ensure_integer(index) |> max(0)
+    Session.insert_section(socket.assigns.session_id, index)
+
+    {:noreply, socket}
+  end
+
   def handle_event("delete_section", %{"section_id" => section_id}, socket) do
     Session.delete_section(socket.assigns.session_id, section_id)
 
@@ -191,7 +207,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "insert_cell",
-        %{"section_id" => section_id, "index" => index, "type" => type},
+        %{"section-id" => section_id, "index" => index, "type" => type},
         socket
       ) do
     index = ensure_integer(index) |> max(0)

@@ -26,23 +26,60 @@ defmodule LivebookWeb.SectionComponent do
       </div>
       <div class="container py-2">
         <div class="flex flex-col space-y-1">
-          <%= live_component @socket, LivebookWeb.InsertCellComponent,
-                id: "#{@section.id}:0",
-                section_id: @section.id,
-                index: 0,
-                persistent: @section.cells == [] %>
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
+            <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
+                  id: "#{@section.id}:#{index}",
+                  persistent: false,
+                  buttons: [
+                    %{
+                      label: "+ Markdown",
+                      attrs: [
+                        phx_click: "insert_cell",
+                        phx_value_type: "markdown",
+                        phx_value_section_id: @section.id,
+                        phx_value_index: index
+                      ]
+                    },
+                    %{
+                      label: "+ Elixir",
+                      attrs: [
+                        phx_click: "insert_cell",
+                        phx_value_type: "elixir",
+                        phx_value_section_id: @section.id,
+                        phx_value_index: index
+                      ]
+                    }
+                  ] %>
             <%= live_component @socket, LivebookWeb.CellComponent,
                   id: cell.id,
                   session_id: @session_id,
                   cell: cell,
                   cell_info: @cell_infos[cell.id] %>
-            <%= live_component @socket, LivebookWeb.InsertCellComponent,
-                  id: "#{@section.id}:#{index + 1}",
-                  section_id: @section.id,
-                  index: index + 1,
-                  persistent: false %>
           <% end %>
+          <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
+                id: "#{@section.id}:last",
+                persistent: @section.cells == [],
+                buttons: [
+                  %{
+                    label: "+ Markdown",
+                    attrs: [
+                      phx_click: "insert_cell",
+                      phx_value_type: "markdown",
+                      phx_value_section_id: @section.id,
+                      phx_value_index: length(@section.cells)
+                    ]
+                  },
+                  %{
+                    label: "+ Elixir",
+                    attrs: [
+                      phx_click: "insert_cell",
+                      phx_value_type: "elixir",
+                      "phx-value-section_id": @section.id,
+                      phx_value_index: length(@section.cells)
+                    ]
+                  },
+                  %{label: "+ Section", attrs: [phx_click: "insert_section", phx_value_index: @index + 1]}
+                ] %>
         </div>
       </div>
     </div>
