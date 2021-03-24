@@ -54,7 +54,7 @@ defmodule LivebookWeb.CellComponent do
       </div>
       <div class="w-full">
         <div class="pb-4" data-element="editor-box">
-          <%= render_editor(@cell, @cell_info) %>
+          <%= render_editor(assigns) %>
         </div>
 
         <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
@@ -125,11 +125,11 @@ defmodule LivebookWeb.CellComponent do
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
-        <%= render_editor(@cell, @cell_info, show_status: true) %>
+        <%= render_editor(assigns) %>
 
         <%= if @cell.outputs != [] do %>
           <div class="mt-2">
-            <%= render_outputs(@cell.outputs, @cell.id) %>
+            <%= render_outputs(assigns) %>
           </div>
         <% end %>
       </div>
@@ -137,10 +137,7 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_editor(cell, cell_info, opts \\ []) do
-    show_status = Keyword.get(opts, :show_status, false)
-    assigns = %{cell: cell, cell_info: cell_info, show_status: show_status}
-
+  defp render_editor(assigns) do
     ~L"""
     <div class="py-3 rounded-lg overflow-hidden bg-editor relative">
       <div
@@ -150,9 +147,13 @@ defmodule LivebookWeb.CellComponent do
         <%= render_editor_content_placeholder(@cell.source) %>
       </div>
 
-      <%= if @show_status do %>
+      <%= if @cell.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= render_cell_status(@cell_info) %>
+          <%= render_cell_status(
+                @cell_info.validity_status,
+                @cell_info.evaluation_status,
+                @cell_info.digest != @cell_info.evaluation_digest
+              ) %>
         </div>
       <% end %>
     </div>
@@ -207,14 +208,12 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_outputs(outputs, cell_id) do
-    assigns = %{outputs: outputs, cell_id: cell_id}
-
+  defp render_outputs(assigns) do
     ~L"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
-      <%= for {output, index} <- @outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
+      <%= for {output, index} <- @cell.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4">
-          <%= render_output(output, "#{@cell_id}-output#{index}") %>
+          <%= render_output(output, "#{@cell.id}-output#{index}") %>
         </div>
       <% end %>
     </div>
@@ -274,33 +273,33 @@ defmodule LivebookWeb.CellComponent do
     |> String.split("\n")
   end
 
-  defp render_cell_status(%{evaluation_status: :evaluating} = info) do
+  defp render_cell_status(_, :evaluating, changed) do
     render_status_indicator(
       "Evaluating",
       "bg-blue-500",
       "bg-blue-400",
-      info.digest != info.evaluation_digest
+      changed
     )
   end
 
-  defp render_cell_status(%{evaluation_status: :queued}) do
+  defp render_cell_status(_, :queued, _) do
     render_status_indicator("Queued", "bg-gray-500", "bg-gray-400", false)
   end
 
-  defp render_cell_status(%{validity_status: :evaluated} = info) do
+  defp render_cell_status(:evaluated, _, changed) do
     render_status_indicator(
       "Evaluated",
       "bg-green-400",
       nil,
-      info.digest != info.evaluation_digest
+      changed
     )
   end
 
-  defp render_cell_status(%{validity_status: :stale} = info) do
-    render_status_indicator("Stale", "bg-yellow-200", nil, info.digest != info.evaluation_digest)
+  defp render_cell_status(:stale, _, changed) do
+    render_status_indicator("Stale", "bg-yellow-200", nil, changed)
   end
 
-  defp render_cell_status(_), do: nil
+  defp render_cell_status(_, _, _), do: nil
 
   defp render_status_indicator(text, circle_class, animated_circle_class, show_changed) do
     assigns = %{
