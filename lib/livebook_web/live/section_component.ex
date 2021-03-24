@@ -29,27 +29,20 @@ defmodule LivebookWeb.SectionComponent do
           <%= for {cell, index} <- Enum.with_index(@section.cells) do %>
             <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
                   id: "#{@section.id}:#{index}",
-                  persistent: false,
-                  buttons: [
-                    %{
-                      label: "+ Markdown",
-                      attrs: [
-                        phx_click: "insert_cell",
-                        phx_value_type: "markdown",
-                        phx_value_section_id: @section.id,
-                        phx_value_index: index
-                      ]
-                    },
-                    %{
-                      label: "+ Elixir",
-                      attrs: [
-                        phx_click: "insert_cell",
-                        phx_value_type: "elixir",
-                        phx_value_section_id: @section.id,
-                        phx_value_index: index
-                      ]
-                    }
-                  ] %>
+                  persistent: false do %>
+              <button class="button button-sm"
+                phx-click="insert_cell"
+                phx-value-type="markdown"
+                phx-value-section_id="<%= @section.id %>"
+                phx-value-index="<%= index %>"
+                >+ Markdown</button>
+              <button class="button button-sm"
+                phx-click="insert_cell"
+                phx-value-type="elixir"
+                phx-value-section_id="<%= @section.id %>"
+                phx-value-index="<%= index %>"
+                >+ Elixir</button>
+            <% end %>
             <%= live_component @socket, LivebookWeb.CellComponent,
                   id: cell.id,
                   session_id: @session_id,
@@ -58,28 +51,24 @@ defmodule LivebookWeb.SectionComponent do
           <% end %>
           <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
                 id: "#{@section.id}:last",
-                persistent: @section.cells == [],
-                buttons: [
-                  %{
-                    label: "+ Markdown",
-                    attrs: [
-                      phx_click: "insert_cell",
-                      phx_value_type: "markdown",
-                      phx_value_section_id: @section.id,
-                      phx_value_index: length(@section.cells)
-                    ]
-                  },
-                  %{
-                    label: "+ Elixir",
-                    attrs: [
-                      phx_click: "insert_cell",
-                      phx_value_type: "elixir",
-                      "phx-value-section_id": @section.id,
-                      phx_value_index: length(@section.cells)
-                    ]
-                  },
-                  %{label: "+ Section", attrs: [phx_click: "insert_section", phx_value_index: @index + 1]}
-                ] %>
+                persistent: @section.cells == [] do %>
+            <button class="button button-sm"
+              phx-click="insert_cell"
+              phx-value-type="markdown"
+              phx-value-section_id="<%= @section.id %>"
+              phx-value-index="<%= length(@section.cells) %>"
+              >+ Markdown</button>
+            <button class="button button-sm"
+              phx-click="insert_cell"
+              phx-value-type="elixir"
+              phx-value-section_id="<%= @section.id %>"
+              phx-value-index="<%= length(@section.cells) %>"
+              >+ Elixir</button>
+            <button class="button button-sm"
+              phx-click="insert_section"
+              phx-value-index="<%= @index + 1 %>"
+              >+ Section</button>
+          <% end %>
         </div>
       </div>
     </div>
