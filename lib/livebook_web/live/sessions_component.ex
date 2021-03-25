@@ -28,13 +28,11 @@ defmodule LivebookWeb.SessionsComponent do
                 <%= remix_icon("git-branch-line") %>
                 <span class="font-medium">Fork</span>
               </button>
-              <button class="flex space-x-3 px-5 py-2 items-center text-red-600 hover:bg-gray-50"
-                phx-click="delete_session"
-                phx-value-id="<%= summary.session_id %>"
-                phx-target="<%= @myself %>">
+              <%= live_patch to: Routes.home_path(@socket, :delete_session, summary.session_id),
+                    class: "flex space-x-3 px-5 py-2 items-center text-red-600 hover:bg-gray-50" do %>
                 <%= remix_icon("delete-bin-6-line") %>
                 <span class="font-medium">Delete</span>
-              </button>
+              <% end %>
             </div>
           </div>
         </div>

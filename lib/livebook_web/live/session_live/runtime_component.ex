@@ -53,7 +53,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               <%= @runtime.node %>
             </span>
           </div>
-          <button class="button text-sm button-danger"
+          <button class="button button-outlined-red"
             type="button"
             phx-click="disconnect"
             phx-target="<%= @myself %>">

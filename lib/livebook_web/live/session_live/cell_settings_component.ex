@@ -31,8 +31,8 @@ defmodule LivebookWeb.SessionLive.CellSettingsComponent do
           </div>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button" %>
-          <button class="button button-primary" type="submit">
+          <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
+          <button class="button button-blue" type="submit">
             Save
           </button>
         </div>

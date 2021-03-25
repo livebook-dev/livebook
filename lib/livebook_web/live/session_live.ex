@@ -130,7 +130,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="flex flex-col w-full space-y-16">
             <%= if @data.notebook.sections == [] do %>
               <div class="flex justify-center">
-                <button class="button button-sm"
+                <button class="button button-small"
                   phx-click="insert_section"
                   phx-value-index="0"
                   >+ Section</button>
