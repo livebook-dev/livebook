@@ -3,12 +3,12 @@ defmodule LivebookWeb.HomeLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.SessionSupervisor
+  alias Livebook.{SessionSupervisor, Session}
 
   test "disconnected and connected render", %{conn: conn} do
     {:ok, view, disconnected_html} = live(conn, "/")
-    assert disconnected_html =~ "Running Sessions"
-    assert render(view) =~ "Running Sessions"
+    assert disconnected_html =~ "Running sessions"
+    assert render(view) =~ "Running sessions"
   end
 
   test "redirects to session upon creation", %{conn: conn} do
@@ -16,7 +16,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element("button", "New Notebook")
+             |> element("button", "New notebook")
              |> render_click()
 
     assert to =~ "/sessions/"
@@ -97,6 +97,41 @@ defmodule LivebookWeb.HomeLiveTest do
       assert render(view) =~ id
 
       SessionSupervisor.delete_session(id)
+      refute render(view) =~ id
+    end
+
+    test "allows forking existing session", %{conn: conn} do
+      {:ok, id} = SessionSupervisor.create_session()
+      Session.set_notebook_name(id, "My notebook")
+
+      {:ok, view, _} = live(conn, "/")
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               view
+               |> element(~s{[data-test-session-id="#{id}"] button}, "Fork")
+               |> render_click()
+
+      assert to =~ "/sessions/"
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "My notebook - fork"
+    end
+
+    test "allows deleting session after confirmation", %{conn: conn} do
+      {:ok, id} = SessionSupervisor.create_session()
+
+      {:ok, view, _} = live(conn, "/")
+
+      assert render(view) =~ id
+
+      view
+      |> element(~s{[data-test-session-id="#{id}"] a}, "Delete")
+      |> render_click()
+
+      view
+      |> element(~s{button}, "Delete session")
+      |> render_click()
+
       refute render(view) =~ id
     end
   end

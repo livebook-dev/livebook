@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive do
             </div>
             <button class="button button-blue"
               phx-click="new">
-              New Notebook
+              New notebook
             </button>
           </div>
           <div class="w-full h-80">
@@ -70,7 +70,7 @@ defmodule LivebookWeb.HomeLive do
           </div>
           <div class="w-full py-12">
             <h3 class="text-xl font-semibold text-gray-800 mb-5">
-              Running Sessions
+              Running sessions
             </h3>
             <%= if @session_summaries == [] do %>
               <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
@@ -80,7 +80,7 @@ defmodule LivebookWeb.HomeLive do
                 <div class="text-gray-600">
                   You do not have any running sessions.
                   <br>
-                  Please create a new one by clicking <span class="font-semibold">“New Notebook”</span>
+                  Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
                 </div>
               </div>
             <% else %>
@@ -125,6 +125,12 @@ defmodule LivebookWeb.HomeLive do
     create_session(socket, notebook: notebook, path: socket.assigns.path)
   end
 
+  def handle_event("fork_session", %{"id" => session_id}, socket) do
+    data = Session.get_data(session_id)
+    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
+    create_session(socket, notebook: notebook)
+  end
+
   @impl true
   def handle_info({:session_created, id}, socket) do
     summary = Session.get_summary(id)
@@ -135,12 +141,6 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:session_deleted, id}, socket) do
     session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
     {:noreply, assign(socket, session_summaries: session_summaries)}
-  end
-
-  def handle_info({:fork_session, id}, socket) do
-    data = Session.get_data(id)
-    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
-    create_session(socket, notebook: notebook)
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
