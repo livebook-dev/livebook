@@ -64,4 +64,19 @@ monaco.editor.defineTheme("custom", {
   },
 });
 
+// See https://github.com/microsoft/monaco-editor/issues/648#issuecomment-564978560
+// Without this selecting text with whitespace shrinks the whitespace.
+document.fonts.addEventListener("loadingdone", (event) => {
+  const jetBrainsMonoLoaded = event.fontfaces.some(
+    (fontFace) => fontFace.family === "JetBrains Mono"
+  );
+
+  if (jetBrainsMonoLoaded) {
+    // We use JetBrains Mono in all instances of the editor,
+    // so we wait until it loads and then tell Monaco to remeasure
+    // fonts and updates its cache.
+    monaco.editor.remeasureFonts();
+  }
+});
+
 export default monaco;
