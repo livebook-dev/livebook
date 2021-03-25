@@ -6,7 +6,8 @@ defmodule LivebookWeb.SessionsComponent do
     ~L"""
     <div class="flex flex-col space-y-4">
       <%= for summary <- @session_summaries do %>
-        <div class="p-5 flex items-center border border-gray-200 rounded-lg">
+        <div class="p-5 flex items-center border border-gray-200 rounded-lg"
+          data-test-session-id="<%= summary.session_id %>">
           <div class="flex-grow flex flex-col space-y-1">
             <%= live_redirect summary.notebook_name, to: Routes.session_path(@socket, :page, summary.session_id),
               class: "font-semibold text-gray-800 hover:text-gray-900" %>

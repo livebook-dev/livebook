@@ -107,14 +107,32 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, view, _} = live(conn, "/")
 
       assert {:error, {:live_redirect, %{to: to}}} =
-        view
-        |> element(~s{button[phx-click="fork_session"][phx-value-id="#{id}"]}, "Fork")
-        |> render_click()
+               view
+               |> element(~s{[data-test-session-id="#{id}"] button}, "Fork")
+               |> render_click()
 
       assert to =~ "/sessions/"
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook - fork"
+    end
+
+    test "allows deleting session after confirmation", %{conn: conn} do
+      {:ok, id} = SessionSupervisor.create_session()
+
+      {:ok, view, _} = live(conn, "/")
+
+      assert render(view) =~ id
+
+      view
+      |> element(~s{[data-test-session-id="#{id}"] a}, "Delete")
+      |> render_click()
+
+      view
+      |> element(~s{button}, "Delete session")
+      |> render_click()
+
+      refute render(view) =~ id
     end
   end
 

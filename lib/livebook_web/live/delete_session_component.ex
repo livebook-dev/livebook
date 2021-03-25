@@ -31,6 +31,6 @@ defmodule LivebookWeb.DeleteSessionComponent do
   @impl true
   def handle_event("delete", %{}, socket) do
     SessionSupervisor.delete_session(socket.assigns.session_summary.session_id)
-    {:noreply, push_redirect(socket, to: socket.assigns.return_to)}
+    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 end
