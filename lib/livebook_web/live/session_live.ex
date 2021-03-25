@@ -37,7 +37,8 @@ defmodule LivebookWeb.SessionLive do
     %{
       platform: platform,
       session_id: session_id,
-      data: data
+      data: data,
+      data_view: data_to_view(data)
     }
   end
 
@@ -50,7 +51,7 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id),
             tab: @tab,
             session_id: @session_id,
-            data: @data %>
+            data_view: @data_view %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -101,11 +102,11 @@ defmodule LivebookWeb.SessionLive do
             Sections
           </h3>
           <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
-            <%= for section <- @data.notebook.sections do %>
+            <%= for section_item <- @data_view.sections_items do %>
               <button class="text-left hover:text-gray-900 text-gray-500"
                 data-element="section-list-item"
-                data-section-id="<%= section.id %>">
-                <%= section.name %>
+                data-section-id="<%= section_item.id %>">
+                <%= section_item.name %>
               </button>
             <% end %>
           </div>
@@ -125,10 +126,10 @@ defmodule LivebookWeb.SessionLive do
               spellcheck="false"
               phx-blur="set_notebook_name"
               phx-hook="ContentEditable"
-              data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
+              data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
           </div>
           <div class="flex flex-col w-full space-y-16">
-            <%= if @data.notebook.sections == [] do %>
+            <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button button-small"
                   phx-click="insert_section"
@@ -136,13 +137,12 @@ defmodule LivebookWeb.SessionLive do
                   >+ Section</button>
               </div>
             <% end %>
-            <%= for {section, index} <- Enum.with_index(@data.notebook.sections) do %>
+            <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
               <%= live_component @socket, LivebookWeb.SectionComponent,
-                    id: section.id,
+                    id: section_view.id,
                     index: index,
                     session_id: @session_id,
-                    section: section,
-                    cell_infos: @data.cell_infos %>
+                    section_view: section_view %>
             <% end %>
             <div style="height: 80vh"></div>
           </div>
@@ -343,7 +343,7 @@ defmodule LivebookWeb.SessionLive do
       {:ok, data, actions} ->
         new_socket =
           socket
-          |> assign(data: data)
+          |> assign(data: data, data_view: data_to_view(data))
           |> after_operation(socket, operation)
           |> handle_actions(actions)
 
@@ -454,4 +454,44 @@ defmodule LivebookWeb.SessionLive do
 
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)
+
+  # Builds view-specific structure of data by cherry-picking
+  # only the relevant attributes.
+  # We then use `@data_view` in the templates and consequently
+  # irrelevant changes to data don't change `@data_view`, so LV doesn't
+  # have to traverse the whole template tree and no diff is sent to the client.
+  defp data_to_view(data) do
+    %{
+      path: data.path,
+      runtime: data.runtime,
+      notebook_name: data.notebook.name,
+      sections_items:
+        for section <- data.notebook.sections do
+          %{id: section.id, name: section.name}
+        end,
+      section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
+    }
+  end
+
+  defp section_to_view(section, data) do
+    %{
+      id: section.id,
+      name: section.name,
+      cell_views: Enum.map(section.cells, &cell_to_view(&1, data))
+    }
+  end
+
+  defp cell_to_view(cell, data) do
+    info = data.cell_infos[cell.id]
+
+    %{
+      id: cell.id,
+      type: cell.type,
+      empty?: cell.source == "",
+      outputs: cell.outputs,
+      validity_status: info.validity_status,
+      evaluation_status: info.evaluation_status,
+      changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
+    }
+  end
 end

@@ -5,16 +5,16 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="flex flex-col relative"
       data-element="cell"
-      id="cell-<%= @cell.id %>"
+      id="cell-<%= @cell_view.id %>"
       phx-hook="Cell"
-      data-cell-id="<%= @cell.id %>"
-      data-type="<%= @cell.type %>">
+      data-cell-id="<%= @cell_view.id %>"
+      data-type="<%= @cell_view.type %>">
       <%= render_cell_content(assigns) %>
     </div>
     """
   end
 
-  def render_cell_content(%{cell: %{type: :markdown}} = assigns) do
+  def render_cell_content(%{cell_view: %{type: :markdown}} = assigns) do
     ~L"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
@@ -26,7 +26,7 @@ defmodule LivebookWeb.CellComponent do
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-cell_id="<%= @cell_view.id %>"
             phx-value-offset="-1">
             <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
           </button>
@@ -34,7 +34,7 @@ defmodule LivebookWeb.CellComponent do
         <span class="tooltip top" aria-label="Move down">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-cell_id="<%= @cell_view.id %>"
             phx-value-offset="1">
             <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
           </button>
@@ -42,7 +42,7 @@ defmodule LivebookWeb.CellComponent do
         <span class="tooltip top" aria-label="Delete">
           <button class="icon-button"
             phx-click="delete_cell"
-            phx-value-cell_id="<%= @cell.id %>">
+            phx-value-cell_id="<%= @cell_view.id %>">
             <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
           </button>
         </span>
@@ -57,31 +57,31 @@ defmodule LivebookWeb.CellComponent do
           <%= render_editor(assigns) %>
         </div>
 
-        <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell.id %>" phx-update="ignore">
-          <%= render_markdown_content_placeholder(@cell.source) %>
+        <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell_view.id %>" phx-update="ignore">
+          <%= render_markdown_content_placeholder(empty: @cell_view.empty?) %>
         </div>
       </div>
     </div>
     """
   end
 
-  def render_cell_content(%{cell: %{type: :elixir}} = assigns) do
+  def render_cell_content(%{cell_view: %{type: :elixir}} = assigns) do
     ~L"""
     <div class="mb-1 flex justify-between">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions" data-primary>
-        <%= if @cell_info.evaluation_status == :ready do %>
+        <%= if @cell_view.evaluation_status == :ready do %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="queue_cell_evaluation"
-            phx-value-cell_id="<%= @cell.id %>">
+            phx-value-cell_id="<%= @cell_view.id %>">
             <%= remix_icon("play-circle-fill", class: "text-xl") %>
             <span class="text-sm font-medium">
-              <%= if(@cell_info.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
+              <%= if(@cell_view.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
             </span>
           </button>
         <% else %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="cancel_cell_evaluation"
-            phx-value-cell_id="<%= @cell.id %>">
+            phx-value-cell_id="<%= @cell_view.id %>">
             <%= remix_icon("stop-circle-fill", class: "text-xl") %>
             <span class="text-sm font-medium">
               Stop
@@ -91,14 +91,14 @@ defmodule LivebookWeb.CellComponent do
       </div>
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
         <span class="tooltip top" aria-label="Cell settings">
-          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell.id), class: "icon-button" do %>
+          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
             <%= remix_icon("list-settings-line", class: "text-xl") %>
           <% end %>
         </span>
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-cell_id="<%= @cell_view.id %>"
             phx-value-offset="-1">
             <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
           </button>
@@ -106,7 +106,7 @@ defmodule LivebookWeb.CellComponent do
         <span class="tooltip top" aria-label="Move down">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell.id %>"
+            phx-value-cell_id="<%= @cell_view.id %>"
             phx-value-offset="1">
             <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
           </button>
@@ -114,7 +114,7 @@ defmodule LivebookWeb.CellComponent do
         <span class="tooltip top" aria-label="Delete">
           <button class="icon-button"
             phx-click="delete_cell"
-            phx-value-cell_id="<%= @cell.id %>">
+            phx-value-cell_id="<%= @cell_view.id %>">
             <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
           </button>
         </span>
@@ -127,7 +127,7 @@ defmodule LivebookWeb.CellComponent do
       <div class="w-full">
         <%= render_editor(assigns) %>
 
-        <%= if @cell.outputs != [] do %>
+        <%= if @cell_view.outputs != [] do %>
           <div class="mt-2">
             <%= render_outputs(assigns) %>
           </div>
@@ -141,19 +141,15 @@ defmodule LivebookWeb.CellComponent do
     ~L"""
     <div class="py-3 rounded-lg overflow-hidden bg-editor relative">
       <div
-        id="editor-container-<%= @cell.id %>"
+        id="editor-container-<%= @cell_view.id %>"
         data-element="editor-container"
         phx-update="ignore">
-        <%= render_editor_content_placeholder(@cell.source) %>
+        <%= render_editor_content_placeholder(empty: @cell_view.empty?) %>
       </div>
 
-      <%= if @cell.type == :elixir do %>
+      <%= if @cell_view.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= render_cell_status(
-                @cell_info.validity_status,
-                @cell_info.evaluation_status,
-                @cell_info.digest != @cell_info.evaluation_digest
-              ) %>
+          <%= render_cell_status(@cell_view.validity_status, @cell_view.evaluation_status, @cell_view.changed?) %>
         </div>
       <% end %>
     </div>
@@ -164,7 +160,7 @@ defmodule LivebookWeb.CellComponent do
   # There may be a tiny delay before the markdown is rendered
   # or and editors are mounted, so show neat placeholders immediately.
 
-  defp render_markdown_content_placeholder("" = _content) do
+  defp render_markdown_content_placeholder(empty: true) do
     assigns = %{}
 
     ~L"""
@@ -172,7 +168,7 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_markdown_content_placeholder(_content) do
+  defp render_markdown_content_placeholder(empty: false) do
     assigns = %{}
 
     ~L"""
@@ -186,7 +182,7 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_editor_content_placeholder("" = _content) do
+  defp render_editor_content_placeholder(empty: true) do
     assigns = %{}
 
     ~L"""
@@ -194,7 +190,7 @@ defmodule LivebookWeb.CellComponent do
     """
   end
 
-  defp render_editor_content_placeholder(_content) do
+  defp render_editor_content_placeholder(empty: false) do
     assigns = %{}
 
     ~L"""
@@ -211,9 +207,9 @@ defmodule LivebookWeb.CellComponent do
   defp render_outputs(assigns) do
     ~L"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
-      <%= for {output, index} <- @cell.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
+      <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4">
-          <%= render_output(output, "#{@cell.id}-output#{index}") %>
+          <%= render_output(output, "#{@cell_view.id}-output#{index}") %>
         </div>
       <% end %>
     </div>
@@ -274,12 +270,7 @@ defmodule LivebookWeb.CellComponent do
   end
 
   defp render_cell_status(_, :evaluating, changed) do
-    render_status_indicator(
-      "Evaluating",
-      "bg-blue-500",
-      "bg-blue-400",
-      changed
-    )
+    render_status_indicator("Evaluating", "bg-blue-500", "bg-blue-400", changed)
   end
 
   defp render_cell_status(_, :queued, _) do
@@ -287,12 +278,7 @@ defmodule LivebookWeb.CellComponent do
   end
 
   defp render_cell_status(:evaluated, _, changed) do
-    render_status_indicator(
-      "Evaluated",
-      "bg-green-400",
-      nil,
-      changed
-    )
+    render_status_indicator("Evaluated", "bg-green-400", nil, changed)
   end
 
   defp render_cell_status(:stale, _, changed) do

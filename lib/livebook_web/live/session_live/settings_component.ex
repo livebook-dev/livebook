@@ -31,14 +31,14 @@ defmodule LivebookWeb.SessionLive.SettingsComponent do
           <%= live_component @socket, LivebookWeb.SessionLive.PersistenceComponent,
             id: :persistence,
             session_id: @session_id,
-            current_path: @data.path,
-            path: @data.path %>
+            current_path: @data_view.path,
+            path: @data_view.path %>
         <% end %>
         <%= if @tab == "runtime" do %>
           <%= live_component @socket, LivebookWeb.SessionLive.RuntimeComponent,
             id: :runtime,
             session_id: @session_id,
-            runtime: @data.runtime %>
+            runtime: @data_view.runtime %>
         <% end %>
       </div>
     </div>
