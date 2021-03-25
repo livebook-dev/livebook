@@ -41,7 +41,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
             target: nil %>
         </div>
         <%= content_tag :button, if(matching_runtime?(@current_runtime, @path), do: "Reconnect", else: "Connect"),
-          class: "button button-primary",
+          class: "button button-blue",
           phx_click: "init",
           disabled: not mix_project_root?(@path) %>
       <% end %>

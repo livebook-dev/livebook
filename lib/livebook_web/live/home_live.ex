@@ -17,6 +17,13 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~L"""
+    <%= if @live_action == :delete_session do %>
+      <%= live_modal @socket, LivebookWeb.DeleteSessionComponent,
+            id: :delete_session_modal,
+            return_to: Routes.home_path(@socket, :page),
+            session_summary: @session_summary %>
+    <% end %>
+
     <div class="flex flex-grow h-full">
       <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
@@ -29,7 +36,7 @@ defmodule LivebookWeb.HomeLive do
             <div class="text-2xl text-gray-800 font-semibold">
               Livebook
             </div>
-            <button class="button button-primary"
+            <button class="button button-blue"
               phx-click="new">
               New Notebook
             </button>
@@ -43,7 +50,7 @@ defmodule LivebookWeb.HomeLive do
               target: nil do %>
               <div class="flex justify-end space-x-2">
                 <%= content_tag :button,
-                  class: "button",
+                  class: "button button-outlined-gray",
                   phx_click: "fork",
                   disabled: not path_forkable?(@path) do %>
                   <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
@@ -51,10 +58,10 @@ defmodule LivebookWeb.HomeLive do
                 <% end %>
                 <%= if path_running?(@path, @session_summaries) do %>
                   <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
-                    class: "button button-primary" %>
+                    class: "button button-blue" %>
                 <% else %>
                   <%= content_tag :button, "Open",
-                    class: "button button-primary",
+                    class: "button button-blue",
                     phx_click: "open",
                     disabled: not path_openable?(@path, @session_summaries) %>
                 <% end %>
@@ -89,6 +96,11 @@ defmodule LivebookWeb.HomeLive do
   end
 
   @impl true
+  def handle_params(%{"session_id" => session_id}, _url, socket) do
+    session_summary = Enum.find(socket.assigns.session_summaries, &(&1.session_id == session_id))
+    {:noreply, assign(socket, session_summary: session_summary)}
+  end
+
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
