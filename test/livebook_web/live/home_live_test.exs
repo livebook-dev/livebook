@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.SessionSupervisor
+  alias Livebook.{SessionSupervisor, Session}
 
   test "disconnected and connected render", %{conn: conn} do
     {:ok, view, disconnected_html} = live(conn, "/")
@@ -98,6 +98,23 @@ defmodule LivebookWeb.HomeLiveTest do
 
       SessionSupervisor.delete_session(id)
       refute render(view) =~ id
+    end
+
+    test "allows forking existing session", %{conn: conn} do
+      {:ok, id} = SessionSupervisor.create_session()
+      Session.set_notebook_name(id, "My notebook")
+
+      {:ok, view, _} = live(conn, "/")
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+        view
+        |> element(~s{button[phx-click="fork_session"][phx-value-id="#{id}"]}, "Fork")
+        |> render_click()
+
+      assert to =~ "/sessions/"
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "My notebook - fork"
     end
   end
 

@@ -125,6 +125,12 @@ defmodule LivebookWeb.HomeLive do
     create_session(socket, notebook: notebook, path: socket.assigns.path)
   end
 
+  def handle_event("fork_session", %{"id" => session_id}, socket) do
+    data = Session.get_data(session_id)
+    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
+    create_session(socket, notebook: notebook)
+  end
+
   @impl true
   def handle_info({:session_created, id}, socket) do
     summary = Session.get_summary(id)
@@ -135,12 +141,6 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:session_deleted, id}, socket) do
     session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
     {:noreply, assign(socket, session_summaries: session_summaries)}
-  end
-
-  def handle_info({:fork_session, id}, socket) do
-    data = Session.get_data(id)
-    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
-    create_session(socket, notebook: notebook)
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
