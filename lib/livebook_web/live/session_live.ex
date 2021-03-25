@@ -18,10 +18,21 @@ defmodule LivebookWeb.SessionLive do
 
       platform = platform_from_socket(socket)
 
-      {:ok, assign(socket, initial_assigns(session_id, data, platform))}
+      {:ok,
+       socket
+       |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
+       |> assign_private(data: data)}
     else
       {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
+  end
+
+  # Puts the given assigns in `socket.private`,
+  # to ensure they are not used for rendering.
+  defp assign_private(socket, assigns) do
+    Enum.reduce(assigns, socket, fn {key, value}, socket ->
+      put_in(socket.private[key], value)
+    end)
   end
 
   defp platform_from_socket(socket) do
@@ -33,14 +44,6 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp initial_assigns(session_id, data, platform) do
-    %{
-      platform: platform,
-      session_id: session_id,
-      data: data
-    }
-  end
-
   @impl true
   def render(assigns) do
     ~L"""
@@ -50,7 +53,7 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id),
             tab: @tab,
             session_id: @session_id,
-            data: @data %>
+            data_view: @data_view %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -101,11 +104,11 @@ defmodule LivebookWeb.SessionLive do
             Sections
           </h3>
           <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
-            <%= for section <- @data.notebook.sections do %>
+            <%= for section_item <- @data_view.sections_items do %>
               <button class="text-left hover:text-gray-900 text-gray-500"
                 data-element="section-list-item"
-                data-section-id="<%= section.id %>">
-                <%= section.name %>
+                data-section-id="<%= section_item.id %>">
+                <%= section_item.name %>
               </button>
             <% end %>
           </div>
@@ -125,10 +128,10 @@ defmodule LivebookWeb.SessionLive do
               spellcheck="false"
               phx-blur="set_notebook_name"
               phx-hook="ContentEditable"
-              data-update-attribute="phx-value-name"><%= @data.notebook.name %></h1>
+              data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
           </div>
           <div class="flex flex-col w-full space-y-16">
-            <%= if @data.notebook.sections == [] do %>
+            <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button button-small"
                   phx-click="insert_section"
@@ -136,13 +139,12 @@ defmodule LivebookWeb.SessionLive do
                   >+ Section</button>
               </div>
             <% end %>
-            <%= for {section, index} <- Enum.with_index(@data.notebook.sections) do %>
+            <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
               <%= live_component @socket, LivebookWeb.SectionComponent,
-                    id: section.id,
+                    id: section_view.id,
                     index: index,
                     session_id: @session_id,
-                    section: section,
-                    cell_infos: @data.cell_infos %>
+                    section_view: section_view %>
             <% end %>
             <div style="height: 80vh"></div>
           </div>
@@ -158,7 +160,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
-    {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
+    {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
@@ -172,7 +174,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_event("cell_init", %{"cell_id" => cell_id}, socket) do
-    data = socket.assigns.data
+    data = socket.private.data
 
     case Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       {:ok, cell, _section} ->
@@ -189,7 +191,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("add_section", _params, socket) do
-    end_index = length(socket.assigns.data.notebook.sections)
+    end_index = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session_id, end_index)
 
     {:noreply, socket}
@@ -222,14 +224,14 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("insert_cell_below", %{"cell_id" => cell_id, "type" => type}, socket) do
     type = String.to_atom(type)
-    insert_cell_next_to(socket.assigns, cell_id, type, idx_offset: 1)
+    insert_cell_next_to(socket, cell_id, type, idx_offset: 1)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_cell_above", %{"cell_id" => cell_id, "type" => type}, socket) do
     type = String.to_atom(type)
-    insert_cell_next_to(socket.assigns, cell_id, type, idx_offset: 0)
+    insert_cell_next_to(socket, cell_id, type, idx_offset: 0)
 
     {:noreply, socket}
   end
@@ -288,7 +290,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
-    with {:ok, section} <- Notebook.fetch_section(socket.assigns.data.notebook, section_id) do
+    with {:ok, section} <- Notebook.fetch_section(socket.private.data.notebook, section_id) do
       for cell <- section.cells, cell.type == :elixir do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
@@ -298,7 +300,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_all_cells_evaluation", _params, socket) do
-    data = socket.assigns.data
+    data = socket.private.data
 
     for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
         data.cell_infos[cell.id].validity_status != :evaluated do
@@ -310,8 +312,8 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
     with {:ok, cell, _section} <-
-           Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id) do
-      for {cell, _} <- Notebook.child_cells_with_section(socket.assigns.data.notebook, cell.id) do
+           Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
+      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -339,11 +341,12 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_info({:operation, operation}, socket) do
-    case Session.Data.apply_operation(socket.assigns.data, operation) do
+    case Session.Data.apply_operation(socket.private.data, operation) do
       {:ok, data, actions} ->
         new_socket =
           socket
-          |> assign(data: data)
+          |> assign_private(data: data)
+          |> assign(data_view: data_to_view(data))
           |> after_operation(socket, operation)
           |> handle_actions(actions)
 
@@ -398,12 +401,12 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(socket, prev_socket, {:delete_cell, _client_pid, cell_id}) do
     # Find a sibling cell that the client would focus if the deleted cell has focus.
     sibling_cell_id =
-      case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, 1) do
+      case Notebook.fetch_cell_sibling(prev_socket.private.data.notebook, cell_id, 1) do
         {:ok, next_cell} ->
           next_cell.id
 
         :error ->
-          case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, -1) do
+          case Notebook.fetch_cell_sibling(prev_socket.private.data.notebook, cell_id, -1) do
             {:ok, previous_cell} -> previous_cell.id
             :error -> nil
           end
@@ -446,12 +449,52 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp insert_cell_next_to(assigns, cell_id, type, idx_offset: idx_offset) do
-    {:ok, cell, section} = Notebook.fetch_cell_and_section(assigns.data.notebook, cell_id)
+  defp insert_cell_next_to(socket, cell_id, type, idx_offset: idx_offset) do
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     index = Enum.find_index(section.cells, &(&1 == cell))
-    Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
+    Session.insert_cell(socket.assigns.session_id, section.id, index + idx_offset, type)
   end
 
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)
+
+  # Builds view-specific structure of data by cherry-picking
+  # only the relevant attributes.
+  # We then use `@data_view` in the templates and consequently
+  # irrelevant changes to data don't change `@data_view`, so LV doesn't
+  # have to traverse the whole template tree and no diff is sent to the client.
+  defp data_to_view(data) do
+    %{
+      path: data.path,
+      runtime: data.runtime,
+      notebook_name: data.notebook.name,
+      sections_items:
+        for section <- data.notebook.sections do
+          %{id: section.id, name: section.name}
+        end,
+      section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
+    }
+  end
+
+  defp section_to_view(section, data) do
+    %{
+      id: section.id,
+      name: section.name,
+      cell_views: Enum.map(section.cells, &cell_to_view(&1, data))
+    }
+  end
+
+  defp cell_to_view(cell, data) do
+    info = data.cell_infos[cell.id]
+
+    %{
+      id: cell.id,
+      type: cell.type,
+      empty?: cell.source == "",
+      outputs: cell.outputs,
+      validity_status: info.validity_status,
+      evaluation_status: info.evaluation_status,
+      changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
+    }
+  end
 end
