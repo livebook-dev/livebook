@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive do
             </div>
             <button class="button button-blue"
               phx-click="new">
-              New Notebook
+              New notebook
             </button>
           </div>
           <div class="w-full h-80">
@@ -70,7 +70,7 @@ defmodule LivebookWeb.HomeLive do
           </div>
           <div class="w-full py-12">
             <h3 class="text-xl font-semibold text-gray-800 mb-5">
-              Running Sessions
+              Running sessions
             </h3>
             <%= if @session_summaries == [] do %>
               <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
@@ -80,7 +80,7 @@ defmodule LivebookWeb.HomeLive do
                 <div class="text-gray-600">
                   You do not have any running sessions.
                   <br>
-                  Please create a new one by clicking <span class="font-semibold">“New Notebook”</span>
+                  Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
                 </div>
               </div>
             <% else %>
