@@ -95,21 +95,24 @@ defmodule LivebookWeb.SessionLive do
           <% end %>
         </span>
       </div>
-      <div class="flex flex-col w-1/5 bg-gray-50 border-r border-gray-100" data-element="sections-panel">
-        <div class="flex-grow flex flex-col space-y-2 pl-4 pt-4"
-          data-element="section-list">
-          <%= for section <- @data.notebook.sections do %>
-            <button class="py-2 px-4 text-left hover:text-gray-800 text-gray-500"
-              data-element="section-list-item"
-              data-section-id="<%= section.id %>">
-              <%= section.name %>
-            </button>
-          <% end %>
-          <button phx-click="add_section" class="py-2 px-4 rounded-l-md cursor-pointer text-gray-300 hover:text-gray-400">
-            <div class="flex items-center space-x-2">
-              <%= remix_icon("add-line", class: "text-2xl") %>
-              <span>New section</span>
-            </div>
+      <div class="flex flex-col w-1/5 bg-gray-50 border-r border-gray-100 px-6 py-10" data-element="sections-panel">
+        <div class="flex-grow flex flex-col">
+          <h3 class="font-semibold text-gray-800 text-lg">
+            Sections
+          </h3>
+          <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
+            <%= for section <- @data.notebook.sections do %>
+              <button class="text-left hover:text-gray-900 text-gray-500"
+                data-element="section-list-item"
+                data-section-id="<%= section.id %>">
+                <%= section.name %>
+              </button>
+            <% end %>
+          </div>
+          <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
+            phx-click="add_section" >
+            <%= remix_icon("add-line", class: "text-lg align-center") %>
+            <span>New section</span>
           </button>
         </div>
       </div>
