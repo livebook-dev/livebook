@@ -18,10 +18,21 @@ defmodule LivebookWeb.SessionLive do
 
       platform = platform_from_socket(socket)
 
-      {:ok, assign(socket, initial_assigns(session_id, data, platform))}
+      {:ok,
+       socket
+       |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
+       |> assign_private(data: data)}
     else
       {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
+  end
+
+  # Puts the given assigns in `socket.private`,
+  # to ensure they are not used for rendering.
+  defp assign_private(socket, assigns) do
+    Enum.reduce(assigns, socket, fn {key, value}, socket ->
+      put_in(socket.private[key], value)
+    end)
   end
 
   defp platform_from_socket(socket) do
@@ -31,15 +42,6 @@ defmodule LivebookWeb.SessionLive do
     else
       _ -> nil
     end
-  end
-
-  defp initial_assigns(session_id, data, platform) do
-    %{
-      platform: platform,
-      session_id: session_id,
-      data: data,
-      data_view: data_to_view(data)
-    }
   end
 
   @impl true
@@ -158,7 +160,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
-    {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id)
+    {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
@@ -172,7 +174,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_event("cell_init", %{"cell_id" => cell_id}, socket) do
-    data = socket.assigns.data
+    data = socket.private.data
 
     case Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       {:ok, cell, _section} ->
@@ -189,7 +191,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("add_section", _params, socket) do
-    end_index = length(socket.assigns.data.notebook.sections)
+    end_index = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session_id, end_index)
 
     {:noreply, socket}
@@ -222,14 +224,14 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("insert_cell_below", %{"cell_id" => cell_id, "type" => type}, socket) do
     type = String.to_atom(type)
-    insert_cell_next_to(socket.assigns, cell_id, type, idx_offset: 1)
+    insert_cell_next_to(socket, cell_id, type, idx_offset: 1)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_cell_above", %{"cell_id" => cell_id, "type" => type}, socket) do
     type = String.to_atom(type)
-    insert_cell_next_to(socket.assigns, cell_id, type, idx_offset: 0)
+    insert_cell_next_to(socket, cell_id, type, idx_offset: 0)
 
     {:noreply, socket}
   end
@@ -288,7 +290,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
-    with {:ok, section} <- Notebook.fetch_section(socket.assigns.data.notebook, section_id) do
+    with {:ok, section} <- Notebook.fetch_section(socket.private.data.notebook, section_id) do
       for cell <- section.cells, cell.type == :elixir do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
@@ -298,7 +300,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_all_cells_evaluation", _params, socket) do
-    data = socket.assigns.data
+    data = socket.private.data
 
     for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
         data.cell_infos[cell.id].validity_status != :evaluated do
@@ -310,8 +312,8 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
     with {:ok, cell, _section} <-
-           Notebook.fetch_cell_and_section(socket.assigns.data.notebook, cell_id) do
-      for {cell, _} <- Notebook.child_cells_with_section(socket.assigns.data.notebook, cell.id) do
+           Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
+      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -339,11 +341,12 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_info({:operation, operation}, socket) do
-    case Session.Data.apply_operation(socket.assigns.data, operation) do
+    case Session.Data.apply_operation(socket.private.data, operation) do
       {:ok, data, actions} ->
         new_socket =
           socket
-          |> assign(data: data, data_view: data_to_view(data))
+          |> assign_private(data: data)
+          |> assign(data_view: data_to_view(data))
           |> after_operation(socket, operation)
           |> handle_actions(actions)
 
@@ -398,12 +401,12 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(socket, prev_socket, {:delete_cell, _client_pid, cell_id}) do
     # Find a sibling cell that the client would focus if the deleted cell has focus.
     sibling_cell_id =
-      case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, 1) do
+      case Notebook.fetch_cell_sibling(prev_socket.private.data.notebook, cell_id, 1) do
         {:ok, next_cell} ->
           next_cell.id
 
         :error ->
-          case Notebook.fetch_cell_sibling(prev_socket.assigns.data.notebook, cell_id, -1) do
+          case Notebook.fetch_cell_sibling(prev_socket.private.data.notebook, cell_id, -1) do
             {:ok, previous_cell} -> previous_cell.id
             :error -> nil
           end
@@ -446,10 +449,10 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp insert_cell_next_to(assigns, cell_id, type, idx_offset: idx_offset) do
-    {:ok, cell, section} = Notebook.fetch_cell_and_section(assigns.data.notebook, cell_id)
+  defp insert_cell_next_to(socket, cell_id, type, idx_offset: idx_offset) do
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     index = Enum.find_index(section.cells, &(&1 == cell))
-    Session.insert_cell(assigns.session_id, section.id, index + idx_offset, type)
+    Session.insert_cell(socket.assigns.session_id, section.id, index + idx_offset, type)
   end
 
   defp ensure_integer(n) when is_integer(n), do: n
