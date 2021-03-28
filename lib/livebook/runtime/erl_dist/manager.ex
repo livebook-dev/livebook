@@ -114,6 +114,10 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
+    # Supress logging for the Manager lifetime.
+    initial_logger_level = Logger.level()
+    Logger.configure(level: :critical)
+
     # Register our own standard error IO devices that proxies
     # to sender's group leader.
     original_standard_error = Process.whereis(:standard_error)
@@ -125,6 +129,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
        owner: nil,
        evaluators: %{},
        initial_ignore_module_conflict: initial_ignore_module_conflict,
+       initial_logger_level: initial_logger_level,
        original_standard_error: original_standard_error
      }}
   end
@@ -132,6 +137,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   @impl true
   def terminate(_reason, state) do
     Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
+
+    Logger.configure(level: state.initial_logger_level)
 
     Process.unregister(:standard_error)
     Process.register(state.original_standard_error, :standard_error)
