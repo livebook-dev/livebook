@@ -790,6 +790,36 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :reflect_evaluation_failure" do
+    test "clears evaluation queue and marks evaluated and evaluating cells as aborted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+        ])
+
+      operation = {:reflect_evaluation_failure, self()}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :cancel_cell_evaluation" do
     test "returns an error given invalid cell id" do
       data = Data.new()
@@ -829,8 +859,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
-                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
                   "c3" => %{validity_status: :fresh, evaluation_status: :ready}
                 },
                 section_infos: %{
@@ -1317,7 +1347,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
                   "c2" => %{validity_status: :fresh, evaluation_status: :ready},
                   "c3" => %{validity_status: :fresh, evaluation_status: :ready},
                   "c4" => %{validity_status: :fresh, evaluation_status: :ready}

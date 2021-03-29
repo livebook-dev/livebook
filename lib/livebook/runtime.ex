@@ -42,6 +42,9 @@ defprotocol Livebook.Runtime do
   * `{:evaluation_stdout, ref, string}` - output captured during evaluation
   * `{:evaluation_response, ref, response}` - final result of the evaluation
 
+  If the evaluation state within a container is lost (e.g. a process goes down),
+  the runtime can send `{:container_down, container_ref, message}` to notify the owner.
+
   ## Options
 
   * `:file` - file to which the evaluated code belongs. Most importantly,

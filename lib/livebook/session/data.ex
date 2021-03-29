@@ -58,7 +58,7 @@ defmodule Livebook.Session.Data do
 
   @type cell_revision :: non_neg_integer()
 
-  @type cell_validity_status :: :fresh | :evaluated | :stale
+  @type cell_validity_status :: :fresh | :evaluated | :stale | :aborted
   @type cell_evaluation_status :: :ready | :queued | :evaluating
 
   @type index :: non_neg_integer()
@@ -80,6 +80,7 @@ defmodule Livebook.Session.Data do
           | {:queue_cell_evaluation, pid(), Cell.id()}
           | {:add_cell_evaluation_stdout, pid(), Cell.id(), String.t()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), Evaluator.evaluation_response()}
+          | {:reflect_evaluation_failure, pid()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
           | {:set_notebook_name, pid(), String.t()}
           | {:set_section_name, pid(), Section.id(), String.t()}
@@ -268,6 +269,13 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:reflect_evaluation_failure, _client_pid}) do
+    data
+    |> with_actions()
+    |> clear_evaluation()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:cancel_cell_evaluation, _client_pid, id}) do
@@ -577,11 +585,19 @@ defmodule Livebook.Session.Data do
     |> set_section_info!(section.id, evaluating_cell_id: nil, evaluation_queue: [])
     |> reduce(
       section.cells,
-      &set_cell_info!(&1, &2.id,
-        validity_status: :fresh,
-        evaluation_status: :ready,
-        evaluation_digest: nil
-      )
+      &update_cell_info!(&1, &2.id, fn info ->
+        %{
+          info
+          | validity_status:
+              if info.validity_status == :fresh and info.evaluation_status != :evaluating do
+                :fresh
+              else
+                :aborted
+              end,
+            evaluation_status: :ready,
+            evaluation_digest: nil
+        }
+      end)
     )
   end
 

@@ -459,6 +459,13 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info({:container_down, :main, message}, state) do
+    broadcast_error(state.session_id, "evaluation process terminated - #{message}")
+
+    operation = {:reflect_evaluation_failure, self()}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_info(:autosave, state) do
     Process.send_after(self(), :autosave, @autosave_interval)
     {:noreply, maybe_save_notebook(state)}

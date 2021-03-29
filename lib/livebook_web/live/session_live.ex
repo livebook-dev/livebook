@@ -359,13 +359,13 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info({:error, error}, socket) do
-    message = error |> to_string() |> String.capitalize()
+    message = error |> to_string() |> upcase_first()
 
     {:noreply, put_flash(socket, :error, message)}
   end
 
   def handle_info({:info, info}, socket) do
-    message = info |> to_string() |> String.capitalize()
+    message = info |> to_string() |> upcase_first()
 
     {:noreply, put_flash(socket, :info, message)}
   end
@@ -448,6 +448,11 @@ defmodule LivebookWeb.SessionLive do
       "" -> "Untitled"
       name -> name
     end
+  end
+
+  def upcase_first(string) do
+    {head, tail} = String.split_at(string, 1)
+    String.upcase(head) <> tail
   end
 
   defp insert_cell_next_to(socket, cell_id, type, idx_offset: idx_offset) do
