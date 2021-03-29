@@ -13,14 +13,24 @@ defmodule Livebook.Evaluator.StringFormatter do
     :ignored
   end
 
+  def format({:ok, {:module, _, _, _} = value}) do
+    inspected = inspect(value, inspect_opts(limit: 10))
+    {:inspect, inspected}
+  end
+
   def format({:ok, value}) do
-    inspected = inspect(value, pretty: true, width: 100, syntax_colors: syntax_colors())
+    inspected = inspect(value, inspect_opts())
     {:inspect, inspected}
   end
 
   def format({:error, kind, error, stacktrace}) do
     formatted = Exception.format(kind, error, stacktrace)
     {:error, formatted}
+  end
+
+  defp inspect_opts(opts \\ []) do
+    default_opts = [pretty: true, width: 100, syntax_colors: syntax_colors()]
+    Keyword.merge(default_opts, opts)
   end
 
   defp syntax_colors() do
