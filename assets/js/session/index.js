@@ -47,8 +47,6 @@ const Session = {
       handleSectionListClick(this, event);
     });
 
-    updateSectionListHighlight();
-
     getNotebook().addEventListener("scroll", (event) => {
       updateSectionListHighlight();
     });
@@ -58,6 +56,11 @@ const Session = {
       .addEventListener("click", (event) => {
         toggleSectionsPanel(this);
       });
+
+    // DOM setup
+
+    updateSectionListHighlight();
+    focusNotebookNameIfNew();
 
     // Server events
 
@@ -467,6 +470,16 @@ function handleSectionInserted(hook, sectionId) {
 function handleSectionDeleted(hook, sectionId) {
   if (hook.state.focusedSectionId === sectionId) {
     setFocusedCell(hook, null);
+  }
+}
+
+function focusNotebookNameIfNew() {
+  const sections = getSections();
+  const nameElement = document.querySelector(`[data-element="notebook-name"]`);
+
+  if (sections.length === 0 && nameElement.innerText === "Untitled notebook") {
+    nameElement.focus();
+    selectElementContent(nameElement);
   }
 }
 
