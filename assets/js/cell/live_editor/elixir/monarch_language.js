@@ -526,7 +526,7 @@ const ElixirMonarchLanguage = {
       ],
       [/\@(module|type)?doc false/, "comment.block.documentation"],
       // Module attributes
-      [/\@@variableName/, "variable"],
+      [/\@(@variableName)/, "variable"],
     ],
 
     doubleQuotedHeredocDocstring: [
