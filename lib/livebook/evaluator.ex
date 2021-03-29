@@ -159,7 +159,7 @@ defmodule Livebook.Evaluator do
     end
   end
 
-  def prepare_error(kind, error, stacktrace) do
+  defp prepare_error(kind, error, stacktrace) do
     {error, stacktrace} = Exception.blame(kind, error, stacktrace)
     stacktrace = prune_stacktrace(stacktrace)
     {kind, error, stacktrace}

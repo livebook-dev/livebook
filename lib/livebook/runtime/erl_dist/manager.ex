@@ -163,7 +163,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     end)
     |> case do
       {container_ref, _} ->
-        message = evaluator_down_message(reason)
+        message = Exception.format_exit(reason)
         send(state.owner, {:container_down, container_ref, message})
         {:noreply, %{state | evaluators: Map.delete(state.evaluators, container_ref)}}
 
@@ -232,14 +232,4 @@ defmodule Livebook.Runtime.ErlDist.Manager do
         state
     end
   end
-
-  defp evaluator_down_message(reason)
-
-  defp evaluator_down_message({error, stacktrace}) do
-    {kind, error, stacktrace} = Evaluator.prepare_error(:error, error, stacktrace)
-    Exception.format(kind, error, stacktrace)
-  end
-
-  defp evaluator_down_message(:killed), do: "Killed"
-  defp evaluator_down_message(_), do: "Stopped"
 end

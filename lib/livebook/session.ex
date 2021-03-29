@@ -460,7 +460,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:container_down, :main, message}, state) do
-    broadcast_error(state.session_id, "evaluation process terminated\n#{message}")
+    broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
     operation = {:reflect_evaluation_failure, self()}
     {:noreply, handle_operation(state, operation)}
