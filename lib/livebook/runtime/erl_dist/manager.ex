@@ -156,16 +156,14 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     {:stop, :normal, state}
   end
 
-  def handle_info({:DOWN, _, :process, pid, {error, stacktrace}}, state) do
-    {kind, error, stacktrace} = Evaluator.prepare_error(:error, error, stacktrace)
-    message = Exception.format(kind, error, stacktrace)
-
+  def handle_info({:DOWN, _, :process, pid, reason}, state) do
     state.evaluators
-    |> Enum.find(state.evaluators, fn {_container_ref, evaluator_pid} ->
+    |> Enum.find(fn {_container_ref, evaluator_pid} ->
       evaluator_pid == pid
     end)
     |> case do
       {container_ref, _} ->
+        message = evaluator_down_message(reason)
         send(state.owner, {:container_down, container_ref, message})
         {:noreply, %{state | evaluators: Map.delete(state.evaluators, container_ref)}}
 
@@ -234,4 +232,14 @@ defmodule Livebook.Runtime.ErlDist.Manager do
         state
     end
   end
+
+  defp evaluator_down_message(reason)
+
+  defp evaluator_down_message({error, stacktrace}) do
+    {kind, error, stacktrace} = Evaluator.prepare_error(:error, error, stacktrace)
+    Exception.format(kind, error, stacktrace)
+  end
+
+  defp evaluator_down_message(:killed), do: "Killed"
+  defp evaluator_down_message(_), do: "Stopped"
 end

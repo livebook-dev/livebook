@@ -68,4 +68,21 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
       Manager.stop(node())
     end
   end
+
+  @tag capture_log: true
+  test "notifies the owner when an evaluator goes down" do
+    Manager.start()
+    Manager.set_owner(node(), self())
+
+    code = """
+    spawn_link(fn -> raise "sad cat" end)
+    """
+
+    Manager.evaluate_code(node(), code, :container1, :evaluation1)
+
+    assert_receive {:container_down, :container1, message}
+    assert message =~ "sad cat"
+
+    Manager.stop(node())
+  end
 end
