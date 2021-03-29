@@ -269,6 +269,8 @@ defmodule LivebookWeb.CellComponent do
     |> String.split("\n")
   end
 
+  defp render_cell_status(validity_status, evaluation_status, changed)
+
   defp render_cell_status(_, :evaluating, changed) do
     render_status_indicator("Evaluating", "bg-blue-500", "bg-blue-400", changed)
   end
@@ -283,6 +285,10 @@ defmodule LivebookWeb.CellComponent do
 
   defp render_cell_status(:stale, _, changed) do
     render_status_indicator("Stale", "bg-yellow-200", nil, changed)
+  end
+
+  defp render_cell_status(:aborted, _, _) do
+    render_status_indicator("Aborted", "bg-red-400", nil, false)
   end
 
   defp render_cell_status(_, _, _), do: nil
@@ -302,7 +308,9 @@ defmodule LivebookWeb.CellComponent do
         <span class="<%= unless(@show_changed, do: "invisible") %>">*</span>
       </div>
       <span class="flex relative h-3 w-3">
-        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+        <%= if @animated_circle_class do %>
+          <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+        <% end %>
         <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
       </span>
     </div>

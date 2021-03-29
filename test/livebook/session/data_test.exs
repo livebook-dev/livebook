@@ -829,8 +829,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
-                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
                   "c3" => %{validity_status: :fresh, evaluation_status: :ready}
                 },
                 section_infos: %{
@@ -1317,7 +1317,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
                   "c2" => %{validity_status: :fresh, evaluation_status: :ready},
                   "c3" => %{validity_status: :fresh, evaluation_status: :ready},
                   "c4" => %{validity_status: :fresh, evaluation_status: :ready}
