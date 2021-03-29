@@ -124,6 +124,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="pb-4 mb-6 border-b border-gray-200">
             <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
+              data-element="notebook-name"
               contenteditable
               spellcheck="false"
               phx-blur="set_notebook_name"
