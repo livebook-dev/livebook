@@ -170,7 +170,7 @@ defmodule Livebook.Notebook.HelloLivebook do
   Once you start using notebooks more, it's gonna be beneficial
   to optimise how you move around. Livebook leverages the concept of
   **navigation**/**insert** modes and offers many shortcuts for common operations.
-  Make sure to check out the shortcuts by clicking the keyboard icon in
+  Make sure to check out the shortcuts by clicking the "Keyboard" icon in
   the sidebar panel or by typing `?`.
 
   ## Final notes
