@@ -12,10 +12,9 @@ defmodule Livebook.Notebook.HelloLivebook do
   combined with your editor.
   You can also use it for authoring shareable articles that people can easily
   run and play around with.
-
-  Livebook is not limited to personal usage! It's been built with collaboration in mind
-  from day one. All you need is to put it on a server or expose your local address
-  and you can start working with others 🎉
+  Package authors can write notebooks as interactive tutorials
+  and include them in their repository, so that users can easily download
+  and run them locally.
 
   ## Basic usage
 
