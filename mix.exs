@@ -36,7 +36,9 @@ defmodule Livebook.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.5.7"},
-      {:phoenix_live_view, "~> 0.15.0"},
+      # TODO: remove reference to the Git repo once LV 0.15.5 is released
+      {:phoenix_live_view, "~> 0.15.0",
+       github: "phoenixframework/phoenix_live_view", branch: "master"},
       {:floki, ">= 0.27.0", only: :test},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
