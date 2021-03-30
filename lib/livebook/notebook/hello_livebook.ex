@@ -128,7 +128,7 @@ defmodule Livebook.Notebook.HelloLivebook do
   By default a new Elixir node is started (similarly to starting `iex`),
   but you can also choose to run inside a Mix project (as you would with `iex -S mix`)
   or even manually attach to an existing distributed node!
-  You can configure the runtime under notebook settings.
+  You can configure the runtime under "Notebook settings".
 
   ## Using packages
 
