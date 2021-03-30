@@ -24,7 +24,7 @@ defmodule LivebookWeb.SectionComponent do
           </span>
         </div>
       </div>
-      <div class="container py-2">
+      <div class="container">
         <div class="flex flex-col space-y-1">
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
             <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
