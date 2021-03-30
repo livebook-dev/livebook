@@ -16,7 +16,7 @@ defmodule LivebookWeb.CellComponent do
 
   def render_cell_content(%{cell_view: %{type: :markdown}} = assigns) do
     ~L"""
-    <div class="mb-1 flex items-center justify-end">
+    <div class="flex items-center justify-end">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
         <span class="tooltip top" aria-label="Edit content">
           <button class="icon-button" data-element="enable-insert-mode-button">
