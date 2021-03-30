@@ -67,7 +67,7 @@ defmodule Livebook.Notebook.HelloLivebook do
 
   My default notebooks are kept in memory, which is fine for interactive hacking,
   but oftentimes you will want to save your work for later. Fortunately notebooks
-  can be persisted by clicking on the settings icon in the left sidebar
+  can be persisted by clicking on the "Settings" icon in the left sidebar
   and selecting the file location.
 
   Notebooks are stored in **live markdown** format, which is essentially the markdown you know,
