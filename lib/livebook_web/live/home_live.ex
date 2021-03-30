@@ -36,10 +36,18 @@ defmodule LivebookWeb.HomeLive do
             <div class="text-2xl text-gray-800 font-semibold">
               Livebook
             </div>
-            <button class="button button-blue"
-              phx-click="new">
-              New notebook
-            </button>
+            <div class="flex space-x-2">
+              <span class="tooltip top" aria-label="Introduction">
+                <button class="button button-outlined-gray button-square-icon"
+                  phx-click="hello_livebook">
+                  <%= remix_icon("compass-line") %>
+                </button>
+              </span>
+              <button class="button button-blue"
+                phx-click="new">
+                New notebook
+              </button>
+            </div>
           </div>
           <div class="w-full h-80">
             <%= live_component @socket, LivebookWeb.PathSelectComponent,
@@ -106,6 +114,10 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
     {:noreply, assign(socket, path: path)}
+  end
+
+  def handle_event("hello_livebook", %{}, socket) do
+    create_session(socket, notebook: Livebook.Notebook.HelloLivebook.new())
   end
 
   def handle_event("new", %{}, socket) do
