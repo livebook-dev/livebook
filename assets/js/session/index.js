@@ -186,7 +186,11 @@ function handleDocumentKeyDown(hook, event) {
  */
 function handleDocumentMouseDown(hook, event) {
   // If click targets cell actions, keep the focus as is
-  if (event.target.closest(`[data-element="actions"]`)) {
+  if (
+    event.target.closest(
+      `[data-element="actions"], [data-element="insert-buttons"]`
+    )
+  ) {
     // If the pencil icon is clicked, enter insert mode
     if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
       setInsertMode(hook, true);
@@ -460,6 +464,10 @@ function handleCellMoved(hook, cellId) {
 }
 
 function handleSectionInserted(hook, sectionId) {
+  if (hook.state.focusedSectionId) {
+    setFocusedCell(hook, null);
+  }
+
   const section = getSectionById(sectionId);
   const nameElement = section.querySelector(`[data-element="section-name"]`);
   nameElement.focus({ preventScroll: true });
