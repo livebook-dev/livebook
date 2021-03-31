@@ -39,7 +39,7 @@ defmodule LivebookWeb.HomeLive do
             <div class="flex space-x-2">
               <span class="tooltip top" aria-label="Introduction">
                 <button class="button button-outlined-gray button-square-icon"
-                  phx-click="hello_livebook">
+                  phx-click="open_welcome">
                   <%= remix_icon("compass-line") %>
                 </button>
               </span>
@@ -116,8 +116,8 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, path: path)}
   end
 
-  def handle_event("hello_livebook", %{}, socket) do
-    create_session(socket, notebook: Livebook.Notebook.HelloLivebook.new())
+  def handle_event("open_welcome", %{}, socket) do
+    create_session(socket, notebook: Livebook.Notebook.Welcome.new())
   end
 
   def handle_event("new", %{}, socket) do

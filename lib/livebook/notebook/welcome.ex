@@ -1,6 +1,6 @@
-defmodule Livebook.Notebook.HelloLivebook do
+defmodule Livebook.Notebook.Welcome do
   livemd = ~s'''
-  # Hello Livebook
+  # Welcome to Livebook
 
   ## Introduction
 
