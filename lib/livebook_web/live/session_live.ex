@@ -492,22 +492,31 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp global_evaluation_status(data) do
-    cell_infos =
+    cells =
       data.notebook
       |> Notebook.elixir_cells_with_section()
-      |> Enum.map(fn {cell, _} -> data.cell_infos[cell.id] end)
+      |> Enum.map(fn {cell, _} -> cell end)
 
     cond do
-      Enum.any?(cell_infos, &(&1.evaluation_status == :evaluating)) ->
-        :evaluating
+      evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
+        {:evaluating, evaluating.id}
 
-      Enum.all?(cell_infos, &(&1.validity_status == :evaluated)) ->
-        :evaluated
+      stale = Enum.find(cells, &stale?(&1, data)) ->
+        {:stale, stale.id}
+
+      evaluated = Enum.find(Enum.reverse(cells), &evaluated?(&1, data)) ->
+        {:evaluated, evaluated.id}
 
       true ->
-        :ready
+        {:fresh, nil}
     end
   end
+
+  defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
+
+  defp stale?(cell, data), do: data.cell_infos[cell.id].validity_status == :stale
+
+  defp evaluated?(cell, data), do: data.cell_infos[cell.id].validity_status == :evaluated
 
   defp section_to_view(section, data) do
     %{
