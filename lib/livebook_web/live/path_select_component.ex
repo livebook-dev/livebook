@@ -68,13 +68,20 @@ defmodule LivebookWeb.PathSelectComponent do
     ~L"""
     <button class="flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
       phx-click="set_path"
-      phx-value-path="<%= file.path %>"
+      phx-value-path="<%= @file.path %>"
       <%= if target, do: "phx-target=#{target}" %>>
       <span class="block">
         <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
       </span>
-      <span class="block font-medium overflow-hidden overflow-ellipsis whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
-        <%= file.name %>
+      <span class="flex font-medium overflow-hidden overflow-ellipsis whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
+        <%= if @file.highlighted != "" do %>
+          <span class="font-medium <%= if(@file.is_running, do: "text-green-400", else: "text-gray-900") %>">
+            <%= @file.highlighted %>
+          </span>
+        <% end %>
+        <span>
+          <%= @file.unhighlighted %>
+        </span>
       </span>
     </button>
     """
@@ -87,7 +94,7 @@ defmodule LivebookWeb.PathSelectComponent do
     # we list files in "bar".
     #
     # The basename is kinda like search within the current directory,
-    # so we show only files starting with that string.
+    # so we highlight files starting with that string.
 
     {dir, basename} = split_path(path)
     dir = Path.expand(dir)
@@ -102,37 +109,40 @@ defmodule LivebookWeb.PathSelectComponent do
       file_infos =
         file_names
         |> Enum.map(fn name ->
-          path = Path.join(dir, name)
-          is_dir = File.dir?(path)
-
-          %{
-            name: name,
-            path: if(is_dir, do: ensure_trailing_slash(path), else: path),
-            is_dir: is_dir,
-            is_running: path in running_paths
-          }
+          file_info(dir, name, basename, running_paths)
         end)
         |> Enum.filter(fn file ->
-          not hidden?(file.name) and String.starts_with?(file.name, basename) and
-            (file.is_dir or valid_extension?(file.name, extnames))
+          not hidden?(file.name) and (file.is_dir or valid_extension?(file.name, extnames))
         end)
-        |> Enum.sort_by(fn file -> {!file.is_dir, file.name} end)
 
-      if dir == "/" or basename != "" do
-        file_infos
-      else
-        parent_dir = %{
-          name: "..",
-          path: dir |> Path.join("..") |> Path.expand() |> ensure_trailing_slash(),
-          is_dir: true,
-          is_running: false
-        }
+      file_infos =
+        if dir == "/" do
+          file_infos
+        else
+          parent_dir = file_info(dir, "..", basename, running_paths)
+          [parent_dir | file_infos]
+        end
 
-        [parent_dir | file_infos]
-      end
+      Enum.sort_by(file_infos, fn file ->
+        {-String.length(file.highlighted), !file.is_dir, file.name}
+      end)
     else
       []
     end
+  end
+
+  defp file_info(dir, name, filter, running_paths) do
+    path = Path.join(dir, name) |> Path.expand()
+    is_dir = File.dir?(path)
+
+    %{
+      name: name,
+      highlighted: if(String.starts_with?(name, filter), do: filter, else: ""),
+      unhighlighted: String.replace_prefix(name, filter, ""),
+      path: if(is_dir, do: ensure_trailing_slash(path), else: path),
+      is_dir: is_dir,
+      is_running: path in running_paths
+    }
   end
 
   defp hidden?(filename) do

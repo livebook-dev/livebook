@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
      assign(socket,
        session_id: session_id,
        error_message: nil,
-       name: if(current_runtime, do: current_runtime.node, else: "")
+       name: initial_name(current_runtime)
      )}
   end
 
@@ -63,6 +63,9 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         {:noreply, assign(socket, name: name, error_message: message)}
     end
   end
+
+  defp initial_name(%Runtime.Attached{} = current_runtime), do: current_runtime.node
+  defp initial_name(_runtime), do: ""
 
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"
 
