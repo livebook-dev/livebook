@@ -147,7 +147,7 @@ defmodule LivebookWeb.HomeLiveTest do
     assert to =~ "/sessions/"
 
     {:ok, view, _} = live(conn, to)
-    assert render(view) =~ "Hello Livebook"
+    assert render(view) =~ "Welcome to Livebook"
   end
 
   # Helpers

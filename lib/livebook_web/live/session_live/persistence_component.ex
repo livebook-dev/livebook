@@ -6,7 +6,8 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def mount(socket) do
     session_summaries = SessionSupervisor.get_session_summaries()
-    {:ok, assign(socket, session_summaries: session_summaries)}
+    running_paths = Enum.map(session_summaries, & &1.path)
+    {:ok, assign(socket, running_paths: running_paths)}
   end
 
   @impl true
@@ -34,7 +35,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             id: "path_select",
             path: @path,
             extnames: [LiveMarkdown.extension()],
-            running_paths: paths(@session_summaries),
+            running_paths: @running_paths,
             target: @myself %>
         </div>
       <% end %>
@@ -49,7 +50,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             class: "button button-blue",
             phx_click: "save",
             phx_target: @myself,
-            disabled: not path_savable?(normalize_path(@path), @session_summaries) or normalize_path(@path) == @current_path %>
+            disabled: not path_savable?(normalize_path(@path), @running_paths) or normalize_path(@path) == @current_path %>
         </div>
       </div>
     </div>
@@ -74,26 +75,28 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   def handle_event("save", %{}, socket) do
     path = normalize_path(socket.assigns.path)
     Session.set_path(socket.assigns.session_id, path)
-    {:noreply, socket}
+
+    running_paths =
+      if path do
+        [path | socket.assigns.running_paths]
+      else
+        List.delete(socket.assigns.running_paths, path)
+      end
+
+    {:noreply, assign(socket, running_paths: running_paths)}
   end
 
   defp default_path() do
     File.cwd!() |> Path.join("notebook")
   end
 
-  defp paths(session_summaries) do
-    Enum.map(session_summaries, & &1.path)
-  end
+  defp path_savable?(nil, _running_paths), do: true
 
-  defp path_savable?(nil, _session_summaries), do: true
-
-  defp path_savable?(path, session_summaries) do
+  defp path_savable?(path, running_paths) do
     if File.exists?(path) do
-      running_paths = paths(session_summaries)
       File.regular?(path) and path not in running_paths
     else
-      dir = Path.dirname(path)
-      File.exists?(dir)
+      true
     end
   end
 

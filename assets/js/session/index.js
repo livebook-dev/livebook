@@ -47,15 +47,17 @@ const Session = {
       handleSectionListClick(this, event);
     });
 
+    getSectionsPanelToggle().addEventListener("click", (event) => {
+      toggleSectionsPanel(this);
+    });
+
     getNotebook().addEventListener("scroll", (event) => {
       updateSectionListHighlight();
     });
 
-    document
-      .querySelector(`[data-element="sections-panel-toggle"]`)
-      .addEventListener("click", (event) => {
-        toggleSectionsPanel(this);
-      });
+    getCellIndicators().addEventListener("click", (event) => {
+      handleCellIndicatorsClick(this, event);
+    });
 
     // DOM setup
 
@@ -243,6 +245,17 @@ function handleSectionListClick(hook, event) {
     const sectionId = sectionButton.getAttribute("data-section-id");
     const section = getSectionById(sectionId);
     section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+/**
+ * Handles button clicks within cell indicators section.
+ */
+function handleCellIndicatorsClick(hook, event) {
+  const button = event.target.closest(`[data-element="focus-cell-button"]`);
+  if (button) {
+    const cellId = button.getAttribute("data-target");
+    setFocusedCell(hook, cellId);
   }
 }
 
@@ -552,8 +565,16 @@ function getSectionList() {
   return document.querySelector(`[data-element="section-list"]`);
 }
 
+function getCellIndicators() {
+  return document.querySelector(`[data-element="notebook-indicators"]`);
+}
+
 function getNotebook() {
   return document.querySelector(`[data-element="notebook"]`);
+}
+
+function getSectionsPanelToggle() {
+  return document.querySelector(`[data-element="sections-panel-toggle"]`);
 }
 
 function cancelEvent(event) {

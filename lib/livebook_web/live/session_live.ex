@@ -80,20 +80,20 @@ defmodule LivebookWeb.SessionLive do
           <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
         <span class="tooltip right distant" aria-label="Sections (ss)">
-          <button class="text-2xl text-gray-600 hover:text-gray-50 focus:text-gray-50" data-element="sections-panel-toggle">
+          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50" data-element="sections-panel-toggle">
             <%= remix_icon("booklet-fill") %>
           </button>
         </span>
         <span class="tooltip right distant" aria-label="Notebook settings (sn)">
           <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
-                class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}" do %>
+                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}" do %>
             <%= remix_icon("settings-4-fill", class: "text-2xl") %>
           <% end %>
         </span>
         <div class="flex-grow"></div>
         <span class="tooltip right distant" aria-label="Keyboard shortcuts (?)">
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
-                class: "text-gray-600 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
+                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
           <% end %>
         </span>
@@ -151,9 +151,10 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
       </div>
-      <%# Show a tiny insert indicator for clarity %>
-      <div class="fixed right-5 bottom-1 text-gray-500 text-semibold text-sm" data-element="insert-indicator">
-        insert
+      <div class="fixed bottom-[0.5rem] right-[1.5rem]">
+        <%= live_component @socket, LivebookWeb.SessionLive.IndicatorsComponent,
+              session_id: @session_id,
+              data_view: @data_view %>
       </div>
     </div>
     """
@@ -328,6 +329,12 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("save", %{}, socket) do
+    Session.save(socket.assigns.session_id)
+
+    {:noreply, socket}
+  end
+
   def handle_event("show_shortcuts", %{}, socket) do
     {:noreply,
      push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
@@ -472,7 +479,9 @@ defmodule LivebookWeb.SessionLive do
   defp data_to_view(data) do
     %{
       path: data.path,
+      dirty: data.dirty,
       runtime: data.runtime,
+      global_evaluation_status: global_evaluation_status(data),
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
@@ -481,6 +490,33 @@ defmodule LivebookWeb.SessionLive do
       section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
     }
   end
+
+  defp global_evaluation_status(data) do
+    cells =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.map(fn {cell, _} -> cell end)
+
+    cond do
+      evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
+        {:evaluating, evaluating.id}
+
+      stale = Enum.find(cells, &stale?(&1, data)) ->
+        {:stale, stale.id}
+
+      evaluated = Enum.find(Enum.reverse(cells), &evaluated?(&1, data)) ->
+        {:evaluated, evaluated.id}
+
+      true ->
+        {:fresh, nil}
+    end
+  end
+
+  defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
+
+  defp stale?(cell, data), do: data.cell_infos[cell.id].validity_status == :stale
+
+  defp evaluated?(cell, data), do: data.cell_infos[cell.id].validity_status == :evaluated
 
   defp section_to_view(section, data) do
     %{

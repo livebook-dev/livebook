@@ -579,10 +579,12 @@ defmodule Livebook.Session do
     if state.data.path != nil and state.data.dirty do
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
 
-      case File.write(state.data.path, content) do
-        :ok ->
-          handle_operation(state, {:mark_as_not_dirty, self()})
+      dir = Path.dirname(state.data.path)
 
+      with :ok <- File.mkdir_p(dir),
+           :ok <- File.write(state.data.path, content) do
+        handle_operation(state, {:mark_as_not_dirty, self()})
+      else
         {:error, reason} ->
           broadcast_error(state.session_id, "failed to save notebook - #{reason}")
           state

@@ -16,8 +16,8 @@ solely client-side operations.
 /* === Session === */
 
 [data-element="session"]:not([data-js-insert-mode])
-  [data-element="insert-indicator"] {
-  @apply hidden;
+  [data-element="insert-mode-indicator"] {
+  @apply invisible;
 }
 
 [data-element="session"]

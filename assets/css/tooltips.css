@@ -11,6 +11,7 @@ Example usage:
 /* Tooltip element wrapping the actual hoverable element */
 .tooltip {
   position: relative;
+  display: flex;
   --distance: 4px;
   --arrow-size: 5px;
   --show-delay: 0.5s;

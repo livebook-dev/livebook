@@ -222,6 +222,24 @@ defmodule Livebook.SessionTest do
       assert File.exists?(path)
       assert File.read!(path) =~ "My notebook"
     end
+
+    @tag :tmp_dir
+    test "creates nonexistent directories", %{session_id: session_id, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "nonexistent/dir/notebook.livemd")
+      Session.set_path(session_id, path)
+      # Perform a change, so the notebook is dirty
+      Session.set_notebook_name(session_id, "My notebook")
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+
+      refute File.exists?(path)
+
+      Session.save(session_id)
+
+      assert_receive {:operation, {:mark_as_not_dirty, _}}
+      assert File.exists?(path)
+      assert File.read!(path) =~ "My notebook"
+    end
   end
 
   describe "close/1" do

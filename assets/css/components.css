@@ -64,6 +64,10 @@
   line-height: 1;
 }
 
+.icon-outlined-button {
+  @apply rounded-full border-2;
+}
+
 /* Form fields */
 
 .input {

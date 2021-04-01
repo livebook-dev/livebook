@@ -1,6 +1,6 @@
-defmodule Livebook.Notebook.HelloLivebook do
+defmodule Livebook.Notebook.Welcome do
   livemd = ~s'''
-  # Hello Livebook
+  # Welcome to Livebook
 
   ## Introduction
 
@@ -22,7 +22,7 @@ defmodule Livebook.Notebook.HelloLivebook do
   There are **Markdown** cells (such as this one) that allow you to describe your work
   and **Elixir** cells where the magic takes place!
 
-  To insert a new cell move your between cells and click one of the revealed buttons. 👇
+  To insert a new cell move your cursor between cells and click one of the revealed buttons. 👇
 
   ```elixir
   # This is an Elixir cell - as the name suggests that's where the code goes.
