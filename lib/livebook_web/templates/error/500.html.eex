@@ -17,9 +17,7 @@
           Something went wrong.
         </div>
         <div class="text-lg text-gray-50">
-          Please check out the console for logs and feel free to submit an issue
-          <a class="underline hover:no-underline"
-            href="https://github.com/elixir-nx/livebook/issues">here</a>.
+          Check out the console for logs for more information.
         </div>
       </div>
     </div>
