@@ -14,7 +14,7 @@
           <img src="/logo.png" height="128" width="128" alt="livebook" />
         </a>
         <div class="text-2xl text-gray-50">
-          Something went wrong
+          Something went wrong.
         </div>
         <div class="text-lg text-gray-50">
           Please check out the console for logs and feel free to submit an issue
