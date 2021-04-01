@@ -96,8 +96,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     if File.exists?(path) do
       File.regular?(path) and path not in running_paths
     else
-      dir = Path.dirname(path)
-      File.exists?(dir)
+      true
     end
   end
 
