@@ -68,7 +68,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     assigns = %{cell_id: cell_id}
 
     ~L"""
-    <span class="tooltip left" aria-label="Evaluated">
+    <span class="tooltip left" aria-label="Go to last evaluated cell">
       <button class="icon-button icon-outlined-button border-green-300 hover:bg-green-50 focus:bg-green-50"
         data-element="focus-cell-button"
         data-target="<%= @cell_id %>">
