@@ -32,7 +32,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <%= if @data_view.runtime do %>
         <%= render_global_evaluation_status(@data_view.global_evaluation_status) %>
       <% else %>
-        <span class="tooltip left" aria-label="No runtime started">
+        <span class="tooltip left" aria-label="Choose a runtime to run the notebook in">
           <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "runtime"),
                 class: "icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100" do %>
             <%= remix_icon("loader-3-line", class: "text-xl text-gray-400") %>
