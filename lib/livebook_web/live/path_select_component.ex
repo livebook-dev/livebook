@@ -75,7 +75,7 @@ defmodule LivebookWeb.PathSelectComponent do
       </span>
       <span class="flex font-medium overflow-hidden overflow-ellipsis whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
         <%= if @file.highlighted != "" do %>
-          <span class="font-medium <%= if(@file.is_running, do: "text-green-400", else: "text-gray-700") %>">
+          <span class="font-medium <%= if(@file.is_running, do: "text-green-400", else: "text-gray-900") %>">
             <%= @file.highlighted %>
           </span>
         <% end %>
