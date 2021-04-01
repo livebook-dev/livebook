@@ -45,9 +45,9 @@ defmodule Livebook.Notebook.Welcome do
   ## Sections
 
   You can leverage so called **sections** to nicely group related cells together.
-  Click on the book icon in the left sidebar to reveal a list of all sections.
+  Click on the book icon in the sidebar to reveal a list of all sections.
   As you can see, this approach helps to easily jump around the notebook,
-  especially once it gets grows.
+  especially once it grows.
 
   Let's make use of this section to see how output is captured!
 
@@ -64,9 +64,9 @@ defmodule Livebook.Notebook.Welcome do
 
   ## Notebook files
 
-  My default notebooks are kept in memory, which is fine for interactive hacking,
+  By default notebooks are kept in memory, which is fine for interactive hacking,
   but oftentimes you will want to save your work for later. Fortunately notebooks
-  can be persisted by clicking on the "Settings" icon in the left sidebar
+  can be persisted by clicking on the "Settings" icon in the sidebar
   and selecting the file location.
 
   Notebooks are stored in **live markdown** format, which is essentially the markdown you know,
@@ -134,14 +134,14 @@ defmodule Livebook.Notebook.Welcome do
   Sometimes you need a dependency or two and notebooks are no exception to this.
 
   One way to work with packages is to create a Mix project and configure the notebook
-  to run its context (as pointed out above). This approach makes sense if you already have
-  a Mix project you are working on, especially because this makes all project's
+  to run in its context (as pointed out above). This approach makes sense if you already have
+  a Mix project that you are working on, especially because this makes all project's
   modules available as well.
 
   But there are cases when you just want to play around with a new package
   or quickly prototype some code that relies on such. Fortunately, starting
   version `v1.12` Elixir ships with `Mix.install/2` that allows for installing
-  dependencies into Elixir runtime! This approach is especially useful for sharing notebooks,
+  dependencies into Elixir runtime! This approach is especially useful when sharing notebooks,
   because everyone will be able to get the same dependencies. Let's try this out:
 
   ```elixir
@@ -170,7 +170,7 @@ defmodule Livebook.Notebook.Welcome do
   to optimise how you move around. Livebook leverages the concept of
   **navigation**/**insert** modes and offers many shortcuts for common operations.
   Make sure to check out the shortcuts by clicking the "Keyboard" icon in
-  the sidebar panel or by typing `?`.
+  the sidebar or by typing `?`.
 
   ## Final notes
 
