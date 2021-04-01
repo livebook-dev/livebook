@@ -21,7 +21,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           </span>
         <% end %>
       <% else %>
-        <span class="tooltip left" aria-label="No file choosen">
+        <span class="tooltip left" aria-label="Choose a file to save the notebook">
           <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
                 class: "icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100" do %>
             <%= remix_icon("save-line", class: "text-xl text-gray-400") %>
