@@ -5,9 +5,7 @@ config :livebook, LivebookWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "9hHHeOiAA8wrivUfuS//jQMurHxoMYUtF788BQMx2KO7mYUE8rVrGGG09djBNQq7",
   pubsub_server: Livebook.PubSub,
-  live_view: [signing_salt: "mAPgPEM4"],
-  # We are always in debug mode since we are executing code anyway
-  debug_errors: true
+  live_view: [signing_salt: "mAPgPEM4"]
 
 # Configures Elixir's Logger
 config :logger, :console,
