@@ -117,7 +117,7 @@ defmodule LivebookWeb.SessionLive do
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
-              <%= live_component @socket, LivebookWeb.SectionComponent,
+              <%= live_component @socket, LivebookWeb.SessionLive.SectionComponent,
                     id: section_view.id,
                     index: index,
                     session_id: @session_id,

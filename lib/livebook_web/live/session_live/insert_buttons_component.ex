@@ -1,4 +1,4 @@
-defmodule LivebookWeb.InsertButtonsComponent do
+defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
   use LivebookWeb, :live_component
 
   def render(assigns) do

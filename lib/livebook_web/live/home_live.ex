@@ -85,7 +85,7 @@ defmodule LivebookWeb.HomeLive do
                 </div>
               </div>
             <% else %>
-              <%= live_component @socket, LivebookWeb.SessionsComponent,
+              <%= live_component @socket, LivebookWeb.SessionLive.SessionsComponent,
                 id: "sessions_list",
                 session_summaries: @session_summaries %>
             <% end %>
@@ -95,7 +95,7 @@ defmodule LivebookWeb.HomeLive do
     </div>
 
     <%= if @live_action == :delete_session do %>
-      <%= live_modal @socket, LivebookWeb.DeleteSessionComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.DeleteSessionComponent,
             id: :delete_session_modal,
             return_to: Routes.home_path(@socket, :page),
             session_summary: @session_summary %>
