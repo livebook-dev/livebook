@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <%= live_title_tag "Livebook" %>
+    <link phx-track-static rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/app.css") %>"/>
+  </head>
+  <body>
+    <div class="h-screen flex items-center justify-center bg-gray-900">
+      <div class="flex flex-col space-y-4 items-center">
+        <a href="/">
+          <img src="/logo.png" height="128" width="128" alt="livebook" />
+        </a>
+        <div class="text-2xl text-gray-50">
+          Something went wrong.
+        </div>
+        <div class="text-lg text-gray-50">
+          Check out the console for logs for more information.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

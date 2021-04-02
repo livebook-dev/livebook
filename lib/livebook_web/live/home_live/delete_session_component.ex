@@ -1,4 +1,4 @@
-defmodule LivebookWeb.DeleteSessionComponent do
+defmodule LivebookWeb.SessionLive.DeleteSessionComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.SessionSupervisor

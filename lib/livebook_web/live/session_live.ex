@@ -47,30 +47,6 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <%= if @live_action == :settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.SettingsComponent,
-            id: :settings_modal,
-            return_to: Routes.session_path(@socket, :page, @session_id),
-            tab: @tab,
-            session_id: @session_id,
-            data_view: @data_view %>
-    <% end %>
-
-    <%= if @live_action == :shortcuts do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.ShortcutsComponent,
-            id: :shortcuts_modal,
-            platform: @platform,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
-    <% end %>
-
-    <%= if @live_action == :cell_settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.CellSettingsComponent,
-            id: :cell_settings_modal,
-            session_id: @session_id,
-            cell: @cell,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
-    <% end %>
-
     <div class="flex flex-grow h-full"
       id="session"
       data-element="session"
@@ -141,7 +117,7 @@ defmodule LivebookWeb.SessionLive do
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
-              <%= live_component @socket, LivebookWeb.SectionComponent,
+              <%= live_component @socket, LivebookWeb.SessionLive.SectionComponent,
                     id: section_view.id,
                     index: index,
                     session_id: @session_id,
@@ -157,6 +133,30 @@ defmodule LivebookWeb.SessionLive do
               data_view: @data_view %>
       </div>
     </div>
+
+    <%= if @live_action == :settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.SettingsComponent,
+            id: :settings_modal,
+            return_to: Routes.session_path(@socket, :page, @session_id),
+            tab: @tab,
+            session_id: @session_id,
+            data_view: @data_view %>
+    <% end %>
+
+    <%= if @live_action == :shortcuts do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.ShortcutsComponent,
+            id: :shortcuts_modal,
+            platform: @platform,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
+    <%= if @live_action == :cell_settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.CellSettingsComponent,
+            id: :cell_settings_modal,
+            session_id: @session_id,
+            cell: @cell,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
     """
   end
 

@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SectionComponent do
+defmodule LivebookWeb.SessionLive.SectionComponent do
   use LivebookWeb, :live_component
 
   def render(assigns) do
@@ -27,18 +27,18 @@ defmodule LivebookWeb.SectionComponent do
       <div class="container">
         <div class="flex flex-col space-y-1">
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
-            <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
+            <%= live_component @socket, LivebookWeb.SessionLive.InsertButtonsComponent,
                   id: "#{@section_view.id}:#{index}",
                   persistent: false,
                   section_id: @section_view.id,
                   insert_cell_index: index,
                   insert_section_index: nil %>
-            <%= live_component @socket, LivebookWeb.CellComponent,
+            <%= live_component @socket, LivebookWeb.SessionLive.CellComponent,
                   id: cell_view.id,
                   session_id: @session_id,
                   cell_view: cell_view %>
           <% end %>
-          <%= live_component @socket, LivebookWeb.InsertButtonsComponent,
+          <%= live_component @socket, LivebookWeb.SessionLive.InsertButtonsComponent,
                 id: "#{@section_view.id}:last",
                 persistent: @section_view.cell_views == [],
                 section_id: @section_view.id,

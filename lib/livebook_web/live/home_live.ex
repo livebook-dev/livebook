@@ -17,13 +17,6 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <%= if @live_action == :delete_session do %>
-      <%= live_modal @socket, LivebookWeb.DeleteSessionComponent,
-            id: :delete_session_modal,
-            return_to: Routes.home_path(@socket, :page),
-            session_summary: @session_summary %>
-    <% end %>
-
     <div class="flex flex-grow h-full">
       <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
@@ -92,7 +85,7 @@ defmodule LivebookWeb.HomeLive do
                 </div>
               </div>
             <% else %>
-              <%= live_component @socket, LivebookWeb.SessionsComponent,
+              <%= live_component @socket, LivebookWeb.SessionLive.SessionsComponent,
                 id: "sessions_list",
                 session_summaries: @session_summaries %>
             <% end %>
@@ -100,6 +93,13 @@ defmodule LivebookWeb.HomeLive do
         </div>
       </div>
     </div>
+
+    <%= if @live_action == :delete_session do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.DeleteSessionComponent,
+            id: :delete_session_modal,
+            return_to: Routes.home_path(@socket, :page),
+            session_summary: @session_summary %>
+    <% end %>
     """
   end
 

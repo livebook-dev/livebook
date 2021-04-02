@@ -1,4 +1,4 @@
-defmodule LivebookWeb.CellComponent do
+defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
   def render(assigns) do
