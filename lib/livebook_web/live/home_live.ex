@@ -24,10 +24,10 @@ defmodule LivebookWeb.HomeLive do
         <% end %>
       </div>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-lg w-full mx-auto p-4 pb-8 flex flex-col items-center space-y-4">
+        <div class="max-w-screen-lg w-full mx-auto p-4 pt-0 pb-8 flex flex-col items-center space-y-4">
           <div class="w-full flex items-center justify-between pb-4 border-b border-gray-200">
             <div class="text-2xl text-gray-800 font-semibold">
-              Livebook
+              <img src="/logo-with-text.png" class="h-[40px]" alt="Livebook" />
             </div>
             <div class="flex space-x-2">
               <span class="tooltip top" aria-label="Introduction">

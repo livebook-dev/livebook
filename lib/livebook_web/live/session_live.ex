@@ -51,25 +51,25 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
+      <div class="flex flex-col items-center space-y-5 px-3 py-8 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
           <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
         <span class="tooltip right distant" aria-label="Sections (ss)">
-          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50" data-element="sections-panel-toggle">
+          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="sections-panel-toggle">
             <%= remix_icon("booklet-fill") %>
           </button>
         </span>
         <span class="tooltip right distant" aria-label="Notebook settings (sn)">
           <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
-                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :settings, do: "text-gray-50")}" do %>
+                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :settings, do: "text-gray-50 bg-gray-700")}" do %>
             <%= remix_icon("settings-4-fill", class: "text-2xl") %>
           <% end %>
         </span>
         <div class="flex-grow"></div>
         <span class="tooltip right distant" aria-label="Keyboard shortcuts (?)">
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
-                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 #{if(@live_action == :shortcuts, do: "text-gray-50")}" do %>
+                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :shortcuts, do: "text-gray-50 bg-gray-700")}" do %>
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
           <% end %>
         </span>
