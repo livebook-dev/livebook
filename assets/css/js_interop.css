@@ -74,7 +74,7 @@ solely client-side operations.
 
 [data-element="session"][data-js-sections-panel-expanded]
   [data-element="sections-panel-toggle"] {
-  @apply text-gray-50;
+  @apply text-gray-50 bg-gray-700;
 }
 
 [data-element="section-headline"]:not(:hover)
