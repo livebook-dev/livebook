@@ -5,7 +5,7 @@ defmodule Livebook.Notebook.Welcome do
   ## Introduction
 
   We are happy you decided to give Livebook a try, hopefully it empowers
-  you to build great stuff 🚀
+  you to build great stuff! 🚀
 
   Livebook is a tool for crafting **interactive** and **collaborative** code notebooks.
   It is primarily meant as a tool rapid prototyping - think of it as an IEx session
@@ -27,12 +27,12 @@ defmodule Livebook.Notebook.Welcome do
   ```elixir
   # This is an Elixir cell - as the name suggests that's where the code goes.
   # To evaluate this cell, you can either press the "Evaluate" button above
-  # or use `ctrl + enter` like a boss!
+  # or use `Ctrl + Enter`!
 
   message = "hey, grab yourself a cup of 🍵"
   ```
 
-  Subsequent cells have access to the bindings you defined!
+  Subsequent cells have access to the bindings you defined:
 
   ```elixir
   String.replace(message, "🍵", "☕")
@@ -45,7 +45,7 @@ defmodule Livebook.Notebook.Welcome do
   ## Sections
 
   You can leverage so called **sections** to nicely group related cells together.
-  Click on the book icon in the sidebar to reveal a list of all sections.
+  Click on the "Book" icon in the sidebar to reveal a list of all sections.
   As you can see, this approach helps to easily jump around the notebook,
   especially once it grows.
 
@@ -72,7 +72,7 @@ defmodule Livebook.Notebook.Welcome do
   Notebooks are stored in **live markdown** format, which is essentially the markdown you know,
   with just a few assumptions on how particular elements are represented. Thanks to this
   approach you can easily keep notebooks under version control and get readable diffs.
-  You can also easily preview those files, reuse for blog posts and even edit in a text editor.
+  You can also easily preview those files, reuse for blog posts, and even edit in a text editor.
 
   ## Modules
 
@@ -127,7 +127,7 @@ defmodule Livebook.Notebook.Welcome do
   By default a new Elixir node is started (similarly to starting `iex`),
   but you can also choose to run inside a Mix project (as you would with `iex -S mix`)
   or even manually attach to an existing distributed node!
-  You can configure the runtime under "Notebook settings".
+  You can configure the runtime by clicking the "Settings" icon on the sidebar.
 
   ## Using packages
 
@@ -152,7 +152,7 @@ defmodule Livebook.Notebook.Welcome do
   ```
 
   ```elixir
-  %{elixir: "rulez"}
+  %{elixir: "is awesome"}
   |> Jason.encode!()
   |> IO.puts()
   ```
