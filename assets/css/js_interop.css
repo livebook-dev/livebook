@@ -38,6 +38,12 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-element="session"]:not([data-js-insert-mode])
+  [data-element="cell"][data-type="markdown"][data-js-focused]
+  [data-element="insert-image-button"] {
+  @apply hidden;
+}
+
 [data-element="cell"][data-js-focused] {
   @apply border-blue-300 border-opacity-100;
 }

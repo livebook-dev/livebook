@@ -30,7 +30,7 @@ defmodule LivebookWeb.HomeLive do
               <img src="/logo-with-text.png" class="h-[40px]" alt="Livebook" />
             </div>
             <div class="flex space-x-2">
-              <span class="tooltip top" aria-label="Introduction">
+              <span class="tooltip left" aria-label="Introduction">
                 <button class="button button-outlined-gray button-square-icon"
                   phx-click="open_welcome">
                   <%= remix_icon("compass-line") %>

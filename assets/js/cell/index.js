@@ -105,6 +105,8 @@ function handleSessionEvent(hook, event) {
     handleInsertModeChanged(hook, event.enabled);
   } else if (event.type === "cell_moved") {
     handleCellMoved(hook, event.cellId);
+  } else if (event.type === "cell_upload") {
+    handleCellUpload(hook, event.cellId, event.url);
   }
 }
 
@@ -135,6 +137,13 @@ function handleInsertModeChanged(hook, insertMode) {
 function handleCellMoved(hook, cellId) {
   if (hook.state.isFocused && cellId === hook.props.cellId) {
     smoothlyScrollToElement(hook.el);
+  }
+}
+
+function handleCellUpload(hook, cellId, url) {
+  if (hook.props.cellId === cellId) {
+    const markdown = `![](${url})`;
+    hook.state.liveEditor.insert(markdown);
   }
 }
 

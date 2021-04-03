@@ -23,5 +23,6 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
     live "/sessions/:id/settings/:tab", SessionLive, :settings
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
+    live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
   end
 end

@@ -37,7 +37,7 @@
 }
 
 .button-square-icon {
-  @apply p-0 flex items-center justify-center h-10 w-10;
+  @apply p-2 flex items-center justify-center;
 }
 
 .button-square-icon i {

@@ -18,10 +18,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div class="flex items-center justify-end">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
-        <span class="tooltip top" aria-label="Edit content">
-          <button class="icon-button" data-element="enable-insert-mode-button">
+        <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
+          <button class="icon-button">
             <%= remix_icon("pencil-line", class: "text-xl") %>
           </button>
+        </span>
+        <span class="tooltip top" aria-label="Insert image" data-element="insert-image-button">
+          <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_view.id),
+                class: "icon-button" do %>
+            <%= remix_icon("image-add-line", class: "text-xl") %>
+          <% end %>
         </span>
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
