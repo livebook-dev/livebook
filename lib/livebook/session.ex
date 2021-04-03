@@ -27,7 +27,8 @@ defmodule Livebook.Session do
   @type summary :: %{
           session_id: id(),
           notebook_name: String.t(),
-          path: String.t() | nil
+          path: String.t() | nil,
+          images_dir: String.t()
         }
 
   @typedoc """
@@ -479,8 +480,19 @@ defmodule Livebook.Session do
     %{
       session_id: state.session_id,
       notebook_name: state.data.notebook.name,
-      path: state.data.path
+      path: state.data.path,
+      images_dir: images_dir_form_state(state)
     }
+  end
+
+  defp images_dir_form_state(%{data: %{path: nil}, session_id: id}) do
+    tmp_dir = System.tmp_dir!()
+    Path.join([tmp_dir, "livebook", "sessions", id, "images"])
+  end
+
+  defp images_dir_form_state(%{data: %{path: path}}) do
+    dir = Path.dirname(path)
+    Path.join(dir, "images")
   end
 
   # Given any opeation on `Data`, the process does the following:
