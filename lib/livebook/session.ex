@@ -51,6 +51,8 @@ defmodule Livebook.Session do
   * `:notebook` - the inital `Notebook` structure (e.g. imported from a file)
 
   * `:path` - the file to which the notebook should be saved
+
+  * `:copy_images_from` - a directory path to copy notebook images from
   """
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) do
@@ -261,15 +263,28 @@ defmodule Livebook.Session do
 
     case init_data(opts) do
       {:ok, data} ->
-        {:ok,
-         %{
-           session_id: id,
-           data: data,
-           runtime_monitor_ref: nil
-         }}
+        state = %{
+          session_id: id,
+          data: data,
+          runtime_monitor_ref: nil
+        }
+
+        if copy_images_from = opts[:copy_images_from] do
+          copy_images(state, copy_images_from)
+        end
+
+        {:ok, state}
 
       {:error, error} ->
         {:stop, error}
+    end
+  end
+
+  defp copy_images(state, from) do
+    if File.dir?(from) do
+      images_dir = images_dir_from_state(state)
+      File.mkdir_p!(images_dir)
+      File.cp_r!(from, images_dir)
     end
   end
 
@@ -425,6 +440,7 @@ defmodule Livebook.Session do
 
   def handle_cast(:close, state) do
     maybe_save_notebook(state)
+    cleanup_images_dir_if_tmp(state)
     broadcast_message(state.session_id, :session_closed)
 
     {:stop, :shutdown, state}
@@ -495,6 +511,16 @@ defmodule Livebook.Session do
     Path.join(dir, "images")
   end
 
+  defp cleanup_images_dir_if_tmp(state) do
+    if state.data.path == nil do
+      images_dir = images_dir_from_state(state)
+
+      if File.exists?(images_dir) do
+        File.rm_rf!(images_dir)
+      end
+    end
+  end
+
   # Given any opeation on `Data`, the process does the following:
   #
   #   * broadcasts the operation to all clients immediately,
@@ -508,13 +534,24 @@ defmodule Livebook.Session do
 
     case Data.apply_operation(state.data, operation) do
       {:ok, new_data, actions} ->
-        new_state = %{state | data: new_data}
-        handle_actions(new_state, actions)
+        %{state | data: new_data}
+        |> after_operation(state, operation)
+        |> handle_actions(actions)
 
       :error ->
         state
     end
   end
+
+  defp after_operation(state, prev_state, {:set_path, _pid, _path}) do
+    prev_images_dir = images_dir_from_state(prev_state)
+    copy_images(state, prev_images_dir)
+    cleanup_images_dir_if_tmp(prev_state)
+
+    state
+  end
+
+  defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
     Enum.reduce(actions, state, &handle_action(&2, &1))
