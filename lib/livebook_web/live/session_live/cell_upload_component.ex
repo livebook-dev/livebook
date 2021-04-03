@@ -15,6 +15,11 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Insert image
       </h3>
+      <%= if @uploads.cell_image.errors != [] do %>
+        <div class="mb-3 rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium">
+          Invalid image file. The image must be either JPEG or PNG and cannot exceed 2MB in size.
+        </div>
+      <% end %>
       <%= for entry <- @uploads.cell_image.entries do %>
         <div class="flex flex-col space-y-1">
           <div class="flex justify-between text-gray-700">

@@ -22,7 +22,11 @@ defmodule LivebookWeb.SessionLive do
        socket
        |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
        |> assign_private(data: data)
-       |> allow_upload(:cell_image, accept: ~w(.jpg .jpeg .png), max_entries: 1)}
+       |> allow_upload(:cell_image,
+         accept: ~w(.jpg .jpeg .png),
+         max_entries: 1,
+         max_file_size: 2_000_000
+       )}
     else
       {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
