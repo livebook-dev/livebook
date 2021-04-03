@@ -50,7 +50,8 @@ const Cell = {
         const markdownContainer = this.el.querySelector(
           `[data-element="markdown-container"]`
         );
-        const markdown = new Markdown(markdownContainer, source);
+        const baseUrl = this.props.sessionPath;
+        const markdown = new Markdown(markdownContainer, source, baseUrl);
 
         this.state.liveEditor.onChange((newSource) => {
           markdown.setContent(newSource);
@@ -92,6 +93,7 @@ function getProps(hook) {
   return {
     cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
     type: getAttributeOrThrow(hook.el, "data-type"),
+    sessionPath: getAttributeOrThrow(hook.el, "data-session-path"),
   };
 }
 

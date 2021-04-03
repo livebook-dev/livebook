@@ -8,7 +8,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       id="cell-<%= @cell_view.id %>"
       phx-hook="Cell"
       data-cell-id="<%= @cell_view.id %>"
-      data-type="<%= @cell_view.type %>">
+      data-type="<%= @cell_view.type %>"
+      data-session-path="<%= Routes.session_path(@socket, :page, @session_id) %>">
       <%= render_cell_content(assigns) %>
     </div>
     """

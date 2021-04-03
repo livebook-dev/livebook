@@ -60,18 +60,19 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
   end
 
   def handle_event("save", %{"name" => name}, socket) do
-    consume_uploaded_entries(socket, :cell_image, fn %{path: path}, _entry ->
-      # todo: ext
-      dest = Path.join("/tmp", name)
-      File.cp!(path, dest)
-    end)
+    [filename] =
+      consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
+        ext = Path.extname(entry.client_name)
+        dest = Path.join("/tmp", name <> ext)
+        File.cp!(path, dest)
+        name <> ext
+      end)
 
-    # todo: add ext
-    path = "./images/#{name}"
+    path = "images/#{filename}"
 
     {:noreply,
      socket
      |> push_patch(to: socket.assigns.return_to)
-     |> push_event("cell_upload", %{cell_id: socket.assigns.cell.id, url: name})}
+     |> push_event("cell_upload", %{cell_id: socket.assigns.cell.id, url: path})}
   end
 end
