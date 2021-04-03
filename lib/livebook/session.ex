@@ -280,14 +280,6 @@ defmodule Livebook.Session do
     end
   end
 
-  defp copy_images(state, from) do
-    if File.dir?(from) do
-      images_dir = images_dir_from_state(state)
-      File.mkdir_p!(images_dir)
-      File.cp_r!(from, images_dir)
-    end
-  end
-
   defp init_data(opts) do
     notebook = Keyword.get(opts, :notebook)
     path = Keyword.get(opts, :path)
@@ -304,6 +296,14 @@ defmodule Livebook.Session do
       end
     else
       {:ok, data}
+    end
+  end
+
+  defp copy_images(state, from) do
+    if File.dir?(from) do
+      images_dir = images_dir_from_state(state)
+      File.mkdir_p!(images_dir)
+      File.cp_r!(from, images_dir)
     end
   end
 
@@ -440,7 +440,6 @@ defmodule Livebook.Session do
 
   def handle_cast(:close, state) do
     maybe_save_notebook(state)
-    cleanup_images_dir_if_tmp(state)
     broadcast_message(state.session_id, :session_closed)
 
     {:stop, :shutdown, state}
@@ -490,6 +489,12 @@ defmodule Livebook.Session do
 
   def handle_info(_message, state), do: {:noreply, state}
 
+  @impl true
+  def terminate(_reason, state) do
+    cleanup_tmp_dir(state.session_id)
+    :ok
+  end
+
   # ---
 
   defp summary_from_state(state) do
@@ -502,8 +507,8 @@ defmodule Livebook.Session do
   end
 
   defp images_dir_from_state(%{data: %{path: nil}, session_id: id}) do
-    tmp_dir = System.tmp_dir!()
-    Path.join([tmp_dir, "livebook", "sessions", id, "images"])
+    tmp_dir = session_tmp_dir(id)
+    Path.join(tmp_dir, "images")
   end
 
   defp images_dir_from_state(%{data: %{path: path}}) do
@@ -511,13 +516,16 @@ defmodule Livebook.Session do
     Path.join(dir, "images")
   end
 
-  defp cleanup_images_dir_if_tmp(state) do
-    if state.data.path == nil do
-      images_dir = images_dir_from_state(state)
+  defp session_tmp_dir(session_id) do
+    tmp_dir = System.tmp_dir!()
+    Path.join([tmp_dir, "livebook", "sessions", session_id])
+  end
 
-      if File.exists?(images_dir) do
-        File.rm_rf!(images_dir)
-      end
+  defp cleanup_tmp_dir(session_id) do
+    tmp_dir = session_tmp_dir(session_id)
+
+    if File.exists?(tmp_dir) do
+      File.rm_rf!(tmp_dir)
     end
   end
 
@@ -546,7 +554,10 @@ defmodule Livebook.Session do
   defp after_operation(state, prev_state, {:set_path, _pid, _path}) do
     prev_images_dir = images_dir_from_state(prev_state)
     copy_images(state, prev_images_dir)
-    cleanup_images_dir_if_tmp(prev_state)
+
+    if prev_state.data.path == nil and File.exists?(prev_images_dir) do
+      File.rm_rf!(prev_images_dir)
+    end
 
     state
   end

@@ -1,16 +1,17 @@
 defmodule LivebookWeb.SessionController do
   use LivebookWeb, :controller
 
-  alias Livebook.Session
+  alias Livebook.{SessionSupervisor, Session}
 
   def show_image(conn, %{"id" => id, "image" => image}) do
-    %{images_dir: images_dir} = Session.get_summary(id)
-    path = Path.join(images_dir, image)
-
-    if File.exists?(path) do
+    with true <- SessionSupervisor.session_exists?(id),
+         %{images_dir: images_dir} <- Session.get_summary(id),
+         path <- Path.join(images_dir, image),
+         true <- File.exists?(path) do
       serve_static(conn, path)
     else
-      send_resp(conn, 404, "Not found")
+      _ ->
+        send_resp(conn, 404, "Not found")
     end
   end
 
