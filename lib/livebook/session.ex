@@ -512,6 +512,14 @@ defmodule Livebook.Session do
   end
 
   defp images_dir_from_state(%{data: %{path: path}}) do
+    images_dir_for_notebook(path)
+  end
+
+  @doc """
+  Returns images directory corresponding to the given notebook path.
+  """
+  @spec images_dir_for_notebook(Path.t()) :: Path.t()
+  def images_dir_for_notebook(path) do
     dir = Path.dirname(path)
     Path.join(dir, "images")
   end

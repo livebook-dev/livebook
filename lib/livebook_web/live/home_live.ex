@@ -128,7 +128,7 @@ defmodule LivebookWeb.HomeLive do
     {notebook, messages} = import_notebook(socket.assigns.path)
     socket = put_import_flash_messages(socket, messages)
     notebook = %{notebook | name: notebook.name <> " - fork"}
-    images_dir = socket.assigns.path |> Path.dirname() |> Path.join("images")
+    images_dir = Session.images_dir_for_notebook(socket.assigns.path)
     create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end
 
