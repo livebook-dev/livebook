@@ -299,14 +299,6 @@ defmodule Livebook.Session do
     end
   end
 
-  defp copy_images(state, from) do
-    if File.dir?(from) do
-      images_dir = images_dir_from_state(state)
-      File.mkdir_p!(images_dir)
-      File.cp_r!(from, images_dir)
-    end
-  end
-
   @impl true
   def handle_call({:register_client, pid}, _from, state) do
     Process.monitor(pid)
@@ -537,6 +529,22 @@ defmodule Livebook.Session do
     end
   end
 
+  defp copy_images(state, from) do
+    if File.dir?(from) do
+      images_dir = images_dir_from_state(state)
+      File.mkdir_p!(images_dir)
+      File.cp_r!(from, images_dir)
+    end
+  end
+
+  defp move_images(state, from) do
+    if File.dir?(from) do
+      images_dir = images_dir_from_state(state)
+      File.mkdir_p!(images_dir)
+      File.rename!(from, images_dir)
+    end
+  end
+
   # Given any opeation on `Data`, the process does the following:
   #
   #   * broadcasts the operation to all clients immediately,
@@ -561,10 +569,11 @@ defmodule Livebook.Session do
 
   defp after_operation(state, prev_state, {:set_path, _pid, _path}) do
     prev_images_dir = images_dir_from_state(prev_state)
-    copy_images(state, prev_images_dir)
 
-    if prev_state.data.path == nil and File.exists?(prev_images_dir) do
-      File.rm_rf!(prev_images_dir)
+    if prev_state.data.path do
+      copy_images(state, prev_images_dir)
+    else
+      move_images(state, prev_images_dir)
     end
 
     state
