@@ -3,7 +3,7 @@ defmodule LivebookWeb.ANSITest do
 
   alias LivebookWeb.ANSI
 
-  describe "ansi_string_to_html/1" do
+  describe "ansi_string_to_html/2" do
     test "converts ANSI escape codes to span tags" do
       assert ~s{<span style="color: var(--ansi-color-blue);">cat</span>} ==
                ANSI.ansi_string_to_html("\e[34mcat\e[0m") |> Phoenix.HTML.safe_to_string()
@@ -70,12 +70,23 @@ defmodule LivebookWeb.ANSITest do
     end
 
     test "given custom renderer uses it to generate HTML" do
-      div_renderer = fn style, content ->
-        [~s{<div style="#{style}">}, content, ~s{</div>}]
+      div_renderer = fn
+        "", content -> content
+        style, content -> [~s{<div style="#{style}">}, content, ~s{</div>}]
       end
 
       assert ~s{<div style="color: var(--ansi-color-blue);">cat</div>} ==
                ANSI.ansi_string_to_html("\e[34mcat\e[0m", renderer: div_renderer)
+               |> Phoenix.HTML.safe_to_string()
+    end
+
+    test "given custom renderer uses it for style-less text as well" do
+      div_renderer = fn _style, content ->
+        [~s{<div>}, content, ~s{</div>}]
+      end
+
+      assert ~s{<div>cat</div>} ==
+               ANSI.ansi_string_to_html("cat", renderer: div_renderer)
                |> Phoenix.HTML.safe_to_string()
     end
   end

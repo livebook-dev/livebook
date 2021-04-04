@@ -232,7 +232,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     ~L"""
     <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300" data-follow="true">
-      <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
+      <div data-template class="hidden"><%= for line <- @lines do %><div><%= line %></div><% end %></div>
       <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
     </div>
     """
@@ -244,7 +244,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     ~L"""
     <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300" data-follow="false">
-      <div data-template class="hidden"><%= for line <- @lines do %><div><%= raw line %></div><% end %></div>
+      <div data-template class="hidden"><%= for line <- @lines do %><div><%= line %></div><% end %></div>
       <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
     </div>
     """
@@ -256,24 +256,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @formatted %></div>
     """
-  end
-
-  defp ansi_to_html_lines(string) do
-    string
-    |> ansi_string_to_html(
-      # Make sure every line is styled separately,
-      # so tht later we can safely split the whole HTML
-      # into valid HTML lines.
-      renderer: fn style, content ->
-        content
-        |> IO.iodata_to_binary()
-        |> String.split("\n")
-        |> Enum.map(&[~s{<span style="#{style}">}, &1, ~s{</span>}])
-        |> Enum.intersperse("\n")
-      end
-    )
-    |> Phoenix.HTML.safe_to_string()
-    |> String.split("\n")
   end
 
   defp render_cell_status(validity_status, evaluation_status, changed)

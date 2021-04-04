@@ -31,8 +31,6 @@ defmodule LivebookWeb.Helpers do
   defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
-  defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI
-
   @doc """
   Returns [Remix](https://remixicon.com) icon tag.
   """
@@ -40,5 +38,43 @@ defmodule LivebookWeb.Helpers do
     icon_class = "ri-#{name}"
     attrs = Keyword.update(attrs, :class, icon_class, fn class -> "#{icon_class} #{class}" end)
     content_tag(:i, "", attrs)
+  end
+
+  defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI
+
+  @doc """
+  Converts a string with ANSI escape codes into HTML lines.
+
+  This method is similar to `ansi_string_to_html/2`,
+  but makes sure each line is itself a valid HTML
+  (as opposed to just splitting HTML into lines).
+  """
+  @spec ansi_to_html_lines(String.t()) :: list(Phoenix.HTML.safe())
+  def ansi_to_html_lines(string) do
+    string
+    |> ansi_string_to_html(
+      # Make sure every line is styled separately,
+      # so that later we can safely split the whole HTML
+      # into valid HTML lines.
+      renderer: fn style, content ->
+        content
+        |> IO.iodata_to_binary()
+        |> String.split("\n")
+        |> Enum.map(&apply_rewind/1)
+        |> Enum.map(&LivebookWeb.ANSI.default_renderer(style, &1))
+        |> Enum.intersperse("\n")
+      end
+    )
+    |> Phoenix.HTML.safe_to_string()
+    |> String.split("\n")
+    |> Enum.map(&Phoenix.HTML.raw/1)
+  end
+
+  # Respect \r indicating the line should be cleared
+  defp apply_rewind(line) do
+    line
+    |> String.split("\r")
+    |> Enum.reverse()
+    |> Enum.find("", &(&1 != ""))
   end
 end

@@ -37,12 +37,16 @@ defmodule LivebookWeb.ANSI do
   * `:renderer` - a function used to render styled HTML content.
     The function receives HTML styles string and HTML-escaped content (iodata).
     By default the renderer wraps the whole content in a single `<span>` tag with the given style.
+    Note that the style may be an empty string for plain text.
   """
   @spec ansi_string_to_html(String.t(), keyword()) :: Phoenix.HTML.safe()
   def ansi_string_to_html(string, opts \\ []) do
+    renderer = Keyword.get(opts, :renderer, &default_renderer/2)
+
     [head | ansi_prefixed_strings] = String.split(string, "\e[")
 
     {:safe, head_html} = Phoenix.HTML.html_escape(head)
+    head_html = renderer.("", head_html)
 
     # Each pair has the form of {modifiers, html_content}
     {pairs, _} =
@@ -63,7 +67,6 @@ defmodule LivebookWeb.ANSI do
 
     pairs = Enum.filter(pairs, fn {_modifiers, content} -> content not in ["", []] end)
 
-    renderer = Keyword.get(opts, :renderer, &default_renderer/2)
     tail_html = pairs_to_html(pairs, renderer)
 
     Phoenix.HTML.raw([head_html, tail_html])
@@ -177,10 +180,6 @@ defmodule LivebookWeb.ANSI do
     pairs_to_html([{modifiers, [content1, content2]} | pairs], iodata, renderer)
   end
 
-  defp pairs_to_html([{modifiers, content} | pairs], iodata, renderer) when modifiers == %{} do
-    pairs_to_html(pairs, [iodata, content], renderer)
-  end
-
   defp pairs_to_html([{modifiers, content} | pairs], iodata, renderer) do
     style = modifiers_to_css(modifiers)
     rendered = renderer.(style, content)
@@ -188,7 +187,11 @@ defmodule LivebookWeb.ANSI do
     pairs_to_html(pairs, [iodata, rendered], renderer)
   end
 
-  defp default_renderer(style, content) do
+  def default_renderer("", content) do
+    content
+  end
+
+  def default_renderer(style, content) do
     [~s{<span style="#{style}">}, content, ~s{</span>}]
   end
 
