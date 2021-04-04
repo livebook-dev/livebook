@@ -299,6 +299,21 @@ defmodule Livebook.SessionTest do
       assert File.exists?(path)
       assert File.read!(path) =~ "My notebook"
     end
+
+    test "clears session temporary directory", %{session_id: session_id} do
+      %{images_dir: images_dir} = Session.get_summary(session_id)
+      File.mkdir_p!(images_dir)
+
+      assert File.exists?(images_dir)
+
+      Process.flag(:trap_exit, true)
+      Session.close(session_id)
+
+      # Wait for the session to deal with the files
+      Process.sleep(50)
+
+      refute File.exists?(images_dir)
+    end
   end
 
   describe "start_link/1" do
