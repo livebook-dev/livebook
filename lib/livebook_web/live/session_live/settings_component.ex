@@ -26,7 +26,7 @@ defmodule LivebookWeb.SessionLive.SettingsComponent do
         <div class="flex-grow tab">
         </div>
       </div>
-      <div>
+      <div class="pt-2">
         <%= if @tab == "file" do %>
           <%= live_component @socket, LivebookWeb.SessionLive.PersistenceComponent,
             id: :persistence,

@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="flex-col space-y-3">
+    <div class="flex-col space-y-5">
       <p class="text-gray-700">
         Start a new local node to handle code evaluation.
         This is the default runtime and is started automatically

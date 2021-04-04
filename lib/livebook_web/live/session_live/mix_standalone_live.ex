@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="flex-col space-y-3">
+    <div class="flex-col space-y-5">
       <p class="text-gray-700">
         Start a new local node in the context of a Mix project.
         This way all your code and dependencies will be available

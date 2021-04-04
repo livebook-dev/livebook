@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         <% end %>
         <div>
           <%= content_tag :button, "Save",
-            class: "button button-blue",
+            class: "button button-blue mt-2",
             phx_click: "save",
             phx_target: @myself,
             disabled: not path_savable?(normalize_path(@path), @running_paths) or normalize_path(@path) == @current_path %>

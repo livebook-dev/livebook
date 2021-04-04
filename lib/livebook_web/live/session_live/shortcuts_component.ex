@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     assigns = %{title: title, left: left, right: right, platform: platform}
 
     ~L"""
-    <h3 class="text-lg font-medium text-gray-900">
+    <h3 class="text-lg font-medium text-gray-900 pt-4">
       <%= @title %>
     </h3>
     <div class="mt-2 flex">

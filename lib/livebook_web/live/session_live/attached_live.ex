@@ -16,7 +16,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="flex-col space-y-3">
+    <div class="flex-col space-y-5">
       <%= if @error_message do %>
         <div class="mb-3 rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium">
           <%= @error_message %>
@@ -43,7 +43,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         <%= text_input f, :name, value: @name, class: "input",
               placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
 
-        <%= submit "Connect", class: "mt-3 button button-blue" %>
+        <%= submit "Connect", class: "mt-5 button button-blue" %>
       </form>
     </div>
     """
