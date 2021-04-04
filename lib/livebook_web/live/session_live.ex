@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive do
        |> allow_upload(:cell_image,
          accept: ~w(.jpg .jpeg .png .gif),
          max_entries: 1,
-         max_file_size: 2_000_000
+         max_file_size: 5_000_000
        )}
     else
       {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
