@@ -23,7 +23,7 @@ defmodule LivebookWeb.SessionLive do
        |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
        |> assign_private(data: data)
        |> allow_upload(:cell_image,
-         accept: ~w(.jpg .jpeg .png),
+         accept: ~w(.jpg .jpeg .png .gif),
          max_entries: 1,
          max_file_size: 2_000_000
        )}
