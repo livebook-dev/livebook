@@ -72,6 +72,9 @@ defmodule LivebookWeb.Helpers do
 
   # Respect \r indicating the line should be cleared
   defp apply_rewind(line) do
-    String.replace(line, ~r/^.*\r(.+)/, "\\1")
+    line
+    |> String.split("\r")
+    |> Enum.reverse()
+    |> Enum.find("", &(&1 != ""))
   end
 end
