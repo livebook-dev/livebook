@@ -51,7 +51,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="flex flex-col items-center space-y-5 px-3 py-8 bg-gray-900">
+      <div class="flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
           <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
@@ -127,7 +127,7 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
       </div>
-      <div class="fixed bottom-[0.5rem] right-[1.5rem]">
+      <div class="fixed bottom-[0.4rem] right-[1.5rem]">
         <%= live_component @socket, LivebookWeb.SessionLive.IndicatorsComponent,
               session_id: @session_id,
               data_view: @data_view %>

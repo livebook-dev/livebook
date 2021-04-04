@@ -18,18 +18,13 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
-      <div class="flex flex-col items-center space-y-6 px-3 py-8 bg-gray-900">
-        <%= live_patch to: Routes.home_path(@socket, :page) do %>
-          <img src="/logo.png" height="40" width="40" alt="livebook" />
-        <% end %>
-      </div>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto p-4 pt-0 pb-8 flex flex-col items-center space-y-4">
           <div class="w-full flex items-center justify-between pb-4 border-b border-gray-200">
             <div class="text-2xl text-gray-800 font-semibold">
-              <img src="/logo-with-text.png" class="h-[40px]" alt="Livebook" />
+              <img src="/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
-            <div class="flex space-x-2">
+            <div class="flex space-x-2 pt-2">
               <span class="tooltip top" aria-label="Introduction">
                 <button class="button button-outlined-gray button-square-icon"
                   phx-click="open_welcome">
