@@ -1,4 +1,4 @@
-# Livebook
+<h1><img src="https://github.com/elixir-nx/livebook/raw/main/priv/static/logo-with-text.png" alt="Livebook" width="400"></h1>
 
 To start your Phoenix server:
 
