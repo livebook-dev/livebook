@@ -88,6 +88,10 @@ const Session = {
     this.handleEvent("section_deleted", ({ section_id: sectionId }) => {
       handleSectionDeleted(this, sectionId);
     });
+
+    this.handleEvent("cell_upload", ({ cell_id: cellId, url }) => {
+      handleCellUpload(this, cellId, url);
+    });
   },
 
   destroyed() {
@@ -492,6 +496,18 @@ function handleSectionDeleted(hook, sectionId) {
   if (hook.state.focusedSectionId === sectionId) {
     setFocusedCell(hook, null);
   }
+}
+
+function handleCellUpload(hook, cellId, url) {
+  if (hook.state.focusedCellId !== cellId) {
+    setFocusedCell(hook, cellId);
+  }
+
+  if (!hook.state.insertMode) {
+    setInsertMode(hook, true);
+  }
+
+  globalPubSub.broadcast("session", { type: "cell_upload", cellId, url });
 }
 
 function focusNotebookNameIfNew() {

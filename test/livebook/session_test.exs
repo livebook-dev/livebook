@@ -201,6 +201,43 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:error, "failed to set new path because it is already in use"}
     end
+
+    @tag :tmp_dir
+    test "moves images to the new directory", %{session_id: session_id, tmp_dir: tmp_dir} do
+      %{images_dir: images_dir} = Session.get_summary(session_id)
+      File.mkdir_p!(images_dir)
+      images_dir |> Path.join("test.jpg") |> File.touch!()
+
+      path = Path.join(tmp_dir, "notebook.livemd")
+      Session.set_path(session_id, path)
+
+      # Wait for the session to deal with the files
+      Process.sleep(50)
+
+      assert File.exists?(Path.join([tmp_dir, "images", "test.jpg"]))
+      refute File.exists?(images_dir)
+    end
+
+    @tag :tmp_dir
+    test "does not remove images from the previous dir if not temporary",
+         %{session_id: session_id, tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "notebook.livemd")
+      Session.set_path(session_id, path)
+
+      %{images_dir: images_dir} = Session.get_summary(session_id)
+      File.mkdir_p!(images_dir)
+      images_dir |> Path.join("test.jpg") |> File.touch!()
+
+      Session.set_path(session_id, nil)
+
+      # Wait for the session to deal with the files
+      Process.sleep(50)
+
+      assert File.exists?(Path.join(images_dir, "test.jpg"))
+
+      %{images_dir: new_images_dir} = Session.get_summary(session_id)
+      assert File.exists?(Path.join(new_images_dir, "test.jpg"))
+    end
   end
 
   describe "save/1" do
@@ -262,6 +299,21 @@ defmodule Livebook.SessionTest do
       assert File.exists?(path)
       assert File.read!(path) =~ "My notebook"
     end
+
+    test "clears session temporary directory", %{session_id: session_id} do
+      %{images_dir: images_dir} = Session.get_summary(session_id)
+      File.mkdir_p!(images_dir)
+
+      assert File.exists?(images_dir)
+
+      Process.flag(:trap_exit, true)
+      Session.close(session_id)
+
+      # Wait for the session to deal with the files
+      Process.sleep(50)
+
+      refute File.exists?(images_dir)
+    end
   end
 
   describe "start_link/1" do
@@ -272,6 +324,16 @@ defmodule Livebook.SessionTest do
 
       assert {:error, "the given path is already in use"} ==
                Session.start_link(id: Utils.random_id(), path: path)
+    end
+
+    @tag :tmp_dir
+    test "copies images when :copy_images_from option is specified", %{tmp_dir: tmp_dir} do
+      tmp_dir |> Path.join("image.jpg") |> File.touch!()
+
+      session_id = start_session(copy_images_from: tmp_dir)
+
+      %{images_dir: images_dir} = Session.get_summary(session_id)
+      assert File.exists?(Path.join(images_dir, "image.jpg"))
     end
   end
 

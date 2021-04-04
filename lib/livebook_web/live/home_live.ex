@@ -123,7 +123,8 @@ defmodule LivebookWeb.HomeLive do
     {notebook, messages} = import_notebook(socket.assigns.path)
     socket = put_import_flash_messages(socket, messages)
     notebook = %{notebook | name: notebook.name <> " - fork"}
-    create_session(socket, notebook: notebook)
+    images_dir = Session.images_dir_for_notebook(socket.assigns.path)
+    create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end
 
   def handle_event("open", %{}, socket) do
@@ -135,7 +136,8 @@ defmodule LivebookWeb.HomeLive do
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     data = Session.get_data(session_id)
     notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
-    create_session(socket, notebook: notebook)
+    %{images_dir: images_dir} = Session.get_summary(session_id)
+    create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end
 
   @impl true

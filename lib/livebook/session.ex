@@ -27,7 +27,8 @@ defmodule Livebook.Session do
   @type summary :: %{
           session_id: id(),
           notebook_name: String.t(),
-          path: String.t() | nil
+          path: String.t() | nil,
+          images_dir: String.t()
         }
 
   @typedoc """
@@ -50,6 +51,8 @@ defmodule Livebook.Session do
   * `:notebook` - the inital `Notebook` structure (e.g. imported from a file)
 
   * `:path` - the file to which the notebook should be saved
+
+  * `:copy_images_from` - a directory path to copy notebook images from
   """
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) do
@@ -260,12 +263,17 @@ defmodule Livebook.Session do
 
     case init_data(opts) do
       {:ok, data} ->
-        {:ok,
-         %{
-           session_id: id,
-           data: data,
-           runtime_monitor_ref: nil
-         }}
+        state = %{
+          session_id: id,
+          data: data,
+          runtime_monitor_ref: nil
+        }
+
+        if copy_images_from = opts[:copy_images_from] do
+          copy_images(state, copy_images_from)
+        end
+
+        {:ok, state}
 
       {:error, error} ->
         {:stop, error}
@@ -473,14 +481,68 @@ defmodule Livebook.Session do
 
   def handle_info(_message, state), do: {:noreply, state}
 
+  @impl true
+  def terminate(_reason, state) do
+    cleanup_tmp_dir(state.session_id)
+    :ok
+  end
+
   # ---
 
   defp summary_from_state(state) do
     %{
       session_id: state.session_id,
       notebook_name: state.data.notebook.name,
-      path: state.data.path
+      path: state.data.path,
+      images_dir: images_dir_from_state(state)
     }
+  end
+
+  defp images_dir_from_state(%{data: %{path: nil}, session_id: id}) do
+    tmp_dir = session_tmp_dir(id)
+    Path.join(tmp_dir, "images")
+  end
+
+  defp images_dir_from_state(%{data: %{path: path}}) do
+    images_dir_for_notebook(path)
+  end
+
+  @doc """
+  Returns images directory corresponding to the given notebook path.
+  """
+  @spec images_dir_for_notebook(Path.t()) :: Path.t()
+  def images_dir_for_notebook(path) do
+    dir = Path.dirname(path)
+    Path.join(dir, "images")
+  end
+
+  defp session_tmp_dir(session_id) do
+    tmp_dir = System.tmp_dir!()
+    Path.join([tmp_dir, "livebook", "sessions", session_id])
+  end
+
+  defp cleanup_tmp_dir(session_id) do
+    tmp_dir = session_tmp_dir(session_id)
+
+    if File.exists?(tmp_dir) do
+      File.rm_rf!(tmp_dir)
+    end
+  end
+
+  defp copy_images(state, from) do
+    if File.dir?(from) do
+      images_dir = images_dir_from_state(state)
+      File.mkdir_p!(images_dir)
+      File.cp_r!(from, images_dir)
+    end
+  end
+
+  defp move_images(state, from) do
+    if File.dir?(from) do
+      images_dir = images_dir_from_state(state)
+      File.mkdir_p!(images_dir)
+      File.rename!(from, images_dir)
+    end
   end
 
   # Given any opeation on `Data`, the process does the following:
@@ -496,13 +558,28 @@ defmodule Livebook.Session do
 
     case Data.apply_operation(state.data, operation) do
       {:ok, new_data, actions} ->
-        new_state = %{state | data: new_data}
-        handle_actions(new_state, actions)
+        %{state | data: new_data}
+        |> after_operation(state, operation)
+        |> handle_actions(actions)
 
       :error ->
         state
     end
   end
+
+  defp after_operation(state, prev_state, {:set_path, _pid, _path}) do
+    prev_images_dir = images_dir_from_state(prev_state)
+
+    if prev_state.data.path do
+      copy_images(state, prev_images_dir)
+    else
+      move_images(state, prev_images_dir)
+    end
+
+    state
+  end
+
+  defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
     Enum.reduce(actions, state, &handle_action(&2, &1))

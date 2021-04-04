@@ -58,6 +58,10 @@
   @apply font-medium underline text-gray-900 hover:no-underline;
 }
 
+.markdown img {
+  @apply mx-auto my-4;
+}
+
 .markdown table {
   @apply w-full my-4;
 }
@@ -112,11 +116,11 @@
   color: #abb2bf;
 }
 
-.markdown :first-child {
+.markdown > :first-child {
   @apply mt-0;
 }
 
-.markdown :last-child {
+.markdown > :last-child {
   @apply mb-0;
 }
 

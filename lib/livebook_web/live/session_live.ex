@@ -21,7 +21,12 @@ defmodule LivebookWeb.SessionLive do
       {:ok,
        socket
        |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
-       |> assign_private(data: data)}
+       |> assign_private(data: data)
+       |> allow_upload(:cell_image,
+         accept: ~w(.jpg .jpeg .png .gif),
+         max_entries: 1,
+         max_file_size: 5_000_000
+       )}
     else
       {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
@@ -155,6 +160,15 @@ defmodule LivebookWeb.SessionLive do
             id: :cell_settings_modal,
             session_id: @session_id,
             cell: @cell,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
+    <%= if @live_action == :cell_upload do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.CellUploadComponent,
+            id: :cell_upload_modal,
+            session_id: @session_id,
+            cell: @cell,
+            uploads: @uploads,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
     """

@@ -23,9 +23,10 @@ marked.setOptions({
  * Renders markdown content in the given container.
  */
 class Markdown {
-  constructor(container, content) {
+  constructor(container, content, baseUrl = null) {
     this.container = container;
     this.content = content;
+    this.baseUrl = baseUrl;
 
     this.__render();
   }
@@ -47,7 +48,10 @@ class Markdown {
 
   __getHtml() {
     return new Promise((resolve, reject) => {
-      marked(this.content, (error, html) => {
+      // Marked requires a trailing slash in the base URL
+      const opts = { baseUrl: this.baseUrl + "/" };
+
+      marked(this.content, opts, (error, html) => {
         const sanitizedHtml = DOMPurify.sanitize(html);
 
         if (sanitizedHtml) {

@@ -59,6 +59,13 @@ class LiveEditor {
     }
   }
 
+  insert(text) {
+    const range = this.editor.getSelection();
+    this.editor
+      .getModel()
+      .pushEditOperations([], [{ forceMoveMarkers: true, range, text }]);
+  }
+
   __mountEditor() {
     this.editor = monaco.editor.create(this.container, {
       language: this.type,
