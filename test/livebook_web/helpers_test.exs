@@ -12,7 +12,7 @@ defmodule LivebookWeb.HelpersTest do
                Helpers.ansi_to_html_lines("\e[34msmiley\ncat\e[0m")
     end
 
-    test "respets CR as line cleaner" do
+    test "respects CR as line cleaner" do
       assert [
                {:safe, ~s{<span style="color: var(--ansi-color-blue);">cat\r</span>}}
              ] ==
