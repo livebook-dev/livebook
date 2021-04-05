@@ -121,19 +121,22 @@ defmodule Livebook.Evaluator do
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
 
-    case eval(code, context.binding, context.env) do
-      {:ok, result, binding, env} ->
-        result_context = %{binding: binding, env: env}
-        new_contexts = Map.put(state.contexts, ref, result_context)
-        new_state = %{state | contexts: new_contexts}
+    {result_context, response} =
+      case eval(code, context.binding, context.env) do
+        {:ok, result, binding, env} ->
+          result_context = %{binding: binding, env: env}
+          response = {:ok, result}
+          {result_context, response}
 
-        send_evaluation_response(send_to, ref, {:ok, result}, state.formatter)
-        {:noreply, new_state}
+        {:error, kind, error, stacktrace} ->
+          response = {:error, kind, error, stacktrace}
+          {context, response}
+      end
 
-      {:error, kind, error, stacktrace} ->
-        send_evaluation_response(send_to, ref, {:error, kind, error, stacktrace}, state.formatter)
-        {:noreply, state}
-    end
+    send_evaluation_response(send_to, ref, response, state.formatter)
+
+    new_state = put_in(state.contexts[ref], result_context)
+    {:noreply, new_state}
   end
 
   def handle_cast({:forget_evaluation, ref}, state) do

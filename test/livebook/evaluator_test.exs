@@ -109,6 +109,30 @@ defmodule Livebook.EvaluatorTest do
       end)
     end
 
+    test "in case of an error uses own evaluation context as the resulting context",
+         %{evaluator: evaluator} do
+      code1 = """
+      x = 2
+      """
+
+      code2 = """
+      raise ":<"
+      """
+
+      code3 = """
+      x * x
+      """
+
+      Evaluator.evaluate_code(evaluator, self(), code1, :code_1)
+      assert_receive {:evaluation_response, :code_1, {:ok, _}}
+
+      Evaluator.evaluate_code(evaluator, self(), code2, :code_2, :code_1)
+      assert_receive {:evaluation_response, :code_2, {:error, _, _, _}}
+
+      Evaluator.evaluate_code(evaluator, self(), code3, :code_3, :code_2)
+      assert_receive {:evaluation_response, :code_3, {:ok, 4}}
+    end
+
     test "given file option sets it in evaluation environment", %{evaluator: evaluator} do
       code = """
       __DIR__
