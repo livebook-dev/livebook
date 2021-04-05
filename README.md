@@ -9,7 +9,7 @@ Livebook is a tool for crafting interactive and collaborative code notebooks. It
     cells. Code in Elixir cells can be evaluated on demand.
 
   * Persistence: notebooks can be persisted to disk using the `.livemd` format, which is a
-    subset of Markdown. This means your notebooks can saved for later, easily shared, and
+    subset of Markdown. This means your notebooks can be saved for later, easily shared, and
     also play well with version control.
 
   * Sequential evaluation: code cells run in a specific order, guaranteeing future users of
