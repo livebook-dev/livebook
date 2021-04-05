@@ -7,7 +7,7 @@ config :livebook, LivebookWeb.Endpoint, http: [ip: {127, 0, 0, 1}, port: 8080]
 
 # The output is shown to the end user,
 # so limit the amount of information we show.
-config :logger, level: :notice
+config :logger, level: :info
 
 # ## SSL Support
 #

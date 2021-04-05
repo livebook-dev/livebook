@@ -16,9 +16,6 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  # Configuration for the OTP application.
-  #
-  # Type `mix help compile.app` for more information.
   def application do
     [
       mod: {Livebook.Application, []},
@@ -26,13 +23,9 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  # Specifies your project dependencies.
-  #
-  # Type `mix help deps` for examples and options.
   defp deps do
     [
       {:phoenix, "~> 1.5.7"},
@@ -50,18 +43,10 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  # Aliases are shortcuts or tasks specific to the current project.
-  # For example, to install project dependencies and perform other setup tasks, run:
-  #
-  #     $ mix setup
-  #
-  # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "cmd npm install --prefix assets"],
-      # Update the assets bundle to be committed into the repository
-      # and also builds the Escript.
-      build: ["cmd npm run deploy --prefix ./assets", "escript.build"],
+      "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
+      "dev.build": ["cmd npm run deploy --prefix ./assets"],
       "format.all": ["format", "cmd npm run format --prefix ./assets"]
     ]
   end
