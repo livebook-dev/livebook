@@ -78,7 +78,7 @@ Livebook's LICENSE does not impact your own notebooks. All of the notebooks
 you write belong to you and under the license of your choice (if any).
 However, if you make changes to Livebook source code, your modifications
 have to be available for those using your version of Livebook. For example,
-if you change Livebook to it run exclusively inside your own company,
+if you change Livebook to run it exclusively inside your own company,
 your changes only have to be available within the company itself. However,
 if you modify Livebook in order to build your own software package or your
 own service, then you must link back to Livebook and distribute the modified
