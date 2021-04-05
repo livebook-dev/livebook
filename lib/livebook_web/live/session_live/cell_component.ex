@@ -146,7 +146,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp render_editor(assigns) do
     ~L"""
-    <div class="py-3 rounded-lg overflow-hidden bg-editor relative">
+    <div class="py-3 rounded-lg bg-editor relative">
       <div
         id="editor-container-<%= @cell_view.id %>"
         data-element="editor-container"

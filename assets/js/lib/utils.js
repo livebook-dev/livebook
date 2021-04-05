@@ -41,5 +41,11 @@ export function selectElementContent(element) {
 }
 
 export function smoothlyScrollToElement(element) {
-  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  const { height } = element.getBoundingClientRect();
+
+  if (height < window.innerHeight) {
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+  } else {
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
