@@ -38,8 +38,8 @@ For now, the best way to run Livebook is by cloning it and running it locally:
 
     $ git clone https://github.com/elixir-nx/livebook.git
     $ cd livebook
-    $ mix setup
-    $ mix phx.server
+    $ mix deps.get --only prod
+    $ MIX_ENV=prod mix phx.server
 
 You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
 
