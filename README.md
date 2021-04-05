@@ -92,5 +92,5 @@ use it, then you need to make your derived source code public too.
 
 Here is further reading for those interested:
 
+  * [GNU Affero General Public License](http://www.gnu.org/licenses/agpl-3.0.html)
   * [Understanding the AGPL: The Most Misunderstood License](https://medium.com/swlh/understanding-the-agpl-the-most-misunderstood-license-86fd1fe91275)
-  * [Open source licensing and why we're changing Plausible to the AGPL license](https://plausible.io/blog/open-source-licenses)
