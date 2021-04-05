@@ -3,6 +3,7 @@ import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { smoothlyScrollToElement } from "../lib/utils";
+import scrollIntoView from "scroll-into-view-if-needed";
 
 /**
  * A hook managing a single cell.
@@ -127,11 +128,24 @@ function handleInsertModeChanged(hook, insertMode) {
   if (hook.state.isFocused) {
     hook.state.insertMode = insertMode;
 
-    if (hook.state.insertMode) {
-      hook.state.liveEditor && hook.state.liveEditor.focus();
-      smoothlyScrollToElement(hook.el);
-    } else {
-      hook.state.liveEditor && hook.state.liveEditor.blur();
+    if (hook.state.liveEditor) {
+      if (hook.state.insertMode) {
+        hook.state.liveEditor.focus();
+        // The insert mode may be enabled as a result of clicking the editor,
+        // in which case we want to wait until editor handles the click
+        // and sets new cursor position.
+        // To achieve this, we simply put this task at the end of event loop,
+        // ensuring all click handlers are executed first.
+        setTimeout(() => {
+          scrollIntoView(document.activeElement, {
+            scrollMode: "if-needed",
+            behavior: "smooth",
+            block: "center",
+          });
+        }, 0);
+      } else {
+        hook.state.liveEditor.blur();
+      }
     }
   }
 }
