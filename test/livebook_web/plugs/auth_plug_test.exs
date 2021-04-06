@@ -1,25 +1,5 @@
 defmodule LivebookWeb.AuthPlugTest do
-  use ExUnit.Case, async: false
-  use Plug.Test
-
-  defmodule MyPlug do
-    use Plug.Builder
-
-    plug Plug.Session,
-      store: :cookie,
-      key: "test",
-      signing_salt: "test",
-      secret_key_base: "9hHHeOiAA8wrivUfuS//jQMurHxoMYUtF788BQMx2KO7mYUE8rVrGGG09djBNQq7"
-
-    plug :fetch_session
-    plug :fetch_query_params
-    plug LivebookWeb.AuthPlug
-    plug :passthrough
-
-    defp passthrough(conn, _), do: Plug.Conn.send_resp(conn, 404, "Passthrough")
-  end
-
-  defp call(conn), do: MyPlug.call(conn, [])
+  use LivebookWeb.ConnCase, async: false
 
   setup context do
     if context[:token] do
@@ -34,56 +14,57 @@ defmodule LivebookWeb.AuthPlugTest do
   end
 
   describe "token authentication" do
-    test "skips authentication when no token is configured" do
-      conn = conn(:get, "/") |> call()
+    test "skips authentication when no token is configured", %{conn: conn} do
+      conn = get(conn, "/")
 
-      assert conn.status == 404
-      assert conn.resp_body == "Passthrough"
+      assert conn.status == 200
+      assert conn.resp_body =~ "New notebook"
     end
 
     @tag token: "grumpycat"
-    test "returns authentication error when token is set and none provided" do
-      conn = conn(:get, "/") |> call()
+    test "returns authentication error when token is set and none provided", %{conn: conn} do
+      conn = get(conn, "/")
 
       assert conn.status == 401
-      assert conn.resp_body == "Unauthorized"
+      assert conn.resp_body =~ "Authentication required"
     end
 
     @tag token: "grumpycat"
-    test "redirects to the same path when valid token is provided in query params" do
-      conn = conn(:get, "/?token=grumpycat") |> call()
+    test "redirects to the same path when valid token is provided in query params", %{conn: conn} do
+      conn = get(conn, "/?token=grumpycat")
 
-      assert Phoenix.ConnTest.redirected_to(conn) == "/"
+      assert redirected_to(conn) == "/"
     end
 
     @tag token: "grumpycat"
-    test "returns authentication error when invalid token is provided in query params" do
-      conn = conn(:get, "/?token=invalid") |> call()
+    test "returns authentication error when invalid token is provided in query params",
+         %{conn: conn} do
+      conn = get(conn, "/?token=invalid")
 
       assert conn.status == 401
-      assert conn.resp_body == "Unauthorized"
+      assert conn.resp_body =~ "Authentication required"
     end
 
     @tag token: "grumpycat"
-    test "passes authentication when valid token is provided in session" do
+    test "passes authentication when valid token is provided in session", %{conn: conn} do
       conn =
-        conn(:get, "/")
+        conn
         |> init_test_session(%{"80:token" => "grumpycat"})
-        |> call()
+        |> get("/")
 
-      assert conn.status == 404
-      assert conn.resp_body == "Passthrough"
+      assert conn.status == 200
+      assert conn.resp_body =~ "New notebook"
     end
 
     @tag token: "grumpycat"
-    test "returns authentication error when invalid token is provided in session" do
+    test "returns authentication error when invalid token is provided in session", %{conn: conn} do
       conn =
-        conn(:get, "/")
+        conn
         |> init_test_session(%{"80:token" => "invalid"})
-        |> call()
+        |> get("/")
 
       assert conn.status == 401
-      assert conn.resp_body == "Unauthorized"
+      assert conn.resp_body =~ "Authentication required"
     end
   end
 end
