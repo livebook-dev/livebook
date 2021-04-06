@@ -19,14 +19,10 @@ defmodule LivebookCLI.Server do
   def call(args) do
     opts = parse_options(args)
 
-    token =
-      if Keyword.get(opts, :token, true) do
-        token = Livebook.Utils.random_id()
-        Application.put_env(:livebook, :token, token)
-        token
-      else
-        nil
-      end
+    if Keyword.get(opts, :token, true) do
+      token = Livebook.Utils.random_id()
+      Application.put_env(:livebook, :token, token)
+    end
 
     if opts[:port] do
       endpoint_env = Application.get_env(:livebook, LivebookWeb.Endpoint)
@@ -36,14 +32,7 @@ defmodule LivebookCLI.Server do
 
     start_server()
 
-    url =
-      if token do
-        LivebookWeb.Endpoint.url() <> "/?token=" <> token
-      else
-        LivebookWeb.Endpoint.url()
-      end
-
-    IO.puts("Livebook running at #{url}")
+    IO.ANSI.format([:blue, "Livebook running at #{get_url()}"]) |> IO.puts()
 
     Process.sleep(:infinity)
   end
@@ -51,6 +40,17 @@ defmodule LivebookCLI.Server do
   defp start_server() do
     Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
     {:ok, _} = Application.ensure_all_started(:livebook)
+  end
+
+  defp get_url() do
+    token = Application.get_env(:livebook, :token)
+    root_url = LivebookWeb.Endpoint.url()
+
+    if token do
+      root_url <> "/?token=" <> token
+    else
+      root_url
+    end
   end
 
   defp parse_options(args) do

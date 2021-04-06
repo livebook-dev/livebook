@@ -13,6 +13,7 @@ defmodule LivebookCLI do
 
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
+    Application.put_env(:elixir, :ansi_enabled, true)
     :ok = Application.load(:livebook)
     call(args)
   end
