@@ -42,6 +42,7 @@ defmodule LivebookCLI.Server do
 
   defp start_server() do
     Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
+
     case Application.ensure_all_started(:livebook) do
       {:ok, _} -> :ok
       {:error, _} -> :error
