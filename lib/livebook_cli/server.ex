@@ -19,17 +19,12 @@ defmodule LivebookCLI.Server do
 
   @impl true
   def call(args) do
-    opts = parse_options(args)
+    config = args_to_config(args)
 
-    if Keyword.get(opts, :token, true) do
-      token = Livebook.Utils.random_id()
-      Application.put_env(:livebook, :token, token)
-    end
-
-    if opts[:port] do
-      endpoint_env = Application.get_env(:livebook, LivebookWeb.Endpoint)
-      endpoint_env = put_in(endpoint_env[:http][:port], opts[:port])
-      Application.put_env(:livebook, LivebookWeb.Endpoint, endpoint_env)
+    for {root_key, key, opts} <- config do
+      current_opts = Application.get_env(root_key, key)
+      new_opts = merge_options(current_opts, opts)
+      Application.put_env(root_key, key, new_opts)
     end
 
     case start_server() do
@@ -62,7 +57,7 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp parse_options(args) do
+  defp args_to_config(args) do
     {opts, _} =
       OptionParser.parse!(
         args,
@@ -70,6 +65,32 @@ defmodule LivebookCLI.Server do
         aliases: [p: :port]
       )
 
-    opts
+    default_opts = [token: true, port: 8080]
+    opts = Keyword.merge(default_opts, opts)
+    opts_to_config(opts, [])
+  end
+
+  defp opts_to_config([], config), do: config
+
+  defp opts_to_config([{:token, true} | opts], config) do
+    token = Livebook.Utils.random_id()
+    opts_to_config(opts, [{:livebook, :token, token} | config])
+  end
+
+  defp opts_to_config([{:port, port} | opts], config) do
+    opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [port: port]} | config])
+  end
+
+  defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
+
+  # Deep merge configuration options
+  defp merge_options(value1, value2) do
+    if Keyword.keyword?(value1) and Keyword.keyword?(value2) do
+      Keyword.merge(value1, value2, fn _key, value1, value2 ->
+        merge_options(value1, value2)
+      end)
+    else
+      value2
+    end
   end
 end
