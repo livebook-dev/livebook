@@ -1,21 +1,23 @@
 defmodule LivebookCLI.Server do
   @moduledoc false
 
-  @usage """
-  Usage: livebook server [options]
+  @behaviour LivebookCLI.Task
 
-  Available options:
+  @impl true
+  def usage() do
+    """
+    Usage: livebook server [options]
 
-    -p, --port    The port to start the web application on, defaults to 8080
-    --no-token    Disable token authentication, enabled by default
+    Available options:
 
-  The --help option can be given for usage information.
-  """
+      -p, --port    The port to start the web application on, defaults to 8080
+      --no-token    Disable token authentication, enabled by default
 
-  def call([arg]) when arg in ["--help", "-h"] do
-    IO.write(@usage)
+    The --help option can be given for usage information.
+    """
   end
 
+  @impl true
   def call(args) do
     opts = parse_options(args)
 
@@ -61,8 +63,12 @@ defmodule LivebookCLI.Server do
   end
 
   defp parse_options(args) do
-    {opts, _, _} =
-      OptionParser.parse(args, strict: [token: :boolean, port: :integer], aliases: [p: :port])
+    {opts, _} =
+      OptionParser.parse!(
+        args,
+        strict: [token: :boolean, port: :integer],
+        aliases: [p: :port]
+      )
 
     opts
   end
