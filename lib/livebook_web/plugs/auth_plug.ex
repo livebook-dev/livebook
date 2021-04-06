@@ -11,36 +11,42 @@ defmodule LivebookWeb.AuthPlug do
 
   @impl true
   def call(conn, _otps) do
-    configured_token = Application.get_env(:livebook, :token)
+    case Application.get_env(:livebook, :token) do
+      nil -> conn
+      token -> token_authentication(conn, token)
+    end
+  end
 
+  defp token_authentication(conn, token) do
     # The user may run multiple Livebook instances on the same host
     # but different ports, so we this makes sure they don't override each other
     session_key = "#{conn.port}:token"
 
-    if configured_token do
-      cond do
-        token = Map.get(conn.query_params, "token") ->
+    cond do
+      provided_token = Map.get(conn.query_params, "token") ->
+        if provided_token == token do
           conn
-          |> verify_token(configured_token, token)
-          |> put_session(session_key, token)
+          |> put_session(session_key, provided_token)
           # Redirect to the same path without query params
           |> redirect(to: conn.request_path)
           |> halt()
+        else
+          reject(conn)
+        end
 
-        token = get_session(conn, session_key) ->
-          verify_token(conn, configured_token, token)
+      provided_token = get_session(conn, session_key) ->
+        if provided_token == token do
+          conn
+        else
+          reject(conn)
+        end
 
-        true ->
-          verify_token(conn, configured_token, nil)
-      end
-    else
-      conn
+      true ->
+        reject(conn)
     end
   end
 
-  defp verify_token(conn, token, token), do: conn
-
-  defp verify_token(conn, _token, _other) do
+  defp reject(conn) do
     conn
     |> send_resp(401, "Unauthorized")
     |> halt()
