@@ -13,10 +13,16 @@ defmodule LivebookCLI do
 
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
-    Application.put_env(:elixir, :ansi_enabled, true)
     :ok = Application.load(:livebook)
+
+    if unix?() do
+      Application.put_env(:elixir, :ansi_enabled, true)
+    end
+
     call(args)
   end
+
+  def unix?(), do: :os.type() |> elem(0) == :unix
 
   defp call([arg]) when arg in ["--help", "-h"], do: display_help()
   defp call([arg]) when arg in ["--version", "-v"], do: display_version()
