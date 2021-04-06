@@ -48,7 +48,8 @@ defmodule LivebookWeb.AuthPlug do
 
   defp reject(conn) do
     conn
-    |> send_resp(401, "Unauthorized")
+    |> put_view(LivebookWeb.AuthView)
+    |> render("token.html")
     |> halt()
   end
 end
