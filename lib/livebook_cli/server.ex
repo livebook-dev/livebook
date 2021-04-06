@@ -21,6 +21,7 @@ defmodule LivebookCLI.Server do
   def call(args) do
     config = args_to_config(args)
 
+    # Update applications' configuration based on the cli arguments
     for {root_key, key, opts} <- config do
       current_opts = Application.get_env(root_key, key)
       new_opts = merge_options(current_opts, opts)
