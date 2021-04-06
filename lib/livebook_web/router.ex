@@ -31,16 +31,20 @@ defmodule LivebookWeb.Router do
   def authenticate(conn, _otps) do
     configured_token = Application.get_env(:livebook, :token)
 
+    # The user may run multiple Livebook instances on the same host
+    # but different ports, so we this makes sure they don't override each other
+    session_key = "#{conn.port}:token"
+
     if configured_token do
       cond do
         token = Map.get(conn.query_params, "token") ->
           conn
           |> verify_token(configured_token, token)
-          |> put_session(:token, token)
+          |> put_session(session_key, token)
           |> redirect(to: conn.request_path)
           |> halt()
 
-        token = get_session(conn, :token) ->
+        token = get_session(conn, session_key) ->
           verify_token(conn, configured_token, token)
 
         true ->
