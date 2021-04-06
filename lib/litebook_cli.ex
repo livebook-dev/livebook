@@ -20,16 +20,50 @@ defmodule LivebookCLI do
 
   defp proceed(args) do
     case args do
-      ["server" | _args] ->
-        start_server()
-
-        IO.puts("Livebook running at #{LivebookWeb.Endpoint.url()}")
-
-        Process.sleep(:infinity)
+      ["server" | args] ->
+        proceed_server(args)
 
       _ ->
         display_usage()
     end
+  end
+
+  defp proceed_server([arg]) when arg in ["--help", "-h"] do
+    IO.write("""
+    Usage: livebook server [options]
+
+    Available options:
+
+      --no-token - Disable token authentication
+
+    The --help option can be given for usage information.
+    """)
+  end
+
+  defp proceed_server(args) do
+    {opts, _, _} = OptionParser.parse(args, strict: [token: :boolean])
+
+    token =
+      if Keyword.get(opts, :token, true) do
+        token = Livebook.Utils.random_id()
+        Application.put_env(:livebook, :token, token)
+        token
+      else
+        nil
+      end
+
+    start_server()
+
+    url =
+      if token do
+        LivebookWeb.Endpoint.url() <> "/?token=" <> token
+      else
+        LivebookWeb.Endpoint.url()
+      end
+
+    IO.puts("Livebook running at #{url}")
+
+    Process.sleep(:infinity)
   end
 
   defp start_server() do
@@ -46,7 +80,7 @@ defmodule LivebookCLI do
 
   defp display_usage() do
     IO.write("""
-    Usage: livebook [command]
+    Usage: livebook [command] [options]
 
     Available commands:
 

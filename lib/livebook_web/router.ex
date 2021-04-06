@@ -8,6 +8,7 @@ defmodule LivebookWeb.Router do
     plug :put_root_layout, {LivebookWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :authenticate
   end
 
   pipeline :api do
@@ -25,5 +26,36 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
     get "/sessions/:id/images/:image", SessionController, :show_image
+  end
+
+  def authenticate(conn, _otps) do
+    configured_token = Application.get_env(:livebook, :token)
+
+    if configured_token do
+      cond do
+        token = Map.get(conn.query_params, "token") ->
+          conn
+          |> verify_token(configured_token, token)
+          |> put_session(:token, token)
+          |> redirect(to: conn.request_path)
+          |> halt()
+
+        token = get_session(conn, :token) ->
+          verify_token(conn, configured_token, token)
+
+        true ->
+          verify_token(conn, configured_token, nil)
+      end
+    else
+      conn
+    end
+  end
+
+  defp verify_token(conn, token, token), do: conn
+
+  defp verify_token(conn, _token, _other) do
+    conn
+    |> send_resp(401, "Unauthorized")
+    |> halt()
   end
 end
