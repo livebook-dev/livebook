@@ -6,7 +6,8 @@ defmodule LivebookCLI.Server do
 
   Available options:
 
-    --no-token - Disable token authentication, enabled by default
+    -p, --port    The port to start the web application on, defaults to 8080
+    --no-token    Disable token authentication, enabled by default
 
   The --help option can be given for usage information.
   """
@@ -27,6 +28,12 @@ defmodule LivebookCLI.Server do
         nil
       end
 
+    if opts[:port] do
+      endpoint_env = Application.get_env(:livebook, LivebookWeb.Endpoint)
+      endpoint_env = put_in(endpoint_env[:http][:port], opts[:port])
+      Application.put_env(:livebook, LivebookWeb.Endpoint, endpoint_env)
+    end
+
     start_server()
 
     url =
@@ -36,7 +43,7 @@ defmodule LivebookCLI.Server do
         LivebookWeb.Endpoint.url()
       end
 
-    IO.puts("Livebook callning at #{url}")
+    IO.puts("Livebook running at #{url}")
 
     Process.sleep(:infinity)
   end
@@ -47,7 +54,9 @@ defmodule LivebookCLI.Server do
   end
 
   defp parse_options(args) do
-    {opts, _, _} = OptionParser.parse(args, strict: [token: :boolean])
+    {opts, _, _} =
+      OptionParser.parse(args, strict: [token: :boolean, port: :integer], aliases: [p: :port])
+
     opts
   end
 end
