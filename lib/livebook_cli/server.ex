@@ -30,16 +30,22 @@ defmodule LivebookCLI.Server do
       Application.put_env(:livebook, LivebookWeb.Endpoint, endpoint_env)
     end
 
-    start_server()
+    case start_server() do
+      :ok ->
+        IO.ANSI.format([:blue, "Livebook running at #{get_url()}"]) |> IO.puts()
+        Process.sleep(:infinity)
 
-    IO.ANSI.format([:blue, "Livebook running at #{get_url()}"]) |> IO.puts()
-
-    Process.sleep(:infinity)
+      :error ->
+        IO.ANSI.format([:red, "Livebook failed to start"]) |> IO.puts()
+    end
   end
 
   defp start_server() do
     Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
-    {:ok, _} = Application.ensure_all_started(:livebook)
+    case Application.ensure_all_started(:livebook) do
+      {:ok, _} -> :ok
+      {:error, _} -> :error
+    end
   end
 
   defp get_url() do
