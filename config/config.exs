@@ -15,10 +15,10 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Configure the type of names used for distribution
-# and the name of the main Livebook node.
-config :livebook, :node_name, {:shortnames, :livebook}
-# config :livebook, :node_name, {:longnames, :"livebook@127.0.0.1"}
+# Configure the type of names used for distribution and the hostname.
+# A unique node base name is generated for each Livebook instance.
+config :livebook, :node, {:shortnames, ""}
+# config :livebook, :node, {:longnames, "127.0.0.1"}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

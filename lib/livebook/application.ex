@@ -41,35 +41,15 @@ defmodule Livebook.Application do
   end
 
   defp get_node_type_and_name() do
-    {type, name} = Application.fetch_env!(:livebook, :node_name)
+    {type, host} = Application.fetch_env!(:livebook, :node)
 
-    {base_name, host_sufix} =
-      case name |> to_string() |> String.split("@") do
-        [base_name] -> {base_name, ""}
-        [base_name, host_name] -> {base_name, "@" <> host_name}
+    host_sufix =
+      case host do
+        "" -> ""
+        host -> "@" <> host
       end
 
-    if name_taken?(base_name) do
-      # If there's already Livebook instance started, use a different name
-      new_name = :"#{base_name}_#{Livebook.Utils.random_short_id()}#{host_sufix}"
-      {type, new_name}
-    else
-      {type, name}
-    end
-  end
-
-  # Checks if there's a local node running with the given base name.
-  defp name_taken?(name) do
-    name = to_string(name)
-
-    case :erl_epmd.names() do
-      {:ok, list} ->
-        Enum.any?(list, fn {alive_name, _port} ->
-          to_string(alive_name) == name
-        end)
-
-      {:error, _} ->
-        false
-    end
+    name = :"livebook_#{Livebook.Utils.random_short_id()}#{host_sufix}"
+    {type, name}
   end
 end
