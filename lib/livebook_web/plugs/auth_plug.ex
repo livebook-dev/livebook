@@ -10,6 +10,8 @@ defmodule LivebookWeb.AuthPlug do
   import Plug.Conn
   import Phoenix.Controller
 
+  @cookie_opts [sign: true, max_age: 2_592_000]
+
   @impl true
   def init(opts), do: opts
 
@@ -23,14 +25,16 @@ defmodule LivebookWeb.AuthPlug do
 
   defp token_authentication(conn, token) do
     # The user may run multiple Livebook instances on the same host
-    # but different ports, so we this makes sure they don't override each other
-    session_key = "#{conn.port}:token"
+    # on different ports, so we scope the cookie name under port
+    token_cookie = "#{conn.port}:token"
+
+    conn = fetch_cookies(conn, signed: [token_cookie])
 
     cond do
       provided_token = Map.get(conn.query_params, "token") ->
         if provided_token == token do
           conn
-          |> put_session(session_key, provided_token)
+          |> put_resp_cookie(token_cookie, provided_token, @cookie_opts)
           # Redirect to the same path without query params
           |> redirect(to: conn.request_path)
           |> halt()
@@ -38,7 +42,7 @@ defmodule LivebookWeb.AuthPlug do
           reject_token!()
         end
 
-      provided_token = get_session(conn, session_key) ->
+      provided_token = conn.cookies[token_cookie] ->
         if provided_token == token do
           conn
         else

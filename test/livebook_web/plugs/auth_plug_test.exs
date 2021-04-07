@@ -50,26 +50,18 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag token: "grumpycat"
-    test "passes authentication when valid token is provided in session", %{conn: conn} do
+    test "persists authentication across requests using cookies", %{conn: conn} do
+      conn = get(conn, "/?token=grumpycat")
+
+      assert Map.has_key?(conn.resp_cookies, "80:token")
+
       conn =
-        conn
-        |> init_test_session(%{"80:token" => "grumpycat"})
+        build_conn()
+        |> Plug.Test.recycle_cookies(conn)
         |> get("/")
 
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
-    end
-
-    @tag token: "grumpycat"
-    test "returns authentication error when invalid token is provided in session", %{conn: conn} do
-      {_, _, resp_body} =
-        assert_error_sent 401, fn ->
-          conn
-          |> init_test_session(%{"80:token" => "invalid"})
-          |> get("/")
-        end
-
-      assert resp_body =~ "Authentication required"
     end
   end
 end
