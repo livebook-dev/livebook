@@ -8,3 +8,5 @@ config :livebook, LivebookWeb.Endpoint,
 
 # Print only warnings and errors during test
 config :logger, level: :warn
+
+config :livebook, :token_authentication, false

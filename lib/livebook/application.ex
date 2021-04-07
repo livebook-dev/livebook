@@ -7,6 +7,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     ensure_distribution!()
+    initialize_token()
 
     children = [
       # Start the Telemetry supervisor
@@ -22,7 +23,11 @@ defmodule Livebook.Application do
     ]
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    with {:ok, _} = result <- Supervisor.start_link(children, opts) do
+      display_startup_info()
+      result
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -50,5 +55,32 @@ defmodule Livebook.Application do
 
   defp random_short_name() do
     :"livebook_#{Livebook.Utils.random_short_id()}"
+  end
+
+  # Generates and configures random token if token auth is enabled
+  defp initialize_token() do
+    token_auth? = Application.fetch_env!(:livebook, :token_authentication)
+
+    if token_auth? do
+      token = Livebook.Utils.random_id()
+      Application.put_env(:livebook, :token, token)
+    end
+  end
+
+  defp display_startup_info() do
+    if Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
+      IO.ANSI.format([:blue, "Livebook running at #{access_url()}"]) |> IO.puts()
+    end
+  end
+
+  defp access_url() do
+    token = Application.get_env(:livebook, :token)
+    root_url = LivebookWeb.Endpoint.url()
+
+    if token do
+      root_url <> "/?token=" <> token
+    else
+      root_url
+    end
   end
 end

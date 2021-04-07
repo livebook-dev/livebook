@@ -26,7 +26,6 @@ defmodule LivebookCLI.Server do
 
     case start_server() do
       :ok ->
-        IO.ANSI.format([:blue, "Livebook running at #{get_url()}"]) |> IO.puts()
         Process.sleep(:infinity)
 
       :error ->
@@ -62,17 +61,6 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp get_url() do
-    token = Application.get_env(:livebook, :token)
-    root_url = LivebookWeb.Endpoint.url()
-
-    if token do
-      root_url <> "/?token=" <> token
-    else
-      root_url
-    end
-  end
-
   defp args_to_config(args) do
     {opts, _} =
       OptionParser.parse!(
@@ -81,11 +69,7 @@ defmodule LivebookCLI.Server do
         aliases: [p: :port]
       )
 
-    default_opts = [token: true, port: 8080]
-    opts = Keyword.merge(default_opts, opts)
-
     validate_options!(opts)
-
     opts_to_config(opts, [])
   end
 
@@ -97,9 +81,8 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([], config), do: config
 
-  defp opts_to_config([{:token, true} | opts], config) do
-    token = Livebook.Utils.random_id()
-    opts_to_config(opts, [{:livebook, :token, token} | config])
+  defp opts_to_config([{:token, token_auth?} | opts], config) do
+    opts_to_config(opts, [{:livebook, :token_authentication, token_auth?} | config])
   end
 
   defp opts_to_config([{:port, port} | opts], config) do
