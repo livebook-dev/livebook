@@ -38,16 +38,9 @@ defmodule LivebookCLI.Server do
   # Multiple values for the same key are deeply merged (provided they are keyword lists).
   defp put_config_entries(config_entries) do
     config_entries
-    |> Enum.group_by(fn {app, key, _value} -> {app, key} end, fn {_app, _key, value} -> value end)
-    |> Enum.map(fn {{app, key}, values} ->
-      value = Enum.reduce(values, &deep_merge/2)
-      {app, key, value}
-    end)
-    |> Enum.group_by(fn {app, _key, _value} -> app end, fn {_app, key, value} -> {key, value} end)
-    |> Enum.map(fn {app, env} ->
-      current_env = Application.get_all_env(app)
-      new_env = deep_merge(current_env, env)
-      {app, new_env}
+    |> Enum.reduce([], fn {app, key, value}, acc ->
+      acc = Keyword.put_new_lazy(acc, app, fn -> Application.get_all_env(app) end)
+      Config.Reader.merge(acc, [{app, [{key, value}]}])
     end)
     |> Application.put_all_env(persistent: true)
   end
@@ -100,15 +93,4 @@ defmodule LivebookCLI.Server do
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
-
-  # Deeply merges options
-  defp deep_merge(value1, value2) do
-    if Keyword.keyword?(value1) and Keyword.keyword?(value2) do
-      Keyword.merge(value1, value2, fn _key, value1, value2 ->
-        deep_merge(value1, value2)
-      end)
-    else
-      value2
-    end
-  end
 end
