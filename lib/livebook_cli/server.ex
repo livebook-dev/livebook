@@ -21,14 +21,8 @@ defmodule LivebookCLI.Server do
 
   @impl true
   def call(args) do
-    config = args_to_config(args)
-
-    # Update applications' configuration based on the cli arguments
-    for {root_key, key, opts} <- config do
-      current_opts = Application.get_env(root_key, key)
-      new_opts = merge_options(current_opts, opts)
-      Application.put_env(root_key, key, new_opts, persistent: true)
-    end
+    config_entries = args_to_config(args)
+    put_config_entries(config_entries)
 
     case start_server() do
       :ok ->
@@ -38,6 +32,25 @@ defmodule LivebookCLI.Server do
       :error ->
         IO.ANSI.format([:red, "Livebook failed to start"]) |> IO.puts()
     end
+  end
+
+  # Takes a list of {app, key, value} config entries
+  # and overrides the current applications' configuration accordingly.
+  # Multiple values for the same key are deeply merged (provided they are keyword lists).
+  defp put_config_entries(config_entries) do
+    config_entries
+    |> Enum.group_by(fn {app, key, _value} -> {app, key} end, fn {_app, _key, value} -> value end)
+    |> Enum.map(fn {{app, key}, values} ->
+      value = Enum.reduce(values, &deep_merge/2)
+      {app, key, value}
+    end)
+    |> Enum.group_by(fn {app, _key, _value} -> app end, fn {_app, key, value} -> {key, value} end)
+    |> Enum.map(fn {app, env} ->
+      current_env = Application.get_all_env(app)
+      new_env = deep_merge(current_env, env)
+      {app, new_env}
+    end)
+    |> Application.put_all_env(persistent: true)
   end
 
   defp start_server() do
@@ -105,11 +118,11 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
 
-  # Deep merge configuration options
-  defp merge_options(value1, value2) do
+  # Deeply merges options
+  defp deep_merge(value1, value2) do
     if Keyword.keyword?(value1) and Keyword.keyword?(value2) do
       Keyword.merge(value1, value2, fn _key, value1, value2 ->
-        merge_options(value1, value2)
+        deep_merge(value1, value2)
       end)
     else
       value2
