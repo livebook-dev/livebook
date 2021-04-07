@@ -6,7 +6,7 @@ defmodule Livebook.Application do
   use Application
 
   def start(_type, _args) do
-    ensure_distribution()
+    ensure_distribution!()
 
     children = [
       # Start the Telemetry supervisor
@@ -32,24 +32,23 @@ defmodule Livebook.Application do
     :ok
   end
 
-  defp ensure_distribution() do
+  defp ensure_distribution!() do
     unless Node.alive?() do
       System.cmd("epmd", ["-daemon"])
       {type, name} = get_node_type_and_name()
-      Node.start(name, type)
+
+      case Node.start(name, type) do
+        {:ok, _} -> :ok
+        {:error, _} -> raise "failed to start distributed node"
+      end
     end
   end
 
   defp get_node_type_and_name() do
-    {type, host} = Application.fetch_env!(:livebook, :node)
+    Application.get_env(:livebook, :node) || {:shortnames, random_short_name()}
+  end
 
-    host_sufix =
-      case host do
-        "" -> ""
-        host -> "@" <> host
-      end
-
-    name = :"livebook_#{Livebook.Utils.random_short_id()}#{host_sufix}"
-    {type, name}
+  defp random_short_name() do
+    :"livebook_#{Livebook.Utils.random_short_id()}"
   end
 end

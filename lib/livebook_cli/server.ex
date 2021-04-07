@@ -12,6 +12,8 @@ defmodule LivebookCLI.Server do
 
       -p, --port    The port to start the web application on, defaults to 8080
       --no-token    Disable token authentication, enabled by default
+      --sname       Set a shot name for the app distributed node
+      --name        Set a name for the app distributed node
 
     The --help option can be given for usage information.
     """
@@ -62,13 +64,22 @@ defmodule LivebookCLI.Server do
     {opts, _} =
       OptionParser.parse!(
         args,
-        strict: [token: :boolean, port: :integer],
+        strict: [token: :boolean, port: :integer, name: :string, sname: :string],
         aliases: [p: :port]
       )
 
     default_opts = [token: true, port: 8080]
     opts = Keyword.merge(default_opts, opts)
+
+    validate_options!(opts)
+
     opts_to_config(opts, [])
+  end
+
+  defp validate_options!(opts) do
+    if Keyword.has_key?(opts, :name) and Keyword.has_key?(opts, :sname) do
+      raise "The provided --sname and --name options are mutually exclusive, please specify only one of them"
+    end
   end
 
   defp opts_to_config([], config), do: config
@@ -80,6 +91,16 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([{:port, port} | opts], config) do
     opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [port: port]} | config])
+  end
+
+  defp opts_to_config([{:sname, sname} | opts], config) do
+    sname = String.to_atom(sname)
+    opts_to_config(opts, [{:livebook, :node, {:shortnames, sname}} | config])
+  end
+
+  defp opts_to_config([{:name, name} | opts], config) do
+    name = String.to_atom(name)
+    opts_to_config(opts, [{:livebook, :node, {:longnames, name}} | config])
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
