@@ -25,7 +25,7 @@ defmodule LivebookCLI.Server do
     for {root_key, key, opts} <- config do
       current_opts = Application.get_env(root_key, key)
       new_opts = merge_options(current_opts, opts)
-      Application.put_env(root_key, key, new_opts)
+      Application.put_env(root_key, key, new_opts, persistent: true)
     end
 
     case start_server() do
