@@ -23,10 +23,12 @@ defmodule LivebookWeb.AuthPlugTest do
 
     @tag token: "grumpycat"
     test "returns authentication error when token is set and none provided", %{conn: conn} do
-      conn = get(conn, "/")
+      {_, _, resp_body} =
+        assert_error_sent 401, fn ->
+          get(conn, "/")
+        end
 
-      assert conn.status == 401
-      assert conn.resp_body =~ "Authentication required"
+      assert resp_body =~ "Authentication required"
     end
 
     @tag token: "grumpycat"
@@ -39,10 +41,12 @@ defmodule LivebookWeb.AuthPlugTest do
     @tag token: "grumpycat"
     test "returns authentication error when invalid token is provided in query params",
          %{conn: conn} do
-      conn = get(conn, "/?token=invalid")
+      {_, _, resp_body} =
+        assert_error_sent 401, fn ->
+          get(conn, "/?token=invalid")
+        end
 
-      assert conn.status == 401
-      assert conn.resp_body =~ "Authentication required"
+      assert resp_body =~ "Authentication required"
     end
 
     @tag token: "grumpycat"
@@ -58,13 +62,14 @@ defmodule LivebookWeb.AuthPlugTest do
 
     @tag token: "grumpycat"
     test "returns authentication error when invalid token is provided in session", %{conn: conn} do
-      conn =
-        conn
-        |> init_test_session(%{"80:token" => "invalid"})
-        |> get("/")
+      {_, _, resp_body} =
+        assert_error_sent 401, fn ->
+          conn
+          |> init_test_session(%{"80:token" => "invalid"})
+          |> get("/")
+        end
 
-      assert conn.status == 401
-      assert conn.resp_body =~ "Authentication required"
+      assert resp_body =~ "Authentication required"
     end
   end
 end

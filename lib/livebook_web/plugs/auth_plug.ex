@@ -1,3 +1,7 @@
+defmodule LivebookWeb.InvalidTokenError do
+  defexception plug_status: 401, message: "invalid token"
+end
+
 defmodule LivebookWeb.AuthPlug do
   @moduledoc false
 
@@ -31,26 +35,22 @@ defmodule LivebookWeb.AuthPlug do
           |> redirect(to: conn.request_path)
           |> halt()
         else
-          reject(conn)
+          reject_token!()
         end
 
       provided_token = get_session(conn, session_key) ->
         if provided_token == token do
           conn
         else
-          reject(conn)
+          reject_token!()
         end
 
       true ->
-        reject(conn)
+        reject_token!()
     end
   end
 
-  defp reject(conn) do
-    conn
-    |> put_status(:unauthorized)
-    |> put_view(LivebookWeb.AuthView)
-    |> render("token.html")
-    |> halt()
+  defp reject_token!() do
+    raise LivebookWeb.InvalidTokenError
   end
 end
