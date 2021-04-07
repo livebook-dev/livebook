@@ -8,9 +8,9 @@ defmodule LivebookWeb.AuthPlugTest do
       on_exit(fn ->
         Application.delete_env(:livebook, :token)
       end)
-    else
-      :ok
     end
+
+    :ok
   end
 
   describe "token authentication" do
