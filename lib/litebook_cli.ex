@@ -24,7 +24,7 @@ defmodule LivebookCLI do
     call(args)
   end
 
-  defp unix?(), do: :os.type() |> elem(0) == :unix
+  defp unix?(), do: match?({:unix, _}, :os.type())
 
   defp call([arg]) when arg in ["--help", "-h"], do: display_help()
   defp call([arg]) when arg in ["--version", "-v"], do: display_version()
