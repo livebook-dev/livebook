@@ -14,7 +14,8 @@ Livebook is a tool for crafting interactive and collaborative code notebooks. It
     they also play well with version control.
 
   * Sequential evaluation: code cells run in a specific order, guaranteeing future users of
-    the same Livebook see the same output.
+    the same Livebook see the same output. If you re-execute a previous cell, following cells
+    are marked as stale to avoid confusion about the notebook state.
 
   * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir process,
     connect to an existing node, or run it inside an existing Elixir project, with access to
