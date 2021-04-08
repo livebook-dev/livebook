@@ -22,6 +22,9 @@ Livebook is a tool for crafting interactive and collaborative code notebooks. It
     all of its modules and dependencies. This means Livebook can be a great tool to provide
     live documentation for existing projects.
 
+  * Explicit dependencies: if your notebook has dependencies, they are explicitly listed and
+    installed with the help of the `Mix.install/2` command in Elixir v1.12+.
+
   * Collaborative features allow multiple users to work on the same notebook at once.
     Collaboration works either in single-node or multi-node deployments - without a
     need for additional tooling.
