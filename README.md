@@ -6,11 +6,12 @@ Livebook is a tool for crafting interactive and collaborative code notebooks. It
     where users can create, fork, and run multiple notebooks.
   
   * Each notebook is made of multiple sections: each section is made of Markdown and Elixir
-    cells. Code in Elixir cells can be evaluated on demand.
+    cells. Code in Elixir cells can be evaluated on demand. Mathemtical formulas are also
+    supported via [KaTeX](https://katex.org/).
 
-  * Persistence: notebooks can be persisted to disk using the `.livemd` format, which is a
+  * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a
     subset of Markdown. This means your notebooks can be saved for later, easily shared, and
-    also play well with version control.
+    they also play well with version control.
 
   * Sequential evaluation: code cells run in a specific order, guaranteeing future users of
     the same Livebook see the same output.
@@ -43,8 +44,8 @@ For now, the best way to run Livebook is by cloning it and running it locally:
 
 You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
 
-We will work on other distribution modes (escripts, Docker images, etc) in future
-releases.
+We will work on other distribution modes (escripts, Docker images, etc) once
+we start distributing official releases.
 
 ## License
 
