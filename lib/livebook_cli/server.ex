@@ -68,7 +68,7 @@ defmodule LivebookCLI.Server do
 
   defp validate_options!(opts) do
     if Keyword.has_key?(opts, :name) and Keyword.has_key?(opts, :sname) do
-      raise "The provided --sname and --name options are mutually exclusive, please specify only one of them"
+      raise "the provided --sname and --name options are mutually exclusive, please specify only one of them"
     end
   end
 
