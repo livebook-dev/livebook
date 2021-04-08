@@ -222,7 +222,16 @@ const ElixirMonarchLanguage = {
       [
         // Piping into a function (tokenized separately as it may not have parentheses)
         /(\|>)(\s*)(@variableName)/,
-        ["operator", "white", "function.call"],
+        [
+          "operator",
+          "white",
+          {
+            cases: {
+              "@otherKeywords": "keyword",
+              "@default": "function.call",
+            },
+          },
+        ],
       ],
       [
         // Function reference passed to another function
