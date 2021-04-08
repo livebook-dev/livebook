@@ -124,6 +124,10 @@
   @apply mb-0;
 }
 
+.markdown .katex-display {
+  @apply my-8;
+}
+
 /* Overrides for user-entered markdown */
 
 [data-element="cell"] .markdown h1,

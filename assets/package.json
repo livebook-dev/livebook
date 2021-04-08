@@ -15,6 +15,7 @@
     "@fontsource/jetbrains-mono": "^4.2.2",
     "dompurify": "^2.2.6",
     "hyperlist": "^1.0.0",
+    "katex": "^0.13.2",
     "marked": "^1.2.8",
     "monaco-editor": "^0.23.0",
     "morphdom": "^2.6.1",

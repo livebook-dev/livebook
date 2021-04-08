@@ -1,6 +1,7 @@
 import marked from "marked";
 import morphdom from "morphdom";
 import DOMPurify from "dompurify";
+import katex from "katex";
 import monaco from "./live_editor/monaco";
 
 // Reuse Monaco highlighter for Markdown code blocks
@@ -51,7 +52,16 @@ class Markdown {
       // Marked requires a trailing slash in the base URL
       const opts = { baseUrl: this.baseUrl + "/" };
 
-      marked(this.content, opts, (error, html) => {
+      // Render math formulas using KaTeX.
+      // The resulting <span> tags will pass through
+      // marked.js and sanitization unchanged.
+      //
+      // We render math before anything else, because passing
+      // TeX through markdown renderer may have undesired
+      // effects like rendering \\ as \.
+      const contentWithRenderedMath = this.__renderMathInString(this.content);
+
+      marked(contentWithRenderedMath, opts, (error, html) => {
         const sanitizedHtml = DOMPurify.sanitize(html);
 
         if (sanitizedHtml) {
@@ -65,6 +75,22 @@ class Markdown {
         }
       });
     });
+  }
+
+  // Replaces TeX formulas in string with rendered HTML using KaTeX.
+  __renderMathInString(string) {
+    const options = {
+      throwOnError: false,
+      errorColor: "inherit",
+    };
+
+    return string
+      .replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => {
+        return katex.renderToString(math, { ...options, displayMode: true });
+      })
+      .replace(/\$([\s\S]*?)\$/g, (match, math) => {
+        return katex.renderToString(math, options);
+      });
   }
 }
 

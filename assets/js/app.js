@@ -1,5 +1,6 @@
 import "../css/app.css";
 import "remixicon/fonts/remixicon.css";
+import "katex/dist/katex.min.css";
 
 import "@fontsource/inter";
 import "@fontsource/inter/500.css";
