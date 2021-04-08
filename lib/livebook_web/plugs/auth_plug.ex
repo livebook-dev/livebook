@@ -30,31 +30,22 @@ defmodule LivebookWeb.AuthPlug do
 
     conn = fetch_cookies(conn, signed: [token_cookie])
 
-    cond do
-      provided_token = Map.get(conn.query_params, "token") ->
-        if provided_token == token do
-          conn
-          |> put_resp_cookie(token_cookie, provided_token, @cookie_opts)
-          # Redirect to the same path without query params
-          |> redirect(to: conn.request_path)
-          |> halt()
-        else
-          reject_token!()
-        end
+    param_token = Map.get(conn.query_params, "token")
+    cookie_token = conn.cookies[token_cookie]
 
-      provided_token = conn.cookies[token_cookie] ->
-        if provided_token == token do
-          conn
-        else
-          reject_token!()
-        end
+    cond do
+      is_binary(param_token) and Plug.Crypto.secure_compare(param_token, token) ->
+        conn
+        |> put_resp_cookie(token_cookie, param_token, @cookie_opts)
+        # Redirect to the same path without query params
+        |> redirect(to: conn.request_path)
+        |> halt()
+
+      is_binary(cookie_token) and Plug.Crypto.secure_compare(cookie_token, token) ->
+        conn
 
       true ->
-        reject_token!()
+        raise LivebookWeb.InvalidTokenError
     end
-  end
-
-  defp reject_token!() do
-    raise LivebookWeb.InvalidTokenError
   end
 end
