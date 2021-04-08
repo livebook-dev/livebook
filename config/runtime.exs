@@ -1,19 +1,14 @@
 import Config
 
-if config_env() == :prod do
-  # secret_key_base =
-  #   System.get_env("SECRET_KEY_BASE") ||
-  #     raise """
-  #     environment variable SECRET_KEY_BASE is missing.
-  #     You can generate one by calling: mix phx.gen.secret
-  #     """
+# Configure the type of names used for distribution and the node name.
+# By default a random short name is used.
+# config :livebook, :node, {:shortnames, "livebook"}
+# config :livebook, :node, {:longnames, "livebook@127.0.0.1"}
 
-  # config :livebook, LivebookWeb.Endpoint,
-  #   http: [
-  #     # Enable IPv6 and bind on all interfaces.
-  #     # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-  #     ip: {0, 0, 0, 0, 0, 0, 0, 0},
-  #     port: String.to_integer(System.get_env("PORT") || "4000")
-  #   ],
-  #   secret_key_base: secret_key_base
+if config_env() == :prod do
+  # We don't need persistent session, so it's fine to just
+  # generate a new key everytime the app starts
+  secret_key_base = :crypto.strong_rand_bytes(48) |> Base.encode64()
+
+  config :livebook, LivebookWeb.Endpoint, secret_key_base: secret_key_base
 end

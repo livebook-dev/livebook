@@ -1,62 +1,70 @@
 defmodule LivebookCLI do
   @moduledoc false
 
+  def usage() do
+    """
+    Usage: livebook [command] [options]
+
+    Available commands:
+
+      livebook server    Starts the Livebook web application
+
+    The --help and --version options can be given instead of a command for usage and versioning information.
+    """
+  end
+
   def main(args) do
     {:ok, _} = Application.ensure_all_started(:elixir)
     :ok = Application.load(:livebook)
 
-    case check_for_shortcuts(args) do
-      :help ->
-        IO.puts("Livebook is an interactive notebook system for Elixir\n")
-        display_usage()
+    if unix?() do
+      Application.put_env(:elixir, :ansi_enabled, true)
+    end
 
-      :version ->
-        display_version()
+    call(args)
+  end
 
+  defp unix?(), do: match?({:unix, _}, :os.type())
+
+  defp call([arg]) when arg in ["--help", "-h"], do: display_help()
+  defp call([arg]) when arg in ["--version", "-v"], do: display_version()
+
+  defp call([task_name | args]) do
+    case find_task(task_name) do
       nil ->
-        proceed(args)
+        IO.ANSI.format([:red, "Unknown command #{task_name}\n"]) |> IO.puts()
+        IO.write(usage())
+
+      task ->
+        call_task(task, args)
     end
   end
 
-  defp proceed(args) do
-    case args do
-      ["server" | _args] ->
-        start_server()
+  defp call(_args), do: IO.write(usage())
 
-        IO.puts("Livebook running at #{LivebookWeb.Endpoint.url()}")
+  defp find_task("server"), do: LivebookCLI.Server
+  defp find_task(_), do: nil
 
-        Process.sleep(:infinity)
+  defp call_task(task, [arg]) when arg in ["--help", "-h"] do
+    IO.write(task.usage())
+  end
 
-      _ ->
-        display_usage()
+  defp call_task(task, args) do
+    try do
+      task.call(args)
+    rescue
+      error ->
+        IO.ANSI.format([:red, Exception.message(error), "\n"]) |> IO.puts()
+        IO.write(task.usage())
     end
   end
 
-  defp start_server() do
-    Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
-    {:ok, _} = Application.ensure_all_started(:livebook)
+  defp display_help() do
+    IO.puts("Livebook is an interactive notebook system for Elixir\n")
+    IO.write(usage())
   end
 
-  # Check for --help or --version in the args
-  defp check_for_shortcuts([arg]) when arg in ["--help", "-h"], do: :help
-
-  defp check_for_shortcuts([arg]) when arg in ["--version", "-v"], do: :version
-
-  defp check_for_shortcuts(_), do: nil
-
-  defp display_usage() do
-    IO.write("""
-    Usage: livebook [command]
-
-    Available commands:
-
-      livebook server - Starts the Livebook web application
-
-    The --help and --version options can be given instead of a command for usage and versioning information.
-    """)
-  end
-
-  defp display_version do
+  defp display_version() do
     IO.puts(:erlang.system_info(:system_version))
     IO.puts("Elixir " <> System.build_info()[:build])
 

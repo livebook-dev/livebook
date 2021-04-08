@@ -9,6 +9,4 @@ config :livebook, LivebookWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
-# Use a different node name for tests to avoid interfering
-# with a running development node.
-config :livebook, :node_name, {:shortnames, :livebook_test}
+config :livebook, :token_authentication, false

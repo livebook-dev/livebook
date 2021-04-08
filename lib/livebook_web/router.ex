@@ -8,10 +8,7 @@ defmodule LivebookWeb.Router do
     plug :put_root_layout, {LivebookWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-  end
-
-  pipeline :api do
-    plug :accepts, ["json"]
+    plug LivebookWeb.AuthPlug
   end
 
   scope "/", LivebookWeb do
