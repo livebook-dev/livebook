@@ -164,6 +164,16 @@ defmodule Livebook.Notebook.Welcome do
   per runtime, so if you need to modify the dependencies, you should
   go to the notebook runtime configuration and **reconnect** the current runtime.
 
+  ## Math
+
+  Livebook supports both inline formulas like $e^{\\pi i} + 1 = 0$, as well as block formulas:
+
+  $$
+  S(x) = \\frac{1}{1 + e^{-x}} = \\frac{e^{x}}{e^{x} + 1}
+  $$
+
+  You can explore all supported expressions [here](https://katex.org/docs/supported.html).
+
   ## Stepping up your workflow
 
   Once you start using notebooks more, it's gonna be beneficial

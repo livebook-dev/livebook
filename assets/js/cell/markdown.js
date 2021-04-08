@@ -52,12 +52,12 @@ class Markdown {
       // Marked requires a trailing slash in the base URL
       const opts = { baseUrl: this.baseUrl + "/" };
 
-      // Render LaTeX equations using KaTeX.
+      // Render math formulas using KaTeX.
       // The resulting <span> tags will pass through
       // marked.js and sanitization unchanged.
       //
       // We render math before anything else, because passing
-      // LaTeX through markdown renderer may have undesired
+      // TeX through markdown renderer may have undesired
       // effects like rendering \\ as \.
       const contentWithRenderedMath = this.__renderMathInString(this.content);
 
@@ -77,7 +77,7 @@ class Markdown {
     });
   }
 
-  // Replaces LaTeX equations in string with rendered HTML using KaTeX.
+  // Replaces TeX formulas in string with rendered HTML using KaTeX.
   __renderMathInString(string) {
     const options = {
       throwOnError: false,
