@@ -27,7 +27,7 @@ defmodule Livebook.Notebook.Welcome do
   ```elixir
   # This is an Elixir cell - as the name suggests that's where the code goes.
   # To evaluate this cell, you can either press the "Evaluate" button above
-  # or use `Ctrl + Enter`!
+  # or use `Ctrl + Enter` (or Cmd + Enter on a Mac)!
 
   message = "hey, grab yourself a cup of 🍵"
   ```
@@ -139,9 +139,9 @@ defmodule Livebook.Notebook.Welcome do
   modules available as well.
 
   But there are cases when you just want to play around with a new package
-  or quickly prototype some code that relies on such. Fortunately, starting
-  version `v1.12` Elixir ships with `Mix.install/2` that allows for installing
-  dependencies into Elixir runtime! This approach is especially useful when sharing notebooks,
+  or quickly prototype some code that relies on such. Fortunately, Elixir v1.12+ ships with
+  [`Mix.install/2`](https://hexdocs.pm/mix/1.12/Mix.html#install/2) that allows you to install
+  dependencies into your Elixir runtime! This approach is especially useful when sharing notebooks
   because everyone will be able to get the same dependencies. Let's try this out:
 
   ```elixir
