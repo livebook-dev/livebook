@@ -32,6 +32,14 @@ function closingEndTextEdits(model, position) {
     const shouldInsertInNextLine =
       position.lineNumber < lines.length && isBlank(line);
 
+    // If the next line is not available for inserting,
+    // we could insert `\nend` but this moves the cursor,
+    // so for now we just don't insert `end` at all
+    // For more context see https://github.com/elixir-nx/livebook/issues/152
+    if (!shouldInsertInNextLine) {
+      return [];
+    }
+
     const textEdit = insertClosingEndTextEdit(
       position,
       prevIndentation,
