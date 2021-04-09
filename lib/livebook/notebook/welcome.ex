@@ -166,9 +166,9 @@ defmodule Livebook.Notebook.Welcome do
 
   ## Running tests
 
-  It is also possible to run tests directly from your notebooks.
-  The key is to disable `ExUnit`'s autorun feature and explicitly
-  run the tests after all test cases have been defined:
+  If you are using Elixir v1.12, it is also possible to run tests directly
+  from your notebooks. The key is to disable `ExUnit`'s autorun feature and
+  then explicitly run the test suite after all test cases have been defined:
 
   ```elixir
   ExUnit.start(autorun: false)
