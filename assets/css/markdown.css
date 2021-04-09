@@ -103,10 +103,7 @@
 }
 
 .markdown code {
-  @apply py-1 px-2 rounded-lg text-sm align-middle font-mono;
-  /* Match the editor colors */
-  background-color: #282c34;
-  color: #abb2bf;
+  @apply py-[0.2rem] px-2 rounded-lg text-sm align-middle font-mono bg-gray-200;
 }
 
 .markdown pre > code {
