@@ -169,7 +169,7 @@ defmodule Livebook.Evaluator.IOProxy do
           Process.send_after(self(), :flush, 50)
         end
 
-        {:ok, update_in(state.buffer, &[string | &1])}
+        {:ok, update_in(state.buffer, &buffer_append(&1, string))}
 
       {_, _, _} ->
         {{:error, req}, state}
@@ -183,7 +183,7 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   def flush_buffer(state) do
-    string = state.buffer |> Enum.reverse() |> Enum.join() |> apply_rewind()
+    string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.target != nil and string != "" do
       send(state.target, {:evaluation_stdout, state.ref, string})
@@ -192,14 +192,25 @@ defmodule Livebook.Evaluator.IOProxy do
     %{state | buffer: []}
   end
 
-  # Respect \r indicating a line should be cleared,
-  # so we ignore unnecessary text fragments
-  defp apply_rewind(text) do
-    text
-    |> String.split("\n")
-    |> Enum.map(fn line ->
-      String.replace(line, ~r/^.*(\r[^\r].*)$/, "\\1")
-    end)
-    |> Enum.join("\n")
+  defp buffer_append(buffer, text) do
+    # Sometimes there are intensive outputs that use \r
+    # to dynamically refresh the printd text.
+    # Since we buffer the messages anyway, it makes
+    # sense to send only the latest of these outputs.
+    # Note that \r works per-line, so if there are newlines
+    # we keep the buffer, but for \r-intensive operations
+    # there are usually no newlines involved, so this optimisation works fine.
+    if has_rewind?(text) and not has_newline?(text) and not Enum.any?(buffer, &has_newline?/1) do
+      [text]
+    else
+      [text | buffer]
+    end
   end
+
+  # Checks for [\r][not \r] sequence in the given string.
+  defp has_rewind?(<<>>), do: false
+  defp has_rewind?(<<?\r, next, _rest::binary>>) when next != ?\r, do: true
+  defp has_rewind?(<<_head, rest::binary>>), do: has_rewind?(rest)
+
+  defp has_newline?(text), do: String.contains?(text, "\n")
 end
