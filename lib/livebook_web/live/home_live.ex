@@ -43,7 +43,8 @@ defmodule LivebookWeb.HomeLive do
               path: @path,
               extnames: [LiveMarkdown.extension()],
               running_paths: paths(@session_summaries),
-              target: nil do %>
+              phx_target: nil,
+              phx_submit: nil do %>
               <div class="flex justify-end space-x-2">
                 <%= content_tag :button,
                   class: "button button-outlined-gray",

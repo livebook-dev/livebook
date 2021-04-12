@@ -38,12 +38,13 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
             path: @path,
             extnames: [],
             running_paths: [],
-            target: nil %>
+            phx_target: nil,
+            phx_submit: if(disabled?(@path), do: nil, else: "init") %>
         </div>
         <%= content_tag :button, if(matching_runtime?(@current_runtime, @path), do: "Reconnect", else: "Connect"),
           class: "button button-blue",
           phx_click: "init",
-          disabled: not mix_project_root?(@path) %>
+          disabled: disabled?(@path) %>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
@@ -57,12 +58,6 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
     </div>
     """
   end
-
-  defp matching_runtime?(%Runtime.MixStandalone{} = runtime, path) do
-    Path.expand(runtime.project_path) == Path.expand(path)
-  end
-
-  defp matching_runtime?(_runtime, _path), do: false
 
   @impl true
   def handle_event("set_path", %{"path" => path}, socket) do
@@ -108,5 +103,15 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   defp mix_project_root?(path) do
     File.dir?(path) and File.exists?(Path.join(path, "mix.exs"))
+  end
+
+  defp matching_runtime?(%Runtime.MixStandalone{} = runtime, path) do
+    Path.expand(runtime.project_path) == Path.expand(path)
+  end
+
+  defp matching_runtime?(_runtime, _path), do: false
+
+  defp disabled?(path) do
+    not mix_project_root?(path)
   end
 end

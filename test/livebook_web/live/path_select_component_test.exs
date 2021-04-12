@@ -29,7 +29,14 @@ defmodule LivebookWeb.PathSelectComponentTest do
 
   defp attrs(attrs) do
     Keyword.merge(
-      [id: 1, path: "/", extnames: [".livemd"], running_paths: [], target: nil],
+      [
+        id: 1,
+        path: "/",
+        extnames: [".livemd"],
+        running_paths: [],
+        phx_target: nil,
+        phx_submit: nil
+      ],
       attrs
     )
   end

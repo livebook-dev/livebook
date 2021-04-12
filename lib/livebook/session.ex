@@ -243,6 +243,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Synchronous version of `save/1`.
+  """
+  @spec save_sync(id()) :: :ok
+  def save_sync(session_id) do
+    GenServer.call(name(session_id), :save)
+  end
+
+  @doc """
   Asynchronously sends a close request to the server.
 
   This results in saving the file and broadcasting
@@ -314,6 +322,10 @@ defmodule Livebook.Session do
 
   def handle_call(:get_summary, _from, state) do
     {:reply, summary_from_state(state), state}
+  end
+
+  def handle_call(:save, _from, state) do
+    {:reply, :ok, maybe_save_notebook(state)}
   end
 
   @impl true
