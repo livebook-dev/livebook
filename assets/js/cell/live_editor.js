@@ -72,7 +72,7 @@ class LiveEditor {
       value: this.source,
       scrollbar: {
         vertical: "hidden",
-        handleMouseWheel: false,
+        alwaysConsumeMouseWheel: false,
       },
       minimap: {
         enabled: false,
