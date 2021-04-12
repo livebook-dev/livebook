@@ -19,13 +19,13 @@ defmodule Livebook.SessionSupervisorTest do
     end
   end
 
-  describe "delete_session/1" do
+  describe "close_session/1" do
     test "stops the session process identified by the given id" do
       {:ok, id} = SessionSupervisor.create_session()
       {:ok, pid} = SessionSupervisor.get_session_pid(id)
       ref = Process.monitor(pid)
 
-      SessionSupervisor.delete_session(id)
+      SessionSupervisor.close_session(id)
 
       assert_receive {:DOWN, ^ref, :process, _, _}
       refute has_child_with_pid?(SessionSupervisor, pid)
@@ -35,9 +35,9 @@ defmodule Livebook.SessionSupervisorTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
       {:ok, id} = SessionSupervisor.create_session()
 
-      SessionSupervisor.delete_session(id)
+      SessionSupervisor.close_session(id)
 
-      assert_receive {:session_deleted, ^id}
+      assert_receive {:session_closed, ^id}
     end
   end
 

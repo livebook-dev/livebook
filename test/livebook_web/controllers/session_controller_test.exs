@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionControllerTest do
       assert conn.status == 404
       assert conn.resp_body == "Not found"
 
-      SessionSupervisor.delete_session(session_id)
+      SessionSupervisor.close_session(session_id)
     end
 
     test "returns the image when it does exist", %{conn: conn} do
@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionControllerTest do
       assert conn.status == 200
       assert get_resp_header(conn, "content-type") == ["image/jpeg"]
 
-      SessionSupervisor.delete_session(session_id)
+      SessionSupervisor.close_session(session_id)
     end
   end
 end
