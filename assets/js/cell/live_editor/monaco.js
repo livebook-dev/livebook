@@ -69,7 +69,7 @@ monaco.editor.defineTheme("custom", {
 document.fonts.addEventListener("loadingdone", (event) => {
   const jetBrainsMonoLoaded = event.fontfaces.some(
     // font-family may be either "JetBrains Mono" or "\"JetBrains Mono\""
-    (fontFace) => fontFace.family.indexOf("JetBrains Mono") !== -1
+    (fontFace) => fontFace.family.includes("JetBrains Mono")
   );
 
   if (jetBrainsMonoLoaded) {
