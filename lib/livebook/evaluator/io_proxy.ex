@@ -82,15 +82,6 @@ defmodule Livebook.Evaluator.IOProxy do
     {:noreply, flush_buffer(state)}
   end
 
-  def flush_buffer(state) do
-    if state.target != nil and state.buffer != [] do
-      string = state.buffer |> Enum.reverse() |> Enum.join()
-      send(state.target, {:evaluation_stdout, state.ref, string})
-    end
-
-    %{state | buffer: []}
-  end
-
   defp io_request({:put_chars, chars} = req, state) do
     put_chars(:latin1, chars, req, state)
   end
@@ -189,5 +180,38 @@ defmodule Livebook.Evaluator.IOProxy do
 
   defp io_reply(from, reply_as, reply) do
     send(from, {:io_reply, reply_as, reply})
+  end
+
+  def flush_buffer(state) do
+    string = state.buffer |> Enum.reverse() |> Enum.join() |> normalize_output()
+
+    if state.target != nil and string != "" do
+      send(state.target, {:evaluation_stdout, state.ref, string})
+    end
+
+    %{state | buffer: []}
+  end
+
+  defp normalize_output(string) do
+    string
+    |> String.split("\n")
+    |> Enum.map(&apply_rewind/1)
+    |> Enum.join("\n")
+  end
+
+  # Respect \r indicating the line should be cleared,
+  # so we ignore the unnecessary text
+  defp apply_rewind(line) do
+    case String.split(line, "\r") do
+      [line] ->
+        line
+
+      lines ->
+        lines
+        |> Enum.reverse()
+        |> Enum.find_value("", fn string ->
+          string != "" && "\r" <> string
+        end)
+    end
   end
 end
