@@ -42,8 +42,8 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
   test "respects CR as line cleaner", %{io: io} do
     IO.write(io, "hey")
-    IO.write(io, "\roverride")
-    assert_receive {:evaluation_stdout, :ref, "\roverride"}
+    IO.write(io, "\roverride\r")
+    assert_receive {:evaluation_stdout, :ref, "\roverride\r"}
   end
 
   test "flush/1 synchronously sends buffer contents", %{io: io} do

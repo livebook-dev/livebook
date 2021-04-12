@@ -183,7 +183,7 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   def flush_buffer(state) do
-    string = state.buffer |> Enum.reverse() |> Enum.join() |> normalize_output()
+    string = state.buffer |> Enum.reverse() |> Enum.join() |> apply_rewind()
 
     if state.target != nil and string != "" do
       send(state.target, {:evaluation_stdout, state.ref, string})
@@ -192,26 +192,14 @@ defmodule Livebook.Evaluator.IOProxy do
     %{state | buffer: []}
   end
 
-  defp normalize_output(string) do
-    string
+  # Respect \r indicating a line should be cleared,
+  # so we ignore unnecessary text fragments
+  defp apply_rewind(text) do
+    text
     |> String.split("\n")
-    |> Enum.map(&apply_rewind/1)
+    |> Enum.map(fn line ->
+      String.replace(line, ~r/^.*(\r[^\r].*)$/, "\\1")
+    end)
     |> Enum.join("\n")
-  end
-
-  # Respect \r indicating the line should be cleared,
-  # so we ignore the unnecessary text
-  defp apply_rewind(line) do
-    case String.split(line, "\r") do
-      [line] ->
-        line
-
-      lines ->
-        lines
-        |> Enum.reverse()
-        |> Enum.find_value("", fn string ->
-          string != "" && "\r" <> string
-        end)
-    end
   end
 end

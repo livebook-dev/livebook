@@ -606,7 +606,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_stdout, self(), "c1", "Hello"}
+          {:add_cell_evaluation_stdout, self(), "c1", "Hola"}
         ])
 
       operation = {:add_cell_evaluation_stdout, self(), "c1", " amigo!"}
@@ -616,7 +616,30 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hello amigo!"]}]
+                      cells: [%{outputs: ["Hola amigo!"]}]
+                    }
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "normalizes consecutive stdout results to respect CR" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_stdout, self(), "c1", "Hola"}
+        ])
+
+      operation = {:add_cell_evaluation_stdout, self(), "c1", "\ramigo!\r"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{outputs: ["amigo!\r"]}]
                     }
                   ]
                 }
