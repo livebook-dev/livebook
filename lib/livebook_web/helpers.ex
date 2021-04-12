@@ -60,7 +60,6 @@ defmodule LivebookWeb.Helpers do
         content
         |> IO.iodata_to_binary()
         |> String.split("\n")
-        |> Enum.map(&apply_rewind/1)
         |> Enum.map(&LivebookWeb.ANSI.default_renderer(style, &1))
         |> Enum.intersperse("\n")
       end
@@ -68,13 +67,5 @@ defmodule LivebookWeb.Helpers do
     |> Phoenix.HTML.safe_to_string()
     |> String.split("\n")
     |> Enum.map(&Phoenix.HTML.raw/1)
-  end
-
-  # Respect \r indicating the line should be cleared
-  defp apply_rewind(line) do
-    line
-    |> String.split("\r")
-    |> Enum.reverse()
-    |> Enum.find("", &(&1 != ""))
   end
 end

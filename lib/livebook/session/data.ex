@@ -512,10 +512,21 @@ defmodule Livebook.Session.Data do
 
   defp add_output([head | tail], output) when is_binary(head) and is_binary(output) do
     # Merge consecutive string outputs
-    [head <> output | tail]
+    [apply_rewind(head <> output) | tail]
   end
 
   defp add_output(outputs, output), do: [output | outputs]
+
+  # Respect \r indicating a line should be cleared,
+  # so we ignore unnecessary text fragments
+  defp apply_rewind(text) do
+    text
+    |> String.split("\n")
+    |> Enum.map(fn line ->
+      String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
+    end)
+    |> Enum.join("\n")
+  end
 
   defp finish_cell_evaluation(data_actions, cell, section) do
     data_actions

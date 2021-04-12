@@ -46,11 +46,19 @@ defmodule Livebook.Evaluator.IOProxy do
     GenServer.cast(pid, {:configure, target, ref})
   end
 
+  @doc """
+  Synchronously sends all buffer contents to the configured target process.
+  """
+  @spec flush(pid()) :: :ok
+  def flush(pid) do
+    GenServer.call(pid, :flush)
+  end
+
   ## Callbacks
 
   @impl true
   def init(_opts) do
-    {:ok, %{encoding: :unicode, target: nil, ref: nil}}
+    {:ok, %{encoding: :unicode, target: nil, ref: nil, buffer: []}}
   end
 
   @impl true
@@ -59,10 +67,19 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   @impl true
+  def handle_call(:flush, _from, state) do
+    {:reply, :ok, flush_buffer(state)}
+  end
+
+  @impl true
   def handle_info({:io_request, from, reply_as, req}, state) do
     {reply, state} = io_request(req, state)
     io_reply(from, reply_as, reply)
     {:noreply, state}
+  end
+
+  def handle_info(:flush, state) do
+    {:noreply, flush_buffer(state)}
   end
 
   defp io_request({:put_chars, chars} = req, state) do
@@ -148,11 +165,11 @@ defmodule Livebook.Evaluator.IOProxy do
   defp put_chars(encoding, chars, req, state) do
     case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
-        if state.target do
-          send(state.target, {:evaluation_stdout, state.ref, string})
+        if state.buffer == [] do
+          Process.send_after(self(), :flush, 50)
         end
 
-        {:ok, state}
+        {:ok, update_in(state.buffer, &buffer_append(&1, string))}
 
       {_, _, _} ->
         {{:error, req}, state}
@@ -164,4 +181,36 @@ defmodule Livebook.Evaluator.IOProxy do
   defp io_reply(from, reply_as, reply) do
     send(from, {:io_reply, reply_as, reply})
   end
+
+  def flush_buffer(state) do
+    string = state.buffer |> Enum.reverse() |> Enum.join()
+
+    if state.target != nil and string != "" do
+      send(state.target, {:evaluation_stdout, state.ref, string})
+    end
+
+    %{state | buffer: []}
+  end
+
+  defp buffer_append(buffer, text) do
+    # Sometimes there are intensive outputs that use \r
+    # to dynamically refresh the printd text.
+    # Since we buffer the messages anyway, it makes
+    # sense to send only the latest of these outputs.
+    # Note that \r works per-line, so if there are newlines
+    # we keep the buffer, but for \r-intensive operations
+    # there are usually no newlines involved, so this optimisation works fine.
+    if has_rewind?(text) and not has_newline?(text) and not Enum.any?(buffer, &has_newline?/1) do
+      [text]
+    else
+      [text | buffer]
+    end
+  end
+
+  # Checks for [\r][not \r] sequence in the given string.
+  defp has_rewind?(<<>>), do: false
+  defp has_rewind?(<<?\r, next, _rest::binary>>) when next != ?\r, do: true
+  defp has_rewind?(<<_head, rest::binary>>), do: has_rewind?(rest)
+
+  defp has_newline?(text), do: String.contains?(text, "\n")
 end
