@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   def handle_event("set_persistence_type", %{"type" => type}, socket) do
     path =
       case type do
-        "file" -> default_path()
+        "file" -> socket.assigns.current_path || default_path()
         "memory" -> nil
       end
 
@@ -75,6 +75,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   def handle_event("save", %{}, socket) do
     path = normalize_path(socket.assigns.path)
     Session.set_path(socket.assigns.session_id, path)
+    Session.save_sync(socket.assigns.session_id)
 
     running_paths =
       if path do
