@@ -96,7 +96,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, id} = SessionSupervisor.create_session()
       assert render(view) =~ id
 
-      SessionSupervisor.delete_session(id)
+      SessionSupervisor.close_session(id)
       refute render(view) =~ id
     end
 
@@ -117,7 +117,7 @@ defmodule LivebookWeb.HomeLiveTest do
       assert render(view) =~ "My notebook - fork"
     end
 
-    test "allows deleting session after confirmation", %{conn: conn} do
+    test "allows closing session after confirmation", %{conn: conn} do
       {:ok, id} = SessionSupervisor.create_session()
 
       {:ok, view, _} = live(conn, "/")
@@ -125,11 +125,11 @@ defmodule LivebookWeb.HomeLiveTest do
       assert render(view) =~ id
 
       view
-      |> element(~s{[data-test-session-id="#{id}"] a}, "Delete")
+      |> element(~s{[data-test-session-id="#{id}"] a}, "Close")
       |> render_click()
 
       view
-      |> element(~s{button}, "Delete session")
+      |> element(~s{button}, "Close session")
       |> render_click()
 
       refute render(view) =~ id

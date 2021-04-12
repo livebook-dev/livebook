@@ -26,10 +26,10 @@ defmodule LivebookWeb.SessionLive.SessionsComponent do
                 <%= remix_icon("git-branch-line") %>
                 <span class="font-medium">Fork</span>
               </button>
-              <%= live_patch to: Routes.home_path(@socket, :delete_session, summary.session_id),
+              <%= live_patch to: Routes.home_path(@socket, :close_session, summary.session_id),
                     class: "flex space-x-3 px-5 py-2 items-center text-red-600 hover:bg-gray-50" do %>
-                <%= remix_icon("delete-bin-6-line") %>
-                <span class="font-medium">Delete</span>
+                <%= remix_icon("close-circle-line") %>
+                <span class="font-medium">Close</span>
               <% end %>
             </div>
           </div>

@@ -90,9 +90,9 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </div>
 
-    <%= if @live_action == :delete_session do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.DeleteSessionComponent,
-            id: :delete_session_modal,
+    <%= if @live_action == :close_session do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.CloseSessionComponent,
+            id: :close_session_modal,
             return_to: Routes.home_path(@socket, :page),
             session_summary: @session_summary %>
     <% end %>
@@ -148,7 +148,7 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session_summaries: session_summaries)}
   end
 
-  def handle_info({:session_deleted, id}, socket) do
+  def handle_info({:session_closed, id}, socket) do
     session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
     {:noreply, assign(socket, session_summaries: session_summaries)}
   end

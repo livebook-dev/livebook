@@ -52,12 +52,12 @@ defmodule Livebook.SessionSupervisor do
   @doc """
   Asynchronously stops a session process identified by the given id.
 
-  Broadcasts `{:session_delete, id}` message under the `"sessions"` topic.
+  Broadcasts `{:session_closed, id}` message under the `"sessions"` topic.
   """
-  @spec delete_session(Session.id()) :: :ok
-  def delete_session(id) do
+  @spec close_session(Session.id()) :: :ok
+  def close_session(id) do
     Session.close(id)
-    broadcast_sessions_message({:session_deleted, id})
+    broadcast_sessions_message({:session_closed, id})
     :ok
   end
 
