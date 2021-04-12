@@ -36,7 +36,8 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             path: @path,
             extnames: [LiveMarkdown.extension()],
             running_paths: @running_paths,
-            target: @myself %>
+            phx_target: @myself,
+            phx_submit: if(disabled?(@path, @current_path, @running_paths), do: nil, else: "save") %>
         </div>
       <% end %>
       <div class="flex flex-col space-y-2">
@@ -50,7 +51,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             class: "button button-blue mt-2",
             phx_click: "save",
             phx_target: @myself,
-            disabled: not path_savable?(normalize_path(@path), @running_paths) or normalize_path(@path) == @current_path %>
+            disabled: disabled?(@path, @current_path, @running_paths) %>
         </div>
       </div>
     </div>
@@ -109,5 +110,9 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     else
       path <> LiveMarkdown.extension()
     end
+  end
+
+  defp disabled?(path, current_path, running_paths) do
+    not path_savable?(normalize_path(path), running_paths) or normalize_path(path) == current_path
   end
 end

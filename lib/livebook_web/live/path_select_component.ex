@@ -5,8 +5,9 @@ defmodule LivebookWeb.PathSelectComponent do
   #
   # * `path` - the currently entered path
   # * `running_paths` - the list of notebook paths that are already linked to running sessions
-  # * `target` - id of the component to send update events to or nil to send to the parent LV
   # * `extnames` - a list of file extensions that should be shown
+  # * `phx_target` - id of the component to send update events to or nil to send to the parent LV
+  # * `phx_submit` - the event name sent on form submission, use `nil` for no action
   #
   # The target receives `set_path` events with `%{"path" => path}` payload.
   #
@@ -26,8 +27,12 @@ defmodule LivebookWeb.PathSelectComponent do
       <div class="flex space-x-5 items-center mb-4">
         <form class="flex-grow"
           phx-change="set_path"
-          phx-submit="set_path"
-          <%= if @target, do: "phx-target=#{@target}" %>>
+          <%= if @phx_submit do %>
+            phx-submit="<%= @phx_submit %>"
+          <% else %>
+            onsubmit="return false"
+          <% end %>
+          <%= if @phx_target, do: "phx-target=#{@phx_target}" %>>
           <input class="input"
             id="input-path"
             phx-hook="FocusOnUpdate"
@@ -47,7 +52,7 @@ defmodule LivebookWeb.PathSelectComponent do
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
         <div class="grid grid-cols-4 gap-2">
           <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
-            <%= render_file(file, @target) %>
+            <%= render_file(file, @phx_target) %>
           <% end %>
         </div>
       </div>
@@ -55,7 +60,7 @@ defmodule LivebookWeb.PathSelectComponent do
     """
   end
 
-  defp render_file(file, target) do
+  defp render_file(file, phx_target) do
     icon =
       case file do
         %{is_running: true} -> "play-circle-line"
@@ -69,7 +74,7 @@ defmodule LivebookWeb.PathSelectComponent do
     <button class="flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
       phx-click="set_path"
       phx-value-path="<%= @file.path %>"
-      <%= if target, do: "phx-target=#{target}" %>>
+      <%= if phx_target, do: "phx-target=#{phx_target}" %>>
       <span class="block">
         <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
       </span>
