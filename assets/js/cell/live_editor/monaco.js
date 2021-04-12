@@ -68,7 +68,8 @@ monaco.editor.defineTheme("custom", {
 // Without this selecting text with whitespace shrinks the whitespace.
 document.fonts.addEventListener("loadingdone", (event) => {
   const jetBrainsMonoLoaded = event.fontfaces.some(
-    (fontFace) => fontFace.family === "JetBrains Mono"
+    // font-family may be either "JetBrains Mono" or "\"JetBrains Mono\""
+    (fontFace) => fontFace.family.includes("JetBrains Mono")
   );
 
   if (jetBrainsMonoLoaded) {
