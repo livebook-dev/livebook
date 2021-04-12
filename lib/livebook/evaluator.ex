@@ -133,6 +133,8 @@ defmodule Livebook.Evaluator do
           {context, response}
       end
 
+    Evaluator.IOProxy.flush(state.io_proxy)
+
     send_evaluation_response(send_to, ref, response, state.formatter)
 
     new_state = put_in(state.contexts[ref], result_context)
