@@ -8,7 +8,7 @@ defmodule Livebook.Notebook.Welcome do
   you to build great stuff! 🚀
 
   Livebook is a tool for crafting **interactive** and **collaborative** code notebooks.
-  It is primarily meant as a tool rapid prototyping - think of it as an IEx session
+  It is primarily meant as a tool for rapid prototyping - think of it as an IEx session
   combined with your editor.
   You can also use it for authoring shareable articles that people can easily
   run and play around with.
@@ -32,7 +32,7 @@ defmodule Livebook.Notebook.Welcome do
   message = "hey, grab yourself a cup of 🍵"
   ```
 
-  Subsequent cells have access to the bindings you defined:
+  Subsequent cells have access to the bindings you've defined:
 
   ```elixir
   String.replace(message, "🍵", "☕")
@@ -65,7 +65,7 @@ defmodule Livebook.Notebook.Welcome do
   ## Notebook files
 
   By default notebooks are kept in memory, which is fine for interactive hacking,
-  but oftentimes you will want to save your work for later. Fortunately notebooks
+  but oftentimes you will want to save your work for later. Fortunately, notebooks
   can be persisted by clicking on the "Settings" icon in the sidebar
   and selecting the file location.
 
@@ -76,7 +76,7 @@ defmodule Livebook.Notebook.Welcome do
 
   ## Modules
 
-  As we already saw, Elixir cells can be used for working on tiny snippets,
+  As we have seen, Elixir cells can be used for working on tiny snippets,
   but you may as well define a module!
 
   ```elixir
@@ -124,7 +124,7 @@ defmodule Livebook.Notebook.Welcome do
   Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
   for evaluating your code.
 
-  By default a new Elixir node is started (similarly to starting `iex`),
+  By default, a new Elixir node is started (similarly to starting `iex`),
   but you can also choose to run inside a Mix project (as you would with `iex -S mix`)
   or even manually attach to an existing distributed node!
   You can configure the runtime by clicking the "Settings" icon on the sidebar.
