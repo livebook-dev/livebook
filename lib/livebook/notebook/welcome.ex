@@ -38,7 +38,7 @@ defmodule Livebook.Notebook.Welcome do
   String.replace(message, "🍵", "☕")
   ```
 
-  Note, however that bindings are not global, so each cell *sees* only stuff that goes
+  Note however that bindings are not global, so each cell *sees* only stuff that goes
   above itself. This approach helps to keep the notebook clean and predictable
   as you keep working on it!
 
