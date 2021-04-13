@@ -1,8 +1,8 @@
 <h1><img src="https://github.com/elixir-nx/livebook/raw/main/priv/static/logo-with-text.png" alt="Livebook" width="400"></h1>
 
-Livebook is a tool for crafting interactive and collaborative code notebooks. It features:
+Livebook is a web application for writing interactive and collaborative code notebooks. It features:
 
-  * An interactive web application built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view)
+  * A deployable web app built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view)
     where users can create, fork, and run multiple notebooks.
   
   * Each notebook is made of multiple sections: each section is made of Markdown and Elixir
