@@ -70,24 +70,18 @@ Copyright (C) 2021 Dashbit
 
 #### Rationale
 
-*Note: this section is not legal advice and does not give you any guarantees
-beyond those listed in the LICENSE file.*
-
-Dashbit has released many open source projects throughout the years under
-the Apache 2 License. However, for Livebook, we choose to use AGPL v3.
-The reason for this choice is because Livebook is an *application* and not
-a library. Other projects that use AGPL are [RStudio](https://www.rstudio.com/)
-and [ScyllaDB](https://www.scylladb.com/).
+*Note: this section explains our rationale behind choosing AGPL v3 and
+does not give you any rights beyond those listed in the LICENSE file.*
 
 Livebook's LICENSE does not impact your own notebooks. All of the notebooks
 you write belong to you and under the license of your choice (if any).
 However, if you make changes to Livebook source code, your modifications
-have to be available for those using your version of Livebook. For example,
+have to be available to those using your version of Livebook. For example,
 if you change Livebook to run it exclusively inside your own company,
 your changes only have to be available within the company itself. However,
-if you modify Livebook in order to build your own software package or your
-own service, then you must link back to Livebook and distribute the modified
-source code under the same license as Livebook.
+if you modify Livebook in order to build your own service or your own copy
+of it, then you must link back to Livebook and make the modified source
+code available to the community using the same license as Livebook.
 
 At the end of the day, it is not different from using a database that is AGPL
 licensed: your data, the queries you write, and the applications that talk to
@@ -95,7 +89,16 @@ the DB are all distinct and separate from the database itself. However, if you
 want to add new functionality to the database and charge a fee for others to
 use it, then you need to make your derived source code public too.
 
-Here is further reading for those interested:
+Dashbit has released many open source projects throughout the years under the
+Apache 2 License. However, for Livebook, we chose to use AGPL v3 since Livebook
+is an *application* and not a library. This means developers will be running
+it directly instead of bringing it as a dependency into their own projects and
+we would like improvements done directly to the application to be available
+to the Livebook community at large, whenever possible, as Livebook itself is.
+Other projects that use AGPL are [RStudio](https://www.rstudio.com/) and
+[ScyllaDB](https://www.scylladb.com/).
+
+Further reading for those interested:
 
   * [GNU Affero General Public License](http://www.gnu.org/licenses/agpl-3.0.html)
   * [Understanding the AGPL: The Most Misunderstood License](https://medium.com/swlh/understanding-the-agpl-the-most-misunderstood-license-86fd1fe91275)
