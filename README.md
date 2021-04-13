@@ -6,7 +6,7 @@ Livebook is a web application for writing interactive and collaborative code not
     where users can create, fork, and run multiple notebooks.
   
   * Each notebook is made of multiple sections: each section is made of Markdown and Elixir
-    cells. Code in Elixir cells can be evaluated on demand. Mathemtical formulas are also
+    cells. Code in Elixir cells can be evaluated on demand. Mathematical formulas are also
     supported via [KaTeX](https://katex.org/).
 
   * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a
@@ -15,7 +15,7 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Sequential evaluation: code cells run in a specific order, guaranteeing future users of
     the same Livebook see the same output. If you re-execute a previous cell, following cells
-    are marked as stale to make it clear they depend on outdated notebok state.
+    are marked as stale to make it clear they depend on outdated notebook state.
 
   * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir process,
     connect to an existing node, or run it inside an existing Elixir project, with access to
