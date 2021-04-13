@@ -48,6 +48,10 @@ For now, the best way to run Livebook is by cloning it and running it locally:
 
 You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
 
+Keep in mind that Livebook is built to document and execute code. Anyone with
+access to a Livebook instance will be able to access any file and execute any
+code in the machine Livebook is running.
+
 We will work on other distribution modes (escripts, Docker images, etc) once
 we start distributing official releases.
 
@@ -76,12 +80,13 @@ does not give you any rights beyond those listed in the LICENSE file.*
 Livebook's LICENSE does not impact your own notebooks. All of the notebooks
 you write belong to you and under the license of your choice (if any).
 However, if you make changes to Livebook source code, your modifications
-have to be available to those using your version of Livebook. For example,
+must be available to those using your version of Livebook. For example,
 if you change Livebook to run it exclusively inside your own company,
 your changes only have to be available within the company itself. However,
-if you modify Livebook in order to build your own service or your own copy
-of it, then you must link back to Livebook and make the modified source
-code available to the community using the same license as Livebook.
+if you modify Livebook in order to build your own service with users from
+different locations and from multiple companies, then you must link back to
+Livebook and make the modified source code available using the same license
+as Livebook.
 
 At the end of the day, it is not different from using a database that is AGPL
 licensed: your data, the queries you write, and the applications that talk to
