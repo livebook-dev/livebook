@@ -34,8 +34,9 @@ Otherwise, here is a peek at the "Welcome to Livebook" introductory notebook:
 
 ![Screenshot](https://user-images.githubusercontent.com/9582/113567534-166f4980-960f-11eb-98df-c0b8b81f8a27.png)
 
-The current version provides only the initial step of our Livebook vision. Our plan is to
-continue focusing on visual, collaborative, and interactive features in the upcoming releases.
+The current version provides only the initial step of our Livebook vision. Our plan
+is to continue focusing on visual, collaborative, and interactive features in the
+upcoming releases.
 
 ## Usage
 
@@ -48,12 +49,20 @@ For now, the best way to run Livebook is by cloning it and running it locally:
 
 You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
 
-Keep in mind that Livebook is built to document and execute code. Anyone with
-access to a Livebook instance will be able to access any file and execute any
-code in the machine Livebook is running.
-
 We will work on other distribution modes (escripts, Docker images, etc) once
 we start distributing official releases.
+
+## Security considerations
+
+Livebook is built to document and execute code. Anyone with access to a
+Livebook instance will be able to access any file and execute any code
+in the machine Livebook is running.
+
+For this reason, `Livebook` only binds to the 127.0.0.1, allowing access
+to happen only within the current machine. When running `Livebook` in the
+production environment - the recommended environment - we also generate a
+token on initialization and we only allow access to the Livebook if said
+token is supplied as part of the URL.
 
 ## License
 
