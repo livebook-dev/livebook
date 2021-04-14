@@ -2,7 +2,7 @@ defmodule LivebookWeb.ErrorView do
   use LivebookWeb, :view
 
   def render("401.html", %{reason: %LivebookWeb.InvalidTokenError{}} = assigns) do
-    render("401_token.html", assigns)
+    render("401_secret.html", Map.put(assigns, :type, :token))
   end
 
   def template_not_found(_template, assigns) do

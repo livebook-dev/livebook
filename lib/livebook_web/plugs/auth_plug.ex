@@ -16,36 +16,61 @@ defmodule LivebookWeb.AuthPlug do
   def init(opts), do: opts
 
   @impl true
-  def call(conn, _otps) do
-    case Application.get_env(:livebook, :token) do
-      nil -> conn
-      token -> token_authentication(conn, token)
+  def call(conn, opts) do
+    cond do
+      Application.fetch_env!(:livebook, :password_authentication) == true ->
+        password = Application.fetch_env!(:livebook, :password)
+        secret_authentication(conn, password, :password, opts)
+
+      Application.fetch_env!(:livebook, :token_authentication) == true ->
+        token = Application.fetch_env!(:livebook, :token)
+        secret_authentication(conn, token, :token, opts)
+
+      true ->
+        conn
     end
   end
 
-  defp token_authentication(conn, token) do
+  defp secret_authentication(conn, secret, type, opts) do
     # The user may run multiple Livebook instances on the same host
     # on different ports, so we scope the cookie name under port
-    token_cookie = "#{conn.port}:token"
+    secret_cookie = "#{conn.port}:#{inspect(type)}"
 
-    conn = fetch_cookies(conn, signed: [token_cookie])
-
-    param_token = Map.get(conn.query_params, "token")
-    cookie_token = conn.cookies[token_cookie]
+    conn = fetch_cookies(conn, signed: [secret_cookie])
+    param_secret = get_param_secret(conn, type)
+    cookie_secret = conn.cookies[secret_cookie]
 
     cond do
-      is_binary(param_token) and Plug.Crypto.secure_compare(param_token, token) ->
+      # check fresh secret
+      is_binary(param_secret) and Plug.Crypto.secure_compare(param_secret, secret) ->
         conn
-        |> put_resp_cookie(token_cookie, param_token, @cookie_opts)
+        |> put_resp_cookie(secret_cookie, param_secret, @cookie_opts)
         # Redirect to the same path without query params
-        |> redirect(to: conn.request_path)
+        |> redirect(to: opts[:path] || conn.request_path)
         |> halt()
 
-      is_binary(cookie_token) and Plug.Crypto.secure_compare(cookie_token, token) ->
+      # check secret stored in cookie
+      is_binary(cookie_secret) and Plug.Crypto.secure_compare(cookie_secret, secret) ->
         conn
 
+      # on password type redirect to proper route
+      type == :password ->
+        conn |> redirect(to: "/authorize") |> halt()
+
+      # on token type let it crash so phoenix can show the error page
       true ->
         raise LivebookWeb.InvalidTokenError
+    end
+  end
+
+  defp get_param_secret(conn, :token) do
+    Map.get(conn.query_params, "secret")
+  end
+
+  defp get_param_secret(conn, :password) do
+    case conn.params do
+      %{"secret" => pass} -> pass
+      _ -> nil
     end
   end
 end
