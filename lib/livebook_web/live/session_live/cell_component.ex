@@ -165,7 +165,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   # The whole page has to load and then hooks are mounded.
   # There may be a tiny delay before the markdown is rendered
-  # or and editors are mounted, so show neat placeholders immediately.
+  # or editors are mounted, so show neat placeholders immediately.
 
   defp render_markdown_content_placeholder(empty: true) do
     assigns = %{}
