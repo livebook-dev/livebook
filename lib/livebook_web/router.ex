@@ -1,5 +1,6 @@
 defmodule LivebookWeb.Router do
   use LivebookWeb, :router
+  import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -22,5 +23,7 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
     get "/sessions/:id/images/:image", SessionController, :show_image
+
+    live_dashboard "/dashboard", metrics: LivebookWeb.Telemetry
   end
 end
