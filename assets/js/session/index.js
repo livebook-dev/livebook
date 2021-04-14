@@ -155,6 +155,8 @@ function handleDocumentKeyDown(hook, event) {
       toggleSectionsPanel(hook);
     } else if (keyBuffer.tryMatch(["s", "n"])) {
       showNotebookSettings(hook);
+    } else if (keyBuffer.tryMatch(["s", "r"])) {
+      showNotebookRuntimeSettings(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
       cancelFocusedCellEvaluation(hook);
     } else if (keyBuffer.tryMatch(["?"])) {
@@ -301,6 +303,10 @@ function toggleSectionsPanel(hook) {
 
 function showNotebookSettings(hook) {
   hook.pushEvent("show_notebook_settings", {});
+}
+
+function showNotebookRuntimeSettings(hook) {
+  hook.pushEvent("show_notebook_runtime_settings", {});
 }
 
 function deleteFocusedCell(hook) {
