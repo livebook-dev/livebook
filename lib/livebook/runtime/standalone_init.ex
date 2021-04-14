@@ -97,6 +97,7 @@ defmodule Livebook.Runtime.StandaloneInit do
 
     IO.inspect({:parent, :epmd, System.cmd("epmd", ["-names"]), :erl_epmd.names(), :erl_epmd.names('127.0.0.1')})
     IO.inspect({:hostname, :inet.gethostname()})
+    IO.inspect({:host_by_name, :inet.gethostbyname node() |> Atom.to_charlist() |> :string.split('@') |> List.last})
 
     loop = fn loop ->
       receive do
@@ -148,6 +149,7 @@ defmodule Livebook.Runtime.StandaloneInit do
 
       IO.inspect({:child, :epmd, System.cmd("epmd", ["-names"]), :erl_epmd.names(), :erl_epmd.names('127.0.0.1')})
       IO.inspect({:hostname, :inet.gethostname()})
+      IO.inspect({:host_by_name, :inet.gethostbyname node() |> Atom.to_charlist() |> :string.split('@') |> List.last})
 
       ping_res = Node.ping(unquote(parent_node))
       IO.inspect({:ping, ping_res})
