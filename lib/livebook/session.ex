@@ -675,7 +675,8 @@ defmodule Livebook.Session do
         handle_operation(state, {:mark_as_not_dirty, self()})
       else
         {:error, reason} ->
-          broadcast_error(state.session_id, "failed to save notebook - #{reason}")
+          message = :file.format_error(reason)
+          broadcast_error(state.session_id, "failed to save notebook - #{message}")
           state
       end
     else

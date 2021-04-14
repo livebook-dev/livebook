@@ -57,10 +57,15 @@ defmodule LivebookWeb.HomeLive do
                   <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
                     class: "button button-blue" %>
                 <% else %>
-                  <%= content_tag :button, "Open",
-                    class: "button button-blue",
-                    phx_click: "open",
-                    disabled: not path_openable?(@path, @session_summaries) %>
+                  <%= tag :span, if(File.regular?(@path) and not file_writable?(@path),
+                        do: [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"],
+                        else: []
+                      ) %>
+                    <%= content_tag :button, "Open",
+                      class: "button button-blue",
+                      phx_click: "open",
+                      disabled: not path_openable?(@path, @session_summaries) %>
+                  </span>
                 <% end %>
               </div>
             <% end %>
@@ -170,12 +175,19 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp path_openable?(path, session_summaries) do
-    File.regular?(path) and not path_running?(path, session_summaries)
+    File.regular?(path) and not path_running?(path, session_summaries) and file_writable?(path)
   end
 
   defp path_running?(path, session_summaries) do
     running_paths = paths(session_summaries)
     path in running_paths
+  end
+
+  defp file_writable?(path) do
+    case File.stat(path) do
+      {:ok, stat} -> stat.access in [:read_write, :write]
+      {:error, _} -> false
+    end
   end
 
   defp create_session(socket, opts \\ []) do
