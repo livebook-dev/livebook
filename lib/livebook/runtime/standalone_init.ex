@@ -91,9 +91,17 @@ defmodule Livebook.Runtime.StandaloneInit do
   def parent_init_sequence(child_node, port, emitter \\ nil) do
     port_ref = Port.monitor(port)
 
+    IO.puts("""
+    --- parent: init start (self: #{inspect({node(), self()})}) (time: #{DateTime.utc_now()}) ---
+    """)
+
+    IO.inspect({:parent, :epmd, System.cmd("epmd", ["-names"]), :erl_epmd.names(), :erl_epmd.names('127.0.0.1')})
+    IO.inspect({:hostname, :inet.gethostname()})
+
     loop = fn loop ->
       receive do
         {:node_started, init_ref, ^child_node, primary_pid} ->
+          IO.puts("--- parent: child node started ---")
           Port.demonitor(port_ref)
 
           # We've just created the node, so it is surely not in use
@@ -104,11 +112,13 @@ defmodule Livebook.Runtime.StandaloneInit do
           {:ok, primary_pid}
 
         {^port, {:data, output}} ->
+          IO.puts("--- parent: child output #{output} ---")
           # Pass all the outputs through the given emitter.
           emitter && Emitter.emit(emitter, output)
           loop.(loop)
 
         {:DOWN, ^port_ref, :port, _object, _reason} ->
+          IO.puts("--- parent: child connection timeout ---")
           {:error, "Elixir process terminated unexpectedly"}
       after
         20_000 ->
@@ -131,18 +141,34 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Initiate communication with the parent process (on the parent node).
       init_ref = make_ref()
       parent_process = {unquote(parent_process_name), unquote(parent_node)}
+
+      IO.puts("""
+      --- chlid: started (self: #{inspect({node(), self()})}) (parent: #{inspect(parent_process)}) (time: #{DateTime.utc_now()}) ---
+      """)
+
+      IO.inspect({:child, :epmd, System.cmd("epmd", ["-names"]), :erl_epmd.names(), :erl_epmd.names('127.0.0.1')})
+      IO.inspect({:hostname, :inet.gethostname()})
+
+      ping_res = Node.ping(unquote(parent_node))
+      IO.inspect({:ping, ping_res})
+
       send(parent_process, {:node_started, init_ref, node(), self()})
 
       receive do
         {:node_initialized, ^init_ref} ->
+          IO.puts("--- chlid: initialized ---")
           manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager)
 
           # Wait until the Manager process terminates.
           receive do
-            {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
+            {:DOWN, ^manager_ref, :process, _object, _reason} ->
+              IO.puts("--- chlid: manager terminated ---")
+              :ok
           end
       after
-        20_000 -> :timeout
+        20_000 ->
+          IO.puts("--- chlid: connection timeout ---")
+          :timeout
       end
     end
   end
