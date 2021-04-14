@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.ElixirStandaloneTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Livebook.Runtime
 
