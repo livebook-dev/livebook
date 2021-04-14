@@ -7,11 +7,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
   setup do
     {:ok, session_id} = SessionSupervisor.create_session()
-
-    on_exit(fn ->
-      SessionSupervisor.close_session(session_id)
-    end)
-
     %{session_id: session_id}
   end
 

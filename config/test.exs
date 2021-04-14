@@ -10,5 +10,3 @@ config :livebook, LivebookWeb.Endpoint,
 config :logger, level: :warn
 
 config :livebook, :token_authentication, false
-
-config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
