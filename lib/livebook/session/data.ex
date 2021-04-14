@@ -4,7 +4,7 @@ defmodule Livebook.Session.Data do
   # A structure with shared session data.
   #
   # In some sense this structure is a `Notebook` decorated
-  # with all the emphemeral session data.
+  # with all the ephemeral session data.
   #
   # The data is kept both in the `Session` process and all the client processes.
   # All changes go to the `Session` process first to introduce linearity
