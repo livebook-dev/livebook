@@ -26,6 +26,12 @@ defmodule LivebookWeb.SessionLive.SessionsComponent do
                 <%= remix_icon("git-branch-line") %>
                 <span class="font-medium">Fork</span>
               </button>
+              <%= link to: Routes.live_dashboard_path(@socket, :page, node(), "processes", info: Phoenix.LiveDashboard.Helpers.encode_pid(summary.pid)),
+                    class: "flex space-x-3 px-5 py-2 items-center text-gray-600 hover:bg-gray-50",
+                    target: "_blank" do %>
+                <%= remix_icon("dashboard-2-line") %>
+                <span class="font-medium">See on Dashboard</span>
+              <% end %>
               <%= live_patch to: Routes.home_path(@socket, :close_session, summary.session_id),
                     class: "flex space-x-3 px-5 py-2 items-center text-red-600 hover:bg-gray-50" do %>
                 <%= remix_icon("close-circle-line") %>
