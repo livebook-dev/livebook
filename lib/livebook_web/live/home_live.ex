@@ -170,12 +170,19 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp path_openable?(path, session_summaries) do
-    File.regular?(path) and not path_running?(path, session_summaries)
+    File.regular?(path) and not path_running?(path, session_summaries) and file_writable?(path)
   end
 
   defp path_running?(path, session_summaries) do
     running_paths = paths(session_summaries)
     path in running_paths
+  end
+
+  defp file_writable?(path) do
+    case File.stat(path) do
+      {:ok, stat} -> stat.access in [:read_write, :write]
+      {:error, _} -> false
+    end
   end
 
   defp create_session(socket, opts \\ []) do
