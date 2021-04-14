@@ -142,7 +142,7 @@ defmodule Livebook.Runtime.StandaloneInit do
             {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
           end
       after
-        10_000 -> :timeout
+        20_000 -> :timeout
       end
     end
   end
