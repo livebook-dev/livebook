@@ -7,7 +7,7 @@ defmodule LivebookWeb.AuthController do
     |> render("401_secret.html", Map.put(assigns, :type, :password))
   end
 
-  def authorize(conn, %{"secret" => _password}) do
+  def authenticate(conn, %{"secret" => _password}) do
     # on success redirect to home path
     LivebookWeb.AuthPlug.call(conn, path: "/")
   end

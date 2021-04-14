@@ -28,10 +28,10 @@ defmodule LivebookWeb.Router do
     get "/sessions/:id/images/:image", SessionController, :show_image
   end
 
-  scope "/authorize", LivebookWeb do
+  scope "/authenticate", LivebookWeb do
     pipe_through :browser
 
     get "/", AuthController, :index
-    post "/", AuthController, :authorize
+    post "/", AuthController, :authenticate
   end
 end

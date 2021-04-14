@@ -55,7 +55,9 @@ defmodule LivebookWeb.AuthPlug do
 
       # on password type redirect to proper route
       type == :password ->
-        conn |> redirect(to: "/authorize") |> halt()
+        conn
+        |> redirect(to: "/authenticate")
+        |> halt()
 
       # on token type let it crash so phoenix can show the error page
       true ->
