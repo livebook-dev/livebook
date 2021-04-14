@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive do
           <% end %>
         </span>
       </div>
-      <div class="flex flex-col w-1/5 bg-gray-50 border-r border-gray-100 px-6 py-10" data-element="sections-panel">
+      <div class="flex flex-col w-1/3 lg:w-1/5 overflow-y-auto bg-gray-50 border-r border-gray-100 px-6 py-10" data-element="sections-panel">
         <div class="flex-grow flex flex-col">
           <h3 class="font-semibold text-gray-800 text-lg">
             Sections
