@@ -78,10 +78,14 @@ defmodule LivebookWeb.HomeLiveTest do
              |> has_element?()
     end
 
-    test "disables open when a write-protected notebook is selected", %{conn: conn} do
+    @tag :tmp_dir
+    test "disables open when a write-protected notebook is selected",
+         %{conn: conn, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/")
 
-      path = test_notebook_path("write_protected")
+      path = Path.join(tmp_dir, "write_protected.livemd")
+      File.touch!(path)
+      File.chmod!(path, 0o444)
 
       view
       |> element("form")
