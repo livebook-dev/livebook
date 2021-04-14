@@ -3,7 +3,7 @@ import Config
 # Configure the type of names used for distribution and the node name.
 # By default a random short name is used.
 # config :livebook, :node, {:shortnames, "livebook"}
-# config :livebook, :node, {:longnames, "livebook@127.0.0.1"}
+# config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
 
 if config_env() == :prod do
   # We don't need persistent session, so it's fine to just
