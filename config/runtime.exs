@@ -5,10 +5,6 @@ import Config
 # config :livebook, :node, {:shortnames, "livebook"}
 # config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
 
-if System.get_env("CI") == "true" do
-  config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
-end
-
 if config_env() == :prod do
   # We don't need persistent session, so it's fine to just
   # generate a new key everytime the app starts
