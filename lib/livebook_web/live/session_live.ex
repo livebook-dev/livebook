@@ -361,6 +361,13 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
+  def handle_event("show_notebook_runtime_settings", %{}, socket) do
+    {:noreply,
+     push_patch(socket,
+       to: Routes.session_path(socket, :settings, socket.assigns.session_id, "runtime")
+     )}
+  end
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.private.data, operation) do
