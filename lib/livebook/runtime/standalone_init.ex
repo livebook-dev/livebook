@@ -52,7 +52,9 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Minimize shedulers busy wait threshold,
       # so that they go to sleep immediately after evaluation.
       # Enable ANSI escape codes as we handle them with HTML.
-      "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true"
+      "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true",
+      # Make the node hidden, so it doesn't automatically join the cluster
+      "--hidden"
     ]
   end
 
