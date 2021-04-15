@@ -89,7 +89,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   end
 
   defp default_path() do
-    File.cwd!() |> Path.join("notebook")
+    Livebook.Config.root_path() |> Path.join("notebook")
   end
 
   defp path_savable?(nil, _running_paths), do: true
