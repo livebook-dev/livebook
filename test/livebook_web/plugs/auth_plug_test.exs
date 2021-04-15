@@ -59,33 +59,31 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag token: "grumpycat"
-    test "persists authentication across requests using cookies", %{conn: conn} do
+    test "persists authentication across requests", %{conn: conn} do
       conn = get(conn, "/?token=grumpycat")
+      assert get_session(conn, "80:token")
 
-      assert Map.has_key?(conn.resp_cookies, "80:token")
-
-      conn =
-        build_conn()
-        |> Plug.Test.recycle_cookies(conn)
-        |> get("/")
-
+      conn = get(conn, "/")
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
     end
   end
 
   describe "password authentication" do
-    @tag password: "grumpycat"
-    test "redirects to '/authenticate' if not already authenticated", %{conn: conn} do
-      conn = get(conn, "/")
+    test "redirects to '/' if no authentication is required", %{conn: conn} do
+      conn = get(conn, "/authenticate")
+      assert redirected_to(conn) == "/"
+    end
 
+    @tag password: "grumpycat"
+    test "redirects to '/authenticate' if not authenticated", %{conn: conn} do
+      conn = get(conn, "/")
       assert redirected_to(conn) == "/authenticate"
     end
 
     @tag password: "grumpycat"
     test "redirects to '/' on valid authentication", %{conn: conn} do
       conn = post(conn, Routes.auth_path(conn, :authenticate), password: "grumpycat")
-
       assert redirected_to(conn) == "/"
 
       conn = get(conn, "/")
@@ -95,24 +93,23 @@ defmodule LivebookWeb.AuthPlugTest do
     @tag password: "grumpycat"
     test "redirects back to '/authenticate' on invalid password", %{conn: conn} do
       conn = post(conn, Routes.auth_path(conn, :authenticate), password: "invalid password")
+      assert html_response(conn, 200) =~ "Authentication required"
 
       conn = get(conn, "/")
       assert redirected_to(conn) == "/authenticate"
     end
 
     @tag password: "grumpycat"
-    test "persists authentication across requests using cookies", %{conn: conn} do
+    test "persists authentication across requests", %{conn: conn} do
       conn = post(conn, Routes.auth_path(conn, :authenticate), password: "grumpycat")
+      assert get_session(conn, "80:password")
 
-      assert Map.has_key?(conn.resp_cookies, "80:password")
-
-      conn =
-        build_conn()
-        |> Plug.Test.recycle_cookies(conn)
-        |> get("/")
-
+      conn = get(conn, "/")
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
+
+      conn = get(conn, "/authenticate")
+      assert redirected_to(conn) == "/"
     end
   end
 end

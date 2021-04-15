@@ -90,10 +90,10 @@ defmodule LivebookCLI.Server do
   defp opts_to_config([], config), do: config
 
   defp opts_to_config([{:token, false} | opts], config) do
-    if System.get_env("LIVEBOOK_PASSWORD") do
-      opts_to_config(opts, config)
-    else
+    if Livebook.Config.auth_mode() == :token do
       opts_to_config(opts, [{:livebook, :authentication_mode, :disabled} | config])
+    else
+      opts_to_config(opts, config)
     end
   end
 

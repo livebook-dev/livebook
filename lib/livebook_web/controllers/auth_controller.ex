@@ -3,11 +3,11 @@ defmodule LivebookWeb.AuthController do
 
   plug :require_unauthenticated_password
 
-  alias LivebookWeb.Helpers
+  alias LivebookWeb.AuthPlug
 
   defp require_unauthenticated_password(conn, _opts) do
-    if LivebookWeb.AuthPlug.authenticated?(conn) or Livebook.Config.auth_mode() != :password do
-      redirect(conn, to: "/")
+    if Livebook.Config.auth_mode() != :password or AuthPlug.authenticated?(conn, :password) do
+      redirect_home(conn)
     else
       conn
     end
@@ -20,11 +20,18 @@ defmodule LivebookWeb.AuthController do
   end
 
   def authenticate(conn, %{"password" => password}) do
-    password = :crypto.hash(:sha256, password) |> Base.encode16()
-    cookie_key = Helpers.auth_cookie_key(conn, :password)
+    conn = AuthPlug.store(conn, :password, password)
 
+    if AuthPlug.authenticated?(conn, :password) do
+      redirect_home(conn)
+    else
+      index(conn, %{})
+    end
+  end
+
+  defp redirect_home(conn) do
     conn
-    |> put_resp_cookie(cookie_key, password, Helpers.auth_cookie_opts())
     |> redirect(to: "/")
+    |> halt()
   end
 end

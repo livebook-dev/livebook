@@ -7,8 +7,6 @@ defmodule LivebookWeb.AuthPlug do
 
   @behaviour Plug
 
-  alias LivebookWeb.Helpers
-
   import Plug.Conn
   import Phoenix.Controller
 
@@ -27,19 +25,21 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   @doc """
+  Stores in the session the secret for the given mode.
+  """
+  def store(conn, mode, value) do
+    put_session(conn, key(conn, mode), hash(value))
+  end
+
+  @doc """
   Checks if given connection is already authenticated.
   """
-  @spec authenticated?(Plug.Conn.t()) :: boolean()
-  def authenticated?(conn, mode \\ Livebook.Config.auth_mode())
+  @spec authenticated?(Plug.Conn.t(), Livebook.Config.auth_mode()) :: boolean()
+  def authenticated?(conn, mode)
 
   def authenticated?(conn, mode) when mode in [:token, :password] do
-    secret = prepare_secret(mode)
-
-    key = Helpers.auth_cookie_key(conn, mode)
-    conn = fetch_cookies(conn, signed: [key])
-    cookie = conn.cookies[key]
-
-    is_binary(cookie) and Plug.Crypto.secure_compare(cookie, secret)
+    secret = get_session(conn, key(conn, mode))
+    is_binary(secret) and Plug.Crypto.secure_compare(secret, expected(mode))
   end
 
   def authenticated?(_conn, _mode) do
@@ -53,15 +53,12 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp authenticate(conn, :token) do
-    token = prepare_secret(:token)
-    token_param = Map.get(conn.query_params, "token")
+    token = Map.get(conn.query_params, "token")
 
-    if is_binary(token_param) and Plug.Crypto.secure_compare(token_param, token) do
-      cookie_key = Helpers.auth_cookie_key(conn, :token)
-
-      conn
-      |> put_resp_cookie(cookie_key, token_param, Helpers.auth_cookie_opts())
+    if is_binary(token) and Plug.Crypto.secure_compare(hash(token), expected(:token)) do
       # Redirect to the same path without query params
+      conn
+      |> store(:token, token)
       |> redirect(to: conn.request_path)
       |> halt()
     else
@@ -69,12 +66,7 @@ defmodule LivebookWeb.AuthPlug do
     end
   end
 
-  defp prepare_secret(mode) do
-    secret = Application.fetch_env!(:livebook, mode)
-
-    case mode do
-      :token -> secret
-      :password -> :crypto.hash(:sha256, secret) |> Base.encode16()
-    end
-  end
+  defp key(conn, mode), do: "#{conn.port}:#{mode}"
+  defp expected(mode), do: hash(Application.fetch_env!(:livebook, mode))
+  defp hash(value), do: :crypto.hash(:sha256, value)
 end
