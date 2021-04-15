@@ -3,7 +3,23 @@ defmodule LivebookWeb.AuthController do
 
   alias LivebookWeb.Helpers
 
-  def index(conn, assigns) do
+  def index(conn, _assigns) do
+    conn
+    |> set_authenticated()
+    |> ensure_authenticated()
+  end
+
+  defp set_authenticated(conn) do
+    conn
+    |> assign(:authenticated, LivebookWeb.AuthPlug.authenticated?(conn))
+  end
+
+  defp ensure_authenticated(%Plug.Conn{assigns: %{authenticated: true}} = conn) do
+    conn
+    |> redirect(to: "/")
+  end
+
+  defp ensure_authenticated(conn) do
     conn
     |> put_view(LivebookWeb.ErrorView)
     |> render("401.html")

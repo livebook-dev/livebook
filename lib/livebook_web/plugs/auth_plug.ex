@@ -17,27 +17,44 @@ defmodule LivebookWeb.AuthPlug do
 
   @impl true
   def call(conn, _opts) do
-    case Application.fetch_env!(:livebook, :authentication_mode) do
+    case auth_mode() do
       :password ->
-        password = Application.fetch_env!(:livebook, :password)
-        password_authentication(conn, password)
+        password_authentication(conn)
 
       :token ->
-        token = Application.fetch_env!(:livebook, :token)
-        token_authentication(conn, token)
+        token_authentication(conn)
 
       :disabled ->
         conn
     end
   end
 
-  defp password_authentication(conn, password) do
-    password = :crypto.hash(:sha256, password) |> Base.encode16()
-    key = Helpers.auth_cookie_key(conn, :password)
-    conn = fetch_cookies(conn, signed: [key])
-    pass_cookie = conn.cookies[key]
+  @doc """
+  Checks if given connection is already authenticated.
+  """
+  @spec authenticated?(Plug.Conn.t()) :: boolean()
+  def authenticated?(conn, mode \\ auth_mode())
 
-    if is_binary(pass_cookie) and Plug.Crypto.secure_compare(pass_cookie, password) do
+  def authenticated?(conn, mode) when mode in [:token, :password] do
+    secret = prepare_secret(mode)
+
+    key = Helpers.auth_cookie_key(conn, mode)
+    conn = fetch_cookies(conn, signed: [key])
+    cookie = conn.cookies[key]
+
+    if is_binary(cookie) do
+      Plug.Crypto.secure_compare(cookie, secret)
+    else
+      false
+    end
+  end
+
+  def authenticated?(_conn, _mode) do
+    true
+  end
+
+  defp password_authentication(conn) do
+    if authenticated?(conn) do
       conn
     else
       conn
@@ -46,25 +63,37 @@ defmodule LivebookWeb.AuthPlug do
     end
   end
 
-  defp token_authentication(conn, token) do
-    key = Helpers.auth_cookie_key(conn, :token)
-    conn = fetch_cookies(conn, signed: [key])
+  defp token_authentication(conn) do
+    token = prepare_secret(:token)
+    cookie_key = Helpers.auth_cookie_key(conn, :token)
     token_param = Map.get(conn.query_params, "token")
-    token_cookie = conn.cookies[key]
 
     cond do
       is_binary(token_param) and Plug.Crypto.secure_compare(token_param, token) ->
         conn
-        |> put_resp_cookie(key, token_param, Helpers.auth_cookie_opts())
+        |> put_resp_cookie(cookie_key, token_param, Helpers.auth_cookie_opts())
         # Redirect to the same path without query params
         |> redirect(to: conn.request_path)
         |> halt()
 
-      is_binary(token_cookie) and Plug.Crypto.secure_compare(token_cookie, token) ->
+      authenticated?(conn) ->
         conn
 
       true ->
         raise LivebookWeb.InvalidTokenError
+    end
+  end
+
+  defp auth_mode() do
+    Application.fetch_env!(:livebook, :authentication_mode)
+  end
+
+  defp prepare_secret(mode) do
+    secret = Application.fetch_env!(:livebook, mode)
+
+    case mode do
+      :token -> secret
+      :password -> :crypto.hash(:sha256, secret) |> Base.encode16()
     end
   end
 end
