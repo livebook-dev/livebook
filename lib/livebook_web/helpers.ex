@@ -17,7 +17,7 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Determines user platform based on the given *User-Agent* header.
   """
-  @spec platform_from_user_agent(Sting.t()) :: :linux | :mac | :windows | :other
+  @spec platform_from_user_agent(String.t()) :: :linux | :mac | :windows | :other
   def platform_from_user_agent(user_agent) when is_binary(user_agent) do
     cond do
       linux?(user_agent) -> :linux
