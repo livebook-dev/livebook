@@ -12,7 +12,7 @@ defmodule LivebookCLI.Server do
 
       -p, --port    The port to start the web application on, defaults to 8080
       --no-token    Disable token authentication, enabled by default
-      --sname       Set a shot name for the app distributed node
+      --sname       Set a short name for the app distributed node
       --name        Set a name for the app distributed node
 
     The --help option can be given for usage information.
