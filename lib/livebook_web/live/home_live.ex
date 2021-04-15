@@ -160,7 +160,7 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp default_path(), do: File.cwd!() <> "/"
+  defp default_path(), do: Livebook.Config.root_path() <> "/"
 
   defp sort_session_summaries(session_summaries) do
     Enum.sort_by(session_summaries, & &1.notebook_name)
