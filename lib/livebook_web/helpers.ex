@@ -85,6 +85,7 @@ defmodule LivebookWeb.Helpers do
   """
   @spec auth_cookie_opts() :: Keyword.t()
   def auth_cookie_opts() do
+    # max_age is set to 30 days in seconds
     [sign: true, max_age: 2_592_000]
   end
 end
