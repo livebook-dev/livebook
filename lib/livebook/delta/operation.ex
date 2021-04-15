@@ -22,7 +22,7 @@ defmodule Livebook.Delta.Operation do
   @spec insert(String.t()) :: t()
   def insert(string), do: {:insert, string}
 
-  @spec insert(non_neg_integer()) :: t()
+  @spec retain(non_neg_integer()) :: t()
   def retain(length), do: {:retain, length}
 
   @spec delete(non_neg_integer()) :: t()
