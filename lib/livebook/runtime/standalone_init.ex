@@ -57,7 +57,7 @@ defmodule Livebook.Runtime.StandaloneInit do
       "--hidden",
       # Use the cookie in Livebook
       "--cookie",
-       Atom.to_string(Node.get_cookie())
+      Atom.to_string(Node.get_cookie())
     ]
   end
 
