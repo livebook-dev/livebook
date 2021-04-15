@@ -42,11 +42,7 @@ defmodule LivebookWeb.AuthPlug do
     conn = fetch_cookies(conn, signed: [key])
     cookie = conn.cookies[key]
 
-    if is_binary(cookie) do
-      Plug.Crypto.secure_compare(cookie, secret)
-    else
-      false
-    end
+    is_binary(cookie) and Plug.Crypto.secure_compare(cookie, secret)
   end
 
   def authenticated?(_conn, _mode) do
