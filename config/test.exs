@@ -9,7 +9,7 @@ config :livebook, LivebookWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
-config :livebook, :token_authentication, false
+config :livebook, :authentication_mode, :disabled
 
 # Use longnames when running tests in CI, so that no host resolution is required,
 # see https://github.com/elixir-nx/livebook/pull/173#issuecomment-819468549

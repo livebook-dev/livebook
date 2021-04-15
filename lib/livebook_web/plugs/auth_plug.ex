@@ -7,45 +7,89 @@ defmodule LivebookWeb.AuthPlug do
 
   @behaviour Plug
 
+  alias LivebookWeb.Helpers
+
   import Plug.Conn
   import Phoenix.Controller
-
-  @cookie_opts [sign: true, max_age: 2_592_000]
 
   @impl true
   def init(opts), do: opts
 
   @impl true
-  def call(conn, _otps) do
-    case Application.get_env(:livebook, :token) do
-      nil -> conn
-      token -> token_authentication(conn, token)
+  def call(conn, _opts) do
+    case auth_mode() do
+      :password ->
+        password_authentication(conn)
+
+      :token ->
+        token_authentication(conn)
+
+      :disabled ->
+        conn
     end
   end
 
-  defp token_authentication(conn, token) do
-    # The user may run multiple Livebook instances on the same host
-    # on different ports, so we scope the cookie name under port
-    token_cookie = "#{conn.port}:token"
+  @doc """
+  Checks if given connection is already authenticated.
+  """
+  @spec authenticated?(Plug.Conn.t()) :: boolean()
+  def authenticated?(conn, mode \\ auth_mode())
 
-    conn = fetch_cookies(conn, signed: [token_cookie])
+  def authenticated?(conn, mode) when mode in [:token, :password] do
+    secret = prepare_secret(mode)
 
-    param_token = Map.get(conn.query_params, "token")
-    cookie_token = conn.cookies[token_cookie]
+    key = Helpers.auth_cookie_key(conn, mode)
+    conn = fetch_cookies(conn, signed: [key])
+    cookie = conn.cookies[key]
+
+    is_binary(cookie) and Plug.Crypto.secure_compare(cookie, secret)
+  end
+
+  def authenticated?(_conn, _mode) do
+    true
+  end
+
+  defp password_authentication(conn) do
+    if authenticated?(conn) do
+      conn
+    else
+      conn
+      |> redirect(to: "/authenticate")
+      |> halt()
+    end
+  end
+
+  defp token_authentication(conn) do
+    token = prepare_secret(:token)
+    cookie_key = Helpers.auth_cookie_key(conn, :token)
+    token_param = Map.get(conn.query_params, "token")
 
     cond do
-      is_binary(param_token) and Plug.Crypto.secure_compare(param_token, token) ->
+      is_binary(token_param) and Plug.Crypto.secure_compare(token_param, token) ->
         conn
-        |> put_resp_cookie(token_cookie, param_token, @cookie_opts)
+        |> put_resp_cookie(cookie_key, token_param, Helpers.auth_cookie_opts())
         # Redirect to the same path without query params
         |> redirect(to: conn.request_path)
         |> halt()
 
-      is_binary(cookie_token) and Plug.Crypto.secure_compare(cookie_token, token) ->
+      authenticated?(conn) ->
         conn
 
       true ->
         raise LivebookWeb.InvalidTokenError
+    end
+  end
+
+  defp auth_mode() do
+    Application.fetch_env!(:livebook, :authentication_mode)
+  end
+
+  defp prepare_secret(mode) do
+    secret = Application.fetch_env!(:livebook, mode)
+
+    case mode do
+      :token -> secret
+      :password -> :crypto.hash(:sha256, secret) |> Base.encode16()
     end
   end
 end
