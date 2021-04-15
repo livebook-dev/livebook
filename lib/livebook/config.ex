@@ -24,6 +24,16 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Return the root path for persisting notebooks.
+  """
+  @spec root_path() :: binary()
+  def root_path() do
+    Application.get_env(:livebook, :root_path, File.cwd!())
+  end
+
+  ## Parsing
+
+  @doc """
   Parses a long secret.
   """
   def secret!(env) do
