@@ -11,8 +11,7 @@ defmodule Livebook.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      escript: escript(),
-      preferred_cli_env: preferred_cli_env()
+      escript: escript()
     ]
   end
 
@@ -56,12 +55,6 @@ defmodule Livebook.MixProject do
     [
       main_module: LivebookCLI,
       app: nil
-    ]
-  end
-
-  defp preferred_cli_env() do
-    [
-      build: :prod
     ]
   end
 end

@@ -12,4 +12,12 @@ defmodule Livebook.Config do
       {:longnames, _name} -> false
     end
   end
+
+  @doc """
+  Returns the authentication mode.
+  """
+  @spec auth_mode() :: :token | :password | :disabled
+  def auth_mode() do
+    Application.fetch_env!(:livebook, :authentication_mode)
+  end
 end

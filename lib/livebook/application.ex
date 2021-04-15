@@ -7,7 +7,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     ensure_distribution!()
-    initialize_token()
+    initialize_auth!()
 
     children = [
       # Start the Telemetry supervisor
@@ -67,7 +67,7 @@ defmodule Livebook.Application do
     end
   end
 
-  defp abort!(message) do
+  def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)
   end
@@ -80,11 +80,17 @@ defmodule Livebook.Application do
     :"livebook_#{Livebook.Utils.random_short_id()}"
   end
 
-  # Generates and configures random token if token auth is enabled
-  defp initialize_token() do
-    token_auth? = Application.fetch_env!(:livebook, :token_authentication)
+  defp initialize_auth!() do
+    secret_key_base = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:secret_key_base]
 
-    if token_auth? do
+    if byte_size(secret_key_base) < 64 do
+      Livebook.Application.abort!(
+      "cannot start Livebook because LIVEBOOK_SECRET_KEY_BASE must be at least 64 characters. " <>
+        "Invoke `openssl rand -base64 48` to generate an appropriately long secret."
+      )
+    end
+
+    if Livebook.Config.auth_mode() == :token do
       token = Livebook.Utils.random_id()
       Application.put_env(:livebook, :token, token)
     end
@@ -92,7 +98,7 @@ defmodule Livebook.Application do
 
   defp display_startup_info() do
     if Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
-      IO.ANSI.format([:blue, "Livebook running at #{access_url()}"]) |> IO.puts()
+      IO.puts("[Livebook] Application running at #{access_url()}")
     end
   end
 

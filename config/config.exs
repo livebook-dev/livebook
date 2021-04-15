@@ -3,7 +3,6 @@ import Config
 # Configures the endpoint
 config :livebook, LivebookWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "9hHHeOiAA8wrivUfuS//jQMurHxoMYUtF788BQMx2KO7mYUE8rVrGGG09djBNQq7",
   pubsub_server: Livebook.PubSub,
   live_view: [signing_salt: "livebook"]
 
@@ -15,7 +14,8 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config :livebook, :token_authentication, true
+# Sets the default authentication mode to token
+config :livebook, :authentication_mode, :token
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

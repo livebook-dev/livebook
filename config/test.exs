@@ -9,6 +9,7 @@ config :livebook, LivebookWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
+# Disable authentication mode during test
 config :livebook, :authentication_mode, :disabled
 
 # Use longnames when running tests in CI, so that no host resolution is required,
