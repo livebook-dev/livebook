@@ -6,7 +6,7 @@ defmodule LivebookWeb.AuthController do
   def index(conn, assigns) do
     conn
     |> put_view(LivebookWeb.ErrorView)
-    |> render("401.html", Map.put(assigns, :type, :password))
+    |> render("401.html")
   end
 
   def authenticate(conn, %{"password" => password}) do
