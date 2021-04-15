@@ -54,7 +54,10 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Enable ANSI escape codes as we handle them with HTML.
       "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true",
       # Make the node hidden, so it doesn't automatically join the cluster
-      "--hidden"
+      "--hidden",
+      # Use the cookie in Livebook
+      "--cookie",
+      Atom.to_string(Node.get_cookie())
     ]
   end
 
