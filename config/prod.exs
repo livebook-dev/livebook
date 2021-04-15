@@ -9,6 +9,8 @@ config :livebook, LivebookWeb.Endpoint, http: [ip: {127, 0, 0, 1}, port: 8080]
 # so limit the amount of information we show.
 config :logger, level: :info
 
+config :livebook, authentication_mode: :token
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key

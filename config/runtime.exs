@@ -6,13 +6,10 @@ import Config
 # config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
 
 # Note that presence of `USE_PASSWORD` will overwrite already set `:token_authentication`
-if System.get_env("USE_PASSWORD") do
+if password = System.get_env("LIVEBOOK_PASSWORD") do
   config :livebook,
-    token_authentication: false,
-    password_authentication: true,
-    password: System.fetch_env!("AUTH_PASSWORD")
-else
-  config :livebook, password_authentication: false
+    authentication_mode: :password,
+    password: password
 end
 
 if config_env() == :prod do
