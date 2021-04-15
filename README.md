@@ -2,41 +2,25 @@
 
 Livebook is a web application for writing interactive and collaborative code notebooks. It features:
 
-  * A deployable web app built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view)
-    where users can create, fork, and run multiple notebooks.
+  * A deployable web app built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) where users can create, fork, and run multiple notebooks.
   
-  * Each notebook is made of multiple sections: each section is made of Markdown and Elixir
-    cells. Code in Elixir cells can be evaluated on demand. Mathematical formulas are also
-    supported via [KaTeX](https://katex.org/).
+  * Each notebook is made of multiple sections: each section is made of Markdown and Elixir cells. Code in Elixir cells can be evaluated on demand. Mathematical formulas are also supported via [KaTeX](https://katex.org/).
 
-  * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a
-    subset of Markdown. This means your notebooks can be saved for later, easily shared, and
-    they also play well with version control.
+  * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a subset of Markdown. This means your notebooks can be saved for later, easily shared, and they also play well with version control.
 
-  * Sequential evaluation: code cells run in a specific order, guaranteeing future users of
-    the same Livebook see the same output. If you re-execute a previous cell, following cells
-    are marked as stale to make it clear they depend on outdated notebook state.
+  * Sequential evaluation: code cells run in a specific order, guaranteeing future users of the same Livebook see the same output. If you re-execute a previous cell, following cells are marked as stale to make it clear they depend on outdated notebook state.
 
-  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir process,
-    connect to an existing node, or run it inside an existing Elixir project, with access to
-    all of its modules and dependencies. This means Livebook can be a great tool to provide
-    live documentation for existing projects.
+  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir process, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
 
-  * Explicit dependencies: if your notebook has dependencies, they are explicitly listed and
-    installed with the help of the `Mix.install/2` command in Elixir v1.12+.
+  * Explicit dependencies: if your notebook has dependencies, they are explicitly listed and installed with the help of the `Mix.install/2` command in Elixir v1.12+.
 
-  * Collaborative features allow multiple users to work on the same notebook at once.
-    Collaboration works either in single-node or multi-node deployments - without a
-    need for additional tooling.
+  * Collaborative features allow multiple users to work on the same notebook at once. Collaboration works either in single-node or multi-node deployments - without a need for additional tooling.
 
-There is a [screencast by José Valim showing some of Livebook features](https://www.youtube.com/watch?v=RKvqc-UEe34).
-Otherwise, here is a peek at the "Welcome to Livebook" introductory notebook:
+There is a [screencast by José Valim showing some of Livebook features](https://www.youtube.com/watch?v=RKvqc-UEe34). Otherwise, here is a peek at the "Welcome to Livebook" introductory notebook:
 
 ![Screenshot](https://user-images.githubusercontent.com/9582/113567534-166f4980-960f-11eb-98df-c0b8b81f8a27.png)
 
-The current version provides only the initial step of our Livebook vision. Our plan
-is to continue focusing on visual, collaborative, and interactive features in the
-upcoming releases.
+The current version provides only the initial step of our Livebook vision. Our plan is to continue focusing on visual, collaborative, and interactive features in the upcoming releases.
 
 ## Usage
 
@@ -49,21 +33,26 @@ For now, the best way to run Livebook is by cloning it and running it locally:
 
 You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
 
-We will work on other distribution modes (escripts, Docker images, etc) once
-we start distributing official releases.
+We will work on other distribution modes (escripts, Docker images, etc) once we start distributing official releases.
 
-## Security considerations
+### Security considerations
 
-Livebook is built to document and execute code. Anyone with access to a
-Livebook instance will be able to access any file and execute any code
-in the machine Livebook is running.
+Livebook is built to document and execute code. Anyone with access to a Livebook instance will be able to access any file and execute any code in the machine Livebook is running.
 
-For this reason, `Livebook` only binds to the 127.0.0.1, allowing access
-to happen only within the current machine. When running `Livebook` in the
-production environment - the recommended environment - we also generate a
-token on initialization and we only allow access to the Livebook if said
-token is supplied as part of the URL.
+For this reason, `Livebook` only binds to the 127.0.0.1, allowing access to happen only within the current machine. When running `Livebook` in the production environment - the recommended environment - we also generate a token on initialization and we only allow access to the Livebook if said token is supplied as part of the URL.
 
+### Environment variables
+<!-- Environment variables -->
+
+The following environment variables configure Livebook:
+
+  * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook. Must be at least 12 characters. Defaults to token authentication.
+
+  * LIVEBOOK_PORT - sets the port Livebook runs on. If you want multiple instances to run on the same domain but different ports, you also need to set `LIVEBOOK_SECRET_KEY_BASE`. Defaults to 8080.
+
+  * LIVEBOOK_SECRET_KEY_BASE - sets a secret key that is used to sign and encrypt the session and other payloads used by Livebook. Must be at least 64 characters long and it can be generated by commands such as: `openssl rand -base64 48`. Defaults to a random secret on every boot.
+
+<!-- Environment variables -->
 ## License
 
 Copyright (C) 2021 Dashbit

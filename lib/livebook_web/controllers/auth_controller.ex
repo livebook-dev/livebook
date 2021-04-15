@@ -1,36 +1,37 @@
 defmodule LivebookWeb.AuthController do
   use LivebookWeb, :controller
 
-  alias LivebookWeb.Helpers
+  plug :require_unauthenticated_password
 
-  def index(conn, _assigns) do
-    conn
-    |> set_authenticated()
-    |> ensure_authenticated()
+  alias LivebookWeb.AuthPlug
+
+  defp require_unauthenticated_password(conn, _opts) do
+    if Livebook.Config.auth_mode() != :password or AuthPlug.authenticated?(conn, :password) do
+      redirect_home(conn)
+    else
+      conn
+    end
   end
 
-  defp set_authenticated(conn) do
-    conn
-    |> assign(:authenticated, LivebookWeb.AuthPlug.authenticated?(conn))
-  end
-
-  defp ensure_authenticated(%Plug.Conn{assigns: %{authenticated: true}} = conn) do
-    conn
-    |> redirect(to: "/")
-  end
-
-  defp ensure_authenticated(conn) do
+  def index(conn, _params) do
     conn
     |> put_view(LivebookWeb.ErrorView)
     |> render("401.html")
   end
 
   def authenticate(conn, %{"password" => password}) do
-    password = :crypto.hash(:sha256, password) |> Base.encode16()
-    cookie_key = Helpers.auth_cookie_key(conn, :password)
+    conn = AuthPlug.store(conn, :password, password)
 
+    if AuthPlug.authenticated?(conn, :password) do
+      redirect_home(conn)
+    else
+      index(conn, %{})
+    end
+  end
+
+  defp redirect_home(conn) do
     conn
-    |> put_resp_cookie(cookie_key, password, Helpers.auth_cookie_opts())
     |> redirect(to: "/")
+    |> halt()
   end
 end

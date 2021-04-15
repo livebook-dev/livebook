@@ -2,6 +2,15 @@ defmodule LivebookCLI.Server do
   @moduledoc false
 
   @behaviour LivebookCLI.Task
+  @external_resource "README.md"
+
+  [_, environment_variables, _] =
+    "README.md"
+    |> File.read!()
+    |> String.split("<!-- Environment variables -->")
+
+  @external_resource "README.md"
+  @environment_variables String.trim(environment_variables)
 
   @impl true
   def usage() do
@@ -10,12 +19,18 @@ defmodule LivebookCLI.Server do
 
     Available options:
 
-      -p, --port    The port to start the web application on, defaults to 8080
-      --no-token    Disable token authentication, enabled by default
-      --sname       Set a short name for the app distributed node
       --name        Set a name for the app distributed node
+      --no-token    Disable token authentication, enabled by default
+                    If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
+      --sname       Set a short name for the app distributed node
+      -p, --port    The port to start the web application on, defaults to 8080
 
-    The --help option can be given for usage information.
+    The --help option can be given to print this notice.
+
+    ## Environment variables
+
+    #{@environment_variables}
+
     """
   end
 
@@ -74,8 +89,12 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([], config), do: config
 
-  defp opts_to_config([{:token, token_auth?} | opts], config) do
-    opts_to_config(opts, [{:livebook, :token_authentication, token_auth?} | config])
+  defp opts_to_config([{:token, false} | opts], config) do
+    if Livebook.Config.auth_mode() == :token do
+      opts_to_config(opts, [{:livebook, :authentication_mode, :disabled} | config])
+    else
+      opts_to_config(opts, config)
+    end
   end
 
   defp opts_to_config([{:port, port} | opts], config) do

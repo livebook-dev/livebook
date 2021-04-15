@@ -68,24 +68,4 @@ defmodule LivebookWeb.Helpers do
     |> String.split("\n")
     |> Enum.map(&Phoenix.HTML.raw/1)
   end
-
-  @doc """
-  Returns cookie key based on connection port and authentication type.
-
-  The user may run multiple Livebook instances on the same host
-  on different ports, so the cookie name should be scoped under port.
-  """
-  @spec auth_cookie_key(Plug.Conn.t(), :token | :password) :: String.t()
-  def auth_cookie_key(conn, type) do
-    "#{conn.port}#{inspect(type)}"
-  end
-
-  @doc """
-  Returns cookie options that should be used to sign authentication cookies.
-  """
-  @spec auth_cookie_opts() :: Keyword.t()
-  def auth_cookie_opts() do
-    # max_age is set to 30 days in seconds
-    [sign: true, max_age: 2_592_000]
-  end
 end

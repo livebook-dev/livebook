@@ -1,15 +1,10 @@
 import Config
 
-# For production, don't forget to configure the url host
-# to something meaningful, Phoenix uses this information
-# when generating URLs.
+# Default bind and port for production
 config :livebook, LivebookWeb.Endpoint, http: [ip: {127, 0, 0, 1}, port: 8080]
 
-# The output is shown to the end user,
-# so limit the amount of information we show.
-config :logger, level: :info
-
-config :livebook, authentication_mode: :token
+# Start log-level in notice by default to reduce output
+config :logger, level: :notice
 
 # ## SSL Support
 #
