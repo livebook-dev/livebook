@@ -1,7 +1,7 @@
 defmodule Livebook.Delta.Operation do
   @moduledoc false
 
-  # An peration represents an atomic change applicable to a text.
+  # An operation represents an atomic change applicable to a text.
   #
   # For plain-text (our use case) an operation can be either of:
   #
