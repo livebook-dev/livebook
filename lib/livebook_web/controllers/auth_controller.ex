@@ -10,6 +10,7 @@ defmodule LivebookWeb.AuthController do
   end
 
   def authenticate(conn, %{"password" => password}) do
+    password = :crypto.hash(:sha256, password) |> Base.encode16()
     cookie_key = Helpers.auth_cookie_key(conn, :password)
 
     conn

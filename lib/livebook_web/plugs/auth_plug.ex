@@ -32,6 +32,7 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp password_authentication(conn, password) do
+    password = :crypto.hash(:sha256, password) |> Base.encode16()
     key = Helpers.auth_cookie_key(conn, :password)
     conn = fetch_cookies(conn, signed: [key])
     pass_cookie = conn.cookies[key]
