@@ -16,8 +16,7 @@ defmodule LivebookWeb.Router do
   end
 
   scope "/", LivebookWeb do
-    pipe_through :browser
-    pipe_through :auth
+    pipe_through [:browser, :auth]
 
     live "/", HomeLive, :page
     live "/home/sessions/:session_id/close", HomeLive, :close_session

@@ -1,25 +1,19 @@
 defmodule LivebookWeb.AuthController do
   use LivebookWeb, :controller
 
+  plug :require_unauthenticated_password
+
   alias LivebookWeb.Helpers
 
-  def index(conn, _assigns) do
-    conn
-    |> set_authenticated()
-    |> ensure_authenticated()
+  defp require_unauthenticated_password(conn, _opts) do
+    if LivebookWeb.AuthPlug.authenticated?(conn) or Livebook.Config.auth_mode() != :password do
+      redirect(conn, to: "/")
+    else
+      conn
+    end
   end
 
-  defp set_authenticated(conn) do
-    conn
-    |> assign(:authenticated, LivebookWeb.AuthPlug.authenticated?(conn))
-  end
-
-  defp ensure_authenticated(%Plug.Conn{assigns: %{authenticated: true}} = conn) do
-    conn
-    |> redirect(to: "/")
-  end
-
-  defp ensure_authenticated(conn) do
+  def index(conn, _params) do
     conn
     |> put_view(LivebookWeb.ErrorView)
     |> render("401.html")

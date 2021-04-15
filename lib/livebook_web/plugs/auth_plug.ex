@@ -17,15 +17,12 @@ defmodule LivebookWeb.AuthPlug do
 
   @impl true
   def call(conn, _opts) do
-    case auth_mode() do
-      :password ->
-        password_authentication(conn)
+    mode = Livebook.Config.auth_mode()
 
-      :token ->
-        token_authentication(conn)
-
-      :disabled ->
-        conn
+    if authenticated?(conn, mode) do
+      conn
+    else
+      authenticate(conn, mode)
     end
   end
 
@@ -33,7 +30,7 @@ defmodule LivebookWeb.AuthPlug do
   Checks if given connection is already authenticated.
   """
   @spec authenticated?(Plug.Conn.t()) :: boolean()
-  def authenticated?(conn, mode \\ auth_mode())
+  def authenticated?(conn, mode \\ Livebook.Config.auth_mode())
 
   def authenticated?(conn, mode) when mode in [:token, :password] do
     secret = prepare_secret(mode)
@@ -49,39 +46,27 @@ defmodule LivebookWeb.AuthPlug do
     true
   end
 
-  defp password_authentication(conn) do
-    if authenticated?(conn) do
-      conn
-    else
-      conn
-      |> redirect(to: "/authenticate")
-      |> halt()
-    end
+  defp authenticate(conn, :password) do
+    conn
+    |> redirect(to: "/authenticate")
+    |> halt()
   end
 
-  defp token_authentication(conn) do
+  defp authenticate(conn, :token) do
     token = prepare_secret(:token)
-    cookie_key = Helpers.auth_cookie_key(conn, :token)
     token_param = Map.get(conn.query_params, "token")
 
-    cond do
-      is_binary(token_param) and Plug.Crypto.secure_compare(token_param, token) ->
-        conn
-        |> put_resp_cookie(cookie_key, token_param, Helpers.auth_cookie_opts())
-        # Redirect to the same path without query params
-        |> redirect(to: conn.request_path)
-        |> halt()
+    if is_binary(token_param) and Plug.Crypto.secure_compare(token_param, token) do
+      cookie_key = Helpers.auth_cookie_key(conn, :token)
 
-      authenticated?(conn) ->
-        conn
-
-      true ->
-        raise LivebookWeb.InvalidTokenError
+      conn
+      |> put_resp_cookie(cookie_key, token_param, Helpers.auth_cookie_opts())
+      # Redirect to the same path without query params
+      |> redirect(to: conn.request_path)
+      |> halt()
+    else
+      raise LivebookWeb.InvalidTokenError
     end
-  end
-
-  defp auth_mode() do
-    Application.fetch_env!(:livebook, :authentication_mode)
   end
 
   defp prepare_secret(mode) do
