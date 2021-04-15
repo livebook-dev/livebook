@@ -39,14 +39,37 @@ defmodule Livebook.Application do
 
   defp ensure_distribution!() do
     unless Node.alive?() do
-      System.cmd("epmd", ["-daemon"])
+      case System.cmd("epmd", ["-daemon"]) do
+        {_, 0} ->
+          :ok
+
+        _ ->
+          abort!("""
+          could not start epmd (Erlang Port Mapper Driver). Livebook uses epmd to \
+          talk to different runtimes. You may have to start epmd explicitly by calling:
+
+              epmd -daemon
+
+          Or by calling:
+
+              elixir --sname test -e "IO.puts node()"
+
+          Then you can try booting Livebook again
+          """)
+      end
+
       {type, name} = get_node_type_and_name()
 
       case Node.start(name, type) do
         {:ok, _} -> :ok
-        {:error, _} -> raise "failed to start distributed node"
+        {:error, reason} -> abort!("could not start distributed node: #{inspect(reason)}")
       end
     end
+  end
+
+  defp abort!(message) do
+    IO.puts("\nERROR!!! [Livebook] " <> message)
+    System.halt(1)
   end
 
   defp get_node_type_and_name() do

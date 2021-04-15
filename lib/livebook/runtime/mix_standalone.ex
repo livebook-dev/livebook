@@ -91,6 +91,7 @@ defmodule Livebook.Runtime.MixStandalone do
     Port.open({:spawn_executable, elixir_path}, [
       :binary,
       :stderr_to_stdout,
+      :hide,
       args: elixir_flags(node_name) ++ ["-S", "mix", "run", "--eval", eval],
       cd: project_path
     ])
