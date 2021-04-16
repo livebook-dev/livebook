@@ -111,12 +111,9 @@ defmodule Livebook.Runtime.StandaloneInit do
     loop.(loop)
   end
 
-  # This is the primary process, so as soon as it finishes, the runtime terminates.
-  #
-  # Note Windows does not handle escaped quotes the same way as Unix, so this AST
-  # cannot have constructs that are strings. That's why we pass the parent node name
-  # as ARGV. The parent process name is assumed to be the same as the child node name.
-  # We also can't have new lines.
+  # Note Windows does not handle escaped quotes and newlines the same way as Unix,
+  # so the string cannot have constructs newlines nor strings. That's why we pass
+  # the parent node name as ARGV and write the code avoiding newlines.
   @child_node_eval_string """
   [parent_node] = System.argv();\
   init_ref = make_ref();\
@@ -139,7 +136,8 @@ defmodule Livebook.Runtime.StandaloneInit do
 
   This function returns AST that should be evaluated in primary
   process on the newly spawned child node. The executed code expects
-  the parent_node and parent_process_name on ARGV.
+  the parent_node on ARGV. The process on the parent node is assumed
+  to have the same name as the child node.
   """
   def child_node_eval_string(), do: @child_node_eval_string
 end
