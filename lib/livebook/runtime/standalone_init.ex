@@ -11,22 +11,9 @@ defmodule Livebook.Runtime.StandaloneInit do
   @doc """
   Returns a random name for a dynamically spawned node.
   """
-  @spec random_node_name() :: atom()
-  def random_node_name() do
-    Utils.node_from_name("livebook_runtime_#{Utils.random_short_id()}")
-  end
-
-  @doc """
-  Returns random name to register a process under.
-
-  We have to pass parent process pid to the new Elixir node.
-  The node receives code to evaluate as string, so we cannot
-  directly embed the pid there, but we can temporarily register
-  the process under a random name and pass this name to the child node.
-  """
-  @spec random_process_name() :: atom()
-  def random_process_name() do
-    :"livebook_parent_process_name_#{Utils.random_short_id()}"
+  @spec child_node_name(atom()) :: atom()
+  def child_node_name(parent) do
+    :"#{Utils.random_short_id()}-#{parent}"
   end
 
   @doc """

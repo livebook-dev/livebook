@@ -46,7 +46,7 @@ defmodule Livebook.Runtime.MixStandalone do
 
     spawn_link(fn ->
       parent_node = node()
-      child_node = random_node_name()
+      child_node = child_node_name(parent_node)
 
       Utils.temporarily_register(self(), child_node, fn ->
         argv = [parent_node]
