@@ -14,9 +14,7 @@ defmodule LivebookWeb.AuthController do
   end
 
   def index(conn, _params) do
-    conn
-    |> put_view(LivebookWeb.ErrorView)
-    |> render("401.html")
+    render(conn, "index.html")
   end
 
   def authenticate(conn, %{"password" => password}) do

@@ -1,0 +1,23 @@
+<div class="h-screen flex items-center justify-center bg-gray-900">
+  <div class="flex flex-col space-y-4 items-center">
+    <a href="/">
+      <img src="/logo.png" height="128" width="128" alt="livebook" />
+    </a>
+    <div class="text-2xl text-gray-50">
+      Authentication required
+    </div>
+
+    <div class="max-w-2xl text-center text-gray-300">
+      Type password to access the Livebook.
+    </div>
+    <div class="text-2xl text-gray-50 w-full pt-2">
+      <form method="post" class="flex flex-col space-y-4 items-center">
+        <input type="hidden" value="<%= Phoenix.Controller.get_csrf_token() %>" name="_csrf_token"/>
+        <input type="password" name="password" class="input" placeholder="Password" />
+        <button type="submit" class="button button-blue">
+          Authenticate
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
