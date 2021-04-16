@@ -11,22 +11,9 @@ defmodule Livebook.Runtime.StandaloneInit do
   @doc """
   Returns a random name for a dynamically spawned node.
   """
-  @spec random_node_name() :: atom()
-  def random_node_name() do
-    Utils.node_from_name("livebook_runtime_#{Utils.random_short_id()}")
-  end
-
-  @doc """
-  Returns random name to register a process under.
-
-  We have to pass parent process pid to the new Elixir node.
-  The node receives code to evaluate as string, so we cannot
-  directly embed the pid there, but we can temporarily register
-  the process under a random name and pass this name to the child node.
-  """
-  @spec random_process_name() :: atom()
-  def random_process_name() do
-    :"livebook_parent_process_name_#{Utils.random_short_id()}"
+  @spec child_node_name(atom()) :: atom()
+  def child_node_name(parent) do
+    :"#{Utils.random_short_id()}-#{parent}"
   end
 
   @doc """
@@ -124,31 +111,33 @@ defmodule Livebook.Runtime.StandaloneInit do
     loop.(loop)
   end
 
+  # Note Windows does not handle escaped quotes and newlines the same way as Unix,
+  # so the string cannot have constructs newlines nor strings. That's why we pass
+  # the parent node name as ARGV and write the code avoiding newlines.
+  @child_node_eval_string """
+  [parent_node] = System.argv();\
+  init_ref = make_ref();\
+  parent_process = {node(), String.to_atom(parent_node)};\
+  send(parent_process, {:node_started, init_ref, node(), self()});\
+  receive do {:node_initialized, ^init_ref} ->\
+    manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager);\
+    receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
+  after 10_000 ->\
+    :timeout;\
+  end\
+  """
+
+  if @child_node_eval_string =~ "\n" do
+    raise "invalid @child_node_eval_string, newline found: #{inspect(@child_node_eval_string)}"
+  end
+
   @doc """
   Performs the child side of the initialization contract.
 
   This function returns AST that should be evaluated in primary
-  process on the newly spawned child node.
+  process on the newly spawned child node. The executed code expects
+  the parent_node on ARGV. The process on the parent node is assumed
+  to have the same name as the child node.
   """
-  def child_node_ast(parent_node, parent_process_name) do
-    # This is the primary process, so as soon as it finishes, the runtime terminates.
-    quote do
-      # Initiate communication with the parent process (on the parent node).
-      init_ref = make_ref()
-      parent_process = {unquote(parent_process_name), unquote(parent_node)}
-      send(parent_process, {:node_started, init_ref, node(), self()})
-
-      receive do
-        {:node_initialized, ^init_ref} ->
-          manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager)
-
-          # Wait until the Manager process terminates.
-          receive do
-            {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
-          end
-      after
-        10_000 -> :timeout
-      end
-    end
-  end
+  def child_node_eval_string(), do: @child_node_eval_string
 end

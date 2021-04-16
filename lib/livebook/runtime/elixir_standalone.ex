@@ -31,13 +31,13 @@ defmodule Livebook.Runtime.ElixirStandalone do
   @spec init() :: {:ok, t()} | {:error, String.t()}
   def init() do
     parent_node = node()
-    child_node = random_node_name()
-    parent_process_name = random_process_name()
+    child_node = child_node_name(parent_node)
 
-    Utils.temporarily_register(self(), parent_process_name, fn ->
+    Utils.temporarily_register(self(), child_node, fn ->
+      argv = [parent_node]
+
       with {:ok, elixir_path} <- find_elixir_executable(),
-           eval <- child_node_ast(parent_node, parent_process_name) |> Macro.to_string(),
-           port <- start_elixir_node(elixir_path, child_node, eval),
+           port = start_elixir_node(elixir_path, child_node, child_node_eval_string(), argv),
            {:ok, primary_pid} <- parent_init_sequence(child_node, port) do
         runtime = %__MODULE__{
           node: child_node,
@@ -52,13 +52,12 @@ defmodule Livebook.Runtime.ElixirStandalone do
     end)
   end
 
-  defp start_elixir_node(elixir_path, node_name, eval) do
+  defp start_elixir_node(elixir_path, node_name, eval, argv) do
     # Here we create a port to start the system process in a non-blocking way.
     Port.open({:spawn_executable, elixir_path}, [
       :binary,
-      :nouse_stdio,
       :hide,
-      args: elixir_flags(node_name) ++ ["--eval", eval]
+      args: elixir_flags(node_name) ++ ["--eval", eval, "--" | Enum.map(argv, &to_string/1)]
     ])
   end
 end
