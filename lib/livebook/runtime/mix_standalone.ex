@@ -54,7 +54,7 @@ defmodule Livebook.Runtime.MixStandalone do
         with {:ok, elixir_path} <- find_elixir_executable(),
              :ok <- run_mix_task("deps.get", project_path, output_emitter),
              :ok <- run_mix_task("compile", project_path, output_emitter),
-             eval = Macro.to_string(child_node_ast()),
+             eval = child_node_eval_string(),
              port = start_elixir_mix_node(elixir_path, child_node, eval, argv, project_path),
              {:ok, primary_pid} <- parent_init_sequence(child_node, port, output_emitter) do
           runtime = %__MODULE__{

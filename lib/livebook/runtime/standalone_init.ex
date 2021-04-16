@@ -111,6 +111,29 @@ defmodule Livebook.Runtime.StandaloneInit do
     loop.(loop)
   end
 
+  # This is the primary process, so as soon as it finishes, the runtime terminates.
+  #
+  # Note Windows does not handle escaped quotes the same way as Unix, so this AST
+  # cannot have constructs that are strings. That's why we pass the parent node name
+  # as ARGV. The parent process name is assumed to be the same as the child node name.
+  # We also can't have new lines.
+  @child_node_eval_string """
+  [parent_node] = System.argv();\
+  init_ref = make_ref();\
+  parent_process = {node(), String.to_atom(parent_node)};\
+  send(parent_process, {:node_started, init_ref, node(), self()});\
+  receive do {:node_initialized, ^init_ref} ->\
+    manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager);\
+    receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
+  after 10_000 ->\
+    :timeout;\
+  end\
+  """
+
+  if @child_node_eval_string =~ "\n" do
+    raise "invalid @child_node_eval_string, newline found: #{inspect(@child_node_eval_string)}"
+  end
+
   @doc """
   Performs the child side of the initialization contract.
 
@@ -118,30 +141,5 @@ defmodule Livebook.Runtime.StandaloneInit do
   process on the newly spawned child node. The executed code expects
   the parent_node and parent_process_name on ARGV.
   """
-  def child_node_ast() do
-    # This is the primary process, so as soon as it finishes, the runtime terminates.
-    #
-    # Note Windows does not handle escaped quotes the same way as Unix, so this AST
-    # cannot have constructs that are strings. That's why we pass the parent node name
-    # as ARGV. The parent process name is assumed to be the same as the child node name.
-    quote do
-      [parent_node] = System.argv()
-
-      init_ref = make_ref()
-      parent_process = {node(), String.to_atom(parent_node)}
-      send(parent_process, {:node_started, init_ref, node(), self()})
-
-      receive do
-        {:node_initialized, ^init_ref} ->
-          manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager)
-
-          # Wait until the Manager process terminates.
-          receive do
-            {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok
-          end
-      after
-        10_000 -> :timeout
-      end
-    end
-  end
+  def child_node_eval_string(), do: @child_node_eval_string
 end
