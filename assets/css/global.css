@@ -23,3 +23,11 @@ body {
   border-top-color: #3e64ff;
   border-left-color: #3e64ff;
 }
+
+/* Monaco overrides */
+
+/* Add some spacing to code snippets in completion suggestions */
+div.suggest-details-container div.monaco-tokenized-source {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}

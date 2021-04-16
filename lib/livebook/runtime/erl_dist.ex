@@ -21,6 +21,7 @@ defmodule Livebook.Runtime.ErlDist do
     Livebook.Evaluator,
     Livebook.Evaluator.IOProxy,
     Livebook.Evaluator.StringFormatter,
+    Livebook.Completion,
     Livebook.Runtime.ErlDist,
     Livebook.Runtime.ErlDist.Manager,
     Livebook.Runtime.ErlDist.EvaluatorSupervisor,

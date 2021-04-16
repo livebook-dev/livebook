@@ -139,7 +139,7 @@ defmodule Livebook.EvaluatorTest do
       """
 
       opts = [file: "/path/dir/file"]
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, :initial, opts)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, opts)
 
       assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"}}
     end

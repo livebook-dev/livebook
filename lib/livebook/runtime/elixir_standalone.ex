@@ -79,7 +79,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
         code,
         container_ref,
         evaluation_ref,
-        prev_evaluation_ref \\ :initial,
+        prev_evaluation_ref,
         opts \\ []
       ) do
     ErlDist.Manager.evaluate_code(
@@ -98,5 +98,16 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
 
   def drop_container(runtime, container_ref) do
     ErlDist.Manager.drop_container(runtime.node, container_ref)
+  end
+
+  def request_completion_items(runtime, send_to, ref, hint, container_ref, evaluation_ref) do
+    ErlDist.Manager.request_completion_items(
+      runtime.node,
+      send_to,
+      ref,
+      hint,
+      container_ref,
+      evaluation_ref
+    )
   end
 end

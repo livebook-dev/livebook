@@ -32,7 +32,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
     test "spawns a new evaluator when necessary" do
       Manager.start()
       Manager.set_owner(node(), self())
-      Manager.evaluate_code(node(), "1 + 1", :container1, :evaluation1)
+      Manager.evaluate_code(node(), "1 + 1", :container1, :evaluation1, nil)
 
       assert_receive {:evaluation_response, :evaluation1, _}
 
@@ -45,8 +45,8 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
 
       stderr =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation1)
-          Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation2)
+          Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation1, nil)
+          Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation2, nil)
 
           assert_receive {:evaluation_response, :evaluation1, _}
           assert_receive {:evaluation_response, :evaluation2, _}
@@ -61,7 +61,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
       Manager.start()
       Manager.set_owner(node(), self())
 
-      Manager.evaluate_code(node(), ~s{IO.puts(:stderr, "error")}, :container1, :evaluation1)
+      Manager.evaluate_code(node(), ~s{IO.puts(:stderr, "error")}, :container1, :evaluation1, nil)
 
       assert_receive {:evaluation_stdout, :evaluation1, "error\n"}
 
@@ -78,7 +78,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
     spawn_link(fn -> raise "sad cat" end)
     """
 
-    Manager.evaluate_code(node(), code, :container1, :evaluation1)
+    Manager.evaluate_code(node(), code, :container1, :evaluation1, nil)
 
     assert_receive {:container_down, :container1, message}
     assert message =~ "sad cat"
