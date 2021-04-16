@@ -128,14 +128,20 @@ defmodule Livebook.Runtime.StandaloneInit do
   Performs the child side of the initialization contract.
 
   This function returns AST that should be evaluated in primary
-  process on the newly spawned child node.
+  process on the newly spawned child node. The executed code expects
+  the parent_node and parent_process_name on ARGV.
   """
-  def child_node_ast(parent_node, parent_process_name) do
+  def child_node_ast() do
     # This is the primary process, so as soon as it finishes, the runtime terminates.
+    #
+    # Note Windows does not handle escaped quotes the same way as Unix, so this AST
+    # cannot have constructs that are strings. That's why we pass the parent node name
+    # as ARGV. The parent process name is assumed to be the same as the child node name.
     quote do
-      # Initiate communication with the parent process (on the parent node).
+      [parent_node] = System.argv()
+
       init_ref = make_ref()
-      parent_process = {unquote(parent_process_name), unquote(parent_node)}
+      parent_process = {node(), String.to_atom(parent_node)}
       send(parent_process, {:node_started, init_ref, node(), self()})
 
       receive do
