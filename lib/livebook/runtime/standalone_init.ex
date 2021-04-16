@@ -36,7 +36,7 @@ defmodule Livebook.Runtime.StandaloneInit do
       if(Livebook.Config.shortnames?(), do: "--sname", else: "--name"),
       to_string(node_name),
       "--erl",
-      # Minimize shedulers busy wait threshold,
+      # Minimize schedulers busy wait threshold,
       # so that they go to sleep immediately after evaluation.
       # Enable ANSI escape codes as we handle them with HTML.
       "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true",
