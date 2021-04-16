@@ -33,7 +33,7 @@ defmodule Livebook.Evaluator do
   @type ref :: term()
 
   @typedoc """
-  Either {:ok, result} for successfull evaluation
+  Either {:ok, result} for successful evaluation
   or {:error, kind, error, stacktrace} for a failed one.
   """
   @type evaluation_response ::
