@@ -121,7 +121,7 @@ defmodule LivebookWeb.PathSelectComponent do
         end)
 
       file_infos =
-        if dir == "/" do
+        if Path.dirname(dir) == dir do
           file_infos
         else
           parent_dir = file_info(dir, "..", basename, running_paths)
