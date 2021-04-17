@@ -92,7 +92,7 @@ defmodule Livebook.Evaluator do
   as `{:completion_response, ref, items}`.
   """
   @spec request_completion_items(t(), pid(), term(), String.t(), ref() | nil) :: :ok
-  def request_completion_items(evaluator, send_to, ref, hint, evaluation_ref) do
+  def request_completion_items(evaluator, send_to, ref, hint, evaluation_ref \\ nil) do
     GenServer.cast(evaluator, {:request_completion_items, send_to, ref, hint, evaluation_ref})
   end
 

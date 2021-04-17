@@ -188,6 +188,45 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "completion" do
+    test "replies with nil completion reference when no runtime is started",
+         %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      view
+      |> element("#session")
+      |> render_hook("completion_request", %{"cell_id" => cell_id, "hint" => "System.ver"})
+
+      assert_reply view, %{"completion_ref" => nil}
+    end
+
+    test "replies with completion reference and then sends asynchronous response",
+         %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
+
+      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
+      Session.connect_runtime(session_id, runtime)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      view
+      |> element("#session")
+      |> render_hook("completion_request", %{"cell_id" => cell_id, "hint" => "System.ver"})
+
+      assert_reply view, %{"completion_ref" => ref}
+      assert ref != nil
+
+      assert_push_event(view, "completion_response", %{
+        "completion_ref" => ^ref,
+        "items" => [%{label: "version/0"}]
+      })
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_id) do

@@ -4,7 +4,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @shortcuts %{
     insert_mode: [
       %{seq: ["esc"], desc: "Switch back to navigation mode"},
-      %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"}
+      %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"},
+      %{seq: ["ctrl", "␣"], desc: "Show completion list, use twice for details"}
     ],
     navigation_mode: [
       %{seq: ["?"], desc: "Open this help modal"},

@@ -69,6 +69,31 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
     end
   end
 
+  describe "request_completion_items/6" do
+    test "provides basic completion when no evaluation reference is given" do
+      Manager.start()
+      Manager.set_owner(node(), self())
+
+      Manager.request_completion_items(node(), self(), :comp_ref, "System.ver", nil, nil)
+      assert_receive {:completion_response, :comp_ref, [%{label: "version/0"}]}
+
+      Manager.stop(node())
+    end
+
+    test "provides extended completion when previous evaluation reference is given" do
+      Manager.start()
+      Manager.set_owner(node(), self())
+
+      Manager.evaluate_code(node(), "number = 10", :c1, :e1, nil)
+      assert_receive {:evaluation_response, :e1, _}
+
+      Manager.request_completion_items(node(), self(), :comp_ref, "num", :c1, :e1)
+      assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}
+
+      Manager.stop(node())
+    end
+  end
+
   @tag capture_log: true
   test "notifies the owner when an evaluator goes down" do
     Manager.start()

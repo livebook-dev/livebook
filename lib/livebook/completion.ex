@@ -10,15 +10,16 @@ defmodule Livebook.Completion do
 
   @type completion_item :: Livebook.Runtime.completion_item()
 
+  # Configures width used for inspect and specs formatting.
   @line_length 30
 
   @doc """
   Returns a list of completion suggestions for the given `hint`.
 
-  Uses evaluation binding and environment to expand aliases, imports,
-  complete nested maps, etc.
+  Uses evaluation binding and environment to expand aliases,
+  imports, nested maps, etc.
 
-  `hint` may be a single token or longer line fragment like `if Enum.m`.
+  `hint` may be a single token or line fragment like `if Enum.m`.
   """
   @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t()) :: list(completion_item())
   def get_completion_items(hint, binding, env) do
@@ -64,7 +65,25 @@ defmodule Livebook.Completion do
   end
 
   defp identifier?(h) do
-    h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h in [?_, ??, ?!]
+    h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h in '_?!'
+  end
+
+  defp reduce(expr) do
+    [token | _] = :string.lexemes(expr, ' ([{,')
+
+    token
+    |> Enum.reverse()
+    |> trim_leading(?&)
+    |> trim_leading(?%)
+    |> trim_leading(?!)
+    |> trim_leading(?^)
+  end
+
+  defp trim_leading([char | rest], char), do: rest
+  defp trim_leading(expr, _char), do: expr
+
+  defp no do
+    []
   end
 
   defp expand_dot(expr, ctx) do
@@ -107,24 +126,6 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp reduce(expr) do
-    [token | _] = :string.lexemes(expr, ' ([{,')
-
-    token
-    |> Enum.reverse()
-    |> trim_leading(?&)
-    |> trim_leading(?%)
-    |> trim_leading(?!)
-    |> trim_leading(?^)
-  end
-
-  defp trim_leading([char | rest], char), do: rest
-  defp trim_leading(expr, _char), do: expr
-
-  defp no do
-    []
-  end
-
   ## Expand calls
 
   # :atom.fun
@@ -164,7 +165,7 @@ defmodule Livebook.Completion do
           documentation: """
           ```
           #{inspect(value, pretty: true, width: @line_length)}
-          ```
+          ```\
           """,
           insert_text: key
         }
@@ -198,7 +199,7 @@ defmodule Livebook.Completion do
         documentation: """
         ```
         #{inspect(value, pretty: true, width: @line_length)}
-        ```
+        ```\
         """,
         insert_text: name
       }
@@ -351,6 +352,7 @@ defmodule Livebook.Completion do
 
   defp expand_module_funs(mod, hint, funs \\ nil) do
     if ensure_loaded?(mod) do
+      # TODO: support Erlang docs (and consequently signatures)
       docs = get_docs(mod, [:function, :macro]) || []
       specs = get_specs(mod) || []
       funs = funs || exports(mod)
@@ -374,8 +376,8 @@ defmodule Livebook.Completion do
           label: "#{name}/#{arity}",
           kind: :function,
           detail: signatures,
-          documentation: docstr <> "\n\n" <> spec,
-          insert_text: name
+          documentation: [docstr, spec] |> Enum.reject(&is_nil/1) |> Enum.join("\n\n"),
+          insert_text: Atom.to_string(name)
         }
       end)
     else
@@ -423,7 +425,7 @@ defmodule Livebook.Completion do
   defp doc_content({_, _, _, %{"en" => docstr}, _}), do: docstr
   defp doc_content(_), do: nil
 
-  defp format_signatures([], _mod), do: ""
+  defp format_signatures([], _mod), do: nil
 
   defp format_signatures(signatures, mod) do
     prefix = mod_to_prefix(mod)
@@ -437,14 +439,16 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp format_doc_content(nil), do: ""
+  defp format_doc_content(nil), do: nil
 
   defp format_doc_content(docstr) do
-    [leading | _] = String.split(docstr, "\n\n")
-    leading
+    docstr
+    |> String.split("\n\n")
+    |> hd()
+    |> String.trim()
   end
 
-  defp format_spec(nil), do: ""
+  defp format_spec(nil), do: nil
 
   defp format_spec({{name, _arity}, spec_ast_list}) do
     spec_lines =
@@ -488,7 +492,7 @@ defmodule Livebook.Completion do
         kind: :type,
         detail: "typespec",
         documentation: docstr,
-        insert_text: name
+        insert_text: Atom.to_string(name)
       }
     end)
   end
@@ -523,7 +527,7 @@ defmodule Livebook.Completion do
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
-  ## Evaluator interface
+  ## Context helpers
 
   defp imports_from_env(ctx) do
     ctx.env.functions ++ ctx.env.macros
@@ -553,15 +557,6 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp traverse_binding(binding, var_name, map_key_path) do
-    accumulator = Keyword.fetch(binding, var_name)
-
-    Enum.reduce(map_key_path, accumulator, fn
-      key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
-      _key, _acc -> :error
-    end)
-  end
-
   defp extract_from_ast(var_name, acc) when is_atom(var_name) do
     {var_name, acc}
   end
@@ -576,5 +571,14 @@ defmodule Livebook.Completion do
 
   defp extract_from_ast(_ast_node, _acc) do
     :error
+  end
+
+  defp traverse_binding(binding, var_name, map_key_path) do
+    accumulator = Keyword.fetch(binding, var_name)
+
+    Enum.reduce(map_key_path, accumulator, fn
+      key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
+      _key, _acc -> :error
+    end)
   end
 end
