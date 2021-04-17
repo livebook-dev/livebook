@@ -162,7 +162,7 @@ defmodule LivebookWeb.PathSelectComponent do
     if String.ends_with?(path, "/") do
       {path, ""}
     else
-      {Path.dirname(path), Path.basename(path)}
+      {ensure_trailing_slash(Path.dirname(path)), Path.basename(path)}
     end
   end
 
