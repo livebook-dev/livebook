@@ -417,7 +417,7 @@ defmodule Livebook.Completion do
 
   defp get_docs(mod, kinds) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, _, _, _, docs} ->
+      {:docs_v1, _, _, "text/markdown", _, _, docs} ->
         for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
 
       {:error, _} ->
@@ -427,7 +427,7 @@ defmodule Livebook.Completion do
 
   defp get_module_doc_content(mod) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, _, %{"en" => docstring}, _, _} ->
+      {:docs_v1, _, _, "text/markdown", %{"en" => docstring}, _, _} ->
         docstring
 
       _ ->
