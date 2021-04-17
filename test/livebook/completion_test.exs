@@ -631,7 +631,7 @@ defmodule Livebook.CompletionTest do
     {binding, env} =
       eval do
         import Enum
-        import Supervisor, only: [count_children: 1]
+        import System, only: [version: 0]
         import Protocol
       end
 
@@ -642,13 +642,19 @@ defmodule Livebook.CompletionTest do
              %{label: "take_while/2"}
            ] = Completion.get_completion_items("take", binding, env)
 
-    assert [
-             %{label: "count/1"},
-             %{label: "count/2"},
-             %{label: "count_children/1"},
-             %{label: "count_until/2"},
-             %{label: "count_until/3"}
-           ] = Completion.get_completion_items("count", binding, env)
+    assert %{
+             label: "version/0",
+             kind: :function,
+             detail: "System.version()",
+             documentation: """
+             Elixir version information.
+
+             ```
+             @spec version() :: String.t()
+             ```\
+             """,
+             insert_text: "version"
+           } in Completion.get_completion_items("v", binding, env)
 
     assert [
              %{label: "derive/2"},
