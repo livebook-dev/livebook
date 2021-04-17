@@ -84,13 +84,15 @@ class LiveEditor {
       },
       overviewRulerLanes: 0,
       scrollBeyondLastLine: false,
-      quickSuggestions: false,
       renderIndentGuides: false,
       occurrencesHighlight: false,
       renderLineHighlight: "none",
       theme: "custom",
       fontFamily: "JetBrains Mono",
       tabIndex: -1,
+      quickSuggestions: false,
+      tabCompletion: "on",
+      suggestSelection: "first",
     });
 
     this.editor.getModel().updateOptions({
@@ -198,7 +200,7 @@ function parseItem(item) {
     label: item.label,
     kind: parseItemKind(item.kind),
     detail: item.detail,
-    documentation: {
+    documentation: item.documentation && {
       value: item.documentation,
       isTrusted: true,
     },

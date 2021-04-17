@@ -26,7 +26,7 @@ defmodule Livebook.Completion do
     expr = hint |> String.to_charlist() |> Enum.reverse()
 
     expr
-    |> expand(%{binding: binding, env: env})
+    |> completion_entrypoint(%{binding: binding, env: env})
     |> Enum.sort_by(&completion_item_priority/1)
   end
 
@@ -34,30 +34,33 @@ defmodule Livebook.Completion do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
 
-  defp completion_item_kind_priority(kind) do
-    Enum.find_index([:variable, :module, :function, :type], &(&1 == kind))
+  @ordered_kinds [:variable, :module, :function, :type]
+
+  defp completion_item_kind_priority(kind) when kind in @ordered_kinds do
+    Enum.find_index(@ordered_kinds, &(&1 == kind))
   end
 
-  defp expand([], ctx) do
-    expand_variable_or_import("", ctx)
+  # Takes hint as a reversed charlist
+  defp completion_entrypoint([], ctx) do
+    complete_variable_or_import("", ctx)
   end
 
-  defp expand([h | t] = expr, ctx) do
+  defp completion_entrypoint([h | t] = expr, ctx) do
     cond do
       h == ?. and t != [] ->
-        expand_dot(reduce(t), ctx)
+        complete_dot(reduce(t), ctx)
 
       h == ?: and t == [] ->
-        expand_erlang_modules("")
+        complete_erlang_module("")
 
       identifier?(h) ->
-        expand_expr(reduce(expr), ctx)
+        complete_expr(reduce(expr), ctx)
 
       h == ?/ and t != [] and identifier?(hd(t)) ->
-        expand_expr(reduce(t), ctx)
+        complete_expr(reduce(t), ctx)
 
       h in ' ([{,' ->
-        expand('', ctx)
+        completion_entrypoint([], ctx)
 
       true ->
         no()
@@ -68,6 +71,11 @@ defmodule Livebook.Completion do
     h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h in '_?!'
   end
 
+  # Given reversed expression, extracts the relevent token for completion.
+  #
+  #     iex> 'if(true, do: Enum.ma' |> Enum.reverse() |> reduce()
+  #     "Enum.ma"
+  #
   defp reduce(expr) do
     [token | _] = :string.lexemes(expr, ' ([{,')
 
@@ -77,6 +85,7 @@ defmodule Livebook.Completion do
     |> trim_leading(?%)
     |> trim_leading(?!)
     |> trim_leading(?^)
+    |> to_string()
   end
 
   defp trim_leading([char | rest], char), do: rest
@@ -86,40 +95,40 @@ defmodule Livebook.Completion do
     []
   end
 
-  defp expand_dot(expr, ctx) do
+  defp complete_dot(expr, ctx) do
     case Code.string_to_quoted(expr) do
       {:ok, atom} when is_atom(atom) ->
-        expand_call(atom, "", ctx)
+        complete_call(atom, "", ctx)
 
       {:ok, {:__aliases__, _, list}} ->
-        expand_elixir_modules(list, "", ctx)
+        complete_elixir_module(list, "", ctx)
 
       {:ok, {_, _, _} = ast_node} ->
-        expand_call(ast_node, "", ctx)
+        complete_call(ast_node, "", ctx)
 
       _ ->
         no()
     end
   end
 
-  defp expand_expr(expr, ctx) do
+  defp complete_expr(expr, ctx) do
     case Code.string_to_quoted(expr) do
       {:ok, atom} when is_atom(atom) ->
-        expand_erlang_modules(Atom.to_string(atom))
+        complete_erlang_module(Atom.to_string(atom))
 
       {:ok, {atom, _, nil}} when is_atom(atom) ->
-        expand_variable_or_import(Atom.to_string(atom), ctx)
+        complete_variable_or_import(Atom.to_string(atom), ctx)
 
       {:ok, {:__aliases__, _, [root]}} ->
-        expand_elixir_modules([], Atom.to_string(root), ctx)
+        complete_elixir_module([], Atom.to_string(root), ctx)
 
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
-        expand_elixir_modules(list, hint, ctx)
+        complete_elixir_module(list, hint, ctx)
 
       {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
-        expand_call(ast_node, Atom.to_string(fun), ctx)
+        complete_call(ast_node, Atom.to_string(fun), ctx)
 
       _ ->
         no()
@@ -128,118 +137,116 @@ defmodule Livebook.Completion do
 
   ## Expand calls
 
+  # `complete_call` takes ast node as the first argument
+  # and `hint` being the actual call
+
   # :atom.fun
-  defp expand_call(mod, hint, _ctx) when is_atom(mod) do
-    expand_require(mod, hint)
+  defp complete_call(mod, hint, _ctx) when is_atom(mod) do
+    complete_module_call(mod, hint)
   end
 
   # Elixir.fun
-  defp expand_call({:__aliases__, _, list}, hint, ctx) do
+  defp complete_call({:__aliases__, _, list}, hint, ctx) do
     case expand_alias(list, ctx) do
-      {:ok, alias} -> expand_require(alias, hint)
+      {:ok, alias} -> complete_module_call(alias, hint)
       :error -> no()
     end
   end
 
   # # variable.fun_or_key
-  defp expand_call({_, _, _} = ast_node, hint, ctx) do
-    case value_from_binding(ast_node, ctx) do
-      {:ok, mod} when is_atom(mod) -> expand_call(mod, hint, ctx)
-      {:ok, map} when is_map(map) -> match_map_fields(map, hint)
+  defp complete_call({_, _, _} = ast_node, hint, ctx) do
+    case value_from_binding(ast_node, ctx.binding) do
+      {:ok, mod} when is_atom(mod) -> complete_call(mod, hint, ctx)
+      {:ok, map} when is_map(map) -> complete_map_field(map, hint)
       _otherwise -> no()
     end
   end
 
-  defp expand_call(_, _, _) do
+  defp complete_call(_, _, _) do
     no()
   end
 
-  defp match_map_fields(map, hint) do
-    for {key, value} when is_atom(key) <- Map.to_list(map),
-        key = Atom.to_string(key),
-        String.starts_with?(key, hint),
-        do: %{
-          label: key,
-          kind: :variable,
-          detail: "variable",
-          documentation: """
-          ```
-          #{inspect(value, pretty: true, width: @line_length)}
-          ```\
-          """,
-          insert_text: key
-        }
+  defp complete_module_call(mod, hint) do
+    complete_module_function(mod, hint) ++ complete_module_type(mod, hint)
   end
 
-  defp expand_require(mod, hint) do
-    expand_module_funs(mod, hint) ++ expand_module_types(mod, hint)
-  end
-
-  defp expand_variable_or_import(hint, ctx) do
-    variables = expand_variable(hint, ctx)
+  defp complete_variable_or_import(hint, ctx) do
+    variables = complete_variable(hint, ctx)
 
     imports =
       imports_from_env(ctx)
       |> Enum.flat_map(fn {mod, funs} ->
-        expand_module_funs(mod, hint, funs)
+        complete_module_function(mod, hint, funs)
       end)
 
-    module_funs = expand_module_funs(Kernel.SpecialForms, hint)
+    special_forms_funs = complete_module_function(Kernel.SpecialForms, hint)
 
-    variables ++ imports ++ module_funs
+    variables ++ imports ++ special_forms_funs
   end
 
-  defp expand_variable(hint, ctx) do
-    variables_from_binding(hint, ctx)
-    |> Enum.map(fn {name, value} ->
-      %{
-        label: name,
-        kind: :variable,
-        detail: "variable",
-        documentation: """
-        ```
-        #{inspect(value, pretty: true, width: @line_length)}
-        ```\
-        """,
-        insert_text: name
-      }
-    end)
+  defp complete_variable(hint, ctx) do
+    complete_key_value(ctx.binding, hint)
+  end
+
+  defp complete_map_field(map, hint) do
+    # Note: we need Map.to_list/1 in case this is a struct
+    complete_key_value(Map.to_list(map), hint)
+  end
+
+  defp complete_key_value(list, hint) do
+    for {key, value} <- list,
+        is_atom(key),
+        name = Atom.to_string(key),
+        String.starts_with?(name, hint),
+        do: %{
+          label: name,
+          kind: :variable,
+          detail: "variable",
+          documentation: value_docstr(value),
+          insert_text: name
+        }
+  end
+
+  defp value_docstr(value) do
+    """
+    ```
+    #{inspect(value, pretty: true, width: @line_length)}
+    ```\
+    """
   end
 
   ## Erlang modules
 
-  defp expand_erlang_modules(hint) do
-    for mod <- match_modules(hint, true), usable_as_unquoted_module?(mod) do
+  defp complete_erlang_module(hint) do
+    for mod <- get_matching_modules(hint),
+        usable_as_unquoted_module?(mod),
+        name = Atom.to_string(mod) do
       %{
-        label: mod,
+        label: name,
         kind: :module,
         detail: "module",
         # TODO: support Erlang docs
         documentation: nil,
-        insert_text: mod
+        insert_text: name
       }
     end
   end
 
   ## Elixir modules
 
-  defp expand_elixir_modules([], hint, ctx) do
-    aliases = match_aliases(hint, ctx)
-    expand_elixir_modules_from_aliases(Elixir, hint, aliases)
+  defp complete_elixir_module([], hint, ctx) do
+    complete_alias(hint, ctx) ++ complete_module_submodule(nil, hint)
   end
 
-  defp expand_elixir_modules(list, hint, ctx) do
+  defp complete_elixir_module(list, hint, ctx) do
     case expand_alias(list, ctx) do
-      {:ok, alias} -> expand_elixir_modules_from_aliases(alias, hint, [])
+      {:ok, mod} -> complete_module_dot(mod, hint)
       :error -> no()
     end
   end
 
-  defp expand_elixir_modules_from_aliases(mod, hint, aliases) do
-    aliases
-    |> Kernel.++(match_elixir_modules(mod, hint))
-    |> Kernel.++(expand_module_funs(mod, hint))
-    |> Kernel.++(expand_module_types(mod, hint))
+  defp complete_module_dot(mod, hint) do
+    complete_module_submodule(mod, hint) ++ complete_module_call(mod, hint)
   end
 
   defp expand_alias([name | rest], ctx) when is_atom(name) do
@@ -254,7 +261,7 @@ defmodule Livebook.Completion do
     :error
   end
 
-  defp match_aliases(hint, ctx) do
+  defp complete_alias(hint, ctx) do
     for {alias, mod} <- aliases_from_env(ctx),
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
@@ -268,23 +275,45 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp match_elixir_modules(module, hint) do
-    name = Atom.to_string(module)
-    depth = length(String.split(name, ".")) + 1
-    base = name <> "." <> hint
+  defp complete_module_submodule(nil, hint) do
+    items = complete_module_submodule(Elixir, hint)
 
-    for mod <- match_modules(base, module == Elixir),
-        parts = String.split(mod, "."),
-        depth <= length(parts),
+    # `Elixir` is not a existing module name, but `Elixir.Enum`,
+    # so if the user type `Eli` the completion should include `Elixir`.
+    if String.starts_with?("Elixir", hint) do
+      [
+        %{
+          label: "Elixir",
+          kind: :module,
+          detail: "module",
+          documentation: nil,
+          insert_text: "Elixir"
+        }
+        | items
+      ]
+    else
+      items
+    end
+  end
+
+  defp complete_module_submodule(mod, hint) do
+    # Note `mod` may be `Elixir`, even though it's not a valid module
+
+    match_prefix = "#{mod}.#{hint}"
+    depth = match_prefix |> Module.split() |> length()
+
+    for mod <- get_matching_modules(match_prefix),
+        parts = Module.split(mod),
+        length(parts) >= depth,
         name = Enum.at(parts, depth - 1),
         valid_alias_piece?("." <> name),
-        concatted = parts |> Enum.take(depth) |> Module.concat(),
+        mod = parts |> Enum.take(depth) |> Module.concat(),
         uniq: true,
         do: %{
           label: name,
           kind: :module,
           detail: "module",
-          documentation: concatted |> get_module_doc_content() |> format_doc_content(),
+          documentation: mod |> get_module_doc_content() |> format_doc_content(),
           insert_text: name
         }
   end
@@ -304,28 +333,18 @@ defmodule Livebook.Completion do
   defp valid_alias_rest?(<<>>), do: true
   defp valid_alias_rest?(rest), do: valid_alias_piece?(rest)
 
-  ## Helpers
-
-  defp usable_as_unquoted_module?(name) do
-    # Conversion to atom is not a problem because
-    # it is only called with existing modules names.
-    Code.Identifier.classify(String.to_atom(name)) != :other
+  defp usable_as_unquoted_module?(mod) do
+    Code.Identifier.classify(mod) != :other
   end
 
-  defp match_modules(hint, root) do
-    get_modules(root)
-    |> Enum.sort()
-    |> Enum.dedup()
-    |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
-    |> Enum.take_while(&String.starts_with?(&1, hint))
+  defp get_matching_modules(hint) do
+    get_modules()
+    |> Enum.filter(&String.starts_with?(Atom.to_string(&1), hint))
+    |> Enum.uniq()
   end
 
-  defp get_modules(true) do
-    ["Elixir.Elixir"] ++ get_modules(false)
-  end
-
-  defp get_modules(false) do
-    modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+  defp get_modules() do
+    modules = Enum.map(:code.all_loaded(), &elem(&1, 0))
 
     case :code.get_mode() do
       :interactive -> modules ++ get_modules_from_applications()
@@ -336,9 +355,8 @@ defmodule Livebook.Completion do
   defp get_modules_from_applications do
     for [app] <- loaded_applications(),
         {:ok, modules} = :application.get_key(app, :modules),
-        module <- modules do
-      Atom.to_string(module)
-    end
+        module <- modules,
+        do: module
   end
 
   defp loaded_applications do
@@ -350,11 +368,11 @@ defmodule Livebook.Completion do
     :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
   end
 
-  defp expand_module_funs(mod, hint, funs \\ nil) do
+  defp complete_module_function(mod, hint, funs \\ nil) do
     if ensure_loaded?(mod) do
       # TODO: support Erlang docs (and consequently signatures)
-      docs = get_docs(mod, [:function, :macro]) || []
-      specs = get_specs(mod) || []
+      docs = get_docs(mod, [:function, :macro])
+      specs = get_specs(mod)
       funs = funs || exports(mod)
       funs_with_base_arity = funs_with_base_arity(docs)
 
@@ -376,7 +394,7 @@ defmodule Livebook.Completion do
           label: "#{name}/#{arity}",
           kind: :function,
           detail: signatures,
-          documentation: [docstr, spec] |> Enum.reject(&is_nil/1) |> Enum.join("\n\n"),
+          documentation: doc_join([docstr, spec]),
           insert_text: Atom.to_string(name)
         }
       end)
@@ -385,6 +403,9 @@ defmodule Livebook.Completion do
     end
   end
 
+  # If a function has default arguments it generates less-arity functions,
+  # but they have the same docs/specs as the original function.
+  # Here we build a map that given function {name, arity} returns its base arity.
   defp funs_with_base_arity(docs) do
     for {{_, fun_name, arity}, _, _, _, metadata} <- docs,
         count = Map.get(metadata, :defaults, 0),
@@ -400,6 +421,16 @@ defmodule Livebook.Completion do
         for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
 
       {:error, _} ->
+        []
+    end
+  end
+
+  defp get_module_doc_content(mod) do
+    case Code.fetch_docs(mod) do
+      {:docs_v1, _, _, _, %{"en" => docstring}, _, _} ->
+        docstring
+
+      _ ->
         nil
     end
   end
@@ -411,7 +442,7 @@ defmodule Livebook.Completion do
   defp get_specs(mod) do
     case Code.Typespec.fetch_specs(mod) do
       {:ok, specs} -> specs
-      :error -> nil
+      :error -> []
     end
   end
 
@@ -442,10 +473,18 @@ defmodule Livebook.Completion do
   defp format_doc_content(nil), do: nil
 
   defp format_doc_content(docstr) do
+    # Extract just the first paragraph
     docstr
     |> String.split("\n\n")
     |> hd()
     |> String.trim()
+  end
+
+  defp doc_join(list) do
+    case Enum.reject(list, &is_nil/1) do
+      [] -> nil
+      parts -> Enum.join(parts, "\n\n")
+    end
   end
 
   defp format_spec(nil), do: nil
@@ -474,8 +513,8 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp expand_module_types(mod, hint) do
-    docs = get_docs(mod, [:type]) || []
+  defp complete_module_type(mod, hint) do
+    docs = get_docs(mod, [:type])
     types = get_module_types(mod)
 
     types
@@ -514,16 +553,6 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp get_module_doc_content(mod) do
-    case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, _, %{"en" => docstring}, _, _} ->
-        docstring
-
-      _ ->
-        nil
-    end
-  end
-
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
@@ -537,21 +566,9 @@ defmodule Livebook.Completion do
     ctx.env.aliases
   end
 
-  defp variables_from_binding(hint, ctx) do
-    find_matched_variables(ctx.binding, hint)
-  end
-
-  defp find_matched_variables(binding, var_prefix) do
-    for {var_name, value} <- binding,
-        is_atom(var_name),
-        var_name = Atom.to_string(var_name),
-        String.starts_with?(var_name, var_prefix),
-        do: {var_name, value}
-  end
-
-  defp value_from_binding(ast_node, ctx) do
+  defp value_from_binding(ast_node, binding) do
     with {var, map_key_path} <- extract_from_ast(ast_node, []) do
-      traverse_binding(ctx.binding, var, map_key_path)
+      traverse_binding(binding, var, map_key_path)
     else
       _ -> :error
     end
