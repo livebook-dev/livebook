@@ -420,7 +420,7 @@ defmodule Livebook.Completion do
       {:docs_v1, _, _, "text/markdown", _, _, docs} ->
         for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
 
-      {:error, _} ->
+      _ ->
         []
     end
   end
