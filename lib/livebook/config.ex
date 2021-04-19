@@ -28,13 +28,35 @@ defmodule Livebook.Config do
   """
   @spec root_path() :: binary()
   def root_path() do
-    Application.get_env(:livebook, :root_path, File.cwd!())
+    Application.fetch_env!(:livebook, :root_path)
   end
 
   ## Parsing
 
   @doc """
-  Parses a long secret.
+  Sets the root path from env.
+  """
+  def root_path!(env) do
+    if root_path = System.get_env(env) do
+      root_path!("LIVEBOOK_ROOT_PATH", root_path)
+    else
+      File.cwd!()
+    end
+  end
+
+  @doc """
+  Validates `root_path` within context.
+  """
+  def root_path!(context, root_path) do
+    if File.dir?(root_path) do
+      root_path
+    else
+      IO.warn("ignoring #{context} because it doesn't point to a directory: #{root_path}")
+    end
+  end
+
+  @doc """
+  Sets the secret from env.
   """
   def secret!(env) do
     if secret_key_base = System.get_env(env) do
@@ -50,7 +72,7 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses a port.
+  Sets the port from env.
   """
   def port!(env) do
     if port = System.get_env(env) do
@@ -62,7 +84,7 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Parses a password.
+  Sets the password from env.
   """
   def password!(env) do
     if password = System.get_env(env) do
