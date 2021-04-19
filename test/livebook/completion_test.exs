@@ -23,6 +23,28 @@ defmodule Livebook.CompletionTest do
 
   alias Livebook.Completion
 
+  test "completion when no hint given" do
+    {binding, env} = eval(do: nil)
+
+    length_item = %{
+      label: "length/1",
+      kind: :function,
+      detail: "Kernel.length(list)",
+      documentation: """
+      Returns the length of `list`.
+
+      ```
+      @spec length(list()) ::
+        non_neg_integer()
+      ```\
+      """,
+      insert_text: "length"
+    }
+
+    assert length_item in Completion.get_completion_items("", binding, env)
+    assert length_item in Completion.get_completion_items("Enum.map(list, ", binding, env)
+  end
+
   test "Erlang module completion" do
     {binding, env} = eval(do: nil)
 
@@ -74,13 +96,16 @@ defmodule Livebook.CompletionTest do
   test "Erlang root completion" do
     {binding, env} = eval(do: nil)
 
-    assert %{
-             label: "lists",
-             kind: :module,
-             detail: "module",
-             documentation: nil,
-             insert_text: "lists"
-           } in Completion.get_completion_items(":", binding, env)
+    lists_item = %{
+      label: "lists",
+      kind: :module,
+      detail: "module",
+      documentation: nil,
+      insert_text: "lists"
+    }
+
+    assert lists_item in Completion.get_completion_items(":", binding, env)
+    assert lists_item in Completion.get_completion_items("  :", binding, env)
   end
 
   test "Elixir proxy" do

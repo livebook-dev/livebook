@@ -23,9 +23,7 @@ defmodule Livebook.Completion do
   """
   @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t()) :: list(completion_item())
   def get_completion_items(hint, binding, env) do
-    expr = hint |> String.to_charlist() |> Enum.reverse()
-
-    expr
+    hint
     |> completion_entrypoint(%{binding: binding, env: env})
     |> Enum.sort_by(&completion_item_priority/1)
   end
@@ -40,131 +38,133 @@ defmodule Livebook.Completion do
     Enum.find_index(@ordered_kinds, &(&1 == kind))
   end
 
-  # Takes hint as a reversed charlist
-  defp completion_entrypoint([], ctx) do
+  defp completion_entrypoint("", ctx) do
     complete_variable_or_import("", ctx)
   end
 
-  defp completion_entrypoint([h | t] = expr, ctx) do
-    cond do
-      h == ?. and t != [] ->
-        complete_dot(reduce(t), ctx)
+  defp completion_entrypoint(hint, ctx) do
+    case cursor_context(hint) do
+      {:alias, charlist} ->
+        alias = to_string(charlist)
 
-      h == ?: and t == [] ->
-        complete_erlang_module("")
+        case split_at_last_occurrence(alias, ".") do
+          {hint, ""} ->
+            complete_alias(hint, ctx) ++ complete_elixir_module(nil, hint)
 
-      identifier?(h) ->
-        complete_expr(reduce(expr), ctx)
+          {alias, hint} ->
+            complete_alias_dot(alias, hint, ctx)
+        end
 
-      h == ?/ and t != [] and identifier?(hd(t)) ->
-        complete_expr(reduce(t), ctx)
+      {:alias_or_dot, charlist} ->
+        alias = to_string(charlist)
+        complete_alias_dot(alias, "", ctx)
 
-      h in ' ([{,' ->
-        completion_entrypoint([], ctx)
+      {:dot, inside_dot, charlist} ->
+        hint = to_string(charlist)
 
-      true ->
-        no()
-    end
-  end
+        case inside_dot do
+          {:var, charlist} ->
+            var = List.to_atom(charlist)
 
-  defp identifier?(h) do
-    h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h in '_?!'
-  end
+            case Keyword.fetch(ctx.binding, var) do
+              {:ok, value} -> complete_value_call(value, hint)
+              :error -> []
+            end
 
-  # Given reversed expression, extracts the relevent token for completion.
-  #
-  #     iex> 'if(true, do: Enum.ma' |> Enum.reverse() |> reduce()
-  #     "Enum.ma"
-  #
-  defp reduce(expr) do
-    [token | _] = :string.lexemes(expr, ' ([{,')
+          {:alias, charlist} ->
+            mod = charlist |> to_string() |> expand_alias(ctx)
+            complete_module_call(mod, hint)
 
-    token
-    |> Enum.reverse()
-    |> trim_leading(?&)
-    |> trim_leading(?%)
-    |> trim_leading(?!)
-    |> trim_leading(?^)
-    |> to_string()
-  end
+          {:unquoted_atom, charlist} ->
+            mod = List.to_atom(charlist)
+            complete_module_call(mod, hint)
 
-  defp trim_leading([char | rest], char), do: rest
-  defp trim_leading(expr, _char), do: expr
+          {:dot, _inside_dot, _charlist} = inside_dot ->
+            with [key | keys] <- inside_dot_to_path(inside_dot, []),
+                 {:ok, map} when is_map(map) <- Keyword.fetch(ctx.binding, key),
+                 value when value != nil <- get_in(map, keys) do
+              complete_value_call(value, hint)
+            else
+              _ ->
+                []
+            end
 
-  defp no do
-    []
-  end
+          _ ->
+            []
+        end
 
-  defp complete_dot(expr, ctx) do
-    case Code.string_to_quoted(expr) do
-      {:ok, atom} when is_atom(atom) ->
-        complete_call(atom, "", ctx)
+      {:dot_arity, inside_dot, charlist} ->
+        hint = to_string(charlist)
 
-      {:ok, {:__aliases__, _, list}} ->
-        complete_elixir_module(list, "", ctx)
+        case inside_dot do
+          {:alias, alias} ->
+            mod = alias |> to_string() |> expand_alias(ctx)
+            complete_module_call(mod, hint)
 
-      {:ok, {_, _, _} = ast_node} ->
-        complete_call(ast_node, "", ctx)
+          {:unquoted_atom, atom} ->
+            mod = List.to_atom(atom)
+            complete_module_call(mod, hint)
+
+          _ ->
+            []
+        end
+
+      {:dot_call, _inside_dot, _charlist} ->
+        completion_entrypoint("", ctx)
+
+      :expr ->
+        completion_entrypoint("", ctx)
+
+      {:local_or_var, charlist} ->
+        hint = to_string(charlist)
+        complete_variable_or_import(hint, ctx)
+
+      {:local_arity, charlist} ->
+        hint = to_string(charlist)
+        complete_variable_or_import(hint, ctx)
+
+      {:unquoted_atom, charlist} ->
+        hint = to_string(charlist)
+        complete_erlang_module(hint)
 
       _ ->
-        no()
+        []
     end
   end
 
-  defp complete_expr(expr, ctx) do
-    case Code.string_to_quoted(expr) do
-      {:ok, atom} when is_atom(atom) ->
-        complete_erlang_module(Atom.to_string(atom))
+  defp split_at_last_occurrence(string, pattern) do
+    case :binary.matches(string, pattern) do
+      [] ->
+        {string, ""}
 
-      {:ok, {atom, _, nil}} when is_atom(atom) ->
-        complete_variable_or_import(Atom.to_string(atom), ctx)
-
-      {:ok, {:__aliases__, _, [root]}} ->
-        complete_elixir_module([], Atom.to_string(root), ctx)
-
-      {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
-        hint = Atom.to_string(List.last(list))
-        list = Enum.take(list, length(list) - 1)
-        complete_elixir_module(list, hint, ctx)
-
-      {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
-        complete_call(ast_node, Atom.to_string(fun), ctx)
-
-      _ ->
-        no()
+      parts ->
+        {start, _} = List.last(parts)
+        size = byte_size(string)
+        {binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
     end
   end
 
-  ## Expand calls
+  defp inside_dot_to_path({:dot, inside_dot, key}, path) do
+    inside_dot_to_path(inside_dot, [List.to_atom(key) | path])
+  end
 
-  # `complete_call` takes ast node as the first argument
-  # and `hint` being the actual call
+  defp inside_dot_to_path({:var, key}, path) do
+    [List.to_atom(key) | path]
+  end
 
-  # :atom.fun
-  defp complete_call(mod, hint, _ctx) when is_atom(mod) do
+  defp inside_dot_to_path(_inside_dot, _path), do: []
+
+  # Completion
+
+  defp complete_value_call(mod, hint) when is_atom(mod) do
     complete_module_call(mod, hint)
   end
 
-  # Elixir.fun
-  defp complete_call({:__aliases__, _, list}, hint, ctx) do
-    case expand_alias(list, ctx) do
-      {:ok, alias} -> complete_module_call(alias, hint)
-      :error -> no()
-    end
+  defp complete_value_call(map, hint) when is_map(map) do
+    complete_map_field(map, hint)
   end
 
-  # # variable.fun_or_key
-  defp complete_call({_, _, _} = ast_node, hint, ctx) do
-    case value_from_binding(ast_node, ctx.binding) do
-      {:ok, mod} when is_atom(mod) -> complete_call(mod, hint, ctx)
-      {:ok, map} when is_map(map) -> complete_map_field(map, hint)
-      _otherwise -> no()
-    end
-  end
-
-  defp complete_call(_, _, _) do
-    no()
-  end
+  defp complete_value_call(_value, _hint), do: []
 
   defp complete_module_call(mod, hint) do
     complete_module_function(mod, hint) ++ complete_module_type(mod, hint)
@@ -174,7 +174,8 @@ defmodule Livebook.Completion do
     variables = complete_variable(hint, ctx)
 
     imports =
-      imports_from_env(ctx)
+      ctx.env
+      |> imports_from_env()
       |> Enum.flat_map(fn {mod, funs} ->
         complete_module_function(mod, hint, funs)
       end)
@@ -234,35 +235,24 @@ defmodule Livebook.Completion do
 
   ## Elixir modules
 
-  defp complete_elixir_module([], hint, ctx) do
-    complete_alias(hint, ctx) ++ complete_module_submodule(nil, hint)
+  defp complete_alias_dot(alias, hint, ctx) do
+    mod = expand_alias(alias, ctx)
+    complete_elixir_module(mod, hint) ++ complete_module_call(mod, hint)
   end
 
-  defp complete_elixir_module(list, hint, ctx) do
-    case expand_alias(list, ctx) do
-      {:ok, mod} -> complete_module_dot(mod, hint)
-      :error -> no()
+  # Converts alias string to module atom with regard to the given env
+  defp expand_alias(alias, ctx) do
+    [name | rest] = alias |> String.split(".") |> Enum.map(&String.to_atom/1)
+
+    case Keyword.fetch(ctx.env.aliases, Module.concat(Elixir, name)) do
+      {:ok, name} when rest == [] -> name
+      {:ok, name} -> Module.concat([name | rest])
+      :error -> Module.concat([name | rest])
     end
-  end
-
-  defp complete_module_dot(mod, hint) do
-    complete_module_submodule(mod, hint) ++ complete_module_call(mod, hint)
-  end
-
-  defp expand_alias([name | rest], ctx) when is_atom(name) do
-    case Keyword.fetch(aliases_from_env(ctx), Module.concat(Elixir, name)) do
-      {:ok, name} when rest == [] -> {:ok, name}
-      {:ok, name} -> {:ok, Module.concat([name | rest])}
-      :error -> {:ok, Module.concat([name | rest])}
-    end
-  end
-
-  defp expand_alias([_ | _], _) do
-    :error
   end
 
   defp complete_alias(hint, ctx) do
-    for {alias, mod} <- aliases_from_env(ctx),
+    for {alias, mod} <- ctx.env.aliases,
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
       %{
@@ -275,11 +265,11 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp complete_module_submodule(nil, hint) do
-    items = complete_module_submodule(Elixir, hint)
+  defp complete_elixir_module(nil, hint) do
+    items = complete_elixir_module(Elixir, hint)
 
-    # `Elixir` is not a existing module name, but `Elixir.Enum`,
-    # so if the user type `Eli` the completion should include `Elixir`.
+    # `Elixir` is not a existing module name, but `Elixir.Enum` is,
+    # so if the user types `Eli` the completion should include `Elixir`.
     if String.starts_with?("Elixir", hint) do
       [
         %{
@@ -296,8 +286,8 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp complete_module_submodule(mod, hint) do
-    # Note `mod` may be `Elixir`, even though it's not a valid module
+  defp complete_elixir_module(mod, hint) do
+    # Note: `mod` may be `Elixir`, even though it's not a valid module
 
     match_prefix = "#{mod}.#{hint}"
     depth = match_prefix |> Module.split() |> length()
@@ -306,6 +296,10 @@ defmodule Livebook.Completion do
         parts = Module.split(mod),
         length(parts) >= depth,
         name = Enum.at(parts, depth - 1),
+        # Note: module can be defined dynamically and its name
+        # may not be a valid alias (e.g. :"Elixir.My.module").
+        # That's why we explicitly check if the name part makes
+        # for a alias piece.
         valid_alias_piece?("." <> name),
         mod = parts |> Enum.take(depth) |> Module.concat(),
         uniq: true,
@@ -556,46 +550,264 @@ defmodule Livebook.Completion do
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
-  ## Context helpers
+  defp imports_from_env(env), do: env.functions ++ env.macros
 
-  defp imports_from_env(ctx) do
-    ctx.env.functions ++ ctx.env.macros
+  # TODO: remove this once we require Elixir 1.12
+  # --------------------------------------------------------------
+  # This will be available in Elixir 1.12 as Code.cursor_context/2
+  # See https://github.com/elixir-lang/elixir/pull/10915
+  # --------------------------------------------------------------
+
+  @doc """
+  Receives a string and returns the cursor context.
+
+  This function receives a string with incomplete Elixir code,
+  representing a cursor position, and based on the string, it
+  provides contextual information about said position. The
+  return of this function can then be used to provide tips,
+  suggestions, and autocompletion functionality.
+
+  This function provides a best-effort detection and may not be
+  accurate under certain circumstances. See the "Limitations"
+  section below.
+
+  Consider adding a catch-all clause when handling the return
+  type of this function as new cursor information may be added
+  in future releases.
+
+  ## Examples
+
+      iex> Code.cursor_context("")
+      :expr
+
+      iex> Code.cursor_context("hello_wor")
+      {:local_or_var, 'hello_wor'}
+
+  ## Return values
+
+    * `{:alias, charlist}` - the context is an alias, potentially
+      a nested one, such as `Hello.Wor` or `HelloWor`
+
+    * `{:alias_or_dot, charlist}` - the context is an alias or a dot
+     call, such as `Hello.` or `Hello.World.`
+
+    * `{:dot, inside_dot, charlist}` - the context is a dot
+      where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot
+       itself. If a var is given, this may either be a remote call or a map
+       field access. Examples are `Hello.wor`, `:hello.wor`, `hello.wor`,
+       `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`
+
+    * `{:dot_arity, inside_dot, charlist}` - the context is a dot arity
+      where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
+      itself. If a var is given, it must be a remote arity. Examples are
+      `Hello.world/`, `:hello.world/`, `hello.world/2`, and `@hello.world/2
+
+    * `{:dot_call, inside_dot, charlist}` - the context is a dot
+      call. This means parentheses or space have been added after the expression.
+      where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
+      itself. If a var is given, it must be a remote call. Examples are
+      `Hello.world(`, `:hello.world(`, `Hello.world `, `hello.world(`, `hello.world `,
+      and `@hello.world(`
+
+    * `:expr` - may be any expression. Autocompletion may suggest an alias,
+      local or var
+
+    * `{:local_or_var, charlist}` - the context is a variable or a local
+      (import or local) call, such as `hello_wor`
+
+    * `{:local_arity, charlist}` - the context is a local (import or local)
+      call, such as `hello_world/`
+
+    * `{:local_call, charlist}` - the context is a local (import or local)
+      call, such as `hello_world(` and `hello_world `
+
+    * `:none` - no context possible
+
+    * `:unquoted_atom` - the context is an unquoted atom. This can be either
+      previous atoms or all available `:erlang` modules
+
+  ## Limitations
+
+    * There is no context for operators
+    * The current algorithm only considers the last line of the input
+    * Context does not yet track strings, sigils, etc.
+    * Arguments of functions calls are not currently recognized
+
+  """
+  @spec cursor_context(List.Chars.t(), keyword()) ::
+          {:alias, charlist}
+          | {:alias_or_dot, charlist}
+          | {:dot, inside_dot, charlist}
+          | {:dot_arity, inside_dot, charlist}
+          | {:dot_call, inside_dot, charlist}
+          | :expr
+          | {:local_or_var, charlist}
+          | {:local_arity, charlist}
+          | {:local_call, charlist}
+          | {:module_attribute, charlist}
+          | :none
+          | {:unquoted_atom, charlist}
+        when inside_dot:
+               {:alias, charlist}
+               | {:dot, inside_dot, charlist}
+               | {:module_attribute, charlist}
+               | {:unquoted_atom, charlist}
+               | {:var, charlist}
+  def cursor_context(string, opts \\ [])
+
+  def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
+    binary =
+      case :binary.matches(binary, "\n") do
+        [] ->
+          binary
+
+        matches ->
+          {position, _} = List.last(matches)
+          binary_part(binary, position + 1, byte_size(binary) - position - 1)
+      end
+
+    do_cursor_context(String.to_charlist(binary), opts)
   end
 
-  defp aliases_from_env(ctx) do
-    ctx.env.aliases
-  end
+  def cursor_context(charlist, opts) when is_list(charlist) and is_list(opts) do
+    chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
 
-  defp value_from_binding(ast_node, binding) do
-    with {var, map_key_path} <- extract_from_ast(ast_node, []) do
-      traverse_binding(binding, var, map_key_path)
-    else
-      _ -> :error
+    case List.last(chunked, []) do
+      [?\n | _] -> do_cursor_context([], opts)
+      rest -> do_cursor_context(rest, opts)
     end
   end
 
-  defp extract_from_ast(var_name, acc) when is_atom(var_name) do
-    {var_name, acc}
+  def cursor_context(other, opts) do
+    cursor_context(to_charlist(other), opts)
   end
 
-  defp extract_from_ast({var_name, _, nil}, acc) when is_atom(var_name) do
-    {var_name, acc}
+  @operators '\\<>+-*/:=|&~^@'
+  @non_closing_punctuation '.,([{;'
+  @closing_punctuation ')]}'
+  @space '\t\s'
+  @closing_identifier '?!'
+
+  @operators_and_non_closing_puctuation @operators ++ @non_closing_punctuation
+  @non_identifier @closing_identifier ++
+                    @operators ++ @non_closing_punctuation ++ @closing_punctuation ++ @space
+
+  defp do_cursor_context(list, _opts) do
+    reverse = Enum.reverse(list)
+
+    case strip_spaces(reverse, 0) do
+      # It is empty
+      {[], _} ->
+        :expr
+
+      {[?: | _], 0} ->
+        {:unquoted_atom, ''}
+
+      {[?@ | _], 0} ->
+        {:module_attribute, ''}
+
+      # Start of a dot or alias
+      {[?. | rest], _} ->
+        case identifier_to_cursor_context(rest) do
+          {:alias, prev} -> {:alias_or_dot, prev}
+          {:local_or_var, prev} -> {:dot, {:var, prev}, []}
+          {:unquoted_atom, _} = prev -> {:dot, prev, []}
+          {:dot, _, _} = prev -> {:dot, prev, []}
+          _ -> :none
+        end
+
+      # It is a local or remote call with parens
+      {[?( | rest], _} ->
+        call_to_cursor_context(rest)
+
+      # A local arity definition
+      {[?/ | rest], _} ->
+        case identifier_to_cursor_context(rest) do
+          {:local_or_var, acc} -> {:local_arity, acc}
+          {:dot, base, acc} -> {:dot_arity, base, acc}
+          _ -> :none
+        end
+
+      # Starting a new expression
+      {[h | _], _} when h in @operators_and_non_closing_puctuation ->
+        :expr
+
+      # It is a local or remote call without parens
+      {rest, spaces} when spaces > 0 ->
+        call_to_cursor_context(rest)
+
+      # It is an identifier
+      _ ->
+        identifier_to_cursor_context(reverse)
+    end
   end
 
-  defp extract_from_ast({{:., _, [ast_node, fun]}, _, []}, acc) when is_atom(fun) do
-    extract_from_ast(ast_node, [fun | acc])
+  defp strip_spaces([h | rest], count) when h in @space, do: strip_spaces(rest, count + 1)
+  defp strip_spaces(rest, count), do: {rest, count}
+
+  defp call_to_cursor_context(reverse) do
+    case identifier_to_cursor_context(reverse) do
+      {:local_or_var, acc} -> {:local_call, acc}
+      {:dot, base, acc} -> {:dot_call, base, acc}
+      _ -> :none
+    end
   end
 
-  defp extract_from_ast(_ast_node, _acc) do
-    :error
+  defp identifier_to_cursor_context(reverse) do
+    case identifier(reverse) do
+      # Parse :: first to avoid ambiguity with atoms
+      {:alias, false, '::' ++ _, _} -> :none
+      {kind, _, '::' ++ _, acc} -> alias_or_local_or_var(kind, acc)
+      # Now handle atoms, any other atom is unexpected
+      {_kind, _, ':' ++ _, acc} -> {:unquoted_atom, acc}
+      {:atom, _, _, _} -> :none
+      # Parse .. first to avoid ambiguity with dots
+      {:alias, false, _, _} -> :none
+      {kind, _, '..' ++ _, acc} -> alias_or_local_or_var(kind, acc)
+      # Module attributes
+      {:alias, _, '@' ++ _, _} -> :none
+      {:identifier, _, '@' ++ _, acc} -> {:module_attribute, acc}
+      # Everything else
+      {kind, _, '.' ++ rest, acc} -> alias_or_dot(kind, rest, acc)
+      {kind, _, _, acc} -> alias_or_local_or_var(kind, acc)
+      :none -> :none
+    end
   end
 
-  defp traverse_binding(binding, var_name, map_key_path) do
-    accumulator = Keyword.fetch(binding, var_name)
+  defp alias_or_dot(kind, rest, acc) do
+    case {kind, identifier_to_cursor_context(rest)} do
+      {:alias, {:alias, prev}} -> {:alias, prev ++ '.' ++ acc}
+      {:identifier, {:local_or_var, prev}} -> {:dot, {:var, prev}, acc}
+      {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}
+      {:identifier, {:alias, _} = prev} -> {:dot, prev, acc}
+      {:identifier, {:dot, _, _} = prev} -> {:dot, prev, acc}
+      {:identifier, {:module_attribute, _} = prev} -> {:dot, prev, acc}
+      _ -> :none
+    end
+  end
 
-    Enum.reduce(map_key_path, accumulator, fn
-      key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
-      _key, _acc -> :error
-    end)
+  defp alias_or_local_or_var(:alias, acc), do: {:alias, acc}
+  defp alias_or_local_or_var(:identifier, acc), do: {:local_or_var, acc}
+  defp alias_or_local_or_var(_, _), do: :none
+
+  defp identifier([?? | rest]), do: check_identifier(rest, [??])
+  defp identifier([?! | rest]), do: check_identifier(rest, [?!])
+  defp identifier(rest), do: check_identifier(rest, [])
+
+  defp check_identifier([h | _], _acc) when h in @non_identifier, do: :none
+  defp check_identifier(rest, acc), do: rest_identifier(rest, acc)
+
+  defp rest_identifier([h | rest], acc) when h not in @non_identifier do
+    rest_identifier(rest, [h | acc])
+  end
+
+  defp rest_identifier(rest, acc) do
+    case String.Tokenizer.tokenize(acc) do
+      {kind, _, [], _, ascii_only?, _} -> {kind, ascii_only?, rest, acc}
+      _ -> :none
+    end
   end
 end
