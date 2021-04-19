@@ -24,7 +24,7 @@ defmodule LivebookCLI.Server do
                     If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
       --sname       Set a short name for the app distributed node
       -p, --port    The port to start the web application on, defaults to 8080
-      --root-path   The root path to use on file dialogs
+      --root-path   The root path to use for file selection
 
     The --help option can be given to print this notice.
 
