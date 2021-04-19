@@ -34,7 +34,7 @@ defmodule Livebook.Config do
   ## Parsing
 
   @doc """
-  Sets the root path from env.
+  Parses and validates the root path from env.
   """
   def root_path!(env) do
     if root_path = System.get_env(env) do
@@ -52,11 +52,12 @@ defmodule Livebook.Config do
       root_path
     else
       IO.warn("ignoring #{context} because it doesn't point to a directory: #{root_path}")
+      File.get_cwd!()
     end
   end
 
   @doc """
-  Sets the secret from env.
+  Parses and validates the secret from env.
   """
   def secret!(env) do
     if secret_key_base = System.get_env(env) do
@@ -72,7 +73,7 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Sets the port from env.
+  Parses and validates the port from env.
   """
   def port!(env) do
     if port = System.get_env(env) do
@@ -84,7 +85,7 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Sets the password from env.
+  Parses and validates the password from env.
   """
   def password!(env) do
     if password = System.get_env(env) do
