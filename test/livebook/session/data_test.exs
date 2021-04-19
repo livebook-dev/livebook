@@ -440,7 +440,7 @@ describe "apply_operation/2 given :move_section" do
     test "returns an error given no offset" do
       data =
         data_after_operations!([
-          {:insert_section, self(), 0, "s1"}
+          {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"}
         ])
 
@@ -452,12 +452,12 @@ describe "apply_operation/2 given :move_section" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_section, self(), 1, "s2"}
+          {:insert_section, self(), 1, "s2"},
           # Add cells
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"};
+          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
           # Evaluate cells
           {:queue_cell_evaluation, self(), "c1"},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
@@ -495,12 +495,12 @@ describe "apply_operation/2 given :move_section" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_section, self(), 1, "s2"}
+          {:insert_section, self(), 1, "s2"},
           # Add cells
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"};
+          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
           # Evaluate cells
           {:queue_cell_evaluation, self(), "c1"},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
@@ -567,7 +567,7 @@ describe "apply_operation/2 given :move_section" do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s2", 0, :markdown, "c2"},
           # Evaluate the Elixir cell
           {:queue_cell_evaluation, self(), "c1"},

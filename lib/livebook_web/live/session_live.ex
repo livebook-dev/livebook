@@ -300,6 +300,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("move_section", %{"section_id" => section_id, "offset" => offset}, socket) do
+    offset = ensure_integer(offset)
+    Session.move_section(socket.assigns.session_id, section_id, offset)
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
     {:noreply, socket}
