@@ -127,6 +127,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
     {:ok, _} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
+    {:ok, _} = Task.Supervisor.start_link(name: CompletionTaskSupervisor)
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
@@ -190,6 +191,10 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     end
   end
 
+  def handle_info({:EXIT, _from, _reason}, state) do
+    {:stop, :shutdown, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -238,7 +243,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
       Evaluator.request_completion_items(evaluator, send_to, ref, hint, evaluation_ref)
     else
       # Since there's no evaluator, we may as well get the completion items here.
-      spawn_link(fn ->
+      Task.Supervisor.start_child(CompletionTaskSupervisor, fn ->
         binding = []
         env = :elixir.env_for_eval([])
         items = Livebook.Completion.get_completion_items(hint, binding, env)
