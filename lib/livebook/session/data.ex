@@ -469,28 +469,22 @@ defmodule Livebook.Session.Data do
   defp move_cell({data, _} = data_actions, cell, offset) do
     updated_notebook = Notebook.move_cell(data.notebook, cell.id, offset)
 
-    cells_with_section_before = Notebook.elixir_cells_with_section(data.notebook)
-    cells_with_section_after = Notebook.elixir_cells_with_section(updated_notebook)
-
-    affected_cells_with_section =
-      cells_with_section_after
-      |> Enum.zip(cells_with_section_before)
-      |> Enum.drop_while(fn {{cell_before, _}, {cell_after, _}} ->
-        cell_before.id == cell_after.id
-      end)
-      |> Enum.map(fn {new, _old} -> new end)
-
     data_actions
     |> set!(notebook: updated_notebook)
-    |> mark_cells_as_stale(affected_cells_with_section)
-    |> unqueue_cells_evaluation(affected_cells_with_section)
+    |> update_cells_status_after_moved(data.notebook)
   end
 
   defp move_section({data, _} = data_actions, section, offset) do
     updated_notebook = Notebook.move_section(data.notebook, section.id, offset)
 
-    cells_with_section_before = Notebook.elixir_cells_with_section(data.notebook)
-    cells_with_section_after = Notebook.elixir_cells_with_section(updated_notebook)
+    data_actions
+    |> set!(notebook: updated_notebook)
+    |> update_cells_status_after_moved(data.notebook)
+  end
+
+  defp update_cells_status_after_moved({data, _} = data_actions, prev_notebook) do
+    cells_with_section_before = Notebook.elixir_cells_with_section(prev_notebook)
+    cells_with_section_after = Notebook.elixir_cells_with_section(data.notebook)
 
     affected_cells_with_section =
       cells_with_section_after
@@ -501,7 +495,6 @@ defmodule Livebook.Session.Data do
       |> Enum.map(fn {new, _old} -> new end)
 
     data_actions
-    |> set!(notebook: updated_notebook)
     |> mark_cells_as_stale(affected_cells_with_section)
     |> unqueue_cells_evaluation(affected_cells_with_section)
   end
