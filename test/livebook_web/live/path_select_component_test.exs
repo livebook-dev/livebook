@@ -1,5 +1,6 @@
 defmodule LivebookWeb.PathSelectComponentTest do
-  use LivebookWeb.ConnCase
+  # Note: we cannot run asynchronously, because we use `File.cd!`
+  use LivebookWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
 
