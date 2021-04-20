@@ -55,10 +55,6 @@ defmodule Livebook.Completion do
             complete_alias_dot(alias, hint, ctx)
         end
 
-      {:alias_or_dot, charlist} ->
-        alias = to_string(charlist)
-        complete_alias_dot(alias, "", ctx)
-
       {:dot, inside_dot, charlist} ->
         hint = to_string(charlist)
 
@@ -72,8 +68,8 @@ defmodule Livebook.Completion do
             end
 
           {:alias, charlist} ->
-            mod = charlist |> to_string() |> expand_alias(ctx)
-            complete_module_call(mod, hint)
+            alias = to_string(charlist)
+            complete_alias_dot(alias, hint, ctx)
 
           {:unquoted_atom, charlist} ->
             mod = List.to_atom(charlist)
@@ -235,7 +231,19 @@ defmodule Livebook.Completion do
 
   defp complete_alias_dot(alias, hint, ctx) do
     mod = expand_alias(alias, ctx)
-    complete_elixir_module(mod, hint) ++ complete_module_call(mod, hint)
+
+    if elixir_module?(mod) do
+      complete_elixir_module(mod, hint)
+    else
+      []
+    end ++
+      complete_module_call(mod, hint)
+  end
+
+  defp elixir_module?(Elixir), do: true
+
+  defp elixir_module?(mod) do
+    mod |> Atom.to_string() |> String.starts_with?("Elixir.")
   end
 
   # Converts alias string to module atom with regard to the given env
@@ -604,9 +612,6 @@ defmodule Livebook.Completion do
     * `{:alias, charlist}` - the context is an alias, potentially
       a nested one, such as `Hello.Wor` or `HelloWor`
 
-    * `{:alias_or_dot, charlist}` - the context is an alias or a dot
-     call, such as `Hello.` or `Hello.World.`
-
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot
@@ -640,6 +645,9 @@ defmodule Livebook.Completion do
     * `{:local_call, charlist}` - the context is a local (import or local)
       call, such as `hello_world(` and `hello_world `
 
+    * `{:module_attribute, charlist}` - the context is a module attribute, such
+      as `@hello_wor`
+
     * `:none` - no context possible
 
     * `:unquoted_atom` - the context is an unquoted atom. This can be either
@@ -653,9 +661,9 @@ defmodule Livebook.Completion do
     * Arguments of functions calls are not currently recognized
 
   """
+  @doc since: "1.12.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
-          | {:alias_or_dot, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -701,7 +709,7 @@ defmodule Livebook.Completion do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators '\\<>+-*/:=|&~^@'
+  @operators '\\<>+-*/:=|&~^@%'
   @non_closing_punctuation '.,([{;'
   @closing_punctuation ')]}'
   @space '\t\s'
@@ -725,15 +733,8 @@ defmodule Livebook.Completion do
       {[?@ | _], 0} ->
         {:module_attribute, ''}
 
-      # Start of a dot or alias
       {[?. | rest], _} ->
-        case identifier_to_cursor_context(rest) do
-          {:alias, prev} -> {:alias_or_dot, prev}
-          {:local_or_var, prev} -> {:dot, {:var, prev}, []}
-          {:unquoted_atom, _} = prev -> {:dot, prev, []}
-          {:dot, _, _} = prev -> {:dot, prev, []}
-          _ -> :none
-        end
+        dot(rest, '')
 
       # It is a local or remote call with parens
       {[?( | rest], _} ->
@@ -787,20 +788,27 @@ defmodule Livebook.Completion do
       {:alias, _, '@' ++ _, _} -> :none
       {:identifier, _, '@' ++ _, acc} -> {:module_attribute, acc}
       # Everything else
-      {kind, _, '.' ++ rest, acc} -> alias_or_dot(kind, rest, acc)
+      {:alias, _, '.' ++ rest, acc} -> nested_alias(rest, acc)
+      {:identifier, _, '.' ++ rest, acc} -> dot(rest, acc)
       {kind, _, _, acc} -> alias_or_local_or_var(kind, acc)
       :none -> :none
     end
   end
 
-  defp alias_or_dot(kind, rest, acc) do
-    case {kind, identifier_to_cursor_context(rest)} do
-      {:alias, {:alias, prev}} -> {:alias, prev ++ '.' ++ acc}
-      {:identifier, {:local_or_var, prev}} -> {:dot, {:var, prev}, acc}
-      {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}
-      {:identifier, {:alias, _} = prev} -> {:dot, prev, acc}
-      {:identifier, {:dot, _, _} = prev} -> {:dot, prev, acc}
-      {:identifier, {:module_attribute, _} = prev} -> {:dot, prev, acc}
+  defp nested_alias(rest, acc) do
+    case identifier_to_cursor_context(rest) do
+      {:alias, prev} -> {:alias, prev ++ '.' ++ acc}
+      _ -> :none
+    end
+  end
+
+  defp dot(rest, acc) do
+    case identifier_to_cursor_context(rest) do
+      {:local_or_var, prev} -> {:dot, {:var, prev}, acc}
+      {:unquoted_atom, _} = prev -> {:dot, prev, acc}
+      {:alias, _} = prev -> {:dot, prev, acc}
+      {:dot, _, _} = prev -> {:dot, prev, acc}
+      {:module_attribute, _} = prev -> {:dot, prev, acc}
       _ -> :none
     end
   end
