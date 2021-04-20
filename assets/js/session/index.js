@@ -509,9 +509,8 @@ function handleSectionDeleted(hook, sectionId) {
 }
 
 function handleSectionMoved(hook, sectionId) {
-  if (hook.state.focusedSectionId === sectionId) {
-    globalPubSub.broadcast("session", { type: "section_moved", sectionId });
-  }
+  const section = getSectionById(sectionId);
+  smoothlyScrollToElement(section);
 }
 
 function handleCellUpload(hook, cellId, url) {
