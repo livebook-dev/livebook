@@ -2,8 +2,6 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
-@import "nprogress/nprogress.css";
-
 @import "./global.css";
 @import "./components.css";
 @import "./utilities.css";
