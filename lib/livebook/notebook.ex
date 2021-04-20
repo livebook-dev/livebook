@@ -148,6 +148,14 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Share current section as a code snippet
+  """
+  @spec share_snippet(t(), Cell.id()) :: t()
+  def share_snippet(notebook, cell_id) do
+    
+  end
+
+  @doc """
   Moves cell by the given offset.
 
   The cell may move to another section if the offset indicates so.
