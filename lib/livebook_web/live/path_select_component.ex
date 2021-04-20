@@ -50,15 +50,18 @@ defmodule LivebookWeb.PathSelectComponent do
         <% end %>
       </div>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
-        <div class="grid grid-cols-4 gap-2">
+        <div class="
+          grid grid-cols-4 gap-2
+          <%= if Enum.any?(list_files(@path, @extnames, @running_paths), fn file -> file.is_filtrate == false end) do%>
+            border-dashed border-b border-gray-200
+          <% end %>
+        ">
           <%= for file <- list_files(@path, @extnames, @running_paths) do %>
             <%= if file.is_filtrate do %>
               <%= render_file(file, @phx_target) %>
             <% end %>
           <% end %>
         </div>
-      </div>
-      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
         <div class="grid grid-cols-4 gap-2">
           <%= for file <- list_files(@path, @extnames, @running_paths) do %>
             <%= if not file.is_filtrate do %>
