@@ -432,8 +432,7 @@ defmodule Livebook.Completion do
   defp format_signatures([], _mod), do: nil
 
   defp format_signatures(signatures, mod) do
-    prefix = mod_to_prefix(mod)
-    Enum.map_join(signatures, "\n", &(prefix <> &1))
+    mod_to_prefix(mod) <> Enum.join(signatures, "\n")
   end
 
   defp mod_to_prefix(mod) do
