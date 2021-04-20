@@ -8,10 +8,8 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
 
   alias Livebook.Evaluator
 
-  @name __MODULE__
-
   def start_link(opts \\ []) do
-    DynamicSupervisor.start_link(__MODULE__, opts, name: @name)
+    DynamicSupervisor.start_link(__MODULE__, opts)
   end
 
   @impl true
@@ -22,9 +20,12 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   @doc """
   Spawns a new evaluator.
   """
-  @spec start_evaluator() :: {:ok, Evaluator.t()} | {:error, any()}
-  def start_evaluator() do
-    case DynamicSupervisor.start_child(@name, {Evaluator, [formatter: Evaluator.StringFormatter]}) do
+  @spec start_evaluator(pid()) :: {:ok, Evaluator.t()} | {:error, any()}
+  def start_evaluator(supervisor) do
+    case DynamicSupervisor.start_child(
+           supervisor,
+           {Evaluator, [formatter: Evaluator.StringFormatter]}
+         ) do
       {:ok, pid} -> {:ok, pid}
       {:ok, pid, _} -> {:ok, pid}
       :ignore -> {:error, :ignore}
@@ -35,9 +36,9 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   @doc """
   Terminates the given evaluator.
   """
-  @spec terminate_evaluator(Evaluator.t()) :: :ok
-  def terminate_evaluator(evaluator) do
-    DynamicSupervisor.terminate_child(@name, evaluator)
+  @spec terminate_evaluator(pid(), Evaluator.t()) :: :ok
+  def terminate_evaluator(supervisor, evaluator) do
+    DynamicSupervisor.terminate_child(supervisor, evaluator)
     :ok
   end
 end

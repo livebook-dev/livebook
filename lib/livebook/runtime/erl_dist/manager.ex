@@ -125,9 +125,9 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
     Process.flag(:trap_exit, true)
 
-    {:ok, _} = ErlDist.EvaluatorSupervisor.start_link()
+    {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
-    {:ok, _} = Task.Supervisor.start_link(name: CompletionTaskSupervisor)
+    {:ok, completion_supervisor} = Task.Supervisor.start_link()
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
@@ -143,6 +143,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
      %{
        owner: nil,
        evaluators: %{},
+       evaluator_supervisor: evaluator_supervisor,
+       completion_supervisor: completion_supervisor,
        initial_ignore_module_conflict: initial_ignore_module_conflict,
        original_standard_error: original_standard_error
      }}
@@ -243,7 +245,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
       Evaluator.request_completion_items(evaluator, send_to, ref, hint, evaluation_ref)
     else
       # Since there's no evaluator, we may as well get the completion items here.
-      Task.Supervisor.start_child(CompletionTaskSupervisor, fn ->
+      Task.Supervisor.start_child(state.completion_supervisor, fn ->
         binding = []
         env = :elixir.env_for_eval([])
         items = Livebook.Completion.get_completion_items(hint, binding, env)
@@ -258,7 +260,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     if Map.has_key?(state.evaluators, container_ref) do
       state
     else
-      {:ok, evaluator} = ErlDist.EvaluatorSupervisor.start_evaluator()
+      {:ok, evaluator} = ErlDist.EvaluatorSupervisor.start_evaluator(state.evaluator_supervisor)
       Process.monitor(evaluator)
       %{state | evaluators: Map.put(state.evaluators, container_ref, evaluator)}
     end
@@ -267,7 +269,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   defp discard_evaluator(state, container_ref) do
     case Map.fetch(state.evaluators, container_ref) do
       {:ok, evaluator} ->
-        ErlDist.EvaluatorSupervisor.terminate_evaluator(evaluator)
+        ErlDist.EvaluatorSupervisor.terminate_evaluator(state.evaluator_supervisor, evaluator)
         %{state | evaluators: Map.delete(state.evaluators, container_ref)}
 
       :error ->
