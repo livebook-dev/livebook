@@ -51,8 +51,19 @@ defmodule LivebookWeb.PathSelectComponent do
       </div>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
         <div class="grid grid-cols-4 gap-2">
-          <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
-            <%= render_file(file, @phx_target) %>
+          <%= for file <- list_files(@path, @extnames, @running_paths) do %>
+            <%= if file.is_filtrate do %>
+              <%= render_file(file, @phx_target) %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
+        <div class="grid grid-cols-4 gap-2">
+          <%= for file <- list_files(@path, @extnames, @running_paths) do %>
+            <%= if not file.is_filtrate do %>
+              <%= render_file(file, @phx_target) %>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -90,6 +101,21 @@ defmodule LivebookWeb.PathSelectComponent do
       </span>
     </button>
     """
+  end
+
+  defp list_files(path, extnames, running_paths) do
+    # Returns files in a directory.
+    # Note: all files are marked as filtrate if none pass filter.
+
+    files = list_matching_files(path, extnames, running_paths)
+
+    all_failed? = files |> Enum.all?(fn file -> file.is_filtrate == false end)
+
+    if all_failed? do
+      for file <- files, do: %{file | is_filtrate: true}
+    else
+      files
+    end
   end
 
   defp list_matching_files(path, extnames, running_paths) do
@@ -145,6 +171,7 @@ defmodule LivebookWeb.PathSelectComponent do
       highlighted: if(String.starts_with?(name, filter), do: filter, else: ""),
       unhighlighted: String.replace_prefix(name, filter, ""),
       path: if(is_dir, do: ensure_trailing_slash(path), else: path),
+      is_filtrate: String.starts_with?(name, filter),
       is_dir: is_dir,
       is_running: path in running_paths
     }
