@@ -114,8 +114,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </span>
         <span class="tooltip top" aria-label="Share code snippet">
           <button class="icon-button"
-            phx-click="share_snippet"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-click="share_snippet">
             <%= remix_icon("share-line", class: "text-xl") %>
           </button>
         </span>
@@ -140,7 +139,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex">
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
-      <div class="w-full">
+      <div id="<%= @cell_view.id %>" class="w-full">
         <%= render_editor(assigns) %>
 
         <%= if @cell_view.outputs != [] do %>
