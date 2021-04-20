@@ -430,7 +430,7 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-describe "apply_operation/2 given :move_section" do
+  describe "apply_operation/2 given :move_section" do
     test "returns an error given invalid section id" do
       data = Data.new()
       operation = {:move_section, self(), "nonexistent", 1}
@@ -470,7 +470,8 @@ describe "apply_operation/2 given :move_section" do
         ])
 
       operation = {:move_section, self(), "s2", -1}
-            assert {:ok,
+
+      assert {:ok,
               %{
                 notebook: %{
                   sections: [
@@ -513,7 +514,8 @@ describe "apply_operation/2 given :move_section" do
         ])
 
       operation = {:move_section, self(), "s1", 1}
-            assert {:ok,
+
+      assert {:ok,
               %{
                 notebook: %{
                   sections: [

@@ -89,9 +89,9 @@ const Session = {
       handleSectionDeleted(this, sectionId);
     });
 
-    this.handleEvent("section_moved", ({section_id: sectionId }) => {
+    this.handleEvent("section_moved", ({ section_id: sectionId }) => {
       handleSectionMoved(this, sectionId);
-    })
+    });
 
     this.handleEvent("cell_upload", ({ cell_id: cellId, url }) => {
       handleCellUpload(this, cellId, url);
@@ -509,8 +509,8 @@ function handleSectionDeleted(hook, sectionId) {
 }
 
 function handleSectionMoved(hook, sectionId) {
-  if (hook.state.focusedSectionId === sectionId){
-    globalPubSub.broadcast("session", {type: "section_moved", sectionId})
+  if (hook.state.focusedSectionId === sectionId) {
+    globalPubSub.broadcast("session", { type: "section_moved", sectionId });
   }
 }
 
