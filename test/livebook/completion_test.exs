@@ -812,6 +812,7 @@ defmodule Livebook.CompletionTest do
            ] = Completion.get_completion_items("MyList.to_integ", binding, env)
   end
 
+  @tag :erl_docs
   test "complete aliases of Erlang modules" do
     {binding, env} =
       eval do
@@ -827,6 +828,23 @@ defmodule Livebook.CompletionTest do
              %{label: "mapfoldl/3"},
              %{label: "mapfoldr/3"}
            ] = Completion.get_completion_items("EList.map", binding, env)
+
+    assert %{
+             label: "max/1",
+             kind: :function,
+             detail: "lists.max/1",
+             documentation: """
+             Returns the first element of List that compares greater than or equal to all other elements of List.
+
+             ```
+             @spec max(list) :: max
+             when list: [t, ...],
+                  max: t,
+                  t: term()
+             ```\
+             """,
+             insert_text: "max"
+           } in Completion.get_completion_items("EList.", binding, env)
 
     assert [] = Completion.get_completion_items("EList.Invalid", binding, env)
   end

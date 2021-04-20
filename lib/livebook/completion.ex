@@ -79,7 +79,7 @@ defmodule Livebook.Completion do
   defp complete_dot(path, hint, ctx) do
     case expand_dot_path(path, ctx) do
       {:ok, mod} when is_atom(mod) and hint == "" ->
-        complete_module_member(mod, hint) ++ complete_elixir_module(mod, hint)
+        complete_module_member(mod, hint) ++ complete_module(mod, hint)
 
       {:ok, mod} when is_atom(mod) ->
         complete_module_member(mod, hint)
@@ -118,25 +118,12 @@ defmodule Livebook.Completion do
   defp complete_alias(hint, ctx) do
     case split_at_last_occurrence(hint, ".") do
       {hint, ""} ->
-        complete_elixir_module(nil, hint) ++ complete_env_alias(hint, ctx)
+        complete_elixir_root_module(hint) ++ complete_env_alias(hint, ctx)
 
       {alias, hint} ->
         mod = expand_alias(alias, ctx)
-
-        # Alias could expand to Erlang module,
-        # in which case we don't complete "submodules".
-        if elixir_module?(mod) do
-          complete_elixir_module(mod, hint)
-        else
-          []
-        end
+        complete_module(mod, hint)
     end
-  end
-
-  defp elixir_module?(Elixir), do: true
-
-  defp elixir_module?(mod) do
-    mod |> Atom.to_string() |> String.starts_with?("Elixir.")
   end
 
   defp complete_module_member(mod, hint) do
@@ -230,7 +217,22 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp complete_elixir_module(nil, hint) do
+  defp complete_module(base_mod, hint) do
+    # Note: we specifically don't want further completion
+    # if `base_mod` is an Erlang module.
+
+    if base_mod == Elixir or elixir_module?(base_mod) do
+      complete_elixir_module(base_mod, hint)
+    else
+      []
+    end
+  end
+
+  defp elixir_module?(mod) do
+    mod |> Atom.to_string() |> String.starts_with?("Elixir.")
+  end
+
+  defp complete_elixir_root_module(hint) do
     items = complete_elixir_module(Elixir, hint)
 
     # `Elixir` is not a existing module name, but `Elixir.Enum` is,
@@ -251,10 +253,10 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp complete_elixir_module(mod, hint) do
-    # Note: `mod` may be `Elixir`, even though it's not a valid module
+  defp complete_elixir_module(base_mod, hint) do
+    # Note: `base_mod` may be `Elixir`, even though it's not a valid module
 
-    match_prefix = "#{mod}.#{hint}"
+    match_prefix = "#{base_mod}.#{hint}"
     depth = match_prefix |> Module.split() |> length()
 
     for mod <- get_matching_modules(match_prefix),
