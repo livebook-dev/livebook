@@ -99,6 +99,12 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
     |> build_md(ast)
   end
 
+  defp build_md(iodata, [{"br", _, [], %{}} | ast]) do
+    render_line_break()
+    |> append_inline(iodata)
+    |> build_md(ast)
+  end
+
   defp build_md(iodata, [{"p", _, content, %{}} | ast]) do
     render_paragraph(content)
     |> append_block(iodata)
@@ -224,6 +230,8 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
       "thick" -> "***"
     end
   end
+
+  defp render_line_break(), do: "\\\n"
 
   defp render_paragraph(content), do: markdown_from_ast(content)
 
