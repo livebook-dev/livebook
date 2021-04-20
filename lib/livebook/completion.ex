@@ -32,7 +32,7 @@ defmodule Livebook.Completion do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
 
-  @ordered_kinds [:variable, :module, :function, :type]
+  @ordered_kinds [:field, :variable, :module, :function, :type]
 
   defp completion_item_kind_priority(kind) when kind in @ordered_kinds do
     Enum.find_index(@ordered_kinds, &(&1 == kind))
@@ -148,23 +148,28 @@ defmodule Livebook.Completion do
   end
 
   defp complete_variable(hint, ctx) do
-    complete_key_value(ctx.binding, hint)
-  end
-
-  defp complete_map_field(map, hint) do
-    # Note: we need Map.to_list/1 in case this is a struct
-    complete_key_value(Map.to_list(map), hint)
-  end
-
-  defp complete_key_value(list, hint) do
-    for {key, value} <- list,
-        is_atom(key),
+    for {key, value} <- ctx.binding,
         name = Atom.to_string(key),
         String.starts_with?(name, hint),
         do: %{
           label: name,
           kind: :variable,
           detail: "variable",
+          documentation: value_docstr(value),
+          insert_text: name
+        }
+  end
+
+  defp complete_map_field(map, hint) do
+    # Note: we need Map.to_list/1 in case this is a struct
+    for {key, value} <- Map.to_list(map),
+        is_atom(key),
+        name = Atom.to_string(key),
+        String.starts_with?(name, hint),
+        do: %{
+          label: name,
+          kind: :field,
+          detail: "field",
           documentation: value_docstr(value),
           insert_text: name
         }

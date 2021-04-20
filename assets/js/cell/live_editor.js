@@ -214,10 +214,12 @@ function parseItemKind(kind) {
       return monaco.languages.CompletionItemKind.Function;
     case "module":
       return monaco.languages.CompletionItemKind.Module;
-    case "variable":
-      return monaco.languages.CompletionItemKind.Variable;
     case "type":
       return monaco.languages.CompletionItemKind.Class;
+    case "variable":
+      return monaco.languages.CompletionItemKind.Variable;
+    case "field":
+      return monaco.languages.CompletionItemKind.Field;
     default:
       return null;
   }

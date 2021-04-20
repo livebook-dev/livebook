@@ -422,22 +422,22 @@ defmodule Livebook.CompletionTest do
     assert [
              %{
                label: "bar_1",
-               kind: :variable,
-               detail: "variable",
+               kind: :field,
+               detail: "field",
                documentation: ~s{```\n~r/pattern/\n```},
                insert_text: "bar_1"
              },
              %{
                label: "bar_2",
-               kind: :variable,
-               detail: "variable",
+               kind: :field,
+               detail: "field",
                documentation: ~s{```\ntrue\n```},
                insert_text: "bar_2"
              },
              %{
                label: "foo",
-               kind: :variable,
-               detail: "variable",
+               kind: :field,
+               detail: "field",
                documentation: ~s{```\n1\n```},
                insert_text: "foo"
              }
@@ -446,8 +446,8 @@ defmodule Livebook.CompletionTest do
     assert [
              %{
                label: "foo",
-               kind: :variable,
-               detail: "variable",
+               kind: :field,
+               detail: "field",
                documentation: ~s{```\n1\n```},
                insert_text: "foo"
              }
@@ -472,8 +472,8 @@ defmodule Livebook.CompletionTest do
     assert [
              %{
                label: "nested",
-               kind: :variable,
-               detail: "variable",
+               kind: :field,
+               detail: "field",
                documentation: """
                ```
                %{
@@ -493,8 +493,8 @@ defmodule Livebook.CompletionTest do
     assert [
              %{
                label: "foo",
-               kind: :variable,
-               detail: "variable",
+               kind: :field,
+               detail: "field",
                documentation: ~s{```\n1\n```},
                insert_text: "foo"
              }

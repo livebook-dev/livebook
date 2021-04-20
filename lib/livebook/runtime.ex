@@ -23,7 +23,7 @@ defprotocol Livebook.Runtime do
           insert_text: String.t()
         }
 
-  @type completion_item_kind :: :variable | :function | :module | :type
+  @type completion_item_kind :: :function | :module | :type | :variable | :field
 
   @doc """
   Sets the caller as runtime owner.
