@@ -79,6 +79,9 @@ defmodule LivebookWeb.ANSI do
 
   defmodifier(:reset, 0)
 
+  # When the code is missing (i.e., "\e[m"), it is 0 for reset.
+  defmodifier(:reset, "")
+
   @colors [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
 
   for {color, index} <- Enum.with_index(@colors) do
