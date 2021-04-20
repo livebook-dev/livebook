@@ -98,6 +98,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 1
 
+    Line 1.\s\s
+    Line 2.
+
     |State|Abbrev|Capital|
     | --: | :-: | --- |
     | Texas | TX | Austin |
@@ -117,6 +120,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      type: :markdown,
                      metadata: %{},
                      source: """
+                     Line 1.\\
+                     Line 2.
+
                      | State | Abbrev | Capital |
                      | ----: | :----: | ------- |
                      | Texas | TX     | Austin  |
