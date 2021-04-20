@@ -827,6 +827,8 @@ defmodule Livebook.CompletionTest do
              %{label: "mapfoldl/3"},
              %{label: "mapfoldr/3"}
            ] = Completion.get_completion_items("EList.map", binding, env)
+
+    assert [] = Completion.get_completion_items("EList.Invalid", binding, env)
   end
 
   test "completion for functions added when compiled module is reloaded" do

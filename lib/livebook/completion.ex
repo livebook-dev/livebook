@@ -24,7 +24,7 @@ defmodule Livebook.Completion do
   @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t()) :: list(completion_item())
   def get_completion_items(hint, binding, env) do
     hint
-    |> completion_entrypoint(%{binding: binding, env: env})
+    |> complete(%{binding: binding, env: env})
     |> Enum.sort_by(&completion_item_priority/1)
   end
 
@@ -38,136 +38,116 @@ defmodule Livebook.Completion do
     Enum.find_index(@ordered_kinds, &(&1 == kind))
   end
 
-  defp completion_entrypoint("", ctx) do
-    complete_variable_or_import("", ctx)
-  end
-
-  defp completion_entrypoint(hint, ctx) do
+  defp complete(hint, ctx) do
     case cursor_context(hint) do
-      {:alias, charlist} ->
-        alias = to_string(charlist)
+      {:alias, alias} ->
+        complete_alias(List.to_string(alias), ctx)
 
-        case split_at_last_occurrence(alias, ".") do
-          {hint, ""} ->
-            complete_alias(hint, ctx) ++ complete_elixir_module(nil, hint)
+      {:unquoted_atom, unquoted_atom} ->
+        complete_erlang_module(List.to_string(unquoted_atom))
 
-          {alias, hint} ->
-            complete_alias_dot(alias, hint, ctx)
-        end
+      {:dot, path, hint} ->
+        complete_dot(path, List.to_string(hint), ctx)
 
-      {:dot, inside_dot, charlist} ->
-        hint = to_string(charlist)
+      {:dot_arity, path, hint} ->
+        complete_dot(path, List.to_string(hint), ctx)
 
-        case inside_dot do
-          {:var, charlist} ->
-            var = List.to_atom(charlist)
-
-            case Keyword.fetch(ctx.binding, var) do
-              {:ok, value} -> complete_value_call(value, hint)
-              :error -> []
-            end
-
-          {:alias, charlist} ->
-            alias = to_string(charlist)
-            complete_alias_dot(alias, hint, ctx)
-
-          {:unquoted_atom, charlist} ->
-            mod = List.to_atom(charlist)
-            complete_module_call(mod, hint)
-
-          {:dot, _inside_dot, _charlist} = inside_dot ->
-            with [key | keys] <- inside_dot_to_path(inside_dot, []),
-                 {:ok, map} when is_map(map) <- Keyword.fetch(ctx.binding, key),
-                 value when value != nil <- get_in(map, keys) do
-              complete_value_call(value, hint)
-            else
-              _ -> []
-            end
-
-          _ ->
-            []
-        end
-
-      {:dot_arity, inside_dot, charlist} ->
-        hint = to_string(charlist)
-
-        case inside_dot do
-          {:alias, alias} ->
-            mod = alias |> to_string() |> expand_alias(ctx)
-            complete_module_call(mod, hint)
-
-          {:unquoted_atom, atom} ->
-            mod = List.to_atom(atom)
-            complete_module_call(mod, hint)
-
-          _ ->
-            []
-        end
-
-      {:dot_call, _inside_dot, _charlist} ->
-        completion_entrypoint("", ctx)
+      {:dot_call, _path, _hint} ->
+        complete_default(ctx)
 
       :expr ->
-        completion_entrypoint("", ctx)
+        complete_default(ctx)
 
-      {:local_or_var, charlist} ->
-        hint = to_string(charlist)
-        complete_variable_or_import(hint, ctx)
+      {:local_or_var, local_or_var} ->
+        complete_local_or_var(List.to_string(local_or_var), ctx)
 
-      {:local_arity, charlist} ->
-        hint = to_string(charlist)
-        complete_variable_or_import(hint, ctx)
+      {:local_arity, local} ->
+        complete_local(List.to_string(local), ctx)
 
-      {:unquoted_atom, charlist} ->
-        hint = to_string(charlist)
-        complete_erlang_module(hint)
+      {:local_call, _local} ->
+        complete_default(ctx)
+
+      # {:module_attribute, charlist}
+      # :none
+      _ ->
+        []
+    end
+  end
+
+  ## Complete dot
+
+  defp complete_dot(path, hint, ctx) do
+    case expand_dot_path(path, ctx) do
+      {:ok, mod} when is_atom(mod) and hint == "" ->
+        complete_module_member(mod, hint) ++ complete_elixir_module(mod, hint)
+
+      {:ok, mod} when is_atom(mod) ->
+        complete_module_member(mod, hint)
+
+      {:ok, map} when is_map(map) ->
+        complete_map_field(map, hint)
 
       _ ->
         []
     end
   end
 
-  defp split_at_last_occurrence(string, pattern) do
-    case :binary.matches(string, pattern) do
-      [] ->
-        {string, ""}
+  defp expand_dot_path({:var, var}, ctx) do
+    Keyword.fetch(ctx.binding, List.to_atom(var))
+  end
 
-      parts ->
-        {start, _} = List.last(parts)
-        size = byte_size(string)
-        {binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+  defp expand_dot_path({:alias, alias}, ctx) do
+    {:ok, expand_alias(List.to_string(alias), ctx)}
+  end
+
+  defp expand_dot_path({:unquoted_atom, var}, _ctx) do
+    {:ok, List.to_atom(var)}
+  end
+
+  defp expand_dot_path({:dot, parent, call}, ctx) do
+    case expand_dot_path(parent, ctx) do
+      {:ok, %{} = map} -> Map.fetch(map, List.to_atom(call))
+      _ -> :error
     end
   end
 
-  defp inside_dot_to_path({:dot, inside_dot, key}, path) do
-    inside_dot_to_path(inside_dot, [List.to_atom(key) | path])
+  defp complete_default(ctx) do
+    complete_local_or_var("", ctx)
   end
 
-  defp inside_dot_to_path({:var, key}, path) do
-    [List.to_atom(key) | path]
+  defp complete_alias(hint, ctx) do
+    case split_at_last_occurrence(hint, ".") do
+      {hint, ""} ->
+        complete_elixir_module(nil, hint) ++ complete_env_alias(hint, ctx)
+
+      {alias, hint} ->
+        mod = expand_alias(alias, ctx)
+
+        # Alias could expand to Erlang module,
+        # in which case we don't complete "submodules".
+        if elixir_module?(mod) do
+          complete_elixir_module(mod, hint)
+        else
+          []
+        end
+    end
   end
 
-  defp inside_dot_to_path(_inside_dot, _path), do: []
+  defp elixir_module?(Elixir), do: true
 
-  # Completion
-
-  defp complete_value_call(mod, hint) when is_atom(mod) do
-    complete_module_call(mod, hint)
+  defp elixir_module?(mod) do
+    mod |> Atom.to_string() |> String.starts_with?("Elixir.")
   end
 
-  defp complete_value_call(map, hint) when is_map(map) do
-    complete_map_field(map, hint)
-  end
-
-  defp complete_value_call(_value, _hint), do: []
-
-  defp complete_module_call(mod, hint) do
+  defp complete_module_member(mod, hint) do
     complete_module_function(mod, hint) ++ complete_module_type(mod, hint)
   end
 
-  defp complete_variable_or_import(hint, ctx) do
-    variables = complete_variable(hint, ctx)
+  defp complete_local_or_var(hint, ctx) do
+    complete_local(hint, ctx) ++ complete_variable(hint, ctx)
+  end
 
+  defp complete_local(hint, ctx) do
     imports =
       ctx.env
       |> imports_from_env()
@@ -175,9 +155,9 @@ defmodule Livebook.Completion do
         complete_module_function(mod, hint, funs)
       end)
 
-    special_forms_funs = complete_module_function(Kernel.SpecialForms, hint)
+    special_forms = complete_module_function(Kernel.SpecialForms, hint)
 
-    variables ++ imports ++ special_forms_funs
+    imports ++ special_forms
   end
 
   defp complete_variable(hint, ctx) do
@@ -211,8 +191,6 @@ defmodule Livebook.Completion do
     """
   end
 
-  ## Erlang modules
-
   defp complete_erlang_module(hint) do
     for mod <- get_matching_modules(hint),
         usable_as_unquoted_module?(mod),
@@ -227,25 +205,6 @@ defmodule Livebook.Completion do
     end
   end
 
-  ## Elixir modules
-
-  defp complete_alias_dot(alias, hint, ctx) do
-    mod = expand_alias(alias, ctx)
-
-    if elixir_module?(mod) do
-      complete_elixir_module(mod, hint)
-    else
-      []
-    end ++
-      complete_module_call(mod, hint)
-  end
-
-  defp elixir_module?(Elixir), do: true
-
-  defp elixir_module?(mod) do
-    mod |> Atom.to_string() |> String.starts_with?("Elixir.")
-  end
-
   # Converts alias string to module atom with regard to the given env
   defp expand_alias(alias, ctx) do
     [name | rest] = alias |> String.split(".") |> Enum.map(&String.to_atom/1)
@@ -257,7 +216,7 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp complete_alias(hint, ctx) do
+  defp complete_env_alias(hint, ctx) do
     for {alias, mod} <- ctx.env.aliases,
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
@@ -393,7 +352,7 @@ defmodule Livebook.Completion do
           label: "#{name}/#{arity}",
           kind: :function,
           detail: signatures,
-          documentation: doc_join([docstr, spec]),
+          documentation: documentation_join([docstr, spec]),
           insert_text: Atom.to_string(name)
         }
       end)
@@ -456,6 +415,13 @@ defmodule Livebook.Completion do
   defp doc_content({_, _, _, %{"en" => docstr}, _}, format), do: {format, docstr}
   defp doc_content(_doc, _format), do: nil
 
+  defp documentation_join(list) do
+    case Enum.reject(list, &is_nil/1) do
+      [] -> nil
+      parts -> Enum.join(parts, "\n\n")
+    end
+  end
+
   defp format_signatures([], _mod), do: nil
 
   defp format_signatures(signatures, mod) do
@@ -503,13 +469,6 @@ defmodule Livebook.Completion do
 
   def text_from_erlang_html(ast) when is_binary(ast), do: ast
   def text_from_erlang_html({_, _, ast}), do: text_from_erlang_html(ast)
-
-  defp doc_join(list) do
-    case Enum.reject(list, &is_nil/1) do
-      [] -> nil
-      parts -> Enum.join(parts, "\n\n")
-    end
-  end
 
   defp format_spec(nil), do: nil
 
@@ -575,6 +534,18 @@ defmodule Livebook.Completion do
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
   defp imports_from_env(env), do: env.functions ++ env.macros
+
+  defp split_at_last_occurrence(string, pattern) do
+    case :binary.matches(string, pattern) do
+      [] ->
+        {string, ""}
+
+      parts ->
+        {start, _} = List.last(parts)
+        size = byte_size(string)
+        {binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+    end
+  end
 
   # TODO: remove this once we require Elixir 1.12
   # --------------------------------------------------------------
