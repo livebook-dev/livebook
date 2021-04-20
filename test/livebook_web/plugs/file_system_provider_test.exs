@@ -8,7 +8,7 @@ defmodule LivebookWeb.FileSystemProviderTest do
 
   test "includes regular files" do
     assert %{content: content} = MyProvider.get_file(["js", "app.js"], nil)
-    assert content == ~s{console.log("Hello");\n}
+    assert content =~ ~s{console.log("Hello");}
   end
 
   test "ignores directories" do

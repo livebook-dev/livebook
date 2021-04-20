@@ -13,7 +13,7 @@ defmodule LivebookWeb.MemoryProviderTest do
 
   test "includes compressed files which are gzippable" do
     assert %{content: content} = MyProvider.get_file(["js", "app.js"], :gzip)
-    assert :zlib.gunzip(content) == ~s{console.log("Hello");\n}
+    assert :zlib.gunzip(content) =~ ~s{console.log("Hello");}
   end
 
   test "does not include uncompressed files that are gzippable" do
