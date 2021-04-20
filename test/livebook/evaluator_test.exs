@@ -105,7 +105,7 @@ defmodule Livebook.EvaluatorTest do
         # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
         assert_receive {:evaluation_response, :code_1,
                         {:error, _kind, _error, ^expected_stacktrace}},
-                       1000
+                       1_000
       end)
     end
 
@@ -139,7 +139,7 @@ defmodule Livebook.EvaluatorTest do
       """
 
       opts = [file: "/path/dir/file"]
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, :initial, opts)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, opts)
 
       assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"}}
     end
@@ -159,6 +159,30 @@ defmodule Livebook.EvaluatorTest do
                         {:error, _kind, %CompileError{description: "undefined function x/0"},
                          _stacktrace}}
       end)
+    end
+  end
+
+  describe "request_completion_items/5" do
+    test "sends completion response to the given process", %{evaluator: evaluator} do
+      Evaluator.request_completion_items(evaluator, self(), :comp_ref, "System.ver")
+      assert_receive {:completion_response, :comp_ref, [%{label: "version/0"}]}
+    end
+
+    test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
+      code1 = """
+      alias IO.ANSI
+      number = 10
+      """
+
+      Evaluator.evaluate_code(evaluator, self(), code1, :code_1)
+      assert_receive {:evaluation_response, :code_1, _}
+
+      Evaluator.request_completion_items(evaluator, self(), :comp_ref, "num", :code_1)
+      assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}
+
+      Evaluator.request_completion_items(evaluator, self(), :comp_ref, "ANSI.brigh", :code_1)
+
+      assert_receive {:completion_response, :comp_ref, [%{label: "bright/0"}]}
     end
   end
 

@@ -30,7 +30,7 @@ defimpl Livebook.Runtime, for: LivebookTest.Runtime.SingleEvaluator do
         code,
         _container_ref,
         evaluation_ref,
-        prev_evaluation_ref \\ :initial,
+        prev_evaluation_ref,
         opts \\ []
       ) do
     Evaluator.evaluate_code(
@@ -50,4 +50,14 @@ defimpl Livebook.Runtime, for: LivebookTest.Runtime.SingleEvaluator do
   end
 
   def drop_container(_runtime, _container_ref), do: :ok
+
+  def request_completion_items(runtime, send_to, ref, hint, _container_ref, evaluation_ref) do
+    Evaluator.request_completion_items(
+      runtime.evaluator,
+      send_to,
+      ref,
+      hint,
+      evaluation_ref
+    )
+  end
 end

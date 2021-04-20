@@ -123,8 +123,17 @@ function handleDocumentKeyDown(hook, event) {
     keyBuffer.reset();
 
     if (key === "Escape") {
-      // Ignore Escape if it's supposed to close some Monaco input (like the find/replace box)
-      if (!event.target.closest(".monaco-inputbox")) {
+      const monacoInputOpen = !!event.target.closest(".monaco-inputbox");
+
+      const activeDescendant = event.target.getAttribute(
+        "aria-activedescendant"
+      );
+      const completionBoxOpen =
+        activeDescendant && activeDescendant.includes("suggest");
+
+      // Ignore Escape if it's supposed to close some Monaco input
+      // (like the find/replace box), or the completion box.
+      if (!monacoInputOpen && !completionBoxOpen) {
         escapeInsertMode(hook);
       }
     } else if (cmd && key === "Enter") {

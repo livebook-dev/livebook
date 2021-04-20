@@ -70,9 +70,8 @@ defmodule Livebook.Evaluator do
   * `:file` - file to which the evaluated code belongs. Most importantly,
     this has an impact on the value of `__DIR__`.
   """
-  @spec evaluate_code(t(), pid(), String.t(), ref(), ref(), keyword()) :: :ok
-  def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ :initial, opts \\ [])
-      when ref != :initial do
+  @spec evaluate_code(t(), pid(), String.t(), ref(), ref() | nil, keyword()) :: :ok
+  def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
     GenServer.cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref, opts})
   end
 
@@ -83,6 +82,18 @@ defmodule Livebook.Evaluator do
   @spec forget_evaluation(t(), ref()) :: :ok
   def forget_evaluation(evaluator, ref) do
     GenServer.cast(evaluator, {:forget_evaluation, ref})
+  end
+
+  @doc """
+  Asynchronously finds completion items matching the given `hint` text.
+
+  If `evaluation_ref` is given, its binding and environment are also
+  used for the completion. Response is sent to the `send_to` process
+  as `{:completion_response, ref, items}`.
+  """
+  @spec request_completion_items(t(), pid(), term(), String.t(), ref() | nil) :: :ok
+  def request_completion_items(evaluator, send_to, ref, hint, evaluation_ref \\ nil) do
+    GenServer.cast(evaluator, {:request_completion_items, send_to, ref, hint, evaluation_ref})
   end
 
   ## Callbacks
@@ -103,7 +114,7 @@ defmodule Livebook.Evaluator do
     %{
       formatter: formatter,
       io_proxy: io_proxy,
-      contexts: %{initial: initial_context()}
+      contexts: %{}
     }
   end
 
@@ -116,8 +127,7 @@ defmodule Livebook.Evaluator do
   def handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
 
-    context = Map.get(state.contexts, prev_ref, state.contexts.initial)
-
+    context = Map.get_lazy(state.contexts, prev_ref, fn -> initial_context() end)
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
 
@@ -144,6 +154,14 @@ defmodule Livebook.Evaluator do
   def handle_cast({:forget_evaluation, ref}, state) do
     new_state = %{state | contexts: Map.delete(state.contexts, ref)}
     {:noreply, new_state}
+  end
+
+  def handle_cast({:request_completion_items, send_to, ref, hint, evaluation_ref}, state) do
+    context = Map.get_lazy(state.contexts, evaluation_ref, fn -> initial_context() end)
+    items = Livebook.Completion.get_completion_items(hint, context.binding, context.env)
+    send(send_to, {:completion_response, ref, items})
+
+    {:noreply, state}
   end
 
   defp send_evaluation_response(send_to, ref, evaluation_response, formatter) do

@@ -4,7 +4,9 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @shortcuts %{
     insert_mode: [
       %{seq: ["esc"], desc: "Switch back to navigation mode"},
-      %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"}
+      %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"},
+      %{seq: ["tab"], desc: "Autocomplete expression when applicable"},
+      %{seq: ["ctrl", "␣"], desc: "Show completion list, use twice for details"}
     ],
     navigation_mode: [
       %{seq: ["?"], desc: "Open this help modal"},
@@ -38,7 +40,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 sm:max-w-4xl sm:w-full flex flex-col space-y-3">
+    <div class="p-6 sm:max-w-5xl sm:w-full flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         Keyboard shortcuts
       </h3>

@@ -12,6 +12,19 @@ defprotocol Livebook.Runtime do
   """
   @type ref :: term()
 
+  @typedoc """
+  A single completion result.
+  """
+  @type completion_item :: %{
+          label: String.t(),
+          kind: completion_item_kind(),
+          detail: String.t() | nil,
+          documentation: String.t() | nil,
+          insert_text: String.t()
+        }
+
+  @type completion_item_kind :: :function | :module | :type | :variable | :field
+
   @doc """
   Sets the caller as runtime owner.
 
@@ -50,15 +63,8 @@ defprotocol Livebook.Runtime do
   * `:file` - file to which the evaluated code belongs. Most importantly,
     this has an impact on the value of `__DIR__`.
   """
-  @spec evaluate_code(t(), String.t(), ref(), ref(), ref(), keyword()) :: :ok
-  def evaluate_code(
-        runtime,
-        code,
-        container_ref,
-        evaluation_ref,
-        prev_evaluation_ref \\ :initial,
-        opts \\ []
-      )
+  @spec evaluate_code(t(), String.t(), ref(), ref(), ref() | nil, keyword()) :: :ok
+  def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref, opts \\ [])
 
   @doc """
   Disposes of evaluation identified by the given ref.
@@ -76,4 +82,24 @@ defprotocol Livebook.Runtime do
   """
   @spec drop_container(t(), ref()) :: :ok
   def drop_container(runtime, container_ref)
+
+  @doc """
+  Asynchronously finds completion items matching the given `hint` text.
+
+  The given `{container_ref, evaluation_ref}` pair idenfities an evaluation,
+  which bindings and environment are used to provide a more relevant completion results.
+  If there's no appropriate evaluation, `nil` refs can be provided.
+
+  Completion response is sent to the `send_to` process as `{:completion_response, ref, items}`,
+  where `items` is a list of `Livebook.Runtime.completion_item()`.
+  """
+  @spec request_completion_items(t(), pid(), term(), String.t(), ref() | nil, ref() | nil) :: :ok
+  def request_completion_items(
+        runtime,
+        send_to,
+        ref,
+        hint,
+        container_ref,
+        evaluation_ref
+      )
 end

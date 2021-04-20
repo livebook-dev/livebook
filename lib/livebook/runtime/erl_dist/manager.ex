@@ -54,17 +54,10 @@ defmodule Livebook.Runtime.ErlDist.Manager do
           String.t(),
           Evaluator.ref(),
           Evaluator.ref(),
-          Evaluator.ref(),
+          Evaluator.ref() | nil,
           keyword()
         ) :: :ok
-  def evaluate_code(
-        node,
-        code,
-        container_ref,
-        evaluation_ref,
-        prev_evaluation_ref \\ :initial,
-        opts \\ []
-      ) do
+  def evaluate_code(node, code, container_ref, evaluation_ref, prev_evaluation_ref, opts \\ []) do
     GenServer.cast(
       {@name, node},
       {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref, opts}
@@ -90,6 +83,31 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   end
 
   @doc """
+  Asynchronously sends completion request for the given `hint` text.
+
+  The completion request is forwarded to `Evaluator` process
+  belonging to the given `container_ref`. If there's not evaluator,
+  there's also no binding and environment, so the completion is handled
+  by a temporary process.
+
+  See `Livebook.Runtime` for more details.
+  """
+  @spec request_completion_items(
+          node(),
+          pid(),
+          term(),
+          String.t(),
+          Evaluator.ref(),
+          Evaluator.ref()
+        ) :: :ok
+  def request_completion_items(node, send_to, ref, hint, container_ref, evaluation_ref) do
+    GenServer.cast(
+      {@name, node},
+      {:request_completion_items, send_to, ref, hint, container_ref, evaluation_ref}
+    )
+  end
+
+  @doc """
   Stops the manager.
 
   This results in all Livebook-related modules being unloaded from this node.
@@ -108,7 +126,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     Process.flag(:trap_exit, true)
 
     {:ok, _} = ErlDist.EvaluatorSupervisor.start_link()
-    {:ok, io_forward_gl_pid} = Livebook.Runtime.ErlDist.IOForwardGL.start_link()
+    {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
+    {:ok, _} = Task.Supervisor.start_link(name: CompletionTaskSupervisor)
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
@@ -172,6 +191,10 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     end
   end
 
+  def handle_info({:EXIT, _from, _reason}, state) do
+    {:stop, :shutdown, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -209,6 +232,25 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
   def handle_cast({:drop_container, container_ref}, state) do
     state = discard_evaluator(state, container_ref)
+    {:noreply, state}
+  end
+
+  def handle_cast(
+        {:request_completion_items, send_to, ref, hint, container_ref, evaluation_ref},
+        state
+      ) do
+    if evaluator = Map.get(state.evaluators, container_ref) do
+      Evaluator.request_completion_items(evaluator, send_to, ref, hint, evaluation_ref)
+    else
+      # Since there's no evaluator, we may as well get the completion items here.
+      Task.Supervisor.start_child(CompletionTaskSupervisor, fn ->
+        binding = []
+        env = :elixir.env_for_eval([])
+        items = Livebook.Completion.get_completion_items(hint, binding, env)
+        send(send_to, {:completion_response, ref, items})
+      end)
+    end
+
     {:noreply, state}
   end
 

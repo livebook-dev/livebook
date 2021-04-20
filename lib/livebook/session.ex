@@ -654,7 +654,7 @@ defmodule Livebook.Session do
     prev_ref =
       case Notebook.parent_cells_with_section(state.data.notebook, cell.id) do
         [{parent, _} | _] -> parent.id
-        [] -> :initial
+        [] -> nil
       end
 
     file = (state.data.path || "") <> "#cell"
