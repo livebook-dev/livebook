@@ -17,6 +17,22 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <%# ^ Note it's important there's no space between <h2> and </h2>
             because we want the content to exactly match section name. %>
         <div class="flex space-x-2 items-center" data-element="section-actions">
+          <span class="tooltip top" aria-label="Move up">
+            <button class="icon-button"
+              phx-click="move_section"
+              phx-value-section_id="<%= @section_view.id %>"
+              phx-value-offset="-1">
+              <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
+            </button>
+          </span>
+          <span class="tooltip top" aria-label="Move down">
+            <button class="icon-button"
+              phx-click="move_section"
+              phx-value-section_id="<%= @section_view.id %>"
+              phx-value-offset="1">
+              <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
+            </button>
+          </span>
           <span class="tooltip top" aria-label="Delete">
             <button class="icon-button" phx-click="delete_section" phx-value-section_id="<%= @section_view.id %>" tabindex="-1">
               <%= remix_icon("delete-bin-6-line", class: "text-xl") %>

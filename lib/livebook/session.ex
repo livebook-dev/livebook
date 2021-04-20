@@ -145,6 +145,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends section move request to the server.
+  """
+  @spec move_section(id(), Section.id(), integer()) :: :ok
+  def move_section(session_id, section_id, offset) do
+    GenServer.cast(name(session_id), {:move_section, self(), section_id, offset})
+  end
+
+  @doc """
   Asynchronously sends cell evaluation request to the server.
   """
   @spec queue_cell_evaluation(id(), Cell.id()) :: :ok
@@ -354,6 +362,11 @@ defmodule Livebook.Session do
 
   def handle_cast({:move_cell, client_pid, cell_id, offset}, state) do
     operation = {:move_cell, client_pid, cell_id, offset}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:move_section, client_pid, section_id, offset}, state) do
+    operation = {:move_section, client_pid, section_id, offset}
     {:noreply, handle_operation(state, operation)}
   end
 

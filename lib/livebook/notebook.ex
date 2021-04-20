@@ -230,6 +230,28 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Moves section by the given offset.
+  """
+  @spec move_section(t(), Section.id(), integer()) :: t()
+  def move_section(notebook, section_id, offset) do
+    # We first find the index of the given section.
+    # Then we find its' new index from given offset.
+    # Finally, we move the section, and return the new notebook.
+
+    idx =
+      Enum.find_index(notebook.sections, fn
+        section -> section.id == section_id
+      end)
+
+    new_idx = (idx + offset) |> clamp_index(notebook.sections)
+
+    {section, sections} = List.pop_at(notebook.sections, idx)
+    sections = List.insert_at(sections, new_idx, section)
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
   Returns a list of `{cell, section}` pairs including all Elixir cells in order.
   """
   @spec elixir_cells_with_section(t()) :: list({Cell.t(), Section.t()})

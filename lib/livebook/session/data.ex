@@ -77,6 +77,7 @@ defmodule Livebook.Session.Data do
           | {:delete_section, pid(), Section.id()}
           | {:delete_cell, pid(), Cell.id()}
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
+          | {:move_section, pid(), Section.id(), offset :: integer()}
           | {:queue_cell_evaluation, pid(), Cell.id()}
           | {:add_cell_evaluation_stdout, pid(), Cell.id(), String.t()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), Evaluator.evaluation_response()}
@@ -222,6 +223,19 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> move_cell(cell, offset)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:move_section, _client_pid, id, offset}) do
+    with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
+         true <- offset != 0 do
+      data
+      |> with_actions()
+      |> move_section(section, offset)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -455,8 +469,22 @@ defmodule Livebook.Session.Data do
   defp move_cell({data, _} = data_actions, cell, offset) do
     updated_notebook = Notebook.move_cell(data.notebook, cell.id, offset)
 
-    cells_with_section_before = Notebook.elixir_cells_with_section(data.notebook)
-    cells_with_section_after = Notebook.elixir_cells_with_section(updated_notebook)
+    data_actions
+    |> set!(notebook: updated_notebook)
+    |> update_cells_status_after_moved(data.notebook)
+  end
+
+  defp move_section({data, _} = data_actions, section, offset) do
+    updated_notebook = Notebook.move_section(data.notebook, section.id, offset)
+
+    data_actions
+    |> set!(notebook: updated_notebook)
+    |> update_cells_status_after_moved(data.notebook)
+  end
+
+  defp update_cells_status_after_moved({data, _} = data_actions, prev_notebook) do
+    cells_with_section_before = Notebook.elixir_cells_with_section(prev_notebook)
+    cells_with_section_after = Notebook.elixir_cells_with_section(data.notebook)
 
     affected_cells_with_section =
       cells_with_section_after
@@ -467,7 +495,6 @@ defmodule Livebook.Session.Data do
       |> Enum.map(fn {new, _old} -> new end)
 
     data_actions
-    |> set!(notebook: updated_notebook)
     |> mark_cells_as_stale(affected_cells_with_section)
     |> unqueue_cells_evaluation(affected_cells_with_section)
   end

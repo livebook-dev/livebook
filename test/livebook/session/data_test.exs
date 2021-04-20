@@ -430,6 +430,216 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :move_section" do
+    test "returns an error given invalid section id" do
+      data = Data.new()
+      operation = {:move_section, self(), "nonexistent", 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given no offset" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"}
+        ])
+
+      operation = {:move_section, self(), "s2", 0}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "given negative offset moves the section and marks relevant cells as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          # Evaluate cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c4", {:ok, nil}}
+        ])
+
+      operation = {:move_section, self(), "s2", -1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{id: "c3"}, %{id: "c4"}]
+                    },
+                    %{
+                      cells: [%{id: "c1"}, %{id: "c2"}]
+                    }
+                  ]
+                },
+                cell_infos: %{
+                  "c1" => %{validity_status: :stale},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale},
+                  "c4" => %{validity_status: :stale}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "given positive offset moves the section and marks relevant cells as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          # Evaluate cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c4", {:ok, nil}}
+        ])
+
+      operation = {:move_section, self(), "s1", 1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{id: "c3"}, %{id: "c4"}]
+                    },
+                    %{
+                      cells: [%{id: "c1"}, %{id: "c2"}]
+                    }
+                  ]
+                },
+                cell_infos: %{
+                  "c1" => %{validity_status: :stale},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale},
+                  "c4" => %{validity_status: :stale}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "marks relevant cells in further sections as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          # Evaluate cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}}
+        ])
+
+      operation = {:move_section, self(), "s1", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c3" => %{validity_status: :stale}}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "moving a section with only markdown cells does not change validity" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s2", 0, :markdown, "c2"},
+          # Evaluate the Elixir cell
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}}
+        ])
+
+      operation = {:move_section, self(), "s2", -1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "affected queued cells are unqueued" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          # Evaluate the Elixir cell
+          {:queue_cell_evaluation, self(), "c1"},
+          {:queue_cell_evaluation, self(), "c2"}
+        ])
+
+      operation = {:move_section, self(), "s2", -1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{evaluation_status: :ready}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "does not invalidate cells in moved section if the order of Elixir cells stays the same" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_section, self(), 3, "s4"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s2", 0, :markdown, "c2"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s4", 0, :markdown, "c4"},
+          # Evaluate cells
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}}
+        ])
+
+      operation = {:move_section, self(), "s4", -1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c3" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :queue_cell_evaluation" do
     test "returns an error given invalid cell id" do
       data = Data.new()
