@@ -84,10 +84,10 @@ defmodule Livebook.Application do
   end
 
   defp access_url() do
-    token = Application.get_env(:livebook, :token)
     root_url = LivebookWeb.Endpoint.url()
 
-    if token do
+    if Livebook.Config.auth_mode() == :token do
+      token = Application.fetch_env!(:livebook, :token)
       root_url <> "/?token=" <> token
     else
       root_url
