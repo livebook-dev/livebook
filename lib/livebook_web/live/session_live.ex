@@ -459,6 +459,14 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp after_operation(socket, _prev_socket, {:move_section, client_pid, section_id, _offset}) do
+    if client_pid == self() do
+      push_event(socket, "section_moved", %{section_id: section_id})
+    else
+      socket
+    end
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
