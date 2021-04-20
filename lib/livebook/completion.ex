@@ -85,8 +85,7 @@ defmodule Livebook.Completion do
                  value when value != nil <- get_in(map, keys) do
               complete_value_call(value, hint)
             else
-              _ ->
-                []
+              _ -> []
             end
 
           _ ->
@@ -226,8 +225,7 @@ defmodule Livebook.Completion do
         label: name,
         kind: :module,
         detail: "module",
-        # TODO: support Erlang docs
-        documentation: nil,
+        documentation: mod |> get_module_doc_content() |> format_doc_content(),
         insert_text: name
       }
     end
@@ -364,8 +362,7 @@ defmodule Livebook.Completion do
 
   defp complete_module_function(mod, hint, funs \\ nil) do
     if ensure_loaded?(mod) do
-      # TODO: support Erlang docs (and consequently signatures)
-      docs = get_docs(mod, [:function, :macro])
+      {format, docs} = get_docs(mod, [:function, :macro])
       specs = get_specs(mod)
       funs = funs || exports(mod)
       funs_with_base_arity = funs_with_base_arity(docs)
@@ -380,7 +377,7 @@ defmodule Livebook.Completion do
         doc = find_doc(docs, {name, base_arity})
         spec = find_spec(specs, {name, base_arity})
 
-        docstr = doc |> doc_content() |> format_doc_content()
+        docstr = doc |> doc_content(format) |> format_doc_content()
         signatures = doc |> doc_signatures() |> format_signatures(mod)
         spec = format_spec(spec)
 
@@ -411,18 +408,19 @@ defmodule Livebook.Completion do
 
   defp get_docs(mod, kinds) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, "text/markdown", _, _, docs} ->
-        for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+      {:docs_v1, _, _, format, _, _, docs} ->
+        docs = for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+        {format, docs}
 
       _ ->
-        []
+        {nil, []}
     end
   end
 
   defp get_module_doc_content(mod) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, "text/markdown", %{"en" => docstring}, _, _} ->
-        docstring
+      {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
+        {format, docstring}
 
       _ ->
         nil
@@ -447,8 +445,8 @@ defmodule Livebook.Completion do
   defp doc_signatures({_, _, signatures, _, _}), do: signatures
   defp doc_signatures(_), do: []
 
-  defp doc_content({_, _, _, %{"en" => docstr}, _}), do: docstr
-  defp doc_content(_), do: nil
+  defp doc_content({_, _, _, %{"en" => docstr}, _}, format), do: {format, docstr}
+  defp doc_content(_doc, _format), do: nil
 
   defp format_signatures([], _mod), do: nil
 
@@ -466,13 +464,37 @@ defmodule Livebook.Completion do
 
   defp format_doc_content(nil), do: nil
 
-  defp format_doc_content(docstr) do
+  defp format_doc_content({"text/markdown", markdown}) do
     # Extract just the first paragraph
-    docstr
+    markdown
     |> String.split("\n\n")
     |> hd()
     |> String.trim()
   end
+
+  defp format_doc_content({"application/erlang+html", erlang_html}) do
+    case erlang_html do
+      # Extract just the first paragraph
+      [{:p, _, inner} | _] ->
+        inner
+        |> text_from_erlang_html()
+        |> String.trim()
+
+      _ ->
+        nil
+    end
+  end
+
+  defp format_doc_content(_), do: nil
+
+  def text_from_erlang_html(ast) when is_list(ast) do
+    ast
+    |> Enum.map(&text_from_erlang_html/1)
+    |> Enum.join("")
+  end
+
+  def text_from_erlang_html(ast) when is_binary(ast), do: ast
+  def text_from_erlang_html({_, _, ast}), do: text_from_erlang_html(ast)
 
   defp doc_join(list) do
     case Enum.reject(list, &is_nil/1) do
@@ -508,7 +530,7 @@ defmodule Livebook.Completion do
   end
 
   defp complete_module_type(mod, hint) do
-    docs = get_docs(mod, [:type])
+    {format, docs} = get_docs(mod, [:type])
     types = get_module_types(mod)
 
     types
@@ -518,7 +540,7 @@ defmodule Livebook.Completion do
     end)
     |> Enum.map(fn {name, arity} ->
       doc = find_doc(docs, {name, arity})
-      docstr = doc |> doc_content() |> format_doc_content()
+      docstr = doc |> doc_content(format) |> format_doc_content()
 
       %{
         label: "#{name}/#{arity}",
@@ -531,19 +553,13 @@ defmodule Livebook.Completion do
   end
 
   defp get_module_types(mod) do
-    if ensure_loaded?(mod) do
-      case Code.Typespec.fetch_types(mod) do
-        {:ok, types} ->
-          for {kind, {name, _, args}} <- types,
-              kind in [:type, :opaque] do
-            {name, length(args)}
-          end
-
-        :error ->
-          []
+    with true <- ensure_loaded?(mod),
+         {:ok, types} <- Code.Typespec.fetch_types(mod) do
+      for {kind, {name, _, args}} <- types, kind in [:type, :opaque] do
+        {name, length(args)}
       end
     else
-      []
+      _ -> []
     end
   end
 

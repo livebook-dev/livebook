@@ -45,6 +45,7 @@ defmodule Livebook.CompletionTest do
     assert length_item in Completion.get_completion_items("Enum.map(list, ", binding, env)
   end
 
+  @tag :erl_docs
   test "Erlang module completion" do
     {binding, env} = eval(do: nil)
 
@@ -53,7 +54,8 @@ defmodule Livebook.CompletionTest do
                label: "zlib",
                kind: :module,
                detail: "module",
-               documentation: nil,
+               documentation:
+                 "This module provides an API for the zlib library (www.zlib.net). It is used to compress and decompress data. The data format is described by RFC 1950, RFC 1951, and RFC 1952.",
                insert_text: "zlib"
              }
            ] = Completion.get_completion_items(":zl", binding, env)
@@ -73,26 +75,27 @@ defmodule Livebook.CompletionTest do
                label: "user",
                kind: :module,
                detail: "module",
-               documentation: nil,
+               documentation: _user_doc,
                insert_text: "user"
              },
              %{
                label: "user_drv",
                kind: :module,
                detail: "module",
-               documentation: nil,
+               documentation: _user_drv_doc,
                insert_text: "user_drv"
              },
              %{
                label: "user_sup",
                kind: :module,
                detail: "module",
-               documentation: nil,
+               documentation: _user_sup_doc,
                insert_text: "user_sup"
              }
            ] = Completion.get_completion_items(":user", binding, env)
   end
 
+  @tag :erl_docs
   test "Erlang root completion" do
     {binding, env} = eval(do: nil)
 
@@ -100,7 +103,7 @@ defmodule Livebook.CompletionTest do
       label: "lists",
       kind: :module,
       detail: "module",
-      documentation: nil,
+      documentation: "This module contains functions for list processing.",
       insert_text: "lists"
     }
 
@@ -169,14 +172,14 @@ defmodule Livebook.CompletionTest do
                label: "name/0",
                kind: :type,
                detail: "typespec",
-               documentation: nil,
+               documentation: _name_doc,
                insert_text: "name"
              },
              %{
                label: "name_all/0",
                kind: :type,
                detail: "typespec",
-               documentation: nil,
+               documentation: _name_all_doc,
                insert_text: "name_all"
              }
            ] = Completion.get_completion_items(":file.nam", binding, env)
@@ -271,14 +274,17 @@ defmodule Livebook.CompletionTest do
            ] = Completion.get_completion_items("System.ve", binding, env)
   end
 
+  @tag :erl_docs
   test "Erlang function completion" do
     {binding, env} = eval(do: nil)
 
     assert %{
              label: "gzip/1",
              kind: :function,
-             detail: nil,
+             detail: "zlib.gzip/1",
              documentation: """
+             Compresses data with gz headers and checksum.
+
              ```
              @spec gzip(data) :: compressed
              when data: iodata(),
