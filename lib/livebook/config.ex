@@ -52,7 +52,7 @@ defmodule Livebook.Config do
       root_path
     else
       IO.warn("ignoring #{context} because it doesn't point to a directory: #{root_path}")
-      File.get_cwd!()
+      File.cwd!()
     end
   end
 
