@@ -19,12 +19,12 @@
     "marked": "^2.0.0",
     "monaco-editor": "^0.23.0",
     "morphdom": "^2.6.1",
-    "nprogress": "^0.2.0",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
     "phoenix_live_view": "file:../deps/phoenix_live_view",
     "remixicon": "^2.5.0",
-    "scroll-into-view-if-needed": "^2.2.28"
+    "scroll-into-view-if-needed": "^2.2.28",
+    "topbar": "^1.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
