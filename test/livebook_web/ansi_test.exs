@@ -94,5 +94,9 @@ defmodule LivebookWeb.ANSITest do
                ANSI.ansi_string_to_html("cat", renderer: div_renderer)
                |> Phoenix.HTML.safe_to_string()
     end
+
+    test "ignores RFC 1468 switch to ASCII" do
+      assert ~s{cat} == ANSI.ansi_string_to_html("\e(Bcat") |> Phoenix.HTML.safe_to_string()
+    end
   end
 end

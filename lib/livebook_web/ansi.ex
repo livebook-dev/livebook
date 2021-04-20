@@ -3,7 +3,7 @@ defmodule Livebook.ANSI.Modifier do
 
   defmacro defmodifier(modifier, code, terminator \\ "m") do
     quote bind_quoted: [modifier: modifier, code: code, terminator: terminator] do
-      defp ansi_prefix_to_modifier(unquote("#{code}#{terminator}") <> rest) do
+      defp ansi_prefix_to_modifier(unquote("[#{code}#{terminator}") <> rest) do
         {:ok, unquote(modifier), rest}
       end
     end
@@ -43,7 +43,7 @@ defmodule LivebookWeb.ANSI do
   def ansi_string_to_html(string, opts \\ []) do
     renderer = Keyword.get(opts, :renderer, &default_renderer/2)
 
-    [head | ansi_prefixed_strings] = String.split(string, "\e[")
+    [head | ansi_prefixed_strings] = String.split(string, "\e")
 
     {:safe, head_html} = Phoenix.HTML.html_escape(head)
     head_html = renderer.("", head_html)
@@ -58,7 +58,7 @@ defmodule LivebookWeb.ANSI do
               {modifiers, rest}
 
             {:error, _rest} ->
-              {modifiers, "\e[" <> string}
+              {modifiers, "\e" <> string}
           end
 
         {:safe, content} = Phoenix.HTML.html_escape(rest)
@@ -73,7 +73,7 @@ defmodule LivebookWeb.ANSI do
   end
 
   # Below goes a number of `ansi_prefix_to_modifier` function definitions,
-  # that take a string like "32msomething" (starting with ANSI code without the leading "\e[")
+  # that take a string like "[32msomething" (starting with ANSI code without the leading "\e")
   # and parse the prefix into the corresponding modifier.
   # The function returns either {:ok, modifier, rest} or {:error, rest}
 
@@ -105,16 +105,22 @@ defmodule LivebookWeb.ANSI do
   defmodifier({:text_decoration, :overline}, 53)
   defmodifier({:text_decoration, :reset}, 55)
 
-  defp ansi_prefix_to_modifier("38;5;" <> string) do
+  defp ansi_prefix_to_modifier("[38;5;" <> string) do
     with {:ok, color, rest} <- bit8_prefix_to_color(string) do
       {:ok, {:foreground_color, color}, rest}
     end
   end
 
-  defp ansi_prefix_to_modifier("48;5;" <> string) do
+  defp ansi_prefix_to_modifier("[48;5;" <> string) do
     with {:ok, color, rest} <- bit8_prefix_to_color(string) do
       {:ok, {:background_color, color}, rest}
     end
+  end
+
+  # "\e(B" is RFC1468's switch to ASCII character set and can be ignored. This
+  # can appear even when JIS character sets aren't in use.
+  defp ansi_prefix_to_modifier("(B" <> rest) do
+    {:ok, :ignored, rest}
   end
 
   defp bit8_prefix_to_color(string) do
