@@ -90,6 +90,14 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
         List.delete(socket.assigns.running_paths, path)
       end
 
+    # After saving the file reload the directory contents,
+    # so that the new file gets shown.
+    send_update(LivebookWeb.PathSelectComponent,
+      id: "path_select",
+      running_paths: running_paths,
+      force_reload: true
+    )
+
     {:noreply, assign(socket, running_paths: running_paths)}
   end
 
