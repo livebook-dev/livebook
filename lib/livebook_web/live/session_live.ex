@@ -65,10 +65,10 @@ defmodule LivebookWeb.SessionLive do
             <%= remix_icon("booklet-fill") %>
           </button>
         </span>
-        <span class="tooltip right distant" aria-label="Notebook settings (sn)">
-          <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
-                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :settings, do: "text-gray-50 bg-gray-700")}" do %>
-            <%= remix_icon("settings-4-fill", class: "text-2xl") %>
+        <span class="tooltip right distant" aria-label="Runtime settings (sr)">
+          <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session_id),
+                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :runtime_settings, do: "text-gray-50 bg-gray-700")}" do %>
+            <%= remix_icon("cpu-line", class: "text-2xl") %>
           <% end %>
         </span>
         <div class="flex-grow"></div>
@@ -140,13 +140,21 @@ defmodule LivebookWeb.SessionLive do
       </div>
     </div>
 
-    <%= if @live_action == :settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.SettingsComponent,
-            id: :settings_modal,
+    <%= if @live_action == :runtime_settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
+            id: :runtime_settings_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
-            tab: @tab,
             session_id: @session_id,
-            data_view: @data_view %>
+            runtime: @data_view.runtime %>
+    <% end %>
+
+    <%= if @live_action == :file_settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceComponent,
+            id: :runtime_settings_modal,
+            return_to: Routes.session_path(@socket, :page, @session_id),
+            session_id: @session_id,
+            current_path: @data_view.path,
+            path: @data_view.path %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -179,10 +187,6 @@ defmodule LivebookWeb.SessionLive do
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
-  end
-
-  def handle_params(%{"tab" => tab}, _url, socket) do
-    {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -358,7 +362,7 @@ defmodule LivebookWeb.SessionLive do
     else
       {:noreply,
        push_patch(socket,
-         to: Routes.session_path(socket, :settings, socket.assigns.session_id, "file")
+         to: Routes.session_path(socket, :file_settings, socket.assigns.session_id)
        )}
     end
   end
@@ -368,17 +372,10 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
   end
 
-  def handle_event("show_notebook_settings", %{}, socket) do
+  def handle_event("show_runtime_settings", %{}, socket) do
     {:noreply,
      push_patch(socket,
-       to: Routes.session_path(socket, :settings, socket.assigns.session_id, "file")
-     )}
-  end
-
-  def handle_event("show_notebook_runtime_settings", %{}, socket) do
-    {:noreply,
-     push_patch(socket,
-       to: Routes.session_path(socket, :settings, socket.assigns.session_id, "runtime")
+       to: Routes.session_path(socket, :runtime_settings, socket.assigns.session_id)
      )}
   end
 

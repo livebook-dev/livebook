@@ -172,8 +172,6 @@ function handleDocumentKeyDown(hook, event) {
       queueChildCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["s", "s"])) {
       toggleSectionsPanel(hook);
-    } else if (keyBuffer.tryMatch(["s", "n"])) {
-      showNotebookSettings(hook);
     } else if (keyBuffer.tryMatch(["s", "r"])) {
       showNotebookRuntimeSettings(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
@@ -320,12 +318,8 @@ function toggleSectionsPanel(hook) {
   hook.el.toggleAttribute("data-js-sections-panel-expanded");
 }
 
-function showNotebookSettings(hook) {
-  hook.pushEvent("show_notebook_settings", {});
-}
-
 function showNotebookRuntimeSettings(hook) {
-  hook.pushEvent("show_notebook_runtime_settings", {});
+  hook.pushEvent("show_runtime_settings", {});
 }
 
 function saveNotebook(hook) {

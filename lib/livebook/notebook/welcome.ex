@@ -66,7 +66,7 @@ defmodule Livebook.Notebook.Welcome do
 
   By default notebooks are kept in memory, which is fine for interactive hacking,
   but oftentimes you will want to save your work for later. Fortunately, notebooks
-  can be persisted by clicking on the "Settings" icon in the sidebar
+  can be persisted by clicking on the "Disk" icon in the bottom-right corner
   and selecting the file location.
 
   Notebooks are stored in **live markdown** format, which is essentially the markdown you know,
@@ -127,7 +127,7 @@ defmodule Livebook.Notebook.Welcome do
   By default, a new Elixir node is started (similarly to starting `iex`),
   but you can also choose to run inside a Mix project (as you would with `iex -S mix`)
   or even manually attach to an existing distributed node!
-  You can configure the runtime by clicking the "Settings" icon on the sidebar.
+  You can configure the runtime by clicking the "Runtime" icon on the sidebar.
 
   ## Using packages
 
