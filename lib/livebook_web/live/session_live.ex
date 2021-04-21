@@ -352,9 +352,15 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("save", %{}, socket) do
-    Session.save(socket.assigns.session_id)
-
-    {:noreply, socket}
+    if socket.private.data.path do
+      Session.save(socket.assigns.session_id)
+      {:noreply, socket}
+    else
+      {:noreply,
+       push_patch(socket,
+         to: Routes.session_path(socket, :settings, socket.assigns.session_id, "file")
+       )}
+    end
   end
 
   def handle_event("show_shortcuts", %{}, socket) do

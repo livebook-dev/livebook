@@ -141,6 +141,9 @@ function handleDocumentKeyDown(hook, event) {
       if (hook.state.focusedCellType === "elixir") {
         queueFocusedCellEvaluation(hook);
       }
+    } else if (cmd && key === "s") {
+      cancelEvent(event);
+      saveNotebook(hook);
     }
   } else {
     // Ignore inputs and notebook/section title fields
@@ -151,7 +154,10 @@ function handleDocumentKeyDown(hook, event) {
 
     keyBuffer.push(event.key);
 
-    if (keyBuffer.tryMatch(["d", "d"])) {
+    if (cmd && key === "s") {
+      cancelEvent(event);
+      saveNotebook(hook);
+    } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
     } else if (
       hook.state.focusedCellType === "elixir" &&
@@ -320,6 +326,10 @@ function showNotebookSettings(hook) {
 
 function showNotebookRuntimeSettings(hook) {
   hook.pushEvent("show_notebook_runtime_settings", {});
+}
+
+function saveNotebook(hook) {
+  hook.pushEvent("save", {});
 }
 
 function deleteFocusedCell(hook) {
