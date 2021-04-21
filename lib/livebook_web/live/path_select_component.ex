@@ -17,7 +17,23 @@ defmodule LivebookWeb.PathSelectComponent do
   @impl true
   def mount(socket) do
     inner_block = Map.get(socket.assigns, :inner_block, nil)
-    {:ok, assign(socket, inner_block: inner_block)}
+    {:ok, assign(socket, inner_block: inner_block, current_dir: nil)}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    %{assigns: assigns} = socket = assign(socket, assigns)
+    {dir, basename} = split_path(assigns.path)
+    dir = Path.expand(dir)
+
+    files =
+      if assigns.current_dir != dir do
+        list_files(dir, assigns.extnames, assigns.running_paths)
+      else
+        assigns.files
+      end
+
+    {:ok, assign(socket, files: annotate_matching(files, basename), current_dir: dir)}
   end
 
   @impl true
@@ -50,14 +66,26 @@ defmodule LivebookWeb.PathSelectComponent do
         <% end %>
       </div>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
+        <%= if highlighting?(@files) do %>
+          <div class="grid grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
+            <%= for file <- @files, file.highlighted != "" do %>
+              <%= render_file(file, @phx_target) %>
+            <% end %>
+          </div>
+        <% end %>
+
         <div class="grid grid-cols-4 gap-2">
-          <%= for file <- list_matching_files(@path, @extnames, @running_paths) do %>
+          <%= for file <- @files, file.highlighted == "" do %>
             <%= render_file(file, @phx_target) %>
           <% end %>
         </div>
       </div>
     </div>
     """
+  end
+
+  defp highlighting?(files) do
+    Enum.any?(files, & &1.highlighted != "")
   end
 
   defp render_file(file, phx_target) do
@@ -92,18 +120,17 @@ defmodule LivebookWeb.PathSelectComponent do
     """
   end
 
-  defp list_matching_files(path, extnames, running_paths) do
-    # Note: to provide an intuitive behavior when typing the path
-    # we enter a new directory when it has a trailing slash,
-    # so given "/foo/bar" we list files in "foo" and given "/foo/bar/
-    # we list files in "bar".
-    #
-    # The basename is kinda like search within the current directory,
-    # so we highlight files starting with that string.
+  defp annotate_matching(files, prefix) do
+    for %{name: name} = file <- files do
+      if String.starts_with?(name, prefix) do
+        %{file | highlighted: prefix, unhighlighted: String.replace_prefix(name, prefix, "")}
+      else
+        %{file | highlighted: "", unhighlighted: name}
+      end
+    end
+  end
 
-    {dir, basename} = split_path(path)
-    dir = Path.expand(dir)
-
+  defp list_files(dir, extnames, running_paths) do
     if File.exists?(dir) do
       file_names =
         case File.ls(dir) do
@@ -114,36 +141,34 @@ defmodule LivebookWeb.PathSelectComponent do
       file_infos =
         file_names
         |> Enum.map(fn name ->
-          file_info(dir, name, basename, running_paths)
+          file_info(name, Path.join(dir, name), running_paths)
         end)
         |> Enum.filter(fn file ->
           not hidden?(file.name) and (file.is_dir or valid_extension?(file.name, extnames))
         end)
 
+      parent = Path.dirname(dir)
+
       file_infos =
-        if Path.dirname(dir) == dir do
+        if parent == dir do
           file_infos
         else
-          parent_dir = file_info(dir, "..", basename, running_paths)
-          [parent_dir | file_infos]
+          [file_info("..", parent, running_paths) | file_infos]
         end
 
-      Enum.sort_by(file_infos, fn file ->
-        {-String.length(file.highlighted), !file.is_dir, file.name}
-      end)
+      Enum.sort_by(file_infos, fn file -> {!file.is_dir, file.name} end)
     else
       []
     end
   end
 
-  defp file_info(dir, name, filter, running_paths) do
-    path = Path.join(dir, name) |> Path.expand()
+  defp file_info(name, path, running_paths) do
     is_dir = File.dir?(path)
 
     %{
       name: name,
-      highlighted: if(String.starts_with?(name, filter), do: filter, else: ""),
-      unhighlighted: String.replace_prefix(name, filter, ""),
+      highlighted: "",
+      unhighlighted: name,
       path: if(is_dir, do: ensure_trailing_slash(path), else: path),
       is_dir: is_dir,
       is_running: path in running_paths
@@ -158,6 +183,13 @@ defmodule LivebookWeb.PathSelectComponent do
     Path.extname(filename) in extnames
   end
 
+  # Note: to provide an intuitive behavior when typing the path
+  # we enter a new directory when it has a trailing slash,
+  # so given "/foo/bar" we list files in "foo" and given "/foo/bar/
+  # we list files in "bar".
+  #
+  # The basename is kinda like search within the current directory,
+  # so we highlight files starting with that string.
   defp split_path(path) do
     if String.ends_with?(path, "/") do
       {path, ""}
