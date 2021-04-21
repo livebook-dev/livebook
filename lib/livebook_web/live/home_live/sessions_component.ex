@@ -20,20 +20,20 @@ defmodule LivebookWeb.SessionLive.SessionsComponent do
               <%= remix_icon("more-2-fill", class: "text-xl") %>
             </button>
             <div class="absolute right-0 z-20 rounded-lg shadow-center bg-white flex flex-col py-2" data-element="menu">
-              <button class="flex space-x-3 px-5 py-2 items-center text-gray-500 hover:bg-gray-50"
+              <button class="flex space-x-3 px-5 py-2 items-center text-gray-500 hover:bg-gray-50 whitespace-nowrap"
                 phx-click="fork_session"
                 phx-value-id="<%= summary.session_id %>">
                 <%= remix_icon("git-branch-line") %>
                 <span class="font-medium">Fork</span>
               </button>
               <%= link to: Routes.live_dashboard_path(@socket, :page, node(), "processes", info: Phoenix.LiveDashboard.Helpers.encode_pid(summary.pid)),
-                    class: "flex space-x-3 px-5 py-2 items-center text-gray-600 hover:bg-gray-50",
+                    class: "flex space-x-3 px-5 py-2 items-center text-gray-600 hover:bg-gray-50 whitespace-nowrap",
                     target: "_blank" do %>
                 <%= remix_icon("dashboard-2-line") %>
                 <span class="font-medium">See on Dashboard</span>
               <% end %>
               <%= live_patch to: Routes.home_path(@socket, :close_session, summary.session_id),
-                    class: "flex space-x-3 px-5 py-2 items-center text-red-600 hover:bg-gray-50" do %>
+                    class: "flex space-x-3 px-5 py-2 items-center text-red-600 hover:bg-gray-50 whitespace-nowrap" do %>
                 <%= remix_icon("close-circle-line") %>
                 <span class="font-medium">Close</span>
               <% end %>
