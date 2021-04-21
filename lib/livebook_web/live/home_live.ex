@@ -20,7 +20,7 @@ defmodule LivebookWeb.HomeLive do
     <div class="flex flex-grow h-full">
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto p-4 pt-0 pb-8 flex flex-col items-center space-y-4">
-          <div class="w-full flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between pb-4 border-b border-gray-200">
+          <div class="w-full flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
             <div class="text-2xl text-gray-800 font-semibold">
               <img src="/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
