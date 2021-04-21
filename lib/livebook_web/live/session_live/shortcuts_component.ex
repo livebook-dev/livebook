@@ -28,6 +28,9 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["ex"], desc: "Cancel cell evaluation"},
       %{seq: ["ss"], desc: "Toggle sections panel"},
       %{seq: ["sr"], desc: "Show runtime settings"}
+    ],
+    universal: [
+      %{seq: ["ctrl", "s"], desc: "Save notebook"}
     ]
   }
 
@@ -52,6 +55,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       </p>
       <%= render_shortcuts_section("Navigation mode", @shortcuts.navigation_mode, @platform) %>
       <%= render_shortcuts_section("Insert mode", @shortcuts.insert_mode, @platform) %>
+      <%= render_shortcuts_section("Universal", @shortcuts.universal, @platform) %>
     </div>
     """
   end
