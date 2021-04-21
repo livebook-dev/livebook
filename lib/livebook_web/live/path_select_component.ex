@@ -49,29 +49,27 @@ defmodule LivebookWeb.PathSelectComponent do
           </div>
         <% end %>
       </div>
-      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar">
-        <div class="
-          grid grid-cols-4 gap-2
-          <%= if Enum.any?(list_files(@path, @extnames, @running_paths), fn file -> file.is_filtrate == false end) do%>
-            border-dashed border-b border-gray-200
-          <% end %>
-        ">
-          <%= for file <- list_files(@path, @extnames, @running_paths) do %>
-            <%= if file.is_filtrate do %>
+      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar divide-y divide-grey-200 divide-dashed">
+        <%= for file_group <- file_groups(@path, @extnames, @running_paths) do %>
+          <div class="grid grid-cols-4 gap-2">
+            <%= for file <- file_group do %>
               <%= render_file(file, @phx_target) %>
             <% end %>
-          <% end %>
-        </div>
-        <div class="grid grid-cols-4 gap-2">
-          <%= for file <- list_files(@path, @extnames, @running_paths) do %>
-            <%= if not file.is_filtrate do %>
-              <%= render_file(file, @phx_target) %>
-            <% end %>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
       </div>
     </div>
     """
+  end
+
+  defp file_groups(path, extnames, running_paths) do
+    files = list_matching_files(path, extnames, running_paths)
+    List.delete(
+      [
+        Enum.filter(files, fn file -> file.highlighted != "" end),
+        Enum.filter(files, fn file -> file.highlighted == "" end)
+      ],
+    [])
   end
 
   defp render_file(file, phx_target) do
@@ -104,21 +102,6 @@ defmodule LivebookWeb.PathSelectComponent do
       </span>
     </button>
     """
-  end
-
-  defp list_files(path, extnames, running_paths) do
-    # Returns files in a directory.
-    # Note: all files are marked as filtrate if none pass filter.
-
-    files = list_matching_files(path, extnames, running_paths)
-
-    all_failed? = files |> Enum.all?(fn file -> file.is_filtrate == false end)
-
-    if all_failed? do
-      for file <- files, do: %{file | is_filtrate: true}
-    else
-      files
-    end
   end
 
   defp list_matching_files(path, extnames, running_paths) do
