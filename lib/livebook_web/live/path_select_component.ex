@@ -85,7 +85,7 @@ defmodule LivebookWeb.PathSelectComponent do
   end
 
   defp highlighting?(files) do
-    Enum.any?(files, & &1.highlighted != "")
+    Enum.any?(files, &(&1.highlighted != ""))
   end
 
   defp render_file(file, phx_target) do
