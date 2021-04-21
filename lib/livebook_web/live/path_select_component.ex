@@ -67,14 +67,14 @@ defmodule LivebookWeb.PathSelectComponent do
       </div>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
         <%= if highlighting?(@files) do %>
-          <div class="grid sm:grid-cols-4 grid-cols-2 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
             <%= for file <- @files, file.highlighted != "" do %>
               <%= render_file(file, @phx_target) %>
             <% end %>
           </div>
         <% end %>
 
-        <div class="grid sm:grid-cols-3 lg:grid-cols-4 grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           <%= for file <- @files, file.highlighted == "" do %>
             <%= render_file(file, @phx_target) %>
           <% end %>
