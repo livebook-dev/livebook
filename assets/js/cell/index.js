@@ -83,6 +83,10 @@ const Cell = {
 
   destroyed() {
     globalPubSub.unsubscribe("session", this.handleSessionEvent);
+
+    if (this.state.liveEditor) {
+      this.state.liveEditor.destroy();
+    }
   },
 
   updated() {
