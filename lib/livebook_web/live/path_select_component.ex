@@ -25,12 +25,14 @@ defmodule LivebookWeb.PathSelectComponent do
 
   @impl true
   def update(assigns, socket) do
+    {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
+
     %{assigns: assigns} = socket = assign(socket, assigns)
     {dir, basename} = split_path(assigns.path)
     dir = Path.expand(dir)
 
     files =
-      if assigns.current_dir != dir or assigns[:force_reload] do
+      if assigns.current_dir != dir or force_reload? do
         list_files(dir, assigns.extnames, assigns.running_paths)
       else
         assigns.files
