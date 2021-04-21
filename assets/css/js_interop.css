@@ -9,7 +9,7 @@ solely client-side operations.
 
 /* === Global === */
 
-[data-element="menu"]:not([data-js-shown]) {
+[data-element="menu"]:not([data-js-open]) > [data-content] {
   @apply hidden;
 }
 

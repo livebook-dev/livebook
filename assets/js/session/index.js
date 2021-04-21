@@ -141,6 +141,9 @@ function handleDocumentKeyDown(hook, event) {
       if (hook.state.focusedCellType === "elixir") {
         queueFocusedCellEvaluation(hook);
       }
+    } else if (cmd && key === "s") {
+      cancelEvent(event);
+      saveNotebook(hook);
     }
   } else {
     // Ignore inputs and notebook/section title fields
@@ -151,7 +154,10 @@ function handleDocumentKeyDown(hook, event) {
 
     keyBuffer.push(event.key);
 
-    if (keyBuffer.tryMatch(["d", "d"])) {
+    if (cmd && key === "s") {
+      cancelEvent(event);
+      saveNotebook(hook);
+    } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
     } else if (
       hook.state.focusedCellType === "elixir" &&
@@ -166,8 +172,6 @@ function handleDocumentKeyDown(hook, event) {
       queueChildCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["s", "s"])) {
       toggleSectionsPanel(hook);
-    } else if (keyBuffer.tryMatch(["s", "n"])) {
-      showNotebookSettings(hook);
     } else if (keyBuffer.tryMatch(["s", "r"])) {
       showNotebookRuntimeSettings(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
@@ -314,12 +318,12 @@ function toggleSectionsPanel(hook) {
   hook.el.toggleAttribute("data-js-sections-panel-expanded");
 }
 
-function showNotebookSettings(hook) {
-  hook.pushEvent("show_notebook_settings", {});
+function showNotebookRuntimeSettings(hook) {
+  hook.pushEvent("show_runtime_settings", {});
 }
 
-function showNotebookRuntimeSettings(hook) {
-  hook.pushEvent("show_notebook_runtime_settings", {});
+function saveNotebook(hook) {
+  hook.pushEvent("save", {});
 }
 
 function deleteFocusedCell(hook) {

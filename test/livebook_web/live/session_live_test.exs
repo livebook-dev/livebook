@@ -188,6 +188,32 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  @tag :tmp_dir
+  describe "persistence settings" do
+    test "saving to file shows the newly created file",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/file")
+
+      path = Path.join(tmp_dir, "notebook.livemd")
+
+      view
+      |> element("button", "Save to file")
+      |> render_click()
+
+      view
+      |> element("form")
+      |> render_change(%{path: path})
+
+      view
+      |> element(~s{button[phx-click="save"]}, "Save")
+      |> render_click()
+
+      assert view
+             |> element("button", "notebook.livemd")
+             |> has_element?()
+    end
+  end
+
   describe "completion" do
     test "replies with nil completion reference when no runtime is started",
          %{conn: conn, session_id: session_id} do
@@ -225,6 +251,23 @@ defmodule LivebookWeb.SessionLiveTest do
         "items" => [%{label: "version/0"}]
       })
     end
+  end
+
+  test "forking the session", %{conn: conn, session_id: session_id} do
+    Session.set_notebook_name(session_id, "My notebook")
+    wait_for_session_update(session_id)
+
+    {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+    assert {:error, {:live_redirect, %{to: to}}} =
+             view
+             |> element("button", "Fork")
+             |> render_click()
+
+    assert to =~ "/sessions/"
+
+    {:ok, view, _} = live(conn, to)
+    assert render(view) =~ "My notebook - fork"
   end
 
   # Helpers

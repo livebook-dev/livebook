@@ -16,11 +16,18 @@ defmodule LivebookWeb.SessionLive do
           Session.get_data(session_id)
         end
 
+      session_pid = Session.get_pid(session_id)
+
       platform = platform_from_socket(socket)
 
       {:ok,
        socket
-       |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
+       |> assign(
+         platform: platform,
+         session_id: session_id,
+         session_pid: session_pid,
+         data_view: data_to_view(data)
+       )
        |> assign_private(data: data)
        |> allow_upload(:cell_image,
          accept: ~w(.jpg .jpeg .png .gif),
@@ -65,10 +72,10 @@ defmodule LivebookWeb.SessionLive do
             <%= remix_icon("booklet-fill") %>
           </button>
         </span>
-        <span class="tooltip right distant" aria-label="Notebook settings (sn)">
-          <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
-                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :settings, do: "text-gray-50 bg-gray-700")}" do %>
-            <%= remix_icon("settings-4-fill", class: "text-2xl") %>
+        <span class="tooltip right distant" aria-label="Runtime settings (sr)">
+          <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session_id),
+                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :runtime_settings, do: "text-gray-50 bg-gray-700")}" do %>
+            <%= remix_icon("cpu-line", class: "text-2xl") %>
           <% end %>
         </span>
         <div class="flex-grow"></div>
@@ -103,8 +110,8 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex-grow overflow-y-auto" data-element="notebook">
         <div class="py-7 px-16 max-w-screen-lg w-full mx-auto">
-          <div class="pb-4 mb-6 border-b border-gray-200">
-            <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
+          <div class="flex space-x-4 items-center pb-4 mb-6 border-b border-gray-200">
+            <h1 class="flex-grow text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable
@@ -112,6 +119,29 @@ defmodule LivebookWeb.SessionLive do
               phx-blur="set_notebook_name"
               phx-hook="ContentEditable"
               data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
+            <div class="relative" id="session-menu" phx-hook="Menu" data-element="menu">
+              <button class="icon-button" data-toggle>
+                <%= remix_icon("more-2-fill", class: "text-xl") %>
+              </button>
+              <div class="menu" data-content>
+                <button class="menu__item text-gray-500"
+                  phx-click="fork_session">
+                  <%= remix_icon("git-branch-line") %>
+                  <span class="font-medium">Fork</span>
+                </button>
+                <%= link to: live_dashboard_process_path(@socket, @session_pid),
+                      class: "menu__item text-gray-500",
+                      target: "_blank" do %>
+                  <%= remix_icon("dashboard-2-line") %>
+                  <span class="font-medium">See on Dashboard</span>
+                <% end %>
+                <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
+                      class: "menu__item text-red-600" do %>
+                  <%= remix_icon("close-circle-line") %>
+                  <span class="font-medium">Close</span>
+                <% end %>
+              </div>
+            </div>
           </div>
           <div class="flex flex-col w-full space-y-16">
             <%= if @data_view.section_views == [] do %>
@@ -140,13 +170,21 @@ defmodule LivebookWeb.SessionLive do
       </div>
     </div>
 
-    <%= if @live_action == :settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.SettingsComponent,
-            id: :settings_modal,
+    <%= if @live_action == :runtime_settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
+            id: :runtime_settings_modal,
             return_to: Routes.session_path(@socket, :page, @session_id),
-            tab: @tab,
             session_id: @session_id,
-            data_view: @data_view %>
+            runtime: @data_view.runtime %>
+    <% end %>
+
+    <%= if @live_action == :file_settings do %>
+      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceComponent,
+            id: :runtime_settings_modal,
+            return_to: Routes.session_path(@socket, :page, @session_id),
+            session_id: @session_id,
+            current_path: @data_view.path,
+            path: @data_view.path %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -179,10 +217,6 @@ defmodule LivebookWeb.SessionLive do
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
-  end
-
-  def handle_params(%{"tab" => tab}, _url, socket) do
-    {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -352,9 +386,15 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("save", %{}, socket) do
-    Session.save(socket.assigns.session_id)
-
-    {:noreply, socket}
+    if socket.private.data.path do
+      Session.save(socket.assigns.session_id)
+      {:noreply, socket}
+    else
+      {:noreply,
+       push_patch(socket,
+         to: Routes.session_path(socket, :file_settings, socket.assigns.session_id)
+       )}
+    end
   end
 
   def handle_event("show_shortcuts", %{}, socket) do
@@ -362,17 +402,10 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
   end
 
-  def handle_event("show_notebook_settings", %{}, socket) do
+  def handle_event("show_runtime_settings", %{}, socket) do
     {:noreply,
      push_patch(socket,
-       to: Routes.session_path(socket, :settings, socket.assigns.session_id, "file")
-     )}
-  end
-
-  def handle_event("show_notebook_runtime_settings", %{}, socket) do
-    {:noreply,
-     push_patch(socket,
-       to: Routes.session_path(socket, :settings, socket.assigns.session_id, "runtime")
+       to: Routes.session_path(socket, :runtime_settings, socket.assigns.session_id)
      )}
   end
 
@@ -396,6 +429,22 @@ defmodule LivebookWeb.SessionLive do
       end
     else
       _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("fork_session", %{}, socket) do
+    notebook = Notebook.forked(socket.private.data.notebook)
+    %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
+    create_session(socket, notebook: notebook, copy_images_from: images_dir)
+  end
+
+  defp create_session(socket, opts) do
+    case SessionSupervisor.create_session(opts) do
+      {:ok, id} ->
+        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
     end
   end
 

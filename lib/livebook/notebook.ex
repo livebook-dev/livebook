@@ -287,4 +287,12 @@ defmodule Livebook.Notebook do
     |> Enum.drop_while(fn {cell, _} -> cell.id != cell_id end)
     |> Enum.drop(1)
   end
+
+  @doc """
+  Returns a forked version of the given notebook.
+  """
+  @spec forked(t()) :: t()
+  def forked(notebook) do
+    %{notebook | name: notebook.name <> " - fork"}
+  end
 end

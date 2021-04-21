@@ -124,3 +124,14 @@
 .tabs .tab.active {
   @apply text-blue-600 border-blue-600;
 }
+
+/* Toggleable menu */
+
+.menu {
+  @apply absolute right-0 z-20 rounded-lg bg-white flex flex-col py-2;
+  box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
+}
+
+.menu__item {
+  @apply flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 whitespace-nowrap;
+}

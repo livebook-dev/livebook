@@ -13,45 +13,50 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="w-full flex-col space-y-5">
-      <p class="text-gray-700">
-        Specify where the notebook should be automatically persisted.
-      </p>
-      <div class="flex space-x-4">
-        <%= content_tag :button, "Save to file",
-          class: "choice-button #{if(@path != nil, do: "active")}",
-          phx_click: "set_persistence_type",
-          phx_value_type: "file",
-          phx_target: @myself %>
-        <%= content_tag :button, "Memory only",
-          class: "choice-button #{if(@path == nil, do: "active")}",
-          phx_click: "set_persistence_type",
-          phx_value_type: "memory",
-          phx_target: @myself %>
-      </div>
-      <%= if @path != nil do %>
-        <div class="h-full h-52">
-          <%= live_component @socket, LivebookWeb.PathSelectComponent,
-            id: "path_select",
-            path: @path,
-            extnames: [LiveMarkdown.extension()],
-            running_paths: @running_paths,
-            phx_target: @myself,
-            phx_submit: if(disabled?(@path, @current_path, @running_paths), do: nil, else: "save") %>
+    <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-3">
+      <h3 class="text-2xl font-semibold text-gray-800">
+        File
+      </h3>
+      <div class="w-full flex-col space-y-5">
+        <p class="text-gray-700">
+          Specify where the notebook should be automatically persisted.
+        </p>
+        <div class="flex space-x-4">
+          <%= content_tag :button, "Save to file",
+            class: "choice-button #{if(@path != nil, do: "active")}",
+            phx_click: "set_persistence_type",
+            phx_value_type: "file",
+            phx_target: @myself %>
+          <%= content_tag :button, "Memory only",
+            class: "choice-button #{if(@path == nil, do: "active")}",
+            phx_click: "set_persistence_type",
+            phx_value_type: "memory",
+            phx_target: @myself %>
         </div>
-      <% end %>
-      <div class="flex flex-col space-y-2">
         <%= if @path != nil do %>
-          <div class="text-gray-500 text-sm">
-            File: <%= normalize_path(@path) %>
+          <div class="h-full h-52">
+            <%= live_component @socket, LivebookWeb.PathSelectComponent,
+              id: "path_select",
+              path: @path,
+              extnames: [LiveMarkdown.extension()],
+              running_paths: @running_paths,
+              phx_target: @myself,
+              phx_submit: if(disabled?(@path, @current_path, @running_paths), do: nil, else: "save") %>
           </div>
         <% end %>
-        <div>
-          <%= content_tag :button, "Save",
-            class: "button button-blue mt-2",
-            phx_click: "save",
-            phx_target: @myself,
-            disabled: disabled?(@path, @current_path, @running_paths) %>
+        <div class="flex flex-col space-y-2">
+          <%= if @path != nil do %>
+            <div class="text-gray-500 text-sm">
+              File: <%= normalize_path(@path) %>
+            </div>
+          <% end %>
+          <div>
+            <%= content_tag :button, "Save",
+              class: "button button-blue mt-2",
+              phx_click: "save",
+              phx_target: @myself,
+              disabled: disabled?(@path, @current_path, @running_paths) %>
+          </div>
         </div>
       </div>
     </div>
@@ -84,6 +89,14 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
       else
         List.delete(socket.assigns.running_paths, path)
       end
+
+    # After saving the file reload the directory contents,
+    # so that the new file gets shown.
+    send_update(LivebookWeb.PathSelectComponent,
+      id: "path_select",
+      running_paths: running_paths,
+      force_reload: true
+    )
 
     {:noreply, assign(socket, running_paths: running_paths)}
   end

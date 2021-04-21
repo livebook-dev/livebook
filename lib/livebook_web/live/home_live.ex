@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{SessionSupervisor, Session, LiveMarkdown}
+  alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -128,7 +128,7 @@ defmodule LivebookWeb.HomeLive do
   def handle_event("fork", %{}, socket) do
     {notebook, messages} = import_notebook(socket.assigns.path)
     socket = put_import_flash_messages(socket, messages)
-    notebook = %{notebook | name: notebook.name <> " - fork"}
+    notebook = Notebook.forked(notebook)
     images_dir = Session.images_dir_for_notebook(socket.assigns.path)
     create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end
@@ -141,7 +141,7 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     data = Session.get_data(session_id)
-    notebook = %{data.notebook | name: data.notebook.name <> " - fork"}
+    notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(session_id)
     create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end

@@ -13,6 +13,9 @@ defmodule LivebookWeb.PathSelectComponent do
   #
   # Optionally inner block may be passed (e.g. with action buttons)
   # and it's rendered next to the text input.
+  #
+  # To force the component refetch the displayed files
+  # you can `send_update` with `force_reload: true` to the component.
 
   @impl true
   def mount(socket) do
@@ -22,12 +25,14 @@ defmodule LivebookWeb.PathSelectComponent do
 
   @impl true
   def update(assigns, socket) do
+    {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
+
     %{assigns: assigns} = socket = assign(socket, assigns)
     {dir, basename} = split_path(assigns.path)
     dir = Path.expand(dir)
 
     files =
-      if assigns.current_dir != dir do
+      if assigns.current_dir != dir or force_reload? do
         list_files(dir, assigns.extnames, assigns.running_paths)
       else
         assigns.files

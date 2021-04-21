@@ -22,7 +22,8 @@ defmodule LivebookWeb.Router do
     live "/home/sessions/:session_id/close", HomeLive, :close_session
     live "/sessions/:id", SessionLive, :page
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
-    live "/sessions/:id/settings/:tab", SessionLive, :settings
+    live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
+    live "/sessions/:id/settings/file", SessionLive, :file_settings
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
     get "/sessions/:id/images/:image", SessionController, :show_image

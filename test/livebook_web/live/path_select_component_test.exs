@@ -23,9 +23,10 @@ defmodule LivebookWeb.PathSelectComponentTest do
   end
 
   test "relative paths are expanded from the current working directory" do
-    File.cd!(notebooks_path())
-    path = ""
-    assert render_component(PathSelectComponent, attrs(path: path)) =~ "basic.livemd"
+    File.cd!(notebooks_path(), fn ->
+      path = ""
+      assert render_component(PathSelectComponent, attrs(path: path)) =~ "basic.livemd"
+    end)
   end
 
   defp attrs(attrs) do
