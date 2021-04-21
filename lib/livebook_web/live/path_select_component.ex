@@ -64,12 +64,14 @@ defmodule LivebookWeb.PathSelectComponent do
 
   defp file_groups(path, extnames, running_paths) do
     files = list_matching_files(path, extnames, running_paths)
+
     List.delete(
       [
         Enum.filter(files, fn file -> file.highlighted != "" end),
         Enum.filter(files, fn file -> file.highlighted == "" end)
       ],
-    [])
+      []
+    )
   end
 
   defp render_file(file, phx_target) do
