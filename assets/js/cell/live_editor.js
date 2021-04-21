@@ -71,6 +71,20 @@ class LiveEditor {
       .pushEditOperations([], [{ forceMoveMarkers: true, range, text }]);
   }
 
+  /**
+   * Performs necessary cleanup actions.
+   */
+  destroy() {
+    // Explicitly destroy the editor instance and its text model.
+    this.editor.dispose();
+
+    const model = this.editor.getModel();
+
+    if (model) {
+      model.dispose();
+    }
+  }
+
   __mountEditor() {
     this.editor = monaco.editor.create(this.container, {
       language: this.type,
