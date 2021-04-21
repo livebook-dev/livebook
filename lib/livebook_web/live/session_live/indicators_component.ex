@@ -8,16 +8,17 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <%= if @data_view.path do %>
         <%= if @data_view.dirty do %>
           <span class="tooltip left" aria-label="Autosave pending">
-            <button class="icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50"
-              phx-click="save">
+            <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
+                  class: "icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50" do %>
               <%= remix_icon("save-line", class: "text-xl text-blue-500") %>
-            </button>
+            <% end %>
           </span>
         <% else %>
           <span class="tooltip left" aria-label="Notebook saved">
-            <button class="icon-button icon-outlined-button border-green-300 hover:bg-green-50 focus:bg-green-50 cursor-default">
+            <%= live_patch to: Routes.session_path(@socket, :settings, @session_id, "file"),
+                  class: "icon-button icon-outlined-button border-green-300 hover:bg-green-50 focus:bg-green-50" do %>
               <%= remix_icon("save-line", class: "text-xl text-green-400") %>
-            </button>
+            <% end %>
           </span>
         <% end %>
       <% else %>
