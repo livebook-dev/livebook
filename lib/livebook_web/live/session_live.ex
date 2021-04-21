@@ -16,11 +16,18 @@ defmodule LivebookWeb.SessionLive do
           Session.get_data(session_id)
         end
 
+      session_pid = Session.get_pid(session_id)
+
       platform = platform_from_socket(socket)
 
       {:ok,
        socket
-       |> assign(platform: platform, session_id: session_id, data_view: data_to_view(data))
+       |> assign(
+         platform: platform,
+         session_id: session_id,
+         session_pid: session_pid,
+         data_view: data_to_view(data)
+       )
        |> assign_private(data: data)
        |> allow_upload(:cell_image,
          accept: ~w(.jpg .jpeg .png .gif),
@@ -103,8 +110,8 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex-grow overflow-y-auto" data-element="notebook">
         <div class="py-7 px-16 max-w-screen-lg w-full mx-auto">
-          <div class="pb-4 mb-6 border-b border-gray-200">
-            <h1 class="text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
+          <div class="flex space-x-4 items-center pb-4 mb-6 border-b border-gray-200">
+            <h1 class="flex-grow text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable
@@ -112,6 +119,29 @@ defmodule LivebookWeb.SessionLive do
               phx-blur="set_notebook_name"
               phx-hook="ContentEditable"
               data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
+            <div class="relative" id="session-menu" phx-hook="Menu" data-element="menu">
+              <button class="icon-button" data-toggle>
+                <%= remix_icon("more-2-fill", class: "text-xl") %>
+              </button>
+              <div class="menu" data-content>
+                <button class="menu__item text-gray-500"
+                  phx-click="fork_session">
+                  <%= remix_icon("git-branch-line") %>
+                  <span class="font-medium">Fork</span>
+                </button>
+                <%= link to: live_dashboard_process_path(@socket, @session_pid),
+                      class: "menu__item text-gray-500",
+                      target: "_blank" do %>
+                  <%= remix_icon("dashboard-2-line") %>
+                  <span class="font-medium">See on Dashboard</span>
+                <% end %>
+                <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
+                      class: "menu__item text-red-600" do %>
+                  <%= remix_icon("close-circle-line") %>
+                  <span class="font-medium">Close</span>
+                <% end %>
+              </div>
+            </div>
           </div>
           <div class="flex flex-col w-full space-y-16">
             <%= if @data_view.section_views == [] do %>
@@ -399,6 +429,22 @@ defmodule LivebookWeb.SessionLive do
       end
     else
       _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("fork_session", %{}, socket) do
+    notebook = Notebook.forked(socket.private.data.notebook)
+    %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
+    create_session(socket, notebook: notebook, copy_images_from: images_dir)
+  end
+
+  defp create_session(socket, opts) do
+    case SessionSupervisor.create_session(opts) do
+      {:ok, id} ->
+        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
     end
   end
 

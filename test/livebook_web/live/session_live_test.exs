@@ -227,6 +227,23 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  test "forking the session", %{conn: conn, session_id: session_id} do
+    Session.set_notebook_name(session_id, "My notebook")
+    wait_for_session_update(session_id)
+
+    {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+    assert {:error, {:live_redirect, %{to: to}}} =
+             view
+             |> element("button", "Fork")
+             |> render_click()
+
+    assert to =~ "/sessions/"
+
+    {:ok, view, _} = live(conn, to)
+    assert render(view) =~ "My notebook - fork"
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_id) do
