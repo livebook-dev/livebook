@@ -31,12 +31,10 @@ defmodule LivebookWeb.HomeLive do
                   <%= remix_icon("compass-line") %>
                 </button>
               </span>
-              <span class="tooltip top" aria-label="Import notebook">
-                <%= live_patch to: Routes.home_path(@socket, :import, "url"),
-                      class: "button button-outlined-gray button-square-icon" do %>
-                  <%= remix_icon("file-upload-line") %>
-                <% end %>
-              </span>
+              <%= live_patch to: Routes.home_path(@socket, :import, "url"),
+                    class: "button button-outlined-gray whitespace-nowrap" do %>
+                Import
+              <% end %>
               <button class="button button-blue"
                 phx-click="new">
                 New notebook
