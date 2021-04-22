@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.CloseSessionComponent do
+defmodule LivebookWeb.HomeLive.CloseSessionComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.SessionSupervisor

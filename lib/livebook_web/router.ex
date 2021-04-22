@@ -19,6 +19,7 @@ defmodule LivebookWeb.Router do
     pipe_through [:browser, :auth]
 
     live "/", HomeLive, :page
+    live "/home/import/:tab", HomeLive, :import
     live "/home/sessions/:session_id/close", HomeLive, :close_session
     live "/sessions/:id", SessionLive, :page
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts

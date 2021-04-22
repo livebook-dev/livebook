@@ -18,7 +18,7 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets]
     ]
   end
 
