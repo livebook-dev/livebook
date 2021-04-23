@@ -4,5 +4,3 @@ exclude = []
 exclude = if erl_docs_available?, do: exclude, else: Keyword.put(exclude, :erl_docs, true)
 
 ExUnit.start(assert_receive_timeout: 300, exclude: exclude)
-# Ensure Bypass is running
-Application.ensure_all_started(:bypass)
