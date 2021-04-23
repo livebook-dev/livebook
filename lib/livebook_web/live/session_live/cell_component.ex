@@ -17,7 +17,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   def render_cell_content(%{cell_view: %{type: :markdown}} = assigns) do
     ~L"""
-    <div class="flex items-center justify-end">
+    <div class="mb-1 flex items-center justify-end">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(@cell_view) %>
         <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
@@ -75,7 +75,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   def render_cell_content(%{cell_view: %{type: :elixir}} = assigns) do
     ~L"""
-    <div class="mb-1 flex justify-between">
+    <div class="mb-1 flex items-center justify-between">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
