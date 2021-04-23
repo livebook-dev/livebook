@@ -31,6 +31,10 @@ defmodule LivebookWeb.HomeLive do
                   <%= remix_icon("compass-line") %>
                 </button>
               </span>
+              <%= live_patch to: Routes.home_path(@socket, :import, "url"),
+                    class: "button button-outlined-gray whitespace-nowrap" do %>
+                Import
+              <% end %>
               <button class="button button-blue"
                 phx-click="new">
                 New notebook
@@ -54,7 +58,7 @@ defmodule LivebookWeb.HomeLive do
                   <span>Fork</span>
                 <% end %>
                 <%= if path_running?(@path, @session_summaries) do %>
-                  <%= live_patch "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
+                  <%= live_redirect "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
                     class: "button button-blue" %>
                 <% else %>
                   <%= tag :span, if(File.regular?(@path) and not file_writable?(@path),
@@ -86,7 +90,7 @@ defmodule LivebookWeb.HomeLive do
                 </div>
               </div>
             <% else %>
-              <%= live_component @socket, LivebookWeb.SessionLive.SessionsComponent,
+              <%= live_component @socket, LivebookWeb.HomeLive.SessionsComponent,
                 id: "sessions_list",
                 session_summaries: @session_summaries %>
             <% end %>
@@ -96,10 +100,17 @@ defmodule LivebookWeb.HomeLive do
     </div>
 
     <%= if @live_action == :close_session do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.CloseSessionComponent,
+      <%= live_modal @socket, LivebookWeb.HomeLive.CloseSessionComponent,
             id: :close_session_modal,
             return_to: Routes.home_path(@socket, :page),
             session_summary: @session_summary %>
+    <% end %>
+
+    <%= if @live_action == :import do %>
+      <%= live_modal @socket, LivebookWeb.HomeLive.ImportComponent,
+            id: :import_modal,
+            return_to: Routes.home_path(@socket, :page),
+            tab: @tab %>
     <% end %>
     """
   end
@@ -108,6 +119,10 @@ defmodule LivebookWeb.HomeLive do
   def handle_params(%{"session_id" => session_id}, _url, socket) do
     session_summary = Enum.find(socket.assigns.session_summaries, &(&1.session_id == session_id))
     {:noreply, assign(socket, session_summary: session_summary)}
+  end
+
+  def handle_params(%{"tab" => tab}, _url, socket) do
+    {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
@@ -156,6 +171,12 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:session_closed, id}, socket) do
     session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
     {:noreply, assign(socket, session_summaries: session_summaries)}
+  end
+
+  def handle_info({:import_content, content}, socket) do
+    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+    socket = put_import_flash_messages(socket, messages)
+    create_session(socket, notebook: notebook)
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

@@ -18,7 +18,7 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl]
     ]
   end
 
@@ -37,7 +37,9 @@ defmodule Livebook.MixProject do
       {:telemetry_poller, "~> 0.4"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:earmark_parser, "~> 1.4"}
+      {:earmark_parser, "~> 1.4"},
+      {:bypass, "~> 2.1", only: :test},
+      {:castore, "~> 0.1.0"}
     ]
   end
 

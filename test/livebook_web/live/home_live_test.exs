@@ -172,6 +172,27 @@ defmodule LivebookWeb.HomeLiveTest do
     assert render(view) =~ "Welcome to Livebook"
   end
 
+  describe "notebook import" do
+    test "allows importing notebook directly from content", %{conn: conn} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
+
+      {:ok, view, _} = live(conn, "/home/import/content")
+
+      notebook_content = """
+      # My notebook
+      """
+
+      view
+      |> element("form", "Import")
+      |> render_submit(%{data: %{content: notebook_content}})
+
+      assert_receive {:session_created, id}
+
+      {:ok, view, _} = live(conn, "/sessions/#{id}")
+      assert render(view) =~ "My notebook"
+    end
+  end
+
   # Helpers
 
   defp test_notebook_path(name) do

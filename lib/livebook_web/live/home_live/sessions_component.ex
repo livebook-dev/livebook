@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.SessionsComponent do
+defmodule LivebookWeb.HomeLive.SessionsComponent do
   use LivebookWeb, :live_component
 
   @impl true
