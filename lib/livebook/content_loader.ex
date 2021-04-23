@@ -58,7 +58,7 @@ defmodule Livebook.ContentLoader do
   """
   @spec fetch_content(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def fetch_content(url) do
-    case :httpc.request(:get, {url, []}, [], body_format: :binary) do
+    case :httpc.request(:get, {url, []}, http_opts(), body_format: :binary) do
       {:ok, {{_, 200, _}, headers, body}} ->
         valid_content? =
           case fetch_content_type(headers) do
@@ -89,5 +89,27 @@ defmodule Livebook.ContentLoader do
       _ ->
         :error
     end
+  end
+
+  crt_file = CAStore.file_path()
+  crt = File.read!(crt_file)
+  pems = :public_key.pem_decode(crt)
+  ders = Enum.map(pems, fn {:Certificate, der, _} -> der end)
+
+  # Note: we need to load the certificates at compilation time,
+  # as we don't have access to package files in Escript.
+  @cacerts ders
+
+  defp http_opts() do
+    [
+      # Use secure options, see https://gist.github.com/jonatanklosko/5e20ca84127f6b31bbe3906498e1a1d7
+      ssl: [
+        verify: :verify_peer,
+        cacerts: @cacerts,
+        customize_hostname_check: [
+          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+        ]
+      ]
+    ]
   end
 end
