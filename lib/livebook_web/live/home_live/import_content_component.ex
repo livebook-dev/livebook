@@ -20,6 +20,7 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
                 autocomplete: "off" %>
         <%= textarea f, :content, value: @content, class: "input resize-none",
               placeholder: "Notebook content",
+              autofocus: true,
               spellcheck: "false",
               rows: 5 %>
 

@@ -28,6 +28,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
                 autocomplete: "off" %>
         <%= text_input f, :url, value: @url, class: "input",
               placeholder: "Notebook URL",
+              autofocus: true,
               spellcheck: "false" %>
         <%= submit "Import",
               class: "mt-5 button button-blue",
