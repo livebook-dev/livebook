@@ -85,6 +85,28 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses and validates the ip from env.
+  """
+  def ip!(env) do
+    if ip = System.get_env(env) do
+      ip!(env, ip)
+    end
+  end
+
+  @doc """
+  Parses and validates the ip within context.
+  """
+  def ip!(context, ip) do
+    case ip |> String.to_charlist() |> :inet.parse_address() do
+      {:ok, ip} ->
+        ip
+
+      {:error, :einval} ->
+        abort!("expected #{context} to be a valid ipv4 or ipv6 address, got: #{ip}")
+    end
+  end
+
+  @doc """
   Parses and validates the password from env.
   """
   def password!(env) do

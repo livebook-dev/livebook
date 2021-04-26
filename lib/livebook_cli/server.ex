@@ -24,6 +24,8 @@ defmodule LivebookCLI.Server do
                     If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
       --sname       Set a short name for the app distributed node
       -p, --port    The port to start the web application on, defaults to 8080
+      --ip          The ip address to start the web application on, defaults to 127.0.0.1
+                    Must be a valid ipv4 or ipv6 address
       --root-path   The root path to use for file selection
 
     The --help option can be given to print this notice.
@@ -62,8 +64,8 @@ defmodule LivebookCLI.Server do
   end
 
   defp start_server() do
-    Application.put_env(:phoenix, :serve_endpoints, true, persistent: true)
-
+    # We configure the endpoint with `server: true`,
+    # so it's gonna start listening
     case Application.ensure_all_started(:livebook) do
       {:ok, _} -> :ok
       {:error, _} -> :error
@@ -73,6 +75,7 @@ defmodule LivebookCLI.Server do
   @switches [
     token: :boolean,
     port: :integer,
+    ip: :string,
     name: :string,
     sname: :string,
     root_path: :string
@@ -106,6 +109,11 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([{:port, port} | opts], config) do
     opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [port: port]} | config])
+  end
+
+  defp opts_to_config([{:ip, ip} | opts], config) do
+    ip = Livebook.Config.ip!("--ip", ip)
+    opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [ip: ip]} | config])
   end
 
   defp opts_to_config([{:root_path, root_path} | opts], config) do
