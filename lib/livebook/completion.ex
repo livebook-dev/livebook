@@ -677,7 +677,7 @@ defmodule Livebook.Completion do
     chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
 
     last =
-      if Enum.empty?(chunked) do
+      if chunked == [] do
         []
       else
         List.last(chunked)
