@@ -676,6 +676,7 @@ defmodule Livebook.Completion do
   def cursor_context(charlist, opts) when is_list(charlist) and is_list(opts) do
     chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
 
+    # TODO: Use List.last/2 on Elixir v1.12+
     last =
       if chunked == [] do
         []
