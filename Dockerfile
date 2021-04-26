@@ -41,5 +41,4 @@ ENV LIVEBOOK_IP 0.0.0.0
 # Copy the release build from the previous stage
 COPY --from=build /app/_build/prod/rel/livebook /app
 
-COPY bin/docker-cmd.sh /app/docker-cmd.sh
-CMD [ "/app/docker-cmd.sh" ]
+CMD [ "/app/bin/livebook", "start" ]

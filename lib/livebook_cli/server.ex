@@ -19,6 +19,7 @@ defmodule LivebookCLI.Server do
 
     Available options:
 
+      --cookie      Sets a cookie for the app distributed node
       --ip          The ip address to start the web application on, defaults to 127.0.0.1
                     Must be a valid IPv4 or IPv6 address
       --name        Set a name for the app distributed node
@@ -73,12 +74,13 @@ defmodule LivebookCLI.Server do
   end
 
   @switches [
-    token: :boolean,
-    port: :integer,
+    cookie: :string,
     ip: :string,
     name: :string,
+    port: :integer,
+    root_path: :string,
     sname: :string,
-    root_path: :string
+    token: :boolean
   ]
 
   @aliases [
@@ -129,6 +131,11 @@ defmodule LivebookCLI.Server do
   defp opts_to_config([{:name, name} | opts], config) do
     name = String.to_atom(name)
     opts_to_config(opts, [{:livebook, :node, {:longnames, name}} | config])
+  end
+
+  defp opts_to_config([{:cookie, cookie} | opts], config) do
+    cookie = String.to_atom(cookie)
+    opts_to_config(opts, [{:livebook, :cookie, cookie} | config])
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)

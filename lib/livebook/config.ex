@@ -107,6 +107,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses the cookie from env.
+  """
+  def cookie!(env) do
+    if cookie = System.get_env(env) do
+      String.to_atom(cookie)
+    end
+  end
+
+  @doc """
   Parses and validates the password from env.
   """
   def password!(env) do

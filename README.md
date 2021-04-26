@@ -46,6 +46,8 @@ For this reason, Livebook only binds to the 127.0.0.1, allowing access to happen
 
 The following environment variables configure Livebook:
 
+  * LIVEBOOK_COOKIE - sets a cookie for the web application distributed node
+
   * LIVEBOOK_IP - sets the ip address to start the web application on. Must be a valid IPv4 or IPv6 address.
 
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook. Must be at least 12 characters. Defaults to token authentication.

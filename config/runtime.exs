@@ -21,3 +21,7 @@ end
 if ip = Livebook.Config.ip!("LIVEBOOK_IP") do
   config :livebook, LivebookWeb.Endpoint, http: [ip: ip]
 end
+
+config :livebook,
+       :cookie,
+       Livebook.Config.cookie!("LIVEBOOK_COOKIE") || Livebook.Utils.random_cookie()
