@@ -59,6 +59,14 @@ const Session = {
       handleCellIndicatorsClick(this, event);
     });
 
+    window.addEventListener(
+      "phx:page-loading-stop",
+      () => {
+        focusCellFromUrl(this);
+      },
+      { once: true }
+    );
+
     // DOM setup
 
     updateSectionListHighlight();
@@ -279,6 +287,20 @@ function handleCellIndicatorsClick(hook, event) {
   if (button) {
     const cellId = button.getAttribute("data-target");
     setFocusedCell(hook, cellId);
+  }
+}
+
+/**
+ * Focuses cell based on the given URL.
+ */
+function focusCellFromUrl(hook) {
+  const hash = window.location.hash;
+
+  if (hash.startsWith("#cell-")) {
+    const cellId = hash.replace(/^#cell-/, "");
+    if (getCellById(cellId)) {
+      setFocusedCell(hook, cellId);
+    }
   }
 }
 
