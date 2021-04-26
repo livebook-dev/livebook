@@ -19,14 +19,14 @@ defmodule LivebookCLI.Server do
 
     Available options:
 
+      --ip          The ip address to start the web application on, defaults to 127.0.0.1
+                    Must be a valid IPv4 or IPv6 address
       --name        Set a name for the app distributed node
       --no-token    Disable token authentication, enabled by default
                     If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
-      --sname       Set a short name for the app distributed node
       -p, --port    The port to start the web application on, defaults to 8080
-      --ip          The ip address to start the web application on, defaults to 127.0.0.1
-                    Must be a valid ipv4 or ipv6 address
       --root-path   The root path to use for file selection
+      --sname       Set a short name for the app distributed node
 
     The --help option can be given to print this notice.
 
