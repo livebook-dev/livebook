@@ -18,6 +18,6 @@ if port = Livebook.Config.port!("LIVEBOOK_PORT") do
   config :livebook, LivebookWeb.Endpoint, http: [port: port]
 end
 
-if ip = Livebook.Config.ip!("LIVEBOOK_BIND_IP") do
+if ip = Livebook.Config.ip!("LIVEBOOK_IP") do
   config :livebook, LivebookWeb.Endpoint, http: [ip: ip]
 end

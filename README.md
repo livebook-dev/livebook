@@ -54,7 +54,7 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection.
 
-  * LIVEBOOK_BIND_IP - sets the ip address to start the web application on. Must be a valid ipv4 or ipv6 address.
+  * LIVEBOOK_IP - sets the ip address to start the web application on. Must be a valid ipv4 or ipv6 address.
 
 <!-- Environment variables -->
 ## License

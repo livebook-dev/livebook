@@ -36,7 +36,7 @@ WORKDIR /data
 ENV HOME=/data
 # Override the default 127.0.0.1 address, so that the app
 # can be accessed outside the container by binding ports
-ENV LIVEBOOK_BIND_IP 0.0.0.0
+ENV LIVEBOOK_IP 0.0.0.0
 
 # Copy the release build from the previous stage
 COPY --from=build /app/_build/prod/rel/livebook /app
