@@ -2,6 +2,7 @@ defmodule LivebookCLI.Server do
   @moduledoc false
 
   @behaviour LivebookCLI.Task
+
   @external_resource "README.md"
 
   [_, environment_variables, _] =
@@ -9,7 +10,6 @@ defmodule LivebookCLI.Server do
     |> File.read!()
     |> String.split("<!-- Environment variables -->")
 
-  @external_resource "README.md"
   @environment_variables String.trim(environment_variables)
 
   @impl true
