@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
-        <%= render_cell_anchor_link(@cell_view) %>
+        <%= render_cell_anchor_link(assigns) %>
         <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button">
             <%= remix_icon("pencil-line", class: "text-xl") %>
@@ -98,7 +98,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </div>
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
-        <%= render_cell_anchor_link(@cell_view) %>
+        <%= render_cell_anchor_link(assigns) %>
         <span class="tooltip top" aria-label="Cell settings">
           <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
             <%= remix_icon("list-settings-line", class: "text-xl") %>
@@ -165,9 +165,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell_anchor_link(cell_view) do
-    assigns = %{cell_view: cell_view}
-
+  defp render_cell_anchor_link(assigns) do
     ~L"""
     <span class="tooltip top" aria-label="Link">
       <a href="#cell-<%= @cell_view.id %>" class="icon-button">

@@ -3,7 +3,10 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
 
   def render(assigns) do
     ~L"""
-    <div data-element="section" data-section-id="<%= @section_view.id %>">
+    <div
+      id="section-<%= @section_view.id %>"
+      data-element="section"
+      data-section-id="<%= @section_view.id %>">
       <div class="flex space-x-4 items-center" data-element="section-headline">
         <h2 class="flex-grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border  border-transparent hover:border-blue-200 focus:border-blue-300"
           data-element="section-name"
@@ -17,6 +20,11 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <%# ^ Note it's important there's no space between <h2> and </h2>
             because we want the content to exactly match section name. %>
         <div class="flex space-x-2 items-center" data-element="section-actions">
+          <span class="tooltip top" aria-label="Link">
+            <a href="#section-<%= @section_view.id %>" class="icon-button">
+              <%= remix_icon("link", class: "text-xl") %>
+            </a>
+          </span>
           <span class="tooltip top" aria-label="Move up">
             <button class="icon-button"
               phx-click="move_section"
