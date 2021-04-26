@@ -18,6 +18,8 @@ jobs:
         run: mix deps.get
       - name: Check formatting
         run: mix format --check-formatted
+      - name: Check warnings
+        run: mix compile --warnings-as-errors
       - name: Run tests
         run: elixir --cookie "COOKIEFORTESTS" -S mix test
       - name: Install Node
