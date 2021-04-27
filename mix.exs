@@ -11,7 +11,8 @@ defmodule Livebook.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      escript: escript()
+      escript: escript(),
+      releases: releases()
     ]
   end
 
@@ -55,6 +56,15 @@ defmodule Livebook.MixProject do
     [
       main_module: LivebookCLI,
       app: nil
+    ]
+  end
+
+  defp releases() do
+    [
+      livebook: [
+        include_executables_for: [:unix],
+        include_erts: false
+      ]
     ]
   end
 end

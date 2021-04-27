@@ -20,6 +20,14 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Generates a random cookie for a distributed node.
+  """
+  @spec random_cookie() :: atom()
+  def random_cookie() do
+    :crypto.strong_rand_bytes(42) |> Base.url_encode64() |> String.to_atom()
+  end
+
+  @doc """
   Converts the given name to node identifier.
   """
   @spec node_from_name(String.t()) :: atom()
