@@ -24,16 +24,69 @@ The current version provides only the initial step of our Livebook vision. Our p
 
 ## Usage
 
-For now, the best way to run Livebook is by cloning it and running it locally:
+We provide several distinct methods of running Livebook,
+pick the one that best fits your use case.
 
-    $ git clone https://github.com/elixir-nx/livebook.git
-    $ cd livebook
-    $ mix deps.get --only prod
-    $ MIX_ENV=prod mix phx.server
+### Mix
+
+Until we start distributing official releases, the most straightforward
+option to run Livebook is directly with Mix.
+
+```shell
+git clone https://github.com/elixir-nx/livebook.git
+cd livebook
+mix deps.get --only prod
+
+# Run the Livebook server
+MIX_ENV=prod mix phx.server
+```
 
 You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
 
-We will work on other distribution modes (escripts, Docker images, etc) once we start distributing official releases.
+### Escript
+
+Running Livebook using Escript makes for a very convenient option
+for local usage and provides easy configuration via CLI options.
+
+```shell
+# Currently you need to build the Escript manually,
+# we will publish it to Hex once we release the first version
+git clone https://github.com/elixir-nx/livebook.git
+cd livebook
+mix deps.get --only prod
+MIX_ENV=prod mix escript.build
+
+# Start the Livebook server
+./livebook server
+
+# See all the configuration options
+./livebook server --help
+```
+
+### Docker
+
+Running Livebook using Docker is a great option for cloud deployments
+and also for local usage in case you don't have Elixir installed.
+
+```shell
+# Currently you need to build the image manually,
+# we will provide official images once we release the first version
+git clone https://github.com/elixir-nx/livebook.git
+docker build -t livebook:prerelease ./livebook
+
+# Running with the default configuration
+docker run -p 8080:8080 livebook:prerelease
+
+# In order to access and save notebooks directly to your machine
+# you can mount a local directory into the container.
+# Make sure to specify the user with "-u $(id -u):$(id -g)"
+# so that the created files have proper permissions
+docker run -p 8080:8080 -u $(id -u):$(id -g) -v <LOCAL_DIR>:/data livebook:prerelease
+
+# You can configure Livebook using environment variables,
+# for all options see the dedicated "Environment variables" section below
+docker run -p 8080:8080 -e LIVEBOOK_PASSWORD="securesecret" livebook:prerelease
+```
 
 ### Security considerations
 
