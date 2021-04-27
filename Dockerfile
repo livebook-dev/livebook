@@ -26,8 +26,11 @@ RUN mix do compile, release
 
 FROM hexpm/elixir:1.11.4-erlang-24.0-rc3-alpine-3.13.3
 
-# Install runtime dependencies
-RUN apk add --no-cache openssl ncurses-libs
+RUN apk add --no-cache \
+    # Runtime dependencies
+    openssl ncurses-libs \
+    # In case someone uses `Mix.install/2` and point to a git repo
+    git
 
 # Run in the /data directory by default,
 # a good place for the user to mount local volume
