@@ -43,10 +43,10 @@ RUN apk add --no-cache \
 # a good place for the user to mount local volume
 WORKDIR /data
 
-ENV HOME=/home
+ENV HOME=/home/livebook
 # Make sure someone running the container with `--user`
 # has permissions to the home dir (for `Mix.install/2` cache)
-RUN chmod 777 /home
+RUN mkdir $HOME && chmod 777 $HOME
 
 # Install hex and rebar for `Mix.install/2` and Mix runtime
 RUN mix local.hex --force && \
