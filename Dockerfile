@@ -1,6 +1,6 @@
 FROM hexpm/elixir:1.11.4-erlang-24.0-rc3-alpine-3.13.3 AS build
 
-RUN apk add --no-cache build-base git python3
+RUN apk add --no-cache build-base git
 
 WORKDIR /app
 
