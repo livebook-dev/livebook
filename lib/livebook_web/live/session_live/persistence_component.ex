@@ -13,7 +13,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 pb-4 max-w-4xl w-screen flex flex-col space-y-3">
+    <div class="p-6 pb-4 flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         File
       </h3>
