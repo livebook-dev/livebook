@@ -164,6 +164,26 @@ defmodule Livebook.Notebook.Welcome do
   per runtime, so if you need to modify the dependencies, you should
   go to the notebook runtime configuration and **reconnect** the current runtime.
 
+  ## Running tests
+
+  If you are using Elixir v1.12, it is also possible to run tests directly
+  from your notebooks. The key is to disable `ExUnit`'s autorun feature and
+  then explicitly run the test suite after all test cases have been defined:
+
+  ```elixir
+  ExUnit.start(autorun: false)
+  
+  defmodule MyTest do
+    use ExUnit.Case, async: true
+    
+    test "it works" do
+      assert true
+    end
+  end
+  
+  ExUnit.run()
+  ```
+
   ## Math
 
   Livebook supports both inline formulas like $e^{\\pi i} + 1 = 0$, as well as block formulas:
