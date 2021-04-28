@@ -172,7 +172,7 @@ defmodule Livebook.Notebook.Welcome do
 
   ```elixir
   ExUnit.start(autorun: false)
-  
+
   defmodule MyTest do
     use ExUnit.Case, async: true
     
@@ -180,7 +180,7 @@ defmodule Livebook.Notebook.Welcome do
       assert true
     end
   end
-  
+
   ExUnit.run()
   ```
 
