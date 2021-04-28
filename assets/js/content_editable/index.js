@@ -32,6 +32,15 @@ const ContentEditable = {
         this.el.blur();
       }
     });
+
+    // While the element is focused, ignore the incoming changes
+    this.el.addEventListener("focus", (event) => {
+      this.el.setAttribute("phx-update", "ignore");
+    });
+
+    this.el.addEventListener("blur", (event) => {
+      this.el.removeAttribute("phx-update");
+    });
   },
 
   updated() {
