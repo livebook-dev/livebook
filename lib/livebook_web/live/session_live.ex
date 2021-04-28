@@ -173,6 +173,7 @@ defmodule LivebookWeb.SessionLive do
     <%= if @live_action == :runtime_settings do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
             id: :runtime_settings_modal,
+            modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
             runtime: @data_view.runtime %>
@@ -181,6 +182,7 @@ defmodule LivebookWeb.SessionLive do
     <%= if @live_action == :file_settings do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceComponent,
             id: :runtime_settings_modal,
+            modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
             current_path: @data_view.path,
@@ -190,6 +192,7 @@ defmodule LivebookWeb.SessionLive do
     <%= if @live_action == :shortcuts do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.ShortcutsComponent,
             id: :shortcuts_modal,
+            modal_class: "w-full max-w-5xl",
             platform: @platform,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
@@ -197,6 +200,7 @@ defmodule LivebookWeb.SessionLive do
     <%= if @live_action == :cell_settings do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.CellSettingsComponent,
             id: :cell_settings_modal,
+            modal_class: "w-full max-w-xl",
             session_id: @session_id,
             cell: @cell,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
@@ -205,6 +209,7 @@ defmodule LivebookWeb.SessionLive do
     <%= if @live_action == :cell_upload do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.CellUploadComponent,
             id: :cell_upload_modal,
+            modal_class: "w-full max-w-xl",
             session_id: @session_id,
             cell: @cell,
             uploads: @uploads,

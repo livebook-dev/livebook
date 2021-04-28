@@ -102,6 +102,7 @@ defmodule LivebookWeb.HomeLive do
     <%= if @live_action == :close_session do %>
       <%= live_modal @socket, LivebookWeb.HomeLive.CloseSessionComponent,
             id: :close_session_modal,
+            modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
             session_summary: @session_summary %>
     <% end %>
@@ -109,6 +110,7 @@ defmodule LivebookWeb.HomeLive do
     <%= if @live_action == :import do %>
       <%= live_modal @socket, LivebookWeb.HomeLive.ImportComponent,
             id: :import_modal,
+            modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
             tab: @tab %>
     <% end %>

@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 sm:max-w-5xl sm:w-full flex flex-col space-y-3">
+    <div class="p-6 flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         Keyboard shortcuts
       </h3>

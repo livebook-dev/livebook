@@ -16,7 +16,7 @@ defmodule LivebookWeb.SessionLive.CellSettingsComponent do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="p-6 pb-4 max-w-xl w-screen flex flex-col space-y-8">
+    <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Cell settings
       </h3>

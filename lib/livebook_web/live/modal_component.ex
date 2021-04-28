@@ -19,7 +19,7 @@ defmodule LivebookWeb.ModalComponent do
           phx-page-loading></div>
 
         <!-- Modal box -->
-        <div class="relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl"
+        <div class="relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl <%= @modal_class %>"
           role="dialog"
           aria-modal="true">
 

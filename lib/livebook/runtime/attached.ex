@@ -23,9 +23,7 @@ defmodule Livebook.Runtime.Attached do
   @spec init(node(), atom()) :: {:ok, t()} | {:error, :unreachable | :already_in_use}
   def init(node, cookie \\ Node.get_cookie()) do
     # Set cookie for connecting to this specific node
-    if cookie do
-      Node.set_cookie(node, cookie)
-    end
+    Node.set_cookie(node, cookie)
 
     case Node.ping(node) do
       :pong ->
