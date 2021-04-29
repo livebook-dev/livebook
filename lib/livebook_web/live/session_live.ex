@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, Users}
 
   @impl true
   def mount(%{"id" => session_id}, %{"user_id" => user_id}, socket) do
@@ -16,6 +16,8 @@ defmodule LivebookWeb.SessionLive do
           Session.get_data(session_id)
         end
 
+      users_map = clients_to_users_map(data.clients)
+
       session_pid = Session.get_pid(session_id)
 
       platform = platform_from_socket(socket)
@@ -26,6 +28,7 @@ defmodule LivebookWeb.SessionLive do
          platform: platform,
          session_id: session_id,
          session_pid: session_pid,
+         users_map: users_map,
          data_view: data_to_view(data)
        )
        |> assign_private(data: data)
@@ -597,6 +600,14 @@ defmodule LivebookWeb.SessionLive do
 
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)
+
+  defp clients_to_users_map(clients) do
+    clients
+    |> Enum.map(&elem(&1, 0))
+    |> Enum.uniq()
+    |> Users.list_by_ids()
+    |> Map.new(fn user -> {user.id, user} end)
+  end
 
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.

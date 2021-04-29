@@ -21,4 +21,10 @@ defmodule Livebook.Users do
     :ets.insert(@users_table, {user.id, user})
     {:ok, user}
   end
+
+  def list_by_ids(user_ids) do
+    match_spec = (for user_id <- user_ids, do: {{user_id, :_}, [], [:"$_"]})
+    results = :ets.select(@users_table, match_spec)
+    Enum.map(results, &elem(&1, 1))
+  end
 end
