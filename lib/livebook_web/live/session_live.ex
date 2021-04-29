@@ -12,6 +12,7 @@ defmodule LivebookWeb.SessionLive do
         if connected?(socket) do
           data = Session.register_client(session_id, {current_user_id, self()})
           Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+          Phoenix.PubSub.subscribe(Livebook.PubSub, "users")
 
           data
         else
@@ -515,6 +516,26 @@ defmodule LivebookWeb.SessionLive do
   def handle_info({:completion_response, ref, items}, socket) do
     payload = %{"completion_ref" => inspect(ref), "items" => items}
     {:noreply, push_event(socket, "completion_response", payload)}
+  end
+
+  def handle_info({:user_updated, user}, socket) do
+    %{current_user: current_user, users_map: users_map} = socket.assigns
+
+    socket =
+      if Map.has_key?(users_map, user.id) do
+        assign(socket, users_map: Map.put(users_map, user.id, user))
+      else
+        socket
+      end
+
+    socket =
+      if current_user.id == user.id do
+        assign(socket, current_user: user)
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

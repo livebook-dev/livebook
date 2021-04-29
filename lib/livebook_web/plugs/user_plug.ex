@@ -18,9 +18,7 @@ defmodule LivebookWeb.UserPlug do
     else
       _ ->
         {:ok, user} = Users.create(get_user_data(conn))
-
-        conn
-        |> put_session(:current_user_id, user.id)
+        put_session(conn, :current_user_id, user.id)
     end
   end
 
@@ -28,7 +26,9 @@ defmodule LivebookWeb.UserPlug do
     # TODO: where to validate?
     case Map.fetch(conn.req_cookies, "user_data") do
       {:ok, user_data} ->
-        Jason.decode!(user_data)
+        user_data = Jason.decode!(user_data)
+        # TODO: handle properly validations etc
+        %{name: user_data["name"], color: user_data["color"]}
 
       :error ->
         %{}

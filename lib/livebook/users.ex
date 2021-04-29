@@ -34,4 +34,14 @@ defmodule Livebook.Users do
       _ -> raise "expected to find user with id #{user_id}, but found none"
     end
   end
+
+  def update(user) do
+    :ets.insert(@users_table, {user.id, user})
+    broadcast_message({:user_updated, user})
+    {:ok, user}
+  end
+
+  defp broadcast_message(message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "users", message)
+  end
 end

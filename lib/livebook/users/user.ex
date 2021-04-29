@@ -13,6 +13,8 @@ defmodule Livebook.Users.User do
     }
   end
 
+  def color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
+
   def random_color() do
     # TODO: use HSV and vary H only? or predefined list of neat colors?
     #   - we want the color to fit white text, so just gather a reasonable list of colors

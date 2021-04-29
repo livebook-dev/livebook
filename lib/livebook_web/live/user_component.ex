@@ -7,9 +7,8 @@ defmodule LivebookWeb.UserComponent do
 
   @impl true
   def update(assigns, socket) do
-    {user, assigns} = Map.pop!(assigns, :user)
-
     socket = assign(socket, assigns)
+    user = socket.assigns.user
 
     data = %{"name" => user.name || "", "color" => user.color}
     {:ok, assign(socket, data: data, preview_user: user)}
@@ -26,9 +25,11 @@ defmodule LivebookWeb.UserComponent do
         <%= render_user_avatar(@preview_user.name, @preview_user.color, class: "h-20 w-20", text_class: "text-3xl") %>
       </div>
       <%= f = form_for :data, "#",
+                id: "user_form",
                 phx_target: @myself,
                 phx_submit: "save",
-                phx_change: "validate" %>
+                phx_change: "validate",
+                phx_hook: "UserForm" %>
         <div class="flex flex-col space-y-5">
           <div>
             <div class="input-label">Display name</div>
@@ -77,14 +78,15 @@ defmodule LivebookWeb.UserComponent do
   end
 
   def handle_event("save", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data, preview_user: data_to_preview_user(data))}
+    preview_user = data_to_preview_user(data)
+    user = %{preview_user | id: socket.assigns.user.id}
+    Livebook.Users.update(user)
+    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 
   defp data_valid?(data) do
-    color_valid?(data["color"])
+    User.color_valid?(data["color"])
   end
-
-  defp color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
 
   defp data_to_preview_user(data) do
     User.new(%{
@@ -93,7 +95,7 @@ defmodule LivebookWeb.UserComponent do
           "" -> nil
           name -> name
         end,
-      color: if(color_valid?(data["color"]), do: data["color"], else: "#304254")
+      color: if(User.color_valid?(data["color"]), do: data["color"], else: "#304254")
     })
   end
 end
