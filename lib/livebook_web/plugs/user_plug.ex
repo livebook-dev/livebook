@@ -12,16 +12,15 @@ defmodule LivebookWeb.UserPlug do
 
   @impl true
   def call(conn, _opts) do
-    with user_id when user_id != nil <- get_session(conn, :user_id),
+    with user_id when user_id != nil <- get_session(conn, :current_user_id),
          true <- Users.exists?(user_id) do
-      assign(conn, :current_user_id, user_id)
+      conn
     else
       _ ->
         {:ok, user} = Users.create(get_user_data(conn))
 
         conn
-        |> put_session(:user_id, user.id)
-        |> assign(:current_user_id, user.id)
+        |> put_session(:current_user_id, user.id)
     end
   end
 

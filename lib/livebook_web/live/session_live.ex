@@ -1,14 +1,16 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
+  import LivebookWeb.LiveHelpers
+
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, Users}
 
   @impl true
-  def mount(%{"id" => session_id}, %{"user_id" => user_id}, socket) do
+  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
     if SessionSupervisor.session_exists?(session_id) do
       data =
         if connected?(socket) do
-          data = Session.register_client(session_id, {user_id, self()})
+          data = Session.register_client(session_id, {current_user_id, self()})
           Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
           data
@@ -16,6 +18,7 @@ defmodule LivebookWeb.SessionLive do
           Session.get_data(session_id)
         end
 
+      current_user = Users.fetch!(current_user_id)
       users_map = clients_to_users_map(data.clients)
 
       session_pid = Session.get_pid(session_id)
@@ -28,6 +31,7 @@ defmodule LivebookWeb.SessionLive do
          platform: platform,
          session_id: session_id,
          session_pid: session_pid,
+         current_user: current_user,
          users_map: users_map,
          data_view: data_to_view(data)
        )
@@ -86,6 +90,12 @@ defmodule LivebookWeb.SessionLive do
           <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
                 class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :shortcuts, do: "text-gray-50 bg-gray-700")}" do %>
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
+          <% end %>
+        </span>
+        <span class="tooltip right distant" aria-label="User profile">
+          <%= live_patch to: Routes.session_path(@socket, :user, @session_id),
+                class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
+            <%= render_user_avatar(@current_user.name, @current_user.color, class: "h-full w-full", text_class: "text-xs") %>
           <% end %>
         </span>
       </div>
@@ -219,13 +229,14 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 
-    <%#= if @live_action == :cell_upload do % >
+    <%= if @live_action == :user do %>
       <%= live_modal @socket, LivebookWeb.UserComponent,
             id: :user_modal,
             modal_class: "w-full max-w-sm",
             session_id: @session_id,
+            user: @current_user,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
-    <%# end %>
+    <% end %>
     """
   end
 

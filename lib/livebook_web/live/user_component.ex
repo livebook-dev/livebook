@@ -1,17 +1,18 @@
 defmodule LivebookWeb.UserComponent do
   use LivebookWeb, :live_component
 
+  import LivebookWeb.LiveHelpers
+
   alias Livebook.Users.User
 
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, data: initial_data())}
-  end
+  def update(assigns, socket) do
+    {user, assigns} = Map.pop!(assigns, :user)
 
-  defp initial_data() do
-    # TODO: this should default to current user data, whatever it is!
-    # TODO: user should always have some color by default, how do we handle that?
-    %{"name" => "", "color" => User.random_color()}
+    socket = assign(socket, assigns)
+
+    data = %{"name" => user.name || "", "color" => user.color}
+    {:ok, assign(socket, data: data, preview_user: user)}
   end
 
   @impl true
@@ -19,18 +20,14 @@ defmodule LivebookWeb.UserComponent do
     ~L"""
     <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        User config
+        User profile
       </h3>
       <div class="flex justify-center">
-        <div class="rounded-full h-20 w-20 flex items-center justify-center" style="background-color: <%= @data["color"] %>">
-          <div class="text-3xl text-gray-100 font-semibold">
-            <%= avatar_text(@data["name"]) %>
-          </div>
-        </div>
+        <%= render_user_avatar(@preview_user.name, @preview_user.color, class: "h-20 w-20", text_class: "text-3xl") %>
       </div>
       <%= f = form_for :data, "#",
                 phx_target: @myself,
-                phx_submit: "init",
+                phx_submit: "save",
                 phx_change: "validate" %>
         <div class="flex flex-col space-y-5">
           <div>
@@ -41,9 +38,9 @@ defmodule LivebookWeb.UserComponent do
             <div class="input-label">Cursor color</div>
             <div class="flex space-x-4 items-center">
               <div class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                style="border-color: <%= @data["color"] %>">
+                style="border-color: <%= @preview_user.color %>">
                 <div class="rounded h-5 w-5"
-                  style="background-color: <%= @data["color"] %>">
+                  style="background-color: <%= @preview_user.color %>">
                 </div>
               </div>
               <div class="relative flex-grow">
@@ -72,31 +69,31 @@ defmodule LivebookWeb.UserComponent do
   @impl true
   def handle_event("randomize_color", %{}, socket) do
     data = %{socket.assigns.data | "color" => User.random_color()}
-    {:noreply, assign(socket, data: data)}
+    {:noreply, assign(socket, data: data, preview_user: data_to_preview_user(data))}
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data)}
+    {:noreply, assign(socket, data: data, preview_user: data_to_preview_user(data))}
   end
 
-  def handle_event("init", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data)}
+  def handle_event("save", %{"data" => data}, socket) do
+    {:noreply, assign(socket, data: data, preview_user: data_to_preview_user(data))}
   end
 
   defp data_valid?(data) do
-    data["color"] =~ ~r/^#[0-9a-fA-F]{6}$/
+    color_valid?(data["color"])
   end
 
-  defp avatar_text(""), do: "?"
+  defp color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
 
-  defp avatar_text(name) do
-    name
-    |> String.split()
-    |> Enum.map(&String.at(&1, 0))
-    |> Enum.map(&String.upcase/1)
-    |> case do
-      [initial] -> initial
-      initials -> List.first(initials) <> List.last(initials)
-    end
+  defp data_to_preview_user(data) do
+    User.new(%{
+      name:
+        case data["name"] do
+          "" -> nil
+          name -> name
+        end,
+      color: if(color_valid?(data["color"]), do: data["color"], else: "#304254")
+    })
   end
 end
