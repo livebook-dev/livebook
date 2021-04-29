@@ -1,0 +1,15 @@
+# Mirrors .gitignore
+
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+livebook-*.tar
+npm-debug.log
+/assets/node_modules/
+/priv/static_dev/
+/tmp/
+/livebook

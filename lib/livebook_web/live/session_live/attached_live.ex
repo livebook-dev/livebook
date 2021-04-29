@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
      assign(socket,
        session_id: session_id,
        error_message: nil,
-       name: initial_name(current_runtime)
+       data: initial_data(current_runtime)
      )}
   end
 
@@ -27,45 +27,68 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         and evaluate code in the context of that node.
         Thanks to this approach you can work with
         an arbitrary Elixir runtime.
-        Make sure to give the node a name, for example:
+        Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
       <%= if Livebook.Config.shortnames? do %>
-        <pre><code>iex --sname test</code></pre>
+        <pre><code>iex --sname test --cookie mycookie</code></pre>
       <% else %>
-        <pre><code>iex --name test@127.0.0.1</code></pre>
+        <pre><code>iex --name test@127.0.0.1 --cookie mycookie</code></pre>
       <% end %>
       </div>
       <p class="text-gray-700">
-        Then enter the name of the node below:
+        Then enter the connection information below:
       </p>
-      <%= f = form_for :node, "#", phx_submit: "init" %>
-        <%= text_input f, :name, value: @name, class: "input",
-              placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
-
-        <%= submit "Connect", class: "mt-5 button button-blue" %>
+      <%= f = form_for :data, "#", phx_submit: "init", phx_change: "validate" %>
+        <div class="flex flex-col space-y-4">
+          <div>
+            <div class="mb-0.5 text-sm text-gray-800 font-medium">Name</div>
+            <%= text_input f, :name, value: @data["name"], class: "input",
+                  placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
+          </div>
+          <div>
+            <div class="mb-0.5 text-sm text-gray-800 font-medium">Cookie</div>
+            <%= text_input f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie" %>
+          </div>
+        </div>
+        <%= submit "Connect", class: "mt-5 button button-blue", disabled: not data_valid?(@data) %>
       </form>
     </div>
     """
   end
 
   @impl true
-  def handle_event("init", %{"node" => %{"name" => name}}, socket) do
-    node = Utils.node_from_name(name)
+  def handle_event("validate", %{"data" => data}, socket) do
+    {:noreply, assign(socket, data: data)}
+  end
 
-    case Runtime.Attached.init(node) do
+  def handle_event("init", %{"data" => data}, socket) do
+    node = Utils.node_from_name(data["name"])
+    cookie = String.to_atom(data["cookie"])
+
+    case Runtime.Attached.init(node, cookie) do
       {:ok, runtime} ->
         Session.connect_runtime(socket.assigns.session_id, runtime)
-        {:noreply, assign(socket, name: name, error_message: nil)}
+        {:noreply, assign(socket, data: data, error_message: nil)}
 
       {:error, error} ->
         message = runtime_error_to_message(error)
-        {:noreply, assign(socket, name: name, error_message: message)}
+        {:noreply, assign(socket, data: data, error_message: message)}
     end
   end
 
-  defp initial_name(%Runtime.Attached{} = current_runtime), do: current_runtime.node
-  defp initial_name(_runtime), do: ""
+  defp initial_data(%Runtime.Attached{node: node, cookie: cookie}) do
+    %{
+      "name" => Atom.to_string(node),
+      "cookie" => Atom.to_string(cookie)
+    }
+  end
+
+  defp initial_data(_runtime), do: %{"name" => "", "cookie" => ""}
+
+  defp data_valid?(data) do
+    data["name"] != "" and data["cookie"] != ""
+  end
 
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"
 

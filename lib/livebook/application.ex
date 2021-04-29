@@ -7,6 +7,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     ensure_distribution!()
+    set_cookie()
 
     children = [
       # Start the Telemetry supervisor
@@ -67,6 +68,11 @@ defmodule Livebook.Application do
           Livebook.Config.abort!("could not start distributed node: #{inspect(reason)}")
       end
     end
+  end
+
+  defp set_cookie() do
+    cookie = Application.fetch_env!(:livebook, :cookie)
+    Node.set_cookie(cookie)
   end
 
   defp get_node_type_and_name() do
