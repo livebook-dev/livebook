@@ -13,6 +13,7 @@ defmodule LivebookWeb.Router do
 
   pipeline :auth do
     plug LivebookWeb.AuthPlug
+    plug LivebookWeb.UserPlug
   end
 
   scope "/", LivebookWeb do
