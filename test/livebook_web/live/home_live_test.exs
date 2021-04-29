@@ -158,18 +158,15 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
-  test "link to introductory notebook correctly creates a new session", %{conn: conn} do
+  test "explore button correctly goes to explore section", %{conn: conn} do
     {:ok, view, _} = live(conn, "/")
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s{[aria-label="Introduction"] button})
+             |> element(~s{[aria-label="Explore"] button})
              |> render_click()
 
-    assert to =~ "/sessions/"
-
-    {:ok, view, _} = live(conn, to)
-    assert render(view) =~ "Welcome to Livebook"
+    assert to =~ "/explore"
   end
 
   describe "notebook import" do
