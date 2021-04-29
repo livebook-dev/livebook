@@ -25,9 +25,9 @@ defmodule LivebookWeb.HomeLive do
               <img src="/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
             <div class="flex space-x-2 pt-2">
-              <span class="tooltip top" aria-label="Introduction">
+              <span class="tooltip top" aria-label="Explore">
                 <button class="button button-outlined-gray button-square-icon"
-                  phx-click="open_welcome">
+                  phx-click="explore">
                   <%= remix_icon("compass-line") %>
                 </button>
               </span>
@@ -132,10 +132,6 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, path: path)}
   end
 
-  def handle_event("open_welcome", %{}, socket) do
-    create_session(socket, notebook: Livebook.Notebook.Welcome.new())
-  end
-
   def handle_event("new", %{}, socket) do
     create_session(socket)
   end
@@ -159,6 +155,10 @@ defmodule LivebookWeb.HomeLive do
     notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(session_id)
     create_session(socket, notebook: notebook, copy_images_from: images_dir)
+  end
+
+  def handle_event("explore", %{}, socket) do
+    {:noreply, push_redirect(socket, to: "/explore")}
   end
 
   @impl true

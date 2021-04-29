@@ -1,0 +1,14 @@
+[
+    {
+        "title": "Welcome to Livebook",
+        "snippet": "An introductory notebook to Livebook",
+        "path": "/example_notebooks/welcome.livemd",
+        "type": "path"
+    },
+    {
+        "title": "MNIST",
+        "snippet": "A guide to training neural networks using Axon",
+        "path": "https://github.com/elixir-nx/axon/blob/main/notebooks/mnist.livemd",
+        "type": "url"
+    }
+]
