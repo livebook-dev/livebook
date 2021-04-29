@@ -42,12 +42,12 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       <%= f = form_for :data, "#", phx_submit: "init", phx_change: "validate" %>
         <div class="flex flex-col space-y-4">
           <div>
-            <div class="mb-0.5 text-sm text-gray-800 font-medium">Name</div>
+            <div class="input-label">Name</div>
             <%= text_input f, :name, value: @data["name"], class: "input",
                   placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
           </div>
           <div>
-            <div class="mb-0.5 text-sm text-gray-800 font-medium">Cookie</div>
+            <div class="input-label">Cookie</div>
             <%= text_input f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie" %>
           </div>
         </div>
