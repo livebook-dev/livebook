@@ -6,6 +6,7 @@ defmodule LivebookWeb.UserPlug do
   import Plug.Conn
 
   alias Livebook.Users
+  alias Livebook.Users.User
 
   @impl true
   def init(opts), do: opts
@@ -17,18 +18,23 @@ defmodule LivebookWeb.UserPlug do
       conn
     else
       _ ->
-        {:ok, user} = Users.create(get_user_data(conn))
+        user =
+          User.new()
+          |> User.change(get_user_attrs(conn))
+          |> case do
+            {:ok, user} -> user
+            {:error, _errors, user} -> user
+          end
+
+        Users.save(user)
         put_session(conn, :current_user_id, user.id)
     end
   end
 
-  defp get_user_data(conn) do
-    # TODO: where to validate?
+  defp get_user_attrs(conn) do
     case Map.fetch(conn.req_cookies, "user_data") do
       {:ok, user_data} ->
-        user_data = Jason.decode!(user_data)
-        # TODO: handle properly validations etc
-        %{name: user_data["name"], color: user_data["color"]}
+        Jason.decode!(user_data)
 
       :error ->
         %{}

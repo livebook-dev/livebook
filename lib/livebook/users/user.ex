@@ -5,15 +5,45 @@ defmodule Livebook.Users.User do
 
   @type id :: Utils.id()
 
-  def new(attrs \\ %{}) do
+  def new() do
     %__MODULE__{
       id: Utils.random_id(),
-      name: Map.get(attrs, :name, nil),
-      color: Map.get_lazy(attrs, :color, &random_color/0)
+      name: nil,
+      color: random_color()
     }
   end
 
-  def color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
+  def change(user, attrs \\ %{}) do
+    {user, []}
+    |> change_name(attrs)
+    |> change_color(attrs)
+    |> case do
+      {user, []} -> {:ok, user}
+      {user, errors} -> {:error, errors, user}
+    end
+  end
+
+  defp change_name({user, errors}, %{"name" => ""}) do
+    {%{user | name: nil}, errors}
+  end
+
+  defp change_name({user, errors}, %{"name" => name}) do
+    {%{user | name: name}, errors}
+  end
+
+  defp change_name({user, errors}, _attrs), do: {user, errors}
+
+  defp change_color({user, errors}, %{"color" => color}) do
+    if color_valid?(color) do
+      {%{user | color: color}, errors}
+    else
+      {user, [{:color, "not a valid color"} | errors]}
+    end
+  end
+
+  defp change_color({user, errors}, _attrs), do: {user, errors}
+
+  defp color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
 
   def random_color() do
     # TODO: use HSV and vary H only? or predefined list of neat colors?

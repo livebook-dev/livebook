@@ -1,8 +1,6 @@
 defmodule Livebook.Users do
   @moduledoc false
 
-  alias Livebook.Users.User
-
   # TODO: docs
 
   @users_table :livebook_users
@@ -16,10 +14,10 @@ defmodule Livebook.Users do
     :ets.member(@users_table, user_id)
   end
 
-  def create(attrs \\ %{}) do
-    user = User.new(attrs)
+  def save(user) do
     :ets.insert(@users_table, {user.id, user})
-    {:ok, user}
+    broadcast_message({:user_saved, user})
+    :ok
   end
 
   def list_by_ids(user_ids) do
@@ -33,12 +31,6 @@ defmodule Livebook.Users do
       [{_id, user}] -> user
       _ -> raise "expected to find user with id #{user_id}, but found none"
     end
-  end
-
-  def update(user) do
-    :ets.insert(@users_table, {user.id, user})
-    broadcast_message({:user_updated, user})
-    {:ok, user}
   end
 
   defp broadcast_message(message) do

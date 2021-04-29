@@ -10,8 +10,11 @@ defmodule LivebookWeb.UserComponent do
     socket = assign(socket, assigns)
     user = socket.assigns.user
 
-    data = %{"name" => user.name || "", "color" => user.color}
-    {:ok, assign(socket, data: data, preview_user: user)}
+    {:ok, assign(socket, data: user_to_data(user), valid: true, preview_user: user)}
+  end
+
+  defp user_to_data(user) do
+    %{"name" => user.name || "", "color" => user.color}
   end
 
   @impl true
@@ -57,7 +60,7 @@ defmodule LivebookWeb.UserComponent do
           </div>
           <%= tag :button, class: "button button-blue flex space-x-1 justify-center items-center",
                 type: "submit",
-                disabled: not data_valid?(@data) %>
+                disabled: not @valid %>
             <%= remix_icon("save-line") %>
             <span>Save</span>
           </button>
@@ -70,32 +73,22 @@ defmodule LivebookWeb.UserComponent do
   @impl true
   def handle_event("randomize_color", %{}, socket) do
     data = %{socket.assigns.data | "color" => User.random_color()}
-    {:noreply, assign(socket, data: data, preview_user: data_to_preview_user(data))}
+    handle_event("validate", %{"data" => data}, socket)
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data, preview_user: data_to_preview_user(data))}
+    {valid, user} =
+      case User.change(socket.assigns.user, data) do
+        {:ok, user} -> {true, user}
+        {:error, _errors, user} -> {false, user}
+      end
+
+    {:noreply, assign(socket, data: data, valid: valid, preview_user: user)}
   end
 
   def handle_event("save", %{"data" => data}, socket) do
-    preview_user = data_to_preview_user(data)
-    user = %{preview_user | id: socket.assigns.user.id}
-    Livebook.Users.update(user)
+    {:ok, user} = User.change(socket.assigns.user, data)
+    Livebook.Users.save(user)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-  end
-
-  defp data_valid?(data) do
-    User.color_valid?(data["color"])
-  end
-
-  defp data_to_preview_user(data) do
-    User.new(%{
-      name:
-        case data["name"] do
-          "" -> nil
-          name -> name
-        end,
-      color: if(User.color_valid?(data["color"]), do: data["color"], else: "#304254")
-    })
   end
 end

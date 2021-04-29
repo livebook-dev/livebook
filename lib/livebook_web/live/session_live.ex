@@ -518,7 +518,7 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "completion_response", payload)}
   end
 
-  def handle_info({:user_updated, user}, socket) do
+  def handle_info({:user_saved, user}, socket) do
     %{current_user: current_user, users_map: users_map} = socket.assigns
 
     socket =

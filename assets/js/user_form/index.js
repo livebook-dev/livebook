@@ -8,8 +8,7 @@
 const UserForm = {
   mounted() {
     this.el.addEventListener("submit", (event) => {
-      // TODO: We shouldn't really care if null or not, and validate on the server anyway
-      const name = this.el.data_name.value || null;
+      const name = this.el.data_name.value;
       const color = this.el.data_color.value;
       storeUserData({ name, color });
     });
