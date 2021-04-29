@@ -82,9 +82,9 @@ defmodule Livebook.Session do
   keep in sync with the server by subscribing to the `sessions:id` topic
   and receiving operations to apply.
   """
-  @spec register_client(id(), pid()) :: Data.t()
-  def register_client(session_id, pid) do
-    GenServer.call(name(session_id), {:register_client, pid})
+  @spec register_client(id(), Data.client()) :: Data.t()
+  def register_client(session_id, client) do
+    GenServer.call(name(session_id), {:register_client, client})
   end
 
   @doc """
@@ -317,10 +317,11 @@ defmodule Livebook.Session do
   end
 
   @impl true
-  def handle_call({:register_client, pid}, _from, state) do
+  def handle_call({:register_client, client}, _from, state) do
+    {_user_id, pid} = client
     Process.monitor(pid)
 
-    state = handle_operation(state, {:client_join, pid})
+    state = handle_operation(state, {:client_join, client})
 
     {:reply, state.data, state}
   end
@@ -474,10 +475,11 @@ defmodule Livebook.Session do
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     state =
-      if pid in state.data.client_pids do
-        handle_operation(state, {:client_leave, pid})
-      else
-        state
+      state.data.clients
+      |> Enum.find(&match?({_user_id, ^pid}, &1))
+      |> case do
+        nil -> state
+        client -> handle_operation(state, {:client_leave, client})
       end
 
     {:noreply, state}

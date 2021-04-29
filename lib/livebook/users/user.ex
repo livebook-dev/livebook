@@ -1,9 +1,13 @@
 defmodule Livebook.Users.User do
   defstruct [:id, :name, :color]
 
+  alias Livebook.Utils
+
+  @type id :: Utils.id()
+
   def new(attrs \\ %{}) do
     %__MODULE__{
-      id: Livebook.Utils.random_id(),
+      id: Utils.random_id(),
       name: Map.get(attrs, :name, nil),
       color: Map.get_lazy(attrs, :color, &random_color/0)
     }

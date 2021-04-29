@@ -4,11 +4,11 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
 
   @impl true
-  def mount(%{"id" => session_id}, _session, socket) do
+  def mount(%{"id" => session_id}, %{"user_id" => user_id}, socket) do
     if SessionSupervisor.session_exists?(session_id) do
       data =
         if connected?(socket) do
-          data = Session.register_client(session_id, self())
+          data = Session.register_client(session_id, {user_id, self()})
           Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
           data
@@ -216,7 +216,7 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 
-    <%#= if @live_action == :cell_upload do %>
+    <%#= if @live_action == :cell_upload do % >
       <%= live_modal @socket, LivebookWeb.UserComponent,
             id: :user_modal,
             modal_class: "w-full max-w-sm",
