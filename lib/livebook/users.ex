@@ -1,8 +1,6 @@
 defmodule Livebook.Users do
   @moduledoc false
 
-  # TODO: docs
-
   @users_table :livebook_users
 
   def initialize_store() do

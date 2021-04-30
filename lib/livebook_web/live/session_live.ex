@@ -216,6 +216,14 @@ defmodule LivebookWeb.SessionLive do
       </div>
     </div>
 
+    <%= if @live_action == :user do %>
+      <%= live_modal @socket, LivebookWeb.UserComponent,
+            id: :user_modal,
+            modal_class: "w-full max-w-sm",
+            user: @current_user,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
     <%= if @live_action == :runtime_settings do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
             id: :runtime_settings_modal,
@@ -259,15 +267,6 @@ defmodule LivebookWeb.SessionLive do
             session_id: @session_id,
             cell: @cell,
             uploads: @uploads,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
-    <% end %>
-
-    <%= if @live_action == :user do %>
-      <%= live_modal @socket, LivebookWeb.UserComponent,
-            id: :user_modal,
-            modal_class: "w-full max-w-sm",
-            session_id: @session_id,
-            user: @current_user,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
     """
