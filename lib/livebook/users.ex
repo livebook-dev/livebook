@@ -16,7 +16,7 @@ defmodule Livebook.Users do
 
   def save(user) do
     :ets.insert(@users_table, {user.id, user})
-    broadcast_message({:user_saved, user})
+    broadcast_user_message(user.id, {:user_saved, user})
     :ok
   end
 
@@ -33,7 +33,7 @@ defmodule Livebook.Users do
     end
   end
 
-  defp broadcast_message(message) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "users", message)
+  defp broadcast_user_message(user_id, message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "users:#{user_id}", message)
   end
 end

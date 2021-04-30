@@ -12,7 +12,6 @@ defmodule LivebookWeb.SessionLive do
         if connected?(socket) do
           data = Session.register_client(session_id, {current_user_id, self()})
           Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
-          Phoenix.PubSub.subscribe(Livebook.PubSub, "users")
 
           data
         else
@@ -21,6 +20,12 @@ defmodule LivebookWeb.SessionLive do
 
       current_user = Users.fetch!(current_user_id)
       users_map = clients_to_users_map(data.clients)
+
+      if connected?(socket) do
+        for {user_id, _user} <- users_map do
+          Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user_id}")
+        end
+      end
 
       session_pid = Session.get_pid(session_id)
 
@@ -590,6 +595,28 @@ defmodule LivebookWeb.SessionLive do
       push_event(socket, "section_moved", %{section_id: section_id})
     else
       socket
+    end
+  end
+
+  defp after_operation(socket, _prev_socket, {:client_join, {user_id, _pid}}) do
+    if Map.has_key?(socket.assigns.users_map, user_id) do
+      socket
+    else
+      user = Users.fetch!(user_id)
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user_id}")
+      assign(socket, users_map: Map.put(socket.assigns.users_map, user_id, user))
+    end
+  end
+
+  defp after_operation(socket, _prev_socket, {:client_leave, {user_id, _pid}}) do
+    # Note tht the same user may be connected from multiple tabs
+    still_client? = Enum.any?(socket.private.data.clients, &match?({^user_id, _pid}, &1))
+
+    if still_client? do
+      socket
+    else
+      Phoenix.PubSub.unsubscribe(Livebook.PubSub, "users:#{user_id}")
+      assign(socket, users_map: Map.delete(socket.assigns.users_map, user_id))
     end
   end
 
