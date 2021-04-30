@@ -10,10 +10,10 @@ defmodule LivebookWeb.LiveHelpers do
 
     * `:text_class` - class added to the avatar text
   """
-  def render_user_avatar(name, color, opts \\ []) do
+  def render_user_avatar(user, opts \\ []) do
     assigns = %{
-      name: name,
-      color: color,
+      name: user.name,
+      color: user.color,
       class: Keyword.get(opts, :class, "w-full h-full"),
       text_class: Keyword.get(opts, :text_class)
     }

@@ -25,7 +25,7 @@ defmodule LivebookWeb.UserComponent do
         User profile
       </h3>
       <div class="flex justify-center">
-        <%= render_user_avatar(@preview_user.name, @preview_user.color, class: "h-20 w-20", text_class: "text-3xl") %>
+        <%= render_user_avatar(@preview_user, class: "h-20 w-20", text_class: "text-3xl") %>
       </div>
       <%= f = form_for :data, "#",
                 id: "user_form",

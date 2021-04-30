@@ -47,8 +47,12 @@ const Session = {
       handleSectionListClick(this, event);
     });
 
-    getSectionsPanelToggle().addEventListener("click", (event) => {
-      toggleSectionsPanel(this);
+    getSectionsListToggle().addEventListener("click", (event) => {
+      toggleSectionsList(this);
+    });
+
+    getUsersListToggle().addEventListener("click", (event) => {
+      toggleUsersList(this);
     });
 
     getNotebook().addEventListener("scroll", (event) => {
@@ -179,7 +183,9 @@ function handleDocumentKeyDown(hook, event) {
     } else if (keyBuffer.tryMatch(["e", "j"])) {
       queueChildCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["s", "s"])) {
-      toggleSectionsPanel(hook);
+      toggleSectionsList(hook);
+    } else if (keyBuffer.tryMatch(["s", "u"])) {
+      toggleUsersList(hook);
     } else if (keyBuffer.tryMatch(["s", "r"])) {
       showNotebookRuntimeSettings(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
@@ -336,8 +342,20 @@ function updateSectionListHighlight() {
 
 // User action handlers (mostly keybindings)
 
-function toggleSectionsPanel(hook) {
-  hook.el.toggleAttribute("data-js-sections-panel-expanded");
+function toggleSectionsList(hook) {
+  if (hook.el.getAttribute("data-js-side-panel-content") === "sections-list") {
+    hook.el.removeAttribute("data-js-side-panel-content");
+  } else {
+    hook.el.setAttribute("data-js-side-panel-content", "sections-list");
+  }
+}
+
+function toggleUsersList(hook) {
+  if (hook.el.getAttribute("data-js-side-panel-content") === "users-list") {
+    hook.el.removeAttribute("data-js-side-panel-content");
+  } else {
+    hook.el.setAttribute("data-js-side-panel-content", "users-list");
+  }
 }
 
 function showNotebookRuntimeSettings(hook) {
@@ -639,8 +657,12 @@ function getNotebook() {
   return document.querySelector(`[data-element="notebook"]`);
 }
 
-function getSectionsPanelToggle() {
-  return document.querySelector(`[data-element="sections-panel-toggle"]`);
+function getSectionsListToggle() {
+  return document.querySelector(`[data-element="sections-list-toggle"]`);
+}
+
+function getUsersListToggle() {
+  return document.querySelector(`[data-element="users-list-toggle"]`);
 }
 
 function cancelEvent(event) {
