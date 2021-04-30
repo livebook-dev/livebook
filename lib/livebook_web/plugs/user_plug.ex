@@ -1,6 +1,17 @@
 defmodule LivebookWeb.UserPlug do
   @moduledoc false
 
+  # Ensures a valid user in the session.
+  #
+  # The first time someone visits Livebook
+  # this plug generates a user for them and stores
+  # the id in the session under `:current_user_id`.
+  #
+  # If the request cookies include `"user_data"` JSON,
+  # this data is used to initialize the new user.
+  # This cookie serves as a decentralized backup of user attributes,
+  # because Livebook doesn't use persistent storage.
+
   @behaviour Plug
 
   import Plug.Conn
@@ -26,7 +37,7 @@ defmodule LivebookWeb.UserPlug do
             {:error, _errors, user} -> user
           end
 
-        Users.save(user)
+        :ok = Users.save(user)
         put_session(conn, :current_user_id, user.id)
     end
   end

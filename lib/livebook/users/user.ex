@@ -1,10 +1,31 @@
 defmodule Livebook.Users.User do
+  @moduledoc false
+
+  # Represents a Livebook user.
+  #
+  # Livebook users are not regular web app accounts,
+  # but rather ephemeral data about the clients
+  # using the app. Every person using Livebook
+  # can provide data like name and cursor color
+  # to improve visibility during collaboration.
+
   defstruct [:id, :name, :color]
 
   alias Livebook.Utils
 
-  @type id :: Utils.id()
+  @type t :: %__MODULE__{
+          id: id(),
+          name: String.t() | nil,
+          color: color()
+        }
 
+  @type id :: Utils.id()
+  @type color :: String.t()
+
+  @doc """
+  Generates a new user.
+  """
+  @spec new() :: t()
   def new() do
     %__MODULE__{
       id: Utils.random_id(),
@@ -13,6 +34,14 @@ defmodule Livebook.Users.User do
     }
   end
 
+  @doc """
+  Validates `attrs` and returns an updated user.
+
+  In case of validation errors `{:error, errors, user}` tuple
+  is returned, where `user` is partially updated by using
+  only the valid attributes.
+  """
+  @spec change(t(), %{binary() => any()}) :: {:ok, t()} | {:error, list(String.t()), t()}
   def change(user, attrs \\ %{}) do
     {user, []}
     |> change_name(attrs)
@@ -45,6 +74,13 @@ defmodule Livebook.Users.User do
 
   defp color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
 
+  @doc """
+  Returns a random hex color for a user.
+
+  ## Options
+
+    * `:except` - a list of colors to omit
+  """
   def random_color(opts \\ []) do
     colors = [
       # red
