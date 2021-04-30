@@ -45,12 +45,29 @@ defmodule Livebook.Users.User do
 
   defp color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
 
-  def random_color() do
-    # TODO: use HSV and vary H only? or predefined list of neat colors?
-    #   - we want the color to fit white text, so just gather a reasonable list of colors
-    # TODO: also color picker
-    #   - native picker would trigger change too often, we need either a lib
-    #     or something else
-    Enum.random(["#F87171", "#FBBF24", "#6EE7B7", "#60A5FA", "#818CF8", "#A78BFA", "#F472B6"])
+  def random_color(opts \\ []) do
+    colors = [
+      # red
+      "#F87171",
+      # yellow
+      "#FBBF24",
+      # green
+      "#6EE7B7",
+      # blue
+      "#60A5FA",
+      # purple
+      "#A78BFA",
+      # pink
+      "#F472B6",
+      # salmon
+      "#FA8072",
+      # mat green
+      "#9ED9CC"
+    ]
+
+    except = opts[:except] || []
+    colors = colors -- except
+
+    Enum.random(colors)
   end
 end

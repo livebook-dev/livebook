@@ -72,7 +72,11 @@ defmodule LivebookWeb.UserComponent do
 
   @impl true
   def handle_event("randomize_color", %{}, socket) do
-    data = %{socket.assigns.data | "color" => User.random_color()}
+    data = %{
+      socket.assigns.data
+      | "color" => User.random_color(except: [socket.assigns.preview_user.color])
+    }
+
     handle_event("validate", %{"data" => data}, socket)
   end
 
