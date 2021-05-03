@@ -74,6 +74,10 @@
   @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
 }
 
+.input-label {
+  @apply mb-0.5 text-sm text-gray-800 font-medium;
+}
+
 .switch-button {
   @apply relative inline-block w-14 h-7 mr-2 select-none transition;
 }

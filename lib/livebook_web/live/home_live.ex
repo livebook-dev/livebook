@@ -1,23 +1,41 @@
 defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
+  import LivebookWeb.UserHelpers
+
   alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, %{"current_user_id" => current_user_id}, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
+    current_user = build_current_user(current_user_id, socket)
     session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
 
-    {:ok, assign(socket, path: default_path(), session_summaries: session_summaries)}
+    {:ok,
+     assign(socket,
+       current_user: current_user,
+       path: default_path(),
+       session_summaries: session_summaries
+     )}
   end
 
   @impl true
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
+      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
+        <div class="flex-grow"></div>
+        <span class="tooltip right distant" aria-label="User profile">
+          <%= live_patch to: Routes.home_path(@socket, :user),
+                class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
+            <%= render_user_avatar(@current_user, class: "h-full w-full", text_class: "text-xs") %>
+          <% end %>
+        </span>
+      </div>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto p-4 pt-0 pb-8 flex flex-col items-center space-y-4">
           <div class="w-full flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
@@ -99,6 +117,14 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </div>
 
+    <%= if @live_action == :user do %>
+      <%= live_modal @socket, LivebookWeb.UserComponent,
+            id: :user_modal,
+            modal_class: "w-full max-w-sm",
+            user: @current_user,
+            return_to: Routes.home_path(@socket, :page) %>
+    <% end %>
+
     <%= if @live_action == :close_session do %>
       <%= live_modal @socket, LivebookWeb.HomeLive.CloseSessionComponent,
             id: :close_session_modal,
@@ -179,6 +205,13 @@ defmodule LivebookWeb.HomeLive do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
     socket = put_import_flash_messages(socket, messages)
     create_session(socket, notebook: notebook)
+  end
+
+  def handle_info(
+        {:user_change, %{id: id} = user},
+        %{assigns: %{current_user: %{id: id}}} = socket
+      ) do
+    {:noreply, assign(socket, :current_user, user)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

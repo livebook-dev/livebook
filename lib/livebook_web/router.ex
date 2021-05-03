@@ -13,15 +13,18 @@ defmodule LivebookWeb.Router do
 
   pipeline :auth do
     plug LivebookWeb.AuthPlug
+    plug LivebookWeb.UserPlug
   end
 
   scope "/", LivebookWeb do
     pipe_through [:browser, :auth]
 
     live "/", HomeLive, :page
+    live "/home/user-profile", HomeLive, :user
     live "/home/import/:tab", HomeLive, :import
     live "/home/sessions/:session_id/close", HomeLive, :close_session
     live "/sessions/:id", SessionLive, :page
+    live "/sessions/:id/user-profile", SessionLive, :user
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
     live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
     live "/sessions/:id/settings/file", SessionLive, :file_settings

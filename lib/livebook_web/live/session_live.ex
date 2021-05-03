@@ -1,15 +1,20 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
+  import LivebookWeb.UserHelpers
+
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
 
   @impl true
-  def mount(%{"id" => session_id}, _session, socket) do
+  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
     if SessionSupervisor.session_exists?(session_id) do
+      current_user = build_current_user(current_user_id, socket)
+
       data =
         if connected?(socket) do
-          data = Session.register_client(session_id, self())
+          data = Session.register_client(session_id, self(), current_user)
           Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+          Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
 
           data
         else
@@ -26,6 +31,7 @@ defmodule LivebookWeb.SessionLive do
          platform: platform,
          session_id: session_id,
          session_pid: session_pid,
+         current_user: current_user,
          data_view: data_to_view(data)
        )
        |> assign_private(data: data)
@@ -63,13 +69,18 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
+      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
           <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
         <span class="tooltip right distant" aria-label="Sections (ss)">
-          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="sections-panel-toggle">
+          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="sections-list-toggle">
             <%= remix_icon("booklet-fill") %>
+          </button>
+        </span>
+        <span class="tooltip right distant" aria-label="Connected users (su)">
+          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="users-list-toggle">
+            <%= remix_icon("group-fill") %>
           </button>
         </span>
         <span class="tooltip right distant" aria-label="Runtime settings (sr)">
@@ -85,27 +96,55 @@ defmodule LivebookWeb.SessionLive do
             <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
           <% end %>
         </span>
+        <span class="tooltip right distant" aria-label="User profile">
+          <%= live_patch to: Routes.session_path(@socket, :user, @session_id),
+                class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
+            <%= render_user_avatar(@current_user, class: "h-full w-full", text_class: "text-xs") %>
+          <% end %>
+        </span>
       </div>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none overflow-y-auto bg-gray-50 border-r border-gray-100 px-6 py-10"
-        data-element="sections-panel">
-        <div class="flex-grow flex flex-col">
-          <h3 class="font-semibold text-gray-800 text-lg">
-            Sections
-          </h3>
-          <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
-            <%= for section_item <- @data_view.sections_items do %>
-              <button class="text-left hover:text-gray-900 text-gray-500"
-                data-element="section-list-item"
-                data-section-id="<%= section_item.id %>">
-                <%= section_item.name %>
-              </button>
-            <% end %>
+        data-element="side-panel">
+        <div data-element="sections-list">
+          <div class="flex-grow flex flex-col">
+            <h3 class="font-semibold text-gray-800 text-lg">
+              Sections
+            </h3>
+            <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
+              <%= for section_item <- @data_view.sections_items do %>
+                <button class="text-left hover:text-gray-900 text-gray-500"
+                  data-element="section-list-item"
+                  data-section-id="<%= section_item.id %>">
+                  <%= section_item.name %>
+                </button>
+              <% end %>
+            </div>
+            <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
+              phx-click="add_section" >
+              <%= remix_icon("add-line", class: "text-lg align-center") %>
+              <span>New section</span>
+            </button>
           </div>
-          <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
-            phx-click="add_section" >
-            <%= remix_icon("add-line", class: "text-lg align-center") %>
-            <span>New section</span>
-          </button>
+        </div>
+        <div data-element="users-list">
+          <div class="flex-grow flex flex-col">
+            <h3 class="font-semibold text-gray-800 text-lg">
+              Users
+            </h3>
+            <h4 class="font text-gray-500 text-sm my-1">
+              <%= length(@data_view.users) %> connected
+            </h4>
+            <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
+              <%= for user <- @data_view.users do %>
+                <div class="flex space-x-2 items-center">
+                  <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
+                  <span class="text-gray-500">
+                    <%= user.name || "Anonymous" %>
+                  </span>
+                </div>
+              <% end %>
+            </div>
+          </div>
         </div>
       </div>
       <div class="flex-grow overflow-y-auto" data-element="notebook">
@@ -169,6 +208,14 @@ defmodule LivebookWeb.SessionLive do
               data_view: @data_view %>
       </div>
     </div>
+
+    <%= if @live_action == :user do %>
+      <%= live_modal @socket, LivebookWeb.UserComponent,
+            id: :user_modal,
+            modal_class: "w-full max-w-sm",
+            user: @current_user,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
 
     <%= if @live_action == :runtime_settings do %>
       <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
@@ -495,6 +542,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "completion_response", payload)}
   end
 
+  def handle_info(
+        {:user_change, %{id: id} = user},
+        %{assigns: %{current_user: %{id: id}}} = socket
+      ) do
+    {:noreply, assign(socket, :current_user, user)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
@@ -606,6 +660,11 @@ defmodule LivebookWeb.SessionLive do
         for section <- data.notebook.sections do
           %{id: section.id, name: section.name}
         end,
+      users:
+        data.clients_map
+        |> Map.values()
+        |> Enum.map(&data.users_map[&1])
+        |> Enum.sort_by(& &1.name),
       section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
     }
   end

@@ -23,10 +23,12 @@ defmodule Livebook.Session.Data do
     :deleted_sections,
     :deleted_cells,
     :runtime,
-    :client_pids
+    :clients_map,
+    :users_map
   ]
 
   alias Livebook.{Notebook, Evaluator, Delta, Runtime, JSInterop}
+  alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
   @type t :: %__MODULE__{
@@ -38,7 +40,8 @@ defmodule Livebook.Session.Data do
           deleted_sections: list(Section.t()),
           deleted_cells: list(Cell.t()),
           runtime: Runtime.t() | nil,
-          client_pids: list(pid())
+          clients_map: %{pid() => User.id()},
+          users_map: %{User.id() => User.t()}
         }
 
   @type section_info :: %{
@@ -60,6 +63,8 @@ defmodule Livebook.Session.Data do
 
   @type cell_validity_status :: :fresh | :evaluated | :stale | :aborted
   @type cell_evaluation_status :: :ready | :queued | :evaluating
+
+  @type client :: {User.id(), pid()}
 
   @type index :: non_neg_integer()
 
@@ -85,8 +90,9 @@ defmodule Livebook.Session.Data do
           | {:cancel_cell_evaluation, pid(), Cell.id()}
           | {:set_notebook_name, pid(), String.t()}
           | {:set_section_name, pid(), Section.id(), String.t()}
-          | {:client_join, pid()}
+          | {:client_join, pid(), User.t()}
           | {:client_leave, pid()}
+          | {:update_user, pid(), User.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
           | {:set_cell_metadata, pid(), Cell.id(), Cell.metadata()}
@@ -114,7 +120,8 @@ defmodule Livebook.Session.Data do
       deleted_sections: [],
       deleted_cells: [],
       runtime: nil,
-      client_pids: []
+      clients_map: %{},
+      users_map: %{}
     }
   end
 
@@ -128,7 +135,7 @@ defmodule Livebook.Session.Data do
     for section <- notebook.sections,
         cell <- section.cells,
         into: %{},
-        do: {cell.id, new_cell_info(cell, [])}
+        do: {cell.id, new_cell_info(cell, %{})}
   end
 
   @doc """
@@ -334,22 +341,33 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:client_join, pid}) do
-    with false <- pid in data.client_pids do
+  def apply_operation(data, {:client_join, client_pid, user}) do
+    with false <- Map.has_key?(data.clients_map, client_pid) do
       data
       |> with_actions()
-      |> client_join(pid)
+      |> client_join(client_pid, user)
       |> wrap_ok()
     else
       _ -> :error
     end
   end
 
-  def apply_operation(data, {:client_leave, pid}) do
-    with true <- pid in data.client_pids do
+  def apply_operation(data, {:client_leave, client_pid}) do
+    with true <- Map.has_key?(data.clients_map, client_pid) do
       data
       |> with_actions()
-      |> client_leave(pid)
+      |> client_leave(client_pid)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:update_user, _client_pid, user}) do
+    with true <- Map.has_key?(data.users_map, user.id) do
+      data
+      |> with_actions()
+      |> update_user(user)
       |> wrap_ok()
     else
       _ -> :error
@@ -360,7 +378,7 @@ defmodule Livebook.Session.Data do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          cell_info <- data.cell_infos[cell.id],
          true <- 0 < revision and revision <= cell_info.revision + 1,
-         true <- client_pid in data.client_pids do
+         true <- Map.has_key?(data.clients_map, client_pid) do
       data
       |> with_actions()
       |> apply_delta(client_pid, cell, delta, revision)
@@ -375,7 +393,7 @@ defmodule Livebook.Session.Data do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          cell_info <- data.cell_infos[cell.id],
          true <- 0 < revision and revision <= cell_info.revision,
-         true <- client_pid in data.client_pids do
+         true <- Map.has_key?(data.clients_map, client_pid) do
       data
       |> with_actions()
       |> report_revision(client_pid, cell, revision)
@@ -438,7 +456,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(
       notebook: Notebook.insert_cell(data.notebook, section_id, index, cell),
-      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(cell, data.client_pids))
+      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(cell, data.clients_map))
     )
   end
 
@@ -682,21 +700,40 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_section(data.notebook, section.id, &%{&1 | name: name}))
   end
 
-  defp client_join({data, _} = data_actions, pid) do
+  defp client_join({data, _} = data_actions, client_pid, user) do
     data_actions
-    |> set!(client_pids: [pid | data.client_pids])
+    |> set!(
+      clients_map: Map.put(data.clients_map, client_pid, user.id),
+      users_map: Map.put(data.users_map, user.id, user)
+    )
     |> update_every_cell_info(fn info ->
-      put_in(info.revision_by_client_pid[pid], info.revision)
+      put_in(info.revision_by_client_pid[client_pid], info.revision)
     end)
   end
 
-  defp client_leave({data, _} = data_actions, pid) do
+  defp client_leave({data, _} = data_actions, client_pid) do
+    {user_id, clients_map} = Map.pop(data.clients_map, client_pid)
+
+    users_map =
+      if user_id in Map.values(clients_map) do
+        data.users_map
+      else
+        Map.delete(data.users_map, user_id)
+      end
+
     data_actions
-    |> set!(client_pids: List.delete(data.client_pids, pid))
+    |> set!(
+      clients_map: clients_map,
+      users_map: users_map
+    )
     |> update_every_cell_info(fn info ->
-      {_, info} = pop_in(info.revision_by_client_pid[pid])
+      {_, info} = pop_in(info.revision_by_client_pid[client_pid])
       purge_deltas(info)
     end)
+  end
+
+  defp update_user({data, _} = data_actions, user) do
+    set!(data_actions, users_map: Map.put(data.users_map, user.id, user))
   end
 
   defp apply_delta({data, _} = data_actions, client_pid, cell, delta, revision) do
@@ -777,7 +814,9 @@ defmodule Livebook.Session.Data do
     }
   end
 
-  defp new_cell_info(cell, client_pids) do
+  defp new_cell_info(cell, clients_map) do
+    client_pids = Map.keys(clients_map)
+
     %{
       revision: 0,
       deltas: [],

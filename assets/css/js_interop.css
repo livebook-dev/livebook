@@ -73,13 +73,28 @@ solely client-side operations.
   @apply bg-blue-300;
 }
 
-[data-element="session"]:not([data-js-sections-panel-expanded])
-  [data-element="sections-panel"] {
+[data-element="session"]:not([data-js-side-panel-content])
+  [data-element="side-panel"] {
   @apply hidden;
 }
 
-[data-element="session"][data-js-sections-panel-expanded]
-  [data-element="sections-panel-toggle"] {
+[data-element="session"]:not([data-js-side-panel-content="sections-list"])
+  [data-element="sections-list"] {
+  @apply hidden;
+}
+
+[data-element="session"]:not([data-js-side-panel-content="users-list"])
+  [data-element="users-list"] {
+  @apply hidden;
+}
+
+[data-element="session"][data-js-side-panel-content="sections-list"]
+  [data-element="sections-list-toggle"] {
+  @apply text-gray-50 bg-gray-700;
+}
+
+[data-element="session"][data-js-side-panel-content="users-list"]
+  [data-element="users-list-toggle"] {
   @apply text-gray-50 bg-gray-700;
 }
 

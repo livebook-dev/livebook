@@ -3,7 +3,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Runtime, Users}
+  alias Livebook.Users.User
 
   setup do
     {:ok, session_id} = SessionSupervisor.create_session()
@@ -270,6 +271,80 @@ defmodule LivebookWeb.SessionLiveTest do
     assert render(view) =~ "My notebook - fork"
   end
 
+  describe "connected users" do
+    test "lists connected users", %{conn: conn, session_id: session_id} do
+      user1 = create_user_with_name("Jake Peralta")
+
+      client_pid =
+        spawn_link(fn ->
+          Session.register_client(session_id, self(), user1)
+
+          receive do
+            :stop -> :ok
+          end
+        end)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      assert render(view) =~ "Jake Peralta"
+
+      send(client_pid, :stop)
+    end
+
+    test "updates users list whenever a user joins or leaves",
+         %{conn: conn, session_id: session_id} do
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+
+      user1 = create_user_with_name("Jake Peralta")
+
+      client_pid =
+        spawn_link(fn ->
+          Session.register_client(session_id, self(), user1)
+
+          receive do
+            :stop -> :ok
+          end
+        end)
+
+      assert_receive {:operation, {:client_join, ^client_pid, _user}}
+      assert render(view) =~ "Jake Peralta"
+
+      send(client_pid, :stop)
+      assert_receive {:operation, {:client_leave, ^client_pid}}
+      refute render(view) =~ "Jake Peralta"
+    end
+
+    test "updates users list whenever a user changes his data",
+         %{conn: conn, session_id: session_id} do
+      user1 = create_user_with_name("Jake Peralta")
+
+      client_pid =
+        spawn_link(fn ->
+          Session.register_client(session_id, self(), user1)
+
+          receive do
+            :stop -> :ok
+          end
+        end)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}")
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+
+      assert render(view) =~ "Jake Peralta"
+
+      Users.broadcast_change(%{user1 | name: "Raymond Holt"})
+      assert_receive {:operation, {:update_user, _pid, _user}}
+
+      refute render(view) =~ "Jake Peralta"
+      assert render(view) =~ "Raymond Holt"
+
+      send(client_pid, :stop)
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_id) do
@@ -296,5 +371,10 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.apply_cell_delta(session_id, cell.id, delta, 1)
 
     cell.id
+  end
+
+  defp create_user_with_name(name) do
+    {:ok, user} = User.new() |> User.change(%{"name" => name})
+    user
   end
 end

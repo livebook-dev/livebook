@@ -16,6 +16,7 @@ defmodule Livebook.Session do
 
   alias Livebook.Session.{Data, FileGuard}
   alias Livebook.{Utils, Notebook, Delta, Runtime, LiveMarkdown}
+  alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
   @type state :: %{
@@ -82,9 +83,9 @@ defmodule Livebook.Session do
   keep in sync with the server by subscribing to the `sessions:id` topic
   and receiving operations to apply.
   """
-  @spec register_client(id(), pid()) :: Data.t()
-  def register_client(session_id, pid) do
-    GenServer.call(name(session_id), {:register_client, pid})
+  @spec register_client(id(), pid(), User.t()) :: Data.t()
+  def register_client(session_id, client_pid, user) do
+    GenServer.call(name(session_id), {:register_client, client_pid, user})
   end
 
   @doc """
@@ -317,10 +318,10 @@ defmodule Livebook.Session do
   end
 
   @impl true
-  def handle_call({:register_client, pid}, _from, state) do
-    Process.monitor(pid)
+  def handle_call({:register_client, client_pid, user}, _from, state) do
+    Process.monitor(client_pid)
 
-    state = handle_operation(state, {:client_join, pid})
+    state = handle_operation(state, {:client_join, client_pid, user})
 
     {:reply, state.data, state}
   end
@@ -474,7 +475,7 @@ defmodule Livebook.Session do
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     state =
-      if pid in state.data.client_pids do
+      if Map.has_key?(state.data.clients_map, pid) do
         handle_operation(state, {:client_leave, pid})
       else
         state
@@ -503,6 +504,11 @@ defmodule Livebook.Session do
   def handle_info(:autosave, state) do
     Process.send_after(self(), :autosave, @autosave_interval)
     {:noreply, maybe_save_notebook(state)}
+  end
+
+  def handle_info({:user_change, user}, state) do
+    operation = {:update_user, self(), user}
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -601,6 +607,24 @@ defmodule Livebook.Session do
       copy_images(state, prev_images_dir)
     else
       move_images(state, prev_images_dir)
+    end
+
+    state
+  end
+
+  defp after_operation(state, prev_state, {:client_join, _client_pid, user}) do
+    unless Map.has_key?(prev_state.data.users_map, user.id) do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user.id}")
+    end
+
+    state
+  end
+
+  defp after_operation(state, prev_state, {:client_leave, client_pid}) do
+    user_id = prev_state.data.clients_map[client_pid]
+
+    unless Map.has_key?(state.data.users_map, user_id) do
+      Phoenix.PubSub.unsubscribe(Livebook.PubSub, "users:#{user_id}")
     end
 
     state

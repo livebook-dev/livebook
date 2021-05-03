@@ -3,6 +3,7 @@ defmodule Livebook.Session.DataTest do
 
   alias Livebook.Session.Data
   alias Livebook.{Delta, Notebook}
+  alias Livebook.Users.User
 
   describe "new/1" do
     test "called with no arguments defaults to a blank notebook" do
@@ -72,7 +73,7 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client_pid},
+          {:client_join, client_pid, User.new()},
           {:insert_section, self(), 0, "s1"}
         ])
 
@@ -1193,37 +1194,43 @@ defmodule Livebook.Session.DataTest do
 
   describe "apply_operation/2 given :client_join" do
     test "returns an error if the given process is already a client" do
+      user = User.new()
+
       data =
         data_after_operations!([
-          {:client_join, self()}
+          {:client_join, self(), user}
         ])
 
-      operation = {:client_join, self()}
+      operation = {:client_join, self(), user}
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "adds the given process to the client list" do
+    test "adds the given process and user to their corresponding maps" do
       client_pid = self()
+      %{id: user_id} = user = User.new()
       data = Data.new()
 
-      operation = {:client_join, client_pid}
-      assert {:ok, %{client_pids: [^client_pid]}, []} = Data.apply_operation(data, operation)
+      operation = {:client_join, client_pid, user}
+
+      assert {:ok, %{clients_map: %{^client_pid => ^user_id}, users_map: %{^user_id => ^user}},
+              []} = Data.apply_operation(data, operation)
     end
 
     test "adds new entry to the cell revisions map for the client with the latest revision" do
       client1_pid = IEx.Helpers.pid(0, 0, 0)
+      user = User.new()
       delta1 = Delta.new() |> Delta.insert("cats")
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
+          {:client_join, client1_pid, user},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
       client2_pid = IEx.Helpers.pid(0, 0, 1)
-      operation = {:client_join, client2_pid}
+      operation = {:client_join, client2_pid, user}
 
       assert {:ok,
               %{
@@ -1240,14 +1247,44 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "removes the given process from the client list" do
+    test "removes the given process from the client map" do
       data =
         data_after_operations!([
-          {:client_join, self()}
+          {:client_join, self(), User.new()}
         ])
 
       operation = {:client_leave, self()}
-      assert {:ok, %{client_pids: []}, []} = Data.apply_operation(data, operation)
+
+      empty_map = %{}
+      assert {:ok, %{clients_map: ^empty_map}, []} = Data.apply_operation(data, operation)
+    end
+
+    test "removes the corresponding user from users map if it has no more client processes" do
+      data =
+        data_after_operations!([
+          {:client_join, self(), User.new()}
+        ])
+
+      operation = {:client_leave, self()}
+
+      empty_map = %{}
+      assert {:ok, %{users_map: ^empty_map}, []} = Data.apply_operation(data, operation)
+    end
+
+    test "leaves the corresponding user in users map if it has more client processes" do
+      %{id: user_id} = user = User.new()
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+      client2_pid = IEx.Helpers.pid(0, 0, 1)
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid, user},
+          {:client_join, client2_pid, user}
+        ])
+
+      operation = {:client_leave, client2_pid}
+
+      assert {:ok, %{users_map: %{^user_id => ^user}}, []} = Data.apply_operation(data, operation)
     end
 
     test "removes an entry in the the cell revisions map for the client and purges deltas" do
@@ -1258,8 +1295,8 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
-          {:client_join, client2_pid},
+          {:client_join, client1_pid, User.new()},
+          {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
@@ -1278,11 +1315,35 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :update_user" do
+    test "returns an error if the given user is not a client" do
+      data = Data.new()
+
+      operation = {:update_user, self(), User.new()}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates users map" do
+      %{id: user_id} = user = User.new()
+
+      data =
+        data_after_operations!([
+          {:client_join, self(), user}
+        ])
+
+      updated_user = %{user | name: "Jake Peralta"}
+      operation = {:update_user, self(), updated_user}
+
+      assert {:ok, %{users_map: %{^user_id => ^updated_user}}, []} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :apply_cell_delta" do
     test "returns an error given invalid cell id" do
       data =
         data_after_operations!([
-          {:client_join, self()}
+          {:client_join, self(), User.new()}
         ])
 
       operation = {:apply_cell_delta, self(), "nonexistent", Delta.new(), 1}
@@ -1304,7 +1365,7 @@ defmodule Livebook.Session.DataTest do
     test "returns an error given invalid revision" do
       data =
         data_after_operations!([
-          {:client_join, self()},
+          {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
@@ -1318,7 +1379,7 @@ defmodule Livebook.Session.DataTest do
     test "updates cell source according to the given delta" do
       data =
         data_after_operations!([
-          {:client_join, self()},
+          {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
@@ -1340,7 +1401,7 @@ defmodule Livebook.Session.DataTest do
     test "updates cell digest based on the new content" do
       data =
         data_after_operations!([
-          {:client_join, self()},
+          {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
@@ -1364,8 +1425,8 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
-          {:client_join, client2_pid},
+          {:client_join, client1_pid, User.new()},
+          {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
@@ -1393,8 +1454,8 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
-          {:client_join, client2_pid},
+          {:client_join, client1_pid, User.new()},
+          {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
@@ -1414,7 +1475,7 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client_pid},
+          {:client_join, client_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
@@ -1434,8 +1495,8 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
-          {:client_join, client2_pid},
+          {:client_join, client1_pid, User.new()},
+          {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
@@ -1454,7 +1515,7 @@ defmodule Livebook.Session.DataTest do
     test "returns an error given invalid cell id" do
       data =
         data_after_operations!([
-          {:client_join, self()}
+          {:client_join, self(), User.new()}
         ])
 
       operation = {:report_cell_revision, self(), "nonexistent", 1}
@@ -1467,7 +1528,7 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
+          {:client_join, client1_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:apply_cell_delta, client1_pid, "c1", Delta.new(insert: "cats"), 1}
@@ -1480,7 +1541,7 @@ defmodule Livebook.Session.DataTest do
     test "returns an error given invalid revision" do
       data =
         data_after_operations!([
-          {:client_join, self()},
+          {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
@@ -1497,8 +1558,8 @@ defmodule Livebook.Session.DataTest do
 
       data =
         data_after_operations!([
-          {:client_join, client1_pid},
-          {:client_join, client2_pid},
+          {:client_join, client1_pid, User.new()},
+          {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
