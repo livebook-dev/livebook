@@ -1,5 +1,8 @@
-defmodule LivebookWeb.LiveHelpers do
+defmodule LivebookWeb.UserHelpers do
+  import Phoenix.LiveView
   import Phoenix.LiveView.Helpers
+
+  alias Livebook.Users.User
 
   @doc """
   Renders user avatar,
@@ -37,6 +40,22 @@ defmodule LivebookWeb.LiveHelpers do
     |> case do
       [initial] -> initial
       initials -> List.first(initials) <> List.last(initials)
+    end
+  end
+
+  @doc """
+  Builds `Livebook.Users.User` with the given user id.
+
+  Uses `user_data` from socket `connect_params` as initial
+  attributes if the socket is connected.
+  """
+  def build_current_user(current_user_id, socket) do
+    connect_params = get_connect_params(socket) || %{}
+    user_data = connect_params["user_data"] || %{}
+
+    case User.change(%{User.new() | id: current_user_id}, user_data) do
+      {:ok, user} -> user
+      {:error, _errors, user} -> user
     end
   end
 end

@@ -277,7 +277,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session_id, {user1.id, self()})
+          Session.register_client(session_id, self(), user1)
 
           receive do
             :stop -> :ok
@@ -301,18 +301,18 @@ defmodule LivebookWeb.SessionLiveTest do
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session_id, {user1.id, self()})
+          Session.register_client(session_id, self(), user1)
 
           receive do
             :stop -> :ok
           end
         end)
 
-      assert_receive {:operation, {:client_join, {_user_id, ^client_pid}}}
+      assert_receive {:operation, {:client_join, ^client_pid, _user}}
       assert render(view) =~ "Jake Peralta"
 
       send(client_pid, :stop)
-      assert_receive {:operation, {:client_leave, {_user_id, ^client_pid}}}
+      assert_receive {:operation, {:client_leave, ^client_pid}}
       refute render(view) =~ "Jake Peralta"
     end
 
@@ -322,7 +322,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session_id, {user1.id, self()})
+          Session.register_client(session_id, self(), user1)
 
           receive do
             :stop -> :ok
@@ -331,9 +331,12 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
 
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+
       assert render(view) =~ "Jake Peralta"
 
-      :ok = Users.save(%{user1 | name: "Raymond Holt"})
+      Users.broadcast_change(%{user1 | name: "Raymond Holt"})
+      assert_receive {:operation, {:update_user, _pid, _user}}
 
       refute render(view) =~ "Jake Peralta"
       assert render(view) =~ "Raymond Holt"
@@ -372,7 +375,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
   defp create_user_with_name(name) do
     {:ok, user} = User.new() |> User.change(%{"name" => name})
-    :ok = Users.save(user)
     user
   end
 end

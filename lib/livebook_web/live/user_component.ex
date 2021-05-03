@@ -1,7 +1,7 @@
 defmodule LivebookWeb.UserComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.LiveHelpers
+  import LivebookWeb.UserHelpers
 
   alias Livebook.Users.User
 
@@ -92,7 +92,7 @@ defmodule LivebookWeb.UserComponent do
 
   def handle_event("save", %{"data" => data}, socket) do
     {:ok, user} = User.change(socket.assigns.user, data)
-    Livebook.Users.save(user)
+    Livebook.Users.broadcast_change(user)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 end

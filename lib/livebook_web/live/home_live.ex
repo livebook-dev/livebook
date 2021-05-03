@@ -1,9 +1,9 @@
 defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.LiveHelpers
+  import LivebookWeb.UserHelpers
 
-  alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook, Users}
+  alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
   @impl true
   def mount(_params, %{"current_user_id" => current_user_id}, socket) do
@@ -12,7 +12,7 @@ defmodule LivebookWeb.HomeLive do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
-    current_user = Users.fetch!(current_user_id)
+    current_user = build_current_user(current_user_id, socket)
     session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
 
     {:ok,
@@ -27,7 +27,7 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
-      <div class="flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
+      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
         <div class="flex-grow"></div>
         <span class="tooltip right distant" aria-label="User profile">
           <%= live_patch to: Routes.home_path(@socket, :user),
@@ -208,7 +208,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_info(
-        {:user_saved, %{id: id} = user},
+        {:user_change, %{id: id} = user},
         %{assigns: %{current_user: %{id: id}}} = socket
       ) do
     {:noreply, assign(socket, :current_user, user)}

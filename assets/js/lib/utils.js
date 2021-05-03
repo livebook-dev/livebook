@@ -49,3 +49,17 @@ export function smoothlyScrollToElement(element) {
     element.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
+
+/**
+ * Transforms a UTF8 string into base64 encoding.
+ */
+export function encodeBase64(string) {
+  return btoa(unescape(encodeURIComponent(string)));
+}
+
+/**
+ * Transforms base64 encoding into UTF8 string.
+ */
+export function decodeBase64(binary) {
+  return decodeURIComponent(escape(atob(binary)));
+}

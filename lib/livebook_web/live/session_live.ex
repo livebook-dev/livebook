@@ -1,31 +1,25 @@
 defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.LiveHelpers
+  import LivebookWeb.UserHelpers
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, Users}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
     if SessionSupervisor.session_exists?(session_id) do
+      current_user = build_current_user(current_user_id, socket)
+
       data =
         if connected?(socket) do
-          data = Session.register_client(session_id, {current_user_id, self()})
+          data = Session.register_client(session_id, self(), current_user)
           Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+          Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
 
           data
         else
           Session.get_data(session_id)
         end
-
-      current_user = Users.fetch!(current_user_id)
-      users_map = clients_to_users_map(data.clients)
-
-      if connected?(socket) do
-        for {user_id, _user} <- users_map do
-          Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user_id}")
-        end
-      end
 
       session_pid = Session.get_pid(session_id)
 
@@ -38,7 +32,6 @@ defmodule LivebookWeb.SessionLive do
          session_id: session_id,
          session_pid: session_pid,
          current_user: current_user,
-         users_map: users_map,
          data_view: data_to_view(data)
        )
        |> assign_private(data: data)
@@ -76,7 +69,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
+      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
         <%= live_patch to: Routes.home_path(@socket, :page) do %>
           <img src="/logo.png" height="40" width="40" alt="livebook" />
         <% end %>
@@ -139,10 +132,10 @@ defmodule LivebookWeb.SessionLive do
               Users
             </h3>
             <h4 class="font text-gray-500 text-sm my-1">
-              <%= length(@data_view.user_ids) %> connected
+              <%= length(@data_view.users) %> connected
             </h4>
             <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
-              <%= for user <- get_users(@data_view.user_ids, @users_map) do %>
+              <%= for user <- @data_view.users do %>
                 <div class="flex space-x-2 items-center">
                   <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
                   <span class="text-gray-500">
@@ -270,12 +263,6 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
     """
-  end
-
-  defp get_users(user_ids, users_map) do
-    user_ids
-    |> Enum.map(&users_map[&1])
-    |> Enum.sort_by(& &1.name)
   end
 
   @impl true
@@ -555,24 +542,11 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "completion_response", payload)}
   end
 
-  def handle_info({:user_saved, user}, socket) do
-    %{current_user: current_user, users_map: users_map} = socket.assigns
-
-    socket =
-      if Map.has_key?(users_map, user.id) do
-        assign(socket, users_map: Map.put(users_map, user.id, user))
-      else
-        socket
-      end
-
-    socket =
-      if current_user.id == user.id do
-        assign(socket, current_user: user)
-      else
-        socket
-      end
-
-    {:noreply, socket}
+  def handle_info(
+        {:user_change, %{id: id} = user},
+        %{assigns: %{current_user: %{id: id}}} = socket
+      ) do
+    {:noreply, assign(socket, :current_user, user)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -630,28 +604,6 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:client_join, {user_id, _pid}}) do
-    if Map.has_key?(socket.assigns.users_map, user_id) do
-      socket
-    else
-      user = Users.fetch!(user_id)
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user_id}")
-      assign(socket, users_map: Map.put(socket.assigns.users_map, user_id, user))
-    end
-  end
-
-  defp after_operation(socket, _prev_socket, {:client_leave, {user_id, _pid}}) do
-    # Note tht the same user may be connected from multiple tabs
-    still_client? = Enum.any?(socket.private.data.clients, &match?({^user_id, _pid}, &1))
-
-    if still_client? do
-      socket
-    else
-      Phoenix.PubSub.unsubscribe(Livebook.PubSub, "users:#{user_id}")
-      assign(socket, users_map: Map.delete(socket.assigns.users_map, user_id))
-    end
-  end
-
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
@@ -692,14 +644,6 @@ defmodule LivebookWeb.SessionLive do
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)
 
-  defp clients_to_users_map(clients) do
-    clients
-    |> Enum.map(&elem(&1, 0))
-    |> Enum.uniq()
-    |> Users.list_by_ids()
-    |> Map.new(fn user -> {user.id, user} end)
-  end
-
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -716,7 +660,11 @@ defmodule LivebookWeb.SessionLive do
         for section <- data.notebook.sections do
           %{id: section.id, name: section.name}
         end,
-      user_ids: Enum.map(data.clients, &elem(&1, 0)),
+      users:
+        data.clients_map
+        |> Map.values()
+        |> Enum.map(&data.users_map[&1])
+        |> Enum.sort_by(& &1.name),
       section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
     }
   end

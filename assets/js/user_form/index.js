@@ -1,3 +1,5 @@
+import { storeUserData } from "../lib/user";
+
 /**
  * A hook for the user profile form.
  *
@@ -14,15 +16,5 @@ const UserForm = {
     });
   },
 };
-
-function storeUserData(userData) {
-  const value = JSON.stringify(userData);
-  setCookie("user_data", value, 157680000); // 5 years
-}
-
-function setCookie(key, value, maxAge) {
-  const cookie = `${key}=${value};max-age=${maxAge};path=/`;
-  document.cookie = cookie;
-}
 
 export default UserForm;

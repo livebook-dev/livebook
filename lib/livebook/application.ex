@@ -9,8 +9,6 @@ defmodule Livebook.Application do
     ensure_distribution!()
     set_cookie()
 
-    Livebook.Users.initialize_store()
-
     children = [
       # Start the Telemetry supervisor
       LivebookWeb.Telemetry,

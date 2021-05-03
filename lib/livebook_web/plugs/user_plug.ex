@@ -1,22 +1,22 @@
 defmodule LivebookWeb.UserPlug do
   @moduledoc false
 
-  # Ensures a valid user in the session.
+  # Initializes the session and cookies with user-related info.
   #
   # The first time someone visits Livebook
-  # this plug generates a user for them and stores
-  # the id in the session under `:current_user_id`.
+  # this plug stores a new random user id
+  # in the session under `:current_user_id`.
   #
-  # If the request cookies include `"user_data"` JSON,
-  # this data is used to initialize the new user.
-  # This cookie serves as a decentralized backup of user attributes,
-  # because Livebook doesn't use persistent storage.
+  # Additionally the cookies are checked for the presence
+  # of `"user_data"` and if there is none, a new user
+  # attributes are stored there. This makes sure
+  # the client-side can always access some `"user_data"`
+  # for `connect_params` of the socket connection.
 
   @behaviour Plug
 
   import Plug.Conn
 
-  alias Livebook.Users
   alias Livebook.Users.User
 
   @impl true
@@ -24,31 +24,35 @@ defmodule LivebookWeb.UserPlug do
 
   @impl true
   def call(conn, _opts) do
-    with user_id when user_id != nil <- get_session(conn, :current_user_id),
-         true <- Users.exists?(user_id) do
+    conn
+    |> ensure_current_user_id()
+    |> ensure_user_data()
+  end
+
+  defp ensure_current_user_id(conn) do
+    if get_session(conn, :current_user_id) do
       conn
     else
-      _ ->
-        user =
-          User.new()
-          |> User.change(get_user_attrs(conn))
-          |> case do
-            {:ok, user} -> user
-            {:error, _errors, user} -> user
-          end
-
-        :ok = Users.save(user)
-        put_session(conn, :current_user_id, user.id)
+      user_id = Livebook.Utils.random_id()
+      put_session(conn, :current_user_id, user_id)
     end
   end
 
-  defp get_user_attrs(conn) do
-    case Map.fetch(conn.req_cookies, "user_data") do
-      {:ok, user_data} ->
-        Jason.decode!(user_data)
-
-      :error ->
-        %{}
+  defp ensure_user_data(conn) do
+    if Map.has_key?(conn.req_cookies, "user_data") do
+      conn
+    else
+      user_data = user_data(User.new())
+      encoded = user_data |> Jason.encode!() |> Base.encode64()
+      # Set `http_only` to `false`, so that it can be accessed on the client
+      # Set expiration in 5 years
+      put_resp_cookie(conn, "user_data", encoded, http_only: false, max_age: 157_680_000)
     end
+  end
+
+  defp user_data(user) do
+    user
+    |> Map.from_struct()
+    |> Map.delete(:id)
   end
 end

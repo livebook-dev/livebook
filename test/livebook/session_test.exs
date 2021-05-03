@@ -372,6 +372,18 @@ defmodule Livebook.SessionTest do
     assert_receive {:info, "runtime node terminated unexpectedly"}
   end
 
+  test "on user change sends an update operation subscribers", %{session_id: session_id} do
+    user = Livebook.Users.User.new()
+    Session.register_client(session_id, self(), user)
+
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+
+    updated_user = %{user | name: "Jake Peralta"}
+    Livebook.Users.broadcast_change(updated_user)
+
+    assert_receive {:operation, {:update_user, _pid, ^updated_user}}
+  end
+
   defp start_session(opts \\ []) do
     session_id = Utils.random_id()
     {:ok, _} = Session.start_link(Keyword.merge(opts, id: session_id))

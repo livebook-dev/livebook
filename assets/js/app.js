@@ -20,6 +20,7 @@ import VirtualizedLines from "./virtualized_lines";
 import Menu from "./menu";
 import UserForm from "./user_form";
 import morphdomCallbacks from "./morphdom_callbacks";
+import { loadUserData } from "./lib/user";
 
 const hooks = {
   ContentEditable,
@@ -37,7 +38,13 @@ const csrfToken = document
   .getAttribute("content");
 
 const liveSocket = new LiveSocket("/live", Socket, {
-  params: { _csrf_token: csrfToken },
+  params: (liveViewName) => {
+    return {
+      _csrf_token: csrfToken,
+      // Pass the most recent user data to the LiveView in `connect_params`
+      user_data: loadUserData(),
+    };
+  },
   hooks: hooks,
   dom: morphdomCallbacks,
 });
