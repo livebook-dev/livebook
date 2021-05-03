@@ -14,7 +14,7 @@ defmodule LivebookWeb.UserComponent do
   end
 
   defp user_to_data(user) do
-    %{"name" => user.name || "", "color" => user.color}
+    %{"name" => user.name || "", "hex_color" => user.hex_color}
   end
 
   @impl true
@@ -42,13 +42,13 @@ defmodule LivebookWeb.UserComponent do
             <div class="input-label">Cursor color</div>
             <div class="flex space-x-4 items-center">
               <div class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                style="border-color: <%= @preview_user.color %>">
+                style="border-color: <%= @preview_user.hex_color %>">
                 <div class="rounded h-5 w-5"
-                  style="background-color: <%= @preview_user.color %>">
+                  style="background-color: <%= @preview_user.hex_color %>">
                 </div>
               </div>
               <div class="relative flex-grow">
-                <%= text_input f, :color, value: @data["color"], class: "input", spellcheck: "false", maxlength: 7 %>
+                <%= text_input f, :hex_color, value: @data["hex_color"], class: "input", spellcheck: "false", maxlength: 7 %>
                 <%= tag :button, class: "icon-button absolute right-2 top-1",
                       type: "button",
                       phx_click: "randomize_color",
@@ -74,7 +74,7 @@ defmodule LivebookWeb.UserComponent do
   def handle_event("randomize_color", %{}, socket) do
     data = %{
       socket.assigns.data
-      | "color" => User.random_color(except: [socket.assigns.preview_user.color])
+      | "hex_color" => User.random_hex_color(except: [socket.assigns.preview_user.hex_color])
     }
 
     handle_event("validate", %{"data" => data}, socket)

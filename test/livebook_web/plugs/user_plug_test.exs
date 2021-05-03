@@ -36,7 +36,7 @@ defmodule LivebookWeb.UserPlugTest do
   end
 
   test "keeps user_data cookie if present" do
-    cookie_value = ~s/{"name":"Jake Peralta","color":"#000000"}/
+    cookie_value = ~s/{"name":"Jake Peralta","hex_color":"#000000"}/
 
     conn =
       conn(:get, "/")

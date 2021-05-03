@@ -9,18 +9,18 @@ defmodule Livebook.Users.User do
   # can provide data like name and cursor color
   # to improve visibility during collaboration.
 
-  defstruct [:id, :name, :color]
+  defstruct [:id, :name, :hex_color]
 
   alias Livebook.Utils
 
   @type t :: %__MODULE__{
           id: id(),
           name: String.t() | nil,
-          color: color()
+          hex_color: hex_color()
         }
 
   @type id :: Utils.id()
-  @type color :: String.t()
+  @type hex_color :: String.t()
 
   @doc """
   Generates a new user.
@@ -30,7 +30,7 @@ defmodule Livebook.Users.User do
     %__MODULE__{
       id: Utils.random_id(),
       name: nil,
-      color: random_color()
+      hex_color: random_hex_color()
     }
   end
 
@@ -45,7 +45,7 @@ defmodule Livebook.Users.User do
   def change(user, attrs \\ %{}) do
     {user, []}
     |> change_name(attrs)
-    |> change_color(attrs)
+    |> change_hex_color(attrs)
     |> case do
       {user, []} -> {:ok, user}
       {user, errors} -> {:error, errors, user}
@@ -62,17 +62,17 @@ defmodule Livebook.Users.User do
 
   defp change_name({user, errors}, _attrs), do: {user, errors}
 
-  defp change_color({user, errors}, %{"color" => color}) do
-    if color_valid?(color) do
-      {%{user | color: color}, errors}
+  defp change_hex_color({user, errors}, %{"hex_color" => hex_color}) do
+    if hex_color_valid?(hex_color) do
+      {%{user | hex_color: hex_color}, errors}
     else
-      {user, [{:color, "not a valid color"} | errors]}
+      {user, [{:hex_color, "not a valid color"} | errors]}
     end
   end
 
-  defp change_color({user, errors}, _attrs), do: {user, errors}
+  defp change_hex_color({user, errors}, _attrs), do: {user, errors}
 
-  defp color_valid?(color), do: color =~ ~r/^#[0-9a-fA-F]{6}$/
+  defp hex_color_valid?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
 
   @doc """
   Returns a random hex color for a user.
@@ -81,7 +81,7 @@ defmodule Livebook.Users.User do
 
     * `:except` - a list of colors to omit
   """
-  def random_color(opts \\ []) do
+  def random_hex_color(opts \\ []) do
     colors = [
       # red
       "#F87171",

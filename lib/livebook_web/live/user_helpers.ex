@@ -16,13 +16,13 @@ defmodule LivebookWeb.UserHelpers do
   def render_user_avatar(user, opts \\ []) do
     assigns = %{
       name: user.name,
-      color: user.color,
+      hex_color: user.hex_color,
       class: Keyword.get(opts, :class, "w-full h-full"),
       text_class: Keyword.get(opts, :text_class)
     }
 
     ~L"""
-    <div class="rounded-full <%= @class %> flex items-center justify-center" style="background-color: <%= @color %>">
+    <div class="rounded-full <%= @class %> flex items-center justify-center" style="background-color: <%= @hex_color %>">
       <div class="<%= @text_class %> text-gray-100 font-semibold">
         <%= avatar_text(@name) %>
       </div>
