@@ -102,7 +102,7 @@ class LiveEditor {
       occurrencesHighlight: false,
       renderLineHighlight: "none",
       theme: "custom",
-      fontFamily: "JetBrains Mono",
+      fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       tabIndex: -1,
       quickSuggestions: false,
       tabCompletion: "on",
