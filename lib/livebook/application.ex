@@ -19,7 +19,9 @@ defmodule Livebook.Application do
       # Start the server responsible for associating files with sessions
       Livebook.Session.FileGuard,
       # Start the Endpoint (http/https)
-      LivebookWeb.Endpoint
+      LivebookWeb.Endpoint,
+      # Start the Node Pool for managing node names
+      Livebook.Runtime.NodePool
     ]
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]

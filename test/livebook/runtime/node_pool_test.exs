@@ -13,109 +13,81 @@ defmodule Livebook.Runtime.NodePoolTest do
   #    a node down, so that the buffer period is spent,
   #    and the node is added to pool.
 
-  describe "start" do
-    test "/0 correctly starts a registered GenServer" do
-      NodePool.start()
+  describe "start_link" do
+    test "correctly starts a registered GenServer" do
+      start_supervised!({NodePool, name: Foo})
 
       # Verify Process is running
-      assert Process.whereis(NodePool)
-
-      GenServer.stop(NodePool)
-    end
-
-    test "/1 correctly starts a registered GenServer with correct buffer time" do
-      NodePool.start(1)
-
-      # Verify Process is running
-      assert Process.whereis(NodePool)
-
-      # Verify buffer time
-      state = :sys.get_state(NodePool)
-      assert state.buffer_time == 1
-
-      GenServer.stop(NodePool)
+      assert Process.whereis(Foo)
     end
   end
 
-  describe "get_name/1" do
+  describe "get_name/2" do
     test "creates a new node name if pool is empty" do
-      NodePool.start()
-
-      # Verify pool is empty
-      assert empty?()
+      start_supervised!({NodePool, name: Bar})
 
       # Assert that we get a result and that it is an atom
-      result = NodePool.get_name(node())
+      result = NodePool.get_name(node(), Bar)
       assert result
       assert is_atom(result)
-      GenServer.stop(NodePool)
+    end
+
+    test "adds a new node name to given pool when generated" do
+      start_supervised!({NodePool, name: Baz})
+
+      result = NodePool.get_name(node(), Baz)
+
+      assert given_contains?(Baz, result)
     end
 
     test "returns an existing name if pool is not empty" do
-      NodePool.start(1)
-
-      # Mock a node down
-      send(NodePool, {:nodedown, :foobar})
-      Process.sleep(5)
-
-      assert contains?(:foobar)
-
-      assert NodePool.get_name(node()) == :foobar
-      GenServer.stop(NodePool)
+      start_supervised!({NodePool, name: Quux, given_pool: [:foobar], own_pool: [:foobar]})
+      assert NodePool.get_name(node(), Quux) == :foobar
     end
-  end
 
-  test "On nodeup removes pooled name accordingly" do
-    NodePool.start(1)
+    test "removes an existing name when used" do
+      start_supervised!({NodePool, name: Qux, given_pool: [:foobar], own_pool: [:foobar]})
 
-    # Mock a node down and up
-    send(NodePool, {:nodedown, :foobar})
-    Process.sleep(5)
-    send(NodePool, {:nodeup, :foobar})
-
-    # Assert that atom `:foobar` is not in pool
-    assert not contains?(:foobar)
-
-    GenServer.stop(NodePool)
+      NodePool.get_name(node(), Qux)
+      assert own_empty?(Qux)
+    end
   end
 
   describe "On nodedown" do
-    test "adds node name to pool" do
-      NodePool.start(1)
+    test "adds node name to pool if in given" do
+      start_supervised!({NodePool, name: Quux, given_pool: [:janfu], buffer_time: 1})
 
       # Mock a nodedown
-      send(NodePool, {:nodedown, :janfu})
+      send(Quux, {:add_node, :janfu})
       Process.sleep(5)
 
       # Verify that atom `:janfu` is in pool
-      assert contains?(:janfu)
-
-      GenServer.stop(NodePool)
+      assert own_contains?(Quux, :janfu)
     end
 
-    test "adds node name to pool only after given buffer time" do
-      # Start pool with buffer as 0.1 seconds
-      NodePool.start(100)
+    test "does not add node name to pool if not in given" do
+      start_supervised!({NodePool, name: Waldo, buffer_time: 1})
 
-      # Spawn node and assert still empty
-      send(NodePool, {:nodedown, :snafu})
-      assert empty?()
+      # Mock a nodedown
+      send(Waldo, {:add_node, :some_foo})
+      Process.sleep(5)
 
-      # Wait and check again
-      Process.sleep(100)
-      assert contains?(:snafu)
-
-      GenServer.stop(NodePool)
+      assert not own_contains?(Waldo, :some_foo)
     end
   end
 
-  defp empty? do
-    state = :sys.get_state(NodePool)
-    Enum.empty?(state.pool)
+  defp own_empty?(name) do
+    state = :sys.get_state(Process.whereis(name))
+    Enum.empty?(state.own_pool)
   end
 
-  defp contains?(atom) do
-    state = :sys.get_state(NodePool)
-    Enum.member?(state.pool, atom)
+  defp own_contains?(name, atom) do
+    state = :sys.get_state(Process.whereis(name))
+    Enum.member?(state.own_pool, atom)
+  end
+
+  defp given_contains?(name, atom) do
+    state = :sys.get_state(Process.whereis(name))
+    Enum.member?(state.given_pool, atom)
   end
 end

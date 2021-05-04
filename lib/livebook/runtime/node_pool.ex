@@ -1,61 +1,69 @@
 defmodule Livebook.Runtime.NodePool do
-  use GenServer, async: false
+  use GenServer
+
+  @moduledoc false
 
   # A pool for reusing child node names.
   #
-  # `pool` refers to the list of unused names
+  # `own_pool` refers to the list of unused names.
+  # `given_pool` refers to the list of names ever generated.
   #
   # `buffer_time` refers to time the pool waits before
   # adding a name to `pool`,  which by default is 1 minute.
 
-  @default_time 6_000
+  @default_time 60_000
 
   # Client interface
 
   @doc """
-  Starts the node pool with the buffer time as 1 minute.
+  Starts the GenServer from a Supervision tree
   """
-  def start do
-    GenServer.start(__MODULE__, @default_time, name: __MODULE__)
-  end
+  def start_link(opts) do
+    # Note that the following options are for testing only.
+    name = opts[:name] || __MODULE__
+    buffer_time = opts[:buffer_time] || @default_time
+    given_pool = opts[:given_pool] || []
+    own_pool = opts[:own_pool] || []
 
-  @doc """
-  Starts the node pool with the buffer time as input.
-  """
-  def start(buffer_time) do
-    GenServer.start(__MODULE__, buffer_time, name: __MODULE__)
+    GenServer.start_link(
+      __MODULE__,
+      %{buffer_time: buffer_time, given_pool: given_pool, own_pool: own_pool},
+      name: name
+    )
   end
 
   @doc """
   Retuns a node name.
 
-  Generates a new one if node is empty, or takes on from pool.
+  Generates a new name if pool is empty, or takes one from pool.
   """
-  def get_name(parent) do
-    GenServer.call(__MODULE__, {:get_name, parent})
+  def get_name(basename, server \\ __MODULE__) do
+    GenServer.call(server, {:get_name, basename})
   end
 
   # Server side code
 
   @impl GenServer
-  def init(buffer_time) do
-    :net_kernel.monitor_nodes(true)
-    {:ok, %{pool: [], buffer_time: buffer_time}}
+  def init(args) do
+    :net_kernel.monitor_nodes(true, [{:node_type, :all}])
+    {:ok, args}
   end
 
   @impl GenServer
-  def handle_call({:get_name, parent}, _, state) do
-    {:reply, name(state, parent), state}
+  def handle_call({:get_name, basename}, _, state) do
+    {name, new_state} = name(state, basename)
+    {:reply, name, new_state}
   end
 
   @impl GenServer
-  def handle_info({:nodeup, node}, state) do
-    {:noreply, remove_node(state, node)}
+  def handle_info({:nodedown, node, _info}, state) do
+    {:ok, _} = :timer.send_after(state.buffer_time, __MODULE__, {:add_node, node})
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:nodedown, node}, state) do
-    {:ok, _TRef} = :timer.send_after(state.buffer_time, __MODULE__, {:add_node, node})
+  def handle_info({:nodeup, _node, _info}, state) do
+    # We don't want our mailbox full of node up messages
     {:noreply, state}
   end
 
@@ -66,19 +74,29 @@ defmodule Livebook.Runtime.NodePool do
 
   # Helper functions
 
-  defp name(state, parent) do
-    if Enum.empty?(state.pool) do
-      :"#{Livebook.Utils.random_short_id()}-#{parent}"
+  defp name(state, basename) do
+    if Enum.empty?(state.own_pool) do
+      generate_name(state, basename)
     else
-      hd(state.pool)
+      get_existing_name(state)
     end
   end
 
-  defp remove_node(state, node) do
-    %{state | pool: List.delete(state.pool, node)}
+  defp generate_name(state, basename) do
+    new_name = :"#{Livebook.Utils.random_short_id()}-#{basename}"
+    {new_name, %{state | given_pool: [new_name | state.given_pool]}}
+  end
+
+  defp get_existing_name(state) do
+    {name, own_pool} = List.pop_at(state.own_pool, 0)
+    {name, %{state | own_pool: own_pool}}
   end
 
   defp add_node(state, node) do
-    %{state | pool: [node | state.pool]}
+    if Enum.member?(state.given_pool, node) do
+      %{state | own_pool: [node | state.own_pool]}
+    else
+      state
+    end
   end
 end

@@ -13,12 +13,7 @@ defmodule Livebook.Runtime.StandaloneInit do
   """
   @spec child_node_name(atom()) :: atom()
   def child_node_name(parent) do
-    if Process.whereis(NodePool) do
-      NodePool.get_name(parent)
-    else
-      NodePool.start()
-      NodePool.get_name(parent)
-    end
+    NodePool.get_name(parent)
   end
 
   @doc """
