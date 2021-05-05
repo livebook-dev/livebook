@@ -47,10 +47,8 @@ defmodule Livebook.Runtime.NodePool do
 
   @impl GenServer
   def init(opts) do
-    :net_kernel.monitor_nodes(true, [{:node_type, :all}])
-
-    {:ok,
-     %{buffer_time: opts.buffer_time, generated_names: MapSet.new(), free_names: MapSet.new()}}
+    :net_kernel.monitor_nodes(true, node_type: :all)
+    {:ok, %{buffer_time: opts.buffer_time, generated_names: MapSet.new(), free_names: []}}
   end
 
   @impl GenServer
@@ -67,7 +65,6 @@ defmodule Livebook.Runtime.NodePool do
 
   @impl GenServer
   def handle_info({:nodeup, _node, _info}, state) do
-    # We don't want our mailbox full of node up messages
     {:noreply, state}
   end
 
@@ -93,14 +90,13 @@ defmodule Livebook.Runtime.NodePool do
   end
 
   defp get_existing_name(state) do
-    name = Enum.at(state.free_names, 0)
-    free_names = MapSet.delete(state.free_names, name)
+    {name, free_names} = List.pop_at(state.free_names, 0)
     {name, %{state | free_names: free_names}}
   end
 
   defp add_node(state, node) do
     if MapSet.member?(state.generated_names, node) do
-      free_names = MapSet.put(state.free_names, node)
+      free_names = [node | state.free_names]
       %{state | free_names: free_names}
     else
       state

@@ -28,7 +28,7 @@ defmodule Livebook.Runtime.NodePoolTest do
       assert is_atom(result)
     end
 
-    test "adds a new node name to given pool when generated" do
+    test "adds a new node name to generated names when generated" do
       start_supervised!({NodePool, name: Baz})
 
       result = NodePool.get_name(Baz, node())
