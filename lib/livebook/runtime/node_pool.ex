@@ -59,7 +59,7 @@ defmodule Livebook.Runtime.NodePool do
 
   @impl GenServer
   def handle_info({:nodedown, node, _info}, state) do
-    {:ok, _} = :timer.send_after(state.buffer_time, __MODULE__, {:add_node, node})
+    _ = Process.send_after(self(), {:add_node, node}, state.buffer_time)
     {:noreply, state}
   end
 

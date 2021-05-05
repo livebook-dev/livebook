@@ -6,8 +6,12 @@ defmodule Livebook.Runtime.NodePoolTest do
   # Tests for Livebook.Runtime.NodePool
   #
   # Note:
-  #   We do not spawn actual nodes as it can be time
-  #   intensive (on low spec machines)
+  # 1. We do not spawn actual nodes as it can be time
+  #    intensive (on low spec machines)
+  #
+  # 2. We wait a certain period of time after we mock
+  #    a node down, so that the buffer period is spent,
+  #    and the node is added to pool.
 
   describe "start_link" do
     test "correctly starts a registered GenServer" do
@@ -29,63 +33,63 @@ defmodule Livebook.Runtime.NodePoolTest do
     end
 
     test "adds a new node name to generated names when generated" do
-      start_supervised!({NodePool, name: Baz})
+      start_supervised!({NodePool, name: Baz, buffer_time: 1})
 
       result = NodePool.get_name(Baz, node())
 
-      assert generated_contains?(Baz, result)
+      # Mock node down
+      send(Baz, {:nodedown, result, {}})
+      Process.sleep(2)
+
+      # Check if node name is added calling get_name/2 again
+      assert NodePool.get_name(Baz, node()) == result
     end
 
     test "returns an existing name if pool is not empty" do
-      start_supervised!({NodePool, name: Fu})
+      start_supervised!({NodePool, name: Fu, buffer_time: 1})
 
       name = NodePool.get_name(Fu, node())
-      send(Fu, {:add_node, name})
+      send(Fu, {:nodedown, name, {}})
+      Process.sleep(2)
 
       assert NodePool.get_name(Fu, node()) == name
     end
 
     test "removes an existing name when used" do
-      start_supervised!({NodePool, name: Qux})
+      start_supervised!({NodePool, name: Qux, buffer_time: 1})
 
       name = NodePool.get_name(Qux, node())
-      send(Qux, {:add_node, name})
+      send(Qux, {:nodedown, name, {}})
+      Process.sleep(2)
 
-      NodePool.get_name(Qux, node())
-      assert not free_contains?(Qux, name)
+      name = NodePool.get_name(Qux, node())
+      assert NodePool.get_name(Qux, node()) != name
     end
   end
 
   describe "On nodedown" do
     test "adds node name to pool" do
-      start_supervised!({NodePool, name: Quux})
+      start_supervised!({NodePool, name: Quux, buffer_time: 1})
 
       name = NodePool.get_name(Quux, node())
 
       # Mock a nodedown
-      send(Quux, {:add_node, name})
+      send(Quux, {:nodedown, name, {}})
+      Process.sleep(2)
 
-      # Verify that name is in pool
-      assert free_contains?(Quux, name)
+      # Verify that name is in pool, by calling get_name/2
+      assert NodePool.get_name(Quux, node()) == name
     end
 
     test "does not add node name to pool if not in generated_names" do
       start_supervised!({NodePool, name: Waldo})
 
       # Mock a nodedown
-      send(Waldo, {:add_node, :some_foo})
+      send(Waldo, {:nodedown, :some_foo, {}})
+      Process.sleep(2)
 
-      assert not free_contains?(Waldo, :some_foo)
+      # Verify that name is not in pool, by calling get_name/2
+      assert NodePool.get_name(Waldo, node()) != :some_foo
     end
-  end
-
-  defp free_contains?(name, atom) do
-    state = :sys.get_state(Process.whereis(name))
-    Enum.member?(state.free_names, atom)
-  end
-
-  defp generated_contains?(name, atom) do
-    state = :sys.get_state(Process.whereis(name))
-    Enum.member?(state.generated_names, atom)
   end
 end
