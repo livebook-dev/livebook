@@ -32,19 +32,6 @@ defmodule Livebook.Runtime.NodePoolTest do
       assert is_atom(result)
     end
 
-    test "adds a new node name to generated names when generated" do
-      start_supervised!({NodePool, name: Baz, buffer_time: 1})
-
-      result = NodePool.get_name(Baz, node())
-
-      # Mock node down
-      send(Baz, {:nodedown, result, {}})
-      Process.sleep(2)
-
-      # Check if node name is added calling get_name/2 again
-      assert NodePool.get_name(Baz, node()) == result
-    end
-
     test "returns an existing name if pool is not empty" do
       start_supervised!({NodePool, name: Fu, buffer_time: 1})
 
@@ -68,19 +55,6 @@ defmodule Livebook.Runtime.NodePoolTest do
   end
 
   describe "On nodedown" do
-    test "adds node name to pool" do
-      start_supervised!({NodePool, name: Quux, buffer_time: 1})
-
-      name = NodePool.get_name(Quux, node())
-
-      # Mock a nodedown
-      send(Quux, {:nodedown, name, {}})
-      Process.sleep(2)
-
-      # Verify that name is in pool, by calling get_name/2
-      assert NodePool.get_name(Quux, node()) == name
-    end
-
     test "does not add node name to pool if not in generated_names" do
       start_supervised!({NodePool, name: Waldo})
 
