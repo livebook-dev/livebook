@@ -5,8 +5,8 @@ defmodule Livebook.Runtime.NodePool do
 
   # A pool for reusing child node names.
   #
-  # `own_pool` refers to the list of unused names.
-  # `given_pool` refers to the list of names ever generated.
+  # `free_name` refers to the list of unused names.
+  # `generated_names` refers to the list of names ever generated.
   #
   # `buffer_time` refers to time the pool waits before
   # adding a name to `pool`,  which by default is 1 minute.
@@ -17,17 +17,19 @@ defmodule Livebook.Runtime.NodePool do
 
   @doc """
   Starts the GenServer from a Supervision tree
+
+  ## Options
+
+    - `:name` - The name the NodePool is locally registered as. By default, it is `Livebook.Runtime.NodePool`
+    - `:buffer_time` - The time that is spent before a disconnected node's name is  added to pool. The default is 1 minute.
   """
   def start_link(opts) do
-    # Note that the following options are for testing only.
     name = opts[:name] || __MODULE__
     buffer_time = opts[:buffer_time] || @default_time
-    given_pool = opts[:given_pool] || []
-    own_pool = opts[:own_pool] || []
 
     GenServer.start_link(
       __MODULE__,
-      %{buffer_time: buffer_time, given_pool: given_pool, own_pool: own_pool},
+      %{buffer_time: buffer_time},
       name: name
     )
   end
@@ -37,16 +39,18 @@ defmodule Livebook.Runtime.NodePool do
 
   Generates a new name if pool is empty, or takes one from pool.
   """
-  def get_name(basename, server \\ __MODULE__) do
+  def get_name(server \\ __MODULE__, basename) do
     GenServer.call(server, {:get_name, basename})
   end
 
   # Server side code
 
   @impl GenServer
-  def init(args) do
+  def init(opts) do
     :net_kernel.monitor_nodes(true, [{:node_type, :all}])
-    {:ok, args}
+
+    {:ok,
+     %{buffer_time: opts.buffer_time, generated_names: MapSet.new(), free_names: MapSet.new()}}
   end
 
   @impl GenServer
@@ -75,7 +79,7 @@ defmodule Livebook.Runtime.NodePool do
   # Helper functions
 
   defp name(state, basename) do
-    if Enum.empty?(state.own_pool) do
+    if Enum.empty?(state.free_names) do
       generate_name(state, basename)
     else
       get_existing_name(state)
@@ -84,17 +88,20 @@ defmodule Livebook.Runtime.NodePool do
 
   defp generate_name(state, basename) do
     new_name = :"#{Livebook.Utils.random_short_id()}-#{basename}"
-    {new_name, %{state | given_pool: [new_name | state.given_pool]}}
+    generated_names = MapSet.put(state.generated_names, new_name)
+    {new_name, %{state | generated_names: generated_names}}
   end
 
   defp get_existing_name(state) do
-    {name, own_pool} = List.pop_at(state.own_pool, 0)
-    {name, %{state | own_pool: own_pool}}
+    name = Enum.at(state.free_names, 0)
+    free_names = MapSet.delete(state.free_names, name)
+    {name, %{state | free_names: free_names}}
   end
 
   defp add_node(state, node) do
-    if Enum.member?(state.given_pool, node) do
-      %{state | own_pool: [node | state.own_pool]}
+    if MapSet.member?(state.generated_names, node) do
+      free_names = MapSet.put(state.free_names, node)
+      %{state | free_names: free_names}
     else
       state
     end
