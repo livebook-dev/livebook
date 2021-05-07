@@ -90,7 +90,7 @@ defmodule Livebook.Runtime.NodePool do
   end
 
   defp get_existing_name(state) do
-    {name, free_names} = List.pop_at(state.free_names, 0)
+    [name | free_names] = state.free_names
     {name, %{state | free_names: free_names}}
   end
 
