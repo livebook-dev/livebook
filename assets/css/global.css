@@ -8,26 +8,3 @@ body {
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
-
-/* nprogress overrides (https://github.com/rstacruz/nprogress#customization) */
-
-#nprogress .bar {
-  background: #3e64ff !important;
-}
-
-#nprogress .peg {
-  box-shadow: 0 0 10px #3e64ff, 0 0 5px #3e64ff;
-}
-
-#nprogress .spinner-icon {
-  border-top-color: #3e64ff;
-  border-left-color: #3e64ff;
-}
-
-/* Monaco overrides */
-
-/* Add some spacing to code snippets in completion suggestions */
-div.suggest-details-container div.monaco-tokenized-source {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-}

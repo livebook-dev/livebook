@@ -4,6 +4,7 @@ import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
+import monaco from "./live_editor/monaco";
 
 /**
  * A hook managing a single cell.
@@ -65,6 +66,8 @@ const Cell = {
         // If the element is being scrolled to, focus interrupts it,
         // so ensure the scrolling continues.
         smoothlyScrollToElement(this.el);
+
+        broadcastSelection(this);
       }
 
       this.state.liveEditor.onBlur(() => {
@@ -75,17 +78,25 @@ const Cell = {
           this.state.liveEditor.focus();
         }
       });
+
+      this.state.liveEditor.onCursorSelectionChange((selection) => {
+        broadcastSelection(this, selection);
+      });
     });
 
-    this.handleSessionEvent = (event) => handleSessionEvent(this, event);
-    globalPubSub.subscribe("session", this.handleSessionEvent);
+    this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
+      "cells",
+      (event) => {
+        handleCellsEvent(this, event);
+      }
+    );
   },
 
   destroyed() {
-    globalPubSub.unsubscribe("session", this.handleSessionEvent);
+    this._unsubscribeFromCellsEvents();
 
     if (this.state.liveEditor) {
-      this.state.liveEditor.destroy();
+      this.state.liveEditor.dispose();
     }
   },
 
@@ -103,9 +114,9 @@ function getProps(hook) {
 }
 
 /**
- * Handles client-side session event.
+ * Handles client-side cells event.
  */
-function handleSessionEvent(hook, event) {
+function handleCellsEvent(hook, event) {
   if (event.type === "cell_focused") {
     handleCellFocused(hook, event.cellId);
   } else if (event.type === "insert_mode_changed") {
@@ -114,6 +125,8 @@ function handleSessionEvent(hook, event) {
     handleCellMoved(hook, event.cellId);
   } else if (event.type === "cell_upload") {
     handleCellUpload(hook, event.cellId, event.url);
+  } else if (event.type === "location_report") {
+    handleLocationReport(hook, event.client, event.report);
   }
 }
 
@@ -147,6 +160,8 @@ function handleInsertModeChanged(hook, insertMode) {
             block: "center",
           });
         }, 0);
+
+        broadcastSelection(hook);
       } else {
         hook.state.liveEditor.blur();
       }
@@ -164,6 +179,27 @@ function handleCellUpload(hook, cellId, url) {
   if (hook.props.cellId === cellId) {
     const markdown = `![](${url})`;
     hook.state.liveEditor.insert(markdown);
+  }
+}
+
+function handleLocationReport(hook, client, report) {
+  if (hook.props.cellId === report.cellId && report.selection) {
+    hook.state.liveEditor.updateUserSelection(client, report.selection);
+  } else {
+    hook.state.liveEditor.removeUserSelection(client);
+  }
+}
+
+function broadcastSelection(hook, selection = null) {
+  selection = selection || hook.state.liveEditor.editor.getSelection();
+
+  // Report new selection only if this cell is in insert mode
+  if (hook.state.isFocused && hook.state.insertMode) {
+    globalPubSub.broadcast("session", {
+      type: "cursor_selection_changed",
+      cellId: hook.props.cellId,
+      selection,
+    });
   }
 }
 

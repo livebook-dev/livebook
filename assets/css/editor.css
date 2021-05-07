@@ -1,0 +1,54 @@
+/* Monaco overrides */
+
+/* Add some spacing to code snippets in completion suggestions */
+div.suggest-details-container div.monaco-tokenized-source {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Monaco cursor widget */
+
+.monaco-cursor-widget-container {
+  pointer-events: none;
+  z-index: 100;
+}
+
+.monaco-cursor-widget-container .monaco-cursor-widget-cursor {
+  pointer-events: initial;
+  width: 2px;
+}
+
+.monaco-cursor-widget-container .monaco-cursor-widget-label {
+  pointer-events: initial;
+  transform: translateY(-200%);
+  white-space: nowrap;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: #f8fafc;
+
+  visibility: hidden;
+  transition-property: visibility;
+  transition-duration: 0s;
+  transition-delay: 1.5s;
+}
+
+.monaco-cursor-widget-container .monaco-cursor-widget-label:hover {
+  visibility: visible;
+}
+
+.monaco-cursor-widget-container
+  .monaco-cursor-widget-cursor:hover
+  + .monaco-cursor-widget-label {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* When in the first line, we want to display cursor and label in the same line */
+.monaco-cursor-widget-container.inline {
+  display: flex;
+}
+
+.monaco-cursor-widget-container.inline .monaco-cursor-widget-label {
+  margin-left: 2px;
+  transform: none;
+}

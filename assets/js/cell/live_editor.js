@@ -2,6 +2,7 @@ import monaco from "./live_editor/monaco";
 import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
+import RemoteUser from "./live_editor/remote_user";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -15,6 +16,8 @@ class LiveEditor {
     this.source = source;
     this._onChange = null;
     this._onBlur = null;
+    this._onCursorSelectionChange = null;
+    this._remoteUserByClientPid = {};
 
     this.__mountEditor();
 
@@ -38,6 +41,11 @@ class LiveEditor {
     this.editor.onDidBlurEditorWidget(() => {
       this._onBlur && this._onBlur();
     });
+
+    this.editor.onDidChangeCursorSelection((event) => {
+      this._onCursorSelectionChange &&
+        this._onCursorSelectionChange(event.selection);
+    });
   }
 
   /**
@@ -45,6 +53,13 @@ class LiveEditor {
    */
   onChange(callback) {
     this._onChange = callback;
+  }
+
+  /**
+   * Registers a callback called with a new cursor selection whenever it changes.
+   */
+  onCursorSelectionChange(callback) {
+    this._onCursorSelectionChange = callback;
   }
 
   /**
@@ -74,7 +89,7 @@ class LiveEditor {
   /**
    * Performs necessary cleanup actions.
    */
-  destroy() {
+  dispose() {
     // Explicitly destroy the editor instance and its text model.
     this.editor.dispose();
 
@@ -82,6 +97,32 @@ class LiveEditor {
 
     if (model) {
       model.dispose();
+    }
+  }
+
+  /**
+   * Either adds or moves remote user cursor to the new position.
+   */
+  updateUserSelection(client, selection) {
+    if (this._remoteUserByClientPid[client.pid]) {
+      this._remoteUserByClientPid[client.pid].update(selection);
+    } else {
+      this._remoteUserByClientPid[client.pid] = new RemoteUser(
+        this.editor,
+        selection,
+        client.hex_color,
+        client.name
+      );
+    }
+  }
+
+  /**
+   * Removes remote user cursor.
+   */
+  removeUserSelection(client) {
+    if (this._remoteUserByClientPid[client.pid]) {
+      this._remoteUserByClientPid[client.pid].dispose();
+      delete this._remoteUserByClientPid[client.pid];
     }
   }
 
