@@ -11,6 +11,9 @@ export default class PubSub {
    *
    * Subsequent calls to `broadcast` with this topic
    * will result in this function being called.
+   *
+   * Returns a function that unsubscribes
+   * as a shorthand for `unsubscribe`.
    */
   subscribe(topic, callback) {
     if (!Array.isArray(this.subscribersByTopic[topic])) {
@@ -18,6 +21,10 @@ export default class PubSub {
     }
 
     this.subscribersByTopic[topic].push(callback);
+
+    return () => {
+      this.unsubscribe(topic, callback);
+    };
   }
 
   /**

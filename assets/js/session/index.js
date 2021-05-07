@@ -7,11 +7,47 @@ import {
 } from "../lib/utils";
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
+import monaco from "../cell/live_editor/monaco";
 
 /**
  * A hook managing the whole session.
  *
- * Handles keybindings, focus changes and insert mode changes.
+ * Serves as a coordinator handling all the global session events.
+ * Note that each cell has its own hook, so that LV keeps track
+ * of cells being added/removed from the DOM. We do however need
+ * to communicate between this global hook and cells and for
+ * that we use a simple local pubsub that the hooks subscribe to.
+ *
+ * ## Shortcuts
+ *
+ * This hook registers session shortcut handlers,
+ * see `LivebookWeb.SessionLive.ShortcutsComponent`
+ * for the complete list of available shortcuts.
+ *
+ * ## Navigation
+ *
+ * This hook handles focusing cells and moving the focus around,
+ * this is done purely on the client side because it is event-intensive
+ * and specific to this client only. The UI changes are handled by
+ * setting `data-js-*` attributes and using CSS accordingly (see assets/css/js_interop.css).
+ * Navigation changes are also broadcasted to all cell hooks via PubSub.
+ *
+ * ## Location tracking and following
+ *
+ * Location describes where the given client is within
+ * the notebook (in which cell, and where specifically in that cell).
+ * When multiple clients are connected, they report own location to
+ * each other whenever it changes. We then each the location to show
+ * cursor and selection indicators.
+ *
+ * Additionally the current user may follow another client from the clients list.
+ * In such case, whenever a new location comes from that client we move there automatically
+ * (i.e. we focus the same cells to effectively mimic how the followed client moves around).
+ *
+ * Initially we load basic information about connected clients using `"session_init"`
+ * and then update this information whenever clients join/leave/update.
+ * This way location reports include only client pid, as we already have
+ * the necessary hex_color/name locally.
  */
 const Session = {
   mounted() {
@@ -21,7 +57,18 @@ const Session = {
       focusedCellType: null,
       insertMode: false,
       keyBuffer: new KeyBuffer(),
+      clientsMap: {},
+      lastLocationReportByClientPid: {},
+      followedClientPid: null,
     };
+
+    // Load initial data
+
+    this.pushEvent("session_init", {}, ({ clients }) => {
+      clients.forEach((client) => {
+        this.state.clientsMap[client.pid] = client;
+      });
+    });
 
     // DOM events
 
@@ -43,16 +90,20 @@ const Session = {
 
     document.addEventListener("dblclick", this.handleDocumentDoubleClick);
 
-    getSectionList().addEventListener("click", (event) => {
-      handleSectionListClick(this, event);
+    getSectionsList().addEventListener("click", (event) => {
+      handleSectionsListClick(this, event);
+    });
+
+    getClientsList().addEventListener("click", (event) => {
+      handleClientsListClick(this, event);
     });
 
     getSectionsListToggle().addEventListener("click", (event) => {
       toggleSectionsList(this);
     });
 
-    getUsersListToggle().addEventListener("click", (event) => {
-      toggleUsersList(this);
+    getClientsListToggle().addEventListener("click", (event) => {
+      toggleClientsList(this);
     });
 
     getNotebook().addEventListener("scroll", (event) => {
@@ -89,33 +140,87 @@ const Session = {
       }
     );
 
-    this.handleEvent("cell_moved", ({ cell_id: cellId }) => {
-      handleCellMoved(this, cellId);
+    this.handleEvent("cell_moved", ({ cell_id }) => {
+      handleCellMoved(this, cell_id);
     });
 
-    this.handleEvent("section_inserted", ({ section_id: sectionId }) => {
-      handleSectionInserted(this, sectionId);
+    this.handleEvent("section_inserted", ({ section_id }) => {
+      handleSectionInserted(this, section_id);
     });
 
-    this.handleEvent("section_deleted", ({ section_id: sectionId }) => {
-      handleSectionDeleted(this, sectionId);
+    this.handleEvent("section_deleted", ({ section_id }) => {
+      handleSectionDeleted(this, section_id);
     });
 
-    this.handleEvent("section_moved", ({ section_id: sectionId }) => {
-      handleSectionMoved(this, sectionId);
+    this.handleEvent("section_moved", ({ section_id }) => {
+      handleSectionMoved(this, section_id);
     });
 
-    this.handleEvent("cell_upload", ({ cell_id: cellId, url }) => {
-      handleCellUpload(this, cellId, url);
+    this.handleEvent("cell_upload", ({ cell_id, url }) => {
+      handleCellUpload(this, cell_id, url);
     });
+
+    this.handleEvent("client_joined", ({ client }) => {
+      handleClientJoined(this, client);
+    });
+
+    this.handleEvent("client_left", ({ client_pid }) => {
+      handleClientLeft(this, client_pid);
+    });
+
+    this.handleEvent("clients_updated", ({ clients }) => {
+      handleClientsUpdated(this, clients);
+    });
+
+    this.handleEvent(
+      "location_report",
+      ({ client_pid, cell_id, selection }) => {
+        const report = {
+          cellId: cell_id,
+          selection: decodeSelection(selection),
+        };
+
+        handleLocationReport(this, client_pid, report);
+      }
+    );
+
+    this._unsubscribeFromSessionEvents = globalPubSub.subscribe(
+      "session",
+      (event) => {
+        handleSessionEvent(this, event);
+      }
+    );
   },
 
   destroyed() {
+    this._unsubscribeFromSessionEvents();
+
     document.removeEventListener("keydown", this.handleDocumentKeyDown);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
   },
 };
+
+/**
+ * Data of a specific LV client.
+ *
+ * @typedef Client
+ * @type {Object}
+ * @property {String} pid
+ * @property {String} hex_color
+ * @property {String} name
+ */
+
+/**
+ * A report of the current location sent by one of the other clients.
+ *
+ * @typedef LocationReport
+ * @type {Object}
+ * @property {String|null} cellId
+ * @property {monaco.Selection|null} selection
+ */
+
+// DOM event handlers
 
 /**
  * Handles session keybindings.
@@ -185,7 +290,7 @@ function handleDocumentKeyDown(hook, event) {
     } else if (keyBuffer.tryMatch(["s", "s"])) {
       toggleSectionsList(hook);
     } else if (keyBuffer.tryMatch(["s", "u"])) {
-      toggleUsersList(hook);
+      toggleClientsList(hook);
     } else if (keyBuffer.tryMatch(["s", "r"])) {
       showNotebookRuntimeSettings(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
@@ -274,14 +379,69 @@ function handleDocumentDoubleClick(hook, event) {
 /**
  * Handles section link clicks in the section list.
  */
-function handleSectionListClick(hook, event) {
+function handleSectionsListClick(hook, event) {
   const sectionButton = event.target.closest(
-    `[data-element="section-list-item"]`
+    `[data-element="sections-list-item"]`
   );
   if (sectionButton) {
     const sectionId = sectionButton.getAttribute("data-section-id");
     const section = getSectionById(sectionId);
     section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+/**
+ * Handles client link clicks in the clients list.
+ */
+function handleClientsListClick(hook, event) {
+  const clientListItem = event.target.closest(
+    `[data-element="clients-list-item"]`
+  );
+
+  if (clientListItem) {
+    const clientPid = clientListItem.getAttribute("data-client-pid");
+
+    const clientLink = event.target.closest(`[data-element="client-link"]`);
+    if (clientLink) {
+      handleClientLinkClick(hook, clientPid);
+    }
+
+    const clientFollowToggle = event.target.closest(
+      `[data-element="client-follow-toggle"]`
+    );
+    if (clientFollowToggle) {
+      handleClientFollowToggleClick(hook, clientPid, clientListItem);
+    }
+  }
+}
+
+function handleClientLinkClick(hook, clientPid) {
+  mirrorClientFocus(hook, clientPid);
+}
+
+function handleClientFollowToggleClick(hook, clientPid, clientListItem) {
+  const followedClientListItem = document.querySelector(
+    `[data-element="clients-list-item"][data-js-followed]`
+  );
+
+  if (followedClientListItem) {
+    followedClientListItem.removeAttribute("data-js-followed");
+  }
+
+  if (clientPid === hook.state.followedClientPid) {
+    hook.state.followedClientPid = null;
+  } else {
+    clientListItem.setAttribute("data-js-followed", "true");
+    hook.state.followedClientPid = clientPid;
+    mirrorClientFocus(hook, clientPid);
+  }
+}
+
+function mirrorClientFocus(hook, clientPid) {
+  const locationReport = hook.state.lastLocationReportByClientPid[clientPid];
+
+  if (locationReport && locationReport.cellId) {
+    setFocusedCell(hook, locationReport.cellId);
   }
 }
 
@@ -315,7 +475,7 @@ function focusCellFromUrl(hook) {
  */
 function updateSectionListHighlight() {
   const currentListItem = document.querySelector(
-    `[data-element="section-list-item"][data-js-is-viewed]`
+    `[data-element="sections-list-item"][data-js-is-viewed]`
   );
 
   if (currentListItem) {
@@ -334,7 +494,7 @@ function updateSectionListHighlight() {
   if (viewedSection) {
     const sectionId = viewedSection.getAttribute("data-section-id");
     const listItem = document.querySelector(
-      `[data-element="section-list-item"][data-section-id="${sectionId}"]`
+      `[data-element="sections-list-item"][data-section-id="${sectionId}"]`
     );
     listItem.setAttribute("data-js-is-viewed", "true");
   }
@@ -350,11 +510,11 @@ function toggleSectionsList(hook) {
   }
 }
 
-function toggleUsersList(hook) {
-  if (hook.el.getAttribute("data-js-side-panel-content") === "users-list") {
+function toggleClientsList(hook) {
+  if (hook.el.getAttribute("data-js-side-panel-content") === "clients-list") {
     hook.el.removeAttribute("data-js-side-panel-content");
   } else {
-    hook.el.setAttribute("data-js-side-panel-content", "users-list");
+    hook.el.setAttribute("data-js-side-panel-content", "clients-list");
   }
 }
 
@@ -499,7 +659,7 @@ function setFocusedCell(hook, cellId) {
     hook.state.focusedSectionId = null;
   }
 
-  globalPubSub.broadcast("session", { type: "cell_focused", cellId });
+  globalPubSub.broadcast("cells", { type: "cell_focused", cellId });
 
   setInsertMode(hook, false);
 }
@@ -511,9 +671,14 @@ function setInsertMode(hook, insertModeEnabled) {
     hook.el.setAttribute("data-js-insert-mode", "true");
   } else {
     hook.el.removeAttribute("data-js-insert-mode");
+
+    sendLocationReport(hook, {
+      cellId: hook.state.focusedCellId,
+      selection: null,
+    });
   }
 
-  globalPubSub.broadcast("session", {
+  globalPubSub.broadcast("cells", {
     type: "insert_mode_changed",
     enabled: insertModeEnabled,
   });
@@ -534,7 +699,7 @@ function handleCellDeleted(hook, cellId, siblingCellId) {
 
 function handleCellMoved(hook, cellId) {
   if (hook.state.focusedCellId === cellId) {
-    globalPubSub.broadcast("session", { type: "cell_moved", cellId });
+    globalPubSub.broadcast("cells", { type: "cell_moved", cellId });
 
     // The cell may have moved to another section, so update this information.
     hook.state.focusedSectionId = getSectionIdByCellId(
@@ -575,7 +740,48 @@ function handleCellUpload(hook, cellId, url) {
     setInsertMode(hook, true);
   }
 
-  globalPubSub.broadcast("session", { type: "cell_upload", cellId, url });
+  globalPubSub.broadcast("cells", { type: "cell_upload", cellId, url });
+}
+
+function handleClientJoined(hook, client) {
+  hook.state.clientsMap[client.pid] = client;
+}
+
+function handleClientLeft(hook, clientPid) {
+  const client = hook.state.clientsMap[clientPid];
+
+  if (client) {
+    delete hook.state.clientsMap[clientPid];
+
+    broadcastLocationReport(client, { cellId: null, selection: null });
+
+    if (client.pid === hook.state.followedClientPid) {
+      hook.state.followedClientPid = null;
+    }
+  }
+}
+
+function handleClientsUpdated(hook, updatedClients) {
+  updatedClients.forEach((client) => {
+    hook.state.clientsMap[client.pid] = client;
+  });
+}
+
+function handleLocationReport(hook, clientPid, report) {
+  const client = hook.state.clientsMap[clientPid];
+
+  hook.state.lastLocationReportByClientPid[clientPid] = report;
+
+  if (client) {
+    broadcastLocationReport(client, report);
+
+    if (
+      client.pid === hook.state.followedClientPid &&
+      report.cellId !== hook.state.focusedCellId
+    ) {
+      setFocusedCell(hook, report.cellId);
+    }
+  }
 }
 
 function focusNotebookNameIfNew() {
@@ -586,6 +792,72 @@ function focusNotebookNameIfNew() {
     nameElement.focus();
     selectElementContent(nameElement);
   }
+}
+
+// Session event handlers
+
+function handleSessionEvent(hook, event) {
+  if (event.type === "cursor_selection_changed") {
+    sendLocationReport(hook, {
+      cellId: event.cellId,
+      selection: event.selection,
+    });
+  }
+}
+
+/**
+ * Broadcast new location report coming from the server to all the cells.
+ */
+function broadcastLocationReport(client, report) {
+  globalPubSub.broadcast("cells", {
+    type: "location_report",
+    client,
+    report,
+  });
+}
+
+/**
+ * Sends local location report to the server.
+ */
+function sendLocationReport(hook, report) {
+  const numberOfClients = Object.keys(hook.state.clientsMap).length;
+
+  // Only send reports if there are other people to send to
+  if (numberOfClients > 1) {
+    hook.pushEvent("location_report", {
+      cell_id: report.cellId,
+      selection: encodeSelection(report.selection),
+    });
+  }
+}
+
+function encodeSelection(selection) {
+  if (selection === null) return null;
+
+  return [
+    selection.selectionStartLineNumber,
+    selection.selectionStartColumn,
+    selection.positionLineNumber,
+    selection.positionColumn,
+  ];
+}
+
+function decodeSelection(encoded) {
+  if (encoded === null) return null;
+
+  const [
+    selectionStartLineNumber,
+    selectionStartColumn,
+    positionLineNumber,
+    positionColumn,
+  ] = encoded;
+
+  return new monaco.Selection(
+    selectionStartLineNumber,
+    selectionStartColumn,
+    positionLineNumber,
+    positionColumn
+  );
 }
 
 // Helpers
@@ -645,8 +917,12 @@ function getSectionById(sectionId) {
   );
 }
 
-function getSectionList() {
-  return document.querySelector(`[data-element="section-list"]`);
+function getSectionsList() {
+  return document.querySelector(`[data-element="sections-list"]`);
+}
+
+function getClientsList() {
+  return document.querySelector(`[data-element="clients-list"]`);
 }
 
 function getCellIndicators() {
@@ -661,8 +937,8 @@ function getSectionsListToggle() {
   return document.querySelector(`[data-element="sections-list-toggle"]`);
 }
 
-function getUsersListToggle() {
-  return document.querySelector(`[data-element="users-list-toggle"]`);
+function getClientsListToggle() {
+  return document.querySelector(`[data-element="clients-list-toggle"]`);
 }
 
 function cancelEvent(event) {

@@ -63,3 +63,13 @@ export function encodeBase64(string) {
 export function decodeBase64(binary) {
   return decodeURIComponent(escape(atob(binary)));
 }
+
+/**
+ * Generates a random string.
+ */
+export function randomId() {
+  const array = new Uint8Array(24);
+  crypto.getRandomValues(array);
+  const byteString = String.fromCharCode(...array);
+  return btoa(byteString);
+}

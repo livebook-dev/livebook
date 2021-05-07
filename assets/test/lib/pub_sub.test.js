@@ -14,6 +14,17 @@ describe("PubSub", () => {
     expect(callback2).not.toHaveBeenCalled();
   });
 
+  test("subscribe returns a function that unsubscribes", () => {
+    const pubsub = new PubSub();
+    const callback1 = jest.fn();
+
+    const unsubscribe = pubsub.subscribe("topic1", callback1);
+    unsubscribe();
+    pubsub.broadcast("topic1", {});
+
+    expect(callback1).not.toHaveBeenCalled();
+  });
+
   test("unsubscribed callback is not called on the specified topic", () => {
     const pubsub = new PubSub();
     const callback1 = jest.fn();

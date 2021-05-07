@@ -60,7 +60,7 @@ solely client-side operations.
   @apply opacity-100 pointer-events-auto;
 }
 
-[data-element="section-list-item"][data-js-is-viewed] {
+[data-element="sections-list-item"][data-js-is-viewed] {
   @apply text-gray-900;
 }
 
@@ -83,8 +83,8 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-element="session"]:not([data-js-side-panel-content="users-list"])
-  [data-element="users-list"] {
+[data-element="session"]:not([data-js-side-panel-content="clients-list"])
+  [data-element="clients-list"] {
   @apply hidden;
 }
 
@@ -93,13 +93,22 @@ solely client-side operations.
   @apply text-gray-50 bg-gray-700;
 }
 
-[data-element="session"][data-js-side-panel-content="users-list"]
-  [data-element="users-list-toggle"] {
+[data-element="session"][data-js-side-panel-content="clients-list"]
+  [data-element="clients-list-toggle"] {
   @apply text-gray-50 bg-gray-700;
 }
 
 [data-element="section-headline"]:not(:hover)
   [data-element="section-name"]:not(:focus)
   + [data-element="section-actions"] {
+  @apply hidden;
+}
+
+[data-element="clients-list-item"]:not([data-js-followed])
+  [data-meta="unfollow"] {
+  @apply hidden;
+}
+
+[data-element="clients-list-item"][data-js-followed] [data-meta="follow"] {
   @apply hidden;
 }

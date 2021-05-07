@@ -32,6 +32,7 @@ defmodule LivebookWeb.SessionLive do
          session_id: session_id,
          session_pid: session_pid,
          current_user: current_user,
+         self: self(),
          data_view: data_to_view(data)
        )
        |> assign_private(data: data)
@@ -79,7 +80,7 @@ defmodule LivebookWeb.SessionLive do
           </button>
         </span>
         <span class="tooltip right distant" aria-label="Connected users (su)">
-          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="users-list-toggle">
+          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="clients-list-toggle">
             <%= remix_icon("group-fill") %>
           </button>
         </span>
@@ -110,10 +111,10 @@ defmodule LivebookWeb.SessionLive do
             <h3 class="font-semibold text-gray-800 text-lg">
               Sections
             </h3>
-            <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
+            <div class="mt-4 flex flex-col space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
                 <button class="text-left hover:text-gray-900 text-gray-500"
-                  data-element="section-list-item"
+                  data-element="sections-list-item"
                   data-section-id="<%= section_item.id %>">
                   <%= section_item.name %>
                 </button>
@@ -126,21 +127,42 @@ defmodule LivebookWeb.SessionLive do
             </button>
           </div>
         </div>
-        <div data-element="users-list">
+        <div data-element="clients-list">
           <div class="flex-grow flex flex-col">
             <h3 class="font-semibold text-gray-800 text-lg">
               Users
             </h3>
             <h4 class="font text-gray-500 text-sm my-1">
-              <%= length(@data_view.users) %> connected
+              <%= length(@data_view.clients) %> connected
             </h4>
-            <div class="mt-4 flex flex-col space-y-4" data-element="section-list">
-              <%= for user <- @data_view.users do %>
-                <div class="flex space-x-2 items-center">
-                  <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
-                  <span class="text-gray-500">
-                    <%= user.name || "Anonymous" %>
-                  </span>
+            <div class="mt-4 flex flex-col space-y-4">
+              <%= for {client_pid, user} <- @data_view.clients do %>
+                <div class="flex items-center justify-between space-x-2"
+                  id="clients-list-item-<%= inspect(client_pid) %>"
+                  data-element="clients-list-item"
+                  data-client-pid="<%= inspect(client_pid) %>">
+                  <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
+                    <%= if client_pid == @self, do: "disabled" %>
+                    data-element="client-link">
+                    <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
+                    <span><%= user.name || "Anonymous" %></span>
+                  </button>
+                  <%= if client_pid != @self do %>
+                    <span class="tooltip left" aria-label="Follow this user"
+                      data-element="client-follow-toggle"
+                      data-meta="follow">
+                      <button class="icon-button">
+                        <%= remix_icon("pushpin-line", class: "text-lg") %>
+                      </button>
+                    </span>
+                    <span class="tooltip left" aria-label="Unfollow this user"
+                      data-element="client-follow-toggle"
+                      data-meta="unfollow">
+                      <button class="icon-button">
+                        <%= remix_icon("pushpin-fill", class: "text-lg") %>
+                      </button>
+                    </span>
+                  <% end %>
                 </div>
               <% end %>
             </div>
@@ -276,6 +298,19 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
+  def handle_event("session_init", _params, socket) do
+    data = socket.private.data
+
+    payload = %{
+      clients:
+        Enum.map(data.clients_map, fn {client_pid, user_id} ->
+          client_info(client_pid, data.users_map[user_id])
+        end)
+    }
+
+    {:reply, payload, socket}
+  end
+
   def handle_event("cell_init", %{"cell_id" => cell_id}, socket) do
     data = socket.private.data
 
@@ -490,6 +525,17 @@ defmodule LivebookWeb.SessionLive do
     create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end
 
+  def handle_event("location_report", report, socket) do
+    Phoenix.PubSub.broadcast_from(
+      Livebook.PubSub,
+      self(),
+      "sessions:#{socket.assigns.session_id}",
+      {:location_report, self(), report}
+    )
+
+    {:noreply, socket}
+  end
+
   defp create_session(socket, opts) do
     case SessionSupervisor.create_session(opts) do
       {:ok, id} ->
@@ -549,7 +595,29 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, :current_user, user)}
   end
 
+  def handle_info({:location_report, client_pid, report}, socket) do
+    report = Map.put(report, :client_pid, inspect(client_pid))
+    {:noreply, push_event(socket, "location_report", report)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
+    push_event(socket, "client_joined", %{client: client_info(client_pid, user)})
+  end
+
+  defp after_operation(socket, _prev_socket, {:client_leave, client_pid}) do
+    push_event(socket, "client_left", %{client_pid: inspect(client_pid)})
+  end
+
+  defp after_operation(socket, _prev_socket, {:update_user, _client_pid, user}) do
+    updated_clients =
+      socket.private.data.clients_map
+      |> Enum.filter(fn {_client_pid, user_id} -> user_id == user.id end)
+      |> Enum.map(fn {client_pid, _user_id} -> client_info(client_pid, user) end)
+
+    push_event(socket, "clients_updated", %{clients: updated_clients})
+  end
 
   defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
     if client_pid == self() do
@@ -620,6 +688,10 @@ defmodule LivebookWeb.SessionLive do
 
   defp handle_action(socket, _action), do: socket
 
+  defp client_info(pid, user) do
+    %{pid: inspect(pid), hex_color: user.hex_color, name: user.name || "Anonymous"}
+  end
+
   defp normalize_name(name) do
     name
     |> String.trim()
@@ -660,11 +732,10 @@ defmodule LivebookWeb.SessionLive do
         for section <- data.notebook.sections do
           %{id: section.id, name: section.name}
         end,
-      users:
+      clients:
         data.clients_map
-        |> Map.values()
-        |> Enum.map(&data.users_map[&1])
-        |> Enum.sort_by(& &1.name),
+        |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
+        |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
       section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
     }
   end
