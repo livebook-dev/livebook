@@ -36,6 +36,10 @@ defmodule Livebook.Runtime.NodePoolTest do
       name = NodePool.get_name(config.test, node())
       send(config.test, {:nodedown, name, {}})
 
+      # Since we want the `:add_node` message  processed first
+      # before we call `get_name`, we wait
+      Process.sleep(1)
+
       assert NodePool.get_name(config.test, node()) == name
     end
 
@@ -44,6 +48,10 @@ defmodule Livebook.Runtime.NodePoolTest do
 
       name = NodePool.get_name(config.test, node())
       send(config.test, {:nodedown, name, {}})
+
+      # Since we want the `:add_node` message  processed first
+      # before we call `get_name`, we wait
+      Process.sleep(1)
 
       name = NodePool.get_name(config.test, node())
       assert NodePool.get_name(config.test, node()) != name
@@ -56,6 +64,10 @@ defmodule Livebook.Runtime.NodePoolTest do
 
       # Mock a nodedown
       send(config.test, {:nodedown, :some_foo, {}})
+
+      # Since we want the `:add_node` message  processed first
+      # before we call `get_name`, we wait
+      Process.sleep(1)
 
       # Verify that name is not in pool, by calling get_name/2
       assert NodePool.get_name(config.test, node()) != :some_foo
