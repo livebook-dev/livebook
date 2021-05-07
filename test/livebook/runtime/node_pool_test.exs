@@ -6,12 +6,10 @@ defmodule Livebook.Runtime.NodePoolTest do
   # Tests for Livebook.Runtime.NodePool
   #
   # Note:
-  # 1. We do not spawn actual nodes as it can be time
-  #    intensive (on low spec machines)
   #
-  # 2. We wait a certain period of time after we mock
-  #    a node down, so that the buffer period is spent,
-  #    and the node is added to pool.
+  #   We do not spawn actual nodes as it can be time
+  #   intensive (on low spec machines) and is generally
+  #   complicated.
 
   describe "start_link" do
     test "correctly starts a registered GenServer", config do
@@ -33,21 +31,19 @@ defmodule Livebook.Runtime.NodePoolTest do
     end
 
     test "returns an existing name if pool is not empty", config do
-      start_supervised!({NodePool, name: config.test, buffer_time: 1})
+      start_supervised!({NodePool, name: config.test, buffer_time: 0})
 
       name = NodePool.get_name(config.test, node())
       send(config.test, {:nodedown, name, {}})
-      Process.sleep(2)
 
       assert NodePool.get_name(config.test, node()) == name
     end
 
     test "removes an existing name when used", config do
-      start_supervised!({NodePool, name: config.test, buffer_time: 1})
+      start_supervised!({NodePool, name: config.test, buffer_time: 0})
 
       name = NodePool.get_name(config.test, node())
       send(config.test, {:nodedown, name, {}})
-      Process.sleep(2)
 
       name = NodePool.get_name(config.test, node())
       assert NodePool.get_name(config.test, node()) != name
@@ -56,11 +52,10 @@ defmodule Livebook.Runtime.NodePoolTest do
 
   describe "on nodedown" do
     test "does not add node name to pool if not in generated_names", config do
-      start_supervised!({NodePool, name: config.test})
+      start_supervised!({NodePool, name: config.test, buffer_time: 0})
 
       # Mock a nodedown
       send(config.test, {:nodedown, :some_foo, {}})
-      Process.sleep(2)
 
       # Verify that name is not in pool, by calling get_name/2
       assert NodePool.get_name(config.test, node()) != :some_foo
