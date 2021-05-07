@@ -54,7 +54,7 @@ defmodule Livebook.Runtime.NodePoolTest do
     end
   end
 
-  describe "On nodedown" do
+  describe "on nodedown" do
     test "does not add node name to pool if not in generated_names", config do
       start_supervised!({NodePool, name: config.test})
 
