@@ -3,13 +3,9 @@ defmodule Livebook.Runtime.NodePoolTest do
 
   alias Livebook.Runtime.NodePool
 
-  # Tests for Livebook.Runtime.NodePool
-  #
-  # Note:
-  #
-  #   We do not spawn actual nodes as it can be time
-  #   intensive (on low spec machines) and is generally
-  #   complicated.
+  # Note we do not spawn actual nodes as it can be time
+  # intensive (on low spec machines) and is generally
+  # complicated.
 
   describe "start_link" do
     test "correctly starts a registered GenServer", config do
@@ -24,21 +20,16 @@ defmodule Livebook.Runtime.NodePoolTest do
     test "creates a new node name if pool is empty", config do
       start_supervised!({NodePool, name: config.test})
 
-      # Assert that we get a result and that it is an atom
       result = NodePool.get_name(config.test, node())
-      assert result
       assert is_atom(result)
+      assert result |> Atom.to_string() |> String.ends_with?(Atom.to_string(node()))
     end
 
     test "returns an existing name if pool is not empty", config do
       start_supervised!({NodePool, name: config.test, buffer_time: 0})
 
       name = NodePool.get_name(config.test, node())
-      send(config.test, {:nodedown, name, {}})
-
-      # Since we want the `:add_node` message  processed first
-      # before we call `get_name`, we wait
-      Process.sleep(1)
+      nodedown(config.test, name)
 
       assert NodePool.get_name(config.test, node()) == name
     end
@@ -47,11 +38,7 @@ defmodule Livebook.Runtime.NodePoolTest do
       start_supervised!({NodePool, name: config.test, buffer_time: 0})
 
       name = NodePool.get_name(config.test, node())
-      send(config.test, {:nodedown, name, {}})
-
-      # Since we want the `:add_node` message  processed first
-      # before we call `get_name`, we wait
-      Process.sleep(1)
+      nodedown(config.test, name)
 
       name = NodePool.get_name(config.test, node())
       assert NodePool.get_name(config.test, node()) != name
@@ -61,16 +48,20 @@ defmodule Livebook.Runtime.NodePoolTest do
   describe "on nodedown" do
     test "does not add node name to pool if not in generated_names", config do
       start_supervised!({NodePool, name: config.test, buffer_time: 0})
-
-      # Mock a nodedown
-      send(config.test, {:nodedown, :some_foo, {}})
-
-      # Since we want the `:add_node` message  processed first
-      # before we call `get_name`, we wait
-      Process.sleep(1)
-
-      # Verify that name is not in pool, by calling get_name/2
+      nodedown(config.test, :some_foo)
       assert NodePool.get_name(config.test, node()) != :some_foo
     end
+  end
+
+  # Emulate node down and make sure it is processed
+  defp nodedown(process, node) do
+    send(process, {:nodedown, node, {}})
+
+    # Make sure the send was processed
+    _ = :sys.get_status(process)
+    # Make sure the send after message processed
+    _ = :sys.get_status(process)
+
+    :ok
   end
 end
