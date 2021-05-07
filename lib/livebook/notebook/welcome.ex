@@ -144,7 +144,7 @@ defmodule Livebook.Notebook.Welcome do
   dependencies into your Elixir runtime! This approach is especially useful when sharing notebooks
   because everyone will be able to get the same dependencies. Let's try this out:
 
-  **Note:** compiling dependencies use a reasonable amount of memory. If you are
+  **Note:** compiling dependencies may use a reasonable amount of memory. If you are
   hosting Livebook, make sure you have enough memory allocated to the Livebook
   instance, otherwise the command below will fail.
 
