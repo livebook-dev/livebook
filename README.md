@@ -18,7 +18,7 @@ Livebook is a web application for writing interactive and collaborative code not
 
 There is a [screencast by José Valim showing some of Livebook features](https://www.youtube.com/watch?v=RKvqc-UEe34). Otherwise, here is a peek at the "Welcome to Livebook" introductory notebook:
 
-![Screenshot](https://user-images.githubusercontent.com/9582/113567534-166f4980-960f-11eb-98df-c0b8b81f8a27.png)
+![Screenshot](https://github.com/elixir-nx/livebook/raw/master/.github/imgs/welcome.png)
 
 The current version provides only the initial step of our Livebook vision. Our plan is to continue focusing on visual, collaborative, and interactive features in the upcoming releases.
 
