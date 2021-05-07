@@ -5,15 +5,15 @@ defmodule Livebook.Runtime.StandaloneInit do
   # a new Elixir system process. It's used by both ElixirStandalone
   # and MixStandalone runtimes.
 
-  alias Livebook.Utils
   alias Livebook.Utils.Emitter
+  alias Livebook.Runtime.NodePool
 
   @doc """
   Returns a random name for a dynamically spawned node.
   """
   @spec child_node_name(atom()) :: atom()
   def child_node_name(parent) do
-    :"#{Utils.random_short_id()}-#{parent}"
+    NodePool.get_name(parent)
   end
 
   @doc """
