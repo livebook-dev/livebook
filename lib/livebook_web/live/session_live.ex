@@ -137,18 +137,33 @@ defmodule LivebookWeb.SessionLive do
             </h4>
             <div class="mt-4 flex flex-col space-y-4">
               <%= for {client_pid, user} <- @data_view.clients do %>
-                <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
+                <div class="flex items-center justify-between space-x-2"
                   id="clients-list-item-<%= inspect(client_pid) %>"
-                  <%= if client_pid == @self, do: "disabled" %>
                   data-element="clients-list-item"
                   data-client-pid="<%= inspect(client_pid) %>">
-                  <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
-                  <span>
-                    <%= user.name || "Anonymous" %>
-                  </span>
-                  <div class="flex-grow"></div>
-                  <%= remix_icon("eye-line", class: "text-lg", data: [element: "follow-indicator"]) %>
-                </button>
+                  <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
+                    <%= if client_pid == @self, do: "disabled" %>
+                    data-element="client-link">
+                    <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
+                    <span><%= user.name || "Anonymous" %></span>
+                  </button>
+                  <%= if client_pid != @self do %>
+                    <span class="tooltip left" aria-label="Follow this user"
+                      data-element="client-follow-toggle"
+                      data-meta="follow">
+                      <button class="icon-button">
+                        <%= remix_icon("pushpin-line", class: "text-lg") %>
+                      </button>
+                    </span>
+                    <span class="tooltip left" aria-label="Unfollow this user"
+                      data-element="client-follow-toggle"
+                      data-meta="unfollow">
+                      <button class="icon-button">
+                        <%= remix_icon("pushpin-fill", class: "text-lg") %>
+                      </button>
+                    </span>
+                  <% end %>
+                </div>
               <% end %>
             </div>
           </div>

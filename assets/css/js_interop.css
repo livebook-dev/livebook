@@ -105,6 +105,10 @@ solely client-side operations.
 }
 
 [data-element="clients-list-item"]:not([data-js-followed])
-  [data-element="follow-indicator"] {
+  [data-meta="unfollow"] {
+  @apply hidden;
+}
+
+[data-element="clients-list-item"][data-js-followed] [data-meta="follow"] {
   @apply hidden;
 }

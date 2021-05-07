@@ -394,32 +394,54 @@ function handleSectionsListClick(hook, event) {
  * Handles client link clicks in the clients list.
  */
 function handleClientsListClick(hook, event) {
-  const clientButton = event.target.closest(
+  const clientListItem = event.target.closest(
     `[data-element="clients-list-item"]`
   );
 
-  if (clientButton) {
-    const followedClientButton = document.querySelector(`[data-js-followed]`);
+  if (clientListItem) {
+    const clientPid = clientListItem.getAttribute("data-client-pid");
 
-    if (followedClientButton) {
-      followedClientButton.removeAttribute("data-js-followed");
+    const clientLink = event.target.closest(`[data-element="client-link"]`);
+    if (clientLink) {
+      handleClientLinkClick(hook, clientPid);
     }
 
-    const clientPid = clientButton.getAttribute("data-client-pid");
-
-    if (clientPid === hook.state.followedClientPid) {
-      hook.state.followedClientPid = null;
-    } else {
-      clientButton.setAttribute("data-js-followed", "true");
-      hook.state.followedClientPid = clientPid;
-
-      const locationReport =
-        hook.state.lastLocationReportByClientPid[clientPid];
-
-      if (locationReport && locationReport.cellId) {
-        setFocusedCell(hook, locationReport.cellId);
-      }
+    const clientFollowToggle = event.target.closest(
+      `[data-element="client-follow-toggle"]`
+    );
+    if (clientFollowToggle) {
+      handleClientFollowToggleClick(hook, clientPid, clientListItem);
     }
+  }
+}
+
+function handleClientLinkClick(hook, clientPid) {
+  mirrorClientFocus(hook, clientPid);
+}
+
+function handleClientFollowToggleClick(hook, clientPid, clientListItem) {
+  const followedClientListItem = document.querySelector(
+    `[data-element="clients-list-item"][data-js-followed]`
+  );
+
+  if (followedClientListItem) {
+    followedClientListItem.removeAttribute("data-js-followed");
+  }
+
+  if (clientPid === hook.state.followedClientPid) {
+    hook.state.followedClientPid = null;
+  } else {
+    clientListItem.setAttribute("data-js-followed", "true");
+    hook.state.followedClientPid = clientPid;
+    mirrorClientFocus(hook, clientPid);
+  }
+}
+
+function mirrorClientFocus(hook, clientPid) {
+  const locationReport = hook.state.lastLocationReportByClientPid[clientPid];
+
+  if (locationReport && locationReport.cellId) {
+    setFocusedCell(hook, locationReport.cellId);
   }
 }
 
