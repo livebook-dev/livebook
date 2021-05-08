@@ -46,7 +46,7 @@ const VirtualizedLines = {
 
     this.state.contentElement = this.el.querySelector("[data-content]");
 
-    if (!this.state.templateElement) {
+    if (!this.state.contentElement) {
       throw new Error("VirtualizedLines must have a child with data-content");
     }
 
