@@ -16,6 +16,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the runtime module to be used by default.
+  """
+  @spec default_runtime() :: Livebook.Runtime
+  def default_runtime() do
+    Application.fetch_env!(:livebook, :default_runtime)
+  end
+
+  @doc """
   Returns the authentication mode.
   """
   @spec auth_mode() :: auth_mode()

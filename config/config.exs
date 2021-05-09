@@ -17,6 +17,14 @@ config :phoenix, :json_library, Jason
 # Sets the default authentication mode to token
 config :livebook, :authentication_mode, :token
 
+# Sets the default runtime to ElixirStandalone.
+# This is the desired default most of the time,
+# but in some specific use cases you may want
+# to configure that to the Embedded runtime instead.
+# Also make sure the configured runtime has
+# a synchronous `init/0` method.
+config :livebook, :default_runtime, Livebook.Runtime.ElixirStandalone
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

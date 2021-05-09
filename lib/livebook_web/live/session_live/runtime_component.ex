@@ -85,6 +85,11 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
             phx_click: "set_runtime_type",
             phx_value_type: "attached",
             phx_target: @myself %>
+          <%= content_tag :button, "Embedded",
+            class: "choice-button #{if(@type == "embedded", do: "active")}",
+            phx_click: "set_runtime_type",
+            phx_value_type: "embedded",
+            phx_target: @myself %>
         </div>
         <div>
           <%= if @type == "elixir_standalone" do %>
@@ -102,6 +107,11 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               id: :attached_runtime,
               session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
           <% end %>
+          <%= if @type == "embedded" do %>
+            <%= live_render @socket, LivebookWeb.SessionLive.EmbeddedLive,
+              id: :embedded_runtime,
+              session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
+          <% end %>
         </div>
       </div>
     </div>
@@ -111,10 +121,12 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
   defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
   defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
+  defp runtime_type_label(%Runtime.Embedded{}), do: "Embedded"
 
   defp runtime_type(%Runtime.ElixirStandalone{}), do: "elixir_standalone"
   defp runtime_type(%Runtime.MixStandalone{}), do: "mix_standalone"
   defp runtime_type(%Runtime.Attached{}), do: "attached"
+  defp runtime_type(%Runtime.Embedded{}), do: "embedded"
 
   @impl true
   def handle_event("set_runtime_type", %{"type" => type}, socket) do

@@ -18,7 +18,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
     ~L"""
     <div class="flex-col space-y-5">
       <%= if @error_message do %>
-        <div class="mb-3 rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium">
+        <div class="error-box">
           <%= @error_message %>
         </div>
       <% end %>

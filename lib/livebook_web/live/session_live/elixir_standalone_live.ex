@@ -9,13 +9,19 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
     end
 
-    {:ok, assign(socket, session_id: session_id, output: nil, current_runtime: current_runtime)}
+    {:ok,
+     assign(socket, session_id: session_id, current_runtime: current_runtime, error_message: nil)}
   end
 
   @impl true
   def render(assigns) do
     ~L"""
     <div class="flex-col space-y-5">
+      <%= if @error_message do %>
+        <div class="error-box">
+          <%= @error_message %>
+        </div>
+      <% end %>
       <p class="text-gray-700">
         Start a new local node to handle code evaluation.
         This is the default runtime and is started automatically
@@ -24,24 +30,23 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
       <button class="button button-blue" phx-click="init">
         <%= if(matching_runtime?(@current_runtime), do: "Reconnect", else: "Connect") %>
       </button>
-      <%= if @output do %>
-        <div class="markdown max-h-20 overflow-y-auto tiny-scrollbar">
-          <pre><code><%= @output %></code></pre>
-        </div>
-      <% end %>
     </div>
     """
   end
 
   defp matching_runtime?(%Runtime.ElixirStandalone{}), do: true
-
   defp matching_runtime?(_runtime), do: false
 
   @impl true
   def handle_event("init", _params, socket) do
-    {:ok, runtime} = Runtime.ElixirStandalone.init()
-    Session.connect_runtime(socket.assigns.session_id, runtime)
-    {:noreply, socket}
+    case Runtime.ElixirStandalone.init() do
+      {:ok, runtime} ->
+        Session.connect_runtime(socket.assigns.session_id, runtime)
+        {:noreply, assign(socket, error_message: nil)}
+
+      {:error, message} ->
+        {:noreply, assign(socket, error_message: message)}
+    end
   end
 
   @impl true
