@@ -9,11 +9,18 @@ defmodule Livebook.Application do
     ensure_distribution!()
     set_cookie()
 
+    # We register our own :standard_error below
+    Process.unregister(:standard_error)
+
     children = [
       # Start the Telemetry supervisor
       LivebookWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: Livebook.PubSub},
+      # Start the our own :standard_error handler (standard error -> group leader)
+      # This way we can run multiple embedded runtimes without worrying
+      # about restoring :standard_error to a valid process when terminating
+      {Livebook.Runtime.ErlDist.IOForwardGL, name: :standard_error},
       # Start the supervisor dynamically managing sessions
       Livebook.SessionSupervisor,
       # Start the server responsible for associating files with sessions

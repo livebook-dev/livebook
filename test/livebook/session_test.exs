@@ -158,7 +158,7 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
-      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
       Session.connect_runtime(session_id, runtime)
 
       assert_receive {:operation, {:set_runtime, ^pid, ^runtime}}
@@ -169,6 +169,9 @@ defmodule Livebook.SessionTest do
     test "sends a runtime update operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
+
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      Session.connect_runtime(session_id, runtime)
 
       Session.disconnect_runtime(session_id)
 
@@ -337,9 +340,10 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  # For most tests we use the lightweight runtime, so that they are cheap to run.
-  # Here go several integration tests that actually start a separate runtime
-  # to verify session integrates well with it.
+  # For most tests we use the lightweight embedded runtime,
+  # so that they are cheap to run. Here go several integration
+  # tests that actually start a Elixir standalone runtime (default in production)
+  # to verify session integrates well with it properly.
 
   test "starts a standalone runtime upon first evaluation if there was none set explicitly" do
     session_id = Utils.random_id()
@@ -387,10 +391,6 @@ defmodule Livebook.SessionTest do
   defp start_session(opts \\ []) do
     session_id = Utils.random_id()
     {:ok, _} = Session.start_link(Keyword.merge(opts, id: session_id))
-    # By default, use the current node for evaluation,
-    # rather than starting a standalone one.
-    {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
-    Session.connect_runtime(session_id, runtime)
     session_id
   end
 

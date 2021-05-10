@@ -35,6 +35,10 @@ defmodule Livebook.Runtime.ErlDist.Manager do
       manager should cleanup any global configuration
       it altered and unload Livebook-specific modules
       from the node. Defaults to `true`.
+
+    * `:register_standard_error_proxy` - configures whether
+      manager should start an IOForwardGL process and set
+      it as the group leader. Defaults to `true`.
   """
   def start(opts \\ []) do
     {anonymous?, opts} = Keyword.pop(opts, :anonymous, false)
@@ -149,6 +153,7 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   @impl true
   def init(opts) do
     cleanup_on_termination = Keyword.get(opts, :cleanup_on_termination, true)
+    register_standard_error_proxy = Keyword.get(opts, :register_standard_error_proxy, true)
 
     Process.send_after(self(), :check_owner, @await_owner_timeout)
 
@@ -157,22 +162,28 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     Process.flag(:trap_exit, true)
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
-    {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
     {:ok, completion_supervisor} = Task.Supervisor.start_link()
+
+    # Register our own standard error IO device that proxies
+    # to sender's group leader.
+
+    original_standard_error = Process.whereis(:standard_error)
+
+    if register_standard_error_proxy do
+      {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
+
+      Process.unregister(:standard_error)
+      Process.register(io_forward_gl_pid, :standard_error)
+    end
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
-    # Register our own standard error IO devices that proxies
-    # to sender's group leader.
-    original_standard_error = Process.whereis(:standard_error)
-    Process.unregister(:standard_error)
-    Process.register(io_forward_gl_pid, :standard_error)
-
     {:ok,
      %{
        cleanup_on_termination: cleanup_on_termination,
+       register_standard_error_proxy: register_standard_error_proxy,
        owner: nil,
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
@@ -187,8 +198,10 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     if state.cleanup_on_termination do
       Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
 
-      Process.unregister(:standard_error)
-      Process.register(state.original_standard_error, :standard_error)
+      if state.register_standard_error_proxy do
+        Process.unregister(:standard_error)
+        Process.register(state.original_standard_error, :standard_error)
+      end
 
       ErlDist.unload_required_modules()
     end

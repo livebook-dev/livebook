@@ -30,7 +30,14 @@ defmodule Livebook.Runtime.Embedded do
     # modules or revert the configuration (because other runtimes
     # may rely on it). If someone uses embedded runtimes,
     # this cleanup is not particularly important anyway.
-    case ErlDist.Manager.start(anonymous: true, cleanup_on_termination: false) do
+    # We tell manager to not override :standard_error,
+    # as we already do it for the Livebook application globally
+    # (see Livebook.Application.start/2).
+    case ErlDist.Manager.start(
+           anonymous: true,
+           cleanup_on_termination: false,
+           register_standard_error_proxy: false
+         ) do
       {:ok, pid} ->
         {:ok, %__MODULE__{node: node(), manager_pid: pid}}
 

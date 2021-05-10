@@ -2,7 +2,7 @@ defmodule Livebook.Session.DataTest do
   use ExUnit.Case, async: true
 
   alias Livebook.Session.Data
-  alias Livebook.{Delta, Notebook}
+  alias Livebook.{Delta, Notebook, Runtime}
   alias Livebook.Users.User
 
   describe "new/1" do
@@ -1610,7 +1610,8 @@ defmodule Livebook.Session.DataTest do
     test "updates data with the given runtime" do
       data = Data.new()
 
-      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = Runtime.Embedded.init()
+      Runtime.connect(runtime)
 
       operation = {:set_runtime, self(), runtime}
 
@@ -1634,7 +1635,8 @@ defmodule Livebook.Session.DataTest do
           {:queue_cell_evaluation, self(), "c4"}
         ])
 
-      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = Runtime.Embedded.init()
+      Runtime.connect(runtime)
 
       operation = {:set_runtime, self(), runtime}
 
