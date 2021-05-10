@@ -13,19 +13,17 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
     ~L"""
     <div class="flex-col space-y-5">
       <p class="text-gray-700">
-        Connect to a new runtime within the Livebook node itself.
+        Run the notebook code within the Livebook node itself.
         This is reserved for specific cases where there is no option
-        of starting a separate Elixir runtime
-        (e.g. when running Livebook directly on a Nerves device).
-        Whenever possible prefer the "Elixir standalone" runtime instead.
+        of starting a separate Elixir runtime (for example, on embedded
+        devices or cases where the amount of memory available is
+        limited). Prefer the "Elixir standalone" runtime whenever possible.
       </p>
       <p class="text-gray-700">
         <span class="font-semibold">Warning:</span>
         any module that you define will be defined globally until
-        you restart Livebook and code in one notebook may interfere
-        with code from another notebook.
-        Also, if code evaluation crashes the runtime for some rason,
-        the whole Livebook will crash discarding all unsaved changes.
+        you restart Livebook. Furthermore, code in one notebook
+        may interfere with code from another notebook.
       </p>
       <button class="button button-blue" phx-click="init">
         Connect
