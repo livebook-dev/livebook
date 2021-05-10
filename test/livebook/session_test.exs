@@ -3,6 +3,12 @@ defmodule Livebook.SessionTest do
 
   alias Livebook.{Session, Delta, Runtime, Utils}
 
+  # Note: queueing evaluation in most of the tests below
+  # requires the runtime to synchronously start first,
+  # so we use a longer timeout just to make sure the tests
+  # pass reliably
+  @evaluation_wait_timeout 2_000
+
   setup do
     session_id = start_session()
     %{session_id: session_id}
@@ -63,7 +69,9 @@ defmodule Livebook.SessionTest do
       {_section_id, cell_id} = insert_section_and_cell(session_id)
 
       Session.queue_cell_evaluation(session_id, cell_id)
-      assert_receive {:operation, {:queue_cell_evaluation, ^pid, ^cell_id}}
+
+      assert_receive {:operation, {:queue_cell_evaluation, ^pid, ^cell_id}},
+                     @evaluation_wait_timeout
     end
 
     test "triggers evaluation and sends update operation once it finishes",
@@ -73,7 +81,9 @@ defmodule Livebook.SessionTest do
       {_section_id, cell_id} = insert_section_and_cell(session_id)
 
       Session.queue_cell_evaluation(session_id, cell_id)
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}}
+
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}},
+                     @evaluation_wait_timeout
     end
   end
 
@@ -83,10 +93,12 @@ defmodule Livebook.SessionTest do
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
-      queue_evaluation(session_id, cell_id)
+      Session.queue_cell_evaluation(session_id, cell_id)
 
       Session.cancel_cell_evaluation(session_id, cell_id)
-      assert_receive {:operation, {:cancel_cell_evaluation, ^pid, ^cell_id}}
+
+      assert_receive {:operation, {:cancel_cell_evaluation, ^pid, ^cell_id}},
+                     @evaluation_wait_timeout
     end
   end
 
@@ -355,7 +367,8 @@ defmodule Livebook.SessionTest do
 
     Session.queue_cell_evaluation(session_id, cell_id)
     # Give it a bit more time as this involves starting a system process.
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}}, 1000
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}},
+                   @evaluation_wait_timeout
   end
 
   test "if the runtime node goes down, notifies the subscribers" do
@@ -401,10 +414,5 @@ defmodule Livebook.SessionTest do
     assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :elixir, cell_id}}
 
     {section_id, cell_id}
-  end
-
-  defp queue_evaluation(session_id, cell_id) do
-    Session.queue_cell_evaluation(session_id, cell_id)
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}}
   end
 end
