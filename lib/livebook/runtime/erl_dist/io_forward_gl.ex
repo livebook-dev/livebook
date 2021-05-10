@@ -15,9 +15,18 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
 
   ## API
 
+  @doc """
+  Starts the IO device.
+
+  ## Options
+
+    * `:name` - the name to regsiter the process under. Optional.
+  """
   @spec start_link() :: GenServer.on_start()
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts)
+    {gen_opts, opts} = Keyword.split(opts, [:name])
+
+    GenServer.start_link(__MODULE__, opts, gen_opts)
   end
 
   ## Callbacks

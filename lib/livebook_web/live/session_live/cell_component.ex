@@ -245,7 +245,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300" data-follow="true">
       <div data-template class="hidden"><%= for line <- @lines do %><div><%= line %></div><% end %></div>
-      <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
+      <div data-content class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"
+        id="<%= @id %>-content"
+        phx-update="ignore"></div>
     </div>
     """
   end
@@ -257,7 +259,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300" data-follow="false">
       <div data-template class="hidden"><%= for line <- @lines do %><div><%= line %></div><% end %></div>
-      <div data-content phx-update="ignore" class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"></div>
+      <div data-content class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"
+        id="<%= @id %>-content"
+        phx-update="ignore"></div>
     </div>
     """
   end

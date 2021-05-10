@@ -96,6 +96,11 @@ The following environment variables configure Livebook:
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 
+  * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used
+    by default when none is started explicitly for the given notebook.
+    Must be either "standalone" (Elixir standalone) or "embedded" (Embedded).
+    Defaults to "standalone".
+
   * LIVEBOOK_IP - sets the ip address to start the web application on. Must be a valid IPv4 or IPv6 address.
 
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook. Must be at least 12 characters. Defaults to token authentication.

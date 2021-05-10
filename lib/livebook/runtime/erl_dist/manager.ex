@@ -20,11 +20,34 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   @doc """
   Starts the manager.
 
-  Note: make sure to `set_owner` within `@await_owner_timeout`
+  Note: make sure to call `set_owner` within `@await_owner_timeout`
   or the manager assumes it's not needed and terminates.
+
+  ## Options
+
+    * `:anonymous` - configures whether manager should
+      be registered under a global name or not.
+      In most cases we enforce a single manager per node
+      and identify it by a name, but this can be opted-out
+      from using this option. Defaults to `false`.
+
+    * `:cleanup_on_termination` - configures whether
+      manager should cleanup any global configuration
+      it altered and unload Livebook-specific modules
+      from the node. Defaults to `true`.
+
+    * `:register_standard_error_proxy` - configures whether
+      manager should start an IOForwardGL process and set
+      it as the group leader. Defaults to `true`.
   """
   def start(opts \\ []) do
-    GenServer.start(__MODULE__, opts, name: @name)
+    {anonymous?, opts} = Keyword.pop(opts, :anonymous, false)
+
+    gen_opts = [
+      name: if(anonymous?, do: nil, else: @name)
+    ]
+
+    GenServer.start(__MODULE__, opts, gen_opts)
   end
 
   @doc """
@@ -34,9 +57,9 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   the manager also terminates. All the evaluation results are
   send directly to the owner.
   """
-  @spec set_owner(node(), pid()) :: :ok
-  def set_owner(node, owner) do
-    GenServer.cast({@name, node}, {:set_owner, owner})
+  @spec set_owner(node() | pid(), pid()) :: :ok
+  def set_owner(node_or_pid, owner) do
+    GenServer.cast(server(node_or_pid), {:set_owner, owner})
   end
 
   @doc """
@@ -50,16 +73,23 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   See `Evaluator` for more details.
   """
   @spec evaluate_code(
-          node(),
+          node() | pid(),
           String.t(),
           Evaluator.ref(),
           Evaluator.ref(),
           Evaluator.ref() | nil,
           keyword()
         ) :: :ok
-  def evaluate_code(node, code, container_ref, evaluation_ref, prev_evaluation_ref, opts \\ []) do
+  def evaluate_code(
+        node_or_pid,
+        code,
+        container_ref,
+        evaluation_ref,
+        prev_evaluation_ref,
+        opts \\ []
+      ) do
     GenServer.cast(
-      {@name, node},
+      server(node_or_pid),
       {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref, opts}
     )
   end
@@ -69,17 +99,17 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
   See `Evaluator` for more details.
   """
-  @spec forget_evaluation(node(), Evaluator.ref(), Evaluator.ref()) :: :ok
-  def forget_evaluation(node, container_ref, evaluation_ref) do
-    GenServer.cast({@name, node}, {:forget_evaluation, container_ref, evaluation_ref})
+  @spec forget_evaluation(node() | pid(), Evaluator.ref(), Evaluator.ref()) :: :ok
+  def forget_evaluation(node_or_pid, container_ref, evaluation_ref) do
+    GenServer.cast(server(node_or_pid), {:forget_evaluation, container_ref, evaluation_ref})
   end
 
   @doc """
   Terminates the `Evaluator` process belonging to the given container.
   """
-  @spec drop_container(node(), Evaluator.ref()) :: :ok
-  def drop_container(node, container_ref) do
-    GenServer.cast({@name, node}, {:drop_container, container_ref})
+  @spec drop_container(node() | pid(), Evaluator.ref()) :: :ok
+  def drop_container(node_or_pid, container_ref) do
+    GenServer.cast(server(node_or_pid), {:drop_container, container_ref})
   end
 
   @doc """
@@ -93,16 +123,16 @@ defmodule Livebook.Runtime.ErlDist.Manager do
   See `Livebook.Runtime` for more details.
   """
   @spec request_completion_items(
-          node(),
+          node() | pid(),
           pid(),
           term(),
           String.t(),
           Evaluator.ref(),
           Evaluator.ref()
         ) :: :ok
-  def request_completion_items(node, send_to, ref, hint, container_ref, evaluation_ref) do
+  def request_completion_items(node_or_pid, send_to, ref, hint, container_ref, evaluation_ref) do
     GenServer.cast(
-      {@name, node},
+      server(node_or_pid),
       {:request_completion_items, send_to, ref, hint, container_ref, evaluation_ref}
     )
   end
@@ -112,13 +142,19 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
   This results in all Livebook-related modules being unloaded from this node.
   """
-  @spec stop(node()) :: :ok
-  def stop(node) do
-    GenServer.stop({@name, node})
+  @spec stop(node() | pid()) :: :ok
+  def stop(node_or_pid) do
+    GenServer.stop(server(node_or_pid))
   end
 
+  defp server(pid) when is_pid(pid), do: pid
+  defp server(node) when is_atom(node), do: {@name, node}
+
   @impl true
-  def init(_opts) do
+  def init(opts) do
+    cleanup_on_termination = Keyword.get(opts, :cleanup_on_termination, true)
+    register_standard_error_proxy = Keyword.get(opts, :register_standard_error_proxy, true)
+
     Process.send_after(self(), :check_owner, @await_owner_timeout)
 
     ## Initialize the node
@@ -126,21 +162,28 @@ defmodule Livebook.Runtime.ErlDist.Manager do
     Process.flag(:trap_exit, true)
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
-    {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
     {:ok, completion_supervisor} = Task.Supervisor.start_link()
+
+    # Register our own standard error IO device that proxies
+    # to sender's group leader.
+
+    original_standard_error = Process.whereis(:standard_error)
+
+    if register_standard_error_proxy do
+      {:ok, io_forward_gl_pid} = ErlDist.IOForwardGL.start_link()
+
+      Process.unregister(:standard_error)
+      Process.register(io_forward_gl_pid, :standard_error)
+    end
 
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
 
-    # Register our own standard error IO devices that proxies
-    # to sender's group leader.
-    original_standard_error = Process.whereis(:standard_error)
-    Process.unregister(:standard_error)
-    Process.register(io_forward_gl_pid, :standard_error)
-
     {:ok,
      %{
+       cleanup_on_termination: cleanup_on_termination,
+       register_standard_error_proxy: register_standard_error_proxy,
        owner: nil,
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
@@ -152,12 +195,16 @@ defmodule Livebook.Runtime.ErlDist.Manager do
 
   @impl true
   def terminate(_reason, state) do
-    Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
+    if state.cleanup_on_termination do
+      Code.compiler_options(ignore_module_conflict: state.initial_ignore_module_conflict)
 
-    Process.unregister(:standard_error)
-    Process.register(state.original_standard_error, :standard_error)
+      if state.register_standard_error_proxy do
+        Process.unregister(:standard_error)
+        Process.register(state.original_standard_error, :standard_error)
+      end
 
-    ErlDist.unload_required_modules()
+      ErlDist.unload_required_modules()
+    end
 
     :ok
   end

@@ -235,7 +235,7 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session_id)
       cell_id = insert_cell(session_id, section_id, :elixir, "Process.sleep(10)")
 
-      {:ok, runtime} = LivebookTest.Runtime.SingleEvaluator.init()
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
       Session.connect_runtime(session_id, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session_id}")
@@ -367,8 +367,14 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.insert_cell(session_id, section_id, 0, type)
     %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_id)
 
+    # We need to register ourselves as a client to start submitting cell deltas
+    user = Livebook.Users.User.new()
+    Session.register_client(session_id, self(), user)
+
     delta = Delta.new(insert: content)
     Session.apply_cell_delta(session_id, cell.id, delta, 1)
+
+    wait_for_session_update(session_id)
 
     cell.id
   end

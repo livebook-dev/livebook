@@ -16,6 +16,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the runtime module to be used by default.
+  """
+  @spec default_runtime() :: Livebook.Runtime
+  def default_runtime() do
+    Application.fetch_env!(:livebook, :default_runtime)
+  end
+
+  @doc """
   Returns the authentication mode.
   """
   @spec auth_mode() :: auth_mode()
@@ -125,6 +133,26 @@ defmodule Livebook.Config do
       end
 
       password
+    end
+  end
+
+  @doc """
+  Parses and validates default runtime from env.
+  """
+  def default_runtime!(env) do
+    if runtime = System.get_env(env) do
+      case runtime do
+        "standalone" ->
+          Livebook.Runtime.ElixirStandalone
+
+        "embedded" ->
+          Livebook.Runtime.Embedded
+
+        other ->
+          abort!(
+            ~s{expected #{env} to be either "standalone" or "embedded", got: #{inspect(other)}}
+          )
+      end
     end
   end
 
