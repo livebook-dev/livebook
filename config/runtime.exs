@@ -25,3 +25,8 @@ end
 config :livebook,
        :cookie,
        Livebook.Config.cookie!("LIVEBOOK_COOKIE") || Livebook.Utils.random_cookie()
+
+config :livebook,
+       :default_runtime,
+       Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
+         Livebook.Runtime.ElixirStandalone

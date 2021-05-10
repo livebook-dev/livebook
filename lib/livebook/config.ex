@@ -137,6 +137,26 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses and validates default runtime from env.
+  """
+  def default_runtime!(env) do
+    if runtime = System.get_env(env) do
+      case runtime do
+        "standalone" ->
+          Livebook.Runtime.ElixirStandalone
+
+        "embedded" ->
+          Livebook.Runtime.Embedded
+
+        other ->
+          abort!(
+            ~s{expected #{env} to be either "standalone" or "embedded", got: #{inspect(other)}}
+          )
+      end
+    end
+  end
+
+  @doc """
   Aborts booting due to a configuration error.
   """
   def abort!(message) do
