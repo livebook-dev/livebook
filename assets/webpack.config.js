@@ -1,9 +1,7 @@
 const path = require('path');
 const glob = require('glob');
-const HardSourceWebpackPlugin = require('hard-source-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 // Make sure NODE_ENV is set, so that @tailwindcss/jit is in watch mode in development.
@@ -13,12 +11,7 @@ module.exports = (env, options) => {
   const devMode = options.mode !== 'production';
 
   return {
-    optimization: {
-      minimizer: [
-        new TerserPlugin({ cache: true, parallel: true, sourceMap: devMode }),
-        new OptimizeCSSAssetsPlugin({})
-      ]
-    },
+    mode: options.mode || 'production',
     entry: {
       'app': glob.sync('./vendor/**/*.js').concat(['./js/app.js'])
     },
@@ -56,7 +49,12 @@ module.exports = (env, options) => {
       new MonacoWebpackPlugin({
         languages: ['markdown']
       })
-    ]
-    .concat(devMode ? [new HardSourceWebpackPlugin()] : [])
+    ],
+    optimization: {
+      minimizer: [
+        '...',
+        new CssMinimizerPlugin()
+      ]
+    },
   }
 };

@@ -28,23 +28,21 @@
     "topbar": "^1.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.1",
     "autoprefixer": "^10.2.0",
-    "babel-loader": "^8.0.0",
-    "css-loader": "^3.4.2",
+    "babel-loader": "^8.2.2",
+    "css-loader": "^5.2.4",
+    "css-minimizer-webpack-plugin": "^2.0.0",
     "file-loader": "^6.2.0",
-    "hard-source-webpack-plugin": "^0.13.1",
     "jest": "^26.6.3",
-    "mini-css-extract-plugin": "^0.9.0",
+    "mini-css-extract-plugin": "^1.6.0",
     "monaco-editor-webpack-plugin": "^3.0.1",
-    "optimize-css-assets-webpack-plugin": "^5.0.1",
     "postcss": "^8.2.3",
     "postcss-import": "^14.0.0",
     "postcss-loader": "^4.1.0",
     "prettier": "^2.2.1",
-    "terser-webpack-plugin": "^2.3.2",
-    "webpack": "4.41.5",
-    "webpack-cli": "^3.3.2"
+    "webpack": "^5.37.0",
+    "webpack-cli": "^4.7.0"
   }
 }
