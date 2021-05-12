@@ -19,6 +19,7 @@ import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
 import Menu from "./menu";
 import UserForm from "./user_form";
+import Plot from "./plot";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
@@ -31,6 +32,7 @@ const hooks = {
   VirtualizedLines,
   Menu,
   UserForm,
+  Plot,
 };
 
 const csrfToken = document

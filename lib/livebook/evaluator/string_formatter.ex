@@ -18,6 +18,10 @@ defmodule Livebook.Evaluator.StringFormatter do
     {:inspect, inspected}
   end
 
+  def format({:ok, {:vega_plot, spec}}) do
+    {:vega_plot, spec}
+  end
+
   def format({:ok, value}) do
     inspected = inspect(value, inspect_opts())
     {:inspect, inspected}
