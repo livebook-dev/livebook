@@ -113,6 +113,11 @@
   color: #abb2bf;
 }
 
+.markdown kbd {
+  @apply py-[0.2rem] px-2 rounded-lg text-xs align-middle font-mono border border-gray-300;
+  box-shadow: #cad5e0 0px -2px 0px 0px inset;
+}
+
 .markdown > :first-child {
   @apply mt-0;
 }
