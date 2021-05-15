@@ -856,6 +856,29 @@ defmodule Livebook.Session.DataTest do
                 }
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "adds output even after the cell finished evaluation" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+        ])
+
+      operation = {:add_cell_evaluation_stdout, self(), "c1", "Hello!"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [%{outputs: ["Hello!", _result]}]
+                    }
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_response" do

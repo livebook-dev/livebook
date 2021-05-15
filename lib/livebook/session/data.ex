@@ -266,8 +266,7 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:add_cell_evaluation_stdout, _client_pid, id, string}) do
-    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id),
-         :evaluating <- data.cell_infos[cell.id].evaluation_status do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
       |> add_cell_evaluation_stdout(cell, string)
