@@ -55,7 +55,10 @@ defmodule Livebook.Runtime.ElixirStandalone do
   defp start_elixir_node(elixir_path, node_name, eval, argv) do
     # Here we create a port to start the system process in a non-blocking way.
     Port.open({:spawn_executable, elixir_path}, [
-      :binary,
+      # We don't communicate with the system process via stdio,
+      # contrarily, we want any non-captured output to go directly
+      # to the terminal
+      :nouse_stdio,
       :hide,
       args: elixir_flags(node_name) ++ ["--eval", eval, "--" | Enum.map(argv, &to_string/1)]
     ])
