@@ -39,7 +39,9 @@ defmodule Livebook.Runtime.StandaloneInit do
       # Minimize schedulers busy wait threshold,
       # so that they go to sleep immediately after evaluation.
       # Enable ANSI escape codes as we handle them with HTML.
-      "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true",
+      # Disable stdin, so that the system process never tries to read
+      # any input from the terminal.
+      "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true -noinput",
       # Make the node hidden, so it doesn't automatically join the cluster
       "--hidden",
       # Use the cookie in Livebook
