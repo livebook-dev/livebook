@@ -1,4 +1,4 @@
-defmodule Livebook.Evaluator.StringFormatter do
+defmodule Livebook.Evaluator.DefaultFormatter do
   @moduledoc false
 
   # The formatter used by Livebook for rendering the results.

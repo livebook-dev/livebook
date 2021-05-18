@@ -20,7 +20,7 @@ defmodule Livebook.Runtime.ErlDist do
   @required_modules [
     Livebook.Evaluator,
     Livebook.Evaluator.IOProxy,
-    Livebook.Evaluator.StringFormatter,
+    Livebook.Evaluator.DefaultFormatter,
     Livebook.Completion,
     Livebook.Runtime.ErlDist,
     Livebook.Runtime.ErlDist.Manager,

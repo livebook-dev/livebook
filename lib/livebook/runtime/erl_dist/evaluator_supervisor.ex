@@ -24,7 +24,7 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   def start_evaluator(supervisor) do
     case DynamicSupervisor.start_child(
            supervisor,
-           {Evaluator, [formatter: Evaluator.StringFormatter]}
+           {Evaluator, [formatter: Evaluator.DefaultFormatter]}
          ) do
       {:ok, pid} -> {:ok, pid}
       {:ok, pid, _} -> {:ok, pid}
