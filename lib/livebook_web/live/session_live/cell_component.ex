@@ -227,7 +227,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
-        <div class="p-4">
+        <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
           <%= render_output(socket, output, "#{@cell_view.id}-output#{index}") %>
         </div>
       <% end %>
@@ -266,8 +266,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_output(socket, {:vega_plot, spec}, id) do
-    live_component socket, LivebookWeb.SessionLive.PlotComponent, id: id, spec: spec
+  defp render_output(socket, {:vega_spec, spec}, id) do
+    live_component(socket, LivebookWeb.SessionLive.PlotComponent, id: id, spec: spec)
   end
 
   defp render_output(_socket, {:error, formatted}, _id) do

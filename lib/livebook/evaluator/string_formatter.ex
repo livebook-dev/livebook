@@ -18,13 +18,18 @@ defmodule Livebook.Evaluator.StringFormatter do
     {:inspect, inspected}
   end
 
-  def format({:ok, {:vega_plot, spec}}) do
-    {:vega_plot, spec}
-  end
-
   def format({:ok, value}) do
-    inspected = inspect(value, inspect_opts())
-    {:inspect, inspected}
+    cond do
+      match?(%{__struct__: VegaLite}, value) and function_exported?(VegaLite, :to_spec, 1) ->
+        # Avoid compilation warnings
+        vega_lite = VegaLite
+        spec = vega_lite.to_spec(value)
+        {:vega_spec, spec}
+
+      true ->
+        inspected = inspect(value, inspect_opts())
+        {:inspect, inspected}
+    end
   end
 
   def format({:error, kind, error, stacktrace}) do
