@@ -18,13 +18,12 @@ defmodule Livebook.Evaluator.StringFormatter do
     {:inspect, inspected}
   end
 
+  @compile {:no_warn_undefined, {VegaLite, :to_spec, 1}}
+
   def format({:ok, value}) do
     cond do
-      match?(%{__struct__: VegaLite}, value) and function_exported?(VegaLite, :to_spec, 1) ->
-        # Avoid compilation warnings
-        vega_lite = VegaLite
-        spec = vega_lite.to_spec(value)
-        {:vega_spec, spec}
+      is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
+        {:vega_spec, VegaLite.to_spec(value)}
 
       true ->
         inspected = inspect(value, inspect_opts())
