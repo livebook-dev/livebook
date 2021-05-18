@@ -2,18 +2,18 @@ import vegaEmbed from "vega-embed";
 import { getAttributeOrThrow } from "../lib/attribute";
 
 /**
- * A hook used to render a plot using Vega-Lite based
- * on the received JSON definition.
+ * A hook used to render graphics according to the given
+ * Vega-Lite specification.
  *
- * The hook expects a `plot:<id>` event with `{ spec }` payload,
- * where the spec is the plot definition as an object.
+ * The hook expects a `vega_lite:<id>` event with `{ spec }` payload,
+ * where `spec` is the graphic definition as an object.
  *
  * Configuration:
  *
  *   * `data-id` - plot id
  *
  */
-const Plot = {
+const VegaLite = {
   mounted() {
     this.props = getProps(this);
     this.state = {
@@ -23,10 +23,8 @@ const Plot = {
     this.state.container = document.createElement("div");
     this.el.appendChild(this.state.container);
 
-    this.handleEvent(`plot:${this.props.id}`, ({ spec }) => {
-      vegaEmbed(this.state.container, spec, {
-        // theme: "ggplot2",
-      });
+    this.handleEvent(`vega_lite:${this.props.id}`, ({ spec }) => {
+      vegaEmbed(this.state.container, spec, {});
     });
   },
 
@@ -41,4 +39,4 @@ function getProps(hook) {
   };
 }
 
-export default Plot;
+export default VegaLite;

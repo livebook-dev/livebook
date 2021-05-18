@@ -266,8 +266,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_output(socket, {:vega_spec, spec}, id) do
-    live_component(socket, LivebookWeb.SessionLive.PlotComponent, id: id, spec: spec)
+  defp render_output(socket, {:vega_lite_spec, spec}, id) do
+    live_component(socket, LivebookWeb.SessionLive.VegaLiteComponent, id: id, spec: spec)
   end
 
   defp render_output(_socket, {:error, formatted}, _id) do

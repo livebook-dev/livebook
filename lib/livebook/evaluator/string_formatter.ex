@@ -23,7 +23,7 @@ defmodule Livebook.Evaluator.StringFormatter do
   def format({:ok, value}) do
     cond do
       is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
-        {:vega_spec, VegaLite.to_spec(value)}
+        {:vega_lite_spec, VegaLite.to_spec(value)}
 
       true ->
         inspected = inspect(value, inspect_opts())
