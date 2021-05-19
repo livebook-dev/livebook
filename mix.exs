@@ -17,7 +17,8 @@ defmodule Livebook.MixProject do
       aliases: aliases(),
       deps: deps(),
       escript: escript(),
-      releases: releases()
+      releases: releases(),
+      package: package()
     ]
   end
 
@@ -62,19 +63,28 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp escript() do
+  defp escript do
     [
       main_module: LivebookCLI,
       app: nil
     ]
   end
 
-  defp releases() do
+  defp releases do
     [
       livebook: [
         include_executables_for: [:unix],
         include_erts: false
       ]
+    ]
+  end
+
+  def package do
+    [
+      licenses: ["Apache-2.0"],
+      links: %{
+        "GitHub" => "https://github.com/elixir-nx/livebook"
+      }
     ]
   end
 end
