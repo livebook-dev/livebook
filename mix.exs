@@ -1,11 +1,16 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
+
   def project do
     [
       app: :livebook,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.12",
+      name: "Livebook",
+      description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
