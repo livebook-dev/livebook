@@ -44,7 +44,9 @@ livebook server
 livebook server --help
 ```
 
-If you installed Elixir with asdf make sure to run `asdf reshim elixir`
+After you install the escript, make sure you add the directory where
+Elixir keeps escripts to your [$PATH](https://en.wikipedia.org/wiki/PATH_(variable)).
+If you installed Elixir with `asdf`, you'll need to run `asdf reshim elixir`.
 once the Escript is built.
 
 ### Docker
