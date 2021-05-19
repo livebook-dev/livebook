@@ -11,8 +11,8 @@ defmodule Livebook.Runtime.MixStandaloneTest do
 
     ref = emitter.ref
     # Wait for the Mix setup to finish and for node initialization
-    assert_receive {:emitter, ^ref, {:output, "Running mix deps.get...\n"}}, 5_000
-    assert_receive {:emitter, ^ref, {:ok, runtime}}, 5_000
+    assert_receive {:emitter, ^ref, {:output, "Running mix deps.get...\n"}}, 8_000
+    assert_receive {:emitter, ^ref, {:ok, runtime}}, 8_000
 
     Runtime.connect(runtime)
     %{node: node} = runtime
