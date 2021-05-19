@@ -84,7 +84,8 @@ defmodule Livebook.MixProject do
       licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => "https://github.com/elixir-nx/livebook"
-      }
+      },
+      files: ~w(lib priv/static config mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 end
