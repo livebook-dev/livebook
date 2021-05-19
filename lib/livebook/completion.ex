@@ -76,20 +76,6 @@ defmodule Livebook.Completion do
     end
   end
 
-  defp complete_module_attribute(hint) do
-    for {attribute, info} <- Module.reserved_attributes(),
-        name = Atom.to_string(attribute),
-        String.starts_with?(name, hint) do
-      %{
-        label: name,
-        kind: :variable,
-        detail: "module attribute",
-        documentation: info.doc,
-        insert_text: name
-      }
-    end
-  end
-
   ## Complete dot
 
   defp complete_dot(path, hint, ctx) do
@@ -566,6 +552,20 @@ defmodule Livebook.Completion do
         {start, _} = List.last(parts)
         size = byte_size(string)
         {binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+    end
+  end
+
+  defp complete_module_attribute(hint) do
+    for {attribute, info} <- Module.reserved_attributes(),
+        name = Atom.to_string(attribute),
+        String.starts_with?(name, hint) do
+      %{
+        label: name,
+        kind: :variable,
+        detail: "module attribute",
+        documentation: info.doc,
+        insert_text: name
+      }
     end
   end
 end
