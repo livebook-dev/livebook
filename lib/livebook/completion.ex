@@ -67,10 +67,26 @@ defmodule Livebook.Completion do
       {:local_call, _local} ->
         complete_default(ctx)
 
-      # {:module_attribute, charlist}
+      {:module_attribute, attribute} ->
+        complete_module_attribute(List.to_string(attribute))
+
       # :none
       _ ->
         []
+    end
+  end
+
+  defp complete_module_attribute(hint) do
+    for {attribute, info} <- Module.reserved_attributes(),
+        name = Atom.to_string(attribute),
+        String.starts_with?(name, hint) do
+      %{
+        label: name,
+        kind: :variable,
+        detail: "module attribute",
+        documentation: info.doc,
+        insert_text: name
+      }
     end
   end
 

@@ -911,4 +911,18 @@ defmodule Livebook.CompletionTest do
     :code.purge(:"Elixir.Livebook.CompletionTest.Unicodé")
     :code.delete(:"Elixir.Livebook.CompletionTest.Unicodé")
   end
+
+  test "known Elixir module attributes completion" do
+    {binding, env} = eval(do: nil)
+
+    assert [
+             %{
+               label: "moduledoc",
+               kind: :variable,
+               detail: "module attribute",
+               documentation: "Provides documentation for the current module.",
+               insert_text: "moduledoc"
+             }
+           ] = Completion.get_completion_items("@modu", binding, env)
+  end
 end
