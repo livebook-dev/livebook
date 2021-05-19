@@ -10,6 +10,5 @@ erl_crash.dump
 livebook-*.tar
 npm-debug.log
 /assets/node_modules/
-/priv/static_dev/
 /tmp/
 /livebook

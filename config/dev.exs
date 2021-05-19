@@ -51,7 +51,7 @@ config :livebook, LivebookWeb.Endpoint,
 config :livebook, LivebookWeb.Endpoint,
   live_reload: [
     patterns: [
-      ~r"priv/static_dev/.*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"tmp/static_dev/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"lib/livebook_web/(live|views)/.*(ex)$",
       ~r"lib/livebook_web/templates/.*(eex)$"
     ]

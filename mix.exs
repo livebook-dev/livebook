@@ -85,7 +85,7 @@ defmodule Livebook.MixProject do
       links: %{
         "GitHub" => "https://github.com/elixir-nx/livebook"
       },
-      files: ~w(lib priv/static config mix.exs README.md LICENSE CHANGELOG.md)
+      files: ~w(lib priv config mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 end

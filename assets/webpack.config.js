@@ -17,7 +17,7 @@ module.exports = (env, options) => {
     },
     output: {
       filename: '[name].js',
-      path: path.resolve(__dirname, (devMode ? '../priv/static_dev/js' : '../priv/static/js')),
+      path: path.resolve(__dirname, (devMode ? '../tmp/static_dev/js' : '../priv/static/js')),
       publicPath: '/js/'
     },
     devtool: devMode ? 'eval-cheap-module-source-map' : undefined,

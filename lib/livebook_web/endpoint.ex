@@ -28,13 +28,13 @@ defmodule LivebookWeb.Endpoint do
 
   defmodule AssetsFileSystemProvider do
     use LivebookWeb.FileSystemProvider,
-      from: {:livebook, "priv/static_dev"}
+      from: {:livebook, "tmp/static_dev"}
   end
 
   # Serve static failes at "/"
 
   if code_reloading? do
-    # In development we use assets from priv/static_dev (rebuilt dynamically on every change).
+    # In development we use assets from tmp/static_dev (rebuilt dynamically on every change).
     # Note that this directory doesn't contain predefined files (e.g. images),
     # so we also use `AssetsMemoryProvider` to serve those from priv/static.
     plug LivebookWeb.StaticPlug,

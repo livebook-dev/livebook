@@ -28,14 +28,6 @@ npm-debug.log
 # The directory NPM downloads your dependencies sources to.
 /assets/node_modules/
 
-# During development we build assets from assets/
-# and they end up in priv/static_dev/, from where they are served.
-#
-# For deployment we build the assets to priv/static/
-# and commit to the reposity, because they have to be accessible
-# when building Escript locally.
-/priv/static_dev/
-
 # The directory used by ExUnit :tmp_dir
 /tmp/
 
