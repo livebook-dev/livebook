@@ -1,6 +1,6 @@
 # Stage 1
 # Builds the Livebook release
-FROM hexpm/elixir:1.12.0-rc.1-erlang-24.0-rc3-alpine-3.13.3 AS build
+FROM hexpm/elixir:1.12.0-erlang-24.0-alpine-3.13.3 AS build
 
 RUN apk add --no-cache build-base git
 
@@ -31,7 +31,7 @@ RUN mix do compile, release
 # We use the same base image, because we need Erlang, Elixir and Mix
 # during runtime to spawn the Livebook standalone runtimes.
 # Consequently the release doesn't include ERTS as we have it anyway.
-FROM hexpm/elixir:1.12.0-rc.1-erlang-24.0-rc3-alpine-3.13.3
+FROM hexpm/elixir:1.12.0-erlang-24.0-alpine-3.13.3
 
 RUN apk add --no-cache \
     # Runtime dependencies
