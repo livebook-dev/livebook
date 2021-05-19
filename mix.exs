@@ -48,7 +48,12 @@ defmodule Livebook.MixProject do
     [
       "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
       "dev.build": ["cmd npm run deploy --prefix ./assets"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"]
+      "format.all": ["format", "cmd npm run format --prefix ./assets"],
+      # TODO: loadconfig no longer required on Elixir v1.13
+      # Currently this ensures we load configuration before
+      # compiling dependencies as part of `mix escript.install`.
+      # See https://github.com/elixir-lang/elixir/commit/a6eefb244b3a5892895a97b2dad4cce2b3c3c5ed
+      "escript.build": ["loadconfig", "escript.build"]
     ]
   end
 
