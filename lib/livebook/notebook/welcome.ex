@@ -140,7 +140,7 @@ defmodule Livebook.Notebook.Welcome do
 
   But there are cases when you just want to play around with a new package
   or quickly prototype some code that relies on such. Fortunately, Elixir v1.12+ ships with
-  [`Mix.install/2`](https://hexdocs.pm/mix/1.12/Mix.html#install/2) that allows you to install
+  [`Mix.install/2`](https://hexdocs.pm/mix/Mix.html#install/2) that allows you to install
   dependencies into your Elixir runtime! This approach is especially useful when sharing notebooks
   because everyone will be able to get the same dependencies. Let's try this out:
 
@@ -149,7 +149,6 @@ defmodule Livebook.Notebook.Welcome do
   instance, otherwise the command below will fail.
 
   ```elixir
-  # Note: this requires Elixir version >= 1.12
   Mix.install([
     {:jason, "~> 1.2"}
   ])
@@ -170,16 +169,16 @@ defmodule Livebook.Notebook.Welcome do
 
   ## Running tests
 
-  If you are using Elixir v1.12, it is also possible to run tests directly
-  from your notebooks. The key is to disable `ExUnit`'s autorun feature and
-  then explicitly run the test suite after all test cases have been defined:
+  It is also possible to run tests directly from your notebooks.
+  The key is to disable `ExUnit`'s autorun feature and then explicitly
+  run the test suite after all test cases have been defined:
 
   ```elixir
   ExUnit.start(autorun: false)
 
   defmodule MyTest do
     use ExUnit.Case, async: true
-    
+
     test "it works" do
       assert true
     end

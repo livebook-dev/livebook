@@ -40,7 +40,7 @@ mix deps.get --only prod
 MIX_ENV=prod mix phx.server
 ```
 
-You will need [Elixir v1.11](https://elixir-lang.org/install.html) or later.
+You will need [Elixir v1.12](https://elixir-lang.org/install.html) or later.
 
 ### Escript
 
