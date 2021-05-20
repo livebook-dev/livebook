@@ -18,8 +18,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
         </div>
       <% end %>
       <p class="text-gray-700">
-        Load notebook from an online source (e.g. a GitHub repository)
-        simply by pasting its URL.
+        Paste the URL to a .livemd file, to a GitHub file, or to a Gist to import it.
       </p>
       <%= f = form_for :data, "#",
                 phx_submit: "import",
