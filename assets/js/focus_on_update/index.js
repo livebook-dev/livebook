@@ -7,7 +7,9 @@ const FocusOnUpdate = {
   },
 
   updated() {
-    this.__focus();
+    if (this.el !== document.activeElement) {
+      this.__focus();
+    }
   },
 
   __focus() {
