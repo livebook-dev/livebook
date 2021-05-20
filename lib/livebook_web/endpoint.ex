@@ -28,7 +28,7 @@ defmodule LivebookWeb.Endpoint do
 
   defmodule AssetsFileSystemProvider do
     use LivebookWeb.FileSystemProvider,
-      from: {:livebook, "tmp/static_dev"}
+      from: "tmp/static_dev"
   end
 
   # Serve static failes at "/"
