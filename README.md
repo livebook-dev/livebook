@@ -20,7 +20,7 @@ There is a [screencast by José Valim showing some of Livebook features](https:/
 
 ![Screenshot](https://github.com/elixir-nx/livebook/raw/main/.github/imgs/welcome.png)
 
-The current version provides only the initial step of our Livebook vision. Our plan is to continue focusing on visual, collaborative, and interactive features in the upcoming releases.
+We are actively working on Livebook and you can consult the issues tracker to see some of the features we have in mind. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring us and some of our features.
 
 ## Usage
 
