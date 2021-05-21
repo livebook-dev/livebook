@@ -4,7 +4,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
   def render(assigns) do
     ~L"""
     <div
-      id="section-<%= @section_view.id %>"
+      id="<%= @section_view.html_id %>"
       data-element="section"
       data-section-id="<%= @section_view.id %>">
       <div class="flex space-x-4 items-center" data-element="section-headline">
@@ -21,7 +21,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             because we want the content to exactly match section name. %>
         <div class="flex space-x-2 items-center" data-element="section-actions">
           <span class="tooltip top" aria-label="Link">
-            <a href="#section-<%= @section_view.id %>" class="icon-button">
+            <a href="#<%= @section_view.html_id %>" class="icon-button">
               <%= remix_icon("link", class: "text-xl") %>
             </a>
           </span>
