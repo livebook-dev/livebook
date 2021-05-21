@@ -3,7 +3,8 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, Utils}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
@@ -811,7 +812,7 @@ defmodule LivebookWeb.SessionLive do
 
     put_in(
       data_view,
-      [:section_views, Utils.access_by_id(section.id), :cell_views, Utils.access_by_id(cell.id)],
+      [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
       cell_view
     )
   end

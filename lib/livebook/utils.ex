@@ -89,14 +89,19 @@ defmodule Livebook.Utils do
 
       :get_and_update, data, next when is_list(data) ->
         idx = Enum.find_index(data, fn item -> item.id == id end)
-        item = idx && Enum.at(data, idx)
 
-        case next.(item) do
-          {get, update} ->
-            {get, List.replace_at(data, idx, update)}
+        if idx do
+          item = Enum.at(data, idx)
 
-          :pop ->
-            {item, List.delete_at(data, idx)}
+          case next.(item) do
+            {get, update} ->
+              {get, List.replace_at(data, idx, update)}
+
+            :pop ->
+              {item, List.delete_at(data, idx)}
+          end
+        else
+          {nil, data}
         end
 
       _op, data, _next ->

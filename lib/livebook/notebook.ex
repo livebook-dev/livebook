@@ -14,6 +14,7 @@ defmodule Livebook.Notebook do
   defstruct [:name, :version, :sections, :metadata]
 
   alias Livebook.Notebook.{Section, Cell}
+  import Livebook.Utils, only: [access_by_id: 1]
 
   @type metadata :: %{String.t() => term()}
 
@@ -88,7 +89,6 @@ defmodule Livebook.Notebook do
   @spec insert_section(t(), integer(), Section.t()) :: t()
   def insert_section(notebook, index, section) do
     sections = List.insert_at(notebook.sections, index, section)
-
     %{notebook | sections: sections}
   end
 
@@ -97,16 +97,9 @@ defmodule Livebook.Notebook do
   """
   @spec insert_cell(t(), Section.id(), integer(), Cell.t()) :: t()
   def insert_cell(notebook, section_id, index, cell) do
-    sections =
-      Enum.map(notebook.sections, fn section ->
-        if section.id == section_id do
-          %{section | cells: List.insert_at(section.cells, index, cell)}
-        else
-          section
-        end
-      end)
-
-    %{notebook | sections: sections}
+    update_in(notebook, [Access.key(:sections), access_by_id(section_id)], fn section ->
+      %{section | cells: List.insert_at(section.cells, index, cell)}
+    end)
   end
 
   @doc """
@@ -114,9 +107,8 @@ defmodule Livebook.Notebook do
   """
   @spec delete_section(t(), Section.id()) :: t()
   def delete_section(notebook, section_id) do
-    sections = Enum.reject(notebook.sections, &(&1.id == section_id))
-
-    %{notebook | sections: sections}
+    {_, notebook} = pop_in(notebook, [Access.key(:sections), access_by_id(section_id)])
+    notebook
   end
 
   @doc """
@@ -124,12 +116,15 @@ defmodule Livebook.Notebook do
   """
   @spec delete_cell(t(), Cell.id()) :: t()
   def delete_cell(notebook, cell_id) do
-    sections =
-      Enum.map(notebook.sections, fn section ->
-        %{section | cells: Enum.reject(section.cells, &(&1.id == cell_id))}
-      end)
+    {_, notebook} =
+      pop_in(notebook, [
+        Access.key(:sections),
+        Access.all(),
+        Access.key(:cells),
+        access_by_id(cell_id)
+      ])
 
-    %{notebook | sections: sections}
+    notebook
   end
 
   @doc """
@@ -137,17 +132,11 @@ defmodule Livebook.Notebook do
   """
   @spec update_cell(t(), Cell.id(), (Cell.t() -> Cell.t())) :: t()
   def update_cell(notebook, cell_id, fun) do
-    sections =
-      Enum.map(notebook.sections, fn section ->
-        cells =
-          Enum.map(section.cells, fn cell ->
-            if cell.id == cell_id, do: fun.(cell), else: cell
-          end)
-
-        %{section | cells: cells}
-      end)
-
-    %{notebook | sections: sections}
+    update_in(
+      notebook,
+      [Access.key(:sections), Access.all(), Access.key(:cells), access_by_id(cell_id)],
+      fun
+    )
   end
 
   @doc """
@@ -155,12 +144,7 @@ defmodule Livebook.Notebook do
   """
   @spec update_section(t(), Section.id(), (Section.t() -> Section.t())) :: t()
   def update_section(notebook, section_id, fun) do
-    sections =
-      Enum.map(notebook.sections, fn section ->
-        if section.id == section_id, do: fun.(section), else: section
-      end)
-
-    %{notebook | sections: sections}
+    update_in(notebook, [Access.key(:sections), access_by_id(section_id)], fun)
   end
 
   @doc """
