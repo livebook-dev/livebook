@@ -14,6 +14,15 @@ jobs:
         with:
           otp-version: '24.0'
           elixir-version: '1.12.0'
+      - name: Cache Mix
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
       - name: Install mix dependencies
         run: mix deps.get
       - name: Check formatting
@@ -26,6 +35,13 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '14.x'
+      - name: Cache npm dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install npm dependencies
         run: npm ci --prefix assets
       - name: Check assets formatting

@@ -13,6 +13,15 @@ jobs:
         with:
           otp-version: '24.0'
           elixir-version: '1.12.0'
+      - name: Cache Mix
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
       # Note: we need to get Phoenix and LV because package.json points to them directly
       - name: Install mix dependencies
         run: mix deps.get
@@ -20,6 +29,13 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '14.x'
+      - name: Cache npm dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Install npm dependencies
         run: npm ci --prefix assets
       - name: Build assets
