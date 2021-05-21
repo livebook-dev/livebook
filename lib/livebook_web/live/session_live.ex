@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, Utils}
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
@@ -807,19 +807,12 @@ defmodule LivebookWeb.SessionLive do
 
   defp update_cell_view(data_view, data, cell_id) do
     {:ok, cell, section} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
+    cell_view = cell_to_view(cell, data)
 
-    update_in(data_view, [:section_views, Access.all()], fn section_view ->
-      if section_view.id == section.id do
-        update_in(section_view, [:cell_views, Access.all()], fn cell_view ->
-          if cell_view.id == cell.id do
-            cell_to_view(cell, data)
-          else
-            cell_view
-          end
-        end)
-      else
-        section_view
-      end
-    end)
+    put_in(
+      data_view,
+      [:section_views, Utils.access_by_id(section.id), :cell_views, Utils.access_by_id(cell.id)],
+      cell_view
+    )
   end
 end
