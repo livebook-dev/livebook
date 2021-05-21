@@ -36,9 +36,17 @@ defmodule Livebook.Utils do
       String.to_atom(name)
     else
       # Default to the same host as the current node
-      [_, host] = node() |> Atom.to_string() |> String.split("@")
-      :"#{name}@#{host}"
+      :"#{name}@#{node_host()}"
     end
+  end
+
+  @doc """
+  Returns the host part of a node.
+  """
+  @spec node_host() :: binary()
+  def node_host do
+    [_, host] = node() |> Atom.to_string() |> :binary.split("@")
+    host
   end
 
   @doc """

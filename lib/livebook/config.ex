@@ -8,17 +8,17 @@ defmodule Livebook.Config do
   """
   @spec longname() :: binary() | nil
   def longname() do
-    [_prefix, suffix] = node() |> Atom.to_string() |> :binary.split("@")
+    host = Livebook.Utils.node_host()
 
-    if suffix =~ "." do
-      suffix
+    if host =~ "." do
+      host
     end
   end
 
   @doc """
   Returns the runtime module to be used by default.
   """
-  @spec default_runtime() :: atom()
+  @spec default_runtime() :: Livebook.Runtime.t()
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
   end
