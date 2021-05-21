@@ -4,14 +4,14 @@ defmodule Livebook.Config do
   @type auth_mode() :: :token | :password | :disabled
 
   @doc """
-  Checks if the distribution mode is configured to use short names.
+  Returns the longname if the distribution mode is configured to use long names.
   """
-  @spec shortnames?() :: boolean()
-  def shortnames?() do
-    case Application.get_env(:livebook, :node) do
-      nil -> true
-      {:shortnames, _name} -> true
-      {:longnames, _name} -> false
+  @spec longname() :: string | nil
+  def longname() do
+    [_prefix, suffix] = node() |> Atom.to_string() |> :binary.split("@")
+
+    if suffix =~ "." do
+      suffix
     end
   end
 

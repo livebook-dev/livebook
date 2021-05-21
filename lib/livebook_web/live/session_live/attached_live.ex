@@ -30,10 +30,10 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
-      <%= if Livebook.Config.shortnames? do %>
-        <pre><code>iex --sname test --cookie mycookie</code></pre>
+      <%= if longname = Livebook.Config.longname() do %>
+        <pre><code>iex --name test@<%= longname %> --cookie mycookie</code></pre>
       <% else %>
-        <pre><code>iex --name test@127.0.0.1 --cookie mycookie</code></pre>
+        <pre><code>iex --sname test --cookie mycookie</code></pre>
       <% end %>
       </div>
       <p class="text-gray-700">
@@ -43,8 +43,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         <div class="flex flex-col space-y-4">
           <div>
             <div class="input-label">Name</div>
-            <%= text_input f, :name, value: @data["name"], class: "input",
-                  placeholder: if(Livebook.Config.shortnames?, do: "test", else: "test@127.0.0.1") %>
+            <%= text_input f, :name, value: @data["name"], class: "input", placeholder: name_placeholder() %>
           </div>
           <div>
             <div class="input-label">Cookie</div>
@@ -88,6 +87,10 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
 
   defp data_valid?(data) do
     data["name"] != "" and data["cookie"] != ""
+  end
+
+  defp name_placeholder do
+    if longname = Livebook.Config.longname(), do: "test@#{longname}", else: "test"
   end
 
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"

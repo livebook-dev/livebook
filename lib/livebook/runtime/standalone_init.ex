@@ -33,7 +33,7 @@ defmodule Livebook.Runtime.StandaloneInit do
   @spec elixir_flags(node()) :: list()
   def elixir_flags(node_name) do
     [
-      if(Livebook.Config.shortnames?(), do: "--sname", else: "--name"),
+      if(Livebook.Config.longname(), do: "--name", else: "--sname"),
       to_string(node_name),
       "--erl",
       # Minimize schedulers busy wait threshold,
