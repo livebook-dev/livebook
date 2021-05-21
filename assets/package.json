@@ -25,7 +25,10 @@
     "remixicon": "^2.5.0",
     "scroll-into-view-if-needed": "^2.2.28",
     "tailwindcss": "^2.1.1",
-    "topbar": "^1.0.1"
+    "topbar": "^1.0.1",
+    "vega": "^5.20.2",
+    "vega-embed": "^6.18.1",
+    "vega-lite": "^5.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.14.0",

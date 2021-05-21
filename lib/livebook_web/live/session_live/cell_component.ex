@@ -138,7 +138,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
         <%= if @cell_view.outputs != [] do %>
           <div class="mt-2">
-            <%= render_outputs(assigns) %>
+            <%= render_outputs(assigns, @socket) %>
           </div>
         <% end %>
       </div>
@@ -223,19 +223,19 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_outputs(assigns) do
+  defp render_outputs(assigns, socket) do
     ~L"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
-        <div class="p-4">
-          <%= render_output(output, "#{@cell_view.id}-output#{index}") %>
+        <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
+          <%= render_output(socket, output, "#{@cell_view.id}-output#{index}") %>
         </div>
       <% end %>
     </div>
     """
   end
 
-  defp render_output(output, id) when is_binary(output) do
+  defp render_output(_socket, output, id) when is_binary(output) do
     # Captured output usually has a trailing newline that we can ignore,
     # because each line is itself a block anyway.
     output = String.replace_suffix(output, "\n", "")
@@ -252,7 +252,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_output({:inspect, inspected}, id) do
+  defp render_output(_socket, {:inspect, inspected}, id) do
     lines = ansi_to_html_lines(inspected)
     assigns = %{lines: lines, id: id}
 
@@ -266,7 +266,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_output({:error, formatted}, _id) do
+  defp render_output(socket, {:vega_lite_spec, spec}, id) do
+    live_component(socket, LivebookWeb.SessionLive.VegaLiteComponent, id: id, spec: spec)
+  end
+
+  defp render_output(_socket, {:error, formatted}, _id) do
     assigns = %{formatted: formatted}
 
     ~L"""

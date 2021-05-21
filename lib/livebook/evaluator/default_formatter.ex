@@ -1,4 +1,4 @@
-defmodule Livebook.Evaluator.StringFormatter do
+defmodule Livebook.Evaluator.DefaultFormatter do
   @moduledoc false
 
   # The formatter used by Livebook for rendering the results.
@@ -18,9 +18,17 @@ defmodule Livebook.Evaluator.StringFormatter do
     {:inspect, inspected}
   end
 
+  @compile {:no_warn_undefined, {VegaLite, :to_spec, 1}}
+
   def format({:ok, value}) do
-    inspected = inspect(value, inspect_opts())
-    {:inspect, inspected}
+    cond do
+      is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
+        {:vega_lite_spec, VegaLite.to_spec(value)}
+
+      true ->
+        inspected = inspect(value, inspect_opts())
+        {:inspect, inspected}
+    end
   end
 
   def format({:error, kind, error, stacktrace}) do
