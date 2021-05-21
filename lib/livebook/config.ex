@@ -6,7 +6,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the longname if the distribution mode is configured to use long names.
   """
-  @spec longname() :: string | nil
+  @spec longname() :: binary() | nil
   def longname() do
     [_prefix, suffix] = node() |> Atom.to_string() |> :binary.split("@")
 
@@ -18,7 +18,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the runtime module to be used by default.
   """
-  @spec default_runtime() :: Livebook.Runtime
+  @spec default_runtime() :: atom()
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
   end
