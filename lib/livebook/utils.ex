@@ -59,4 +59,51 @@ defmodule Livebook.Utils do
   after
     Process.unregister(name)
   end
+
+  @doc """
+  Returns a function that accesses list items by the given id.
+
+  ## Examples
+
+      iex> list = [%{id: 1, name: "Jake"}, %{id: 2, name: "Amy"}]
+      iex> get_in(list, [Livebook.Utils.access_by_id(2), Access.key(:name)])
+      "Amy"
+
+      iex> list = [%{id: 1, name: "Jake"}, %{id: 2, name: "Amy"}]
+      iex> put_in(list, [Livebook.Utils.access_by_id(2), Access.key(:name)], "Amy Santiago")
+      [%{id: 1, name: "Jake"}, %{id: 2, name: "Amy Santiago"}]
+
+  An error is raised if the accessed structure is not a list:
+
+      iex> get_in(%{}, [Livebook.Utils.access_by_id(1)])
+      ** (RuntimeError) Livebook.Utils.access_by_id/1 expected a list, got: %{}
+  """
+  @spec access_by_id(term()) ::
+          Access.access_fun(data :: struct() | map(), current_value :: term())
+  def access_by_id(id) do
+    fn
+      :get, data, next when is_list(data) ->
+        data
+        |> Enum.find(fn item -> item.id == id end)
+        |> next.()
+
+      :get_and_update, data, next when is_list(data) ->
+        case Enum.split_while(data, fn item -> item.id != id end) do
+          {prev, [item | cons]} ->
+            case next.(item) do
+              {get, update} ->
+                {get, prev ++ [update | cons]}
+
+              :pop ->
+                {item, prev ++ cons}
+            end
+
+          _ ->
+            {nil, data}
+        end
+
+      _op, data, _next ->
+        raise "Livebook.Utils.access_by_id/1 expected a list, got: #{inspect(data)}"
+    end
+  end
 end

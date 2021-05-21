@@ -4,6 +4,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.UserHelpers
 
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
@@ -553,7 +554,7 @@ defmodule LivebookWeb.SessionLive do
         new_socket =
           socket
           |> assign_private(data: data)
-          |> assign(data_view: data_to_view(data))
+          |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
           |> after_operation(socket, operation)
           |> handle_actions(actions)
 
@@ -787,5 +788,32 @@ defmodule LivebookWeb.SessionLive do
       evaluation_status: info.evaluation_status,
       changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
     }
+  end
+
+  # Updates current data_view in response to an operation.
+  # In most cases we simply recompute data_view, but for the
+  # most common ones we only update the relevant parts.
+  defp update_data_view(data_view, data, operation) do
+    case operation do
+      {:report_cell_revision, _pid, _cell_id, _revision} ->
+        data_view
+
+      {:apply_cell_delta, _pid, cell_id, _delta, _revision} ->
+        update_cell_view(data_view, data, cell_id)
+
+      _ ->
+        data_to_view(data)
+    end
+  end
+
+  defp update_cell_view(data_view, data, cell_id) do
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
+    cell_view = cell_to_view(cell, data)
+
+    put_in(
+      data_view,
+      [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
+      cell_view
+    )
   end
 end
