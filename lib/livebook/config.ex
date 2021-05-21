@@ -4,21 +4,21 @@ defmodule Livebook.Config do
   @type auth_mode() :: :token | :password | :disabled
 
   @doc """
-  Checks if the distribution mode is configured to use short names.
+  Returns the longname if the distribution mode is configured to use long names.
   """
-  @spec shortnames?() :: boolean()
-  def shortnames?() do
-    case Application.get_env(:livebook, :node) do
-      nil -> true
-      {:shortnames, _name} -> true
-      {:longnames, _name} -> false
+  @spec longname() :: binary() | nil
+  def longname() do
+    host = Livebook.Utils.node_host()
+
+    if host =~ "." do
+      host
     end
   end
 
   @doc """
   Returns the runtime module to be used by default.
   """
-  @spec default_runtime() :: Livebook.Runtime
+  @spec default_runtime() :: Livebook.Runtime.t()
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
   end
