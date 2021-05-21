@@ -553,7 +553,7 @@ defmodule LivebookWeb.SessionLive do
         new_socket =
           socket
           |> assign_private(data: data)
-          |> assign(data_view: data_to_view(data))
+          |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
           |> after_operation(socket, operation)
           |> handle_actions(actions)
 
@@ -787,5 +787,39 @@ defmodule LivebookWeb.SessionLive do
       evaluation_status: info.evaluation_status,
       changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
     }
+  end
+
+  # Updates current data_view in response to an operation.
+  # In most cases we simply recompute data_view, but for the
+  # most common ones we only update the relevant parts.
+  defp update_data_view(data_view, data, operation) do
+    case operation do
+      {:report_cell_revision, _pid, _cell_id, _revision} ->
+        data_view
+
+      {:apply_cell_delta, _pid, cell_id, _delta, _revision} ->
+        update_cell_view(data_view, data, cell_id)
+
+      _ ->
+        data_to_view(data)
+    end
+  end
+
+  defp update_cell_view(data_view, data, cell_id) do
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
+
+    update_in(data_view, [:section_views, Access.all()], fn section_view ->
+      if section_view.id == section.id do
+        update_in(section_view, [:cell_views, Access.all()], fn cell_view ->
+          if cell_view.id == cell.id do
+            cell_to_view(cell, data)
+          else
+            cell_view
+          end
+        end)
+      else
+        section_view
+      end
+    end)
   end
 end
