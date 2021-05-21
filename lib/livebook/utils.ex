@@ -88,20 +88,18 @@ defmodule Livebook.Utils do
         |> next.()
 
       :get_and_update, data, next when is_list(data) ->
-        idx = Enum.find_index(data, fn item -> item.id == id end)
+        case Enum.split_while(data, fn item -> item.id != id end) do
+          {prev, [item | cons]} ->
+            case next.(item) do
+              {get, update} ->
+                {get, prev ++ [update | cons]}
 
-        if idx do
-          item = Enum.at(data, idx)
+              :pop ->
+                {item, prev ++ cons}
+            end
 
-          case next.(item) do
-            {get, update} ->
-              {get, List.replace_at(data, idx, update)}
-
-            :pop ->
-              {item, List.delete_at(data, idx)}
-          end
-        else
-          {nil, data}
+          _ ->
+            {nil, data}
         end
 
       _op, data, _next ->
