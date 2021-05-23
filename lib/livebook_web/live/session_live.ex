@@ -737,7 +737,7 @@ defmodule LivebookWeb.SessionLive do
         data.clients_map
         |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
-      section_views: Enum.map(data.notebook.sections, &section_to_view(&1, data))
+      section_views: section_views(data.notebook.sections, data)
     }
   end
 
@@ -768,12 +768,19 @@ defmodule LivebookWeb.SessionLive do
 
   defp evaluated?(cell, data), do: data.cell_infos[cell.id].validity_status == :evaluated
 
-  defp section_to_view(section, data) do
-    %{
-      id: section.id,
-      name: section.name,
-      cell_views: Enum.map(section.cells, &cell_to_view(&1, data))
-    }
+  defp section_views(sections, data) do
+    sections
+    |> Enum.map(& &1.name)
+    |> names_to_html_ids()
+    |> Enum.zip(sections)
+    |> Enum.map(fn {html_id, section} ->
+      %{
+        id: section.id,
+        html_id: html_id,
+        name: section.name,
+        cell_views: Enum.map(section.cells, &cell_to_view(&1, data))
+      }
+    end)
   end
 
   defp cell_to_view(cell, data) do

@@ -86,4 +86,32 @@ defmodule LivebookWeb.Helpers do
     pid_str = Phoenix.LiveDashboard.Helpers.encode_pid(pid)
     Routes.live_dashboard_path(socket, :page, node(), "processes", info: pid_str)
   end
+
+  @doc """
+  Converts human-readable strings to strings which can be used
+  as HTML element IDs (compatible with HTML5)
+
+  At the same time duplicate IDs are enumerated to avoid duplicates
+  """
+  @spec names_to_html_ids(list(String.t())) :: list(String.t())
+  def names_to_html_ids(names) do
+    names
+    |> Enum.map(&name_to_html_id/1)
+    |> Enum.map_reduce(%{}, fn html_id, counts ->
+      counts = Map.update(counts, html_id, 1, &(&1 + 1))
+
+      case counts[html_id] do
+        1 -> {html_id, counts}
+        count -> {"#{html_id}-#{count}", counts}
+      end
+    end)
+    |> elem(0)
+  end
+
+  defp name_to_html_id(name) do
+    name
+    |> String.trim()
+    |> String.downcase()
+    |> String.replace(~r/\s+/u, "-")
+  end
 end
