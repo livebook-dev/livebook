@@ -93,7 +93,7 @@ defmodule LivebookWeb.Helpers do
 
   At the same time duplicate IDs are enumerated to avoid duplicates
   """
-  @spec names_to_html_ids(Enum.t()) :: Stream.t()
+  @spec names_to_html_ids(list(String.t())) :: list(String.t())
   def names_to_html_ids(names) do
     names
     |> Enum.map(&name_to_html_id/1)
