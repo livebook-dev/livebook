@@ -6,7 +6,11 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["esc"], desc: "Switch back to navigation mode"},
       %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"},
       %{seq: ["tab"], desc: "Autocomplete expression when applicable"},
-      %{seq: ["ctrl", "␣"], desc: "Show completion list, use twice for details"}
+      %{
+        seq: ["ctrl", "␣"],
+        transform_for_mac: false,
+        desc: "Show completion list, use twice for details"
+      }
     ],
     navigation_mode: [
       %{seq: ["?"], desc: "Open this help modal"},
@@ -88,7 +92,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         <%= for shortcut <- @shortcuts do %>
           <tr>
             <td class="py-2 pr-3">
-              <%= render_seq(shortcut.seq, @platform) %>
+              <%= render_shortcut_seq(shortcut, @platform) %>
             </td>
             <td>
               <%= shortcut.desc %>
@@ -100,8 +104,13 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     """
   end
 
-  defp render_seq(seq, platform) do
-    seq = if(platform == :mac, do: seq_for_mac(seq), else: seq)
+  defp render_shortcut_seq(shortcut, platform) do
+    seq =
+      if platform == :mac and Map.get(shortcut, :transform_for_mac, true) do
+        seq_for_mac(shortcut.seq)
+      else
+        shortcut.seq
+      end
 
     joiner = remix_icon("add-line", class: "text-xl text-gray-600")
 
