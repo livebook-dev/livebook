@@ -20,7 +20,7 @@ There is a [screencast by José Valim showing some of Livebook features](https:/
 
 ![Screenshot](https://github.com/elixir-nx/livebook/raw/main/.github/imgs/welcome.png)
 
-We are actively working on Livebook and you can consult the issues tracker to see some of the features we have in mind. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring us and some of our features.
+We are actively working on Livebook and you can consult the issues tracker to see some of the features we have in mind. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring some of our features.
 
 ## Usage
 
