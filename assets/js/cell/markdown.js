@@ -79,18 +79,18 @@ class Markdown {
 
   // Replaces TeX formulas in string with rendered HTML using KaTeX.
   __renderMathInString(string) {
-    const options = {
-      throwOnError: false,
-      errorColor: "inherit",
-    };
+    return string.replace(
+      /(\${1,2})([\s\S]*?)\1/g,
+      (match, delimiter, math) => {
+        const displayMode = delimiter === "$$";
 
-    return string
-      .replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => {
-        return katex.renderToString(math, { ...options, displayMode: true });
-      })
-      .replace(/\$([\s\S]*?)\$/g, (match, math) => {
-        return katex.renderToString(math, options);
-      });
+        return katex.renderToString(math.trim(), {
+          displayMode,
+          throwOnError: false,
+          errorColor: "inherit",
+        });
+      }
+    );
   }
 }
 
