@@ -25,7 +25,8 @@ defmodule Livebook.Runtime.ErlDist do
     Livebook.Runtime.ErlDist,
     Livebook.Runtime.ErlDist.Manager,
     Livebook.Runtime.ErlDist.EvaluatorSupervisor,
-    Livebook.Runtime.ErlDist.IOForwardGL
+    Livebook.Runtime.ErlDist.IOForwardGL,
+    Livebook.Runtime.ErlDist.LoggerGLBackend
   ]
 
   @doc """

@@ -31,6 +31,10 @@ defmodule Livebook.Application do
       LivebookWeb.Endpoint
     ]
 
+    # Similarly as with :standard_error, we register our backend
+    # within the Livebook node, specifically for the embedded runtime
+    Logger.add_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
+
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
     with {:ok, _} = result <- Supervisor.start_link(children, opts) do
