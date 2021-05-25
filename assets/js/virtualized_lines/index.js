@@ -47,21 +47,28 @@ const VirtualizedLines = {
     this.state.contentElement = this.el.querySelector("[data-content]");
 
     if (!this.state.contentElement) {
-      throw new Error("VirtualizedLines must have a child with data-content");
+      throw new Error(
+        "VirtualizedLines must have a child with data-content attribute"
+      );
     }
 
     const config = hyperListConfig(
+      this.state.contentElement,
       this.state.templateElement,
       this.props.maxHeight,
       this.state.lineHeight
     );
-    this.virtualizedList = new HyperList(this.state.contentElement, config);
+    this.state.virtualizedList = new HyperList(
+      this.state.contentElement,
+      config
+    );
   },
 
   updated() {
     this.props = getProps(this);
 
     const config = hyperListConfig(
+      this.state.contentElement,
       this.state.templateElement,
       this.props.maxHeight,
       this.state.lineHeight
@@ -74,7 +81,7 @@ const VirtualizedLines = {
     );
     const isAtTheEnd = scrollTop === maxScrollTop;
 
-    this.virtualizedList.refresh(this.state.contentElement, config);
+    this.state.virtualizedList.refresh(this.state.contentElement, config);
 
     if (this.props.follow && isAtTheEnd) {
       this.state.contentElement.scrollTop = this.state.contentElement.scrollHeight;
@@ -82,16 +89,33 @@ const VirtualizedLines = {
   },
 };
 
-function hyperListConfig(templateElement, maxHeight, lineHeight) {
+function hyperListConfig(
+  contentElement,
+  templateElement,
+  maxHeight,
+  lineHeight
+) {
   const numberOfLines = templateElement.childElementCount;
+  const height = Math.min(maxHeight, lineHeight * numberOfLines);
 
   return {
-    height: Math.min(maxHeight, lineHeight * numberOfLines),
+    height,
     total: numberOfLines,
     itemHeight: lineHeight,
     generate: (index) => {
       // Clone n-th child of the template container.
       return templateElement.children.item(index).cloneNode(true);
+    },
+    afterRender: () => {
+      // The content element has a fixed height and when the horizontal
+      // scrollbar appears, it's treated as part of the element's content.
+      // To accommodate for the scrollbar we dynamically add more height
+      // to the element.
+      if (contentElement.scrollWidth > contentElement.clientWidth) {
+        contentElement.style.height = `${height + 12}px`;
+      } else {
+        contentElement.style.height = `${height}px`;
+      }
     },
   };
 }
