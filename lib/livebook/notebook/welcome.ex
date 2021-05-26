@@ -189,7 +189,8 @@ defmodule Livebook.Notebook.Welcome do
 
   ## Math
 
-  Livebook supports both inline formulas like $e^{\\pi i} + 1 = 0$, as well as block formulas:
+  Livebook uses $\TeX$ syntax for math. 
+  It supports both inline math like $e^{\\pi i} + 1 = 0$, as well as display math:
 
   $$
   S(x) = \\frac{1}{1 + e^{-x}} = \\frac{e^{x}}{e^{x} + 1}
