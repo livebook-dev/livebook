@@ -7,6 +7,8 @@ on:
 jobs:
   main:
     runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
     steps:
       - uses: actions/checkout@v2
       - name: Install Erlang & Elixir
