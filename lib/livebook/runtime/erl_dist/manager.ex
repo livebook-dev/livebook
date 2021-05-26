@@ -37,8 +37,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
       from the node. Defaults to `true`.
 
     * `:register_standard_error_proxy` - configures whether
-      manager should start an IOForwardGL process and set
-      it as the group leader. Defaults to `true`.
+      manager should start an IOForwardGL process and register
+      it as `:standard_error`. Defaults to `true`.
   """
   def start(opts \\ []) do
     {anonymous?, opts} = Keyword.pop(opts, :anonymous, false)
@@ -176,6 +176,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
       Process.register(io_forward_gl_pid, :standard_error)
     end
 
+    Logger.add_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
+
     # Set `ignore_module_conflict` only for the Manager lifetime.
     initial_ignore_module_conflict = Code.compiler_options()[:ignore_module_conflict]
     Code.compiler_options(ignore_module_conflict: true)
@@ -202,6 +204,8 @@ defmodule Livebook.Runtime.ErlDist.Manager do
         Process.unregister(:standard_error)
         Process.register(state.original_standard_error, :standard_error)
       end
+
+      Logger.remove_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
 
       ErlDist.unload_required_modules()
     end
