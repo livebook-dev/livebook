@@ -788,7 +788,7 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :add_cell_evaluation_stdout" do
+  describe "apply_operation/2 given :add_cell_evaluation_output" do
     test "updates the cell outputs" do
       data =
         data_after_operations!([
@@ -797,7 +797,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cell_evaluation, self(), "c1"}
         ])
 
-      operation = {:add_cell_evaluation_stdout, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
 
       assert {:ok,
               %{
@@ -817,10 +817,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_stdout, self(), "c1", "Hola"}
+          {:add_cell_evaluation_output, self(), "c1", "Hola"}
         ])
 
-      operation = {:add_cell_evaluation_stdout, self(), "c1", " amigo!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", " amigo!"}
 
       assert {:ok,
               %{
@@ -840,10 +840,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_stdout, self(), "c1", "Hola"}
+          {:add_cell_evaluation_output, self(), "c1", "Hola"}
         ])
 
-      operation = {:add_cell_evaluation_stdout, self(), "c1", "\ramigo!\r"}
+      operation = {:add_cell_evaluation_output, self(), "c1", "\ramigo!\r"}
 
       assert {:ok,
               %{
@@ -866,7 +866,7 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
         ])
 
-      operation = {:add_cell_evaluation_stdout, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
 
       assert {:ok,
               %{

@@ -23,6 +23,11 @@ defmodule Livebook.Evaluator.IOProxy do
   Starts the IO device process.
 
   Make sure to use `configure/3` to actually proxy the requests.
+
+  Options:
+
+    * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
+      used for transforming outputs before they are sent to the client
   """
   @spec start_link() :: GenServer.on_start()
   def start_link(opts \\ []) do
@@ -38,7 +43,7 @@ defmodule Livebook.Evaluator.IOProxy do
 
   The possible messages are:
 
-  * `{:evaluation_stdout, ref, string}` - for output requests,
+  * `{:evaluation_output, ref, string}` - for output requests,
     where `ref` is the given evaluation reference and `string` is the output.
   """
   @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
@@ -57,8 +62,9 @@ defmodule Livebook.Evaluator.IOProxy do
   ## Callbacks
 
   @impl true
-  def init(_opts) do
-    {:ok, %{encoding: :unicode, target: nil, ref: nil, buffer: []}}
+  def init(opts) do
+    formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
+    {:ok, %{encoding: :unicode, target: nil, ref: nil, buffer: [], formatter: formatter}}
   end
 
   @impl true
@@ -150,6 +156,16 @@ defmodule Livebook.Evaluator.IOProxy do
     io_requests(reqs, {:ok, state})
   end
 
+  # Livebook custom request type, handled in a special manner
+  # by IOProxy and safely failing for any other IO device
+  # (resulting in the {:error, :request} response).
+  defp io_request({:livebook_put_term, term}, state) do
+    state = flush_buffer(state)
+    formatted_term = state.formatter.format_output(term)
+    send(state.target, {:evaluation_output, state.ref, formatted_term})
+    {:ok, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end
@@ -186,7 +202,8 @@ defmodule Livebook.Evaluator.IOProxy do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.target != nil and string != "" do
-      send(state.target, {:evaluation_stdout, state.ref, string})
+      formatted_string = state.formatter.format_output(string)
+      send(state.target, {:evaluation_output, state.ref, formatted_string})
     end
 
     %{state | buffer: []}

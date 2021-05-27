@@ -52,8 +52,8 @@ defprotocol Livebook.Runtime do
   Evaluation outputs are send to the connected runtime owner.
   The messages should be of the form:
 
-  * `{:evaluation_stdout, ref, string}` - output captured during evaluation
-  * `{:evaluation_response, ref, response}` - final result of the evaluation
+  * `{:evaluation_output, ref, output}` - output captured during evaluation
+  * `{:evaluation_response, ref, output}` - final result of the evaluation
 
   If the evaluation state within a container is lost (e.g. a process goes down),
   the runtime can send `{:container_down, container_ref, message}` to notify the owner.

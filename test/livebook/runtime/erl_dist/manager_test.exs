@@ -63,7 +63,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
 
       Manager.evaluate_code(node(), ~s{IO.puts(:stderr, "error")}, :container1, :evaluation1, nil)
 
-      assert_receive {:evaluation_stdout, :evaluation1, "error\n"}
+      assert_receive {:evaluation_output, :evaluation1, "error\n"}
 
       Manager.stop(node())
     end
@@ -80,7 +80,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
 
       Manager.evaluate_code(node(), code, :container1, :evaluation1, nil)
 
-      assert_receive {:evaluation_stdout, :evaluation1, log_message}
+      assert_receive {:evaluation_output, :evaluation1, log_message}
       assert log_message =~ "[error] hey"
 
       Manager.stop(node())
