@@ -99,7 +99,7 @@ defmodule Livebook.Application do
 
         If you are running it from source, do instead:
 
-            elixir --name livebook@127.0.0.1 -S mix phx.server
+            MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
         """)
       end
     end
