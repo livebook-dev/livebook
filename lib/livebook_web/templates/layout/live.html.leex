@@ -5,7 +5,7 @@
         phx-click="lv:clear-flash"
         phx-value-key="info">
         <%= remix_icon("information-line", class: "text-2xl") %>
-        <span class="whitespace-pre"><%= live_flash(@flash, :info) %></span>
+        <span class="whitespace-pre-wrap"><%= live_flash(@flash, :info) %></span>
       </div>
     <% end %>
 
@@ -14,7 +14,7 @@
         phx-click="lv:clear-flash"
         phx-value-key="error">
         <%= remix_icon("error-warning-line", class: "text-2xl") %>
-        <span class="whitespace-pre"><%= live_flash(@flash, :error) %></span>
+        <span class="whitespace-pre-wrap"><%= live_flash(@flash, :error) %></span>
       </div>
     <% end %>
   </div>
