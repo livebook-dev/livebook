@@ -90,7 +90,7 @@ defmodule Livebook.Application do
       hostname = Livebook.Utils.node_host() |> to_charlist()
 
       if :inet.gethostbyname(hostname) == {:error, :nxdomain} do
-        raise RuntimeError, """
+        Livebook.Config.abort!("""
         your hostname "#{hostname}" does not resolve to any IP address, which indicates something wrong in your OS configuration.
 
         Make sure your computer's name resolves locally or start Livebook using a long distribution name. If you are using Livebook's CLI, you can:
@@ -100,7 +100,7 @@ defmodule Livebook.Application do
         If you are running it from source, do instead:
 
             elixir --name livebook@127.0.0.1 -S mix phx.server
-        """
+        """)
       end
     end
   end
