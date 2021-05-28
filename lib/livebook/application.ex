@@ -91,10 +91,15 @@ defmodule Livebook.Application do
 
       if :inet.gethostbyname(hostname) == {:error, :nxdomain} do
         raise RuntimeError, """
-        your hostname "#{hostname}" does not resolve to any IP address, which indicates something wrong in your local configuration. \
-        Starting Livebook with long distribution name may help as a workaround:
+        your hostname "#{hostname}" does not resolve to any IP address, which indicates something wrong in your OS configuration.
+
+        Make sure your computer's name resolves locally or start Livebook using a long distribution name. If you are using Livebook's CLI, you can:
 
             livebook server --name livebook@127.0.0.1
+
+        If you are running it from source, do instead:
+
+            elixir --name livebook@127.0.0.1 -S mix phx.server
         """
       end
     end
