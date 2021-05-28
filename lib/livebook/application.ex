@@ -7,6 +7,7 @@ defmodule Livebook.Application do
 
   def start(_type, _args) do
     ensure_distribution!()
+    validate_hostname_resolution!()
     set_cookie()
 
     # We register our own :standard_error below
@@ -79,6 +80,27 @@ defmodule Livebook.Application do
 
         {:error, reason} ->
           Livebook.Config.abort!("could not start distributed node: #{inspect(reason)}")
+      end
+    end
+  end
+
+  # See https://github.com/elixir-nx/livebook/issues/302
+  defp validate_hostname_resolution!() do
+    unless Livebook.Config.longname() do
+      hostname = Livebook.Utils.node_host() |> to_charlist()
+
+      if :inet.gethostbyname(hostname) == {:error, :nxdomain} do
+        Livebook.Config.abort!("""
+        your hostname "#{hostname}" does not resolve to any IP address, which indicates something wrong in your OS configuration.
+
+        Make sure your computer's name resolves locally or start Livebook using a long distribution name. If you are using Livebook's CLI, you can:
+
+            livebook server --name livebook@127.0.0.1
+
+        If you are running it from source, do instead:
+
+            MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+        """)
       end
     end
   end
