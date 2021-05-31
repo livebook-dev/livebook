@@ -40,7 +40,7 @@ defmodule Livebook.Evaluator.DefaultFormatter do
       is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
         {:vega_lite_spec, VegaLite.to_spec(value)}
 
-      is_struct(value, Kino) ->
+      is_struct(value, Kino.Widget) ->
         {:kino_widget, value.type, value.pid}
 
       true ->
