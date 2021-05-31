@@ -278,23 +278,27 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp render_output(_socket, {:kino_widget, type, _pid}, _id) do
-    formatted = """
+    render_error_message_output("""
     Got unsupported Kino widget type: #{inspect(type)}, if that's a new widget
     make usre to update Livebook to the latest version
-    """
-
-    assigns = %{formatted: formatted}
-
-    ~L"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @formatted %></div>
-    """
+    """)
   end
 
   defp render_output(_socket, {:error, formatted}, _id) do
-    assigns = %{formatted: formatted}
+    render_error_message_output(formatted)
+  end
+
+  defp render_output(_socket, output, _id) do
+    # Above we cover all possible outputs from DefaultFormatter,
+    # but this is helpful in development when adding new output types.
+    render_error_message_output("Unknown output type: #{inspect(output)}")
+  end
+
+  defp render_error_message_output(message) do
+    assigns = %{message: message}
 
     ~L"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @formatted %></div>
+    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
     """
   end
 
