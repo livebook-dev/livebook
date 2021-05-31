@@ -5,7 +5,7 @@ defmodule Livebook.LiveMarkdown.Import do
   @doc """
   Converts the given Markdown document into a notebook data structure.
 
-  Returns the notebook structure and list if informative messages/warnings
+  Returns the notebook structure and a list of informative messages/warnings
   related to the imported input.
   """
   @spec notebook_from_markdown(String.t()) :: {Notebook.t(), list(String.t())}
