@@ -46,8 +46,8 @@ defmodule Livebook.Evaluator do
 
   Options:
 
-  * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
-    used for transforming evaluation response before it's sent to the client
+    * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
+      used for transforming evaluation response before it's sent to the client
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -102,7 +102,7 @@ defmodule Livebook.Evaluator do
   def init(opts) do
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
 
-    {:ok, io_proxy} = Evaluator.IOProxy.start_link()
+    {:ok, io_proxy} = Evaluator.IOProxy.start_link(formatter: formatter)
 
     # Use the dedicated IO device as the group leader,
     # so that it handles all :stdio operations.
@@ -165,7 +165,7 @@ defmodule Livebook.Evaluator do
   end
 
   defp send_evaluation_response(send_to, ref, evaluation_response, formatter) do
-    response = formatter.format(evaluation_response)
+    response = formatter.format_response(evaluation_response)
     send(send_to, {:evaluation_response, ref, response})
   end
 

@@ -6,34 +6,47 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   @behaviour Livebook.Evaluator.Formatter
 
   @impl true
-  def format({:ok, :"do not show this result in output"}) do
+  def format_output(string) when is_binary(string), do: string
+  def format_output(other), do: format_value(other)
+
+  @impl true
+  def format_response({:ok, :"do not show this result in output"}) do
     # Functions in the `IEx.Helpers` module return this specific value
     # to indicate no result should be printed in the iex shell,
     # so we respect that as well.
     :ignored
   end
 
-  def format({:ok, {:module, _, _, _} = value}) do
+  def format_response({:ok, {:module, _, _, _} = value}) do
     inspected = inspect(value, inspect_opts(limit: 10))
     {:inspect, inspected}
   end
 
+  def format_response({:ok, value}) do
+    format_value(value)
+  end
+
+  def format_response({:error, kind, error, stacktrace}) do
+    formatted = Exception.format(kind, error, stacktrace)
+    {:error, formatted}
+  end
+
+  # ---
+
   @compile {:no_warn_undefined, {VegaLite, :to_spec, 1}}
 
-  def format({:ok, value}) do
+  defp format_value(value) do
     cond do
       is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
         {:vega_lite_spec, VegaLite.to_spec(value)}
+
+      is_struct(value, Kino.Widget) ->
+        {:kino_widget, value.type, value.pid}
 
       true ->
         inspected = inspect(value, inspect_opts())
         {:inspect, inspected}
     end
-  end
-
-  def format({:error, kind, error, stacktrace}) do
-    formatted = Exception.format(kind, error, stacktrace)
-    {:error, formatted}
   end
 
   defp inspect_opts(opts \\ []) do

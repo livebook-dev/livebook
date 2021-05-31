@@ -27,7 +27,7 @@ defmodule Livebook.Session.Data do
     :users_map
   ]
 
-  alias Livebook.{Notebook, Evaluator, Delta, Runtime, JSInterop}
+  alias Livebook.{Notebook, Delta, Runtime, JSInterop}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
@@ -84,8 +84,8 @@ defmodule Livebook.Session.Data do
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
           | {:move_section, pid(), Section.id(), offset :: integer()}
           | {:queue_cell_evaluation, pid(), Cell.id()}
-          | {:add_cell_evaluation_stdout, pid(), Cell.id(), String.t()}
-          | {:add_cell_evaluation_response, pid(), Cell.id(), Evaluator.evaluation_response()}
+          | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
+          | {:add_cell_evaluation_response, pid(), Cell.id(), term()}
           | {:reflect_evaluation_failure, pid()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
           | {:set_notebook_name, pid(), String.t()}
@@ -265,23 +265,23 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_stdout, _client_pid, id, string}) do
+  def apply_operation(data, {:add_cell_evaluation_output, _client_pid, id, output}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
-      |> add_cell_evaluation_stdout(cell, string)
+      |> add_cell_evaluation_output(cell, output)
       |> wrap_ok()
     else
       _ -> :error
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, response}) do
+  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, output}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :evaluating <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
-      |> add_cell_evaluation_response(cell, response)
+      |> add_cell_evaluation_response(cell, output)
       |> finish_cell_evaluation(cell, section)
       |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
@@ -532,22 +532,22 @@ defmodule Livebook.Session.Data do
     |> set_cell_info!(cell.id, evaluation_status: :ready)
   end
 
-  defp add_cell_evaluation_stdout({data, _} = data_actions, cell, string) do
+  defp add_cell_evaluation_output({data, _} = data_actions, cell, output) do
     data_actions
     |> set!(
       notebook:
         Notebook.update_cell(data.notebook, cell.id, fn cell ->
-          %{cell | outputs: add_output(cell.outputs, string)}
+          %{cell | outputs: add_output(cell.outputs, output)}
         end)
     )
   end
 
-  defp add_cell_evaluation_response({data, _} = data_actions, cell, response) do
+  defp add_cell_evaluation_response({data, _} = data_actions, cell, output) do
     data_actions
     |> set!(
       notebook:
         Notebook.update_cell(data.notebook, cell.id, fn cell ->
-          %{cell | outputs: add_output(cell.outputs, response)}
+          %{cell | outputs: add_output(cell.outputs, output)}
         end)
     )
   end

@@ -228,7 +228,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
-          <%= render_output(socket, output, "#{@cell_view.id}-output#{index}") %>
+          <%= render_output(socket, output, "cell-#{@cell_view.id}-output#{index}") %>
         </div>
       <% end %>
     </div>
@@ -270,11 +270,35 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     live_component(socket, LivebookWeb.SessionLive.VegaLiteComponent, id: id, spec: spec)
   end
 
+  defp render_output(socket, {:kino_widget, :vega_lite, pid}, id) do
+    live_render(socket, LivebookWeb.Kino.VegaLiteLive,
+      id: id,
+      session: %{"id" => id, "pid" => pid}
+    )
+  end
+
+  defp render_output(_socket, {:kino_widget, type, _pid}, _id) do
+    render_error_message_output("""
+    Got unsupported Kino widget type: #{inspect(type)}, if that's a new widget
+    make usre to update Livebook to the latest version
+    """)
+  end
+
   defp render_output(_socket, {:error, formatted}, _id) do
-    assigns = %{formatted: formatted}
+    render_error_message_output(formatted)
+  end
+
+  defp render_output(_socket, output, _id) do
+    # Above we cover all possible outputs from DefaultFormatter,
+    # but this is helpful in development when adding new output types.
+    render_error_message_output("Unknown output type: #{inspect(output)}")
+  end
+
+  defp render_error_message_output(message) do
+    assigns = %{message: message}
 
     ~L"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @formatted %></div>
+    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
     """
   end
 

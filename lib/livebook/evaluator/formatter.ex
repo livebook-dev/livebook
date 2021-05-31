@@ -9,11 +9,20 @@ defmodule Livebook.Evaluator.Formatter do
   # we would unnecessarily send a lot of data.
   # By defining a custom formatter the client can instruct
   # the `Evaluator` to send already transformed data.
+  #
+  # Additionally if the results rely on external package installed
+  # in the runtime node, then formatting anywhere else wouldn't be accurate,
+  # for example using `inspect` on an external struct.
 
   alias Livebook.Evaluator
 
   @doc """
+  Transforms arbitrary evaluation output, usually binary.
+  """
+  @callback format_output(term()) :: term()
+
+  @doc """
   Transforms the evaluation response.
   """
-  @callback format(Evaluator.evaluation_response()) :: term()
+  @callback format_response(Evaluator.evaluation_response()) :: term()
 end
