@@ -270,8 +270,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     live_component(socket, LivebookWeb.SessionLive.VegaLiteComponent, id: id, spec: spec)
   end
 
-  defp render_output(socket, {:live_widget, :vega_lite, pid}, id) do
-    live_render(socket, LivebookWeb.SessionLive.LiveWidget.VegaLiteLive,
+  defp render_output(socket, {:kino_widget, :vega_lite, pid}, id) do
+    live_render(socket, LivebookWeb.Kino.VegaLiteLive,
       id: id,
       session: %{"id" => id, "pid" => pid}
     )

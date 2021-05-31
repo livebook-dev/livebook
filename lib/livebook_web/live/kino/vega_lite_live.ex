@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.LiveWidget.VegaLiteLive do
+defmodule LivebookWeb.Kino.VegaLiteLive do
   use LivebookWeb, :live_view
 
   @impl true
