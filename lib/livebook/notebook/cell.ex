@@ -32,6 +32,9 @@ defmodule Livebook.Notebook.Cell do
           metadata: metadata()
         }
 
+  @typedoc """
+  For more details on output types see `t:Kino.Output.t/0`.
+  """
   @type output ::
           :ignored
           # Regular text, adjacent such outputs can be treated as a whole
