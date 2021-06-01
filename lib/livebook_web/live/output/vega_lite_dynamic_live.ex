@@ -1,4 +1,4 @@
-defmodule LivebookWeb.Kino.VegaLiteLive do
+defmodule LivebookWeb.Output.VegaLiteDynamicLive do
   use LivebookWeb, :live_view
 
   @impl true

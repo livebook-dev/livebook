@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.VegaLiteComponent do
+defmodule LivebookWeb.Output.VegaLiteStaticComponent do
   use LivebookWeb, :live_component
 
   @impl true
