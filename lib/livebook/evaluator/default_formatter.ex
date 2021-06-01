@@ -2,12 +2,12 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   @moduledoc false
 
   # The formatter used by Livebook for rendering the results.
+  #
+  # See `Livebook.Notebook.Cell` for available output formats.
 
   @behaviour Livebook.Evaluator.Formatter
 
-  @impl true
-  def format_output(string) when is_binary(string), do: string
-  def format_output(other), do: format_value(other)
+  require Logger
 
   @impl true
   def format_response({:ok, :"do not show this result in output"}) do
@@ -18,12 +18,11 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   end
 
   def format_response({:ok, {:module, _, _, _} = value}) do
-    inspected = inspect(value, inspect_opts(limit: 10))
-    {:inspect, inspected}
+    to_inspect_output(value, limit: 10)
   end
 
   def format_response({:ok, value}) do
-    format_value(value)
+    to_output(value)
   end
 
   def format_response({:error, kind, error, stacktrace}) do
@@ -31,25 +30,33 @@ defmodule Livebook.Evaluator.DefaultFormatter do
     {:error, formatted}
   end
 
-  # ---
+  @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
 
-  @compile {:no_warn_undefined, {VegaLite, :to_spec, 1}}
-
-  defp format_value(value) do
-    cond do
-      is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
-        {:vega_lite_spec, VegaLite.to_spec(value)}
-
-      is_struct(value, Kino.Widget) ->
-        {:kino_widget, value.type, value.pid}
-
-      true ->
-        inspected = inspect(value, inspect_opts())
-        {:inspect, inspected}
+  defp to_output(value) do
+    # Kino is a "client side" extension for Livebook that may be
+    # installed into the runtime node. If it is installed we use
+    # its more precies output rendering rules.
+    if Code.ensure_loaded?(Kino.Render) do
+      try do
+        Kino.Render.to_livebook(value)
+      catch
+        kind, error ->
+          {error, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+          formatted = Exception.format(kind, error, stacktrace)
+          Logger.error(formatted)
+          to_inspect_output(value)
+      end
+    else
+      to_inspect_output(value)
     end
   end
 
-  defp inspect_opts(opts \\ []) do
+  defp to_inspect_output(value, opts \\ []) do
+    inspected = inspect(value, inspect_opts(opts))
+    {:text, inspected}
+  end
+
+  defp inspect_opts(opts) do
     default_opts = [pretty: true, width: 100, syntax_colors: syntax_colors()]
     Keyword.merge(default_opts, opts)
   end

@@ -17,11 +17,6 @@ defmodule Livebook.Evaluator.Formatter do
   alias Livebook.Evaluator
 
   @doc """
-  Transforms arbitrary evaluation output, usually binary.
-  """
-  @callback format_output(term()) :: term()
-
-  @doc """
   Transforms the evaluation response.
   """
   @callback format_response(Evaluator.evaluation_response()) :: term()

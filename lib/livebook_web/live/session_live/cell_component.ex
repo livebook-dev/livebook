@@ -235,53 +235,27 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_output(_socket, output, id) when is_binary(output) do
+  defp render_output(_socket, text, id) when is_binary(text) do
+    text
     # Captured output usually has a trailing newline that we can ignore,
-    # because each line is itself a block anyway.
-    output = String.replace_suffix(output, "\n", "")
-    lines = ansi_to_html_lines(output)
-    assigns = %{lines: lines, id: id}
-
-    ~L"""
-    <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300" data-follow="true">
-      <div data-template class="hidden"><%= for line <- @lines do %><div><%= line %></div><% end %></div>
-      <div data-content class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"
-        id="<%= @id %>-content"
-        phx-update="ignore"></div>
-    </div>
-    """
+    # because each line is itself an HTML block anyway.
+    |> String.replace_suffix("\n", "")
+    |> render_virtualized_output(id, follow: true)
   end
 
-  defp render_output(_socket, {:inspect, inspected}, id) do
-    lines = ansi_to_html_lines(inspected)
-    assigns = %{lines: lines, id: id}
-
-    ~L"""
-    <div id="<%= @id %>" phx-hook="VirtualizedLines" data-max-height="300" data-follow="false">
-      <div data-template class="hidden"><%= for line <- @lines do %><div><%= line %></div><% end %></div>
-      <div data-content class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"
-        id="<%= @id %>-content"
-        phx-update="ignore"></div>
-    </div>
-    """
+  defp render_output(_socket, {:text, text}, id) do
+    render_virtualized_output(text, id)
   end
 
-  defp render_output(socket, {:vega_lite_spec, spec}, id) do
-    live_component(socket, LivebookWeb.SessionLive.VegaLiteComponent, id: id, spec: spec)
+  defp render_output(socket, {:vega_lite_static, spec}, id) do
+    live_component(socket, LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
   end
 
-  defp render_output(socket, {:kino_widget, :vega_lite, pid}, id) do
-    live_render(socket, LivebookWeb.Kino.VegaLiteLive,
+  defp render_output(socket, {:vega_lite_dynamic, pid}, id) do
+    live_render(socket, LivebookWeb.Output.VegaLiteDynamicLive,
       id: id,
       session: %{"id" => id, "pid" => pid}
     )
-  end
-
-  defp render_output(_socket, {:kino_widget, type, _pid}, _id) do
-    render_error_message_output("""
-    Got unsupported Kino widget type: #{inspect(type)}, if that's a new widget
-    make usre to update Livebook to the latest version
-    """)
   end
 
   defp render_output(_socket, {:error, formatted}, _id) do
@@ -289,9 +263,32 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp render_output(_socket, output, _id) do
-    # Above we cover all possible outputs from DefaultFormatter,
-    # but this is helpful in development when adding new output types.
-    render_error_message_output("Unknown output type: #{inspect(output)}")
+    render_error_message_output("""
+    Unknown output format: #{inspect(output)}. If you're using Kino,
+    you may want to update Kino and Livebook to the latest version.
+    """)
+  end
+
+  defp render_virtualized_output(text, id, opts \\ []) do
+    follow = Keyword.get(opts, :follow, false)
+    lines = ansi_to_html_lines(text)
+    assigns = %{lines: lines, id: id, follow: follow}
+
+    ~L"""
+    <div id="<%= @id %>"
+      phx-hook="VirtualizedLines"
+      data-max-height="300"
+      data-follow="<%= follow %>">
+      <div data-template class="hidden">
+        <%= for line <- @lines do %>
+          <div><%= line %></div>
+        <% end %>
+      </div>
+      <div data-content class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"
+        id="<%= @id %>-content"
+        phx-update="ignore"></div>
+    </div>
+    """
   end
 
   defp render_error_message_output(message) do

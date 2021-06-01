@@ -28,9 +28,25 @@ defmodule Livebook.Notebook.Cell do
           id: id(),
           type: type(),
           source: String.t(),
-          outputs: list(),
+          outputs: list(output()),
           metadata: metadata()
         }
+
+  @typedoc """
+  For more details on output types see `t:Kino.Output.t/0`.
+  """
+  @type output ::
+          :ignored
+          # Regular text, adjacent such outputs can be treated as a whole
+          | binary()
+          # Standalone text block
+          | {:text, binary()}
+          # Vega-Lite graphic
+          | {:vega_lite_static, spec :: map()}
+          # Vega-Lite graphic with dynamic data
+          | {:vega_lite_dynamic, widget_process :: pid()}
+          # Internal output format for errors
+          | {:error, message :: binary()}
 
   @doc """
   Returns an empty cell of the given type.

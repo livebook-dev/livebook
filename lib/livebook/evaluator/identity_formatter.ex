@@ -6,8 +6,5 @@ defmodule Livebook.Evaluator.IdentityFormatter do
   @behaviour Livebook.Evaluator.Formatter
 
   @impl true
-  def format_output(output), do: output
-
-  @impl true
   def format_response(evaluation_response), do: evaluation_response
 end
