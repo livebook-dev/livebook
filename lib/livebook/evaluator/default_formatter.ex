@@ -2,12 +2,10 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   @moduledoc false
 
   # The formatter used by Livebook for rendering the results.
+  #
+  # See `Livebook.Notebook.Cell` for available output formats.
 
   @behaviour Livebook.Evaluator.Formatter
-
-  @impl true
-  def format_output(string) when is_binary(string), do: string
-  def format_output(other), do: format_value(other)
 
   @impl true
   def format_response({:ok, :"do not show this result in output"}) do
@@ -19,11 +17,11 @@ defmodule Livebook.Evaluator.DefaultFormatter do
 
   def format_response({:ok, {:module, _, _, _} = value}) do
     inspected = inspect(value, inspect_opts(limit: 10))
-    {:inspect, inspected}
+    {:text, inspected}
   end
 
   def format_response({:ok, value}) do
-    format_value(value)
+    value_to_output(value)
   end
 
   def format_response({:error, kind, error, stacktrace}) do
@@ -31,21 +29,24 @@ defmodule Livebook.Evaluator.DefaultFormatter do
     {:error, formatted}
   end
 
-  # ---
+  @compile {:no_warn_undefined, {Kino.Transform, :to_livebook, 1}}
 
-  @compile {:no_warn_undefined, {VegaLite, :to_spec, 1}}
-
-  defp format_value(value) do
-    cond do
-      is_struct(value, VegaLite) and function_exported?(VegaLite, :to_spec, 1) ->
-        {:vega_lite_spec, VegaLite.to_spec(value)}
-
-      is_struct(value, Kino.Widget) ->
-        {:kino_widget, value.type, value.pid}
-
-      true ->
-        inspected = inspect(value, inspect_opts())
-        {:inspect, inspected}
+  defp value_to_output(value) do
+    # Kino is a "client side" extension for Livebook that may be
+    # installed into the runtime node. If it is installed we use
+    # its more precies output rendering rules.
+    if Code.ensure_loaded?(Kino.Transform) do
+      try do
+        Kino.Transform.to_livebook(value)
+      catch
+        kind, error ->
+          {error, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+          formatted = Exception.format(kind, error, stacktrace)
+          {:error, formatted}
+      end
+    else
+      inspected = inspect(value, inspect_opts())
+      {:text, inspected}
     end
   end
 

@@ -102,7 +102,7 @@ defmodule Livebook.Evaluator do
   def init(opts) do
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
 
-    {:ok, io_proxy} = Evaluator.IOProxy.start_link(formatter: formatter)
+    {:ok, io_proxy} = Evaluator.IOProxy.start_link()
 
     # Use the dedicated IO device as the group leader,
     # so that it handles all :stdio operations.

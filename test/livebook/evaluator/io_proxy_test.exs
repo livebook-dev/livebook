@@ -52,11 +52,11 @@ defmodule Livebook.Evaluator.IOProxyTest do
     assert_received {:evaluation_output, :ref, "hey\n"}
   end
 
-  test "supports special livebook request type", %{io: io} do
+  test "supports direct livebook output forwarding", %{io: io} do
     ref = make_ref()
-    send(io, {:io_request, self(), ref, {:livebook_put_term, [1, 2, 3]}})
+    send(io, {:io_request, self(), ref, {:livebook_put_output, {:text, "[1, 2, 3]"}}})
     assert_receive {:io_reply, ^ref, :ok}
 
-    assert_received {:evaluation_output, :ref, [1, 2, 3]}
+    assert_received {:evaluation_output, :ref, {:text, "[1, 2, 3]"}}
   end
 end
