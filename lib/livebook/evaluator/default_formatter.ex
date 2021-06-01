@@ -30,7 +30,7 @@ defmodule Livebook.Evaluator.DefaultFormatter do
     {:error, formatted}
   end
 
-  @compile {:no_warn_undefined, {Kino.Render, :to_output, 1}}
+  @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
 
   defp to_output(value) do
     # Kino is a "client side" extension for Livebook that may be
@@ -38,7 +38,7 @@ defmodule Livebook.Evaluator.DefaultFormatter do
     # its more precies output rendering rules.
     if Code.ensure_loaded?(Kino.Render) do
       try do
-        Kino.Render.to_output(value)
+        Kino.Render.to_livebook(value)
       catch
         kind, error ->
           {error, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
