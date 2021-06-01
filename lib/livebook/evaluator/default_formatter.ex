@@ -7,6 +7,8 @@ defmodule Livebook.Evaluator.DefaultFormatter do
 
   @behaviour Livebook.Evaluator.Formatter
 
+  require Logger
+
   @impl true
   def format_response({:ok, :"do not show this result in output"}) do
     # Functions in the `IEx.Helpers` module return this specific value
@@ -16,12 +18,11 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   end
 
   def format_response({:ok, {:module, _, _, _} = value}) do
-    inspected = inspect(value, inspect_opts(limit: 10))
-    {:text, inspected}
+    to_inspect_output(value, limit: 10)
   end
 
   def format_response({:ok, value}) do
-    value_to_output(value)
+    to_output(value)
   end
 
   def format_response({:error, kind, error, stacktrace}) do
@@ -31,7 +32,7 @@ defmodule Livebook.Evaluator.DefaultFormatter do
 
   @compile {:no_warn_undefined, {Kino.Render, :to_output, 1}}
 
-  defp value_to_output(value) do
+  defp to_output(value) do
     # Kino is a "client side" extension for Livebook that may be
     # installed into the runtime node. If it is installed we use
     # its more precies output rendering rules.
@@ -42,15 +43,20 @@ defmodule Livebook.Evaluator.DefaultFormatter do
         kind, error ->
           {error, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
           formatted = Exception.format(kind, error, stacktrace)
-          {:error, formatted}
+          Logger.error(formatted)
+          to_inspect_output(value)
       end
     else
-      inspected = inspect(value, inspect_opts())
-      {:text, inspected}
+      to_inspect_output(value)
     end
   end
 
-  defp inspect_opts(opts \\ []) do
+  defp to_inspect_output(value, opts \\ []) do
+    inspected = inspect(value, inspect_opts(opts))
+    {:text, inspected}
+  end
+
+  defp inspect_opts(opts) do
     default_opts = [pretty: true, width: 100, syntax_colors: syntax_colors()]
     Keyword.merge(default_opts, opts)
   end
