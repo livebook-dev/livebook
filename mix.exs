@@ -1,7 +1,7 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.1.2"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   def project do
