@@ -1,5 +1,23 @@
-defmodule Livebook.Notebook.Welcome do
-  livemd = ~s'''
+defmodule Livebook.Notebook.Explore.Utils do
+  @moduledoc false
+
+  @doc """
+  Defines a module attribute `attr` with notebook parsed from `markdown`.
+  """
+  defmacro defnotebook(attr, markdown) do
+    quote bind_quoted: [attr: attr, markdown: markdown] do
+      {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(markdown)
+      Module.put_attribute(__MODULE__, attr, notebook)
+    end
+  end
+end
+
+defmodule Livebook.Notebook.Explore do
+  @moduledoc false
+
+  import Livebook.Notebook.Explore.Utils
+
+  defnotebook(:introduction_to_livebook, ~s'''
   # Welcome to Livebook
 
   ## Introduction
@@ -189,7 +207,7 @@ defmodule Livebook.Notebook.Welcome do
 
   ## Math
 
-  Livebook uses $\TeX$ syntax for math. 
+  Livebook uses $\\TeX$ syntax for math.
   It supports both inline math like $e^{\\pi i} + 1 = 0$, as well as display math:
 
   $$
@@ -213,13 +231,60 @@ defmodule Livebook.Notebook.Welcome do
   to contribute, report bugs, suggest features or just skim over the codebase.
 
   Now go ahead and build something cool! 🚢
-  '''
+  ''')
 
-  {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(livemd)
+  defnotebook(:introduction_to_elixir, ~s'''
+  # Introduction to Elixir
 
-  @notebook notebook
+  TODO: content 🐈
+  ''')
 
-  def new() do
-    @notebook
+  defnotebook(:introduction_to_nx, ~s'''
+  # Introduction to Nx
+
+  TODO: content 🐈
+  ''')
+
+  defnotebook(:introduction_to_axon, ~s'''
+  # Neural Networks with Axon
+
+  TODO: content 🐈
+  ''')
+
+  defnotebook(:introduction_to_vega_lite, ~s'''
+  # Plotting with VegaLite and Kino
+
+  TODO: content 🐈
+  ''')
+
+  @doc """
+  Returns a list of example notebooks with metadata.
+  """
+  @spec notebook_infos() ::
+          list(notebook_info :: %{notebook: Livebook.Notebook.t(), description: String.t()})
+  def notebook_infos() do
+    [
+      %{
+        notebook: @introduction_to_livebook,
+        description: "Get to know Livebook, see how it works and explore its features."
+      },
+      %{
+        notebook: @introduction_to_elixir,
+        description: "New to Elixir? Learn about the language and its core concepts."
+      },
+      %{
+        notebook: @introduction_to_nx,
+        description:
+          "Enter numerical Elixir, experience the power of multi-dimensional arrays of numbers."
+      },
+      %{
+        notebook: @introduction_to_axon,
+        description: "Build Neural Networks in Elixir using a high-level, composable API."
+      },
+      %{
+        notebook: @introduction_to_vega_lite,
+        description: "Learn how to quickly create numerous plots for your data."
+      }
+    ]
   end
 end
