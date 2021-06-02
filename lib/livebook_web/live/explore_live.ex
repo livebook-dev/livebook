@@ -4,6 +4,8 @@ defmodule LivebookWeb.ExploreLive do
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
 
+  alias Livebook.Notebook.Explore
+
   @impl true
   def mount(_params, %{"current_user_id" => current_user_id}, socket) do
     if connected?(socket) do
@@ -12,7 +14,7 @@ defmodule LivebookWeb.ExploreLive do
 
     current_user = build_current_user(current_user_id, socket)
 
-    [lead_notebook_info | notebook_infos] = Livebook.Notebook.Explore.notebook_infos()
+    [lead_notebook_info | notebook_infos] = Explore.notebook_infos()
 
     {:ok,
      assign(socket,
@@ -90,16 +92,8 @@ defmodule LivebookWeb.ExploreLive do
 
   @impl true
   def handle_params(%{"slug" => slug}, _url, socket) do
-    [socket.assigns.lead_notebook_info | socket.assigns.notebook_infos]
-    |> Enum.find(&(&1.slug == slug))
-    |> case do
-      nil ->
-        raise "could not find an example notebook matching \"#{slug}\""
-
-      notebook_info ->
-        {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(notebook_info.livemd)
-        {:noreply, create_session(socket, notebook: notebook)}
-    end
+    notebook = Explore.notebook_by_slug!(slug)
+    {:noreply, create_session(socket, notebook: notebook)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

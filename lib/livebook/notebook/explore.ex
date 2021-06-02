@@ -38,6 +38,16 @@ end
 defmodule Livebook.Notebook.Explore do
   @moduledoc false
 
+  defmodule NotFoundError do
+    @moduledoc false
+
+    defexception [:slug, plug_status: 404]
+
+    def message(%{slug: slug}) do
+      "could not find an example notebook matching #{inspect(slug)}"
+    end
+  end
+
   import Livebook.Notebook.Explore.Utils
 
   defnotebook(:intro_to_livebook,
@@ -80,5 +90,22 @@ defmodule Livebook.Notebook.Explore do
   @spec notebook_infos() :: list(notebook_info())
   def notebook_infos() do
     [@intro_to_livebook, @intro_to_elixir, @intro_to_nx, @intro_to_axon, @intro_to_vega_lite]
+  end
+
+  @doc """
+  Finds explore notebook by slug and returns the parsed data structure.
+  """
+  @spec notebook_by_slug!(String.t()) :: Livebook.Notebook.t()
+  def notebook_by_slug!(slug) do
+    notebook_infos()
+    |> Enum.find(&(&1.slug == slug))
+    |> case do
+      nil ->
+        raise NotFoundError, slug: slug
+
+      notebook_info ->
+        {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(notebook_info.livemd)
+        notebook
+    end
   end
 end
