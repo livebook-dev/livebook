@@ -30,15 +30,12 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
-      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
-        <div class="flex-grow"></div>
-        <span class="tooltip right distant" aria-label="User profile">
-          <%= live_patch to: Routes.home_path(@socket, :user),
-                class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
-            <%= render_user_avatar(@current_user, class: "h-full w-full", text_class: "text-xs") %>
-          <% end %>
-        </span>
-      </div>
+    <%= live_component @socket, LivebookWeb.SidebarComponent,
+          id: :sidebar,
+          items: [
+            %{type: :break},
+            %{type: :user, current_user: @current_user, path: Routes.home_path(@socket, :user)}
+          ] %>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
@@ -103,7 +100,7 @@ defmodule LivebookWeb.HomeLive do
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
                 <%= live_component @socket, LivebookWeb.NotebookCardComponent,
-                      id: idx,
+                      id: "notebook-card-#{idx}",
                       notebook: info.notebook,
                       description: info.description %>
               <% end %>
