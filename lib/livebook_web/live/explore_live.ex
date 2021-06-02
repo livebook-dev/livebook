@@ -90,9 +90,12 @@ defmodule LivebookWeb.ExploreLive do
 
   @impl true
   def handle_params(%{"slug" => slug}, _url, socket) do
-    notebook_infos = [socket.assigns.lead_notebook_info | socket.assigns.notebook_infos]
-    notebook_info = Enum.find(notebook_infos, &(&1.slug == slug))
-    {:noreply, create_session(socket, notebook: notebook_info.notebook)}
+    [socket.assigns.lead_notebook_info | socket.assigns.notebook_infos]
+    |> Enum.find(&(&1.slug == slug))
+    |> case do
+      nil -> raise "could not find an example notebook matching \"#{slug}\""
+      notebook_info -> {:noreply, create_session(socket, notebook: notebook_info.notebook)}
+    end
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
