@@ -59,9 +59,8 @@ defmodule LivebookWeb.ExploreLive do
                 <%= @lead_notebook_info.description %>
               </p>
               <div class="mt-4">
-                <button class="button button-blue" phx-click="fork_lead_notebook">
-                  Let's go
-                </button>
+                <%= live_patch "Let's go", to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
+                      class: "button button-blue" %>
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">
@@ -72,9 +71,7 @@ defmodule LivebookWeb.ExploreLive do
             <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
               <%= live_component @socket, LivebookWeb.NotebookCardComponent,
                     id: "notebook-card-#{idx}",
-                    notebook: info.notebook,
-                    description: info.description,
-                    image_url: info.image_url %>
+                    notebook_info: info %>
             <% end %>
           </div>
         </div>
@@ -92,13 +89,13 @@ defmodule LivebookWeb.ExploreLive do
   end
 
   @impl true
-  def handle_params(_params, _url, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_event("fork_lead_notebook", %{}, socket) do
-    notebook = socket.assigns.lead_notebook_info.notebook
-    {:noreply, create_session(socket, notebook: notebook)}
+  def handle_params(%{"slug" => slug}, _url, socket) do
+    notebook_infos = [socket.assigns.lead_notebook_info | socket.assigns.notebook_infos]
+    notebook_info = Enum.find(notebook_infos, &(&1.slug == slug))
+    {:noreply, create_session(socket, notebook: notebook_info.notebook)}
   end
+
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
   def handle_info(

@@ -91,7 +91,7 @@ defmodule LivebookWeb.HomeLive do
               <h2 class="text-xl font-semibold text-gray-800">
                 Explore
               </h2>
-              <%= live_patch to: Routes.explore_path(@socket, :page),
+              <%= live_redirect to: Routes.explore_path(@socket, :page),
                     class: "flex items-center text-blue-600" do %>
                 <span class="font-semibold">See all</span>
                 <%= remix_icon("arrow-right-line", class: "align-middle ml-1") %>
@@ -101,9 +101,7 @@ defmodule LivebookWeb.HomeLive do
               <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
                 <%= live_component @socket, LivebookWeb.NotebookCardComponent,
                       id: "notebook-card-#{idx}",
-                      notebook: info.notebook,
-                      description: info.description,
-                      image_url: info.image_url %>
+                      notebook_info: info %>
               <% end %>
             </div>
           </div>
