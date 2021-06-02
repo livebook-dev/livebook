@@ -21,19 +21,27 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
   ## Options
 
     * `:name` - the name to regsiter the process under. Optional.
+      If the name is already used, it will be unregistered before
+      starting the process and registered back when the server
+      terminates.
   """
   @spec start_link() :: GenServer.on_start()
   def start_link(opts \\ []) do
-    {gen_opts, opts} = Keyword.split(opts, [:name])
+    name = opts[:name]
 
-    GenServer.start_link(__MODULE__, opts, gen_opts)
+    if previous = name && Process.whereis(name) do
+      Process.unregister(name)
+    end
+
+    GenServer.start_link(__MODULE__, {name, previous}, opts)
   end
 
   ## Callbacks
 
   @impl true
-  def init(_opts) do
-    {:ok, %{}}
+  def init({name, previous}) do
+    Process.flag(:trap_exit, true)
+    {:ok, %{previous: {name, previous}, replies: %{}}}
   end
 
   @impl true
@@ -43,7 +51,7 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
         # Forward the request to sender's group leader
         # and instruct it to get back to us.
         send(group_leader, {:io_request, self(), reply_as, req})
-        state = Map.put(state, reply_as, from)
+        state = put_in(state.replies[reply_as], from)
 
         {:noreply, state}
 
@@ -54,9 +62,19 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
 
   def handle_info({:io_reply, reply_as, reply}, state) do
     # Forward the reply from group leader to the original client.
-    {initially_from, state} = Map.pop(state, reply_as)
+    {initially_from, state} = pop_in(state.replies[reply_as])
     send(initially_from, {:io_reply, reply_as, reply})
 
     {:noreply, state}
+  end
+
+  @impl true
+  def terminate(_, %{previous: {name, previous}}) do
+    if name && previous do
+      Process.unregister(name)
+      Process.register(previous, name)
+    end
+
+    :ok
   end
 end

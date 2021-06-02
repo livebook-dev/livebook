@@ -4,7 +4,7 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGLTest do
   alias Livebook.Runtime.ErlDist.IOForwardGL
 
   test "forwards requests to sender's group leader" do
-    {:ok, pid} = IOForwardGL.start_link()
+    pid = start_supervised!(IOForwardGL)
 
     group_leader_io =
       ExUnit.CaptureIO.capture_io(:stdio, fn ->

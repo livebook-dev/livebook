@@ -10,9 +10,6 @@ defmodule Livebook.Application do
     validate_hostname_resolution!()
     set_cookie()
 
-    # We register our own :standard_error below
-    Process.unregister(:standard_error)
-
     children = [
       # Start the Telemetry supervisor
       LivebookWeb.Telemetry,
