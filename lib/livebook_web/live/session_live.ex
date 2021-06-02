@@ -71,40 +71,41 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
-        <%= live_patch to: Routes.home_path(@socket, :page) do %>
-          <img src="/logo.png" height="40" width="40" alt="livebook" />
-        <% end %>
-        <span class="tooltip right distant" aria-label="Sections (ss)">
-          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="sections-list-toggle">
-            <%= remix_icon("booklet-fill") %>
-          </button>
-        </span>
-        <span class="tooltip right distant" aria-label="Connected users (su)">
-          <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center" data-element="clients-list-toggle">
-            <%= remix_icon("group-fill") %>
-          </button>
-        </span>
-        <span class="tooltip right distant" aria-label="Runtime settings (sr)">
-          <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session_id),
-                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :runtime_settings, do: "text-gray-50 bg-gray-700")}" do %>
-            <%= remix_icon("cpu-line", class: "text-2xl") %>
-          <% end %>
-        </span>
-        <div class="flex-grow"></div>
-        <span class="tooltip right distant" aria-label="Keyboard shortcuts (?)">
-          <%= live_patch to: Routes.session_path(@socket, :shortcuts, @session_id),
-                class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@live_action == :shortcuts, do: "text-gray-50 bg-gray-700")}" do %>
-            <%= remix_icon("keyboard-box-fill", class: "text-2xl") %>
-          <% end %>
-        </span>
-        <span class="tooltip right distant" aria-label="User profile">
-          <%= live_patch to: Routes.session_path(@socket, :user, @session_id),
-                class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
-            <%= render_user_avatar(@current_user, class: "h-full w-full", text_class: "text-xs") %>
-          <% end %>
-        </span>
-      </div>
+      <%= live_component @socket, LivebookWeb.SidebarComponent,
+            id: :sidebar,
+            items: [
+              %{type: :logo},
+              %{
+                type: :button,
+                data_element: "sections-list-toggle",
+                icon: "booklet-fill",
+                label: "Sections (ss)",
+                active: false
+              },
+              %{
+                type: :button,
+                data_element: "clients-list-toggle",
+                icon: "group-fill",
+                label: "Connected users (su)",
+                active: false
+              },
+              %{
+                type: :link,
+                icon: "cpu-line",
+                path: Routes.session_path(@socket, :runtime_settings, @session_id),
+                label: "Runtime settings (sr)",
+                active: @live_action == :runtime_settings
+              },
+              %{type: :break},
+              %{
+                type: :link,
+                icon: "keyboard-box-fill",
+                path: Routes.session_path(@socket, :shortcuts, @session_id),
+                label: "Keyboard shortcuts (?)",
+                active: @live_action == :shortcuts
+              },
+              %{type: :user, current_user: @current_user, path: Routes.session_path(@socket, :user, @session_id)}
+            ] %>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none overflow-y-auto bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">

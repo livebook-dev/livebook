@@ -2,6 +2,7 @@ defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.UserHelpers
+  import LivebookWeb.SessionHelpers
 
   alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
@@ -14,12 +15,14 @@ defmodule LivebookWeb.HomeLive do
 
     current_user = build_current_user(current_user_id, socket)
     session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
+    notebook_infos = Notebook.Explore.notebook_infos() |> Enum.take(3)
 
     {:ok,
      assign(socket,
        current_user: current_user,
        path: default_path(),
-       session_summaries: session_summaries
+       session_summaries: session_summaries,
+       notebook_infos: notebook_infos
      )}
   end
 
@@ -27,28 +30,19 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
-      <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">
-        <div class="flex-grow"></div>
-        <span class="tooltip right distant" aria-label="User profile">
-          <%= live_patch to: Routes.home_path(@socket, :user),
-                class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
-            <%= render_user_avatar(@current_user, class: "h-full w-full", text_class: "text-xs") %>
-          <% end %>
-        </span>
-      </div>
+    <%= live_component @socket, LivebookWeb.SidebarComponent,
+          id: :sidebar,
+          items: [
+            %{type: :break},
+            %{type: :user, current_user: @current_user, path: Routes.home_path(@socket, :user)}
+          ] %>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-lg w-full mx-auto p-4 pt-0 pb-8 flex flex-col items-center space-y-4">
-          <div class="w-full flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
+        <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
+          <div class="flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
             <div class="text-2xl text-gray-800 font-semibold">
-              <img src="/logo-with-text.png" class="h-[50px]" alt="Livebook" />
+              <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
             <div class="flex space-x-2 pt-2">
-              <span class="tooltip top" aria-label="Introduction">
-                <button class="button button-outlined-gray button-square-icon"
-                  phx-click="open_welcome">
-                  <%= remix_icon("compass-line") %>
-                </button>
-              </span>
               <%= live_patch to: Routes.home_path(@socket, :import, "url"),
                     class: "button button-outlined-gray whitespace-nowrap" do %>
                 Import
@@ -59,7 +53,7 @@ defmodule LivebookWeb.HomeLive do
               </button>
             </div>
           </div>
-          <div class="w-full h-80">
+          <div class="h-80">
             <%= live_component @socket, LivebookWeb.PathSelectComponent,
               id: "path_select",
               path: @path,
@@ -92,10 +86,29 @@ defmodule LivebookWeb.HomeLive do
               </div>
             <% end %>
           </div>
-          <div class="w-full py-12">
-            <h3 class="text-xl font-semibold text-gray-800 mb-5">
+          <div class="py-12">
+            <div class="mb-4 flex justify-between items-center">
+              <h2 class="text-xl font-semibold text-gray-800">
+                Explore
+              </h2>
+              <%= live_redirect to: Routes.explore_path(@socket, :page),
+                    class: "flex items-center text-blue-600" do %>
+                <span class="font-semibold">See all</span>
+                <%= remix_icon("arrow-right-line", class: "align-middle ml-1") %>
+              <% end %>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
+                <%= live_component @socket, LivebookWeb.NotebookCardComponent,
+                      id: "notebook-card-#{idx}",
+                      notebook_info: info %>
+              <% end %>
+            </div>
+          </div>
+          <div class="py-12">
+            <h2 class="mb-4 text-xl font-semibold text-gray-800">
               Running sessions
-            </h3>
+            </h2>
             <%= if @session_summaries == [] do %>
               <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
                 <div>
@@ -160,12 +173,8 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, path: path)}
   end
 
-  def handle_event("open_welcome", %{}, socket) do
-    create_session(socket, notebook: Livebook.Notebook.Welcome.new())
-  end
-
   def handle_event("new", %{}, socket) do
-    create_session(socket)
+    {:noreply, create_session(socket)}
   end
 
   def handle_event("fork", %{}, socket) do
@@ -173,20 +182,20 @@ defmodule LivebookWeb.HomeLive do
     socket = put_import_flash_messages(socket, messages)
     notebook = Notebook.forked(notebook)
     images_dir = Session.images_dir_for_notebook(socket.assigns.path)
-    create_session(socket, notebook: notebook, copy_images_from: images_dir)
+    {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
   end
 
   def handle_event("open", %{}, socket) do
     {notebook, messages} = import_notebook(socket.assigns.path)
     socket = put_import_flash_messages(socket, messages)
-    create_session(socket, notebook: notebook, path: socket.assigns.path)
+    {:noreply, create_session(socket, notebook: notebook, path: socket.assigns.path)}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     data = Session.get_data(session_id)
     notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(session_id)
-    create_session(socket, notebook: notebook, copy_images_from: images_dir)
+    {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
   end
 
   @impl true
@@ -204,7 +213,7 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:import_content, content}, socket) do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
     socket = put_import_flash_messages(socket, messages)
-    create_session(socket, notebook: notebook)
+    {:noreply, create_session(socket, notebook: notebook)}
   end
 
   def handle_info(
@@ -243,16 +252,6 @@ defmodule LivebookWeb.HomeLive do
     case File.stat(path) do
       {:ok, stat} -> stat.access in [:read_write, :write]
       {:error, _} -> false
-    end
-  end
-
-  defp create_session(socket, opts \\ []) do
-    case SessionSupervisor.create_session(opts) do
-      {:ok, id} ->
-        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
-
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
     end
   end
 

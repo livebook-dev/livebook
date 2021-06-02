@@ -163,8 +163,9 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s{[aria-label="Introduction"] button})
+             |> element(~s{a}, "Welcome to Livebook")
              |> render_click()
+             |> follow_redirect(conn)
 
     assert to =~ "/sessions/"
 
