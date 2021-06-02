@@ -23,7 +23,7 @@ defmodule LivebookWeb.SidebarComponent do
 
     ~L"""
     <%= live_patch to: Routes.home_path(socket, :page) do %>
-      <img src="/logo.png" height="40" width="40" alt="livebook" />
+      <img src="/images/logo.png" height="40" width="40" alt="livebook" />
     <% end %>
     """
   end

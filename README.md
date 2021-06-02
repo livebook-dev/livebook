@@ -1,4 +1,4 @@
-<h1><img src="https://github.com/elixir-nx/livebook/raw/main/priv/static/logo-with-text.png" alt="Livebook" width="400"></h1>
+<h1><img src="https://github.com/elixir-nx/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
 Livebook is a web application for writing interactive and collaborative code notebooks. It features:
 

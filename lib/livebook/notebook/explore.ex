@@ -261,29 +261,40 @@ defmodule Livebook.Notebook.Explore do
   Returns a list of example notebooks with metadata.
   """
   @spec notebook_infos() ::
-          list(notebook_info :: %{notebook: Livebook.Notebook.t(), description: String.t()})
+          list(
+            notebook_info :: %{
+              notebook: Livebook.Notebook.t(),
+              description: String.t(),
+              image_url: String.t()
+            }
+          )
   def notebook_infos() do
     [
       %{
         notebook: @introduction_to_livebook,
-        description: "Get to know Livebook, see how it works and explore its features."
+        description: "Get to know Livebook, see how it works and explore its features.",
+        image_url: "/images/logo.png"
       },
       %{
         notebook: @introduction_to_elixir,
-        description: "New to Elixir? Learn about the language and its core concepts."
+        description: "New to Elixir? Learn about the language and its core concepts.",
+        image_url: "/images/elixir.png"
       },
       %{
         notebook: @introduction_to_nx,
         description:
-          "Enter numerical Elixir, experience the power of multi-dimensional arrays of numbers."
+          "Enter numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
+        image_url: "/images/nx.png"
       },
       %{
         notebook: @introduction_to_axon,
-        description: "Build Neural Networks in Elixir using a high-level, composable API."
+        description: "Build Neural Networks in Elixir using a high-level, composable API.",
+        image_url: "/images/axon.png"
       },
       %{
         notebook: @introduction_to_vega_lite,
-        description: "Learn how to quickly create numerous plots for your data."
+        description: "Learn how to quickly create numerous plots for your data.",
+        image_url: "/images/vega_lite.png"
       }
     ]
   end

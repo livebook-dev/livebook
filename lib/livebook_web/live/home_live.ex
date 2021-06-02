@@ -40,7 +40,7 @@ defmodule LivebookWeb.HomeLive do
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
             <div class="text-2xl text-gray-800 font-semibold">
-              <img src="/logo-with-text.png" class="h-[50px]" alt="Livebook" />
+              <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
             <div class="flex space-x-2 pt-2">
               <%= live_patch to: Routes.home_path(@socket, :import, "url"),
@@ -87,8 +87,8 @@ defmodule LivebookWeb.HomeLive do
             <% end %>
           </div>
           <div class="py-12">
-            <div class="flex justify-between">
-              <h2 class="text-xl font-semibold text-gray-800 mb-5">
+            <div class="mb-4 flex justify-between items-center">
+              <h2 class="text-xl font-semibold text-gray-800">
                 Explore
               </h2>
               <%= live_patch to: Routes.explore_path(@socket, :page),
@@ -102,12 +102,13 @@ defmodule LivebookWeb.HomeLive do
                 <%= live_component @socket, LivebookWeb.NotebookCardComponent,
                       id: "notebook-card-#{idx}",
                       notebook: info.notebook,
-                      description: info.description %>
+                      description: info.description,
+                      image_url: info.image_url %>
               <% end %>
             </div>
           </div>
           <div class="py-12">
-            <h2 class="text-xl font-semibold text-gray-800 mb-5">
+            <h2 class="mb-4 text-xl font-semibold text-gray-800">
               Running sessions
             </h2>
             <%= if @session_summaries == [] do %>

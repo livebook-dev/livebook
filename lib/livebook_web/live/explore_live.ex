@@ -50,7 +50,7 @@ defmodule LivebookWeb.ExploreLive do
               Click on any notebook you like and start playing around with it!
             </p>
           </div>
-          <div class="p-8 bg-gray-900 rounded-2xl flex space-x-4 h-64 shadow-xl">
+          <div class="p-8 bg-gray-900 rounded-2xl flex space-x-4 shadow-xl">
             <div class="self-end max-w-sm">
               <h3 class="text-xl text-gray-50 font-semibold">
                 <%= @lead_notebook_info.notebook.name %>
@@ -65,7 +65,7 @@ defmodule LivebookWeb.ExploreLive do
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">
-              <img src="/logo.png" height="120" width="120" alt="livebook" />
+              <img src="<%= @lead_notebook_info.image_url %>" height="120" width="120" alt="livebook" />
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -73,7 +73,8 @@ defmodule LivebookWeb.ExploreLive do
               <%= live_component @socket, LivebookWeb.NotebookCardComponent,
                     id: "notebook-card-#{idx}",
                     notebook: info.notebook,
-                    description: info.description %>
+                    description: info.description,
+                    image_url: info.image_url %>
             <% end %>
           </div>
         </div>
