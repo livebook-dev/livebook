@@ -2,25 +2,36 @@ defmodule Livebook.Notebook.Explore.Utils do
   @moduledoc false
 
   @doc """
-  Defines a module attribute `attr` with notebook
-  parsed from the corresponding file.
+  Defines a module attribute `attr` with notebook info.
   """
-  defmacro defnotebook(attr) do
-    quote bind_quoted: [attr: attr] do
-      filename = to_string(attr) <> ".livemd"
-      path = Path.join([__DIR__, "explore", filename])
-
-      notebook = Livebook.Notebook.Explore.Utils.notebook_from_file!(path)
-      Module.put_attribute(__MODULE__, attr, notebook)
+  defmacro defnotebook(attr, props) do
+    quote bind_quoted: [attr: attr, props: props] do
+      {path, notebook_info} = Livebook.Notebook.Explore.Utils.fetch_notebook!(attr, props)
 
       @external_resource path
+
+      Module.put_attribute(__MODULE__, attr, notebook_info)
     end
   end
 
-  def notebook_from_file!(path) do
+  def fetch_notebook!(attr, props) do
+    name = Atom.to_string(attr)
+    path = Path.join([__DIR__, "explore", name <> ".livemd"])
+
     markdown = File.read!(path)
+    # Parse the file to ensure no warnings and read the title.
+    # However, in the info we keep just the file contents to save on memory.
     {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(markdown)
-    notebook
+
+    notebook_info = %{
+      slug: String.replace(name, "_", "-"),
+      livemd: markdown,
+      title: notebook.name,
+      description: Keyword.fetch!(props, :description),
+      image_url: Keyword.fetch!(props, :image_url)
+    }
+
+    {path, notebook_info}
   end
 end
 
@@ -29,15 +40,36 @@ defmodule Livebook.Notebook.Explore do
 
   import Livebook.Notebook.Explore.Utils
 
-  defnotebook(:intro_to_livebook)
-  defnotebook(:intro_to_elixir)
-  defnotebook(:intro_to_nx)
-  defnotebook(:intro_to_axon)
-  defnotebook(:intro_to_vega_lite)
+  defnotebook(:intro_to_livebook,
+    description: "Get to know Livebook, see how it works and explore its features.",
+    image_url: "/images/logo.png"
+  )
+
+  defnotebook(:intro_to_elixir,
+    description: "New to Elixir? Learn about the language and its core concepts.",
+    image_url: "/images/elixir.png"
+  )
+
+  defnotebook(:intro_to_nx,
+    description:
+      "Enter numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
+    image_url: "/images/nx.png"
+  )
+
+  defnotebook(:intro_to_axon,
+    description: "Build Neural Networks in Elixir using a high-level, composable API.",
+    image_url: "/images/axon.png"
+  )
+
+  defnotebook(:intro_to_vega_lite,
+    description: "Learn how to quickly create numerous plots for your data.",
+    image_url: "/images/vega_lite.png"
+  )
 
   @type notebook_info :: %{
           slug: String.t(),
-          notebook: Livebook.Notebook.t(),
+          livemd: String.t(),
+          title: String.t(),
           description: String.t(),
           image_url: String.t()
         }
@@ -47,38 +79,6 @@ defmodule Livebook.Notebook.Explore do
   """
   @spec notebook_infos() :: list(notebook_info())
   def notebook_infos() do
-    [
-      %{
-        slug: "intro-to-livebook",
-        notebook: @intro_to_livebook,
-        description: "Get to know Livebook, see how it works and explore its features.",
-        image_url: "/images/logo.png"
-      },
-      %{
-        slug: "intro-to-elixir",
-        notebook: @intro_to_elixir,
-        description: "New to Elixir? Learn about the language and its core concepts.",
-        image_url: "/images/elixir.png"
-      },
-      %{
-        slug: "intro-to-nx",
-        notebook: @intro_to_nx,
-        description:
-          "Enter numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
-        image_url: "/images/nx.png"
-      },
-      %{
-        slug: "intro-to-axon",
-        notebook: @intro_to_axon,
-        description: "Build Neural Networks in Elixir using a high-level, composable API.",
-        image_url: "/images/axon.png"
-      },
-      %{
-        slug: "intro-to-vega-lite",
-        notebook: @intro_to_vega_lite,
-        description: "Learn how to quickly create numerous plots for your data.",
-        image_url: "/images/vega_lite.png"
-      }
-    ]
+    [@intro_to_livebook, @intro_to_elixir, @intro_to_nx, @intro_to_axon, @intro_to_vega_lite]
   end
 end

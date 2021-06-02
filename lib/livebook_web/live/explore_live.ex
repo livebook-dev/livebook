@@ -53,7 +53,7 @@ defmodule LivebookWeb.ExploreLive do
           <div class="p-8 bg-gray-900 rounded-2xl flex space-x-4 shadow-xl">
             <div class="self-end max-w-sm">
               <h3 class="text-xl text-gray-50 font-semibold">
-                <%= @lead_notebook_info.notebook.name %>
+                <%= @lead_notebook_info.title %>
               </h3>
               <p class="mt-2 text-sm text-gray-300">
                 <%= @lead_notebook_info.description %>
@@ -93,8 +93,12 @@ defmodule LivebookWeb.ExploreLive do
     [socket.assigns.lead_notebook_info | socket.assigns.notebook_infos]
     |> Enum.find(&(&1.slug == slug))
     |> case do
-      nil -> raise "could not find an example notebook matching \"#{slug}\""
-      notebook_info -> {:noreply, create_session(socket, notebook: notebook_info.notebook)}
+      nil ->
+        raise "could not find an example notebook matching \"#{slug}\""
+
+      notebook_info ->
+        {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(notebook_info.livemd)
+        {:noreply, create_session(socket, notebook: notebook)}
     end
   end
 

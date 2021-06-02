@@ -9,7 +9,7 @@ defmodule LivebookWeb.NotebookCardComponent do
         <img src="<%= @notebook_info.image_url %>" class="max-h-full max-w-[75%]" />
       </div>
       <div class="px-6 py-4 bg-gray-100 rounded-b-2xl flex-grow">
-        <%= live_redirect @notebook_info.notebook.name,
+        <%= live_redirect @notebook_info.title,
               to: Routes.explore_path(@socket, :notebook, @notebook_info.slug),
               class: "text-gray-800 font-semibold cursor-pointer" %>
         <p class="mt-2 text-sm text-gray-600">
