@@ -28,7 +28,7 @@ defmodule LivebookWeb.ModalComponent do
             <%= remix_icon("close-line", class: "text-2xl") %>
           <% end %>
 
-          <%= live_component @socket, @component, @opts %>
+          <%= live_component @component, @opts %>
         </div>
       </div>
     </div>

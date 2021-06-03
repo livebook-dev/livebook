@@ -30,7 +30,7 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
-    <%= live_component @socket, LivebookWeb.SidebarComponent,
+    <%= live_component LivebookWeb.SidebarComponent,
           id: :sidebar,
           items: [
             %{type: :break},
@@ -54,7 +54,7 @@ defmodule LivebookWeb.HomeLive do
             </div>
           </div>
           <div class="h-80">
-            <%= live_component @socket, LivebookWeb.PathSelectComponent,
+            <%= live_component LivebookWeb.PathSelectComponent,
               id: "path_select",
               path: @path,
               extnames: [LiveMarkdown.extension()],
@@ -99,7 +99,7 @@ defmodule LivebookWeb.HomeLive do
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
-                <%= live_component @socket, LivebookWeb.NotebookCardComponent,
+                <%= live_component LivebookWeb.NotebookCardComponent,
                       id: "notebook-card-#{idx}",
                       notebook_info: info %>
               <% end %>
@@ -121,7 +121,7 @@ defmodule LivebookWeb.HomeLive do
                 </div>
               </div>
             <% else %>
-              <%= live_component @socket, LivebookWeb.HomeLive.SessionsComponent,
+              <%= live_component LivebookWeb.HomeLive.SessionsComponent,
                 id: "sessions_list",
                 session_summaries: @session_summaries %>
             <% end %>
@@ -131,7 +131,7 @@ defmodule LivebookWeb.HomeLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal @socket, LivebookWeb.UserComponent,
+      <%= live_modal LivebookWeb.UserComponent,
             id: :user_modal,
             modal_class: "w-full max-w-sm",
             user: @current_user,
@@ -139,7 +139,7 @@ defmodule LivebookWeb.HomeLive do
     <% end %>
 
     <%= if @live_action == :close_session do %>
-      <%= live_modal @socket, LivebookWeb.HomeLive.CloseSessionComponent,
+      <%= live_modal LivebookWeb.HomeLive.CloseSessionComponent,
             id: :close_session_modal,
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
@@ -147,7 +147,7 @@ defmodule LivebookWeb.HomeLive do
     <% end %>
 
     <%= if @live_action == :import do %>
-      <%= live_modal @socket, LivebookWeb.HomeLive.ImportComponent,
+      <%= live_modal LivebookWeb.HomeLive.ImportComponent,
             id: :import_modal,
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),

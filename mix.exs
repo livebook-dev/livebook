@@ -35,7 +35,10 @@ defmodule Livebook.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.5.7"},
-      {:phoenix_live_view, "~> 0.15.0"},
+      # We point LV to an exact version, because we install
+      # the npm package from there to bundle all the assets,
+      # so the Elixir-side version must match
+      {:phoenix_live_view, "0.15.7"},
       {:phoenix_live_dashboard, "~> 0.4"},
       {:floki, ">= 0.27.0", only: :test},
       {:phoenix_html, "~> 2.11"},
