@@ -247,8 +247,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     render_virtualized_output(text, id)
   end
 
-  defp render_output(socket, {:vega_lite_static, spec}, id) do
-    live_component(socket, LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
+  defp render_output(_socket, {:vega_lite_static, spec}, id) do
+    live_component(LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
   end
 
   defp render_output(socket, {:vega_lite_dynamic, pid}, id) do

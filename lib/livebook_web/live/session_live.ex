@@ -71,7 +71,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <%= live_component @socket, LivebookWeb.SidebarComponent,
+      <%= live_component LivebookWeb.SidebarComponent,
             id: :sidebar,
             items: [
               %{type: :logo},
@@ -216,7 +216,7 @@ defmodule LivebookWeb.SessionLive do
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
-              <%= live_component @socket, LivebookWeb.SessionLive.SectionComponent,
+              <%= live_component LivebookWeb.SessionLive.SectionComponent,
                     id: section_view.id,
                     index: index,
                     session_id: @session_id,
@@ -227,14 +227,14 @@ defmodule LivebookWeb.SessionLive do
         </div>
       </div>
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
-        <%= live_component @socket, LivebookWeb.SessionLive.IndicatorsComponent,
+        <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
               session_id: @session_id,
               data_view: @data_view %>
       </div>
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal @socket, LivebookWeb.UserComponent,
+      <%= live_modal LivebookWeb.UserComponent,
             id: :user_modal,
             modal_class: "w-full max-w-sm",
             user: @current_user,
@@ -242,7 +242,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :runtime_settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.RuntimeComponent,
+      <%= live_modal LivebookWeb.SessionLive.RuntimeComponent,
             id: :runtime_settings_modal,
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
@@ -251,7 +251,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :file_settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceComponent,
+      <%= live_modal LivebookWeb.SessionLive.PersistenceComponent,
             id: :runtime_settings_modal,
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
@@ -261,7 +261,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.ShortcutsComponent,
+      <%= live_modal LivebookWeb.SessionLive.ShortcutsComponent,
             id: :shortcuts_modal,
             modal_class: "w-full max-w-5xl",
             platform: @platform,
@@ -269,7 +269,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :cell_settings do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.CellSettingsComponent,
+      <%= live_modal LivebookWeb.SessionLive.CellSettingsComponent,
             id: :cell_settings_modal,
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
@@ -278,7 +278,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :cell_upload do %>
-      <%= live_modal @socket, LivebookWeb.SessionLive.CellUploadComponent,
+      <%= live_modal LivebookWeb.SessionLive.CellUploadComponent,
             id: :cell_upload_modal,
             modal_class: "w-full max-w-xl",
             session_id: @session_id,

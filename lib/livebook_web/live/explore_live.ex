@@ -28,7 +28,7 @@ defmodule LivebookWeb.ExploreLive do
   def render(assigns) do
     ~L"""
     <div class="flex flex-grow h-full">
-      <%= live_component @socket, LivebookWeb.SidebarComponent,
+      <%= live_component LivebookWeb.SidebarComponent,
             id: :sidebar,
             items: [
               %{type: :logo},
@@ -71,7 +71,7 @@ defmodule LivebookWeb.ExploreLive do
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
-              <%= live_component @socket, LivebookWeb.NotebookCardComponent,
+              <%= live_component LivebookWeb.NotebookCardComponent,
                     id: "notebook-card-#{idx}",
                     notebook_info: info %>
             <% end %>
@@ -81,7 +81,7 @@ defmodule LivebookWeb.ExploreLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal @socket, LivebookWeb.UserComponent,
+      <%= live_modal LivebookWeb.UserComponent,
             id: :user_modal,
             modal_class: "w-full max-w-sm",
             user: @current_user,

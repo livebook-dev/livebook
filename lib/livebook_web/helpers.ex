@@ -9,7 +9,7 @@ defmodule LivebookWeb.Helpers do
   The rendered modal receives a `:return_to` option to properly update
   the URL when the modal is closed.
   """
-  def live_modal(socket, component, opts) do
+  def live_modal(component, opts) do
     path = Keyword.fetch!(opts, :return_to)
     modal_class = Keyword.get(opts, :modal_class)
 
@@ -21,7 +21,7 @@ defmodule LivebookWeb.Helpers do
       opts: opts
     ]
 
-    live_component(socket, LivebookWeb.ModalComponent, modal_opts)
+    live_component(LivebookWeb.ModalComponent, modal_opts)
   end
 
   @doc """

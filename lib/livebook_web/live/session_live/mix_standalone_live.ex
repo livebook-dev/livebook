@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
       </p>
       <%= if @status == :initial do %>
         <div class="h-full h-52">
-          <%= live_component @socket, LivebookWeb.PathSelectComponent,
+          <%= live_component LivebookWeb.PathSelectComponent,
             id: "path_select",
             path: @path,
             extnames: [],

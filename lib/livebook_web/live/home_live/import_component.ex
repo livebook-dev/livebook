@@ -29,11 +29,11 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
       <div>
         <%= case @tab do %>
           <% "url" -> %>
-            <%= live_component @socket, LivebookWeb.HomeLive.ImportUrlComponent,
+            <%= live_component LivebookWeb.HomeLive.ImportUrlComponent,
                   id: "import_url" %>
 
           <% "content" -> %>
-            <%= live_component @socket, LivebookWeb.HomeLive.ImportContentComponent,
+            <%= live_component LivebookWeb.HomeLive.ImportContentComponent,
                   id: "import_content" %>
         <% end %>
       </div>
