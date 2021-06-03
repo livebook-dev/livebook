@@ -35,9 +35,9 @@ Utils.random_id()
 ## Autocompletion
 
 Elixir code cells also support autocompletion by pressing
-`Ctrl + Spacebar`. You can try it out by making sure the
+<kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>. You can try it out by making sure the
 module in the previous section has been defined and then
-put the cursor after the `.` below and press `Ctrl + Spacebar`:
+put the cursor after the `.` below and press <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>:
 
 ```elixir
 Utils.
