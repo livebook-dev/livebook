@@ -329,12 +329,8 @@ function handleDocumentKeyDown(hook, event) {
  * (e.g. if the user starts selecting some text within the editor)
  */
 function handleDocumentMouseDown(hook, event) {
-  // If click targets cell actions, keep the focus as is
-  if (
-    event.target.closest(
-      `[data-element="actions"], [data-element="insert-buttons"]`
-    )
-  ) {
+  // If click targets a clickable element that awaits mouse up, keep the focus as is
+  if (event.target.closest(`a, button`)) {
     // If the pencil icon is clicked, enter insert mode
     if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
       setInsertMode(hook, true);
