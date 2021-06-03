@@ -20,6 +20,18 @@ marked.setOptions({
   },
 });
 
+// Modify external links, so that they open in a new tab.
+// See https://github.com/cure53/DOMPurify/tree/main/demos#hook-to-open-all-links-in-a-new-window-link
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (
+    node.tagName.toLowerCase() === "a" &&
+    node.host !== window.location.host
+  ) {
+    node.setAttribute("target", "_blank");
+    node.setAttribute("rel", "noreferrer noopener");
+  }
+});
+
 /**
  * Renders markdown content in the given container.
  */
