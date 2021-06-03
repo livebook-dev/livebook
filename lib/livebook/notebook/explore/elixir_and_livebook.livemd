@@ -1,0 +1,138 @@
+# Elixir and Livebook
+
+## Modules
+
+You can use code cells to execute any Elixir code:
+
+```elixir
+IO.puts("hello world!")
+```
+
+But you can define modules inside cells too!
+
+```elixir
+defmodule Utils do
+  @doc """
+  Generates a random binary id.
+  """
+  @spec random_id() :: binary()
+  def random_id() do
+    :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
+  end
+end
+```
+
+If you're surprised by the above output, keep in mind that
+every Elixir expression evaluates to some value and as so
+does module compilation!
+
+Having the module defined, let's take it for a spin.
+
+```elixir
+Utils.random_id()
+```
+
+## Autocompletion
+
+Elixir code cells also support autocompletion by pressing
+<kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>. You can try it out by making sure the
+module in the previous section has been defined and then
+put the cursor after the `.` below and press <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>:
+
+```elixir
+Utils.
+```
+
+You can also press `Tab` to cycle across the different options.
+
+## Imports
+
+You can import modules as normally to make the imported functions visible
+to all subsequent cells. Usually you want to keep `import`, `alias`, and
+`require` in the first section, as part of the notebook setup.
+
+For instance, you can import `IEx.Helpers` and bring all of the amazing
+conveniences in Elixir's shell to your notebook:
+
+
+```elixir
+import IEx.Helpers
+```
+
+```elixir
+h(Enum.map())
+```
+
+```elixir
+# Sidenote: http://www.numbat.org.au/thenumbat
+i("I ❤️ Numbats")
+```
+
+## Using packages
+
+Sometimes you need a dependency or two and notebooks are no exception to this.
+In Livebook, you can use [`Mix.install/2`](https://hexdocs.pm/mix/Mix.html#install/2)
+to bring dependencies into your notebook! This approach is especially useful when
+sharing notebooks because everyone will be able to get the same dependencies.
+Let's try this out:
+
+**Note:** compiling dependencies may use a reasonable amount of memory. If you are
+hosting Livebook, make sure you have enough memory allocated to the Livebook
+instance, otherwise the command below will fail.
+
+```elixir
+Mix.install([
+  {:jason, "~> 1.2"}
+])
+```
+
+```elixir
+%{elixir: "is awesome"}
+|> Jason.encode!()
+|> IO.puts()
+```
+
+It is a good idea to specify versions of the installed packages,
+so that the notebook is easily reproducible later on.
+
+Also keep in mind that `Mix.install/2` can be called only once
+per runtime, so if you need to modify the dependencies, you should
+go to the notebook runtime configuration and **reconnect** the current
+runtime. Let's learn how to do that.
+
+## Runtimes
+
+Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
+for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
+on the sidebar (or by using the `rs` keyword shortcut).
+
+By default, a new Elixir node is started (similarly to starting `iex`). You
+can click reconnect whenever you want to discard the current node and start
+a new one.
+
+You can also choose to run inside a _Mix_ project (as you would with `iex -S mix`),
+manually _attach_ to an existing distributed node, or run your Elixir notebook
+_embedded_ within the Livebook source itself.
+
+## Running tests
+
+It is also possible to run tests directly from your notebooks.
+The key is to disable `ExUnit`'s autorun feature and then explicitly
+run the test suite after all test cases have been defined:
+
+```elixir
+ExUnit.start(autorun: false)
+
+defmodule MyTest do
+  use ExUnit.Case, async: true
+
+  test "it works" do
+    assert true
+  end
+end
+
+ExUnit.run()
+```
+
+This helps you follow best practices and ensure the code you write
+behaves as expected!
