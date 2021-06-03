@@ -514,7 +514,12 @@ defmodule LivebookWeb.SessionLive do
 
         {:reply, %{"completion_ref" => inspect(ref)}, socket}
       else
-        {:reply, %{"completion_ref" => nil}, socket}
+        {:reply, %{"completion_ref" => nil},
+         put_flash(
+           socket,
+           :info,
+           "You need to start a runtime (or evaluate a cell) for accurate completion"
+         )}
       end
     else
       _ -> {:noreply, socket}
