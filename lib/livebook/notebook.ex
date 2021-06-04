@@ -242,7 +242,7 @@ defmodule Livebook.Notebook do
   def elixir_cells_with_section(notebook) do
     for section <- notebook.sections,
         cell <- section.cells,
-        cell.type == :elixir,
+        is_struct(cell, Cell.Elixir),
         do: {cell, section}
   end
 

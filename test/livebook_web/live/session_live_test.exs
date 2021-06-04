@@ -4,6 +4,7 @@ defmodule LivebookWeb.SessionLiveTest do
   import Phoenix.LiveViewTest
 
   alias Livebook.{SessionSupervisor, Session, Delta, Runtime, Users}
+  alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
   setup do
@@ -89,7 +90,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element("button", "+ Markdown")
       |> render_click()
 
-      assert %{notebook: %{sections: [%{cells: [%{type: :markdown}]}]}} =
+      assert %{notebook: %{sections: [%{cells: [%Cell.Markdown{}]}]}} =
                Session.get_data(session_id)
     end
 
@@ -135,7 +136,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element("#session")
       |> render_hook("insert_cell_below", %{"cell_id" => cell_id, "type" => "markdown"})
 
-      assert %{notebook: %{sections: [%{cells: [_first_cell, %{type: :markdown}]}]}} =
+      assert %{notebook: %{sections: [%{cells: [_first_cell, %Cell.Markdown{}]}]}} =
                Session.get_data(session_id)
     end
 
@@ -149,7 +150,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element("#session")
       |> render_hook("insert_cell_above", %{"cell_id" => cell_id, "type" => "markdown"})
 
-      assert %{notebook: %{sections: [%{cells: [%{type: :markdown}, _first_cell]}]}} =
+      assert %{notebook: %{sections: [%{cells: [%Cell.Markdown{}, _first_cell]}]}} =
                Session.get_data(session_id)
     end
 

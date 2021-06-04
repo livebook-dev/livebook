@@ -3,6 +3,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
   alias Livebook.LiveMarkdown.Import
   alias Livebook.Notebook
+  alias Livebook.Notebook.Cell
 
   test "acceptance" do
     markdown = """
@@ -49,8 +50,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Section 1",
                  metadata: %{"created_at" => "2021-02-15"},
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      metadata: %{"updated_at" => "2021-02-15"},
                      source: """
                      Make sure to install:
@@ -60,15 +60,13 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      * PostgreSQL\
                      """
                    },
-                   %Notebook.Cell{
-                     type: :elixir,
+                   %Cell.Elixir{
                      metadata: %{"readonly" => true},
                      source: """
                      Enum.to_list(1..10)\
                      """
                    },
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      metadata: %{},
                      source: """
                      This is it for this section.\
@@ -80,7 +78,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Section 2",
                  metadata: %{},
                  cells: [
-                   %Notebook.Cell{
+                   %Cell.Elixir{
                      metadata: %{},
                      source: """
                      # More Elixir code\
@@ -116,8 +114,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Section 1",
                  metadata: %{},
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      metadata: %{},
                      source: """
                      Line 1.\\
@@ -175,8 +172,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Probably section 1",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      metadata: %{},
                      source: """
                      ### Heading
@@ -189,8 +185,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Probably section 2",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      metadata: %{},
                      source: """
                      **Tiny heading**\
@@ -240,8 +235,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      source: """
                      Some markdown.\
                      """
@@ -270,8 +264,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section",
                  cells: [
-                   %Notebook.Cell{
-                     type: :elixir,
+                   %Cell.Elixir{
                      source: """
                      Enum.to_list(1..10)\
                      """
@@ -302,8 +295,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      source: """
                      Cool notebook.
 
@@ -359,22 +351,19 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section 1",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      source: """
                      ```shell
                      mix deps.get
                      ```\
                      """
                    },
-                   %Notebook.Cell{
-                     type: :elixir,
+                   %Cell.Elixir{
                      source: """
                      Enum.to_list(1..10)\
                      """
                    },
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      source: """
                      ```erlang
                      spawn_link(fun() -> io:format("Hiya") end).
@@ -418,8 +407,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section 1",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      source: """
                      ```elixir
                      [1, 2, 3]
@@ -431,8 +419,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section 2",
                  cells: [
-                   %Notebook.Cell{
-                     type: :markdown,
+                   %Cell.Markdown{
                      source: """
                      Some markdown.
 

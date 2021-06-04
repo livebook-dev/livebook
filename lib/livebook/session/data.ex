@@ -252,7 +252,7 @@ defmodule Livebook.Session.Data do
 
   def apply_operation(data, {:queue_cell_evaluation, _client_pid, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
-         :elixir <- cell.type,
+         %Cell.Elixir{} <- cell,
          :ready <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
@@ -591,7 +591,7 @@ defmodule Livebook.Session.Data do
       cells_with_section
       |> Enum.map(fn {cell, _section} -> cell end)
       |> Enum.filter(fn cell ->
-        cell.type == :elixir and data.cell_infos[cell.id].validity_status == :evaluated
+        is_struct(cell, Cell.Elixir) and data.cell_infos[cell.id].validity_status == :evaluated
       end)
 
     data_actions
@@ -822,7 +822,9 @@ defmodule Livebook.Session.Data do
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      digest: compute_digest(cell.source),
+      # TODO: handle properly
+      # digest: compute_digest(cell.source),
+      digest: compute_digest(Map.get(cell, :source, "")),
       evaluation_digest: nil
     }
   end

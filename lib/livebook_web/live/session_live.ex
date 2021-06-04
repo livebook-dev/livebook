@@ -4,6 +4,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.UserHelpers
 
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.Notebook.Cell
   import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
@@ -438,7 +439,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
     with {:ok, section} <- Notebook.fetch_section(socket.private.data.notebook, section_id) do
-      for cell <- section.cells, cell.type == :elixir do
+      for cell <- section.cells, is_struct(cell, Cell.Elixir) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -789,17 +790,34 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  defp cell_to_view(cell, data) do
+  defp cell_to_view(%Cell.Elixir{} = cell, data) do
     info = data.cell_infos[cell.id]
 
     %{
       id: cell.id,
-      type: cell.type,
+      type: :elixir,
       empty?: cell.source == "",
       outputs: cell.outputs,
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
+    }
+  end
+
+  defp cell_to_view(%Cell.Markdown{} = cell, _data) do
+    %{
+      id: cell.id,
+      type: :markdown,
+      empty?: cell.source == ""
+    }
+  end
+
+  defp cell_to_view(%Cell.Input{} = cell, _data) do
+    %{
+      id: cell.id,
+      type: :input,
+      input_type: cell.type,
+      value: cell.value
     }
   end
 

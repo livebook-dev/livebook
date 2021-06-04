@@ -3,6 +3,7 @@ defmodule Livebook.Session.DataTest do
 
   alias Livebook.Session.Data
   alias Livebook.{Delta, Notebook, Runtime}
+  alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
   describe "new/1" do
@@ -61,7 +62,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 notebook: %{
                   sections: [
-                    %{cells: [%{id: "c1"}]}
+                    %{cells: [%Cell.Elixir{id: "c1"}]}
                   ]
                 },
                 cell_infos: %{"c1" => _}

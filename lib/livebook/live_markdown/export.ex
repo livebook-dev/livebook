@@ -1,5 +1,6 @@
 defmodule Livebook.LiveMarkdown.Export do
   alias Livebook.Notebook
+  alias Livebook.Notebook.Cell
   alias Livebook.LiveMarkdown.MarkdownHelpers
 
   @doc """
@@ -30,13 +31,13 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(section.metadata)
   end
 
-  defp render_cell(%{type: :markdown} = cell) do
+  defp render_cell(%Cell.Markdown{} = cell) do
     cell.source
     |> format_markdown_source()
     |> prepend_metadata(cell.metadata)
   end
 
-  defp render_cell(%{type: :elixir} = cell) do
+  defp render_cell(%Cell.Elixir{} = cell) do
     code = get_elixir_cell_code(cell)
 
     """
