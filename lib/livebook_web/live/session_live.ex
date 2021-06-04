@@ -823,6 +823,7 @@ defmodule LivebookWeb.SessionLive do
       id: cell.id,
       type: :input,
       input_type: cell.type,
+      name: cell.name,
       value: cell.value
     }
   end

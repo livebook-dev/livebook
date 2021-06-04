@@ -507,6 +507,29 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_info({:evaluation_input, cell_id, reply_to, prompt}, state) do
+    # TODO: cleanup
+    reply =
+      for(
+        section <- state.data.notebook.sections,
+        cell <- section.cells,
+        is_struct(cell, Cell.Input),
+        cell.name == prompt,
+        do: cell
+      )
+      |> case do
+        [input_cell | _] ->
+          {:ok, input_cell.value <> "\n"}
+
+        [] ->
+          :error
+      end
+
+    send(reply_to, {:evaluation_input_reply, reply})
+
+    {:noreply, state}
+  end
+
   def handle_info({:container_down, :main, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 

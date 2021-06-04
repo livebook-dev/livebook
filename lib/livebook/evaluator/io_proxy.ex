@@ -106,12 +106,12 @@ defmodule Livebook.Evaluator.IOProxy do
     {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_line, _prompt}, state) do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_line, prompt}, state) do
+    get_line(:latin1, prompt, state)
   end
 
-  defp io_request({:get_line, _encoding, _prompt}, state) do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_line, encoding, prompt}, state) do
+    get_line(encoding, prompt, state)
   end
 
   defp io_request({:get_until, _prompt, _mod, _fun, _args}, state) do
@@ -185,6 +185,27 @@ defmodule Livebook.Evaluator.IOProxy do
     end
   rescue
     ArgumentError -> {{:error, req}, state}
+  end
+
+  defp get_line(encoding, prompt, state) do
+    prompt = :unicode.characters_to_binary(prompt, encoding, state.encoding)
+    send(state.target, {:evaluation_input, state.ref, self(), prompt})
+
+    ref = Process.monitor(state.target)
+
+    receive do
+      {:evaluation_input_reply, {:ok, string}} ->
+        string = :unicode.characters_to_binary(string, state.encoding, encoding)
+        Process.demonitor(ref)
+        {string, state}
+
+      {:evaluation_input_reply, :error} ->
+        Process.demonitor(ref)
+        {:eof, state}
+
+      {:DOWN, ^ref, :process, _object, _reason} ->
+        {{:error, :terminated}, state}
+    end
   end
 
   defp io_reply(from, reply_as, reply) do

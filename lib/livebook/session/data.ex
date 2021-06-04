@@ -410,6 +410,8 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> set_cell_value(cell, value)
       # TODO: think about it, but most likely just that:
+      # TODO: note that ucrrently cell must be elixir for this to work so fix it
+      #       together with the other fix in session.ex
       # |> mark_dependent_cells_as_stale(cell)
       |> set_dirty()
       |> wrap_ok()

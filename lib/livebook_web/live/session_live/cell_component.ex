@@ -184,7 +184,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <!-- TODO: form? -->
         <form phx-submit="set_cell_value" phx-change="set_cell_value">
           <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
-          <div class="input-label">Name</div>
+          <div class="input-label">
+            <%= @cell_view.name %>
+          </div>
           <input type="text"
             class="input"
             name="value"
