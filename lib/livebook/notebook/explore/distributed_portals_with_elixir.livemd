@@ -34,8 +34,8 @@ At the end of this notebook, we will make the following code work:
 
 ```elixir
 # Shoot two doors: one orange, another blue
-{:ok, _} = Portal.shoot(:orange)
-{:ok, _} = Portal.shoot(:blue)
+Portal.shoot(:orange)
+Portal.shoot(:blue)
 
 # Start transferring the list [1, 2, 3, 4] from orange to blue
 portal = Portal.transfer(:orange, :blue, [1, 2, 3, 4])
@@ -54,7 +54,7 @@ Portal.push_right(portal)
 #
 #   #Portal<
 #          :orange <=> :blue
-#        [1, 2, 3] <=> []
+#        [1, 2, 3] <=> [4]
 #   >
 ```
 
@@ -266,11 +266,15 @@ The first function is `start_link`, which we often refer to as `start_link/1`, w
 The next two functions, `get/1` and `push/2` perform simple operation to the agent, reading its state and adding a new element respectively. Let's take a look at them:
 
 ```elixir
-{:ok, _} = Portal.Door.start_link(:pink)
+Portal.Door.start_link(:pink)
 Portal.Door.get(:pink)
 ```
 
-Note how we didn't need to store the PID anywhere and we can use the atom `:pink` to refer to the door and read its state.
+Note how we didn't need to store the PID anywhere and we can use the atom `:pink` to refer to the door and read its state. If the door already exists, and we try to start another one with the same name, it returns an `:error` tuple instead of `{:ok, pid}`:
+
+```elixir
+Portal.Door.start_link(:pink)
+```
 
 Next, let's push some events:
 
@@ -305,3 +309,168 @@ Portal.Door.get(:pink)
 ```
 
 Note the error message points out why the operation did not work, great!
+
+## Portal transfers
+
+Our portal doors are ready so it is time to start working on portal transfers! In order to store the portal data, we are going to create a struct named `Portal`. Let's first learn what structs are about before moving forward.
+
+Structs define data structures with pre-defined keys. The keys are verified at compilation time, so if you make a type in the key name, you get an error early on. Structs are defined inside modules, by calling the `defstruct` with a list of atom keys. Let's define a `User` struct with the fields `:name` and `:age`:
+
+```elixir
+defmodule User do
+  defstruct [:name, :age]
+end
+```
+
+Now, we can create structs using the `%User{...}` notation:
+
+```elixir
+user = %User{name: "john doe", age: 27}
+```
+
+We can access struct fields using the `struct.field` syntax:
+
+```elixir
+user.name
+```
+
+We can pattern match on structs too:
+
+```elixir
+%User{age: age} = user
+age
+```
+
+Now we are ready to define our `Portal` struct. It will have two fields, `:left` and `:right`, which point respectively to the portal door on the left and the door on the right. Our goal is to transfer data from the left door to the right one. The `Portal` module, where we define our struct, will also have three other functions:
+
+  * `shoot(color)` - shoots a door of the given color. This is basically a wrapper for `Portal.Door.start_link/1`
+
+  * `transfer(left_door, right_door, data)` - starts a transfer by loading the given `data` to `left_door` and returns a `Portal` struct
+
+  * `push_right(portal)` - receives a portal and continues the transfer by pushing data from the left to the right
+
+  * `close(portal)` - closes the portal by explicitly closing both doors
+
+Let's give it a try:
+
+```elixir
+defmodule Portal do
+  defstruct [:left, :right]
+
+  def shoot(color) do
+    Portal.Door.start_link(color)
+  end
+
+  def transfer(left_door, right_door, data) do
+    # First add all data to the portal on the left
+    for item <- data do
+      Portal.Door.push(left_door, item)
+    end
+
+    # Returns a portal struct with the doors
+    %Portal{left: left_door, right: right_door}
+  end
+
+  def push_right(portal) do
+    # See if we can pop data from left. If so, push the
+    # popped data to the right. Otherwise, do nothing.
+    case Portal.Door.pop(portal.left) do
+      :error   -> :ok
+      {:ok, h} -> Portal.Door.push(portal.right, h)
+    end
+
+    # Let's return the portal itself
+    portal
+  end
+
+  def close(portal) do
+    Portal.Door.close(portal.left)
+    Portal.Door.close(portal.right)
+    :ok
+  end
+end
+```
+
+The `Portal` modules defines a struct followed by a `shoot/1` function. The function is just a wrapper around `Portal.Door.start_link/1`. Then we define the `transfer/3` function, which loads the given data into the left door and returns a Portal struct. Finally, `push_right/3` gets data from the door on the left and puts it on the right door. Let's give it a try:
+
+```elixir
+Portal.shoot(:orange)
+Portal.shoot(:blue)
+portal = Portal.transfer(:orange, :blue, [1, 2, 3])
+```
+
+The above returns the `%Portal{}` struct. We can check the data has been loaded into the left door:
+
+```elixir
+Portal.Door.get(:orange)
+```
+
+Note the list is reversed - and we knew that! - as we always add items on the top. But we will use that to our advantage soon. Let's start pushing data to the right:
+
+```elixir
+Portal.push_right(portal)
+Portal.Door.get(:blue)
+```
+
+Since the list is reversed, we can see that we pushed the number `3` to the right, which is exactly what we expected. If you reevaluate the cell above, you will see data moving to the right, as our portal doors are stateful.
+
+Our portal transfer seems to work as expected! Now let's clean up and close the transfer:
+
+```elixir
+Portal.close(portal)
+```
+
+We have made some good progress in our implementation, so now let's work a bit on the presentation. Currently the Portal being printed as a struct: `%Portal{left: :orange, right: :blue}`. It would be nice if we actually had a printed representation of the portal transfer, allowing us to see the portal processes as we push data.
+
+## Inspecting portals with Protocols
+
+We already know that data can be printed in `Livebook`. After all, when we type `1 + 2`, we get `3` back. However, can we customize how our own data structures are printed?
+
+Yes, we can! Elixir provides protocols, which allows behaviour to be extended and implemented for any data type, like our `Portal` struct, at any time.
+
+For example, every time something is printed in Livebook, or in Elixir's terminal, Elixir uses the `Inspect` protocol. Since protocols can be extended at any time, by any data type, it means we can implement it for `Portal` too. We do by calling `defimpl/2`, passing the protocol name and the data structure we want ti implement the protocol for. Let's do it:
+
+```elixir
+defimpl Inspect, for: Portal do
+  def inspect(%Portal{left: left, right: right}, _) do
+    left_door  = inspect(left)
+    right_door = inspect(right)
+
+    left_data  = inspect(Enum.reverse(Portal.Door.get(left)))
+    right_data = inspect(Portal.Door.get(right))
+
+    max = max(String.length(left_door), String.length(left_data))
+
+    """
+    #Portal<
+      #{String.pad_leading(left_door, max)} <=> #{right_door}
+      #{String.pad_leading(left_data, max)} <=> #{right_data}
+    >
+    """
+  end
+end
+```
+
+In the snippet above, we have implemented the `Inspect` protocol for the `Portal` struct. The protocol expects one function named `inspect` to be implemented. The function expects two arguments, the first is the `Portal` struct itself and the second is a set of options, which we don't care about for now.
+
+Then we call `inspect` multiple times, to get a text representation of both `left` and `right` doors, as well as to get a representation of the data inside the doors. Finally, we return a string containing the portal presentation properly aligned.
+
+That's all we need! Let's start a new transfer and see how it goes:
+
+```elixir
+Portal.shoot(:red)
+Portal.shoot(:purple)
+portal = Portal.transfer(:red, :purple, [1, 2, 3])
+```
+
+Sweet! Look how Livebook automatically picked up the new representation. Now feel free to call `push_right` and see what happens:
+
+```elixir
+Portal.push_right(portal)
+```
+
+Feel free to reevaluate the cell above a couple times. Once you are done, execute the cell below to clean it up and close the portal:
+
+```elixir
+Portal.close(portal)
+```
