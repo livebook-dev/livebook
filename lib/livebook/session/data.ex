@@ -95,6 +95,7 @@ defmodule Livebook.Session.Data do
           | {:update_user, pid(), User.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
+          | {:set_cell_value, pid(), Cell.id(), String.t()}
           | {:set_cell_metadata, pid(), Cell.id(), Cell.metadata()}
           | {:set_runtime, pid(), Runtime.t() | nil}
           | {:set_path, pid(), String.t() | nil}
@@ -396,6 +397,21 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> report_revision(client_pid, cell, revision)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_cell_value, _client_pid, cell_id, value}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         %Cell.Input{} <- cell do
+      data
+      |> with_actions()
+      |> set_cell_value(cell, value)
+      # TODO: think about it, but most likely just that:
+      # |> mark_dependent_cells_as_stale(cell)
+      |> set_dirty()
       |> wrap_ok()
     else
       _ -> :error
@@ -775,6 +791,11 @@ defmodule Livebook.Session.Data do
       info = put_in(info.revision_by_client_pid[client_pid], revision)
       purge_deltas(info)
     end)
+  end
+
+  defp set_cell_value({data, _} = data_actions, cell, value) do
+    data_actions
+    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | value: value}))
   end
 
   defp set_cell_metadata({data, _} = data_actions, cell, metadata) do

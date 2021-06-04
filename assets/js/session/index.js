@@ -351,7 +351,7 @@ function handleDocumentMouseDown(hook, event) {
     const editorContainer = cell.querySelector(
       `[data-element="editor-container"]`
     );
-    const editorClicked = editorContainer.contains(event.target);
+    const editorClicked = !!editorContainer && editorContainer.contains(event.target);
     const insertMode = editorClicked;
     if (hook.state.insertMode !== insertMode) {
       setInsertMode(hook, insertMode);

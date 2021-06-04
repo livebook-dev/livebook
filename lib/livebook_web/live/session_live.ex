@@ -418,6 +418,12 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_cell_value", %{"cell_id" => cell_id, "value" => value}, socket) do
+    Session.set_cell_value(socket.assigns.session_id, cell_id, value)
+
+    {:noreply, socket}
+  end
+
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
     Session.move_cell(socket.assigns.session_id, cell_id, offset)

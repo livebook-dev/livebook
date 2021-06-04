@@ -181,8 +181,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
       <div>
-        <div class="input-label">Name</div>
-        <input type="text" class="input" />
+        <!-- TODO: form? -->
+        <form phx-submit="set_cell_value" phx-change="set_cell_value">
+          <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
+          <div class="input-label">Name</div>
+          <input type="text"
+            class="input"
+            name="value"
+            value="<%= @cell_view.value %>"
+            spellcheck="false" />
+        </form>
       </div>
     </div>
     """
