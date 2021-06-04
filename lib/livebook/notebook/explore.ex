@@ -62,7 +62,7 @@ defmodule Livebook.Notebook.Explore do
   )
 
   defnotebook(:elixir_and_livebook,
-    description: "Learn how to use some of Elixir and Livebook unique features together.",
+    description: "Learn how to use some of Elixir and Livebook's unique features together.",
     image_url: "/images/elixir.png"
   )
 
