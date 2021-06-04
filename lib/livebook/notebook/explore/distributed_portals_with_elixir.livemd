@@ -144,7 +144,7 @@ list = [1, 2, 3]
 [0 | list]
 ```
 
-We can also pattern match on tuples. This is often used to match on the return types of function calls. For example, take the function `Date.from_iso8601(string)`, which returns `{:ok, date}` if the string represents a valid date, otherwise it returns `{:error, reason}`:
+We can also pattern match on tuples. This is often used to match on the return types of function calls. For example, take the function `Date.from_iso8601(string)`, which returns `{:ok, date}` if the string represents a valid date, in the format `YYYY-MM-DD`, otherwise it returns `{:error, reason}`:
 
 ```elixir
 # A valid date
@@ -193,3 +193,115 @@ If the key does not exist on the map, it raises:
 ```
 
 With pattern matching out of the way, we are ready to start our Portal implementation!
+
+## Modeling portal doors with Agents
+
+Elixir data structures are immutable. In the examples above, we never mutated the list. We can break a list apart or add new elements to the head, but the original list is never modified.
+
+That said, when we need to keep some sort of state, like the data transfering through a portal, we must use an abstraction that stores this state for us. One such abstraction in Elixir is called an agent. Before we use agents, we need to briefly talk about anonymous functions:
+
+```elixir
+adder = fn a, b -> a + b end
+adder.(1, 2)
+```
+
+An anonymous function is delimited by the words `fn` and `end` and an arrow `->` is used to separate the arguments from the anonymous function body. We use anonymous functions to initialize, get, and update the agent state:
+
+```elixir
+{:ok, agent} = Agent.start_link(fn -> [] end)
+```
+
+In the example above, we created a new agent, passing a function that returns the initial state of an empty list. The agent returns `{:ok, #PID<...>}`, where PID stands for a process identifier, which uniquely identifies the agent. When we say processes in Elixir, we don't mean Operating System processes, but rather Elixir Processes, which are lightweight and isolated, allowing us to run hundreds of thousands of them on the same machine.
+
+We store the agent's PID in the `agent` variable, which allows us to send messages to get the agent's state:
+
+```elixir
+Agent.get(agent, fn list -> list end)
+```
+
+As well as update it before reading again:
+
+```elixir
+Agent.update(agent, fn list -> [0 | list] end)
+Agent.get(agent, fn list -> list end)
+```
+
+We will use agents to implement our portal doors. Whenever we need to encapsulate logic in Elixir, we create modules, which are essentially a collection of functions. We define modules with `defmodule` and functions with `def`. Our functions will encapsulate the logic to interact with the Agent, using the API we learned in the cells above:
+
+```elixir
+defmodule Portal.Door do
+  use Agent
+
+  def start_link(color) when is_atom(color) do
+    Agent.start_link(fn -> [] end, name: color)
+  end
+
+  def get(door) do
+    Agent.get(door, fn list -> list end)
+  end
+
+  def push(door, value) do
+    Agent.update(door, fn list -> [value | list] end)
+  end
+
+  def pop(door) do
+    Agent.get_and_update(door, fn list ->
+      case list do
+        [h | t] -> {{:ok, h}, t}
+        [] -> {:error, []}
+      end
+    end)
+  end
+
+  def close(door) do
+    Agent.stop(door)
+  end
+end
+```
+
+We start a module by giving it a name, in this case, `Portal.Door`. At the top of the module, we say `use Agent`, which brings some `Agent`-related functionality into the module.
+
+The first function is `start_link`, which we often refer to as `start_link/1`, where the number 1 indicates it receives a single argument. We check that the argument is an atom and proceed to call `Agent.start_link/2`, as we did early in this section, except we are now passing `name: color` as an argument. By giving a name to the Agent, we can refer to it anywhere by its name, instead of using its PID.
+
+The next two functions, `get/1` and `push/2` perform simple operation to the agent, reading its state and adding a new element respectively. Let's take a look at them:
+
+```elixir
+{:ok, _} = Portal.Door.start_link(:pink)
+Portal.Door.get(:pink)
+```
+
+Note how we didn't need to store the PID anywhere and we can use the atom `:pink` to refer to the door and read its state.
+
+Next, let's push some events:
+
+```elixir
+Portal.Door.push(:pink, 1)
+Portal.Door.push(:pink, 2)
+Portal.Door.get(:pink)
+```
+
+We pushed some events and they show up in our state. Although, note they appear in reverse order. That's because we are always adding new entries to the top of the list.
+
+The fourth function we defined is called `pop/1`. If there is any item in the agent, it takes the head of the list and returns it wrapped in a `{:ok, value}` tuple. However, if the list is empty, it returns `:error`.
+
+```elixir
+IO.inspect(Portal.Door.pop(:pink))
+IO.inspect(Portal.Door.pop(:pink))
+IO.inspect(Portal.Door.pop(:pink))
+
+Portal.Door.get(:pink)
+```
+
+Finally, the last function, `close/1`, simply terminates the agent, effectively closing the door. Let's try it:
+
+```elixir
+Portal.Door.close(:pink)
+```
+
+Now, if we try to do anything with it, it will raise:
+
+```elixir
+Portal.Door.get(:pink)
+```
+
+Note the error message points out why the operation did not work, great!
