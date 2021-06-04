@@ -56,17 +56,13 @@ defmodule Livebook.Notebook.Explore do
   )
 
   defnotebook(:distributed_portals_with_elixir,
-    description: "A fast-paced introduction to the Elixir language by building distributed data-transfer portals.",
+    description:
+      "A fast-paced introduction to the Elixir language by building distributed data-transfer portals.",
     image_url: "/images/portals.png"
   )
 
   defnotebook(:elixir_and_livebook,
     description: "Learn how to use some of Elixir and Livebook unique features together.",
-    image_url: "/images/live-elixir.png"
-  )
-
-  defnotebook(:intro_to_elixir,
-    description: "New to Elixir? Learn about the language and its core concepts.",
     image_url: "/images/elixir.png"
   )
 

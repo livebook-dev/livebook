@@ -1,59 +1,43 @@
 # Elixir and Livebook
 
-## Modules
+## Introduction
 
-You can use code cells to execute any Elixir code:
-
-```elixir
-IO.puts("hello world!")
-```
-
-But you can define modules inside cells too!
+In this notebook, we will explore some unique features when
+using Elixir and Livebook together. To get started, execute
+the cell below so we can get the Elixir runtime up and running:
 
 ```elixir
-defmodule Utils do
-  @doc """
-  Generates a random binary id.
-  """
-  @spec random_id() :: binary()
-  def random_id() do
-    :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
-  end
-end
+"Hello world"
 ```
 
-If you're surprised by the above output, keep in mind that
-every Elixir expression evaluates to some value and as so
-does module compilation!
-
-Having the module defined, let's take it for a spin.
-
-```elixir
-Utils.random_id()
-```
+Let's move on.
 
 ## Autocompletion
 
 Elixir code cells also support autocompletion by pressing
-<kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>. You can try it out by making sure the
-module in the previous section has been defined and then
-put the cursor after the `.` below and press <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>:
+<kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>. Try it out by autocompleting
+the code below to `System.version()`. First put the cursor after
+the `.` below and press <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>:
 
 ```elixir
-Utils.
+System.
 ```
 
-You can also press `Tab` to cycle across the different options.
+You should have seen the editor listing many different options,
+which you can use to find `version`. Executing the code will
+return the Elixir version.
+
+Note you can also press `Tab` to cycle across the completion
+alternatives.
 
 ## Imports
 
-You can import modules as normally to make the imported functions visible
+You can import Elixir modules to make the imported functions visible
 to all subsequent cells. Usually you want to keep `import`, `alias`, and
 `require` in the first section, as part of the notebook setup.
 
 For instance, you can import `IEx.Helpers` and bring all of the amazing
 conveniences in Elixir's shell to your notebook:
-
 
 ```elixir
 import IEx.Helpers
