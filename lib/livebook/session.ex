@@ -220,6 +220,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends a cell attributes update to the server.
+  """
+  @spec set_cell_attributes(id(), Cell.id(), map()) :: :ok
+  def set_cell_attributes(session_id, cell_id, attrs) do
+    GenServer.cast(name(session_id), {:set_cell_attributes, self(), cell_id, attrs})
+  end
+
+  @doc """
   Asynchronously connects to the given runtime.
 
   Note that this results in initializing the corresponding remote node
@@ -426,6 +434,11 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:set_cell_attributes, client_pid, cell_id, attrs}, state) do
+    operation = {:set_cell_attributes, client_pid, cell_id, attrs}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:connect_runtime, client_pid, runtime}, state) do
     if state.data.runtime do
       Runtime.disconnect(state.data.runtime)
@@ -509,6 +522,7 @@ defmodule Livebook.Session do
 
   def handle_info({:evaluation_input, cell_id, reply_to, prompt}, state) do
     # TODO: cleanup
+    # TODO: consider only previous cells
     reply =
       for(
         section <- state.data.notebook.sections,

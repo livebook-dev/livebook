@@ -151,6 +151,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
+        <span class="tooltip top" aria-label="Cell settings">
+          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
+            <%= remix_icon("list-settings-line", class: "text-xl") %>
+          <% end %>
+        </span>
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
@@ -182,7 +187,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <div>
         <!-- TODO: form? -->
-        <form phx-submit="set_cell_value" phx-change="set_cell_value">
+        <form phx-change="set_cell_value" onsubmit="return false">
           <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
           <div class="input-label">
             <%= @cell_view.name %>
@@ -191,7 +196,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             class="input"
             name="value"
             value="<%= @cell_view.value %>"
-            spellcheck="false" />
+            spellcheck="false"
+            autocomplete="off" />
         </form>
       </div>
     </div>

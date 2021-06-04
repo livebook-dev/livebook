@@ -95,8 +95,10 @@ defmodule Livebook.Session.Data do
           | {:update_user, pid(), User.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
+          # TODO: remove these two in favour of atts?
           | {:set_cell_value, pid(), Cell.id(), String.t()}
           | {:set_cell_metadata, pid(), Cell.id(), Cell.metadata()}
+          | {:set_cell_attributes, pid(), Cell.id(), map()}
           | {:set_runtime, pid(), Runtime.t() | nil}
           | {:set_path, pid(), String.t() | nil}
           | {:mark_as_not_dirty, pid()}
@@ -425,6 +427,29 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_metadata(cell, metadata)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+      invalidates_dependent =
+        case cell do
+          %Cell.Input{} -> Map.has_key?(attrs, :value) or Map.has_key?(attrs, :name)
+          _ -> false
+        end
+
+      data
+      |> with_actions()
+      |> set_cell_attributes(cell, attrs)
+      # TODO: think about it, but most likely just that:
+      # TODO: note that ucrrently cell must be elixir for this to work so fix it
+      #       together with the other fix in session.ex
+      # based on invalidates_content
+      # |> mark_dependent_cells_as_stale(cell)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -803,6 +828,17 @@ defmodule Livebook.Session.Data do
   defp set_cell_metadata({data, _} = data_actions, cell, metadata) do
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | metadata: metadata}))
+  end
+
+  defp set_cell_attributes({data, _} = data_actions, cell, attrs) do
+    data_actions
+    |> set!(
+      notebook:
+        Notebook.update_cell(data.notebook, cell.id, fn cell ->
+          # TODO: vlaidate that attr keys are present in the struct
+          Map.merge(cell, attrs)
+        end)
+    )
   end
 
   defp purge_deltas(cell_info) do

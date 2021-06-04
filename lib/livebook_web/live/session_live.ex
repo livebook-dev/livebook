@@ -269,8 +269,17 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 
-    <%= if @live_action == :cell_settings do %>
+    <%= if @live_action == :cell_settings and is_struct(@cell, Cell.Elixir) do %>
       <%= live_modal LivebookWeb.SessionLive.CellSettingsComponent,
+            id: :cell_settings_modal,
+            modal_class: "w-full max-w-xl",
+            session_id: @session_id,
+            cell: @cell,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
+    <%= if @live_action == :cell_settings and is_struct(@cell, Cell.Input) do %>
+      <%= live_modal LivebookWeb.SessionLive.InputCellSettingsComponent,
             id: :cell_settings_modal,
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
@@ -645,9 +654,18 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, type, cell_id}) do
     if client_pid == self() do
-      push_event(socket, "cell_inserted", %{cell_id: cell_id})
+      case type do
+        :input ->
+          push_patch(socket,
+            to: Routes.session_path(socket, :cell_settings, socket.assigns.session_id, cell_id)
+          )
+
+        _ ->
+          socket
+      end
+      |> push_event("cell_inserted", %{cell_id: cell_id})
     else
       socket
     end
