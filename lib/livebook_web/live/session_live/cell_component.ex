@@ -186,7 +186,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
       <div>
-        <!-- TODO: form? -->
         <form phx-change="set_cell_value" onsubmit="return false">
           <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
           <div class="input-label">

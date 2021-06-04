@@ -269,17 +269,8 @@ defmodule LivebookWeb.SessionLive do
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
 
-    <%= if @live_action == :cell_settings and is_struct(@cell, Cell.Elixir) do %>
-      <%= live_modal LivebookWeb.SessionLive.CellSettingsComponent,
-            id: :cell_settings_modal,
-            modal_class: "w-full max-w-xl",
-            session_id: @session_id,
-            cell: @cell,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
-    <% end %>
-
-    <%= if @live_action == :cell_settings and is_struct(@cell, Cell.Input) do %>
-      <%= live_modal LivebookWeb.SessionLive.InputCellSettingsComponent,
+    <%= if @live_action == :cell_settings do %>
+      <%= live_modal settings_component_for(@cell),
             id: :cell_settings_modal,
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
@@ -298,6 +289,9 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
     """
   end
+
+  defp settings_component_for(%Cell.Elixir{}), do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
+  defp settings_component_for(%Cell.Input{}), do: LivebookWeb.SessionLive.InputCellSettingsComponent
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
@@ -476,7 +470,8 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
     with {:ok, cell, _section} <-
            Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
-      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id) do
+      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id),
+          is_struct(cell, Cell.Elixir) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -520,10 +515,9 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if data.runtime do
         prev_ref =
-          case Notebook.parent_cells_with_section(data.notebook, cell.id) do
-            [{parent, _} | _] -> parent.id
-            [] -> nil
-          end
+          data.notebook
+          |> Notebook.parent_cells_with_section(cell.id)
+          |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
 
         ref = make_ref()
         Runtime.request_completion_items(data.runtime, self(), ref, hint, :main, prev_ref)

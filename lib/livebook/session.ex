@@ -521,22 +521,9 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:evaluation_input, cell_id, reply_to, prompt}, state) do
-    # TODO: cleanup
-    # TODO: consider only previous cells
     reply =
-      for(
-        section <- state.data.notebook.sections,
-        cell <- section.cells,
-        is_struct(cell, Cell.Input),
-        cell.name == prompt,
-        do: cell
-      )
-      |> case do
-        [input_cell | _] ->
-          {:ok, input_cell.value <> "\n"}
-
-        [] ->
-          :error
+      with {:ok, cell} <- Notebook.input_cell_for_prompt(state.data.notebook, cell_id, prompt) do
+        {:ok, cell.value <> "\n"}
       end
 
     send(reply_to, {:evaluation_input_reply, reply})
@@ -726,10 +713,9 @@ defmodule Livebook.Session do
 
   defp start_evaluation(state, cell, _section) do
     prev_ref =
-      case Notebook.parent_cells_with_section(state.data.notebook, cell.id) do
-        [{parent, _} | _] -> parent.id
-        [] -> nil
-      end
+      state.data.notebook
+      |> Notebook.parent_cells_with_section(cell.id)
+      |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
 
     file = (state.data.path || "") <> "#cell"
     opts = [file: file]

@@ -30,8 +30,7 @@ defmodule Livebook.Notebook.Cell.Input do
       id: Utils.random_id(),
       metadata: %{},
       type: :text,
-      # TODO: better default?
-      name: "Input",
+      name: "input",
       value: ""
     }
   end

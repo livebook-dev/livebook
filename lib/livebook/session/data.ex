@@ -411,10 +411,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_value(cell, value)
-      # TODO: think about it, but most likely just that:
-      # TODO: note that ucrrently cell must be elixir for this to work so fix it
-      #       together with the other fix in session.ex
-      # |> mark_dependent_cells_as_stale(cell)
+      |> mark_dependent_cells_as_stale(cell)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -435,7 +432,10 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
-    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+    keys = Map.keys(attrs)
+
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         true <- Enum.all?(keys, &Map.has_key?(cell, &1)) do
       invalidates_dependent =
         case cell do
           %Cell.Input{} -> Map.has_key?(attrs, :value) or Map.has_key?(attrs, :name)
@@ -445,11 +445,13 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
-      # TODO: think about it, but most likely just that:
-      # TODO: note that ucrrently cell must be elixir for this to work so fix it
-      #       together with the other fix in session.ex
-      # based on invalidates_content
-      # |> mark_dependent_cells_as_stale(cell)
+      |> tap(fn data_actions ->
+        if invalidates_dependent do
+          mark_dependent_cells_as_stale(data_actions, cell)
+        else
+          data_actions
+        end
+      end)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -625,7 +627,11 @@ defmodule Livebook.Session.Data do
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
-    child_cells = Notebook.child_cells_with_section(data.notebook, cell.id)
+    child_cells =
+      data.notebook
+      |> Notebook.child_cells_with_section(cell.id)
+      |> Enum.filter(fn {cell, _} -> is_struct(cell, Cell.Elixir) end)
+
     mark_cells_as_stale(data_actions, child_cells)
   end
 
@@ -703,6 +709,7 @@ defmodule Livebook.Session.Data do
     prerequisites_queue =
       data.notebook
       |> Notebook.parent_cells_with_section(cell.id)
+      |> Enum.filter(fn {cell, _} -> is_struct(cell, Cell.Elixir) end)
       |> Enum.take_while(fn {parent_cell, _section} ->
         info = data.cell_infos[parent_cell.id]
         info.validity_status != :evaluated and info.evaluation_status == :ready
@@ -832,13 +839,7 @@ defmodule Livebook.Session.Data do
 
   defp set_cell_attributes({data, _} = data_actions, cell, attrs) do
     data_actions
-    |> set!(
-      notebook:
-        Notebook.update_cell(data.notebook, cell.id, fn cell ->
-          # TODO: vlaidate that attr keys are present in the struct
-          Map.merge(cell, attrs)
-        end)
-    )
+    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
 
   defp purge_deltas(cell_info) do
@@ -881,9 +882,11 @@ defmodule Livebook.Session.Data do
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      # TODO: handle properly
-      # digest: compute_digest(cell.source),
-      digest: compute_digest(Map.get(cell, :source, "")),
+      digest:
+        case Map.fetch(cell, :source) do
+          {:ok, source} -> compute_digest(source)
+          :error -> nil
+        end,
       evaluation_digest: nil
     }
   end
