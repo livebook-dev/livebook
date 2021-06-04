@@ -55,6 +55,11 @@ defmodule Livebook.Notebook.Explore do
     image_url: "/images/logo.png"
   )
 
+  defnotebook(:distributed_portals_with_elixir,
+    description: "A fast-paced introduction to the Elixir language by building distributed data-transfer portals.",
+    image_url: "/images/portals.png"
+  )
+
   defnotebook(:elixir_and_livebook,
     description: "Learn how to use some of Elixir and Livebook unique features together.",
     image_url: "/images/live-elixir.png"
@@ -96,6 +101,7 @@ defmodule Livebook.Notebook.Explore do
   def notebook_infos() do
     [
       @intro_to_livebook,
+      @distributed_portals_with_elixir,
       @elixir_and_livebook
       # @intro_to_elixir, @intro_to_nx, @intro_to_axon, @intro_to_vega_lite
     ]

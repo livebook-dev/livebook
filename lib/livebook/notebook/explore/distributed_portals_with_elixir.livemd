@@ -1,0 +1,195 @@
+# Distributed portals with Elixir
+
+## Introduction
+
+This notebook is a fast-paced introduction to the Elixir programming language. We will explore both basic and advanced concepts to implement our own version of [the Portal game](http://en.wikipedia.org/wiki/Portal_(video_game)) to transfer data across notebooks using Elixir's distribution capabalities.
+
+For a more structured introduction to the language, see [Elixir's getting started guide](https://elixir-lang.org/getting-started/introduction.html) and [the many learning resources available](https://elixir-lang.org/learning.html).
+
+### The plan ahead
+
+The Portal game consists of a series of puzzles that must be solved by teleporting the player's character and simple objects from one place to another.
+
+In order to teleport, the player uses the Portal gun to shoot doors onto flat planes, like a floor or a wall. Entering one of those doors teleports you to the other:
+
+![](/posts/elixir/1/images/portal-drop.jpeg)
+
+Our version of the Portal game will use Elixir to shoot doors of different colors and transfer data between them! We will even learn how we can distribute doors across different machines in our network:
+
+![](/posts/elixir/1/images/portal-list.jpeg)
+
+Here is what we will learn:
+
+  * Elixir's basic data structures
+  * Pattern matching
+  * Using agents for state
+  * Using structs for custom data structures
+  * Extending the language with protocols
+  * Supervision trees and applications
+  * Distributed Elixir nodes
+
+At the end of this notebook, we will make the following code work:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+# Shoot two doors: one orange, another blue
+{:ok, _} = Portal.shoot(:orange)
+{:ok, _} = Portal.shoot(:blue)
+
+# Start transferring the list [1, 2, 3, 4] from orange to blue
+portal = Portal.transfer(:orange, :blue, [1, 2, 3, 4])
+
+# This will output:
+#
+#   #Portal<
+#          :orange <=> :blue
+#     [1, 2, 3, 4] <=> []
+#   >
+
+# Now every time we call push_right, data goes to blue
+Portal.push_right(portal)
+
+# This will output:
+#
+#   #Portal<
+#          :orange <=> :blue
+#        [1, 2, 3] <=> []
+#   >
+```
+
+Intrigued? Let's get started!
+
+## Basic data structures
+
+Elixir has numbers, strings, and variables. Code comments start with `#`:
+
+```elixir
+# Numbers
+IO.inspect(40 + 2)
+
+# Strings
+variable = "hello" <> " world"
+IO.inspect(variable)
+```
+
+Executing the cell above prints the number `42` and the string `"hello world"`. `IO.inspect/1` is a function that prints the given data structure to your terminal - in this case, our notebook - and returns the value given to it.
+
+Elixir also has three special values, `true`, `false`, and `nil`. Everything in Elixir is considered to be a truthy value, except for `false` and `nil`:
+
+```elixir
+# && is the logical and operator
+IO.inspect(true && true)
+IO.inspect(13 && 42)
+
+# || is the logical or operator
+IO.inspect(true || false)
+IO.inspect(nil || 42)
+```
+
+For working with collections of data, Elixir has three data types:
+
+```elixir
+# Lists (typically hold a dynamic amount of items)
+IO.inspect([1, 2, "three"])
+
+# Tuples (typically hold a fixed amount of items)
+IO.inspect({:ok, "value"})
+
+# Maps (key-value data structures)
+IO.inspect(%{"key" => "value"})
+```
+
+In the snippet above, we also used a new data structure represented as `:ok`. All values starting with a leading `:` in Elixir are called **atoms**. Atoms are used as identifiers across the language. For instance, common atoms are `:ok` and `:error`. Which brings us to the next topic: pattern matching.
+
+## Pattern matching
+
+The `=` operator in Elixir is a bit different from the ones we see in other languages:
+
+```elixir
+x = 1
+x
+```
+
+So far so good, but what happens if we invert the operands?
+
+```elixir
+1 = x
+```
+
+It worked! That's because Elixir tries to match the right side against the left side. Since both are set to `1`, it works. Let's try something else:
+
+```elixir
+2 = x
+```
+
+Now the sides did not match, so we got an error. We use pattern matching in Elixir to match on collection too. For example, we can use `[head | tail]` to extract the head (the first element) and tail (the remaining ones) from a list:
+
+```elixir
+[head | tail] = [1, 2, 3]
+IO.inspect(head)
+IO.inspect(tail)
+```
+
+Matching an empty list against `[head | tail]` causes a match error:
+
+```elixir
+[head | tail] = []
+```
+
+Finally, we can also use the `[head | tail]` expression to add elements to the head of a list:
+
+```elixir
+list = [1, 2, 3]
+[0 | list]
+```
+
+We can also pattern match on tuples. This is often used to match on the return types of function calls. For example, take the function `Date.from_iso8601(string)`, which returns `{:ok, date}` if the string represents a valid date, otherwise it returns `{:error, reason}`:
+
+```elixir
+# A valid date
+Date.from_iso8601("2020-02-29")
+```
+
+```elixir
+# An invalid date
+Date.from_iso8601("2020-02-30")
+```
+
+Now, what happens if we want our code to behave differently depending if the date is valid or not? We can use `case` to pattern match on the different tuples. This is also a good opportunity to use Livebook's inputs to pass different values to our code:
+
+```elixir
+# TODO: we need inputs!!
+# This will read the date input and return something like "2020-02-30\n"
+input = "TODO!" || IO.gets("date")
+
+# So we trim the newline from the input value
+trimmed = String.trim(input)
+
+# And now match on the 
+case Date.from_iso8601(trimmed) do
+  {:ok, date} ->
+    "We got a valid data: #{inspect(date)}"
+
+  {:error, reason} ->
+    "Oh no, the date is invalid. Reason: #{inspect(reason)}"
+end
+```
+
+Try changing the input and re-executing the cell to see how the outcome changes.
+
+Finally, we can also pattern match on maps. This is used to extract the values for the given keys:
+
+```elixir
+map = %{:elixir => :functional, :python => :object_oriented}
+%{:elixir => type} = map
+type
+```
+
+If the key does not exist on the map, it raises:
+
+```elixir
+%{:c => type} = map
+```
+
+With pattern matching out of the way, we are ready to start our Portal implementation!
