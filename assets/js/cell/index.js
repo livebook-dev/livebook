@@ -26,63 +26,66 @@ const Cell = {
       insertMode: false,
     };
 
-    this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
-      const { source, revision } = payload;
+    // TODO: handle this properly
+    if (["markdown", "elixir"].includes(this.props.type)) {
+      this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
+        const { source, revision } = payload;
 
-      const editorContainer = this.el.querySelector(
-        `[data-element="editor-container"]`
-      );
-      // Remove the content placeholder.
-      editorContainer.firstElementChild.remove();
-      // Create an empty container for the editor to be mounted in.
-      const editorElement = document.createElement("div");
-      editorContainer.appendChild(editorElement);
-      // Setup the editor instance.
-      this.state.liveEditor = new LiveEditor(
-        this,
-        editorElement,
-        this.props.cellId,
-        this.props.type,
-        source,
-        revision
-      );
-
-      // Setup markdown rendering.
-      if (this.props.type === "markdown") {
-        const markdownContainer = this.el.querySelector(
-          `[data-element="markdown-container"]`
+        const editorContainer = this.el.querySelector(
+          `[data-element="editor-container"]`
         );
-        const baseUrl = this.props.sessionPath;
-        const markdown = new Markdown(markdownContainer, source, baseUrl);
+        // Remove the content placeholder.
+        editorContainer.firstElementChild.remove();
+        // Create an empty container for the editor to be mounted in.
+        const editorElement = document.createElement("div");
+        editorContainer.appendChild(editorElement);
+        // Setup the editor instance.
+        this.state.liveEditor = new LiveEditor(
+          this,
+          editorElement,
+          this.props.cellId,
+          this.props.type,
+          source,
+          revision
+        );
 
-        this.state.liveEditor.onChange((newSource) => {
-          markdown.setContent(newSource);
-        });
-      }
+        // Setup markdown rendering.
+        if (this.props.type === "markdown") {
+          const markdownContainer = this.el.querySelector(
+            `[data-element="markdown-container"]`
+          );
+          const baseUrl = this.props.sessionPath;
+          const markdown = new Markdown(markdownContainer, source, baseUrl);
 
-      // Once the editor is created, reflect the current state.
-      if (this.state.isFocused && this.state.insertMode) {
-        this.state.liveEditor.focus();
-        // If the element is being scrolled to, focus interrupts it,
-        // so ensure the scrolling continues.
-        smoothlyScrollToElement(this.el);
+          this.state.liveEditor.onChange((newSource) => {
+            markdown.setContent(newSource);
+          });
+        }
 
-        broadcastSelection(this);
-      }
-
-      this.state.liveEditor.onBlur(() => {
-        // Prevent from blurring unless the state changes.
-        // For example when we move cell using buttons
-        // the editor should keep focus.
+        // Once the editor is created, reflect the current state.
         if (this.state.isFocused && this.state.insertMode) {
           this.state.liveEditor.focus();
-        }
-      });
+          // If the element is being scrolled to, focus interrupts it,
+          // so ensure the scrolling continues.
+          smoothlyScrollToElement(this.el);
 
-      this.state.liveEditor.onCursorSelectionChange((selection) => {
-        broadcastSelection(this, selection);
+          broadcastSelection(this);
+        }
+
+        this.state.liveEditor.onBlur(() => {
+          // Prevent from blurring unless the state changes.
+          // For example when we move cell using buttons
+          // the editor should keep focus.
+          if (this.state.isFocused && this.state.insertMode) {
+            this.state.liveEditor.focus();
+          }
+        });
+
+        this.state.liveEditor.onCursorSelectionChange((selection) => {
+          broadcastSelection(this, selection);
+        });
       });
-    });
+    }
 
     this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
       "cells",

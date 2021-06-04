@@ -12,7 +12,7 @@ defmodule Livebook.Notebook.Cell do
   alias Livebook.Utils
 
   @type id :: Utils.id()
-  @type type :: :markdown | :elixir
+  @type type :: :markdown | :elixir | :input
 
   @typedoc """
   Arbitrary cell information persisted as part of the notebook.

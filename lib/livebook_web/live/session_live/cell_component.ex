@@ -146,6 +146,48 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  def render_cell_content(%{cell_view: %{type: :input}} = assigns) do
+    ~L"""
+    <div class="mb-1 flex items-center justify-end">
+      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
+        <%= render_cell_anchor_link(assigns) %>
+        <span class="tooltip top" aria-label="Move up">
+          <button class="icon-button"
+            phx-click="move_cell"
+            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-offset="-1">
+            <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Move down">
+          <button class="icon-button"
+            phx-click="move_cell"
+            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-offset="1">
+            <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Delete">
+          <button class="icon-button"
+            phx-click="delete_cell"
+            phx-value-cell_id="<%= @cell_view.id %>">
+            <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
+          </button>
+        </span>
+      </div>
+    </div>
+
+    <div class="flex">
+      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+      </div>
+      <div>
+        <div class="input-label">Name</div>
+        <input type="text" class="input" />
+      </div>
+    </div>
+    """
+  end
+
   defp render_editor(assigns) do
     ~L"""
     <div class="py-3 rounded-lg bg-editor relative">
