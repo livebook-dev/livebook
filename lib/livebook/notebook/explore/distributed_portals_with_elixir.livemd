@@ -2,19 +2,32 @@
 
 ## Introduction
 
-This notebook is a fast-paced introduction to the Elixir programming language. We will explore both basic and advanced concepts to implement our own version of [the Portal game](http://en.wikipedia.org/wiki/Portal_(video_game)) to transfer data across notebooks using Elixir's distribution capabalities.
+This notebook is a fast-paced introduction to the Elixir
+programming language. We will explore both basic and advanced
+concepts to implement our own version of [the Portal
+game](http://en.wikipedia.org/wiki/Portal_(video_game)) to
+transfer data across notebooks using Elixir's distribution
+capabalities.
 
-For a more structured introduction to the language, see [Elixir's getting started guide](https://elixir-lang.org/getting-started/introduction.html) and [the many learning resources available](https://elixir-lang.org/learning.html).
+For a more structured introduction to the language, see [Elixir's
+getting started guide](https://elixir-lang.org/getting-started/introduction.html)
+and [the many learning resources available](https://elixir-lang.org/learning.html).
 
 ### The plan ahead
 
-The Portal game consists of a series of puzzles that must be solved by teleporting the player's character and simple objects from one place to another.
+The Portal game consists of a series of puzzles that must be
+solved by teleporting the player's character and simple objects
+from one place to another.
 
-In order to teleport, the player uses the Portal gun to shoot doors onto flat planes, like a floor or a wall. Entering one of those doors teleports you to the other:
+In order to teleport, the player uses the Portal gun to shoot doors
+onto flat planes, like a floor or a wall. Entering one of those doors
+teleports you to the other:
 
 ![](/posts/elixir/1/images/portal-drop.jpeg)
 
-Our version of the Portal game will use Elixir to shoot doors of different colors and transfer data between them! We will even learn how we can distribute doors across different machines in our network:
+Our version of the Portal game will use Elixir to shoot doors of
+different colors and transfer data between them! We will even learn how
+we can distribute doors across different machines in our network:
 
 ![](/posts/elixir/1/images/portal-list.jpeg)
 
@@ -73,9 +86,15 @@ variable = "hello" <> " world"
 IO.inspect(variable)
 ```
 
-Executing the cell above prints the number `42` and the string `"hello world"`. `IO.inspect/1` is a function that prints the given data structure to your terminal - in this case, our notebook - and returns the value given to it.
+Executing the cell above prints the number `42` and the string
+`"hello world"`. To do so, we called the function `inspect` in
+the `IO` module, using the `IO.inspect(...)` notation. This function
+prints the given data structure to your terminal - in this case,
+our notebook - and returns the value given to it.
 
-Elixir also has three special values, `true`, `false`, and `nil`. Everything in Elixir is considered to be a truthy value, except for `false` and `nil`:
+Elixir also has three special values, `true`, `false`, and `nil`.
+Everything in Elixir is considered to be a truthy value, except for
+`false` and `nil`:
 
 ```elixir
 # && is the logical and operator
@@ -100,11 +119,16 @@ IO.inspect({:ok, "value"})
 IO.inspect(%{"key" => "value"})
 ```
 
-In the snippet above, we also used a new data structure represented as `:ok`. All values starting with a leading `:` in Elixir are called **atoms**. Atoms are used as identifiers across the language. For instance, common atoms are `:ok` and `:error`. Which brings us to the next topic: pattern matching.
+In the snippet above, we also used a new data structure represented
+as `:ok`. All values starting with a leading `:` in Elixir are called
+**atoms**. Atoms are used as identifiers across the language. Common
+atoms are `:ok` and `:error`. Which brings us to the next topic: pattern
+matching.
 
 ## Pattern matching
 
-The `=` operator in Elixir is a bit different from the ones we see in other languages:
+The `=` operator in Elixir is a bit different from the ones we see
+in other languages:
 
 ```elixir
 x = 1
@@ -117,13 +141,18 @@ So far so good, but what happens if we invert the operands?
 1 = x
 ```
 
-It worked! That's because Elixir tries to match the right side against the left side. Since both are set to `1`, it works. Let's try something else:
+It worked! That's because Elixir tries to match the right side
+against the left side. Since both are set to `1`, it works. Let's
+try something else:
 
 ```elixir
 2 = x
 ```
 
-Now the sides did not match, so we got an error. We use pattern matching in Elixir to match on collection too. For example, we can use `[head | tail]` to extract the head (the first element) and tail (the remaining ones) from a list:
+Now the sides did not match, so we got an error. We use pattern
+matching in Elixir to match on collection too. For example, we
+can use `[head | tail]` to extract the head (the first element)
+and tail (the remaining ones) from a list:
 
 ```elixir
 [head | tail] = [1, 2, 3]
@@ -137,14 +166,19 @@ Matching an empty list against `[head | tail]` causes a match error:
 [head | tail] = []
 ```
 
-Finally, we can also use the `[head | tail]` expression to add elements to the head of a list:
+Finally, we can also use the `[head | tail]` expression to add
+elements to the head of a list:
 
 ```elixir
 list = [1, 2, 3]
 [0 | list]
 ```
 
-We can also pattern match on tuples. This is often used to match on the return types of function calls. For example, take the function `Date.from_iso8601(string)`, which returns `{:ok, date}` if the string represents a valid date, in the format `YYYY-MM-DD`, otherwise it returns `{:error, reason}`:
+We can also pattern match on tuples. This is often used to match
+on the return types of function calls. For example, take the function
+`Date.from_iso8601(string)`, which returns `{:ok, date}` if the
+string represents a valid date, in the format `YYYY-MM-DD`, otherwise
+it returns `{:error, reason}`:
 
 ```elixir
 # A valid date
@@ -156,11 +190,14 @@ Date.from_iso8601("2020-02-29")
 Date.from_iso8601("2020-02-30")
 ```
 
-Now, what happens if we want our code to behave differently depending if the date is valid or not? We can use `case` to pattern match on the different tuples. This is also a good opportunity to use Livebook's inputs to pass different values to our code:
+Now, what happens if we want our code to behave differently depending
+if the date is valid or not? We can use `case` to pattern match on
+the different tuples. This is also a good opportunity to use Livebook's
+inputs to pass different values to our code:
 
 ```elixir
 # TODO: we need inputs!!
-# This will read the date input and return something like "2020-02-30\n"
+# Read the date input and return something like "2020-02-30\n"
 input = "TODO!" || IO.gets("date")
 
 # So we trim the newline from the input value
@@ -176,9 +213,11 @@ case Date.from_iso8601(trimmed) do
 end
 ```
 
-Try changing the input and re-executing the cell to see how the outcome changes.
+Try changing the input and re-executing the cell to see how the outcome
+changes.
 
-Finally, we can also pattern match on maps. This is used to extract the values for the given keys:
+Finally, we can also pattern match on maps. This is used to extract the
+values for the given keys:
 
 ```elixir
 map = %{:elixir => :functional, :python => :object_oriented}
@@ -192,28 +231,57 @@ If the key does not exist on the map, it raises:
 %{:c => type} = map
 ```
 
-With pattern matching out of the way, we are ready to start our Portal implementation!
+With pattern matching out of the way, we are ready to start our Portal
+implementation!
 
 ## Modeling portal doors with Agents
 
-Elixir data structures are immutable. In the examples above, we never mutated the list. We can break a list apart or add new elements to the head, but the original list is never modified.
+Elixir data structures are immutable. In the examples above, we never
+mutated the list. We can break a list apart or add new elements to the
+head, but the original list is never modified.
 
-That said, when we need to keep some sort of state, like the data transfering through a portal, we must use an abstraction that stores this state for us. One such abstraction in Elixir is called an agent. Before we use agents, we need to briefly talk about anonymous functions:
+That said, when we need to keep some sort of state, like the data
+transfering through a portal, we must use an abstraction that stores
+this state for us. One such abstraction in Elixir is called an agent.
+Before we use agents, we need to briefly talk about anonymous functions.
+
+Anonymous functions are a mechanism to represent pieces of code that we
+can pass around and execute later on:
 
 ```elixir
 adder = fn a, b -> a + b end
+```
+
+An anonymous function is delimited by the words `fn` and `end` and an
+arrow `->` is used to separate the arguments from the anonymous function
+body. We can now call the anonymous function above multiple times by
+given two numbers as inputs:
+
+```elixir
 adder.(1, 2)
 ```
 
-An anonymous function is delimited by the words `fn` and `end` and an arrow `->` is used to separate the arguments from the anonymous function body. We use anonymous functions to initialize, get, and update the agent state:
+```elixir
+adder.(3, 5)
+```
+
+In Elixir, we also use anonymous functions to initialize, get, and update
+the agent state:
 
 ```elixir
 {:ok, agent} = Agent.start_link(fn -> [] end)
 ```
 
-In the example above, we created a new agent, passing a function that returns the initial state of an empty list. The agent returns `{:ok, #PID<...>}`, where PID stands for a process identifier, which uniquely identifies the agent. When we say processes in Elixir, we don't mean Operating System processes, but rather Elixir Processes, which are lightweight and isolated, allowing us to run hundreds of thousands of them on the same machine.
+In the example above, we created a new agent, passing a function that
+returns the initial state of an empty list. The agent returns
+`{:ok, #PID<...>}`, where PID stands for a process identifier, which
+uniquely identifies the agent. When we say processes in Elixir, we
+don't mean Operating System processes, but rather Elixir Processes,
+which are lightweight and isolated, allowing us to run hundreds of
+thousands of them on the same machine.
 
-We store the agent's PID in the `agent` variable, which allows us to send messages to get the agent's state:
+We store the agent's PID in the `agent` variable, which allows us to
+send messages to get the agent's state:
 
 ```elixir
 Agent.get(agent, fn list -> list end)
@@ -226,7 +294,13 @@ Agent.update(agent, fn list -> [0 | list] end)
 Agent.get(agent, fn list -> list end)
 ```
 
-We will use agents to implement our portal doors. Whenever we need to encapsulate logic in Elixir, we create modules, which are essentially a collection of functions. We define modules with `defmodule` and functions with `def`. Our functions will encapsulate the logic to interact with the Agent, using the API we learned in the cells above:
+We will use agents to implement our portal doors.
+
+Whenever we need to encapsulate logic in Elixir, we create modules,
+which are essentially a collection of functions. We define modules
+with `defmodule` and functions with `def`. Our functions will
+encapsulate the logic to interact with the agent, using the API we
+learned in the cells above:
 
 ```elixir
 defmodule Portal.Door do
@@ -259,18 +333,31 @@ defmodule Portal.Door do
 end
 ```
 
-We start a module by giving it a name, in this case, `Portal.Door`. At the top of the module, we say `use Agent`, which brings some `Agent`-related functionality into the module.
+We declare a module by giving it a name, in this case, `Portal.Door`.
+At the top of the module, we say `use Agent`, which brings some
+`Agent`-related functionality into the module.
 
-The first function is `start_link`, which we often refer to as `start_link/1`, where the number 1 indicates it receives a single argument. We check that the argument is an atom and proceed to call `Agent.start_link/2`, as we did early in this section, except we are now passing `name: color` as an argument. By giving a name to the Agent, we can refer to it anywhere by its name, instead of using its PID.
+The first function is `start_link`, which we often refer to as
+`start_link/1`, where the number 1 indicates it receives a single
+argument. We check that the argument is an atom and proceed to call
+`Agent.start_link/2`, as we did early in this section, except we are
+now passing `name: color` as an argument. By giving a name to the
+Agent, we can refer to it anywhere by its name, instead of using its
+PID.
 
-The next two functions, `get/1` and `push/2` perform simple operation to the agent, reading its state and adding a new element respectively. Let's take a look at them:
+The next two functions, `get/1` and `push/2` perform simple operation
+to the agent, reading its state and adding a new element respectively.
+Let's take a look at them:
 
 ```elixir
 Portal.Door.start_link(:pink)
 Portal.Door.get(:pink)
 ```
 
-Note how we didn't need to store the PID anywhere and we can use the atom `:pink` to refer to the door and read its state. If the door already exists, and we try to start another one with the same name, it returns an `:error` tuple instead of `{:ok, pid}`:
+Note how we didn't need to store the PID anywhere and we can use the
+atom `:pink` to refer to the door and read its state. If the door
+already exists, and we try to start another one with the same name,
+it returns an `:error` tuple instead of `{:ok, pid}`:
 
 ```elixir
 Portal.Door.start_link(:pink)
@@ -284,9 +371,14 @@ Portal.Door.push(:pink, 2)
 Portal.Door.get(:pink)
 ```
 
-We pushed some events and they show up in our state. Although, note they appear in reverse order. That's because we are always adding new entries to the top of the list.
+We pushed some events and they show up in our state. Although, note
+they appear in reverse order. That's because we are always adding
+new entries to the top of the list.
 
-The fourth function we defined is called `pop/1`. If there is any item in the agent, it takes the head of the list and returns it wrapped in a `{:ok, value}` tuple. However, if the list is empty, it returns `:error`.
+The fourth function we defined is called `pop/1`. If there is any
+item in the agent, it takes the head of the list and returns it
+wrapped in a `{:ok, value}` tuple. However, if the list is empty,
+it returns `:error`.
 
 ```elixir
 IO.inspect(Portal.Door.pop(:pink))
@@ -296,7 +388,8 @@ IO.inspect(Portal.Door.pop(:pink))
 Portal.Door.get(:pink)
 ```
 
-Finally, the last function, `close/1`, simply terminates the agent, effectively closing the door. Let's try it:
+Finally, the last function, `close/1`, simply terminates the agent,
+effectively closing the door. Let's try it:
 
 ```elixir
 Portal.Door.close(:pink)
@@ -312,9 +405,15 @@ Note the error message points out why the operation did not work, great!
 
 ## Portal transfers
 
-Our portal doors are ready so it is time to start working on portal transfers! In order to store the portal data, we are going to create a struct named `Portal`. Let's first learn what structs are about before moving forward.
+Our portal doors are ready so it is time to start working on portal
+transfers! In order to store the portal data, we are going to create a
+struct named `Portal`. Let's first learn what structs are about.
 
-Structs define data structures with pre-defined keys. The keys are verified at compilation time, so if you make a type in the key name, you get an error early on. Structs are defined inside modules, by calling the `defstruct` with a list of atom keys. Let's define a `User` struct with the fields `:name` and `:age`:
+Structs define data structures with pre-defined keys. The keys are verified
+at compilation time, so if you make a type in the key name, you get an error
+early on. Structs are defined inside modules, by calling the `defstruct` with
+a list of atom keys. Let's define a `User` struct with the fields `:name`
+and `:age`:
 
 ```elixir
 defmodule User do
@@ -341,17 +440,33 @@ We can pattern match on structs too:
 age
 ```
 
-Now we are ready to define our `Portal` struct. It will have two fields, `:left` and `:right`, which point respectively to the portal door on the left and the door on the right. Our goal is to transfer data from the left door to the right one. The `Portal` module, where we define our struct, will also have three other functions:
+Finally, let's see what happens if we do a typo on a field:
 
-  * `shoot(color)` - shoots a door of the given color. This is basically a wrapper for `Portal.Door.start_link/1`
+```elixir
+%User{agee: age} = user
+```
 
-  * `transfer(left_door, right_door, data)` - starts a transfer by loading the given `data` to `left_door` and returns a `Portal` struct
+Now we are ready to define our `Portal` struct. It will have
+two fields, `:left` and `:right`, which point respectively to
+the portal door on the left and the door on the right. Our goal
+is to transfer data from the left door to the right one. The
+`Portal` module, where we define our struct, will also have
+four other functions:
 
-  * `push_right(portal)` - receives a portal and continues the transfer by pushing data from the left to the right
+  * `shoot(color)` - shoots a door of the given color. This is
+    a wrapper around `Portal.Door.start_link/1`
 
-  * `close(portal)` - closes the portal by explicitly closing both doors
+  * `transfer(left_door, right_door, data)` - starts a transfer
+    by loading the given `data` to `left_door` and returns a
+    `Portal` struct
 
-Let's give it a try:
+  * `push_right(portal)` - receives a portal and continues the
+    transfer by pushing data from the left to the right
+
+  * `close(portal)` - closes the portal by explicitly closing
+    both doors
+
+Let's implement them:
 
 ```elixir
 defmodule Portal do
@@ -391,7 +506,11 @@ defmodule Portal do
 end
 ```
 
-The `Portal` modules defines a struct followed by a `shoot/1` function. The function is just a wrapper around `Portal.Door.start_link/1`. Then we define the `transfer/3` function, which loads the given data into the left door and returns a Portal struct. Finally, `push_right/3` gets data from the door on the left and puts it on the right door. Let's give it a try:
+The `Portal` modules defines a struct followed by a `shoot/1` function.
+The function is just a wrapper around `Portal.Door.start_link/1`. Then
+we define the `transfer/3` function, which loads the given data into the
+left door and returns a Portal struct. Finally, `push_right/3` gets data
+from the door on the left and puts it on the right door. Let's give it a try:
 
 ```elixir
 Portal.shoot(:orange)
@@ -399,36 +518,54 @@ Portal.shoot(:blue)
 portal = Portal.transfer(:orange, :blue, [1, 2, 3])
 ```
 
-The above returns the `%Portal{}` struct. We can check the data has been loaded into the left door:
+The above returns the `%Portal{}` struct. We can check the data has been
+loaded into the left door:
 
 ```elixir
 Portal.Door.get(:orange)
 ```
 
-Note the list is reversed - and we knew that! - as we always add items on the top. But we will use that to our advantage soon. Let's start pushing data to the right:
+Note the list is reversed - and we knew that! - as we always add items
+on the top. But we will use that to our advantage soon. Let's start pushing
+data to the right:
 
 ```elixir
 Portal.push_right(portal)
 Portal.Door.get(:blue)
 ```
 
-Since the list is reversed, we can see that we pushed the number `3` to the right, which is exactly what we expected. If you reevaluate the cell above, you will see data moving to the right, as our portal doors are stateful.
+Since the list is reversed, we can see that we pushed the number `3`
+to the right, which is exactly what we expected. If you reevaluate the
+cell above, you will see data moving to the right, as our portal doors
+are stateful.
 
-Our portal transfer seems to work as expected! Now let's clean up and close the transfer:
+Our portal transfer seems to work as expected! Now let's clean up and
+close the transfer:
 
 ```elixir
 Portal.close(portal)
 ```
 
-We have made some good progress in our implementation, so now let's work a bit on the presentation. Currently the Portal being printed as a struct: `%Portal{left: :orange, right: :blue}`. It would be nice if we actually had a printed representation of the portal transfer, allowing us to see the portal processes as we push data.
+We have made some good progress in our implementation, so now let's work
+a bit on the presentation. Currently the Portal being printed as a struct:
+`%Portal{left: :orange, right: :blue}`. It would be nice if we actually
+had a printed representation of the portal transfer, allowing us to see
+the portal processes as we push data.
 
 ## Inspecting portals with Protocols
 
-We already know that data can be printed in `Livebook`. After all, when we type `1 + 2`, we get `3` back. However, can we customize how our own data structures are printed?
+We already know that Elixir data structures data can be printed by `Livebook`.
+After all, when we type `1 + 2`, we get `3` back. However, can we customize
+how our own data structures are printed?
 
-Yes, we can! Elixir provides protocols, which allows behaviour to be extended and implemented for any data type, like our `Portal` struct, at any time.
+Yes, we can! Elixir provides protocols, which allows behaviour to be extended
+and implemented for any data type, like our `Portal` struct, at any time.
 
-For example, every time something is printed in Livebook, or in Elixir's terminal, Elixir uses the `Inspect` protocol. Since protocols can be extended at any time, by any data type, it means we can implement it for `Portal` too. We do by calling `defimpl/2`, passing the protocol name and the data structure we want ti implement the protocol for. Let's do it:
+For example, every time something is printed in Livebook, or in Elixir's
+terminal, Elixir uses the `Inspect` protocol. Since protocols can be extended
+at any time, by any data type, it means we can implement it for `Portal` too.
+We do so by calling `defimpl/2`, passing the protocol name and the data
+structure we want ti implement the protocol for. Let's do it:
 
 ```elixir
 defimpl Inspect, for: Portal do
@@ -451,9 +588,16 @@ defimpl Inspect, for: Portal do
 end
 ```
 
-In the snippet above, we have implemented the `Inspect` protocol for the `Portal` struct. The protocol expects one function named `inspect` to be implemented. The function expects two arguments, the first is the `Portal` struct itself and the second is a set of options, which we don't care about for now.
+In the snippet above, we have implemented the `Inspect` protocol for the
+`Portal` struct. The protocol expects one function named `inspect` to be
+implemented. The function expects two arguments, the first is the `Portal`
+struct itself and the second is a set of options, which we don't care about
+for now.
 
-Then we call `inspect` multiple times, to get a text representation of both `left` and `right` doors, as well as to get a representation of the data inside the doors. Finally, we return a string containing the portal presentation properly aligned.
+Then we call `inspect` multiple times, to get a text representation of both
+`left` and `right` doors, as well as to get a representation of the data
+inside the doors. Finally, we return a string containing the portal presentation
+properly aligned.
 
 That's all we need! Let's start a new transfer and see how it goes:
 
@@ -463,14 +607,19 @@ Portal.shoot(:purple)
 portal = Portal.transfer(:red, :purple, [1, 2, 3])
 ```
 
-Sweet! Look how Livebook automatically picked up the new representation. Now feel free to call `push_right` and see what happens:
+Sweet! Look how Livebook automatically picked up the new representation.
+Now feel free to call `push_right` and see what happens:
 
 ```elixir
 Portal.push_right(portal)
 ```
 
-Feel free to reevaluate the cell above a couple times. Once you are done, execute the cell below to clean it up and close the portal:
+Feel free to reevaluate the cell above a couple times. Once you are done,
+run the cell below to clean it all up and close the portal:
 
 ```elixir
 Portal.close(portal)
 ```
+
+There is just one topic left...
+
