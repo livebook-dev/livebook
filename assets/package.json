@@ -28,7 +28,9 @@
     "topbar": "^1.0.1",
     "vega": "^5.20.2",
     "vega-embed": "^6.18.1",
-    "vega-lite": "^5.1.0"
+    "vega-lite": "^5.1.0",
+    "topbar": "^1.0.1",
+    "html2canvas": "^1.0.0-rc.7"
   },
   "devDependencies": {
     "@babel/core": "^7.14.0",
