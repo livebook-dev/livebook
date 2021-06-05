@@ -196,11 +196,11 @@ defmodule Livebook.Evaluator.IOProxy do
     receive do
       {:evaluation_input_reply, {:ok, string}} ->
         string = :unicode.characters_to_binary(string, state.encoding, encoding)
-        Process.demonitor(ref)
+        Process.demonitor(ref, [:flush])
         {string, state}
 
       {:evaluation_input_reply, :error} ->
-        Process.demonitor(ref)
+        Process.demonitor(ref, [:flush])
         {:eof, state}
 
       {:DOWN, ^ref, :process, _object, _reason} ->

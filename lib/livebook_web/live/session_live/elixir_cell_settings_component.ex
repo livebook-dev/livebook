@@ -45,9 +45,9 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
   def handle_event("save", params, socket) do
     metadata = update_metadata(socket.assigns.cell.metadata, params)
 
-    Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id,
-      %{metadata: metadata}
-    )
+    Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, %{
+      metadata: metadata
+    })
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end

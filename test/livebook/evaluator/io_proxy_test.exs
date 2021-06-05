@@ -26,11 +26,31 @@ defmodule Livebook.Evaluator.IOProxyTest do
     end
 
     test "IO.read", %{io: io} do
-      assert IO.read(io, :all) == {:error, :enotsup}
+      pid =
+        spawn(fn ->
+          receive do
+            {:evaluation_input, :ref, ^io, ""} ->
+              send(io, {:evaluation_input_reply, :error})
+          end
+        end)
+
+      IOProxy.configure(io, pid, :ref)
+
+      assert IO.read(io, :all) == ""
     end
 
     test "IO.gets", %{io: io} do
-      assert IO.gets(io, "> ") == {:error, :enotsup}
+      pid =
+        spawn(fn ->
+          receive do
+            {:evaluation_input, :ref, ^io, "name: "} ->
+              send(io, {:evaluation_input_reply, {:ok, "Jake Peralta"}})
+          end
+        end)
+
+      IOProxy.configure(io, pid, :ref)
+
+      assert IO.gets(io, "name: ") == "Jake Peralta"
     end
   end
 
