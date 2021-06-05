@@ -152,16 +152,16 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "set_cell_metadata/3" do
-    test "sends a metadata update operation to subscribers", %{session_id: session_id} do
+  describe "set_cell_attributes/3" do
+    test "sends an attributes update operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
-      metadata = %{"disable_formatting" => true}
+      attrs = %{metadata: %{"disable_formatting" => true}}
 
-      Session.set_cell_metadata(session_id, cell_id, metadata)
-      assert_receive {:operation, {:set_cell_metadata, ^pid, ^cell_id, ^metadata}}
+      Session.set_cell_attributes(session_id, cell_id, attrs)
+      assert_receive {:operation, {:set_cell_attributes, ^pid, ^cell_id, ^attrs}}
     end
   end
 

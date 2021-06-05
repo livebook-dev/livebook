@@ -290,8 +290,11 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp settings_component_for(%Cell.Elixir{}), do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
-  defp settings_component_for(%Cell.Input{}), do: LivebookWeb.SessionLive.InputCellSettingsComponent
+  defp settings_component_for(%Cell.Elixir{}),
+    do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
+
+  defp settings_component_for(%Cell.Input{}),
+    do: LivebookWeb.SessionLive.InputCellSettingsComponent
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
@@ -422,7 +425,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("set_cell_value", %{"cell_id" => cell_id, "value" => value}, socket) do
-    Session.set_cell_value(socket.assigns.session_id, cell_id, value)
+    Session.set_cell_attributes(socket.assigns.session_id, cell_id, %{value: value})
 
     {:noreply, socket}
   end

@@ -1603,15 +1603,28 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :set_cell_metadata" do
+  describe "apply_operation/2 given :set_cell_attributes" do
     test "returns an error given invalid cell id" do
       data = Data.new()
 
-      operation = {:set_cell_metadata, self(), "nonexistent", %{}}
+      operation = {:set_cell_attributes, self(), "nonexistent", %{}}
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "updates cell metadata with the given map" do
+    test "returns an error given an unknown attribute key" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+        ])
+
+      attrs = %{unknown: :value}
+      operation = {:set_cell_attributes, self(), "c1", attrs}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates cell with the given attributes" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
@@ -1619,7 +1632,8 @@ defmodule Livebook.Session.DataTest do
         ])
 
       metadata = %{"disable_formatting" => true}
-      operation = {:set_cell_metadata, self(), "c1", metadata}
+      attrs = %{metadata: metadata}
+      operation = {:set_cell_attributes, self(), "c1", attrs}
 
       assert {:ok,
               %{

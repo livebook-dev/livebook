@@ -95,9 +95,6 @@ defmodule Livebook.Session.Data do
           | {:update_user, pid(), User.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
-          # TODO: remove these two in favour of atts?
-          | {:set_cell_value, pid(), Cell.id(), String.t()}
-          | {:set_cell_metadata, pid(), Cell.id(), Cell.metadata()}
           | {:set_cell_attributes, pid(), Cell.id(), map()}
           | {:set_runtime, pid(), Runtime.t() | nil}
           | {:set_path, pid(), String.t() | nil}
@@ -405,37 +402,9 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_cell_value, _client_pid, cell_id, value}) do
-    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-         %Cell.Input{} <- cell do
-      data
-      |> with_actions()
-      |> set_cell_value(cell, value)
-      |> mark_dependent_cells_as_stale(cell)
-      |> set_dirty()
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
-  def apply_operation(data, {:set_cell_metadata, _client_pid, cell_id, metadata}) do
-    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
-      data
-      |> with_actions()
-      |> set_cell_metadata(cell, metadata)
-      |> set_dirty()
-      |> wrap_ok()
-    else
-      _ -> :error
-    end
-  end
-
   def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
-    keys = Map.keys(attrs)
-
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-         true <- Enum.all?(keys, &Map.has_key?(cell, &1)) do
+         true <- Enum.all?(attrs, fn {key, _} -> Map.has_key?(cell, key) end) do
       invalidates_dependent =
         case cell do
           %Cell.Input{} -> Map.has_key?(attrs, :value) or Map.has_key?(attrs, :name)
@@ -825,16 +794,6 @@ defmodule Livebook.Session.Data do
       info = put_in(info.revision_by_client_pid[client_pid], revision)
       purge_deltas(info)
     end)
-  end
-
-  defp set_cell_value({data, _} = data_actions, cell, value) do
-    data_actions
-    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | value: value}))
-  end
-
-  defp set_cell_metadata({data, _} = data_actions, cell, metadata) do
-    data_actions
-    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | metadata: metadata}))
   end
 
   defp set_cell_attributes({data, _} = data_actions, cell, attrs) do
