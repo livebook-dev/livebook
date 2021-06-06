@@ -537,7 +537,13 @@ function captureCodeSnippet(hook) {
     ).then((canvas) => {
       const dataURL = canvas.toDataURL("image/png");
       const newTab = window.open("about:blank", "livebook code snippet");
-      newTab.document.write("<img src='" + dataURL + "' alt='code-snippet' />");
+
+      const image = new Image();
+      image.src = dataURL;
+      image.alt = "livebook code snippet";
+      newTab.document.write(image.outerHTML);
+      newTab.document.close();
+      newTab.document.title = "Livebook code snippet";
     });
   }
 }
