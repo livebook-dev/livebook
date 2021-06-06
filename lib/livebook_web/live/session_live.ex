@@ -491,7 +491,7 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
   end
 
-  def handle_event("capture_code_snippet", %{"cell_id" => cell_id}, socket) do
+  def handle_event("capture_code_snippet", %{"cell_id" => _cell_id}, socket) do
     # TODO: Is it possible to trigger screencapture from server?
     {:noreply, socket}
   end
