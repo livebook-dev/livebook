@@ -8,6 +8,9 @@ import {
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "../cell/live_editor/monaco";
+import html2canvas from "html2canvas";
+
+window.html2canvas = html2canvas;
 
 /**
  * A hook managing the whole session.
