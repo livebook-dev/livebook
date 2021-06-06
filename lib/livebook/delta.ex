@@ -13,8 +13,11 @@ defmodule Livebook.Delta do
   # need to work with plain-text, so we use a subset of the specification
   # with operations listed in `Livebook.Delta.Operation`.
   #
-  # Also see https://hexdocs.pm/text_delta/TextDelta.html
-  # for a complete implementation of the Delta specification.
+  # An implementation of the full Delta specification is available
+  # in the :text_delta package (https://github.com/deltadoc/text_delta)
+  # by Konstantin Kudryashov under the MIT license. This module builds
+  # directly on that package, and is simplified to better fit our
+  # not rich-text use case.
 
   defstruct ops: []
 

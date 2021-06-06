@@ -3,8 +3,10 @@
  *
  * See `Livebook.Delta` for more details.
  *
- * Also see https://github.com/quilljs/delta
- * for a complete implementation of the Delta specification.
+ * An implementation of the full Delta specification is available
+ * in the official quill-delta package (https://github.com/quilljs/delta)
+ * licensed under MIT. Our version is based on that package,
+ * but simplified to match our non rich-text use case.
  */
 export default class Delta {
   constructor(ops = []) {
