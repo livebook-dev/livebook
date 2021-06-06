@@ -338,6 +338,11 @@ function handleDocumentMouseDown(hook, event) {
       setInsertMode(hook, true);
     }
 
+    // If the camera icon is clicked, capture screenshot of code snippet
+    if (event.target.closest(`[data-element="capture-code-snippet"]`)) {
+      captureCodeSnippet(hook);
+    }
+
     return;
   }
 
