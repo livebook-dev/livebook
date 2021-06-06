@@ -22,7 +22,8 @@ import UserForm from "./user_form";
 import VegaLite from "./vega_lite";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
-import html2canvas from 'html2canvas';
+import html2canvas from "html2canvas";
+
 window.html2canvas = html2canvas;
 
 const hooks = {
