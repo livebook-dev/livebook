@@ -106,8 +106,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </span>
         <span class="tooltip top" aria-label="Capture code snippet">
           <button class="icon-button"
-            data-element="capture-code-snippet"
-            phx-value-cell_id="<%= @cell_view.id %>">
+            data-element="capture-code-snippet">
             <%= remix_icon("camera-2-line", class: "text-xl") %>
           </button>
         </span>
