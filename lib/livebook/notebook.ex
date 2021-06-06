@@ -152,7 +152,6 @@ defmodule Livebook.Notebook do
   """
   @spec share_snippet(t(), Cell.id()) :: t()
   def share_snippet(notebook, cell_id) do
-    
   end
 
   @doc """

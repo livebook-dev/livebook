@@ -495,7 +495,7 @@ defmodule LivebookWeb.SessionLive do
     # TODO: Is it possible to trigger screencapture from server?
     {:noreply, socket}
   end
-  
+
   def handle_event("show_runtime_settings", %{}, socket) do
     {:noreply,
      push_patch(socket,
