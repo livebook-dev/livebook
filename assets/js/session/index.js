@@ -526,12 +526,16 @@ function saveNotebook(hook) {
 
 function captureCodeSnippet(hook) {
   if (hook.state.focusedCellId) {
-    html2canvas(document.querySelector("#cell-" + hook.state.focusedCellId)).then(canvas => {
+    html2canvas(
+      document.querySelector("#cell-" + hook.state.focusedCellId)
+    ).then((canvas) => {
       const dataURL = canvas.toDataURL("image/png");
       const newTab = window.open("about:blank", "livebook code snippet");
       newTab.document.write("<img src='" + dataURL + "' alt='canvas' />");
     });
-    hook.pushEvent("capture_code_snippet", { cell_id: hook.state.focusedCellId });
+    hook.pushEvent("capture_code_snippet", {
+      cell_id: hook.state.focusedCellId,
+    });
   }
 }
 
