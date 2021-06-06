@@ -538,9 +538,6 @@ function captureCodeSnippet(hook) {
       const newTab = window.open("about:blank", "livebook code snippet");
       newTab.document.write("<img src='" + dataURL + "' alt='canvas' />");
     });
-    hook.pushEvent("capture_code_snippet", {
-      cell_id: hook.state.focusedCellId,
-    });
   }
 }
 
