@@ -321,8 +321,6 @@ function handleDocumentKeyDown(hook, event) {
       insertCellAboveFocused(hook, "markdown");
     } else if (keyBuffer.tryMatch(["S"])) {
       addSection(hook);
-    } else if (keyBuffer.tryMatch(["c"])) {
-      captureCodeSnippet(hook);
     }
   }
 }
