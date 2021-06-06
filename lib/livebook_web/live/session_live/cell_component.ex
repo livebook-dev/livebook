@@ -104,19 +104,19 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <%= remix_icon("list-settings-line", class: "text-xl") %>
           <% end %>
         </span>
+        <span class="tooltip top" aria-label="Capture code snippet">
+          <button class="icon-button"
+            data-element="capture-code-snippet"
+            phx-value-cell_id="<%= @cell_view.id %>">
+            <%= remix_icon("camera-2-line", class: "text-xl") %>
+          </button>
+        </span>
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
             phx-value-cell_id="<%= @cell_view.id %>"
             phx-value-offset="-1">
             <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Capture code snippet">
-          <button class="icon-button"
-            data-element="capture-code-snippet"
-            phx-value-cell_id="<%= @cell_view.id %>">
-            <%= remix_icon("camera-2-line", class: "text-xl") %>
           </button>
         </span>
         <span class="tooltip top" aria-label="Move down">
