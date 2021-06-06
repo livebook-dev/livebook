@@ -99,16 +99,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
-        <span class="tooltip top" aria-label="Cell settings">
-          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
-            <%= remix_icon("list-settings-line", class: "text-xl") %>
-          <% end %>
-        </span>
         <span class="tooltip top" aria-label="Capture code snippet">
           <button class="icon-button"
             data-element="capture-code-snippet">
             <%= remix_icon("camera-2-line", class: "text-xl") %>
           </button>
+        </span>
+        <span class="tooltip top" aria-label="Cell settings">
+          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
+            <%= remix_icon("list-settings-line", class: "text-xl") %>
+          <% end %>
         </span>
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
