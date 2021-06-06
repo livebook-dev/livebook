@@ -541,7 +541,7 @@ function captureCodeSnippet(hook) {
       const image = new Image();
       image.src = dataURL;
       image.alt = "livebook code snippet";
-      
+
       newTab.document.write(image.outerHTML);
       newTab.document.close();
       newTab.document.title = "Livebook code snippet";
