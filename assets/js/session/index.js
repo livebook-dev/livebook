@@ -318,6 +318,8 @@ function handleDocumentKeyDown(hook, event) {
       insertCellAboveFocused(hook, "markdown");
     } else if (keyBuffer.tryMatch(["S"])) {
       addSection(hook);
+    } else if (keyBuffer.tryMatch(["c"])) {
+      captureCodeSnippet(hook);
     }
   }
 }
@@ -520,6 +522,17 @@ function showNotebookRuntimeSettings(hook) {
 
 function saveNotebook(hook) {
   hook.pushEvent("save", {});
+}
+
+function captureCodeSnippet(hook) {
+  if (hook.state.focusedCellId) {
+    html2canvas(document.querySelector("#cell-" + hook.state.focusedCellId)).then(canvas => {
+      const dataURL = canvas.toDataURL("image/png");
+      const newTab = window.open("about:blank", "livebook code snippet");
+      newTab.document.write("<img src='" + dataURL + "' alt='canvas' />");
+    });
+    hook.pushEvent("capture_code_snippet", { cell_id: hook.state.focusedCellId });
+  }
 }
 
 function deleteFocusedCell(hook) {
