@@ -10,7 +10,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(name: cell.name)
+      |> assign(name: cell.name, type: cell.type)
 
     {:ok, socket}
   end
@@ -26,6 +26,9 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         <div>
           <div class="input-label">Name</div>
           <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
+        </div>
+        <div class="mt-4 flex space-x-8 items-center">
+          <%= render_radios("type", [text: "Text", url: "URL"], @type) %>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
@@ -44,8 +47,10 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     {:noreply, assign(socket, name: name)}
   end
 
-  def handle_event("save", %{"name" => name}, socket) do
-    Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, %{name: name})
+  def handle_event("save", %{"name" => name, "type" => type}, socket) do
+    type = String.to_existing_atom(type)
+    attrs = %{name: name, type: type}
+    Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, attrs)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 end

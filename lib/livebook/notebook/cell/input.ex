@@ -19,7 +19,7 @@ defmodule Livebook.Notebook.Cell.Input do
           value: String.t()
         }
 
-  @type type :: :text
+  @type type :: :text | :url
 
   @doc """
   Returns an empty cell.
