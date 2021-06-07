@@ -192,11 +192,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <%= @cell_view.name %>
           </div>
           <input type="text"
+            data-element="input"
             class="input"
             name="value"
             value="<%= @cell_view.value %>"
             spellcheck="false"
-            autocomplete="off" />
+            autocomplete="off"
+            tabindex="-1" />
         </form>
       </div>
     </div>

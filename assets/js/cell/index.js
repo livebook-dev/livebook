@@ -14,18 +14,18 @@ import scrollIntoView from "scroll-into-view-if-needed";
  * Configuration:
  *
  *   * `data-cell-id` - id of the cell being edited
- *   * `data-type` - editor type (i.e. language), either "markdown" or "elixir" is expected
+ *   * `data-type` - type of the cell
  */
 const Cell = {
   mounted() {
     this.props = getProps(this);
     this.state = {
-      liveEditor: null,
       isFocused: false,
       insertMode: false,
+      // For text cells (markdown or elixir)
+      liveEditor: null,
     };
 
-    // TODO: handle this properly
     if (["markdown", "elixir"].includes(this.props.type)) {
       this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
         const { source, revision } = payload;
@@ -86,6 +86,16 @@ const Cell = {
       });
     }
 
+    if (this.props.type === "input") {
+      const input = getInput(this);
+
+      input.addEventListener("blur", (event) => {
+        if (this.state.isFocused && this.state.insertMode) {
+          input.focus();
+        }
+      });
+    }
+
     this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
       "cells",
       (event) => {
@@ -113,6 +123,14 @@ function getProps(hook) {
     type: getAttributeOrThrow(hook.el, "data-type"),
     sessionPath: getAttributeOrThrow(hook.el, "data-session-path"),
   };
+}
+
+function getInput(hook) {
+  if (hook.props.type === "input") {
+    return hook.el.querySelector(`[data-element="input"]`);
+  } else {
+    return null;
+  }
 }
 
 /**
@@ -166,6 +184,17 @@ function handleInsertModeChanged(hook, insertMode) {
         broadcastSelection(hook);
       } else {
         hook.state.liveEditor.blur();
+      }
+    }
+
+    const input = getInput(hook);
+
+    if (input) {
+      if (hook.state.insertMode) {
+        input.focus();
+        input.selectionStart = input.selectionEnd = input.value.length;
+      } else {
+        input.blur();
       }
     }
   }
