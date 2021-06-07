@@ -533,7 +533,7 @@ function saveNotebook(hook) {
 function captureCodeSnippet(hook) {
   if (hook.state.focusedCellId) {
     html2canvas(
-      document.querySelector("#cell-" + hook.state.focusedCellId)
+      getCellById(hook.state.focusedCellId).querySelector("[data-element='cell-body']")
     ).then((canvas) => {
       const dataURL = canvas.toDataURL("image/png");
       const newTab = window.open("about:blank", "livebook code snippet");
