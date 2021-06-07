@@ -687,7 +687,9 @@ function setInsertMode(hook, insertModeEnabled) {
 
 function handleCellInserted(hook, cellId) {
   setFocusedCell(hook, cellId);
-  setInsertMode(hook, true);
+  if (["markdown", "elixir"].includes(hook.state.focusedCellType)) {
+    setInsertMode(hook, true);
+  }
 }
 
 function handleCellDeleted(hook, cellId, siblingCellId) {
