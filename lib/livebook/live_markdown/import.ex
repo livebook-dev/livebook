@@ -141,17 +141,10 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp group_elements(
-         [{:comment, _, ["livebook:object:cell_input:" <> cell_json], %{comment: true}} | ast],
+         [{:comment, _, ["livebook:" <> json], %{comment: true}} | ast],
          elems
        ) do
-    group_elements(ast, [{:cell, :input, cell_json} | elems])
-  end
-
-  defp group_elements(
-         [{:comment, _, ["livebook:" <> metadata_json], %{comment: true}} | ast],
-         elems
-       ) do
-    group_elements(ast, [{:metadata, metadata_json} | elems])
+    group_elements(ast, [livebook_json_to_element(json) | elems])
   end
 
   defp group_elements(
@@ -167,6 +160,18 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp group_elements([ast_node | ast], elems) do
     group_elements(ast, [{:cell, :markdown, [ast_node]} | elems])
+  end
+
+  defp livebook_json_to_element(json) do
+    data = Jason.decode!(json)
+
+    case data do
+      %{"livebook_object" => "cell_input"} ->
+        {:cell, :input, data}
+
+      _ ->
+        {:metadata, data}
+    end
   end
 
   # Builds a notebook from the list of elements obtained in the previous step.
@@ -188,16 +193,15 @@ defmodule Livebook.LiveMarkdown.Import do
     build_notebook(elems, [cell | cells], sections)
   end
 
-  defp build_notebook([{:cell, :input, cell_json} | elems], cells, sections) do
+  defp build_notebook([{:cell, :input, data} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
-    attrs = Jason.decode!(cell_json)
 
     cell = %{
       Notebook.Cell.new(:input)
       | metadata: metadata,
-        type: String.to_existing_atom(attrs["type"]),
-        name: attrs["name"],
-        value: attrs["value"]
+        type: data["type"] |> String.to_existing_atom(),
+        name: data["name"],
+        value: data["value"]
     }
 
     build_notebook(elems, [cell | cells], sections)
@@ -235,8 +239,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   # Takes optional leading metadata JSON object and returns {metadata, rest}.
-  defp grab_metadata([{:metadata, metadata_json} | elems]) do
-    metadata = Jason.decode!(metadata_json)
+  defp grab_metadata([{:metadata, metadata} | elems]) do
     {metadata, elems}
   end
 

@@ -49,15 +49,15 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_cell(%Cell.Input{} = cell) do
-    input_cell_json =
+    json =
       Jason.encode!(%{
+        livebook_object: :cell_input,
         type: cell.type,
         name: cell.name,
         value: cell.value
       })
 
-    # TODO: alternatively ew can store "object": "cell_input" in the json, just need more clever parsing in import then
-    "<!-- livebook:object:cell_input:#{input_cell_json} -->"
+    "<!-- livebook:#{json} -->"
     |> prepend_metadata(cell.metadata)
   end
 

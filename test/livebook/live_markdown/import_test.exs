@@ -33,8 +33,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 2
 
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
+
     ```elixir
-    # More Elixir code
+    IO.gets("length: ")
     ```
     """
 
@@ -78,10 +80,16 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Section 2",
                  metadata: %{},
                  cells: [
+                   %Cell.Input{
+                     metadata: %{},
+                     type: :text,
+                     name: "length",
+                     value: "100"
+                   },
                    %Cell.Elixir{
                      metadata: %{},
                      source: """
-                     # More Elixir code\
+                     IO.gets("length: ")\
                      """
                    }
                  ]

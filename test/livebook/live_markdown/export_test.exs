@@ -48,10 +48,16 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               metadata: %{},
               cells: [
                 %{
+                  Notebook.Cell.new(:input)
+                  | type: :text,
+                    name: "length",
+                    value: "100"
+                },
+                %{
                   Notebook.Cell.new(:elixir)
                   | metadata: %{},
                     source: """
-                    # More Elixir code\
+                    IO.gets("length: ")
                     """
                 }
               ]
@@ -86,8 +92,10 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ## Section 2
 
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
+
     ```elixir
-    # More Elixir code
+    IO.gets("length: ")
     ```
     """
 

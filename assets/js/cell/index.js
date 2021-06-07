@@ -4,7 +4,6 @@ import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
-import monaco from "./live_editor/monaco";
 
 /**
  * A hook managing a single cell.
