@@ -1642,6 +1642,25 @@ defmodule Livebook.Session.DataTest do
                 }
               }, _} = Data.apply_operation(data, operation)
     end
+
+    test "given input value change, marks evaluated child cells as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :input, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, [1, 2, 3]}}
+        ])
+
+      attrs = %{value: "stuff"}
+      operation = {:set_cell_attributes, self(), "c1", attrs}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{validity_status: :stale}}
+              }, _} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :set_runtime" do

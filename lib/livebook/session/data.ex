@@ -414,7 +414,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
-      |> tap(fn data_actions ->
+      |> then(fn data_actions ->
         if invalidates_dependent do
           mark_dependent_cells_as_stale(data_actions, cell)
         else
