@@ -10,7 +10,7 @@ transfer data across notebooks using Elixir's distribution
 capabalities.
 
 For a more structured introduction to the language, see [Elixir's
-getting started guide](https://elixir-lang.org/getting-started/introduction.html)
+Getting Started guide](https://elixir-lang.org/getting-started/introduction.html)
 and [the many learning resources available](https://elixir-lang.org/learning.html).
 
 ### The plan ahead
@@ -623,3 +623,174 @@ Portal.close(portal)
 
 There is just one topic left...
 
+## Distributed transfers
+
+With our portals working, we are ready to give distributed transfers a try.
+However, before we start, there is one big disclaimer:
+
+> The feature we are going to implement will allow us to share data across
+> two separate notebooks using the Erlang Distribution. This section is a great
+> experiment to understand how things work behind the scenes but **sharing data
+> across notebooks as done here is a bad idea in practice**. If this topic
+> interests you, we recommend picking up one of the many available learning
+> resources available for Elixir, which will provide a more solid ground to
+> leverage the Erlang VM and its distributed features.
+
+### Distribution 101
+
+When Livebook executes the code in a notebook, it starts a separate Elixir
+runtime to do so. Since Livebook itself is also written in Elixir, it uses
+the Erlang Distribution to communicate with this Elixir runtime. We can
+get the name of the Elixir node our notebook is running on like this:
+
+```elixir
+node()
+```
+
+By executing the code above, we can see node names are atoms. By default,
+Livebook only connects to nodes running on the same machine, but you can
+also configure it to connect to runtimes across machines.
+
+We can also get a list of all nodes our runtime is connected to by calling
+`Node.list()`, let's give it a try:
+
+```elixir
+Node.list()
+```
+
+If you execute the code above, you get... an empty list!?
+
+The reason why we get an empty list is because, by default, Erlang Distribution
+is a fully mesh. This means all nodes can see all nodes in the network. However,
+because we want the notebook runtimes to be isolated from each other, we start
+each runtime as a _hidden_ node. We can ask Elixir to give us all hidden nodes
+instead:
+
+```elixir
+Node.list(:hidden)
+```
+
+Much better! We see one node, which is the Livebook server itself.
+
+Now there is one last piece of the puzzle: in order for nodes to connect to each
+other, they need to have the same cookie. We can read the cookie of our current
+notebook runtime like this:
+
+```elixir
+Node.get_cookie()
+```
+
+Now we have everything we need to connect across notebooks.
+
+### Notebook connections
+
+In order to connect across notebooks, open up a new empty notebook
+in a separate tab, copy and paste the code below to this new notebook,
+and execute it:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+IO.puts node()
+IO.puts Node.get_cookie()
+```
+
+Now paste the result of the node name and its cookie in the inputs below:
+
+
+
+And now execute the code cell below, which will read the inputs, configure the
+cookie, and connect to the other notebook:
+
+```elixir
+# TODO: input
+other_node = :"tp7snhh2-livebook_buc7u3j5@josemac"
+other_cookie = :"ZAlSfGc3oME7ec9wsdU3UoddTXjvjm2m-OmKGoHc7l_z4wTuJURwG0Oo"
+
+Node.set_cookie(other_node, other_cookie)
+Node.connect(other_node)
+```
+
+If it returns true, it means it connected as expected. Notice we also
+stored the name of the other node in a `other_node` variable for convenience.
+
+Now we are ready to start a distributed transfer. The first step is to go
+to the other notebook and shoot a door. You can try calling the following
+there:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+Portal.shoot(:blue)
+```
+
+However, if you try the above, it will fail! This happens because the
+Portal code has been defined in this notebook but it is not available
+in the other notebook. If we were working on an actual Elixir project,
+this issue wouldn't exist, because we would start multiple nodes on top
+of the same codebase with the same modules, but we can't do so here.
+To work around this, let's simply copy the cell that define the
+`Portal.Door` module into the other notebook and execute it. Now we should
+be able to shoot a door in the other node:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+Portal.Door.start_link(:blue)
+```
+
+### Cross-node references
+
+Now that we have spawned a door on the other notebook, we can directly read
+its content from this notebook. So far, we have been using an atom, such
+as `:blue`, to represent the doors, but we can also use the `{name, node}`
+notation to refer to a process in another node. Let's give it a try:
+
+```elixir
+blue = {:blue, other_node}
+Portal.Door.get(blue)
+```
+
+It works! We could successlly read something from the other node. Now,
+let's shoot a yellow port on this node and start a transfer between them:
+
+```elixir
+Portal.shoot(:yellow)
+yellow = {:yellow, node()}
+portal = Portal.transfer(yellow, blue, [1, 2, 3, 4])
+```
+
+Our distributed transfer was started. Now let's push right:
+
+```elixir
+Portal.push_right(portal)
+```
+
+If you go back to the other notebook and run `Portal.Door.get(:blue)`,
+you should see it has been updated with entries from this notebook!
+The best part of all is that we enabled distributed transfers without
+changing a single line of code!
+
+Our distributed portal transfer works because the doors are just processes
+and accessing/pushing the data through doors is done by sending messages
+to those processes via the Agent API. We say sending a message in Elixir
+is location transparent: we can send messages to any PID regardless if it
+is in the same node as the sender or in different nodes of the same network.
+
+## Wrapping up
+
+So we have reached the end of this notebook with a fast paced introduction
+to Elixir! It was a fun ride and we went from manually starting doors to
+distributed portal transfers.
+
+To learn more about Elixir, we welcome you to explore our [website](http://elixir-lang.org),
+[read our Getting Started guide](https://elixir-lang.org/getting-started/introduction.html),
+and [many of the available learning resources](https://elixir-lang.org/learning.html).
+
+You can also learn how to use some of Elixir and Livebook's unique features together
+in the [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook.
+
+Finally, huge thanks to [Augie De Blieck Jr.](http://twitter.com/augiedb) for the
+drawings in this tutorial.
+
+See you around!
