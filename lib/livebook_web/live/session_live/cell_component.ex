@@ -193,12 +193,17 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           </div>
           <input type="text"
             data-element="input"
-            class="input"
+            class="input <%= if(@cell_view.error, do: "input--error") %>"
             name="value"
             value="<%= @cell_view.value %>"
             spellcheck="false"
             autocomplete="off"
             tabindex="-1" />
+          <%= if @cell_view.error do %>
+            <div class="input-error">
+              <%= String.capitalize(@cell_view.error) %>
+            </div>
+          <% end %>
         </form>
       </div>
     </div>

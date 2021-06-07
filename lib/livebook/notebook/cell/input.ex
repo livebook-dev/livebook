@@ -34,4 +34,23 @@ defmodule Livebook.Notebook.Cell.Input do
       value: ""
     }
   end
+
+  @doc """
+  Checks if the input cell contains a valid value
+  for its type.
+  """
+  @spec validate(t()) :: :ok | {:error, String.t()}
+  def validate(cell) do
+    validate_value(cell.value, cell.type)
+  end
+
+  defp validate_value(_value, :text), do: :ok
+
+  defp validate_value(value, :url) do
+    if Utils.valid_url?(value) do
+      :ok
+    else
+      {:error, "not a valid URL"}
+    end
+  end
 end

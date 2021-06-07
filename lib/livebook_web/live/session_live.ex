@@ -839,7 +839,12 @@ defmodule LivebookWeb.SessionLive do
       type: :input,
       input_type: cell.type,
       name: cell.name,
-      value: cell.value
+      value: cell.value,
+      error:
+        case Cell.Input.validate(cell) do
+          :ok -> nil
+          {:error, error} -> error
+        end
     }
   end
 

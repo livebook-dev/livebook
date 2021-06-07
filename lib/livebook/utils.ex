@@ -106,4 +106,13 @@ defmodule Livebook.Utils do
         raise "Livebook.Utils.access_by_id/1 expected a list, got: #{inspect(data)}"
     end
   end
+
+  @doc """
+  Validates if the given URL is syntactically valid.
+  """
+  @spec valid_url?(String.t()) :: boolean()
+  def valid_url?(url) do
+    uri = URI.parse(url)
+    uri.scheme != nil and uri.host != nil and uri.host =~ "."
+  end
 end

@@ -463,6 +463,37 @@ defmodule Livebook.SessionTest do
 
       assert text_output =~ ":eof"
     end
+
+    test "replies with error when the matching input is invalid" do
+      input_cell = %{Notebook.Cell.new(:input) | type: :url, name: "url", value: "invalid"}
+
+      elixir_cell = %{
+        Notebook.Cell.new(:elixir)
+        | source: """
+          IO.gets("name: ")
+          """
+      }
+
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Notebook.Section.new() | cells: [input_cell, elixir_cell]}
+          ]
+      }
+
+      session_id = start_session(notebook: notebook)
+
+      cell_id = elixir_cell.id
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      Session.queue_cell_evaluation(session_id, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
+                     @evaluation_wait_timeout
+
+      assert text_output =~ ":eof"
+    end
   end
 
   defp start_session(opts \\ []) do

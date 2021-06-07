@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.ContentLoader
+  alias Livebook.{ContentLoader, Utils}
 
   @impl true
   def mount(socket) do
@@ -31,7 +31,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
               spellcheck: "false" %>
         <%= submit "Import",
               class: "mt-5 button button-blue",
-              disabled: not valid_url?(@url) %>
+              disabled: not Utils.valid_url?(@url) %>
       </form>
     </div>
     """
@@ -54,10 +54,5 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
       {:error, message} ->
         {:noreply, assign(socket, error_message: String.capitalize(message))}
     end
-  end
-
-  defp valid_url?(url) do
-    uri = URI.parse(url)
-    uri.scheme != nil and uri.host != nil and uri.host =~ "."
   end
 end
