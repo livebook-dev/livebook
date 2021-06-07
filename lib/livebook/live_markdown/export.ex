@@ -48,6 +48,19 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(cell.metadata)
   end
 
+  defp render_cell(%Cell.Input{} = cell) do
+    input_cell_json =
+      Jason.encode!(%{
+        type: cell.type,
+        name: cell.name,
+        value: cell.value
+      })
+
+    # TODO: alternatively ew can store "object": "cell_input" in the json, just need more clever parsing in import then
+    "<!-- livebook:object:cell_input:#{input_cell_json} -->"
+    |> prepend_metadata(cell.metadata)
+  end
+
   defp get_elixir_cell_code(%{source: source, metadata: %{"disable_formatting" => true}}),
     do: source
 

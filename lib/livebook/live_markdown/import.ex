@@ -141,6 +141,13 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp group_elements(
+         [{:comment, _, ["livebook:object:cell_input:" <> cell_json], %{comment: true}} | ast],
+         elems
+       ) do
+    group_elements(ast, [{:cell, :input, cell_json} | elems])
+  end
+
+  defp group_elements(
          [{:comment, _, ["livebook:" <> metadata_json], %{comment: true}} | ast],
          elems
        ) do
@@ -178,6 +185,21 @@ defmodule Livebook.LiveMarkdown.Import do
     {metadata, elems} = grab_metadata(elems)
     source = md_ast |> Enum.reverse() |> MarkdownHelpers.markdown_from_ast()
     cell = %{Notebook.Cell.new(:markdown) | source: source, metadata: metadata}
+    build_notebook(elems, [cell | cells], sections)
+  end
+
+  defp build_notebook([{:cell, :input, cell_json} | elems], cells, sections) do
+    {metadata, elems} = grab_metadata(elems)
+    attrs = Jason.decode!(cell_json)
+
+    cell = %{
+      Notebook.Cell.new(:input)
+      | metadata: metadata,
+        type: String.to_existing_atom(attrs["type"]),
+        name: attrs["name"],
+        value: attrs["value"]
+    }
+
     build_notebook(elems, [cell | cells], sections)
   end
 
