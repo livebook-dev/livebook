@@ -201,7 +201,7 @@ defmodule Livebook.Evaluator.IOProxy do
 
       {:evaluation_input_reply, :error} ->
         Process.demonitor(ref, [:flush])
-        {:eof, state}
+        {{:error, "no matching Livebook input found"}, state}
 
       {:DOWN, ^ref, :process, _object, _reason} ->
         {{:error, :terminated}, state}

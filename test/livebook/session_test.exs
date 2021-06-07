@@ -461,7 +461,7 @@ defmodule Livebook.SessionTest do
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
                      @evaluation_wait_timeout
 
-      assert text_output =~ ":eof"
+      assert text_output =~ "no matching Livebook input found"
     end
 
     test "replies with error when the matching input is invalid" do
@@ -492,7 +492,7 @@ defmodule Livebook.SessionTest do
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
                      @evaluation_wait_timeout
 
-      assert text_output =~ ":eof"
+      assert text_output =~ "no matching Livebook input found"
     end
   end
 

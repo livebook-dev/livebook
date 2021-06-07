@@ -36,7 +36,7 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
       IOProxy.configure(io, pid, :ref)
 
-      assert IO.read(io, :all) == ""
+      assert IO.read(io, :all) == {:error, "no matching Livebook input found"}
     end
 
     test "IO.gets", %{io: io} do
@@ -53,7 +53,7 @@ defmodule Livebook.Evaluator.IOProxyTest do
       assert IO.gets(io, "name: ") == "Jake Peralta"
     end
 
-    test "IO.gets :eof", %{io: io} do
+    test "IO.gets with no matching input", %{io: io} do
       pid =
         spawn(fn ->
           receive do
@@ -64,7 +64,7 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
       IOProxy.configure(io, pid, :ref)
 
-      assert IO.gets(io, "name: ") == :eof
+      assert IO.gets(io, "name: ") == {:error, "no matching Livebook input found"}
     end
   end
 
