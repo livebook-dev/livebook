@@ -207,6 +207,10 @@ function handleCellMoved(hook, cellId) {
 }
 
 function handleCellUpload(hook, cellId, url) {
+  if (!hook.state.liveEditor) {
+    return;
+  }
+
   if (hook.props.cellId === cellId) {
     const markdown = `![](${url})`;
     hook.state.liveEditor.insert(markdown);
@@ -214,6 +218,10 @@ function handleCellUpload(hook, cellId, url) {
 }
 
 function handleLocationReport(hook, client, report) {
+  if (!hook.state.liveEditor) {
+    return;
+  }
+
   if (hook.props.cellId === report.cellId && report.selection) {
     hook.state.liveEditor.updateUserSelection(client, report.selection);
   } else {
