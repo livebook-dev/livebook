@@ -139,7 +139,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex">
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
-      <div class="w-full">
+      <div class="w-full" data-element="cell-body">
         <%= render_editor(assigns) %>
 
         <%= if @cell_view.outputs != [] do %>
