@@ -31,6 +31,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["ej"], desc: "Evaluate cells below"},
       %{seq: ["ex"], desc: "Cancel cell evaluation"},
       %{seq: ["ss"], desc: "Toggle sections panel"},
+      %{seq: ["su"], desc: "Toggle users panel"},
       %{seq: ["sr"], desc: "Show runtime settings"}
     ],
     universal: [
