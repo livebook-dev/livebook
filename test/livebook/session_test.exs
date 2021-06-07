@@ -1,7 +1,7 @@
 defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.{Session, Delta, Runtime, Utils}
+  alias Livebook.{Session, Delta, Runtime, Utils, Notebook}
 
   # Note: queueing evaluation in most of the tests below
   # requires the runtime to synchronously start first,
@@ -399,6 +399,70 @@ defmodule Livebook.SessionTest do
     Livebook.Users.broadcast_change(updated_user)
 
     assert_receive {:operation, {:update_user, _pid, ^updated_user}}
+  end
+
+  # Integration tests concerning input communication
+  # between runtime and session
+  describe "user input" do
+    test "replies to runtime input request" do
+      input_cell = %{Notebook.Cell.new(:input) | name: "name", value: "Jake Peralta"}
+
+      elixir_cell = %{
+        Notebook.Cell.new(:elixir)
+        | source: """
+          IO.gets("name: ")
+          """
+      }
+
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Notebook.Section.new() | cells: [input_cell, elixir_cell]}
+          ]
+      }
+
+      session_id = start_session(notebook: notebook)
+
+      cell_id = elixir_cell.id
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      Session.queue_cell_evaluation(session_id, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
+                     @evaluation_wait_timeout
+
+      assert text_output =~ "Jake Peralta"
+    end
+
+    test "replies with error when no matching input is found" do
+      elixir_cell = %{
+        Notebook.Cell.new(:elixir)
+        | source: """
+          IO.gets("name: ")
+          """
+      }
+
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Notebook.Section.new() | cells: [elixir_cell]}
+          ]
+      }
+
+      session_id = start_session(notebook: notebook)
+
+      cell_id = elixir_cell.id
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      Session.queue_cell_evaluation(session_id, cell_id)
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
+                     @evaluation_wait_timeout
+
+      assert text_output =~ ":eof"
+    end
   end
 
   defp start_session(opts \\ []) do

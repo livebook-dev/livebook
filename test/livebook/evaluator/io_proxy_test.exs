@@ -52,6 +52,20 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
       assert IO.gets(io, "name: ") == "Jake Peralta"
     end
+
+    test "IO.gets :eof", %{io: io} do
+      pid =
+        spawn(fn ->
+          receive do
+            {:evaluation_input, :ref, ^io, "name: "} ->
+              send(io, {:evaluation_input_reply, :error})
+          end
+        end)
+
+      IOProxy.configure(io, pid, :ref)
+
+      assert IO.gets(io, "name: ") == :eof
+    end
   end
 
   test "buffers rapid output", %{io: io} do
