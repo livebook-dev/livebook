@@ -5,27 +5,27 @@
 }
 
 .markdown h1 {
-  @apply text-gray-800 font-semibold text-3xl my-4;
+  @apply text-gray-800 font-semibold text-3xl mt-8 mb-4;
 }
 
 .markdown h2 {
-  @apply text-gray-800 font-semibold text-2xl my-4;
+  @apply text-gray-800 font-semibold text-2xl mt-8 mb-4;
 }
 
 .markdown h3 {
-  @apply text-gray-800 font-semibold text-xl my-4;
+  @apply text-gray-800 font-semibold text-xl mt-8 mb-4;
 }
 
 .markdown h4 {
-  @apply text-gray-800 font-semibold text-lg my-4;
+  @apply text-gray-800 font-semibold text-lg mt-8 mb-4;
 }
 
 .markdown h5 {
-  @apply text-gray-800 font-semibold text-base my-4;
+  @apply text-gray-800 font-semibold text-base mt-8 mb-4;
 }
 
 .markdown h6 {
-  @apply text-gray-800 font-semibold text-base my-4;
+  @apply text-gray-800 font-semibold text-base mt-8 mb-4;
 }
 
 .markdown p {
@@ -33,21 +33,24 @@
 }
 
 .markdown ul {
-  @apply list-disc list-inside my-4;
+  @apply list-disc list-outside my-5 ml-8;
 }
 
 .markdown ol {
-  @apply list-decimal list-inside my-4;
+  @apply list-decimal list-outside my-5 ml-8;
+}
+
+.markdown ul ul {
+  list-style-type: circle;
+}
+
+.markdown ul ul ul {
+  list-style-type: square;
 }
 
 .markdown ul > li,
 .markdown ol > li {
   @apply my-1;
-}
-
-.markdown ul > li ul,
-.markdown ol > li ol {
-  @apply ml-6;
 }
 
 .markdown blockquote {
