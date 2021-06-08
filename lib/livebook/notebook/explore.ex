@@ -99,7 +99,7 @@ defmodule Livebook.Notebook.Explore do
       @intro_to_livebook,
       @distributed_portals_with_elixir,
       @elixir_and_livebook
-      # @intro_to_elixir, @intro_to_nx, @intro_to_axon, @intro_to_vega_lite
+      # @intro_to_nx, @intro_to_axon, @intro_to_vega_lite
     ]
   end
 

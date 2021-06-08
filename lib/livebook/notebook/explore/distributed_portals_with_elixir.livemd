@@ -195,15 +195,16 @@ if the date is valid or not? We can use `case` to pattern match on
 the different tuples. This is also a good opportunity to use Livebook's
 inputs to pass different values to our code:
 
+<!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
+
 ```elixir
-# TODO: we need inputs!!
-# Read the date input and return something like "2020-02-30\n"
-input = "TODO!" || IO.gets("date")
+# Read the date input, which returns something like "2020-02-30\n"
+input = IO.gets("Date: ")
 
 # So we trim the newline from the input value
 trimmed = String.trim(input)
 
-# And now match on the 
+# And then match on the return value
 case Date.from_iso8601(trimmed) do
   {:ok, date} ->
     "We got a valid data: #{inspect(date)}"
@@ -213,6 +214,13 @@ case Date.from_iso8601(trimmed) do
 end
 ```
 
+We have been using `IO.inspect` to write values out of the notebook
+and here we used `IO.gets` to read data in. The string passed to
+`IO.gets` must have the same suffix as the input name. The returned
+string is always appended by a newline. Then we remove the trailing new
+line and use `case` to pattern match on the different outcomes of the
+`Date.from_iso8601` function. We say the `case` above has two clauses,
+one matching on `{:ok, date}` and another on `{:error, reason}`.
 Try changing the input and re-executing the cell to see how the outcome
 changes.
 
@@ -338,8 +346,9 @@ At the top of the module, we say `use Agent`, which brings some
 `Agent`-related functionality into the module.
 
 The first function is `start_link`, which we often refer to as
-`start_link/1`, where the number 1 indicates it receives a single
-argument. We check that the argument is an atom and proceed to call
+`start_link/1`, where the number 1 is called the "arity" of the
+function and it indicates the number of arguments it receives.
+Then we check that the argument is an atom and proceed to call
 `Agent.start_link/2`, as we did early in this section, except we are
 now passing `name: color` as an argument. By giving a name to the
 Agent, we can refer to it anywhere by its name, instead of using its
@@ -695,24 +704,40 @@ IO.puts node()
 IO.puts Node.get_cookie()
 ```
 
-Now paste the result of the node name and its cookie in the inputs below:
+Now paste the result of the other node name and its cookie in the inputs below:
 
+<!-- livebook:{"livebook_object":"cell_input","name":"Other node","type":"text","value":""} -->
 
+<!-- livebook:{"livebook_object":"cell_input","name":"Other cookie","type":"text","value":""} -->
 
 And now execute the code cell below, which will read the inputs, configure the
 cookie, and connect to the other notebook:
 
 ```elixir
-# TODO: input
-other_node = :"tp7snhh2-livebook_buc7u3j5@josemac"
-other_cookie = :"ZAlSfGc3oME7ec9wsdU3UoddTXjvjm2m-OmKGoHc7l_z4wTuJURwG0Oo"
+other_node =
+  IO.gets("Other node: ")
+  |> String.trim()
+  |> String.to_atom()
+
+other_cookie =
+  IO.gets("Other cookie: ")
+  |> String.trim()
+  |> String.to_atom()
 
 Node.set_cookie(other_node, other_cookie)
 Node.connect(other_node)
 ```
 
-If it returns true, it means it connected as expected. Notice we also
-stored the name of the other node in a `other_node` variable for convenience.
+If it returns true, it means it connected as expected. The code above use
+`IO.gets/1` to read the input values, as we did earlier in this notebook,
+then removes the trailing newline, and converts the strings to atoms. We
+did so using the pipe operator `|>`, which gets the result of the previous
+function and passes it as first argument to the next function. For example,
+the first line is equivalent to `String.to_atom(String.trim(IO.gets("Other node: ")))`,
+but it is much more readable as a pipeline.
+
+Notice we also stored the name of the other node in a `other_node` variable
+for convenience.
 
 Now we are ready to start a distributed transfer. The first step is to go
 to the other notebook and shoot a door. You can try calling the following

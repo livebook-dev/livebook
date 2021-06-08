@@ -3,14 +3,54 @@
 ## Introduction
 
 In this notebook, we will explore some unique features when
-using Elixir and Livebook together. To get started, execute
-the cell below so we can get the Elixir runtime up and running:
+using Elixir and Livebook together, such as inputs, autocompletion,
+and more. To get started, execute the cell below so we can get
+the Elixir runtime up and running:
 
 ```elixir
 "Hello world"
 ```
 
+If you are not familiar with Elixir, there is a fast paced
+introduction to the language in the [Distributed portals with
+Elixir](/explore/notebooks/distributed-portals-with-elixir)
+notebook.
+
 Let's move on.
+
+## Inputs
+
+Livebook supports inputs and you read the input values directly
+from your notebook code, using `IO.gets/1`. Let's see an example
+that expects a date in the format `YYYY-MM-DD` and returns if the
+data is valid or not:
+
+<!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
+
+```elixir
+# Read the date input, which returns something like "2020-02-30\n"
+input = IO.gets("Date: ")
+
+# So we trim the newline from the input value
+trimmed = String.trim(input)
+
+# And then match on the return value
+case Date.from_iso8601(trimmed) do
+  {:ok, date} ->
+    "We got a valid data: #{inspect(date)}"
+
+  {:error, reason} ->
+    "Oh no, the date is invalid. Reason: #{inspect(reason)}"
+end
+```
+
+The string passed to `IO.gets/1` must have the same suffix as the
+input name and the returned string is always appended by a newline.
+This is built-in on top of Erlang's IO protocol and built in a way
+that your notebooks can be exported to Elixir scripts and still work!
+
+Create your own inputs to learn more about the available input types
+and options.
 
 ## Autocompletion
 
