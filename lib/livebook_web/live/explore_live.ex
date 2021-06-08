@@ -92,8 +92,8 @@ defmodule LivebookWeb.ExploreLive do
 
   @impl true
   def handle_params(%{"slug" => slug}, _url, socket) do
-    notebook = Explore.notebook_by_slug!(slug)
-    {:noreply, create_session(socket, notebook: notebook)}
+    {notebook, images} = Explore.notebook_by_slug!(slug)
+    {:noreply, create_session(socket, notebook: notebook, images: images)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
