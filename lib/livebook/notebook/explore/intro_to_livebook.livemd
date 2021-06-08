@@ -93,11 +93,19 @@ the sidebar or by typing `?`.
 
 ## Next steps
 
-That's our quick your intro to Livebook! Now you are ready to learn
-how Elixir integrates with Livebook in the ["Elixir and Livebook"](/explore/notebooks/elixir-and-livebook) notebook.
+That's our quick your intro to Livebook! Where to go next?
 
-Finally, remember Livebook is an open source project, so feel free to look
-into [the repository](https://github.com/elixir-nx/livebook)
-to contribute, report bugs, suggest features or just skim over the codebase.
+  * If you are not familiar with Elixir, there is a fast paced
+    introduction to the language in the [Distributed portals
+    with Elixir](/explore/notebooks/distributed-portals-with-elixir)
+    notebook;
+
+  * Learn how Elixir integrates with Livebook in the
+    [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
+
+  * Finally, remember Livebook is an open source project, so feel free to
+    look into [the repository](https://github.com/elixir-nx/livebook)
+    to contribute, report bugs, suggest features or just skim over the
+    codebase.
 
 Now go ahead and build something cool! 🚢
