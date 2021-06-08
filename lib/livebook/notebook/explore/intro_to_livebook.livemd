@@ -101,7 +101,7 @@ That's our quick your intro to Livebook! Where to go next?
     notebook;
 
   * Learn how Elixir integrates with Livebook in the
-    ["Elixir and Livebook"](/explore/notebooks/elixir-and-livebook) notebook;
+    [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
 
   * Finally, remember Livebook is an open source project, so feel free to
     look into [the repository](https://github.com/elixir-nx/livebook)
