@@ -10,7 +10,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(name: cell.name, type: cell.type)
+      |> assign_new(:name, fn -> cell.name end)
+      |> assign_new(:type, fn -> cell.type end)
 
     {:ok, socket}
   end
