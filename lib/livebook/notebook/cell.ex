@@ -4,15 +4,13 @@ defmodule Livebook.Notebook.Cell do
   # Data structure representing a single cell in a notebook.
   #
   # A cell is the smallest unit of work in a notebook.
-  # It primarily consists of text content that the user can edit
-  # and may potentially produce some output (e.g. during code evaluation).
-
-  defstruct [:id, :type, :source, :outputs, :metadata]
+  # It may consist of text content, outputs, rendered content
+  # and other special forms.
 
   alias Livebook.Utils
+  alias Livebook.Notebook.Cell
 
   @type id :: Utils.id()
-  @type type :: :markdown | :elixir
 
   @typedoc """
   Arbitrary cell information persisted as part of the notebook.
@@ -24,41 +22,15 @@ defmodule Livebook.Notebook.Cell do
   """
   @type metadata :: %{String.t() => term()}
 
-  @type t :: %__MODULE__{
-          id: id(),
-          type: type(),
-          source: String.t(),
-          outputs: list(output()),
-          metadata: metadata()
-        }
-
-  @typedoc """
-  For more details on output types see `t:Kino.Output.t/0`.
-  """
-  @type output ::
-          :ignored
-          # Regular text, adjacent such outputs can be treated as a whole
-          | binary()
-          # Standalone text block
-          | {:text, binary()}
-          # Vega-Lite graphic
-          | {:vega_lite_static, spec :: map()}
-          # Vega-Lite graphic with dynamic data
-          | {:vega_lite_dynamic, widget_process :: pid()}
-          # Internal output format for errors
-          | {:error, message :: binary()}
+  @type t :: Cell.Elixir.t() | Cell.Markdown.t() | Cell.Input.t()
 
   @doc """
   Returns an empty cell of the given type.
   """
-  @spec new(type()) :: t()
-  def new(type) do
-    %__MODULE__{
-      id: Utils.random_id(),
-      type: type,
-      source: "",
-      outputs: [],
-      metadata: %{}
-    }
-  end
+  @spec new(:markdown | :elixir | :input) :: t()
+  def new(type)
+
+  def new(:markdown), do: Cell.Markdown.new()
+  def new(:elixir), do: Cell.Elixir.new()
+  def new(:input), do: Cell.Input.new()
 end

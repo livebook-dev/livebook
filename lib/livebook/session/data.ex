@@ -95,7 +95,7 @@ defmodule Livebook.Session.Data do
           | {:update_user, pid(), User.t()}
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
-          | {:set_cell_metadata, pid(), Cell.id(), Cell.metadata()}
+          | {:set_cell_attributes, pid(), Cell.id(), map()}
           | {:set_runtime, pid(), Runtime.t() | nil}
           | {:set_path, pid(), String.t() | nil}
           | {:mark_as_not_dirty, pid()}
@@ -252,7 +252,7 @@ defmodule Livebook.Session.Data do
 
   def apply_operation(data, {:queue_cell_evaluation, _client_pid, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
-         :elixir <- cell.type,
+         %Cell.Elixir{} <- cell,
          :ready <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
@@ -402,11 +402,25 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_cell_metadata, _client_pid, cell_id, metadata}) do
-    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+  def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
+    with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         true <- Enum.all?(attrs, fn {key, _} -> Map.has_key?(cell, key) end) do
+      invalidates_dependent =
+        case cell do
+          %Cell.Input{} -> Map.has_key?(attrs, :value) or Map.has_key?(attrs, :name)
+          _ -> false
+        end
+
       data
       |> with_actions()
-      |> set_cell_metadata(cell, metadata)
+      |> set_cell_attributes(cell, attrs)
+      |> then(fn data_actions ->
+        if invalidates_dependent do
+          mark_dependent_cells_as_stale(data_actions, cell)
+        else
+          data_actions
+        end
+      end)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -582,7 +596,11 @@ defmodule Livebook.Session.Data do
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
-    child_cells = Notebook.child_cells_with_section(data.notebook, cell.id)
+    child_cells =
+      data.notebook
+      |> Notebook.child_cells_with_section(cell.id)
+      |> Enum.filter(fn {cell, _} -> is_struct(cell, Cell.Elixir) end)
+
     mark_cells_as_stale(data_actions, child_cells)
   end
 
@@ -591,7 +609,7 @@ defmodule Livebook.Session.Data do
       cells_with_section
       |> Enum.map(fn {cell, _section} -> cell end)
       |> Enum.filter(fn cell ->
-        cell.type == :elixir and data.cell_infos[cell.id].validity_status == :evaluated
+        is_struct(cell, Cell.Elixir) and data.cell_infos[cell.id].validity_status == :evaluated
       end)
 
     data_actions
@@ -660,6 +678,7 @@ defmodule Livebook.Session.Data do
     prerequisites_queue =
       data.notebook
       |> Notebook.parent_cells_with_section(cell.id)
+      |> Enum.filter(fn {cell, _} -> is_struct(cell, Cell.Elixir) end)
       |> Enum.take_while(fn {parent_cell, _section} ->
         info = data.cell_infos[parent_cell.id]
         info.validity_status != :evaluated and info.evaluation_status == :ready
@@ -777,9 +796,9 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp set_cell_metadata({data, _} = data_actions, cell, metadata) do
+  defp set_cell_attributes({data, _} = data_actions, cell, attrs) do
     data_actions
-    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | metadata: metadata}))
+    |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
 
   defp purge_deltas(cell_info) do
@@ -822,7 +841,11 @@ defmodule Livebook.Session.Data do
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      digest: compute_digest(cell.source),
+      digest:
+        case Map.fetch(cell, :source) do
+          {:ok, source} -> compute_digest(source)
+          :error -> nil
+        end,
       evaluation_digest: nil
     }
   end

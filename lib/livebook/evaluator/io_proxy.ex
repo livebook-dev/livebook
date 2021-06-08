@@ -54,16 +54,29 @@ defmodule Livebook.Evaluator.IOProxy do
     GenServer.call(pid, :flush)
   end
 
+  @doc """
+  Asynchronously clears all buffered inputs, so next time they
+  are requested again.
+  """
+  @spec clear_input_buffers(pid()) :: :ok
+  def clear_input_buffers(pid) do
+    GenServer.cast(pid, :clear_input_buffers)
+  end
+
   ## Callbacks
 
   @impl true
   def init(_opts) do
-    {:ok, %{encoding: :unicode, target: nil, ref: nil, buffer: []}}
+    {:ok, %{encoding: :unicode, target: nil, ref: nil, buffer: [], input_buffers: %{}}}
   end
 
   @impl true
   def handle_cast({:configure, target, ref}, state) do
     {:noreply, %{state | target: target, ref: ref}}
+  end
+
+  def handle_cast(:clear_input_buffers, state) do
+    {:noreply, %{state | input_buffers: %{}}}
   end
 
   @impl true
@@ -106,12 +119,12 @@ defmodule Livebook.Evaluator.IOProxy do
     {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_line, _prompt}, state) do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_line, prompt}, state) do
+    get_line(:latin1, prompt, state)
   end
 
-  defp io_request({:get_line, _encoding, _prompt}, state) do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_line, encoding, prompt}, state) do
+    get_line(encoding, prompt, state)
   end
 
   defp io_request({:get_until, _prompt, _mod, _fun, _args}, state) do
@@ -185,6 +198,68 @@ defmodule Livebook.Evaluator.IOProxy do
     end
   rescue
     ArgumentError -> {{:error, req}, state}
+  end
+
+  defp get_line(encoding, prompt, state) do
+    prompt = :unicode.characters_to_binary(prompt, encoding, state.encoding)
+
+    case get_input(prompt, state) do
+      input when is_binary(input) ->
+        {line, rest} = line_from_input(input)
+
+        line =
+          if is_binary(line) do
+            :unicode.characters_to_binary(line, state.encoding, encoding)
+          else
+            line
+          end
+
+        state = put_in(state.input_buffers[prompt], rest)
+        {line, state}
+
+      error ->
+        {error, state}
+    end
+  end
+
+  defp get_input(prompt, state) do
+    Map.get_lazy(state.input_buffers, prompt, fn ->
+      request_input(prompt, state)
+    end)
+  end
+
+  defp request_input(prompt, state) do
+    send(state.target, {:evaluation_input, state.ref, self(), prompt})
+
+    ref = Process.monitor(state.target)
+
+    receive do
+      {:evaluation_input_reply, {:ok, string}} ->
+        Process.demonitor(ref, [:flush])
+        string
+
+      {:evaluation_input_reply, :error} ->
+        Process.demonitor(ref, [:flush])
+        {:error, "no matching Livebook input found"}
+
+      {:DOWN, ^ref, :process, _object, _reason} ->
+        {:error, :terminated}
+    end
+  end
+
+  defp line_from_input(""), do: {:eof, ""}
+
+  defp line_from_input(input) do
+    case :binary.match(input, ["\r\n", "\n"]) do
+      :nomatch ->
+        {input, ""}
+
+      {pos, len} ->
+        size = byte_size(input)
+        line = binary_part(input, 0, pos + len)
+        rest = binary_part(input, pos + len, size - pos - len)
+        {line, rest}
+    end
   end
 
   defp io_reply(from, reply_as, reply) do

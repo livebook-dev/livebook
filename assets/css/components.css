@@ -74,8 +74,16 @@
   @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
 }
 
+.input--error {
+  @apply bg-red-50 border-red-600 text-red-600;
+}
+
 .input-label {
   @apply mb-0.5 text-sm text-gray-800 font-medium;
+}
+
+.input-error {
+  @apply mt-2 text-red-600 italic text-xs;
 }
 
 .switch-button {
@@ -97,6 +105,21 @@
 
 .switch-button__checkbox:checked + .switch-button__bg {
   @apply bg-blue-600;
+}
+
+.radio-base {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%23CAD5E0' fill='white' /%3e%3c/svg%3e");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.radio-base:checked {
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%233E64FF' fill='white' /%3e%3ccircle cx='10' cy='10' r='6' fill='%233E64FF' /%3e%3c/svg%3e");
 }
 
 /* Custom scrollbars */

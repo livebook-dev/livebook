@@ -8,6 +8,18 @@ const callbacks = {
       }
     }
   },
+
+  onNodeAdded(node) {
+    // Mimic autofocus for dynamically inserted elements
+    if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("autofocus")) {
+      node.focus();
+
+      if (node.setSelectionRange && node.value) {
+        const lastIndex = node.value.length;
+        node.setSelectionRange(lastIndex, lastIndex);
+      }
+    }
+  },
 };
 
 export default callbacks;

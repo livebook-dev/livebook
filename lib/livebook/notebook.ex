@@ -236,40 +236,73 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Returns a list of `{cell, section}` pairs including all Elixir cells in order.
+  Returns a list of `{cell, section}` pairs including all cells.
   """
-  @spec elixir_cells_with_section(t()) :: list({Cell.t(), Section.t()})
-  def elixir_cells_with_section(notebook) do
+  @spec cells_with_section(t()) :: list({Cell.t(), Section.t()})
+  def cells_with_section(notebook) do
     for section <- notebook.sections,
         cell <- section.cells,
-        cell.type == :elixir,
         do: {cell, section}
   end
 
   @doc """
-  Returns a list of Elixir cells (each with section) that the given cell depends on.
+  Returns a list of `{cell, section}` pairs including all Elixir cells in order.
+  """
+  @spec elixir_cells_with_section(t()) :: list({Cell.t(), Section.t()})
+  def elixir_cells_with_section(notebook) do
+    notebook
+    |> cells_with_section()
+    |> Enum.filter(fn {cell, _section} -> is_struct(cell, Cell.Elixir) end)
+  end
+
+  @doc """
+  Returns a list of cells (each with section) that go logically
+  before the given one.
 
   The cells are ordered starting from the most direct parent.
   """
   @spec parent_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
   def parent_cells_with_section(notebook, cell_id) do
     notebook
-    |> elixir_cells_with_section()
+    |> cells_with_section()
     |> Enum.take_while(fn {cell, _} -> cell.id != cell_id end)
     |> Enum.reverse()
   end
 
   @doc """
-  Returns a list of Elixir cells (each with section) that depend on the given cell.
+  Returns a list of cells (each with section) that go logically
+  after the given one, and thus may depend on it.
 
   The cells are ordered starting from the most direct child.
   """
   @spec child_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
   def child_cells_with_section(notebook, cell_id) do
     notebook
-    |> elixir_cells_with_section()
+    |> cells_with_section()
     |> Enum.drop_while(fn {cell, _} -> cell.id != cell_id end)
     |> Enum.drop(1)
+  end
+
+  @doc """
+  Finds an input cell available to the given cell and matching
+  the given prompt.
+  """
+  @spec input_cell_for_prompt(t(), Cell.id(), String.t()) :: {:ok, Cell.Input.t()} | :error
+  def input_cell_for_prompt(notebook, cell_id, prompt) do
+    notebook
+    |> parent_cells_with_section(cell_id)
+    |> Enum.map(fn {cell, _} -> cell end)
+    |> Enum.filter(fn cell ->
+      is_struct(cell, Cell.Input) and String.starts_with?(prompt, cell.name)
+    end)
+    |> case do
+      [] ->
+        :error
+
+      input_cells ->
+        cell = Enum.max_by(input_cells, &String.length(&1.name))
+        {:ok, cell}
+    end
   end
 
   @doc """

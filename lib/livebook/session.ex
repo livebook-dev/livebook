@@ -204,11 +204,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends a cell metadata update to the server.
+  Asynchronously sends a cell attributes update to the server.
   """
-  @spec set_cell_metadata(id(), Cell.id(), Cell.metadata()) :: :ok
-  def set_cell_metadata(session_id, cell_id, metadata) do
-    GenServer.cast(name(session_id), {:set_cell_metadata, self(), cell_id, metadata})
+  @spec set_cell_attributes(id(), Cell.id(), map()) :: :ok
+  def set_cell_attributes(session_id, cell_id, attrs) do
+    GenServer.cast(name(session_id), {:set_cell_attributes, self(), cell_id, attrs})
   end
 
   @doc """
@@ -408,8 +408,8 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:set_cell_metadata, client_pid, cell_id, metadata}, state) do
-    operation = {:set_cell_metadata, client_pid, cell_id, metadata}
+  def handle_cast({:set_cell_attributes, client_pid, cell_id, attrs}, state) do
+    operation = {:set_cell_attributes, client_pid, cell_id, attrs}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -492,6 +492,20 @@ defmodule Livebook.Session do
   def handle_info({:evaluation_response, cell_id, response}, state) do
     operation = {:add_cell_evaluation_response, self(), cell_id, response}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:evaluation_input, cell_id, reply_to, prompt}, state) do
+    reply =
+      with {:ok, cell} <- Notebook.input_cell_for_prompt(state.data.notebook, cell_id, prompt),
+           :ok <- Cell.Input.validate(cell) do
+        {:ok, cell.value <> "\n"}
+      else
+        _ -> :error
+      end
+
+    send(reply_to, {:evaluation_input_reply, reply})
+
+    {:noreply, state}
   end
 
   def handle_info({:container_down, :main, message}, state) do
@@ -676,10 +690,9 @@ defmodule Livebook.Session do
 
   defp start_evaluation(state, cell, _section) do
     prev_ref =
-      case Notebook.parent_cells_with_section(state.data.notebook, cell.id) do
-        [{parent, _} | _] -> parent.id
-        [] -> nil
-      end
+      state.data.notebook
+      |> Notebook.parent_cells_with_section(cell.id)
+      |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
 
     file = (state.data.path || "") <> "#cell"
     opts = [file: file]

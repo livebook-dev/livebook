@@ -17,6 +17,12 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           phx-value-section_id="<%= @section_id %>"
           phx-value-index="<%= @insert_cell_index %>"
           >+ Elixir</button>
+        <button class="button button-small"
+          phx-click="insert_cell"
+          phx-value-type="input"
+          phx-value-section_id="<%= @section_id %>"
+          phx-value-index="<%= @insert_cell_index %>"
+          >+ Input</button>
         <%= if @insert_section_index do %>
           <button class="button button-small"
             phx-click="insert_section"

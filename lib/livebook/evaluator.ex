@@ -144,6 +144,7 @@ defmodule Livebook.Evaluator do
       end
 
     Evaluator.IOProxy.flush(state.io_proxy)
+    Evaluator.IOProxy.clear_input_buffers(state.io_proxy)
 
     send_evaluation_response(send_to, ref, response, state.formatter)
 

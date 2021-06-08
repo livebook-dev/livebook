@@ -351,7 +351,10 @@ function handleDocumentMouseDown(hook, event) {
     const editorContainer = cell.querySelector(
       `[data-element="editor-container"]`
     );
-    const editorClicked = editorContainer.contains(event.target);
+    const input = cell.querySelector(`[data-element="input"]`);
+    const editableElement = editorContainer || input;
+
+    const editorClicked = editableElement.contains(event.target);
     const insertMode = editorClicked;
     if (hook.state.insertMode !== insertMode) {
       setInsertMode(hook, insertMode);
@@ -684,7 +687,9 @@ function setInsertMode(hook, insertModeEnabled) {
 
 function handleCellInserted(hook, cellId) {
   setFocusedCell(hook, cellId);
-  setInsertMode(hook, true);
+  if (["markdown", "elixir"].includes(hook.state.focusedCellType)) {
+    setInsertMode(hook, true);
+  }
 }
 
 function handleCellDeleted(hook, cellId, siblingCellId) {

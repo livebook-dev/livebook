@@ -146,6 +146,70 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  def render_cell_content(%{cell_view: %{type: :input}} = assigns) do
+    ~L"""
+    <div class="mb-1 flex items-center justify-end">
+      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
+        <%= render_cell_anchor_link(assigns) %>
+        <span class="tooltip top" aria-label="Cell settings">
+          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
+            <%= remix_icon("list-settings-line", class: "text-xl") %>
+          <% end %>
+        </span>
+        <span class="tooltip top" aria-label="Move up">
+          <button class="icon-button"
+            phx-click="move_cell"
+            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-offset="-1">
+            <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Move down">
+          <button class="icon-button"
+            phx-click="move_cell"
+            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-offset="1">
+            <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
+          </button>
+        </span>
+        <span class="tooltip top" aria-label="Delete">
+          <button class="icon-button"
+            phx-click="delete_cell"
+            phx-value-cell_id="<%= @cell_view.id %>">
+            <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
+          </button>
+        </span>
+      </div>
+    </div>
+
+    <div class="flex">
+      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+      </div>
+      <div>
+        <form phx-change="set_cell_value" onsubmit="return false">
+          <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
+          <div class="input-label">
+            <%= @cell_view.name %>
+          </div>
+          <input type="text"
+            data-element="input"
+            class="input <%= if(@cell_view.error, do: "input--error") %>"
+            name="value"
+            value="<%= @cell_view.value %>"
+            spellcheck="false"
+            autocomplete="off"
+            tabindex="-1" />
+          <%= if @cell_view.error do %>
+            <div class="input-error">
+              <%= String.capitalize(@cell_view.error) %>
+            </div>
+          <% end %>
+        </form>
+      </div>
+    </div>
+    """
+  end
+
   defp render_editor(assigns) do
     ~L"""
     <div class="py-3 rounded-lg bg-editor relative">

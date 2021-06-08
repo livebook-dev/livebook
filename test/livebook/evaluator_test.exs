@@ -55,10 +55,13 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_output, :code_1, "hey\n"}
     end
 
-    test "using standard input results in an immediate error", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), ~s{IO.gets("> ")}, :code_1)
+    test "using standard input sends input request to the caller", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, self(), ~s{IO.gets("name: ")}, :code_1)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, {:error, :enotsup}}}
+      assert_receive {:evaluation_input, :code_1, reply_to, "name: "}
+      send(reply_to, {:evaluation_input_reply, {:ok, "Jake Peralta\n"}})
+
+      assert_receive {:evaluation_response, :code_1, {:ok, "Jake Peralta\n"}}
     end
 
     test "returns error along with its kind and stacktrace", %{evaluator: evaluator} do

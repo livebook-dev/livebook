@@ -4,7 +4,6 @@ import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
-import monaco from "./live_editor/monaco";
 
 /**
  * A hook managing a single cell.
@@ -15,74 +14,87 @@ import monaco from "./live_editor/monaco";
  * Configuration:
  *
  *   * `data-cell-id` - id of the cell being edited
- *   * `data-type` - editor type (i.e. language), either "markdown" or "elixir" is expected
+ *   * `data-type` - type of the cell
  */
 const Cell = {
   mounted() {
     this.props = getProps(this);
     this.state = {
-      liveEditor: null,
       isFocused: false,
       insertMode: false,
+      // For text cells (markdown or elixir)
+      liveEditor: null,
     };
 
-    this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
-      const { source, revision } = payload;
+    if (["markdown", "elixir"].includes(this.props.type)) {
+      this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
+        const { source, revision } = payload;
 
-      const editorContainer = this.el.querySelector(
-        `[data-element="editor-container"]`
-      );
-      // Remove the content placeholder.
-      editorContainer.firstElementChild.remove();
-      // Create an empty container for the editor to be mounted in.
-      const editorElement = document.createElement("div");
-      editorContainer.appendChild(editorElement);
-      // Setup the editor instance.
-      this.state.liveEditor = new LiveEditor(
-        this,
-        editorElement,
-        this.props.cellId,
-        this.props.type,
-        source,
-        revision
-      );
-
-      // Setup markdown rendering.
-      if (this.props.type === "markdown") {
-        const markdownContainer = this.el.querySelector(
-          `[data-element="markdown-container"]`
+        const editorContainer = this.el.querySelector(
+          `[data-element="editor-container"]`
         );
-        const baseUrl = this.props.sessionPath;
-        const markdown = new Markdown(markdownContainer, source, baseUrl);
+        // Remove the content placeholder.
+        editorContainer.firstElementChild.remove();
+        // Create an empty container for the editor to be mounted in.
+        const editorElement = document.createElement("div");
+        editorContainer.appendChild(editorElement);
+        // Setup the editor instance.
+        this.state.liveEditor = new LiveEditor(
+          this,
+          editorElement,
+          this.props.cellId,
+          this.props.type,
+          source,
+          revision
+        );
 
-        this.state.liveEditor.onChange((newSource) => {
-          markdown.setContent(newSource);
-        });
-      }
+        // Setup markdown rendering.
+        if (this.props.type === "markdown") {
+          const markdownContainer = this.el.querySelector(
+            `[data-element="markdown-container"]`
+          );
+          const baseUrl = this.props.sessionPath;
+          const markdown = new Markdown(markdownContainer, source, baseUrl);
 
-      // Once the editor is created, reflect the current state.
-      if (this.state.isFocused && this.state.insertMode) {
-        this.state.liveEditor.focus();
-        // If the element is being scrolled to, focus interrupts it,
-        // so ensure the scrolling continues.
-        smoothlyScrollToElement(this.el);
+          this.state.liveEditor.onChange((newSource) => {
+            markdown.setContent(newSource);
+          });
+        }
 
-        broadcastSelection(this);
-      }
-
-      this.state.liveEditor.onBlur(() => {
-        // Prevent from blurring unless the state changes.
-        // For example when we move cell using buttons
-        // the editor should keep focus.
+        // Once the editor is created, reflect the current state.
         if (this.state.isFocused && this.state.insertMode) {
           this.state.liveEditor.focus();
+          // If the element is being scrolled to, focus interrupts it,
+          // so ensure the scrolling continues.
+          smoothlyScrollToElement(this.el);
+
+          broadcastSelection(this);
+        }
+
+        this.state.liveEditor.onBlur(() => {
+          // Prevent from blurring unless the state changes.
+          // For example when we move cell using buttons
+          // the editor should keep focus.
+          if (this.state.isFocused && this.state.insertMode) {
+            this.state.liveEditor.focus();
+          }
+        });
+
+        this.state.liveEditor.onCursorSelectionChange((selection) => {
+          broadcastSelection(this, selection);
+        });
+      });
+    }
+
+    if (this.props.type === "input") {
+      const input = getInput(this);
+
+      input.addEventListener("blur", (event) => {
+        if (this.state.isFocused && this.state.insertMode) {
+          input.focus();
         }
       });
-
-      this.state.liveEditor.onCursorSelectionChange((selection) => {
-        broadcastSelection(this, selection);
-      });
-    });
+    }
 
     this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
       "cells",
@@ -111,6 +123,14 @@ function getProps(hook) {
     type: getAttributeOrThrow(hook.el, "data-type"),
     sessionPath: getAttributeOrThrow(hook.el, "data-session-path"),
   };
+}
+
+function getInput(hook) {
+  if (hook.props.type === "input") {
+    return hook.el.querySelector(`[data-element="input"]`);
+  } else {
+    return null;
+  }
 }
 
 /**
@@ -166,6 +186,17 @@ function handleInsertModeChanged(hook, insertMode) {
         hook.state.liveEditor.blur();
       }
     }
+
+    const input = getInput(hook);
+
+    if (input) {
+      if (hook.state.insertMode) {
+        input.focus();
+        input.selectionStart = input.selectionEnd = input.value.length;
+      } else {
+        input.blur();
+      }
+    }
   }
 }
 
@@ -176,6 +207,10 @@ function handleCellMoved(hook, cellId) {
 }
 
 function handleCellUpload(hook, cellId, url) {
+  if (!hook.state.liveEditor) {
+    return;
+  }
+
   if (hook.props.cellId === cellId) {
     const markdown = `![](${url})`;
     hook.state.liveEditor.insert(markdown);
@@ -183,6 +218,10 @@ function handleCellUpload(hook, cellId, url) {
 }
 
 function handleLocationReport(hook, client, report) {
+  if (!hook.state.liveEditor) {
+    return;
+  }
+
   if (hook.props.cellId === report.cellId && report.selection) {
     hook.state.liveEditor.updateUserSelection(client, report.selection);
   } else {

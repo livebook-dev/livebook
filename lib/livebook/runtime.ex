@@ -52,16 +52,20 @@ defprotocol Livebook.Runtime do
   Evaluation outputs are send to the connected runtime owner.
   The messages should be of the form:
 
-  * `{:evaluation_output, ref, output}` - output captured during evaluation
-  * `{:evaluation_response, ref, output}` - final result of the evaluation
+    * `{:evaluation_output, ref, output}` - output captured during evaluation
+    * `{:evaluation_response, ref, output}` - final result of the evaluation
+
+  The evaluation may request user input by sending `{:evaluation_input, ref, reply_to, prompt}`
+  to the runtime owner, who is supposed to reply with `{:evaluation_input_reply, reply}`
+  with `reply` being either `{:ok, input}` or `:error` if no matching input can be found.
 
   If the evaluation state within a container is lost (e.g. a process goes down),
   the runtime can send `{:container_down, container_ref, message}` to notify the owner.
 
   ## Options
 
-  * `:file` - file to which the evaluated code belongs. Most importantly,
-    this has an impact on the value of `__DIR__`.
+    * `:file` - file to which the evaluated code belongs. Most importantly,
+      this has an impact on the value of `__DIR__`.
   """
   @spec evaluate_code(t(), String.t(), ref(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(runtime, code, container_ref, evaluation_ref, prev_evaluation_ref, opts \\ [])

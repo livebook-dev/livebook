@@ -114,4 +114,20 @@ defmodule LivebookWeb.Helpers do
     |> String.downcase()
     |> String.replace(~r/\s+/u, "-")
   end
+
+  @doc """
+  Renders a lits of radio input options with the given one selected.
+  """
+  def render_radios(name, options, selected) do
+    assigns = %{name: name, options: options, selected: selected}
+
+    ~L"""
+    <%= for {value, label} <- options do %>
+      <label class="flex space-x-2 items-center cursor-pointer">
+        <%= tag :input, type: "radio", class: "radio-base", name: @name, value: value, checked: value == selected %>
+        <div class="text-medium text-gray-700"><%= label %></div>
+      </label>
+    <% end %>
+    """
+  end
 end

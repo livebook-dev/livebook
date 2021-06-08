@@ -4,6 +4,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.UserHelpers
 
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.Notebook.Cell
   import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
@@ -269,7 +270,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :cell_settings do %>
-      <%= live_modal LivebookWeb.SessionLive.CellSettingsComponent,
+      <%= live_modal settings_component_for(@cell),
             id: :cell_settings_modal,
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
@@ -288,6 +289,12 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
     """
   end
+
+  defp settings_component_for(%Cell.Elixir{}),
+    do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
+
+  defp settings_component_for(%Cell.Input{}),
+    do: LivebookWeb.SessionLive.InputCellSettingsComponent
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
@@ -417,6 +424,12 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_cell_value", %{"cell_id" => cell_id, "value" => value}, socket) do
+    Session.set_cell_attributes(socket.assigns.session_id, cell_id, %{value: value})
+
+    {:noreply, socket}
+  end
+
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
     Session.move_cell(socket.assigns.session_id, cell_id, offset)
@@ -438,7 +451,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
     with {:ok, section} <- Notebook.fetch_section(socket.private.data.notebook, section_id) do
-      for cell <- section.cells, cell.type == :elixir do
+      for cell <- section.cells, is_struct(cell, Cell.Elixir) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -460,7 +473,8 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
     with {:ok, cell, _section} <-
            Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
-      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id) do
+      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id),
+          is_struct(cell, Cell.Elixir) do
         Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
       end
     end
@@ -504,10 +518,9 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if data.runtime do
         prev_ref =
-          case Notebook.parent_cells_with_section(data.notebook, cell.id) do
-            [{parent, _} | _] -> parent.id
-            [] -> nil
-          end
+          data.notebook
+          |> Notebook.parent_cells_with_section(cell.id)
+          |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
 
         ref = make_ref()
         Runtime.request_completion_items(data.runtime, self(), ref, hint, :main, prev_ref)
@@ -638,9 +651,18 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, type, cell_id}) do
     if client_pid == self() do
-      push_event(socket, "cell_inserted", %{cell_id: cell_id})
+      case type do
+        :input ->
+          push_patch(socket,
+            to: Routes.session_path(socket, :cell_settings, socket.assigns.session_id, cell_id)
+          )
+
+        _ ->
+          socket
+      end
+      |> push_event("cell_inserted", %{cell_id: cell_id})
     else
       socket
     end
@@ -789,17 +811,40 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  defp cell_to_view(cell, data) do
+  defp cell_to_view(%Cell.Elixir{} = cell, data) do
     info = data.cell_infos[cell.id]
 
     %{
       id: cell.id,
-      type: cell.type,
+      type: :elixir,
       empty?: cell.source == "",
       outputs: cell.outputs,
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
+    }
+  end
+
+  defp cell_to_view(%Cell.Markdown{} = cell, _data) do
+    %{
+      id: cell.id,
+      type: :markdown,
+      empty?: cell.source == ""
+    }
+  end
+
+  defp cell_to_view(%Cell.Input{} = cell, _data) do
+    %{
+      id: cell.id,
+      type: :input,
+      input_type: cell.type,
+      name: cell.name,
+      value: cell.value,
+      error:
+        case Cell.Input.validate(cell) do
+          :ok -> nil
+          {:error, error} -> error
+        end
     }
   end
 

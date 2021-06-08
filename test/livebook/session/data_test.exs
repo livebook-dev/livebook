@@ -3,6 +3,7 @@ defmodule Livebook.Session.DataTest do
 
   alias Livebook.Session.Data
   alias Livebook.{Delta, Notebook, Runtime}
+  alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
   describe "new/1" do
@@ -61,7 +62,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 notebook: %{
                   sections: [
-                    %{cells: [%{id: "c1"}]}
+                    %{cells: [%Cell.Elixir{id: "c1"}]}
                   ]
                 },
                 cell_infos: %{"c1" => _}
@@ -1602,15 +1603,28 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :set_cell_metadata" do
+  describe "apply_operation/2 given :set_cell_attributes" do
     test "returns an error given invalid cell id" do
       data = Data.new()
 
-      operation = {:set_cell_metadata, self(), "nonexistent", %{}}
+      operation = {:set_cell_attributes, self(), "nonexistent", %{}}
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "updates cell metadata with the given map" do
+    test "returns an error given an unknown attribute key" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+        ])
+
+      attrs = %{unknown: :value}
+      operation = {:set_cell_attributes, self(), "c1", attrs}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates cell with the given attributes" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
@@ -1618,13 +1632,33 @@ defmodule Livebook.Session.DataTest do
         ])
 
       metadata = %{"disable_formatting" => true}
-      operation = {:set_cell_metadata, self(), "c1", metadata}
+      attrs = %{metadata: metadata}
+      operation = {:set_cell_attributes, self(), "c1", attrs}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [%{cells: [%{metadata: ^metadata}]}]
                 }
+              }, _} = Data.apply_operation(data, operation)
+    end
+
+    test "given input value change, marks evaluated child cells as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :input, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", {:ok, [1, 2, 3]}}
+        ])
+
+      attrs = %{value: "stuff"}
+      operation = {:set_cell_attributes, self(), "c1", attrs}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{validity_status: :stale}}
               }, _} = Data.apply_operation(data, operation)
     end
   end
