@@ -283,10 +283,12 @@ the agent state:
 In the example above, we created a new agent, passing a function that
 returns the initial state of an empty list. The agent returns
 `{:ok, #PID<...>}`, where PID stands for a process identifier, which
-uniquely identifies the agent. When we say processes in Elixir, we
-don't mean Operating System processes, but rather Elixir Processes,
-which are lightweight and isolated, allowing us to run hundreds of
-thousands of them on the same machine.
+uniquely identifies the agent. Elixir has many abstractions for concurrency,
+such as agents, tasks, generic servers, but at the end of the day they all
+boil down to processes. When we say processes in Elixir, we don't mean
+Operating System processes, but rather Elixir Processes, which are lightweight
+and isolated, allowing us to run hundreds of thousands of them on the same
+machine.
 
 We store the agent's PID in the `agent` variable, which allows us to
 send messages to get the agent's state:
@@ -335,7 +337,7 @@ defmodule Portal.Door do
     end)
   end
 
-  def close(door) do
+  def stop(door) do
     Agent.stop(door)
   end
 end
@@ -397,11 +399,11 @@ IO.inspect(Portal.Door.pop(:pink))
 Portal.Door.get(:pink)
 ```
 
-Finally, the last function, `close/1`, simply terminates the agent,
+Finally, the last function, `stop/1`, simply terminates the agent,
 effectively closing the door. Let's try it:
 
 ```elixir
-Portal.Door.close(:pink)
+Portal.Door.stop(:pink)
 ```
 
 Now, if we try to do anything with it, it will raise:
@@ -472,7 +474,7 @@ four other functions:
   * `push_right(portal)` - receives a portal and continues the
     transfer by pushing data from the left to the right
 
-  * `close(portal)` - closes the portal by explicitly closing
+  * `close(portal)` - closes the portal by explicitly stopping
     both doors
 
 Let's implement them:
@@ -508,8 +510,8 @@ defmodule Portal do
   end
 
   def close(portal) do
-    Portal.Door.close(portal.left)
-    Portal.Door.close(portal.right)
+    Portal.Door.stop(portal.left)
+    Portal.Door.stop(portal.right)
     :ok
   end
 end
