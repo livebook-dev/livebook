@@ -48,13 +48,16 @@ defmodule Livebook.Session do
 
   ## Options
 
-  * `:id` (**required**) - a unique identifier to register the session under
+    * `:id` (**required**) - a unique identifier to register the session under
 
-  * `:notebook` - the initial `Notebook` structure (e.g. imported from a file)
+    * `:notebook` - the initial `Notebook` structure (e.g. imported from a file)
 
-  * `:path` - the file to which the notebook should be saved
+    * `:path` - the file to which the notebook should be saved
 
-  * `:copy_images_from` - a directory path to copy notebook images from
+    * `:copy_images_from` - a directory path to copy notebook images from
+
+    * `:images` - a map from image name to its binary content, an alternative
+      to `:copy_images_from` when the images are in memory
   """
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) do
@@ -289,6 +292,10 @@ defmodule Livebook.Session do
 
         if copy_images_from = opts[:copy_images_from] do
           copy_images(state, copy_images_from)
+        end
+
+        if images = opts[:images] do
+          dump_images(state, images)
         end
 
         {:ok, state}
@@ -589,6 +596,16 @@ defmodule Livebook.Session do
       images_dir = images_dir_from_state(state)
       File.mkdir_p!(images_dir)
       File.rename!(from, images_dir)
+    end
+  end
+
+  defp dump_images(state, images) do
+    images_dir = images_dir_from_state(state)
+    File.mkdir_p!(images_dir)
+
+    for {filename, content} <- images do
+      path = Path.join(images_dir, filename)
+      File.write!(path, content)
     end
   end
 

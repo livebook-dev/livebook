@@ -5,8 +5,8 @@ defmodule Livebook.ExploreTest do
   alias Livebook.Notebook.Explore
 
   describe "notebook_by_slug!/1" do
-    test "returns notebook structure if found" do
-      assert %Notebook{} = Explore.notebook_by_slug!("intro-to-livebook")
+    test "returns notebook structure and images if found" do
+      assert {%Notebook{}, _imaegs} = Explore.notebook_by_slug!("intro-to-livebook")
     end
 
     test "raises an error if no matching notebook if found" do

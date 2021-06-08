@@ -350,6 +350,15 @@ defmodule Livebook.SessionTest do
       %{images_dir: images_dir} = Session.get_summary(session_id)
       assert File.exists?(Path.join(images_dir, "image.jpg"))
     end
+
+    test "saves images when :images option is specified" do
+      images = %{"image.jpg" => "binary content"}
+
+      session_id = start_session(images: images)
+
+      %{images_dir: images_dir} = Session.get_summary(session_id)
+      assert Path.join(images_dir, "image.jpg") |> File.read!() == "binary content"
+    end
   end
 
   # For most tests we use the lightweight embedded runtime,

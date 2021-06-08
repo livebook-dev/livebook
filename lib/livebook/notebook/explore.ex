@@ -23,12 +23,22 @@ defmodule Livebook.Notebook.Explore.Utils do
     # However, in the info we keep just the file contents to save on memory.
     {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(markdown)
 
+    images =
+      props
+      |> Keyword.get(:image_names, [])
+      |> Map.new(fn image_name ->
+        path = Path.join([__DIR__, "explore", "images", image_name])
+        content = File.read!(path)
+        {image_name, content}
+      end)
+
     notebook_info = %{
       slug: String.replace(name, "_", "-"),
       livemd: markdown,
       title: notebook.name,
       description: Keyword.fetch!(props, :description),
-      image_url: Keyword.fetch!(props, :image_url)
+      image_url: Keyword.fetch!(props, :image_url),
+      images: images
     }
 
     {path, notebook_info}
@@ -86,8 +96,11 @@ defmodule Livebook.Notebook.Explore do
           livemd: String.t(),
           title: String.t(),
           description: String.t(),
-          image_url: String.t()
+          image_url: String.t(),
+          images: images()
         }
+
+  @type images :: %{String.t() => binary()}
 
   @doc """
   Returns a list of example notebooks with metadata.
@@ -103,8 +116,10 @@ defmodule Livebook.Notebook.Explore do
 
   @doc """
   Finds explore notebook by slug and returns the parsed data structure.
+
+  Returns the notebook along with the images it uses as preloaded binaries.
   """
-  @spec notebook_by_slug!(String.t()) :: Livebook.Notebook.t()
+  @spec notebook_by_slug!(String.t()) :: {Livebook.Notebook.t(), images()}
   def notebook_by_slug!(slug) do
     notebook_infos()
     |> Enum.find(&(&1.slug == slug))
@@ -114,7 +129,7 @@ defmodule Livebook.Notebook.Explore do
 
       notebook_info ->
         {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(notebook_info.livemd)
-        notebook
+        {notebook, notebook_info.images}
     end
   end
 end
