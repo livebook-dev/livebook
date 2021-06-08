@@ -63,7 +63,6 @@ defmodule Livebook.Notebook.Explore do
   defnotebook(:intro_to_livebook,
     description: "Get to know Livebook, see how it works and explore its features.",
     image_url: "/images/logo.png"
-    # image_names: ["portal-drop.jpeg", "portal-list.jpeg"]
   )
 
   defnotebook(:elixir_and_livebook,
