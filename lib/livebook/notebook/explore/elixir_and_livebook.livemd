@@ -37,7 +37,7 @@ trimmed = String.trim(input)
 # And then match on the return value
 case Date.from_iso8601(trimmed) do
   {:ok, date} ->
-    "We got a valid data: #{inspect(date)}"
+    "We got a valid date: #{inspect(date)}"
 
   {:error, reason} ->
     "Oh no, the date is invalid. Reason: #{inspect(reason)}"
@@ -45,7 +45,7 @@ end
 ```
 
 The string passed to `IO.gets/1` must have the same suffix as the
-input name and the returned string is always appended by a newline.
+input name and the returned string is always appended with a newline.
 This is built-in on top of Erlang's IO protocol and built in a way
 that your notebooks can be exported to Elixir scripts and still work!
 

@@ -207,7 +207,7 @@ trimmed = String.trim(input)
 # And then match on the return value
 case Date.from_iso8601(trimmed) do
   {:ok, date} ->
-    "We got a valid data: #{inspect(date)}"
+    "We got a valid date: #{inspect(date)}"
 
   {:error, reason} ->
     "Oh no, the date is invalid. Reason: #{inspect(reason)}"
@@ -217,7 +217,7 @@ end
 We have been using `IO.inspect` to write values out of the notebook
 and here we used `IO.gets` to read data in. The string passed to
 `IO.gets` must have the same suffix as the input name. The returned
-string is always appended by a newline. Then we remove the trailing new
+string is always appended with a newline. Then we remove the trailing new
 line and use `case` to pattern match on the different outcomes of the
 `Date.from_iso8601` function. We say the `case` above has two clauses,
 one matching on `{:ok, date}` and another on `{:error, reason}`.
@@ -263,7 +263,7 @@ adder = fn a, b -> a + b end
 An anonymous function is delimited by the words `fn` and `end` and an
 arrow `->` is used to separate the arguments from the anonymous function
 body. We can now call the anonymous function above multiple times by
-given two numbers as inputs:
+providing two numbers as inputs:
 
 ```elixir
 adder.(1, 2)
@@ -349,7 +349,7 @@ The first function is `start_link`, which we often refer to as
 `start_link/1`, where the number 1 is called the "arity" of the
 function and it indicates the number of arguments it receives.
 Then we check that the argument is an atom and proceed to call
-`Agent.start_link/2`, as we did early in this section, except we are
+`Agent.start_link/2`, as we did earlier in this section, except we are
 now passing `name: color` as an argument. By giving a name to the
 Agent, we can refer to it anywhere by its name, instead of using its
 PID.
@@ -366,7 +366,7 @@ Portal.Door.get(:pink)
 Note how we didn't need to store the PID anywhere and we can use the
 atom `:pink` to refer to the door and read its state. If the door
 already exists, and we try to start another one with the same name,
-it returns an `:error` tuple instead of `{:ok, pid}`:
+it returns an `{:error, reason}` tuple instead of `{:ok, pid}`:
 
 ```elixir
 Portal.Door.start_link(:pink)
@@ -419,7 +419,7 @@ transfers! In order to store the portal data, we are going to create a
 struct named `Portal`. Let's first learn what structs are about.
 
 Structs define data structures with pre-defined keys. The keys are verified
-at compilation time, so if you make a type in the key name, you get an error
+at compilation time, so if you make a typo in the key name, you get an error
 early on. Structs are defined inside modules, by calling the `defstruct` with
 a list of atom keys. Let's define a `User` struct with the fields `:name`
 and `:age`:
@@ -449,7 +449,7 @@ We can pattern match on structs too:
 age
 ```
 
-Finally, let's see what happens if we do a typo on a field:
+Finally, let's see what happens if we do a typo in a field:
 
 ```elixir
 %User{agee: age} = user
@@ -563,7 +563,7 @@ the portal processes as we push data.
 
 ## Inspecting portals with Protocols
 
-We already know that Elixir data structures data can be printed by `Livebook`.
+We already know that Elixir data structures data can be printed by Livebook.
 After all, when we type `1 + 2`, we get `3` back. However, can we customize
 how our own data structures are printed?
 
@@ -574,7 +574,7 @@ For example, every time something is printed in Livebook, or in Elixir's
 terminal, Elixir uses the `Inspect` protocol. Since protocols can be extended
 at any time, by any data type, it means we can implement it for `Portal` too.
 We do so by calling `defimpl/2`, passing the protocol name and the data
-structure we want ti implement the protocol for. Let's do it:
+structure we want to implement the protocol for. Let's do it:
 
 ```elixir
 defimpl Inspect, for: Portal do
@@ -591,7 +591,7 @@ defimpl Inspect, for: Portal do
     #Portal<
       #{String.pad_leading(left_door, max)} <=> #{right_door}
       #{String.pad_leading(left_data, max)} <=> #{right_data}
-    >
+    >\
     """
   end
 end
@@ -728,7 +728,7 @@ Node.set_cookie(other_node, other_cookie)
 Node.connect(other_node)
 ```
 
-If it returns true, it means it connected as expected. The code above use
+If it returns true, it means it connected as expected. The code above uses
 `IO.gets/1` to read the input values, as we did earlier in this notebook,
 then removes the trailing newline, and converts the strings to atoms. We
 did so using the pipe operator `|>`, which gets the result of the previous
