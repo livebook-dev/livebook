@@ -29,4 +29,4 @@ config :livebook,
 config :livebook,
        :default_runtime,
        Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
-         Livebook.Runtime.ElixirStandalone
+         {Livebook.Runtime.ElixirStandalone, []}

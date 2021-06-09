@@ -722,7 +722,9 @@ defmodule Livebook.Session do
   # Checks if a runtime already set, and if that's not the case
   # starts a new standalone one.
   defp ensure_runtime(%{data: %{runtime: nil}} = state) do
-    with {:ok, runtime} <- Livebook.Config.default_runtime().init() do
+    {runtime_module, args} = Livebook.Config.default_runtime()
+
+    with {:ok, runtime} <- apply(runtime_module, :init, args) do
       runtime_monitor_ref = Runtime.connect(runtime)
 
       {:ok,
