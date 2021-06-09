@@ -142,38 +142,45 @@ defmodule Livebook.Config do
   """
   def default_runtime!(env) do
     if runtime = System.get_env(env) do
-      case runtime do
-        "standalone" ->
-          {Livebook.Runtime.ElixirStandalone, []}
+      default_runtime!(env, runtime)
+    end
+  end
 
-        "embedded" ->
-          {Livebook.Runtime.Embedded, []}
+  @doc """
+  Parses and validates default runtime within context.
+  """
+  def default_runtime!(context, runtime) do
+    case runtime do
+      "standalone" ->
+        {Livebook.Runtime.ElixirStandalone, []}
 
-        "mix" ->
-          case mix_path(File.cwd!()) do
-            {:ok, path} ->
-              {Livebook.Runtime.MixStandalone, [path]}
+      "embedded" ->
+        {Livebook.Runtime.Embedded, []}
 
-            :error ->
-              abort!(
-                "the current directory is not a Mix project, make sure to specify the path explicitly with mix:path"
-              )
-          end
+      "mix" ->
+        case mix_path(File.cwd!()) do
+          {:ok, path} ->
+            {Livebook.Runtime.MixStandalone, [path]}
 
-        "mix:" <> path ->
-          case mix_path(path) do
-            {:ok, path} ->
-              {Livebook.Runtime.MixStandalone, [path]}
+          :error ->
+            abort!(
+              "the current directory is not a Mix project, make sure to specify the path explicitly with mix:path"
+            )
+        end
 
-            :error ->
-              abort!(~s{"#{path}" does not point to a Mix project})
-          end
+      "mix:" <> path ->
+        case mix_path(path) do
+          {:ok, path} ->
+            {Livebook.Runtime.MixStandalone, [path]}
 
-        other ->
-          abort!(
-            ~s{expected #{env} to be either "standalone" or "embedded", got: #{inspect(other)}}
-          )
-      end
+          :error ->
+            abort!(~s{"#{path}" does not point to a Mix project})
+        end
+
+      other ->
+        abort!(
+          ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
+        )
     end
   end
 

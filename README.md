@@ -98,8 +98,8 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used
     by default when none is started explicitly for the given notebook.
-    Must be either "standalone" (Elixir standalone) or "embedded" (Embedded).
-    Defaults to "standalone".
+    Must be either "standalone" (Elixir standalone), "mix[:path]" (Mix standalone)
+    or "embedded" (Embedded). Defaults to "standalone".
 
   * LIVEBOOK_IP - sets the ip address to start the web application on. Must be a valid IPv4 or IPv6 address.
 

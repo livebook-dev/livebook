@@ -19,15 +19,21 @@ defmodule LivebookCLI.Server do
 
     Available options:
 
-      --cookie      Sets a cookie for the app distributed node
-      --ip          The ip address to start the web application on, defaults to 127.0.0.1
-                    Must be a valid IPv4 or IPv6 address
-      --name        Set a name for the app distributed node
-      --no-token    Disable token authentication, enabled by default
-                    If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
-      -p, --port    The port to start the web application on, defaults to 8080
-      --root-path   The root path to use for file selection
-      --sname       Set a short name for the app distributed node
+      --cookie             Sets a cookie for the app distributed node
+      --default-runtime    Sets the runtime type that is used by default when none is started
+                           explicitly for the given notebook, defaults to standalone
+                           Supported options:
+                             * standalone - Elixir standalone
+                             * mix[:path] - Mix standalone
+                             * embedded - Embedded
+      --ip                 The ip address to start the web application on, defaults to 127.0.0.1
+                           Must be a valid IPv4 or IPv6 address
+      --name               Set a name for the app distributed node
+      --no-token           Disable token authentication, enabled by default
+                           If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
+      -p, --port           The port to start the web application on, defaults to 8080
+      --root-path          The root path to use for file selection
+      --sname              Set a short name for the app distributed node
 
     The --help option can be given to print this notice.
 
@@ -75,6 +81,7 @@ defmodule LivebookCLI.Server do
 
   @switches [
     cookie: :string,
+    default_runtime: :string,
     ip: :string,
     name: :string,
     port: :integer,
@@ -136,6 +143,11 @@ defmodule LivebookCLI.Server do
   defp opts_to_config([{:cookie, cookie} | opts], config) do
     cookie = String.to_atom(cookie)
     opts_to_config(opts, [{:livebook, :cookie, cookie} | config])
+  end
+
+  defp opts_to_config([{:default_runtime, default_runtime} | opts], config) do
+    default_runtime = Livebook.Config.default_runtime!("--default-runtime", default_runtime)
+    opts_to_config(opts, [{:livebook, :default_runtime, default_runtime} | config])
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
