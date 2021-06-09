@@ -2,9 +2,11 @@
 
 ## Setup
 
-To render graphs in Livebook, we need the `vega_lite` package
-for defining our graph specification and `kino`, which augments
-Livebook with client-driven widgets:
+To render graphs in Livebook, we need the
+[`vega_lite`](https://github.com/elixir-nx/vega_lite) package
+for defining our graph specification and
+[`kino`](https://github.com/elixir-nx/kino), which augments
+Livebook with client-driven interactive widgets:
 
 ```elixir
 Mix.install([
