@@ -109,8 +109,12 @@
   @apply py-[0.1rem] px-2 rounded-lg text-sm align-middle font-mono bg-gray-200;
 }
 
+.markdown pre {
+  @apply flex overflow-hidden;
+}
+
 .markdown pre > code {
-  @apply block p-4 rounded-lg text-sm align-middle font-mono;
+  @apply p-4 rounded-lg text-sm align-middle font-mono flex-1 overflow-auto;
   /* Match the editor colors */
   background-color: #282c34;
   color: #abb2bf;
