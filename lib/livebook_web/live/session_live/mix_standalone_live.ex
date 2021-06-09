@@ -31,6 +31,12 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         This way all your code and dependencies will be available
         within the notebook.
       </p>
+      <p class="text-gray-700">
+        <span class="font-semibold">Warning:</span>
+        Notebooks that use <code>Mix.install/1</code> do not work
+        inside a Mix project because the dependencies of the project
+        itself have been installed instead.
+      </p>
       <%= if @status == :initial do %>
         <div class="h-full h-52">
           <%= live_component LivebookWeb.PathSelectComponent,
