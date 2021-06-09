@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
       </p>
       <p class="text-gray-700">
         <span class="font-semibold">Warning:</span>
-        Notebooks that use <code>Mix.install</code> does not work
+        Notebooks that use <code>Mix.install/1</code> do not work
         inside a Mix project because the dependencies of the project
         itself have been installed instead.
       </p>
