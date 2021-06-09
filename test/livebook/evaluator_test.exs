@@ -168,7 +168,7 @@ defmodule Livebook.EvaluatorTest do
   describe "request_completion_items/5" do
     test "sends completion response to the given process", %{evaluator: evaluator} do
       Evaluator.request_completion_items(evaluator, self(), :comp_ref, "System.ver")
-      assert_receive {:completion_response, :comp_ref, [%{label: "version/0"}]}
+      assert_receive {:completion_response, :comp_ref, [%{label: "version/0"}]}, 1_000
     end
 
     test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
@@ -181,11 +181,11 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_response, :code_1, _}
 
       Evaluator.request_completion_items(evaluator, self(), :comp_ref, "num", :code_1)
-      assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}
+      assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}, 1_000
 
       Evaluator.request_completion_items(evaluator, self(), :comp_ref, "ANSI.brigh", :code_1)
 
-      assert_receive {:completion_response, :comp_ref, [%{label: "bright/0"}]}
+      assert_receive {:completion_response, :comp_ref, [%{label: "bright/0"}]}, 1_000
     end
   end
 

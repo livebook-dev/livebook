@@ -379,15 +379,8 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
-    case ensure_runtime(state) do
-      {:ok, state} ->
-        operation = {:queue_cell_evaluation, client_pid, cell_id}
-        {:noreply, handle_operation(state, operation)}
-
-      {:error, error} ->
-        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
-        {:noreply, state}
-    end
+    operation = {:queue_cell_evaluation, client_pid, cell_id}
+    {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:cancel_cell_evaluation, client_pid, cell_id}, state) do
@@ -667,8 +660,34 @@ defmodule Livebook.Session do
     Enum.reduce(actions, state, &handle_action(&2, &1))
   end
 
-  defp handle_action(state, {:start_evaluation, cell, section}) do
-    start_evaluation(state, cell, section)
+  defp handle_action(state, :start_runtime) do
+    {runtime_module, args} = Livebook.Config.default_runtime()
+
+    case apply(runtime_module, :init, args) do
+      {:ok, runtime} ->
+        runtime_monitor_ref = Runtime.connect(runtime)
+
+        %{state | runtime_monitor_ref: runtime_monitor_ref}
+        |> handle_operation({:set_runtime, self(), runtime})
+
+      {:error, error} ->
+        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
+        handle_operation(state, {:set_runtime, self(), nil})
+    end
+  end
+
+  defp handle_action(state, {:start_evaluation, cell, _section}) do
+    prev_ref =
+      state.data.notebook
+      |> Notebook.parent_cells_with_section(cell.id)
+      |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
+
+    file = (state.data.path || "") <> "#cell"
+    opts = [file: file]
+
+    Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref, opts)
+
+    state
   end
 
   defp handle_action(state, {:stop_evaluation, _section}) do
@@ -704,34 +723,6 @@ defmodule Livebook.Session do
   defp broadcast_message(session_id, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
-
-  defp start_evaluation(state, cell, _section) do
-    prev_ref =
-      state.data.notebook
-      |> Notebook.parent_cells_with_section(cell.id)
-      |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
-
-    file = (state.data.path || "") <> "#cell"
-    opts = [file: file]
-
-    Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref, opts)
-
-    state
-  end
-
-  # Checks if a runtime already set, and if that's not the case
-  # starts a new standalone one.
-  defp ensure_runtime(%{data: %{runtime: nil}} = state) do
-    with {:ok, runtime} <- Livebook.Config.default_runtime().init() do
-      runtime_monitor_ref = Runtime.connect(runtime)
-
-      {:ok,
-       %{state | runtime_monitor_ref: runtime_monitor_ref}
-       |> handle_operation({:set_runtime, self(), runtime})}
-    end
-  end
-
-  defp ensure_runtime(state), do: {:ok, state}
 
   defp maybe_save_notebook(state) do
     if state.data.path != nil and state.data.dirty do

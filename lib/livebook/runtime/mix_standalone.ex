@@ -74,6 +74,21 @@ defmodule Livebook.Runtime.MixStandalone do
     :ok
   end
 
+  @doc """
+  A synchronous version of of `init_async/2`.
+  """
+  @spec init(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def init(project_path) do
+    %{ref: ref} = emitter = Livebook.Utils.Emitter.new(self())
+
+    init_async(project_path, emitter)
+
+    receive do
+      {:emitter, ^ref, {:ok, runtime}} -> {:ok, runtime}
+      {:emitter, ^ref, {:error, error}} -> {:error, error}
+    end
+  end
+
   defp run_mix_task(task, project_path, output_emitter) do
     Emitter.emit(output_emitter, "Running mix #{task}...\n")
 

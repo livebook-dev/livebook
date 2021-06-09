@@ -101,7 +101,8 @@ defmodule Livebook.Session.Data do
           | {:mark_as_not_dirty, pid()}
 
   @type action ::
-          {:start_evaluation, Cell.t(), Section.t()}
+          :start_runtime
+          | {:start_evaluation, Cell.t(), Section.t()}
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
           | {:broadcast_delta, pid(), Cell.t(), Delta.t()}
@@ -258,6 +259,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> queue_prerequisite_cells_evaluation(cell)
       |> queue_cell_evaluation(cell, section)
+      |> maybe_start_runtime(data)
       |> maybe_evaluate_queued()
       |> wrap_ok()
     else
@@ -431,8 +433,7 @@ defmodule Livebook.Session.Data do
   def apply_operation(data, {:set_runtime, _client_pid, runtime}) do
     data
     |> with_actions()
-    |> set!(runtime: runtime)
-    |> clear_evaluation()
+    |> set_runtime(data, runtime)
     |> wrap_ok()
   end
 
@@ -616,14 +617,27 @@ defmodule Livebook.Session.Data do
     |> reduce(invalidated_cells, &set_cell_info!(&1, &2.id, validity_status: :stale))
   end
 
+  defp maybe_start_runtime({data, _} = data_actions, prev_data) do
+    if data.runtime == nil and not any_cell_queued?(prev_data) and any_cell_queued?(data) do
+      add_action(data_actions, :start_runtime)
+    else
+      data_actions
+    end
+  end
+
+  defp any_cell_queued?(data) do
+    Enum.any?(data.section_infos, fn {_section_id, info} -> info.evaluation_queue != [] end)
+  end
+
   defp maybe_evaluate_queued({data, _} = data_actions) do
     ongoing_evaluation? =
       Enum.any?(data.notebook.sections, fn section ->
         data.section_infos[section.id].evaluating_cell_id != nil
       end)
 
-    if ongoing_evaluation? do
-      # A section is evaluating, so we don't start any new evaluation
+    if ongoing_evaluation? or data.runtime == nil do
+      # Don't tigger evaluation if there is one already,
+      # or if we simply don't have a runtime started yet
       data_actions
     else
       Enum.find_value(data.notebook.sections, data_actions, fn section ->
@@ -799,6 +813,16 @@ defmodule Livebook.Session.Data do
   defp set_cell_attributes({data, _} = data_actions, cell, attrs) do
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
+  end
+
+  defp set_runtime(data_actions, prev_data, runtime) do
+    {data, _} = data_actions = set!(data_actions, runtime: runtime)
+
+    if prev_data.runtime == nil and data.runtime != nil do
+      maybe_evaluate_queued(data_actions)
+    else
+      clear_evaluation(data_actions)
+    end
   end
 
   defp purge_deltas(cell_info) do

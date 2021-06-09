@@ -16,9 +16,10 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the runtime module to be used by default.
+  Returns the runtime module and `init` args used to start
+  the default runtime.
   """
-  @spec default_runtime() :: Livebook.Runtime.t()
+  @spec default_runtime() :: {Livebook.Runtime.t(), list()}
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
   end
@@ -141,18 +142,56 @@ defmodule Livebook.Config do
   """
   def default_runtime!(env) do
     if runtime = System.get_env(env) do
-      case runtime do
-        "standalone" ->
-          Livebook.Runtime.ElixirStandalone
+      default_runtime!(env, runtime)
+    end
+  end
 
-        "embedded" ->
-          Livebook.Runtime.Embedded
+  @doc """
+  Parses and validates default runtime within context.
+  """
+  def default_runtime!(context, runtime) do
+    case runtime do
+      "standalone" ->
+        {Livebook.Runtime.ElixirStandalone, []}
 
-        other ->
-          abort!(
-            ~s{expected #{env} to be either "standalone" or "embedded", got: #{inspect(other)}}
-          )
-      end
+      "embedded" ->
+        {Livebook.Runtime.Embedded, []}
+
+      "mix" ->
+        case mix_path(File.cwd!()) do
+          {:ok, path} ->
+            {Livebook.Runtime.MixStandalone, [path]}
+
+          :error ->
+            abort!(
+              "the current directory is not a Mix project, make sure to specify the path explicitly with mix:path"
+            )
+        end
+
+      "mix:" <> path ->
+        case mix_path(path) do
+          {:ok, path} ->
+            {Livebook.Runtime.MixStandalone, [path]}
+
+          :error ->
+            abort!(~s{"#{path}" does not point to a Mix project})
+        end
+
+      other ->
+        abort!(
+          ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
+        )
+    end
+  end
+
+  defp mix_path(path) do
+    path = Path.expand(path)
+    mixfile = Path.join(path, "mix.exs")
+
+    if File.exists?(mixfile) do
+      {:ok, path}
+    else
+      :error
     end
   end
 

@@ -15,7 +15,7 @@ config :livebook, :authentication_mode, :disabled
 # Use the embedded runtime in tests by default, so they
 # are cheaper to run. Other runtimes can be tested by starting
 # and setting them explicitly
-config :livebook, :default_runtime, Livebook.Runtime.Embedded
+config :livebook, :default_runtime, {Livebook.Runtime.Embedded, []}
 
 # Use longnames when running tests in CI, so that no host resolution is required,
 # see https://github.com/elixir-nx/livebook/pull/173#issuecomment-819468549
