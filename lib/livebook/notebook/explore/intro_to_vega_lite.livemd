@@ -1,3 +1,963 @@
-# Plotting with VegaLite and Kino
+# Plotting with VegaLite
 
-TODO: content 🐈
+## Setup
+
+To render graphs in Livebook, we need the `vega_lite` package
+for defining our graph specification and `kino`, which augments
+Livebook with client-driven widgets:
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.0"},
+  {:kino, "~> 0.1.0"}
+])
+```
+
+When building graphics we make extensive use of the functions from `VegaLite`,
+so it's useful to alias the module as something shorter.
+
+```elixir
+alias VegaLite, as: Vl
+```
+
+## Basic concepts
+
+Composing a basic Vega-Lite graphic usually consists of the following steps:
+
+```elixir
+# Initialize the specification, optionally with some top-level properties
+Vl.new(width: 400, height: 400)
+# Specify data source for the graphic using one of the data_from_* functions
+|> Vl.data_from_series(iteration: 1..100, score: 1..100)
+# Pick a visual mark
+|> Vl.mark(:line)
+# Map data fields to visual properties of the mark, in this case point positions
+|> Vl.encode_field(:x, "iteration", type: :quantitative)
+|> Vl.encode_field(:y, "score", type: :quantitative)
+```
+
+Below you can find a number of example graphics for common use cases.
+For a number of plain Vega-Lite examples you can look
+[here](https://vega.github.io/vega-lite/examples).
+
+## Bar charts
+
+### Simple bar chart
+
+A bar chart encodes quantitative values as the length of regular bars.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/bar.html
+
+data = [
+  %{"a" => "A", "b" => 28},
+  %{"a" => "B", "b" => 55},
+  %{"a" => "C", "b" => 43},
+  %{"a" => "D", "b" => 91},
+  %{"a" => "E", "b" => 81},
+  %{"a" => "F", "b" => 53},
+  %{"a" => "G", "b" => 19},
+  %{"a" => "H", "b" => 87},
+  %{"a" => "I", "b" => 52}
+]
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_values(data)
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "a", type: :nominal, axis: [label_angle: 0])
+|> Vl.encode_field(:y, "b", type: :quantitative)
+```
+
+### Stacked bar chart
+
+A stacked bar chart contains multi-color bars to represent
+several quantitive values at once.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/stacked_bar_weather.html
+
+Vl.new(width: 300, height: 200)
+|> Vl.data_from_url("https://vega.github.io/editor/data/seattle-weather.csv")
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "date", time_unit: :month, type: :ordinal, title: "Month of the year")
+|> Vl.encode(:y, aggregate: :count, type: :quantitative, title: "Number of days")
+|> Vl.encode_field(:color, "weather",
+  type: :nominal,
+  title: "Weather type",
+  scale: [
+    domain: ["sun", "fog", "drizzle", "rain", "snow"],
+    range: ["#e7ba52", "#c7c7c7", "#aec7e8", "#1f77b4", "#9467bd"]
+  ]
+)
+```
+
+### Grouped bar chart
+
+Graphing one bar plot per group.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/bar_grouped.html
+
+Vl.new(width: [step: 12])
+|> Vl.data_from_url("https://vega.github.io/editor/data/population.json")
+|> Vl.transform(filter: "datum.year == 2000")
+|> Vl.transform(calculate: "datum.sex == 2 ? 'Female' : 'Male'", as: "gender")
+|> Vl.mark(:bar)
+|> Vl.encode_field(:column, "age", type: :ordinal, spacing: 10)
+|> Vl.encode_field(:y, "people", aggregate: :sum, title: "population", axis: [grid: false])
+|> Vl.encode_field(:x, "gender", title: nil)
+|> Vl.encode_field(:color, "gender")
+|> Vl.config(view: [stroke: nil])
+```
+
+## Histograms, density plots and dot plots
+
+### Histogram
+
+A histogram represents the value frequency in predefined intervals.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/histogram.html
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/movies.json")
+|> Vl.mark(:bar)
+|> Vl.encode_field(:x, "IMDB Rating", bin: true)
+|> Vl.encode(:y, aggregate: :count)
+```
+
+### Density plot
+
+A density plot represents the distribution estimate of a numeric value.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/area_density.html
+
+Vl.new(width: 400, height: 100)
+|> Vl.data_from_url("https://vega.github.io/editor/data/movies.json")
+|> Vl.transform(density: "IMDB Rating")
+|> Vl.mark(:area)
+|> Vl.encode_field(:x, "value", type: :quantitative, title: "IMDB rating")
+|> Vl.encode_field(:y, "density", type: :quantitative)
+```
+
+### Stacked density estimates
+
+Several density plots stacked together.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/area_density_stacked.html
+
+Vl.new(width: 400, height: 80)
+|> Vl.data_from_url("https://vega.github.io/editor/data/penguins.json")
+|> Vl.transform(density: "Body Mass (g)", groupby: ["Species"], extent: [2500, 6500])
+|> Vl.mark(:area)
+|> Vl.encode_field(:x, "value", type: :quantitative, title: "Body mass (g)")
+|> Vl.encode_field(:y, "density", type: :quantitative, stack: true)
+|> Vl.encode_field(:color, "Species", type: :nominal)
+```
+
+### 2D Histogram scatterplot
+
+A 2D version of a regular histogram, with intervals in both axis
+and frequency represented by point size.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/circle_binned.html
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/movies.json")
+|> Vl.mark(:circle)
+|> Vl.encode_field(:x, "IMDB Rating", bin: [maxbins: 10])
+|> Vl.encode_field(:y, "Rotten Tomatoes Rating", bin: [maxbins: 10])
+|> Vl.encode(:size, aggregate: :count)
+```
+
+### 2D Histogram heatmap
+
+Another version of 2D histogram, with color scale representing value frequency.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/rect_binned_heatmap.html
+
+Vl.new(width: 300, height: 200)
+|> Vl.data_from_url("https://vega.github.io/editor/data/movies.json")
+|> Vl.transform(
+  filter: [
+    and: [
+      [field: "IMDB Rating", valid: true],
+      [field: "Rotten Tomatoes Rating", valid: true]
+    ]
+  ]
+)
+|> Vl.mark(:rect)
+|> Vl.encode_field(:x, "IMDB Rating", bin: [maxbins: 60])
+|> Vl.encode_field(:y, "Rotten Tomatoes Rating", bin: [maxbins: 40])
+|> Vl.encode(:color, aggregate: :count)
+|> Vl.config(view: [stroke: nil])
+```
+
+### 2D Ordinal heatmap
+
+A heatmap similar to the above, but with already discrete categories.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/rect_heatmap_weather.html
+
+Vl.new(title: "Daily max temperatures (C) in Seattle, WA")
+|> Vl.data_from_url("https://vega.github.io/editor/data/seattle-weather.csv")
+|> Vl.mark(:rect)
+|> Vl.encode_field(:x, "date",
+  time_unit: :date,
+  type: :ordinal,
+  title: "Day",
+  axis: [label_angle: 0, format: "%e"]
+)
+|> Vl.encode_field(:y, "date",
+  time_unit: :month,
+  type: :ordinal,
+  title: "Month"
+)
+|> Vl.encode_field(:color, "temp_max",
+  aggregate: :max,
+  type: :quantitative,
+  legend: [title: nil]
+)
+|> Vl.config(view: [stroke: nil])
+```
+
+## Scatter and strip plots
+
+### Scatterplot
+
+A scatterplot represents 2D data directly as geometric points.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/point_2d.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "Horsepower", type: :quantitative)
+|> Vl.encode_field(:y, "Miles_per_Gallon", type: :quantitative)
+```
+
+### Strip plot
+
+Shows the relationship between two values using tick marks.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/tick_strip.html
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.mark(:tick)
+|> Vl.encode_field(:x, "Horsepower", type: :quantitative)
+|> Vl.encode_field(:y, "Cylinders", type: :ordinal)
+```
+
+### Colored scatterplot
+
+Scatterplot with clear point groups.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/point_color_with_shape.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/penguins.json")
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "Flipper Length (mm)", type: :quantitative, scale: [zero: false])
+|> Vl.encode_field(:y, "Body Mass (g)", type: :quantitative, scale: [zero: false])
+|> Vl.encode_field(:color, "Species", type: :nominal)
+|> Vl.encode_field(:shape, "Species", type: :nominal)
+```
+
+## Line charts
+
+### Line chart
+
+A simple chart resulting from linking individual points.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/line.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/stocks.csv")
+|> Vl.transform(filter: "datum.symbol == 'GOOG'")
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "date", type: :temporal)
+|> Vl.encode_field(:y, "price", type: :quantitative)
+```
+
+### Multi series line chart
+
+Multiple line charts combined together.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/line_color.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/stocks.csv")
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "date", type: :temporal)
+|> Vl.encode_field(:y, "price", type: :quantitative)
+|> Vl.encode_field(:color, "symbol", type: :nominal)
+```
+
+### Line chart with point markers
+
+Marking individual points on top of the line.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/line_color.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/stocks.csv")
+|> Vl.mark(:line, point: true)
+|> Vl.encode_field(:x, "date", time_unit: :year, type: :temporal)
+|> Vl.encode_field(:y, "price", aggregate: :mean, type: :quantitative)
+|> Vl.encode_field(:color, "symbol", type: :nominal)
+```
+
+### Sequence generators
+
+Line charts using generated data.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/sequence_line_fold.html
+
+Vl.new(width: 300, height: 150)
+|> Vl.data(sequence: [start: 0, stop: 12.7, step: 0.1, as: "x"])
+|> Vl.transform(calculate: "sin(datum.x)", as: "sin(x)")
+|> Vl.transform(calculate: "cos(datum.x)", as: "cos(x)")
+|> Vl.transform(fold: ["sin(x)", "cos(x)"])
+|> Vl.mark(:line)
+|> Vl.encode_field(:x, "x", type: :quantitative)
+|> Vl.encode_field(:y, "value", type: :quantitative)
+|> Vl.encode_field(:color, "key", type: :nominal, title: nil)
+```
+
+## Area charts and streamgraphs
+
+### Area chart
+
+An area chart represents quantitative data and is based on line chart.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/area.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/unemployment-across-industries.json")
+|> Vl.mark(:area)
+|> Vl.encode_field(:x, "date", time_unit: :yearmonth, axis: [format: "%Y"])
+|> Vl.encode_field(:y, "count", aggregate: :sum, title: "count")
+```
+
+### Stacked area chart
+
+A combination of multiple area charts allowing for easy visual comparison.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/stacked_area.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/unemployment-across-industries.json")
+|> Vl.mark(:area)
+|> Vl.encode_field(:x, "date", time_unit: :yearmonth, axis: [format: "%Y"])
+|> Vl.encode_field(:y, "count", aggregate: :sum, title: "count")
+|> Vl.encode_field(:color, "series", scale: [scheme: "category20b"])
+```
+
+### Streamgraph
+
+A streamgraph is a type of area chart which is displaced around a centerl axis.
+
+```elixir
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/unemployment-across-industries.json")
+|> Vl.mark(:area)
+|> Vl.encode_field(:x, "date", time_unit: :yearmonth, axis: [format: "%Y"])
+|> Vl.encode_field(:y, "count", aggregate: :sum, axis: nil, stack: :center)
+|> Vl.encode_field(:color, "series", scale: [scheme: "category20b"])
+```
+
+## Circular plots
+
+### Pie chart
+
+A pie chart encodes proportional differences among a set of numeric values
+as the angular extent and area of a circular slice.
+
+```elixir
+data = [
+  %{"category" => 1, "value" => 4},
+  %{"category" => 2, "value" => 6},
+  %{"category" => 3, "value" => 10},
+  %{"category" => 4, "value" => 3},
+  %{"category" => 5, "value" => 7},
+  %{"category" => 6, "value" => 8}
+]
+
+Vl.new()
+|> Vl.data_from_values(data)
+|> Vl.mark(:arc)
+|> Vl.encode_field(:theta, "value", type: :quantitative)
+|> Vl.encode_field(:color, "category", type: :nominal)
+|> Vl.config(view: [stroke: nil])
+```
+
+### Radial plot
+
+This radial plot uses both angular and radial extent to convey
+multiple dimensions of data. However, this approach is not perceptually
+effective, as viewers will most likely be drawn to the total area of
+the shape, conflating the two dimensions.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/arc_radial.html
+
+Vl.new()
+|> Vl.data_from_series(data: [12, 23, 47, 6, 52, 19])
+|> Vl.encode_field(:theta, "data", type: :quantitative, stack: true)
+|> Vl.encode_field(:radius, "data", scale: [type: :sqrt, zero: true, range_min: 20])
+|> Vl.encode_field(:color, "data", type: :nominal, legend: nil)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:arc, inner_radius: 20, stroke: "#fff"),
+  Vl.new()
+  |> Vl.mark(:text, radius_offset: 10)
+  |> Vl.encode_field(:text, "data", type: :quantitative)
+])
+|> Vl.config(view: [stroke: nil])
+```
+
+## Calculations
+
+### Layering rolling averages over raw values
+
+Raw value points and a calculated rolling average on top.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/layer_line_rolling_mean_point_raw.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/seattle-weather.csv")
+|> Vl.transform(
+  window: [
+    [field: "temp_max", op: :mean, as: "rolling_mean"]
+  ],
+  frame: [-15, 15]
+)
+|> Vl.encode_field(:x, "date", type: :temporal, title: "Date", opacity: 0.3)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:point, opacity: 0.3)
+  |> Vl.encode_field(:y, "temp_max", type: :quantitative),
+  Vl.new()
+  |> Vl.mark(:line, color: :red, size: 3)
+  |> Vl.encode_field(:y, "rolling_mean",
+    type: :quantitative,
+    title: "Rolling mean of max temperature"
+  )
+])
+```
+
+### Linear regression
+
+Linear regression is an approach of finding a line that best
+represents the relationship in the data.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/layer_point_line_regression.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/movies.json")
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:point, filled: true)
+  |> Vl.encode_field(:x, "Rotten Tomatoes Rating", type: :quantitative)
+  |> Vl.encode_field(:y, "IMDB Rating", type: :quantitative),
+  Vl.new()
+  |> Vl.mark(:line, color: :firebrick)
+  |> Vl.transform(regression: "IMDB Rating", on: "Rotten Tomatoes Rating")
+  |> Vl.encode_field(:x, "Rotten Tomatoes Rating", type: :quantitative)
+  |> Vl.encode_field(:y, "IMDB Rating", type: :quantitative)
+])
+```
+
+## Composite marks
+
+### Error bars showing standard deviation
+
+Adding observations standard deviation alongside the mean point.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/layer_point_errorbar_ci.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/barley.json")
+|> Vl.encode_field(:y, "variety", type: :ordinal)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:point, filled: true)
+  |> Vl.encode_field(:x, "yield",
+    aggregate: :mean,
+    type: :quantitative,
+    scale: [zero: false],
+    title: "Barley yield"
+  )
+  |> Vl.encode(:color, value: :black),
+  Vl.new()
+  |> Vl.mark(:errorbar, extent: :stdev)
+  |> Vl.encode_field(:x, "yield", type: :quantitative, title: "Barley yield")
+])
+```
+
+### Line chart with confidence interval band
+
+Line with confidence band, which represents the uncertainty of an estimate function.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/layer_line_errorband_ci.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.encode_field(:x, "Year", time_unit: :year)
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:errorband, extent: :ci)
+  |> Vl.encode_field(:y, "Miles_per_Gallon",
+    type: :quantitative,
+    title: "Mean of miles per gallon (95% CIs)"
+  ),
+  Vl.new()
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:y, "Miles_per_Gallon", aggregate: :mean)
+])
+```
+
+## Box plots
+
+### Box plot with min/max whiskers
+
+A vertical box plot showing median, min, and max values.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/boxplot_minmax_2D_vertical.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/penguins.json")
+|> Vl.mark(:boxplot, extent: "min-max")
+|> Vl.encode_field(:x, "Species", type: :nominal)
+|> Vl.encode_field(:color, "Species", type: :nominal, legend: nil)
+|> Vl.encode_field(:y, "Body Mass (g)", type: :quantitative, scale: [zero: false])
+```
+
+## Faceting
+
+### Trellis bar chart
+
+Trellis display is a series of graphs with the same scale and axes
+split according to some criteria, so that they are easily to compare.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/trellis_bar.html
+
+Vl.new(width: [step: 17])
+|> Vl.data_from_url("https://vega.github.io/editor/data/population.json")
+|> Vl.transform(filter: "datum.year == 2000")
+|> Vl.transform(calculate: "datum.sex == 2 ? 'Female' : 'Male'", as: "gender")
+|> Vl.mark(:bar)
+|> Vl.encode_field(:row, "gender")
+|> Vl.encode_field(:x, "age")
+|> Vl.encode_field(:y, "people", aggregate: :sum, title: "population")
+|> Vl.encode_field(:color, "gender")
+```
+
+### Trellis area chart
+
+Similar to the above, except for area charts.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/trellis_area.html
+
+Vl.new(width: 400, height: 60)
+|> Vl.data_from_url("https://vega.github.io/editor/data/stocks.csv")
+|> Vl.transform(filter: "datum.symbol !== 'GOOG'")
+|> Vl.mark(:area)
+|> Vl.encode_field(:x, "date", type: :temporal, axis: [grid: false])
+|> Vl.encode_field(:y, "price", type: :quantitative, axis: [grid: false])
+|> Vl.encode_field(:color, "symbol", type: :nominal, legend: nil)
+|> Vl.encode_field(:row, "symbol", type: :nominal, title: "Symbol")
+```
+
+### Trellis multi-level scatterplot
+
+Again, the trellis display, but this time for scatterplot
+and grouped data.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/trellis_barley.html
+
+Vl.new(name: "Trellis Barley", height: [step: 12])
+|> Vl.data_from_url("https://vega.github.io/editor/data/barley.json")
+|> Vl.mark(:point)
+|> Vl.encode_field(:facet, "site",
+  type: :ordinal,
+  columns: 2,
+  sort: [op: :median, field: "yield"]
+)
+|> Vl.encode_field(:x, "yield", aggregate: :median, type: :quantitative, scale: [zero: false])
+|> Vl.encode_field(:y, "variety", type: :ordinal, sort: "-x")
+|> Vl.encode_field(:color, "year", type: :nominal)
+```
+
+## Repeated graphics
+
+### Repeated layer
+
+A multi-layer chart composed by repeating the same specification over several fields.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/repeat_layer.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/movies.json")
+|> Vl.repeat(
+  [layer: ["US Gross", "Worldwide Gross"]],
+  Vl.new()
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "IMDB Rating", bin: true, type: :quantitative)
+  |> Vl.encode_repeat(:y, :layer,
+    aggregate: :mean,
+    type: :quantitative,
+    title: "Mean of US and Worldwide Gross"
+  )
+  |> Vl.encode(:color, datum: [repeat: :layer], type: :nominal)
+)
+```
+
+### Repeated figure
+
+A multi-view chart composed by repeating the same specification over several fields.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/docs/repeat.html#repeated-line-charts
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/weather.csv")
+|> Vl.repeat(
+  ["temp_max", "precipitation", "wind"],
+  Vl.new()
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "date", time_unit: :month)
+  |> Vl.encode_repeat(:y, :repeat, aggregate: :mean)
+  |> Vl.encode_field(:color, "location")
+)
+```
+
+### Scatterplot Matrix (SPLOM)
+
+Scatterplot matrix (SPLOM) is a series of graphics for different
+pairs of variables, it's useful to determine possible correlation
+between some variables.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/docs/repeat.html#scatterplot-matrix-splom
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/penguins.json")
+|> Vl.repeat(
+  [
+    row: [
+      "Beak Length (mm)",
+      "Beak Depth (mm)",
+      "Flipper Length (mm)",
+      "Body Mass (g)"
+    ],
+    column: [
+      "Body Mass (g)",
+      "Flipper Length (mm)",
+      "Beak Depth (mm)",
+      "Beak Length (mm)"
+    ]
+  ],
+  Vl.new(width: 150, height: 150)
+  |> Vl.mark(:point)
+  |> Vl.encode_repeat(:x, :column, type: :quantitative, scale: [zero: false])
+  |> Vl.encode_repeat(:y, :row, type: :quantitative, scale: [zero: false])
+  |> Vl.encode_field(:color, "Species", type: :nominal)
+)
+```
+
+## Layering
+
+### Layered charts with separate scales
+
+Layered charts may concern variables of different units and scales,
+in which case we can display the scales separately.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/docs/layer.html#combined-scales-and-guides
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/weather.csv")
+|> Vl.transform(filter: "datum.location == 'Seattle'")
+|> Vl.encode_field(:x, "date", time_unit: :month, axis: [format: "%b", title: nil])
+|> Vl.layers([
+  Vl.new()
+  |> Vl.mark(:area, opacity: 0.3, color: "#85C5A6")
+  |> Vl.encode_field(:y, "temp_max",
+    aggregate: :average,
+    scale: [domain: [0, 30]],
+    title: "Avg. Temperature (°C)",
+    axis: [title_color: "#85C5A6"]
+  )
+  |> Vl.encode_field(:y2, "temp_min", aggregate: :average),
+  Vl.new()
+  |> Vl.mark(:line, interpolate: :monotone, stroke: "#85A9C5")
+  |> Vl.encode_field(:y, "precipitation",
+    aggregate: :average,
+    title: "Precipitation (inches)",
+    axis: [title_color: "#85A9C5"]
+  )
+])
+|> Vl.resolve(:scale, y: :independent)
+```
+
+## Concatenation
+
+### Arbitrary charts
+
+You can concatenate arbitrary charts, but it's most useful if they concern the same data.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/vconcat_weather.html
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/weather.csv")
+|> Vl.transform(filter: "datum.location == 'Seattle'")
+|> Vl.concat(
+  [
+    Vl.new()
+    |> Vl.mark(:bar)
+    |> Vl.encode_field(:x, "date", time_unit: :month, type: :ordinal)
+    |> Vl.encode_field(:y, "precipitation", aggregate: :mean),
+    Vl.new()
+    |> Vl.mark(:point)
+    |> Vl.encode_field(:x, "temp_min", bin: true)
+    |> Vl.encode_field(:y, "temp_max", bin: true)
+    |> Vl.encode(:size, aggregate: :count)
+  ],
+  :vertical
+)
+```
+
+## Maps (geographic displays)
+
+### Projection
+
+A cartographic projection allows for mapping longitude and latitude
+pairs to x, y coordinates.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/docs/projection.html
+
+Vl.new(width: 500, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/airports.csv")
+|> Vl.projection(type: :albers_usa)
+|> Vl.mark(:circle)
+|> Vl.encode_field(:longitude, "longitude", type: :quantitative)
+|> Vl.encode_field(:latitude, "latitude", type: :quantitative)
+|> Vl.encode(:size, value: 10)
+|> Vl.config(view: [stroke: nil])
+```
+
+### Choropleth map
+
+A Choropleth map is a map composed of colored polygons,
+used to represent spatial variations of a quantity.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/geo_choropleth.html
+
+Vl.new(width: 500, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/us-10m.json",
+  format: [type: :topojson, feature: "counties"]
+)
+|> Vl.transform(
+  lookup: "id",
+  from: [
+    data: [url: "https://vega.github.io/editor/data/unemployment.tsv"],
+    key: "id",
+    fields: ["rate"]
+  ]
+)
+|> Vl.projection(type: :albers_usa)
+|> Vl.mark(:geoshape)
+|> Vl.encode_field(:color, "rate", type: :quantitative)
+|> Vl.config(view: [stroke: nil])
+```
+
+## Interactive graphics
+
+### Overview and detail
+
+Two charts - one for selecting the range of interest, and the other
+for displaying that specific range.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/interactive_overview_detail.html
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/sp500.csv")
+|> Vl.concat(
+  [
+    Vl.new(width: 480)
+    |> Vl.mark(:area)
+    |> Vl.encode_field(:x, "date",
+      type: :temporal,
+      scale: [domain: [param: "brush"]],
+      axis: [title: nil]
+    )
+    |> Vl.encode_field(:y, "price", type: :quantitative),
+    Vl.new(width: 480, height: 60)
+    |> Vl.param("brush", select: [type: :interval, encodings: [:x]])
+    |> Vl.mark(:area)
+    |> Vl.encode_field(:x, "date", type: :temporal)
+    |> Vl.encode_field(:y, "price", type: :quantitative, axis: [tick_count: 3, grid: false])
+  ],
+  :vertical
+)
+```
+
+### Scatterplot with external links and tooltips
+
+A scatterplot with each point having a tooltip and linking to some page.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/point_href.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.transform(
+  calculate: "'https://www.google.com/search?q=' + datum.Name",
+  as: "url"
+)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "Horsepower", type: :quantitative)
+|> Vl.encode_field(:y, "Miles_per_Gallon", type: :quantitative)
+|> Vl.encode_field(:color, "Origin", type: :nominal)
+|> Vl.encode_field(:tooltip, "Name", type: :nominal)
+|> Vl.encode_field(:href, "url", type: :nominal)
+```
+
+### Regular brush
+
+Highlighting points by selecting and dragging a rectangular area.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/interactive_brush.html
+
+Vl.new(width: 400, height: 300)
+|> Vl.data_from_url("https://vega.github.io/editor/data/cars.json")
+|> Vl.param("brush", select: :interval)
+|> Vl.mark(:point)
+|> Vl.encode_field(:x, "Horsepower", type: :quantitative)
+|> Vl.encode_field(:y, "Miles_per_Gallon", type: :quantitative)
+|> Vl.encode(:color,
+  condition: [param: "brush", field: "Cylinders", type: :ordinal],
+  value: :gray
+)
+```
+
+### Interactive mean
+
+A brush selection parameterizing the range of data points to calculate mean over.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/selection_layer_bar_month.html
+
+Vl.new()
+|> Vl.data_from_url("https://vega.github.io/editor/data/weather.csv")
+|> Vl.transform(filter: "datum.location == 'Seattle'")
+|> Vl.layers([
+  Vl.new()
+  |> Vl.param("brush", select: [type: :interval, encodings: ["x"]])
+  |> Vl.mark(:bar)
+  |> Vl.encode_field(:x, "date", time_unit: :month, type: :ordinal)
+  |> Vl.encode_field(:y, "precipitation", aggregate: :mean)
+  |> Vl.encode(:opacity, value: 0.7, condition: [param: "brush", value: 1]),
+  Vl.new()
+  |> Vl.transform(filter: [param: "brush"])
+  |> Vl.mark(:rule)
+  |> Vl.encode_field(:y, "precipitation", aggregate: :mean)
+  |> Vl.encode(:color, value: :firebrick)
+  |> Vl.encode(:size, value: 3)
+])
+```
+
+### Map connections
+
+An interactive visualization of connections between locations on a map.
+
+```elixir
+# Source: https://vega.github.io/vega-lite/examples/airport_connections.html
+
+Vl.new(width: 800, height: 500)
+|> Vl.projection(type: :albers_usa)
+|> Vl.layers([
+  # Map with regions
+  Vl.new()
+  |> Vl.data_from_url("https://vega.github.io/editor/data/us-10m.json",
+    format: [type: :topojson, feature: "states"]
+  )
+  |> Vl.mark(:geoshape, fill: "#ddd", stroke: "#fff", stroke_width: 1),
+  # Connection lines
+  Vl.new()
+  |> Vl.data_from_url("https://vega.github.io/editor/data/flights-airport.csv")
+  |> Vl.mark(:rule, color: "#000", opacity: 0.35)
+  |> Vl.transform(filter: [param: "org", empty: false])
+  |> Vl.transform(
+    lookup: "origin",
+    from: [
+      data: [url: "https://vega.github.io/editor/data/airports.csv"],
+      key: "iata",
+      fields: ["latitude", "longitude"]
+    ]
+  )
+  |> Vl.transform(
+    lookup: "destination",
+    from: [
+      data: [url: "https://vega.github.io/editor/data/airports.csv"],
+      key: "iata",
+      fields: ["latitude", "longitude"]
+    ],
+    as: ["latitude2", "longitude2"]
+  )
+  |> Vl.encode_field(:latitude, "latitude")
+  |> Vl.encode_field(:longitude, "longitude")
+  |> Vl.encode_field(:latitude2, "latitude2")
+  |> Vl.encode_field(:longitude2, "longitude2"),
+  # Points
+  Vl.new()
+  |> Vl.data_from_url("https://vega.github.io/editor/data/flights-airport.csv")
+  |> Vl.transform(aggregate: [[op: :count, as: "routes"]], groupby: ["origin"])
+  |> Vl.transform(
+    lookup: "origin",
+    from: [
+      data: [url: "https://vega.github.io/editor/data/airports.csv"],
+      key: "iata",
+      fields: ["state", "latitude", "longitude"]
+    ]
+  )
+  |> Vl.transform(filter: "datum.state !== 'PR' && datum.state !== 'VI'")
+  |> Vl.param("org", select: [type: :point, on: :mouseover, nearest: true, fields: ["origin"]])
+  |> Vl.mark(:circle)
+  |> Vl.encode_field(:latitude, "latitude")
+  |> Vl.encode_field(:longitude, "longitude")
+  |> Vl.encode_field(:size, "routes", type: :quantitative, scale: [max_range: 1000], legend: nil)
+  |> Vl.encode_field(:order, "routes", sort: :descending)
+])
+|> Vl.config(view: [stroke: nil])
+```
