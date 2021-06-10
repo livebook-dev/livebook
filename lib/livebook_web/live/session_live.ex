@@ -333,6 +333,10 @@ defmodule LivebookWeb.SessionLive do
           evaluation_digest: encode_digest(info.evaluation_digest)
         }
 
+        # From this point on we don't need cell source in the LV,
+        # so we are going to drop it altogether
+        socket = remove_cell_source(socket, cell_id)
+
         {:reply, payload, socket}
 
       :error ->
@@ -761,6 +765,12 @@ defmodule LivebookWeb.SessionLive do
   defp encode_digest(nil), do: nil
   defp encode_digest(digest), do: Base.encode64(digest)
 
+  defp remove_cell_source(socket, cell_id) do
+    update_in(socket.private.data.notebook, fn notebook ->
+      Notebook.update_cell(notebook, cell_id, &%{&1 | source: nil})
+    end)
+  end
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -833,6 +843,8 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :elixir,
+      # Note: we need this during initial loading,
+      # at which point we still have the source
       empty?: cell.source == "",
       outputs: cell.outputs,
       validity_status: info.validity_status,
@@ -844,6 +856,8 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
+      # Note: we need this during initial loading,
+      # at which point we still have the source
       empty?: cell.source == ""
     }
   end
