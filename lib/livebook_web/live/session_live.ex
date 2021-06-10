@@ -547,7 +547,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("fork_session", %{}, socket) do
-    notebook = Notebook.forked(socket.private.data.notebook)
+    # Fetch the data, as we don't keep cells' source in the state
+    data = Session.get_data(socket.assigns.session_id)
+    notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
     create_session(socket, notebook: notebook, copy_images_from: images_dir)
   end
