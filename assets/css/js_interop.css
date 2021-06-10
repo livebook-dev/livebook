@@ -60,6 +60,10 @@ solely client-side operations.
   @apply opacity-100 pointer-events-auto;
 }
 
+[data-element="cell"] [data-element="change-indicator"]:not([data-js-shown]) {
+  @apply invisible;
+}
+
 [data-element="sections-list-item"][data-js-is-viewed] {
   @apply text-gray-900;
 }

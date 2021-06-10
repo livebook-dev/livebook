@@ -55,7 +55,6 @@ defmodule Livebook.Session.Data do
           revision: cell_revision(),
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
-          digest: String.t(),
           evaluation_digest: String.t() | nil
         }
 
@@ -84,6 +83,7 @@ defmodule Livebook.Session.Data do
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
           | {:move_section, pid(), Section.id(), offset :: integer()}
           | {:queue_cell_evaluation, pid(), Cell.id()}
+          | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), term()}
           | {:reflect_evaluation_failure, pid()}
@@ -136,7 +136,7 @@ defmodule Livebook.Session.Data do
     for section <- notebook.sections,
         cell <- section.cells,
         into: %{},
-        do: {cell.id, new_cell_info(cell, %{})}
+        do: {cell.id, new_cell_info(%{})}
   end
 
   @doc """
@@ -261,6 +261,19 @@ defmodule Livebook.Session.Data do
       |> queue_cell_evaluation(cell, section)
       |> maybe_start_runtime(data)
       |> maybe_evaluate_queued()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:evaluation_started, _client_pid, id, evaluation_digest}) do
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         %Cell.Elixir{} <- cell,
+         :evaluating <- data.cell_infos[cell.id].evaluation_status do
+      data
+      |> with_actions()
+      |> update_cell_info!(cell.id, &%{&1 | evaluation_digest: evaluation_digest})
       |> wrap_ok()
     else
       _ -> :error
@@ -470,7 +483,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(
       notebook: Notebook.insert_cell(data.notebook, section_id, index, cell),
-      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(cell, data.clients_map))
+      cell_infos: Map.put(data.cell_infos, cell.id, new_cell_info(data.clients_map))
     )
   end
 
@@ -649,7 +662,7 @@ defmodule Livebook.Session.Data do
             data_actions
             |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
             |> update_cell_info!(id, fn info ->
-              %{info | evaluation_status: :evaluating, evaluation_digest: info.digest}
+              %{info | evaluation_status: :evaluating, evaluation_digest: nil}
             end)
             |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
             |> add_action({:start_evaluation, cell, section})
@@ -780,16 +793,13 @@ defmodule Livebook.Session.Data do
 
     new_source = JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
 
-    new_digest = compute_digest(new_source)
-
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
     |> update_cell_info!(cell.id, fn info ->
       info = %{
         info
         | deltas: info.deltas ++ [transformed_new_delta],
-          revision: info.revision + 1,
-          digest: new_digest
+          revision: info.revision + 1
       }
 
       # Before receiving acknowledgement, the client receives all the other deltas,
@@ -856,7 +866,7 @@ defmodule Livebook.Session.Data do
     }
   end
 
-  defp new_cell_info(cell, clients_map) do
+  defp new_cell_info(clients_map) do
     client_pids = Map.keys(clients_map)
 
     %{
@@ -865,11 +875,6 @@ defmodule Livebook.Session.Data do
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      digest:
-        case Map.fetch(cell, :source) do
-          {:ok, source} -> compute_digest(source)
-          :error -> nil
-        end,
       evaluation_digest: nil
     }
   end
@@ -923,8 +928,6 @@ defmodule Livebook.Session.Data do
   defp set_dirty(data_actions, dirty \\ true) do
     set!(data_actions, dirty: dirty)
   end
-
-  defp compute_digest(source), do: :erlang.md5(source)
 
   @doc """
   Finds the cell that's currently being evaluated in the given section.

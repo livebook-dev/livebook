@@ -1,3 +1,6 @@
+import md5 from "crypto-js/md5";
+import encBase64 from "crypto-js/enc-base64";
+
 export function isMacOS() {
   return /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 }
@@ -72,4 +75,12 @@ export function randomId() {
   crypto.getRandomValues(array);
   const byteString = String.fromCharCode(...array);
   return btoa(byteString);
+}
+
+/**
+ * Calculates MD5 of the given string and returns
+ * the base64 encoded binary.
+ */
+export function md5Base64(string) {
+  return md5(string).toString(encBase64);
 }

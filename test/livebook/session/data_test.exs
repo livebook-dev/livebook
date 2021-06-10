@@ -851,6 +851,29 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :evaluation_started" do
+    test "updates cell evaluation digest" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:evaluation_started, self(), "c1", "digest"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{
+                    evaluation_digest: "digest"
+                  }
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :add_cell_evaluation_output" do
     test "updates the cell outputs" do
       data =
@@ -988,33 +1011,6 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c1" => %{validity_status: :evaluated, evaluation_status: :ready}},
-                section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "updates cell evaluation digest" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cell_evaluation, self(), "c1"}
-        ])
-
-      %{cell_infos: %{"c1" => %{digest: digest}}} = data
-
-      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{
-                    validity_status: :evaluated,
-                    evaluation_status: :ready,
-                    evaluation_digest: ^digest
-                  }
-                },
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1500,25 +1496,6 @@ defmodule Livebook.Session.DataTest do
                 },
                 cell_infos: %{"c1" => %{revision: 1}}
               }, _actions} = Data.apply_operation(data, operation)
-    end
-
-    test "updates cell digest based on the new content" do
-      data =
-        data_after_operations!([
-          {:client_join, self(), User.new()},
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
-        ])
-
-      %{cell_infos: %{"c1" => %{digest: digest}}} = data
-
-      delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, self(), "c1", delta, 1}
-
-      assert {:ok, %{cell_infos: %{"c1" => %{digest: new_digest}}}, _actions} =
-               Data.apply_operation(data, operation)
-
-      assert digest != new_digest
     end
 
     test "transforms the delta if the revision is not the most recent" do

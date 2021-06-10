@@ -49,6 +49,13 @@ class LiveEditor {
   }
 
   /**
+   * Returns current editor content.
+   */
+  getSource() {
+    return this.source;
+  }
+
+  /**
    * Registers a callback called with a new cell content whenever it changes.
    */
   onChange(callback) {

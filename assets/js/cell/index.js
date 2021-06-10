@@ -2,7 +2,7 @@ import { getAttributeOrThrow } from "../lib/attribute";
 import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
-import { smoothlyScrollToElement } from "../lib/utils";
+import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
 
 /**
@@ -24,11 +24,12 @@ const Cell = {
       insertMode: false,
       // For text cells (markdown or elixir)
       liveEditor: null,
+      evaluationDigest: null,
     };
 
     if (["markdown", "elixir"].includes(this.props.type)) {
       this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
-        const { source, revision } = payload;
+        const { source, revision, evaluation_digest } = payload;
 
         const editorContainer = this.el.querySelector(
           `[data-element="editor-container"]`
@@ -48,7 +49,39 @@ const Cell = {
           revision
         );
 
-        // Setup markdown rendering.
+        // Setup change indicator
+        if (this.props.type === "elixir") {
+          this.state.evaluationDigest = evaluation_digest;
+
+          const updateChangeIndicator = () => {
+            const indicator = this.el.querySelector(
+              `[data-element="change-indicator"]`
+            );
+
+            if (indicator) {
+              const source = this.state.liveEditor.getSource();
+              const digest = md5Base64(source);
+              const changed = this.state.evaluationDigest !== digest;
+              indicator.toggleAttribute("data-js-shown", changed);
+            }
+          };
+
+          updateChangeIndicator();
+
+          this.handleEvent(
+            `evaluation_started:${this.props.cellId}`,
+            ({ evaluation_digest }) => {
+              this.state.evaluationDigest = evaluation_digest;
+              updateChangeIndicator();
+            }
+          );
+
+          this.state.liveEditor.onChange((newSource) => {
+            updateChangeIndicator();
+          });
+        }
+
+        // Setup markdown rendering
         if (this.props.type === "markdown") {
           const markdownContainer = this.el.querySelector(
             `[data-element="markdown-container"]`
