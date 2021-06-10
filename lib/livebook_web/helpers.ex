@@ -116,7 +116,7 @@ defmodule LivebookWeb.Helpers do
   end
 
   @doc """
-  Renders a lits of radio input options with the given one selected.
+  Renders a list of radio input options with the given one selected.
   """
   def render_radios(name, options, selected) do
     assigns = %{name: name, options: options, selected: selected}
