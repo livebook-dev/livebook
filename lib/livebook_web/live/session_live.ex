@@ -325,9 +325,12 @@ defmodule LivebookWeb.SessionLive do
 
     case Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       {:ok, cell, _section} ->
+        info = data.cell_infos[cell.id]
+
         payload = %{
           source: cell.source,
-          revision: data.cell_infos[cell.id].revision
+          revision: info.revision,
+          evaluation_digest: encode_digest(info.evaluation_digest)
         }
 
         {:reply, payload, socket}
@@ -701,6 +704,16 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:evaluation_started, _client_pid, cell_id, evaluation_digest}
+       ) do
+    push_event(socket, "evaluation_started:#{cell_id}", %{
+      evaluation_digest: encode_digest(evaluation_digest)
+    })
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
@@ -744,6 +757,9 @@ defmodule LivebookWeb.SessionLive do
 
   defp ensure_integer(n) when is_integer(n), do: n
   defp ensure_integer(n) when is_binary(n), do: String.to_integer(n)
+
+  defp encode_digest(nil), do: nil
+  defp encode_digest(digest), do: Base.encode64(digest)
 
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
@@ -820,8 +836,7 @@ defmodule LivebookWeb.SessionLive do
       empty?: cell.source == "",
       outputs: cell.outputs,
       validity_status: info.validity_status,
-      evaluation_status: info.evaluation_status,
-      changed?: info.evaluation_digest != nil and info.digest != info.evaluation_digest
+      evaluation_status: info.evaluation_status
     }
   end
 

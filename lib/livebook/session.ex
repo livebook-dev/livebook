@@ -687,7 +687,9 @@ defmodule Livebook.Session do
 
     Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref, opts)
 
-    state
+    evaluation_digest = :erlang.md5(cell.source)
+
+    handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
   end
 
   defp handle_action(state, {:stop_evaluation, _section}) do

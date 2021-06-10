@@ -222,7 +222,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= render_cell_status(@cell_view.validity_status, @cell_view.evaluation_status, @cell_view.changed?) %>
+          <%= render_cell_status(@cell_view.validity_status, @cell_view.evaluation_status) %>
         </div>
       <% end %>
     </div>
@@ -363,43 +363,48 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell_status(validity_status, evaluation_status, changed)
+  defp render_cell_status(validity_status, evaluation_status)
 
-  defp render_cell_status(_, :evaluating, changed) do
-    render_status_indicator("Evaluating", "bg-blue-500", "bg-blue-400", changed)
+  defp render_cell_status(_, :evaluating) do
+    render_status_indicator("Evaluating", "bg-blue-500",
+      animated_circle_class: "bg-blue-400",
+      change_indicator: true
+    )
   end
 
-  defp render_cell_status(_, :queued, _) do
-    render_status_indicator("Queued", "bg-gray-500", "bg-gray-400", false)
+  defp render_cell_status(_, :queued) do
+    render_status_indicator("Queued", "bg-gray-500", animated_circle_class: "bg-gray-400")
   end
 
-  defp render_cell_status(:evaluated, _, changed) do
-    render_status_indicator("Evaluated", "bg-green-400", nil, changed)
+  defp render_cell_status(:evaluated, _) do
+    render_status_indicator("Evaluated", "bg-green-400", change_indicator: true)
   end
 
-  defp render_cell_status(:stale, _, changed) do
-    render_status_indicator("Stale", "bg-yellow-200", nil, changed)
+  defp render_cell_status(:stale, _) do
+    render_status_indicator("Stale", "bg-yellow-200", change_indicator: true)
   end
 
-  defp render_cell_status(:aborted, _, _) do
-    render_status_indicator("Aborted", "bg-red-400", nil, false)
+  defp render_cell_status(:aborted, _) do
+    render_status_indicator("Aborted", "bg-red-400")
   end
 
-  defp render_cell_status(_, _, _), do: nil
+  defp render_cell_status(_, _), do: nil
 
-  defp render_status_indicator(text, circle_class, animated_circle_class, show_changed) do
+  defp render_status_indicator(text, circle_class, opts \\ []) do
     assigns = %{
       text: text,
       circle_class: circle_class,
-      animated_circle_class: animated_circle_class,
-      show_changed: show_changed
+      animated_circle_class: Keyword.get(opts, :animated_circle_class),
+      change_indicator: Keyword.get(opts, :change_indicator, false)
     }
 
     ~L"""
     <div class="flex items-center space-x-1">
       <div class="flex text-xs text-gray-400">
         <%= @text %>
-        <span class="<%= unless(@show_changed, do: "invisible") %>">*</span>
+        <%= if @change_indicator do %>
+          <span data-element="change-indicator">*</span>
+        <% end %>
       </div>
       <span class="flex relative h-3 w-3">
         <%= if @animated_circle_class do %>
