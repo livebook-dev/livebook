@@ -18,8 +18,13 @@ defmodule Livebook.Evaluator do
   @type t :: GenServer.server()
 
   @type state :: %{
+          formatter: module(),
           io_proxy: pid(),
-          contexts: %{ref() => context()}
+          contexts: %{ref() => context()},
+          # We track the widgets rendered by every evaluation,
+          # so that we can kill those no longer needed
+          widget_pids: %{ref() => MapSet.t(pid())},
+          widget_counts: %{pid() => non_neg_integer()}
         }
 
   @typedoc """
@@ -114,7 +119,9 @@ defmodule Livebook.Evaluator do
     %{
       formatter: formatter,
       io_proxy: io_proxy,
-      contexts: %{}
+      contexts: %{},
+      widget_pids: %{},
+      widget_counts: %{}
     }
   end
 
@@ -143,18 +150,27 @@ defmodule Livebook.Evaluator do
           {context, response}
       end
 
+    state = put_in(state.contexts[ref], result_context)
+
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_buffers(state.io_proxy)
 
-    send_evaluation_response(send_to, ref, response, state.formatter)
+    output = state.formatter.format_response(response)
+    send(send_to, {:evaluation_response, ref, output})
 
-    new_state = put_in(state.contexts[ref], result_context)
-    {:noreply, new_state}
+    widget_pids = Evaluator.IOProxy.flush_widgets(state.io_proxy)
+    state = track_evaluation_widgets(state, ref, widget_pids, output)
+
+    {:noreply, state}
   end
 
   def handle_cast({:forget_evaluation, ref}, state) do
-    new_state = %{state | contexts: Map.delete(state.contexts, ref)}
-    {:noreply, new_state}
+    state =
+      state
+      |> Map.update!(:contexts, &Map.delete(&1, ref))
+      |> garbage_collect_widgets(ref, [])
+
+    {:noreply, state}
   end
 
   def handle_cast({:request_completion_items, send_to, ref, hint, evaluation_ref}, state) do
@@ -163,11 +179,6 @@ defmodule Livebook.Evaluator do
     send(send_to, {:completion_response, ref, items})
 
     {:noreply, state}
-  end
-
-  defp send_evaluation_response(send_to, ref, evaluation_response, formatter) do
-    response = formatter.format_response(evaluation_response)
-    send(send_to, {:evaluation_response, ref, response})
   end
 
   defp eval(code, binding, env) do
@@ -210,4 +221,54 @@ defmodule Livebook.Evaluator do
     |> Enum.reverse()
     |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
   end
+
+  # Widgets
+
+  defp track_evaluation_widgets(state, ref, widget_pids, output) do
+    widget_pids =
+      case widget_pid_from_output(output) do
+        {:ok, pid} -> MapSet.put(widget_pids, pid)
+        :error -> widget_pids
+      end
+
+    garbage_collect_widgets(state, ref, widget_pids)
+  end
+
+  defp garbage_collect_widgets(state, ref, widget_pids) do
+    prev_widget_pids = state.widget_pids[ref] || []
+
+    state = put_in(state.widget_pids[ref], widget_pids)
+
+    update_in(state.widget_counts, fn counts ->
+      counts =
+        Enum.reduce(prev_widget_pids, counts, fn pid, counts ->
+          Map.update!(counts, pid, &(&1 - 1))
+        end)
+
+      counts =
+        Enum.reduce(widget_pids, counts, fn pid, counts ->
+          Map.update(counts, pid, 1, &(&1 + 1))
+        end)
+
+      {to_remove, to_keep} = Enum.split_with(counts, fn {_pid, count} -> count == 0 end)
+
+      for {pid, 0} <- to_remove do
+        Process.exit(pid, :shutdown)
+      end
+
+      Map.new(to_keep)
+    end)
+  end
+
+  @doc """
+  Checks the given output value for widget pid to track.
+  """
+  @spec widget_pid_from_output(term()) :: {:ok, pid()} | :error
+  def widget_pid_from_output(output)
+
+  def widget_pid_from_output({_type, pid}) when is_pid(pid) do
+    {:ok, pid}
+  end
+
+  def widget_pid_from_output(_output), do: :error
 end

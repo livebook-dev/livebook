@@ -146,6 +146,36 @@ defmodule Livebook.EvaluatorTest do
 
       assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"}}
     end
+
+    test "kills widgets that that no evaluation points to", %{evaluator: evaluator} do
+      # Evaluate the code twice, which spawns two widget processes
+      # First of them should be eventually killed
+
+      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}}
+
+      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2}}
+
+      ref = Process.monitor(widget_pid1)
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+
+      assert Process.alive?(widget_pid2)
+    end
+
+    test "does not kill a widget if another evaluation points to it", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}}
+
+      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_2)
+      assert_receive {:evaluation_response, :code_2, {:ok, widget_pid2}}
+
+      ref = Process.monitor(widget_pid1)
+      refute_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+
+      assert Process.alive?(widget_pid1)
+      assert Process.alive?(widget_pid2)
+    end
   end
 
   describe "forget_evaluation/2" do
@@ -163,6 +193,16 @@ defmodule Livebook.EvaluatorTest do
                          _stacktrace}}
       end)
     end
+
+    test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}}
+
+      Evaluator.forget_evaluation(evaluator, :code_1)
+
+      ref = Process.monitor(widget_pid1)
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+    end
   end
 
   describe "request_completion_items/5" do
@@ -172,12 +212,12 @@ defmodule Livebook.EvaluatorTest do
     end
 
     test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
-      code1 = """
+      code = """
       alias IO.ANSI
       number = 10
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code1, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
       assert_receive {:evaluation_response, :code_1, _}
 
       Evaluator.request_completion_items(evaluator, self(), :comp_ref, "num", :code_1)
@@ -196,5 +236,24 @@ defmodule Livebook.EvaluatorTest do
   defp ignore_warnings(fun) do
     ExUnit.CaptureIO.capture_io(:stderr, fun)
     :ok
+  end
+
+  # Returns a code that spawns and renders a widget process
+  # and returns its pid from the evaluation
+  defp spawn_widget_code() do
+    """
+    widget_pid = spawn(fn ->
+      Process.sleep(:infinity)
+    end)
+
+    ref = make_ref()
+    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_put_output, {:vega_lite_dynamic, widget_pid}}})
+
+    receive do
+      {:io_reply, ^ref, :ok} -> :ok
+    end
+
+    widget_pid
+    """
   end
 end
