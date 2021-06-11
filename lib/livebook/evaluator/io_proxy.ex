@@ -63,11 +63,27 @@ defmodule Livebook.Evaluator.IOProxy do
     GenServer.cast(pid, :clear_input_buffers)
   end
 
+  @doc """
+  Returns the accumulated widget pids and clears the accumulator.
+  """
+  @spec flush_widgets(pid()) :: MapSet.t(pid())
+  def flush_widgets(pid) do
+    GenServer.call(pid, :flush_widgets)
+  end
+
   ## Callbacks
 
   @impl true
   def init(_opts) do
-    {:ok, %{encoding: :unicode, target: nil, ref: nil, buffer: [], input_buffers: %{}}}
+    {:ok,
+     %{
+       encoding: :unicode,
+       target: nil,
+       ref: nil,
+       buffer: [],
+       input_buffers: %{},
+       widget_pids: MapSet.new()
+     }}
   end
 
   @impl true
@@ -82,6 +98,10 @@ defmodule Livebook.Evaluator.IOProxy do
   @impl true
   def handle_call(:flush, _from, state) do
     {:reply, :ok, flush_buffer(state)}
+  end
+
+  def handle_call(:flush_widgets, _from, state) do
+    {:reply, state.widget_pids, %{state | widget_pids: MapSet.new()}}
   end
 
   @impl true
@@ -169,6 +189,13 @@ defmodule Livebook.Evaluator.IOProxy do
   defp io_request({:livebook_put_output, output}, state) do
     state = flush_buffer(state)
     send(state.target, {:evaluation_output, state.ref, output})
+
+    state =
+      case Evaluator.widget_pid_from_output(output) do
+        {:ok, pid} -> update_in(state.widget_pids, &MapSet.put(&1, pid))
+        :error -> state
+      end
+
     {:ok, state}
   end
 
@@ -266,7 +293,7 @@ defmodule Livebook.Evaluator.IOProxy do
     send(from, {:io_reply, reply_as, reply})
   end
 
-  def flush_buffer(state) do
+  defp flush_buffer(state) do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.target != nil and string != "" do

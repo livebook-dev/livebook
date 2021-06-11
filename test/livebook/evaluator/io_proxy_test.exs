@@ -104,11 +104,21 @@ defmodule Livebook.Evaluator.IOProxyTest do
   end
 
   test "supports direct livebook output forwarding", %{io: io} do
-    ref = make_ref()
-    send(io, {:io_request, self(), ref, {:livebook_put_output, {:text, "[1, 2, 3]"}}})
-    assert_receive {:io_reply, ^ref, :ok}
+    put_livebook_output(io, {:text, "[1, 2, 3]"})
 
     assert_received {:evaluation_output, :ref, {:text, "[1, 2, 3]"}}
+  end
+
+  test "flush_widgets/1 returns new widget pids", %{io: io} do
+    widget1_pid = IEx.Helpers.pid(0, 0, 0)
+    widget2_pid = IEx.Helpers.pid(0, 0, 1)
+
+    put_livebook_output(io, {:vega_lite_dynamic, widget1_pid})
+    put_livebook_output(io, {:vega_lite_dynamic, widget2_pid})
+    put_livebook_output(io, {:vega_lite_dynamic, widget1_pid})
+
+    assert IOProxy.flush_widgets(io) == MapSet.new([widget1_pid, widget2_pid])
+    assert IOProxy.flush_widgets(io) == MapSet.new()
   end
 
   # Helpers
@@ -121,5 +131,11 @@ defmodule Livebook.Evaluator.IOProxyTest do
         send(reply_to, {:evaluation_input_reply, reply})
         reply_to_input_request(ref, prompt, reply, times - 1)
     end
+  end
+
+  defp put_livebook_output(io, output) do
+    ref = make_ref()
+    send(io, {:io_request, self(), ref, {:livebook_put_output, output}})
+    assert_receive {:io_reply, ^ref, :ok}
   end
 end
