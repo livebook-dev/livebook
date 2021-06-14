@@ -36,7 +36,9 @@ automatically starts each notebook as a remote node.
 In practice, you may want to start an existing Elixir system,
 such as by running the following in your production app:
 
-    elixir --sname my_app -S mix TASK
+```
+elixir --sname my_app -S mix TASK
+```
 
 Or by connecting to a production assembled via
 [`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html).
@@ -89,10 +91,10 @@ remotely, but note that we still get the standard output back.
 [LiveDashboard](https://github.com/phoenixframework/phoenix_live_dashboard)
 is a great tool for getting information and metrics about a running system
 and you can embed it into your Phoenix application very easily. In fact
-even Livebook does that, [check this out](/dashboard).
+even Livebook does that!
 
-In the upper right corner you can select the desired node,
-but at this point you won't see the remote node we connected to listed.
+To leverage that, we first need to ensure the remote node is visible
+to the Livebook application, but that may not be the case at this point!
 
 **Why?**
 
@@ -133,8 +135,9 @@ Node.spawn(livebook_app_node, fn ->
 end)
 ```
 
-If the connection was successfull, you should now see the remote node
-listed in [the dashboard node dropdown](/dashboard).
+Now go to [the dashboard](/dashboard) and check out the select
+in the upper right corner. If the connection was successfull, you
+should be able to pick the desired node and see its details.
 
 ## Inspecting processes
 
