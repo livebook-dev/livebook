@@ -128,11 +128,8 @@ Let's put this together!
 ```elixir
 Node.spawn(livebook_app_node, fn ->
   # This code is evaluated in the Livebook application node
-
   Node.set_cookie(node, cookie)
   Node.connect(node)
-
-  IO.inspect(Node.list())
 end)
 ```
 
