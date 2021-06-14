@@ -75,8 +75,8 @@ is a great tool for getting information and metrics about a running system
 and you can embed it into your Phoenix application very easily. In fact
 even Livebook does that, [check this out](/dashboard).
 
-In the upper right corner you can select the interesting node,
-but at this point you won't see our remote node there!
+In the upper right corner you can select the desired node,
+but at this point you won't see the remote node we connected to listed.
 
 **Why?**
 
@@ -121,7 +121,7 @@ end)
 ```
 
 If the connection was successfull, you should now see the remote node
-listed in [the dashboard](/dashboard).
+listed in [the dashboard node dropdown](/dashboard).
 
 ## Inspecting processes
 
