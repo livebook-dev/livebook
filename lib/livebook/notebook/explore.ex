@@ -93,6 +93,11 @@ defmodule Livebook.Notebook.Explore do
     image_url: "/images/vega_lite.png"
   )
 
+  defnotebook(:vm_introspection,
+    description: "Extract and visualize information about a remote running node.",
+    image_url: "/images/vm_introspection.png"
+  )
+
   @type notebook_info :: %{
           slug: String.t(),
           livemd: String.t(),
@@ -113,7 +118,8 @@ defmodule Livebook.Notebook.Explore do
       @intro_to_livebook,
       @distributed_portals_with_elixir,
       @elixir_and_livebook,
-      @intro_to_vega_lite
+      @intro_to_vega_lite,
+      @vm_introspection
       # @intro_to_nx, @intro_to_axon,
     ]
   end
