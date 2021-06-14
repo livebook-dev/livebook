@@ -36,7 +36,7 @@ automatically starts each notebook as a remote node.
 In practice, you may want to start an existing Elixir system,
 such as by running the following in your production app:
 
-    elixir --sname my_app -S mix run
+    elixir --sname my_app -S mix TASK
 
 Or by connecting to a production assembled via
 [`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html).
