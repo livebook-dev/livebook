@@ -29,14 +29,20 @@ injecting Livebook there, because we may not want to run `Mix.install/1`
 inside it. This will also give you a better idea of how you can
 inspect a remote node in general.
 
-The first thing we need is an actually running node,
-if you don't have one at hand, you can start one like this:
+The first thing we need is a separate Elixir node. For this example,
+you can do so by opening up a new notebook, since Livebook
+automatically starts each notebook as a remote node.
 
-`iex --sname cat --cookie meow`
+In practice, you may want to start an existing Elixir system,
+such as by running the following in your production app:
 
-Alternatively you can open up an empty notebook or use
-a production node run from an Elixir release.
-In any case, you can find the node name and cookie like this:
+    elixir --sname my_app -S mix run
+
+Or by connecting to a production assembled via
+[`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html).
+
+Once you start a new notebook, you can find the node name
+and cookie by running this:
 
 <!-- livebook:{"force_markdown":true} -->
 
