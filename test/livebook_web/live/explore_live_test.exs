@@ -16,4 +16,13 @@ defmodule LivebookWeb.ExploreLiveTest do
     {:ok, view, _} = live(conn, to)
     assert render(view) =~ "Welcome to Livebook"
   end
+
+  test "link to a new notebook creates an empty session", %{conn: conn} do
+    {:ok, view, _} =
+      conn
+      |> live("/explore/notebooks/new")
+      |> follow_redirect(conn)
+
+    assert render(view) =~ "Untitled notebook"
+  end
 end

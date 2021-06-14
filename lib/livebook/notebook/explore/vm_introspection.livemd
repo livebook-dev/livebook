@@ -30,7 +30,7 @@ inside it. This will also give you a better idea of how you can
 inspect a remote node in general.
 
 The first thing we need is a separate Elixir node. For this example,
-you can do so by opening up a new notebook, since Livebook
+you can do so by opening up [a new notebook](/explore/notebooks/new), since Livebook
 automatically starts each notebook as a remote node.
 
 In practice, you may want to start an existing Elixir system,
