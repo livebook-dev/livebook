@@ -1,23 +1,11 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
-import ElixirLanguageConfiguration from "./elixir/language_configuration";
-import ElixirMonarchLanguage from "./elixir/monarch_language";
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
 import theme from "./theme";
-
-// Register the Elixir language and add relevant configuration
-monaco.languages.register({ id: "elixir" });
-
-monaco.languages.setLanguageConfiguration(
-  "elixir",
-  ElixirLanguageConfiguration
-);
 
 monaco.languages.registerOnTypeFormattingEditProvider(
   "elixir",
   ElixirOnTypeFormattingEditProvider
 );
-
-monaco.languages.setMonarchTokensProvider("elixir", ElixirMonarchLanguage);
 
 // Define custom theme
 monaco.editor.defineTheme("custom", theme);
