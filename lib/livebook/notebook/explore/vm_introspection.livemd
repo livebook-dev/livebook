@@ -94,7 +94,7 @@ and you can embed it into your Phoenix application very easily. In fact
 even Livebook does that!
 
 To leverage that, we first need to ensure the remote node is visible
-to the Livebook application, but that may not be the case at this point!
+to the Livebook server, but this may not be the case at this point!
 
 **Why?**
 
@@ -105,18 +105,18 @@ for better isolation and consequently its connections are not reflected
 to other nodes. That's the current state:
 
 ```
-(Livebook application) <---> (Livebook runtime) <---> (Remote node)
+(Livebook server) <---> (Livebook runtime) <---> (Remote node)
 ```
 
 **How?**
 
 So we "are" in `Livebook runtime` and our task is to connect
-`Livebook application` with `Remote node`.
+`Livebook server` with `Remote node`.
 
 In fact, we already know how to connect to the remote node, we did that earlier.
-The question is how to make `Livebook application` do the same.
+The question is how to make `Livebook server` do the same.
 
-First we need to determine what is the node name of `Livebook application`.
+First we need to determine what is the node name of `Livebook server`.
 Since we are connected to this node, it's easy to check!
 
 ```elixir
@@ -129,7 +129,7 @@ Let's put this together!
 
 ```elixir
 Node.spawn(livebook_app_node, fn ->
-  # This code is evaluated in the Livebook application node
+  # This code is evaluated in the Livebook server node
   Node.set_cookie(node, cookie)
   Node.connect(node)
 end)
@@ -154,7 +154,7 @@ defmodule Utils do
     [livebook_app_node | _] = Node.list(:hidden)
 
     # Note: the PID needs to be formatted relatively to
-    # the Livebook application node, so we call inspect/1 there
+    # the Livebook server node, so we call inspect/1 there
     "#" <> pid_str = :rpc.call(livebook_app_node, Kernel, :inspect, [pid])
 
     "/dashboard/#{node(pid)}/processes?info=#{pid_str}"
