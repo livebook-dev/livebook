@@ -23,13 +23,13 @@ In order to teleport, the player uses the Portal gun to shoot doors
 onto flat planes, like a floor or a wall. Entering one of those doors
 teleports you to the other:
 
-![](/posts/elixir/1/images/portal-drop.jpeg)
+![](images/portal-drop.jpeg)
 
 Our version of the Portal game will use Elixir to shoot doors of
 different colors and transfer data between them! We will even learn how
 we can distribute doors across different machines in our network:
 
-![](/posts/elixir/1/images/portal-list.jpeg)
+![](images/portal-list.jpeg)
 
 Here is what we will learn:
 
@@ -817,7 +817,6 @@ and [many of the available learning resources](https://elixir-lang.org/learning.
 You can also learn how to use some of Elixir and Livebook's unique features together
 in the [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook.
 
-Finally, huge thanks to [Augie De Blieck Jr.](http://twitter.com/augiedb) for the
-drawings in this tutorial.
+Finally, huge thanks to Augie De Blieck Jr. for the drawings in this tutorial.
 
 See you around!
