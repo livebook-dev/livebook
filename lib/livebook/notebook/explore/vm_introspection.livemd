@@ -30,16 +30,26 @@ inside it. This will also give you a better idea of how you can
 inspect a remote node in general.
 
 The first thing we need is an actually running node,
-if you don't have one at hand, feel free to start one with:
+if you don't have one at hand, you can start one like this:
 
 `iex --sname cat --cookie meow`
 
-Next, specify the node you want to connect to below
-with the corresponding cookie:
+Alternatively you can open up an empty notebook or use
+a production node run from an Elixir release.
+In any case, you can find the node name and cookie like this:
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Node","type":"text","value":"cat@your_hostname"} -->
+<!-- livebook:{"force_markdown":true} -->
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Cookie","type":"text","value":"meow"} -->
+```elixir
+IO.puts node()
+IO.puts Node.get_cookie()
+```
+
+Now, let's paste these in the inputs below:
+
+<!-- livebook:{"livebook_object":"cell_input","name":"Node","type":"text","value":""} -->
+
+<!-- livebook:{"livebook_object":"cell_input","name":"Cookie","type":"text","value":""} -->
 
 ```elixir
 node =
@@ -242,8 +252,9 @@ Kino.VegaLite.periodically(widget, 200, 1, fn i ->
 end)
 ```
 
-You can emulate some spikes by running the following
-in the remote node (in case you started with IEx):
+Unless you connected to a production node, the memory usage
+most likely doesn't change, so to emulate some spikes you can
+run the following code in the remote node:
 
 **Binary usage**
 
