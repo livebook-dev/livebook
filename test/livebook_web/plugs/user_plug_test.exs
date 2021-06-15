@@ -10,6 +10,7 @@ defmodule LivebookWeb.UserPlugTest do
     conn =
       conn(:get, "/")
       |> init_test_session(%{})
+      |> fetch_cookies()
       |> call()
 
     assert get_session(conn, :current_user_id) != nil
@@ -19,6 +20,7 @@ defmodule LivebookWeb.UserPlugTest do
     conn =
       conn(:get, "/")
       |> init_test_session(%{current_user_id: "valid_user_id"})
+      |> fetch_cookies()
       |> call()
 
     assert get_session(conn, :current_user_id) != nil
@@ -30,13 +32,13 @@ defmodule LivebookWeb.UserPlugTest do
       |> init_test_session(%{})
       |> fetch_cookies()
       |> call()
-      |> fetch_cookies()
 
     assert conn.cookies["user_data"] != nil
   end
 
   test "keeps user_data cookie if present" do
-    cookie_value = ~s/{"name":"Jake Peralta","hex_color":"#000000"}/
+    cookie_value =
+      %{name: "Jake Peralta", hex_color: "#000000"} |> Jason.encode!() |> Base.encode64()
 
     conn =
       conn(:get, "/")
@@ -44,7 +46,6 @@ defmodule LivebookWeb.UserPlugTest do
       |> put_req_cookie("user_data", cookie_value)
       |> fetch_cookies()
       |> call()
-      |> fetch_cookies()
 
     assert conn.cookies["user_data"] == cookie_value
   end
