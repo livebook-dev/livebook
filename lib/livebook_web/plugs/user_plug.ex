@@ -27,6 +27,7 @@ defmodule LivebookWeb.UserPlug do
     conn
     |> ensure_current_user_id()
     |> ensure_user_data()
+    |> mirror_user_data_in_session()
   end
 
   defp ensure_current_user_id(conn) do
@@ -54,5 +55,12 @@ defmodule LivebookWeb.UserPlug do
     user
     |> Map.from_struct()
     |> Map.delete(:id)
+  end
+
+  # Copies user_data from cookie to session, so that it's
+  # accessible to LiveViews
+  defp mirror_user_data_in_session(conn) do
+    user_data = conn.cookies["user_data"] |> Base.decode64!() |> Jason.decode!()
+    put_session(conn, :user_data, user_data)
   end
 end

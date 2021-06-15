@@ -8,9 +8,9 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
-  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id}, socket) do
+  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = session, socket) do
     if SessionSupervisor.session_exists?(session_id) do
-      current_user = build_current_user(current_user_id, socket)
+      current_user = build_current_user(session, socket)
 
       data =
         if connected?(socket) do

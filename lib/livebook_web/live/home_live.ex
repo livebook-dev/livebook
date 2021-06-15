@@ -7,13 +7,13 @@ defmodule LivebookWeb.HomeLive do
   alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
   @impl true
-  def mount(_params, %{"current_user_id" => current_user_id}, socket) do
+  def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
       Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
-    current_user = build_current_user(current_user_id, socket)
+    current_user = build_current_user(session, socket)
     session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
     notebook_infos = Notebook.Explore.notebook_infos() |> Enum.take(3)
 

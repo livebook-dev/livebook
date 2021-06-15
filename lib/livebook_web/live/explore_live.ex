@@ -7,12 +7,12 @@ defmodule LivebookWeb.ExploreLive do
   alias Livebook.Notebook.Explore
 
   @impl true
-  def mount(_params, %{"current_user_id" => current_user_id}, socket) do
+  def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
-    current_user = build_current_user(current_user_id, socket)
+    current_user = build_current_user(session, socket)
 
     [lead_notebook_info | notebook_infos] = Explore.notebook_infos()
 

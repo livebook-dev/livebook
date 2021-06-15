@@ -44,14 +44,18 @@ defmodule LivebookWeb.UserHelpers do
   end
 
   @doc """
-  Builds `Livebook.Users.User` with the given user id.
+  Builds `Livebook.Users.User` using information from
+  session and socket.
 
   Uses `user_data` from socket `connect_params` as initial
-  attributes if the socket is connected.
+  attributes if the socket is connected. Otherwise uses
+  `user_data` from session.
   """
-  def build_current_user(current_user_id, socket) do
+  def build_current_user(session, socket) do
+    %{"current_user_id" => current_user_id} = session
+
     connect_params = get_connect_params(socket) || %{}
-    user_data = connect_params["user_data"] || %{}
+    user_data = connect_params["user_data"] || session["user_data"] || %{}
 
     case User.change(%{User.new() | id: current_user_id}, user_data) do
       {:ok, user} -> user
