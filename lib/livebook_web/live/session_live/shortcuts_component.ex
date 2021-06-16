@@ -4,10 +4,11 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @shortcuts %{
     insert_mode: [
       %{seq: ["esc"], desc: "Switch back to navigation mode"},
-      %{seq: ["ctrl", "↵"], desc: "Evaluate cell and stay in insert mode"},
+      %{seq: ["ctrl", "↵"], press_all: true, desc: "Evaluate cell and stay in insert mode"},
       %{seq: ["tab"], desc: "Autocomplete expression when applicable"},
       %{
         seq: ["ctrl", "␣"],
+        press_all: true,
         transform_for_mac: false,
         desc: "Show completion list, use twice for details"
       }
@@ -24,18 +25,18 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["N"], desc: "Insert Elixir cell above"},
       %{seq: ["M"], desc: "Insert Markdown cell above"},
       %{seq: ["S"], desc: "Add section"},
-      %{seq: ["dd"], desc: "Delete cell"},
-      %{seq: ["ee"], desc: "Evaluate cell"},
-      %{seq: ["es"], desc: "Evaluate section"},
-      %{seq: ["ea"], desc: "Evaluate all stale/new cells"},
-      %{seq: ["ej"], desc: "Evaluate cells below"},
-      %{seq: ["ex"], desc: "Cancel cell evaluation"},
-      %{seq: ["ss"], desc: "Toggle sections panel"},
-      %{seq: ["su"], desc: "Toggle users panel"},
-      %{seq: ["sr"], desc: "Show runtime settings"}
+      %{seq: ["d", "d"], desc: "Delete cell"},
+      %{seq: ["e", "e"], desc: "Evaluate cell"},
+      %{seq: ["e", "s"], desc: "Evaluate section"},
+      %{seq: ["e", "a"], desc: "Evaluate all stale/new cells"},
+      %{seq: ["e", "j"], desc: "Evaluate cells below"},
+      %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
+      %{seq: ["s", "s"], desc: "Toggle sections panel"},
+      %{seq: ["s", "u"], desc: "Toggle users panel"},
+      %{seq: ["s", "r"], desc: "Show runtime settings"}
     ],
     universal: [
-      %{seq: ["ctrl", "s"], desc: "Save notebook"}
+      %{seq: ["ctrl", "s"], press_all: true, desc: "Save notebook"}
     ]
   }
 
@@ -113,7 +114,15 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         shortcut.seq
       end
 
-    joiner = remix_icon("add-line", class: "text-xl text-gray-600")
+    press_all = Map.get(shortcut, :press_all, false)
+
+    joiner =
+      if press_all do
+        remix_icon("add-line", class: "text-xl text-gray-600")
+      else
+        nil
+      end
+
     elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))
     assigns = %{elements: elements}
 
