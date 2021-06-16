@@ -66,7 +66,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
 
         <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell_view.id %>" phx-update="ignore">
-          <%= render_markdown_content_placeholder(empty: @cell_view.empty?) %>
+          <%= render_content_placeholder("bg-gray-200", @cell_view.empty?) %>
         </div>
       </div>
     </div>
@@ -217,7 +217,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         id="editor-container-<%= @cell_view.id %>"
         data-element="editor-container"
         phx-update="ignore">
-        <%= render_editor_content_placeholder(empty: @cell_view.empty?) %>
+        <div class="px-8">
+          <%= render_content_placeholder("bg-gray-500", @cell_view.empty?) %>
+        </div>
       </div>
 
       <%= if @cell_view.type == :elixir do %>
@@ -243,7 +245,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   # There may be a tiny delay before the markdown is rendered
   # or editors are mounted, so show neat placeholders immediately.
 
-  defp render_markdown_content_placeholder(empty: true) do
+  defp render_content_placeholder(_bg_class, true = _empty) do
     assigns = %{}
 
     ~L"""
@@ -251,37 +253,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_markdown_content_placeholder(empty: false) do
-    assigns = %{}
+  defp render_content_placeholder(bg_class, false = _empty) do
+    assigns = %{bg_class: bg_class}
 
     ~L"""
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
-        <div class="h-4 bg-gray-200 rounded-lg w-3/4"></div>
-        <div class="h-4 bg-gray-200 rounded-lg"></div>
-        <div class="h-4 bg-gray-200 rounded-lg w-5/6"></div>
-      </div>
-    </div>
-    """
-  end
-
-  defp render_editor_content_placeholder(empty: true) do
-    assigns = %{}
-
-    ~L"""
-    <div class="h-4"></div>
-    """
-  end
-
-  defp render_editor_content_placeholder(empty: false) do
-    assigns = %{}
-
-    ~L"""
-    <div class="px-8 max-w-2xl w-full animate-pulse">
-      <div class="flex-1 space-y-4 py-1">
-        <div class="h-4 bg-gray-500 rounded-lg w-3/4"></div>
-        <div class="h-4 bg-gray-500 rounded-lg"></div>
-        <div class="h-4 bg-gray-500 rounded-lg w-5/6"></div>
+        <div class="h-4 <%= @bg_class %> rounded-lg w-3/4"></div>
+        <div class="h-4 <%= @bg_class %> rounded-lg"></div>
+        <div class="h-4 <%= @bg_class %> rounded-lg w-5/6"></div>
       </div>
     </div>
     """
@@ -289,7 +269,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp render_outputs(assigns, socket) do
     ~L"""
-    <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200 font-editor">
+    <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
           <%= render_output(socket, output, "cell-#{@cell_view.id}-output#{index}") %>
@@ -322,6 +302,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
+  defp render_output(socket, {:table_dynamic, pid}, id) do
+    live_render(socket, LivebookWeb.Output.TableDynamicLive,
+      id: id,
+      session: %{"id" => id, "pid" => pid}
+    )
+  end
+
   defp render_output(_socket, {:error, formatted}, _id) do
     render_error_message_output(formatted)
   end
@@ -348,7 +335,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <div><%= line %></div>
         <% end %>
       </div>
-      <div data-content class="overflow-auto whitespace-pre text-gray-500 tiny-scrollbar"
+      <div data-content class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
         id="<%= @id %>-content"
         phx-update="ignore"></div>
     </div>

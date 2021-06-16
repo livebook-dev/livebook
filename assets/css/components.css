@@ -1,170 +1,172 @@
-/* Buttons */
+@layer components {
+  /* Buttons */
 
-.button {
-  @apply px-5 py-2 rounded-lg border border-transparent font-medium text-sm;
-}
+  .button {
+    @apply px-5 py-2 rounded-lg border border-transparent font-medium text-sm;
+  }
 
-.button-blue {
-  @apply border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700;
-}
+  .button-blue {
+    @apply border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700;
+  }
 
-.button-red {
-  @apply border-transparent bg-red-600 text-white hover:bg-red-700 focus:bg-red-700;
-}
+  .button-red {
+    @apply border-transparent bg-red-600 text-white hover:bg-red-700 focus:bg-red-700;
+  }
 
-.button-gray {
-  @apply border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200 focus:bg-gray-200;
-}
+  .button-gray {
+    @apply border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200 focus:bg-gray-200;
+  }
 
-.button-outlined-blue {
-  @apply bg-blue-50 border-blue-600 text-blue-600 hover:bg-blue-100 focus:bg-blue-100;
-}
+  .button-outlined-blue {
+    @apply bg-blue-50 border-blue-600 text-blue-600 hover:bg-blue-100 focus:bg-blue-100;
+  }
 
-.button-outlined-red {
-  @apply bg-red-50 border-red-600 text-red-600 hover:bg-red-100 focus:bg-red-100;
-}
+  .button-outlined-red {
+    @apply bg-red-50 border-red-600 text-red-600 hover:bg-red-100 focus:bg-red-100;
+  }
 
-.button-outlined-gray {
-  @apply bg-white border-gray-300 text-gray-600 hover:bg-gray-100 focus:bg-gray-100;
-}
+  .button-outlined-gray {
+    @apply bg-white border-gray-300 text-gray-600 hover:bg-gray-100 focus:bg-gray-100;
+  }
 
-.button:disabled {
-  @apply cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400;
-}
+  .button:disabled {
+    @apply cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400;
+  }
 
-.button-small {
-  @apply px-2 py-1 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 focus:bg-gray-100;
-}
+  .button-small {
+    @apply px-2 py-1 bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 focus:bg-gray-100;
+  }
 
-.button-square-icon {
-  @apply p-2 flex items-center justify-center;
-}
+  .button-square-icon {
+    @apply p-2 flex items-center justify-center;
+  }
 
-.button-square-icon i {
-  @apply text-xl leading-none;
-}
+  .button-square-icon i {
+    @apply text-xl leading-none;
+  }
 
-.choice-button {
-  @apply px-5 py-2 rounded-lg border text-gray-700 bg-white border-gray-200;
-}
+  .choice-button {
+    @apply px-5 py-2 rounded-lg border text-gray-700 bg-white border-gray-200;
+  }
 
-.choice-button.active {
-  @apply bg-blue-100 border-blue-600;
-}
+  .choice-button.active {
+    @apply bg-blue-100 border-blue-600;
+  }
 
-.icon-button {
-  @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800;
-}
+  .icon-button {
+    @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800;
+  }
 
-.icon-button:focus {
-  @apply rounded-full bg-gray-100;
-}
+  .icon-button:focus {
+    @apply rounded-full bg-gray-100;
+  }
 
-.icon-button i {
-  line-height: 1;
-}
+  .icon-button i {
+    line-height: 1;
+  }
 
-.icon-outlined-button {
-  @apply rounded-full border-2;
-}
+  .icon-outlined-button {
+    @apply rounded-full border-2;
+  }
 
-/* Form fields */
+  /* Form fields */
 
-.input {
-  @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
-}
+  .input {
+    @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
+  }
 
-.input--error {
-  @apply bg-red-50 border-red-600 text-red-600;
-}
+  .input--error {
+    @apply bg-red-50 border-red-600 text-red-600;
+  }
 
-.input-label {
-  @apply mb-0.5 text-sm text-gray-800 font-medium;
-}
+  .input-label {
+    @apply mb-0.5 text-sm text-gray-800 font-medium;
+  }
 
-.input-error {
-  @apply mt-2 text-red-600 italic text-xs;
-}
+  .input-error {
+    @apply mt-2 text-red-600 italic text-xs;
+  }
 
-.switch-button {
-  @apply relative inline-block w-14 h-7 mr-2 select-none transition;
-}
+  .switch-button {
+    @apply relative inline-block w-14 h-7 mr-2 select-none transition;
+  }
 
-.switch-button__checkbox {
-  @apply appearance-none absolute block w-7 h-7 rounded-full bg-gray-400 border-[5px] border-gray-100 cursor-pointer transition-all duration-300;
-}
+  .switch-button__checkbox {
+    @apply appearance-none absolute block w-7 h-7 rounded-full bg-gray-400 border-[5px] border-gray-100 cursor-pointer transition-all duration-300;
+  }
 
-.switch-button__bg {
-  @apply block h-full w-full rounded-full bg-gray-100 cursor-pointer transition-all duration-300;
-}
+  .switch-button__bg {
+    @apply block h-full w-full rounded-full bg-gray-100 cursor-pointer transition-all duration-300;
+  }
 
-.switch-button__checkbox:checked {
-  @apply bg-white border-blue-600;
-  transform: translateX(100%);
-}
+  .switch-button__checkbox:checked {
+    @apply bg-white border-blue-600;
+    transform: translateX(100%);
+  }
 
-.switch-button__checkbox:checked + .switch-button__bg {
-  @apply bg-blue-600;
-}
+  .switch-button__checkbox:checked + .switch-button__bg {
+    @apply bg-blue-600;
+  }
 
-.radio-base {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%23CAD5E0' fill='white' /%3e%3c/svg%3e");
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-}
+  .radio-base {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%23CAD5E0' fill='white' /%3e%3c/svg%3e");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
 
-.radio-base:checked {
-  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%233E64FF' fill='white' /%3e%3ccircle cx='10' cy='10' r='6' fill='%233E64FF' /%3e%3c/svg%3e");
-}
+  .radio-base:checked {
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='10' cy='10' r='9.5' stroke='%233E64FF' fill='white' /%3e%3ccircle cx='10' cy='10' r='6' fill='%233E64FF' /%3e%3c/svg%3e");
+  }
 
-/* Custom scrollbars */
+  /* Custom scrollbars */
 
-.tiny-scrollbar::-webkit-scrollbar {
-  width: 0.4rem;
-  height: 0.4rem;
-}
+  .tiny-scrollbar::-webkit-scrollbar {
+    width: 0.4rem;
+    height: 0.4rem;
+  }
 
-.tiny-scrollbar::-webkit-scrollbar-thumb {
-  border-radius: 0.25rem;
-  @apply bg-gray-400;
-}
+  .tiny-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 0.25rem;
+    @apply bg-gray-400;
+  }
 
-.tiny-scrollbar::-webkit-scrollbar-track {
-  @apply bg-gray-100;
-}
+  .tiny-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
 
-/* Tabs */
+  /* Tabs */
 
-.tabs {
-  @apply w-full flex;
-}
+  .tabs {
+    @apply w-full flex;
+  }
 
-.tabs .tab {
-  @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100;
-}
+  .tabs .tab {
+    @apply flex items-center space-x-2 px-3 py-2 border-b-2 text-gray-400 border-gray-100;
+  }
 
-.tabs .tab.active {
-  @apply text-blue-600 border-blue-600;
-}
+  .tabs .tab.active {
+    @apply text-blue-600 border-blue-600;
+  }
 
-/* Toggleable menu */
+  /* Toggleable menu */
 
-.menu {
-  @apply absolute right-0 z-20 rounded-lg bg-white flex flex-col py-2;
-  box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
-}
+  .menu {
+    @apply absolute right-0 z-20 rounded-lg bg-white flex flex-col py-2;
+    box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
+  }
 
-.menu__item {
-  @apply flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 whitespace-nowrap;
-}
+  .menu__item {
+    @apply flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 whitespace-nowrap;
+  }
 
-/* Boxes */
+  /* Boxes */
 
-.error-box {
-  @apply mb-3 rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium;
+  .error-box {
+    @apply mb-3 rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium;
+  }
 }
