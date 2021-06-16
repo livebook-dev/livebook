@@ -19,7 +19,7 @@ defmodule Livebook.Notebook.Cell.Input do
           value: String.t()
         }
 
-  @type type :: :text | :url
+  @type type :: :text | :url | :number
 
   @doc """
   Returns an empty cell.
@@ -51,6 +51,13 @@ defmodule Livebook.Notebook.Cell.Input do
       :ok
     else
       {:error, "not a valid URL"}
+    end
+  end
+
+  defp validate_value(value, :number) do
+    case Float.parse(value) do
+      {_number, ""} -> :ok
+      _ -> {:error, "not a valid number"}
     end
   end
 end

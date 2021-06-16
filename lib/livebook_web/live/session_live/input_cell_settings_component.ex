@@ -29,7 +29,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
           <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
         </div>
         <div class="mt-4 flex space-x-8 items-center">
-          <%= render_radios("type", [text: "Text", url: "URL"], @type) %>
+          <%= render_radios("type", [text: "Text", url: "URL", number: "Number"], @type) %>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
@@ -44,8 +44,9 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"name" => name}, socket) do
-    {:noreply, assign(socket, name: name)}
+  def handle_event("validate", %{"name" => name, "type" => type}, socket) do
+    type = String.to_existing_atom(type)
+    {:noreply, assign(socket, name: name, type: type)}
   end
 
   def handle_event("save", %{"name" => name, "type" => type}, socket) do
