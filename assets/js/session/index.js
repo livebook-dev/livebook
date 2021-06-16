@@ -342,11 +342,19 @@ function handleDocumentMouseDown(hook, event) {
   // Find the cell element, if one was clicked
   const cell = event.target.closest(`[data-element="cell"]`);
   const cellId = cell ? cell.dataset.cellId : null;
+  const insertMode = editableElementClicked(event, cell);
+
   if (cellId !== hook.state.focusedCellId) {
-    setFocusedCell(hook, cellId);
+    setFocusedCell(hook, cellId, !insertMode);
   }
 
   // Depending on whether the click targets editor disable/enable insert mode
+  if (hook.state.insertMode !== insertMode) {
+    setInsertMode(hook, insertMode);
+  }
+}
+
+function editableElementClicked(event, cell) {
   if (cell) {
     const editorContainer = cell.querySelector(
       `[data-element="editor-container"]`
@@ -354,12 +362,10 @@ function handleDocumentMouseDown(hook, event) {
     const input = cell.querySelector(`[data-element="input"]`);
     const editableElement = editorContainer || input;
 
-    const editorClicked = editableElement.contains(event.target);
-    const insertMode = editorClicked;
-    if (hook.state.insertMode !== insertMode) {
-      setInsertMode(hook, insertMode);
-    }
+    return editableElement.contains(event.target);
   }
+
+  return false;
 }
 
 /**
@@ -644,7 +650,7 @@ function insertFirstCell(hook, type) {
   }
 }
 
-function setFocusedCell(hook, cellId) {
+function setFocusedCell(hook, cellId, scroll = true) {
   hook.state.focusedCellId = cellId;
 
   if (hook.state.focusedCellId) {
@@ -658,7 +664,7 @@ function setFocusedCell(hook, cellId) {
     hook.state.focusedSectionId = null;
   }
 
-  globalPubSub.broadcast("cells", { type: "cell_focused", cellId });
+  globalPubSub.broadcast("cells", { type: "cell_focused", cellId, scroll });
 
   setInsertMode(hook, false);
 }

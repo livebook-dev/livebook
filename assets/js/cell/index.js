@@ -124,7 +124,11 @@ const Cell = {
 
       input.addEventListener("blur", (event) => {
         if (this.state.isFocused && this.state.insertMode) {
-          input.focus();
+          // We are still in the insert mode, so focus the input
+          // back once other handlers complete
+          setTimeout(() => {
+            input.focus();
+          }, 0);
         }
       });
     }
@@ -171,7 +175,7 @@ function getInput(hook) {
  */
 function handleCellsEvent(hook, event) {
   if (event.type === "cell_focused") {
-    handleCellFocused(hook, event.cellId);
+    handleCellFocused(hook, event.cellId, event.scroll);
   } else if (event.type === "insert_mode_changed") {
     handleInsertModeChanged(hook, event.enabled);
   } else if (event.type === "cell_moved") {
@@ -183,11 +187,13 @@ function handleCellsEvent(hook, event) {
   }
 }
 
-function handleCellFocused(hook, cellId) {
+function handleCellFocused(hook, cellId, scroll) {
   if (hook.props.cellId === cellId) {
     hook.state.isFocused = true;
     hook.el.setAttribute("data-js-focused", "true");
-    smoothlyScrollToElement(hook.el);
+    if (scroll) {
+      smoothlyScrollToElement(hook.el);
+    }
   } else if (hook.state.isFocused) {
     hook.state.isFocused = false;
     hook.el.removeAttribute("data-js-focused");
