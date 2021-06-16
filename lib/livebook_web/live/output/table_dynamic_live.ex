@@ -20,6 +20,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
        order_by: nil,
        order: :asc,
        # Fetched data
+       name: "Table",
        features: [],
        columns: [],
        rows: [],
@@ -42,10 +43,14 @@ defmodule LivebookWeb.Output.TableDynamicLive do
 
   def render(assigns) do
     ~L"""
-    <div class="mb-4 flex justify-between">
+    <div class="mb-4 flex items-center space-x-3">
+      <h3 class="font-semibold text-gray-800">
+        <%= @name %>
+      </h3>
+      <div class="flex-grow"></div>
       <!-- Actions -->
       <div class="flex space-x-2">
-        <span class="tooltip right" aria-label="Refetch">
+        <span class="tooltip left" aria-label="Refetch">
           <%= tag :button, class: "icon-button",
                 phx_click: "refetch" %>
             <%= remix_icon("refresh-line", class: "text-xl") %>
@@ -152,8 +157,8 @@ defmodule LivebookWeb.Output.TableDynamicLive do
   end
 
   @impl true
-  def handle_info({:connect_reply, %{columns: columns, features: features}}, socket) do
-    {:noreply, assign(socket, columns: columns, features: features) |> request_rows()}
+  def handle_info({:connect_reply, %{name: name, columns: columns, features: features}}, socket) do
+    {:noreply, assign(socket, name: name, columns: columns, features: features) |> request_rows()}
   end
 
   def handle_info({:rows, %{rows: rows, total_rows: total_rows, columns: columns}}, socket) do
