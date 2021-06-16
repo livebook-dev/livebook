@@ -129,15 +129,16 @@ runtime. Let's learn how to do that.
 
 Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
 for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
-on the sidebar (or by using the `rs` keyword shortcut).
+(<i class="ri-livebook-runtime"></i>) on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd>
+keyboard shortcut).
 
 By default, a new Elixir node is started (similarly to starting `iex`). You
 can click reconnect whenever you want to discard the current node and start
 a new one.
 
-You can also choose to run inside a _Mix_ project (as you would with `iex -S mix`),
-manually _attach_ to an existing distributed node, or run your Elixir notebook
-_embedded_ within the Livebook source itself.
+You can also choose to run inside a *Mix* project (as you would with `iex -S mix`),
+manually *attach* to an existing distributed node, or run your Elixir notebook
+*embedded* within the Livebook source itself.
 
 ## Running tests
 

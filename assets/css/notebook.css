@@ -1,0 +1,29 @@
+/*
+  Specific icons used in the built-in notebooks
+
+  Note: we use the ri- prefix to use the existing
+  Remix icon CSS
+*/
+
+.ri-livebook-sections,
+.ri-livebook-runtime,
+.ri-livebook-shortcuts,
+.ri-livebook-save {
+  @apply text-xl align-middle;
+}
+
+.ri-livebook-sections:before {
+  content: "\eade";
+}
+
+.ri-livebook-runtime:before {
+  content: "\ebf0";
+}
+
+.ri-livebook-shortcuts:before {
+  content: "\ee72";
+}
+
+.ri-livebook-save:before {
+  content: "\f0b3";
+}
