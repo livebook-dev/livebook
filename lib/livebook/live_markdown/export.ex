@@ -49,12 +49,14 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_cell(%Cell.Input{} = cell) do
+    value = if cell.type == :password, do: "", else: cell.value
+
     json =
       Jason.encode!(%{
         livebook_object: :cell_input,
         type: cell.type,
         name: cell.name,
-        value: cell.value
+        value: value
       })
 
     "<!-- livebook:#{json} -->"
