@@ -55,10 +55,11 @@ and options.
 ## Autocompletion
 
 Elixir code cells also support autocompletion by
-pressing <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>. Try it out by
+pressing <kbd>ctrl</kbd> + <kbd>␣</kbd>
+(<kbd>⌘</kbd> + <kbd>␣</kbd> on a Mac). Try it out by
 autocompleting the code below to `System.version()`. First put
 the cursor after the `.` below and
-press <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>:
+press <kbd>ctrl</kbd>&nbsp;+&nbsp;<kbd>␣</kbd>:
 
 ```elixir
 System.
@@ -68,7 +69,7 @@ You should have seen the editor listing many different options,
 which you can use to find `version`. Executing the code will
 return the Elixir version.
 
-Note you can also press `Tab` to cycle across the completion
+Note you can also press <kbd>tab</kbd> to cycle across the completion
 alternatives.
 
 ## Imports
@@ -129,15 +130,16 @@ runtime. Let's learn how to do that.
 
 Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
 for evaluating your code. You can choose the runtime by clicking the "Runtime" icon
-on the sidebar (or by using the `rs` keyword shortcut).
+(<i class="ri-livebook-runtime"></i>) on the sidebar (or by using the <kbd>s</kbd> <kbd>r</kbd>
+keyboard shortcut).
 
 By default, a new Elixir node is started (similarly to starting `iex`). You
 can click reconnect whenever you want to discard the current node and start
 a new one.
 
-You can also choose to run inside a _Mix_ project (as you would with `iex -S mix`),
-manually _attach_ to an existing distributed node, or run your Elixir notebook
-_embedded_ within the Livebook source itself.
+You can also choose to run inside a *Mix* project (as you would with `iex -S mix`),
+manually *attach* to an existing distributed node, or run your Elixir notebook
+*embedded* within the Livebook source itself.
 
 ## Running tests
 

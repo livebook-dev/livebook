@@ -43,9 +43,9 @@ as you keep working on it!
 ## Sections
 
 You can leverage so called **sections** to nicely group related cells together.
-Click on the "Book" icon in the sidebar to reveal a list of all sections.
-As you can see, this approach helps to easily jump around the notebook,
-especially once it grows.
+Click on the "Book" icon (<i class="ri-livebook-sections"></i>) in the sidebar
+to reveal a list of all sections. As you can see, this approach helps to easily
+jump around the notebook, especially once it grows.
 
 Let's make use of this section to see how output is captured!
 
@@ -64,8 +64,8 @@ end
 
 By default notebooks are kept in memory, which is fine for interactive hacking,
 but oftentimes you will want to save your work for later. Fortunately, notebooks
-can be persisted by clicking on the "Disk" icon in the bottom-right corner
-and selecting the file location.
+can be persisted by clicking on the "Disk" icon (<i class="ri-livebook-save"></i>)
+in the bottom-right corner and selecting the file location.
 
 Notebooks are stored in **live markdown** format, which is essentially the markdown you know,
 with just a few assumptions on how particular elements are represented. Thanks to this
@@ -74,11 +74,11 @@ You can also easily preview those files, reuse for blog posts, and even edit in 
 
 ## Math
 
-Livebook uses $\\TeX$ syntax for math.
-It supports both inline math like $e^{\\pi i} + 1 = 0$, as well as display math:
+Livebook uses $\TeX$ syntax for math.
+It supports both inline math like $e^{\pi i} + 1 = 0$, as well as display math:
 
 $$
-S(x) = \\frac{1}{1 + e^{-x}} = \\frac{e^{x}}{e^{x} + 1}
+S(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{e^{x} + 1}
 $$
 
 You can explore all supported expressions [here](https://katex.org/docs/supported.html).
@@ -88,24 +88,25 @@ You can explore all supported expressions [here](https://katex.org/docs/supporte
 Once you start using notebooks more, it's gonna be beneficial
 to optimise how you move around. Livebook leverages the concept of
 **navigation**/**insert** modes and offers many shortcuts for common operations.
-Make sure to check out the shortcuts by clicking the "Keyboard" icon in
-the sidebar or by typing `?`.
+Make sure to check out the shortcuts by clicking the "Keyboard" icon
+(<i class="ri-livebook-shortcuts"></i>) in the sidebar or
+by pressing <kbd>?</kbd>.
 
 ## Next steps
 
 That's our quick your intro to Livebook! Where to go next?
 
-  * If you are not familiar with Elixir, there is a fast paced
-    introduction to the language in the [Distributed portals
-    with Elixir](/explore/notebooks/distributed-portals-with-elixir)
-    notebook;
+* If you are not familiar with Elixir, there is a fast paced
+  introduction to the language in the [Distributed portals
+  with Elixir](/explore/notebooks/distributed-portals-with-elixir)
+  notebook;
 
-  * Learn how Elixir integrates with Livebook in the
-    [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
+* Learn how Elixir integrates with Livebook in the
+  [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
 
-  * Finally, remember Livebook is an open source project, so feel free to
-    look into [the repository](https://github.com/elixir-nx/livebook)
-    to contribute, report bugs, suggest features or just skim over the
-    codebase.
+* Finally, remember Livebook is an open source project, so feel free to
+  look into [the repository](https://github.com/elixir-nx/livebook)
+  to contribute, report bugs, suggest features or just skim over the
+  codebase.
 
 Now go ahead and build something cool! 🚢
