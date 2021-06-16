@@ -114,28 +114,16 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       end
 
     joiner = remix_icon("add-line", class: "text-xl text-gray-600")
-
-    elements =
-      seq
-      |> Enum.map(&render_key/1)
-      |> Enum.intersperse(joiner)
-
+    elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))
     assigns = %{elements: elements}
 
     ~L"""
-    <div class="flex space-x-1 items-center">
+    <div class="flex space-x-1 items-center markdown">
       <%= for element <- @elements do %>
         <%= element %>
       <% end %>
     </div>
     """
-  end
-
-  defp render_key(key) do
-    content_tag("span", key,
-      class:
-        "bg-editor text-gray-200 text-sm font-semibold h-8 w-8 flex items-center justify-center rounded-lg inline-flex items-center"
-    )
   end
 
   defp seq_for_mac(seq) do
