@@ -119,8 +119,6 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     joiner =
       if press_all do
         remix_icon("add-line", class: "text-xl text-gray-600")
-      else
-        nil
       end
 
     elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))
