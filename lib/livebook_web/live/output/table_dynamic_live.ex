@@ -50,12 +50,14 @@ defmodule LivebookWeb.Output.TableDynamicLive do
       <div class="flex-grow"></div>
       <!-- Actions -->
       <div class="flex space-x-2">
-        <span class="tooltip left" aria-label="Refetch">
-          <%= tag :button, class: "icon-button",
-                phx_click: "refetch" %>
-            <%= remix_icon("refresh-line", class: "text-xl") %>
-          </button>
-        </span>
+        <%= if :refetch in @features do %>
+          <span class="tooltip left" aria-label="Refetch">
+            <%= tag :button, class: "icon-button",
+                  phx_click: "refetch" %>
+              <%= remix_icon("refresh-line", class: "text-xl") %>
+            </button>
+          </span>
+        <% end %>
       </div>
       <!-- Pagination -->
       <%= if :pagination in @features and @total_rows > 0 do %>
