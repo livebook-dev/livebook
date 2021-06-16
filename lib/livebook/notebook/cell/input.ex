@@ -19,7 +19,7 @@ defmodule Livebook.Notebook.Cell.Input do
           value: String.t()
         }
 
-  @type type :: :text | :url | :number
+  @type type :: :text | :url | :number | :password
 
   @doc """
   Returns an empty cell.
@@ -45,6 +45,8 @@ defmodule Livebook.Notebook.Cell.Input do
   end
 
   defp validate_value(_value, :text), do: :ok
+
+  defp validate_value(_value, :password), do: :ok
 
   defp validate_value(value, :url) do
     if Utils.valid_url?(value) do

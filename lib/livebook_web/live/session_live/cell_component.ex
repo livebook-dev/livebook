@@ -191,7 +191,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <div class="input-label">
             <%= @cell_view.name %>
           </div>
-          <input type="text"
+          <input type="<%= if(@cell_view.input_type == :password, do: "password", else: "text") %>"
             data-element="input"
             class="input <%= if(@cell_view.error, do: "input--error") %>"
             name="value"
