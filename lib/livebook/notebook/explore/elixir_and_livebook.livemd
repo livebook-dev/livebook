@@ -55,10 +55,11 @@ and options.
 ## Autocompletion
 
 Elixir code cells also support autocompletion by
-pressing <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>. Try it out by
+pressing <kbd>ctrl</kbd> + <kbd>␣</kbd>
+(<kbd>⌘</kbd> + <kbd>␣</kbd> on a Mac). Try it out by
 autocompleting the code below to `System.version()`. First put
 the cursor after the `.` below and
-press <kbd>Ctrl</kbd> + <kbd>Spacebar</kbd>:
+press <kbd>ctrl</kbd>&nbsp;+&nbsp;<kbd>␣</kbd>:
 
 ```elixir
 System.
@@ -68,7 +69,7 @@ You should have seen the editor listing many different options,
 which you can use to find `version`. Executing the code will
 return the Elixir version.
 
-Note you can also press `Tab` to cycle across the completion
+Note you can also press <kbd>tab</kbd> to cycle across the completion
 alternatives.
 
 ## Imports
