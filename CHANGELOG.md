@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.2.0 (2021-06-17)
+
+  * Add Kino introductory notebook ([#364](https://github.com/elixir-nx/livebook/pull/364))
+  * Add password input ([#357](https://github.com/elixir-nx/livebook/pull/357))
+  * Add dynamic table output ([#356](https://github.com/elixir-nx/livebook/pull/356))
+  * Add numeric input ([#352](https://github.com/elixir-nx/livebook/pull/352))
+  * Add notebook on VM introspection ([#346](https://github.com/elixir-nx/livebook/pull/346))
+  * Add VegaLite intro notebook to the explore section ([#335](https://github.com/elixir-nx/livebook/pull/335))
+  * Add support for Mix runtime as the default one ([#334](https://github.com/elixir-nx/livebook/pull/334))
+  * Portal guide ([#328](https://github.com/elixir-nx/livebook/pull/318))
+  * Support inputs ([#328](https://github.com/elixir-nx/livebook/pull/328))
+  * Show an informative message on completion when there is no runtime ([#316](https://github.com/elixir-nx/livebook/pull/316))
+  * Add a notebook about the unique features behind Elixir and Livebook ([#314](https://github.com/elixir-nx/livebook/pull/314))
+  * Introduce an Explore section ([#310](https://github.com/elixir-nx/livebook/pull/310))
+
 ## v0.1.2 (2021-06-01)
 
   * Support dynamic Vega-Lite graphics ([#306](https://github.com/elixir-nx/livebook/pull/306) and [#309](https://github.com/elixir-nx/livebook/pull/309))
