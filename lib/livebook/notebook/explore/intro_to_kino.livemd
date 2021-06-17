@@ -58,52 +58,7 @@ You can also explicitly clear the data:
 Kino.VegaLite.clear(widget)
 ```
 
-## Kino.render/1
-
-Above we saw how you can render and stream data to the plot from separate cells.
-However, the widget can also be rendered explicitly at any point with
-the `Kino.render/1` function.
-
-```elixir
-widget =
-  Vl.new(width: 400, height: 400)
-  |> Vl.mark(:line)
-  |> Vl.encode_field(:x, "x", type: :quantitative)
-  |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.start()
-  |> Kino.render()
-
-for i <- 1..300 do
-  point = %{x: i / 10, y: :math.sin(i / 10)}
-  Kino.VegaLite.push(widget, point, window: 100)
-  Process.sleep(25)
-end
-```
-
-In fact, you can think of this function as a generalized `IO.puts/2` that works
-for any type and is rendered by Livebook similarly to regular evaluation results.
-
-```elixir
-# Arbitrary data structures
-Kino.render([%{name: "Ada Lovelace"}, %{name: "Alan Turing"}])
-
-# Static plots
-vl =
-  Vl.new(width: 400, height: 400)
-  |> Vl.data_from_series(x: 1..100, y: 1..100)
-  |> Vl.mark(:line)
-  |> Vl.encode_field(:x, "x", type: :quantitative)
-  |> Vl.encode_field(:y, "y", type: :quantitative)
-
-Kino.render(vl)
-Kino.render(vl)
-
-Kino.render("Plain text")
-
-"Cell result 🚀"
-```
-
-## Periodical updates
+### Periodical updates
 
 You may want to have a plot running forever and updating in the background.
 There is a dedicated `Kino.VegaLite.periodically/4` function that allows you do do just that!
@@ -129,18 +84,24 @@ Kino.VegaLite.periodically(widget, 25, 0, fn i ->
 end)
 ```
 
-## ETS tables
+## Kino.ETS
 
 You can use `Kino.ETS.start/1` to render ETS tables and easily
 browse their contents. Let's first create our own table:
 
 ```elixir
 tid = :ets.new(:users, [:set, :public])
+Kino.ETS.start(tid)
 ```
 
-You can see that Livebook automatically recognises that it's
-dealing with an ETS table and renders it as such. Currently
-the table is empty, so it's time to insert some rows.
+In fact, Livebook automatically recognises an ETS table and
+renders it as such:
+
+```elixir
+tid
+```
+
+Currently the table is empty, so it's time to insert some rows.
 
 ```elixir
 for id <- 1..24 do
@@ -150,3 +111,52 @@ end
 
 Having the rows inserted, click on the "Refetch" icon in the table output
 above to see them.
+
+## Kino.render/1
+
+As we saw, Livebook automatically recognises widgets returned
+from each cell and renders them accordingly. However, sometimes
+it's useful to explicitly render a widget in the middle of the cell,
+similarly to `IO.puts/1` and that's exactly what `Kino.render/1`
+does! It works with any type and tells Livebook to render the value
+in its special manner.
+
+```elixir
+# Arbitrary data structures
+Kino.render([%{name: "Ada Lovelace"}, %{name: "Alan Turing"}])
+
+# Static plots
+vl =
+  Vl.new(width: 400, height: 400)
+  |> Vl.data_from_series(x: 1..100, y: 1..100)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+
+Kino.render(vl)
+Kino.render(vl)
+
+Kino.render("Plain text")
+
+"Cell result 🚀"
+```
+
+Before we saw how you can render and stream data to the plot
+from a separate cell, the same could be rewritten in one go
+like this:
+
+```elixir
+widget =
+  Vl.new(width: 400, height: 400)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Kino.VegaLite.start()
+  |> Kino.render()
+
+for i <- 1..300 do
+  point = %{x: i / 10, y: :math.sin(i / 10)}
+  Kino.VegaLite.push(widget, point, window: 100)
+  Process.sleep(25)
+end
+```
