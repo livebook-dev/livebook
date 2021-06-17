@@ -85,7 +85,7 @@ for any type and is rendered by Livebook similarly to regular evaluation results
 
 ```elixir
 # Arbitrary data structures
-Kino.render([%{name: "Jake Peralta"}, %{name: "Amy Santiago"}])
+Kino.render([%{name: "Ada Lovelace"}, %{name: "Alan Turing"}])
 
 # Static plots
 vl =
