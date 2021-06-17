@@ -1,0 +1,162 @@
+# Interactions with Kino
+
+## Setup
+
+In this notebook we will explore the possibilities that
+[`kino`](https://github.com/elixir-nx/kino) brings
+into your notebooks. Kino can be thought of as Livebook's
+friend that instructs it how to render certain output
+and interact with it.
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.1.0"},
+  {:vega_lite, "~> 0.1.0"}
+])
+```
+
+```elixir
+alias VegaLite, as: Vl
+```
+
+## VegaLite
+
+In the [Plotting with VegaLite](/explore/notebooks/intro-to-vega-lite) notebook we show
+numerous ways in which you can visualize your data. However, all of the plots
+there are static.
+
+Using Kino, we can dynamically stream data to the plot, so that it keeps updating!
+To do that, all you need is a regular VegaLite specification that you then pass
+to `Kino.VegaLite.start/1`. You don't have to specify any data up-front.
+
+```elixir
+widget =
+  Vl.new(width: 400, height: 400)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Kino.VegaLite.start()
+```
+
+Then you can push data to the plot widget at any point and see it update dynamically:
+
+```elixir
+for i <- 1..300 do
+  point = %{x: i / 10, y: :math.sin(i / 10)}
+
+  # The :window option ensures we only show the latest
+  # 100 data points on the plot
+  Kino.VegaLite.push(widget, point, window: 100)
+
+  Process.sleep(25)
+end
+```
+
+You can also explicitly clear the data:
+
+```elixir
+Kino.VegaLite.clear(widget)
+```
+
+### Periodical updates
+
+You may want to have a plot running forever and updating in the background.
+There is a dedicated `Kino.VegaLite.periodically/4` function that allows you do do just that!
+You just need to specify the interval and the reducer callback like this,
+then you interact with the widget as usually.
+
+```elixir
+widget =
+  Vl.new(width: 400, height: 400)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Kino.VegaLite.start()
+  |> Kino.render()
+
+# Add a callback to run every 25ms
+Kino.VegaLite.periodically(widget, 25, 0, fn i ->
+  point = %{x: i / 10, y: :math.sin(i / 10)}
+  # Interacting with the widget is as usual
+  Kino.VegaLite.push(widget, point, window: 100)
+  # Continue with the new accumulator value
+  {:cont, i + 1}
+end)
+```
+
+## Kino.ETS
+
+You can use `Kino.ETS.start/1` to render ETS tables and easily
+browse their contents. Let's first create our own table:
+
+```elixir
+tid = :ets.new(:users, [:set, :public])
+Kino.ETS.start(tid)
+```
+
+In fact, Livebook automatically recognises an ETS table and
+renders it as such:
+
+```elixir
+tid
+```
+
+Currently the table is empty, so it's time to insert some rows.
+
+```elixir
+for id <- 1..24 do
+  :ets.insert(tid, {id, "User #{id}", :rand.uniform(100), "Description #{id}"})
+end
+```
+
+Having the rows inserted, click on the "Refetch" icon in the table output
+above to see them.
+
+## Kino.render/1
+
+As we saw, Livebook automatically recognises widgets returned
+from each cell and renders them accordingly. However, sometimes
+it's useful to explicitly render a widget in the middle of the cell,
+similarly to `IO.puts/1` and that's exactly what `Kino.render/1`
+does! It works with any type and tells Livebook to render the value
+in its special manner.
+
+```elixir
+# Arbitrary data structures
+Kino.render([%{name: "Ada Lovelace"}, %{name: "Alan Turing"}])
+
+# Static plots
+vl =
+  Vl.new(width: 400, height: 400)
+  |> Vl.data_from_series(x: 1..100, y: 1..100)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+
+Kino.render(vl)
+Kino.render(vl)
+
+Kino.render("Plain text")
+
+"Cell result 🚀"
+```
+
+Before we saw how you can render and stream data to the plot
+from a separate cell, the same could be rewritten in one go
+like this:
+
+```elixir
+widget =
+  Vl.new(width: 400, height: 400)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "x", type: :quantitative)
+  |> Vl.encode_field(:y, "y", type: :quantitative)
+  |> Kino.VegaLite.start()
+  |> Kino.render()
+
+for i <- 1..300 do
+  point = %{x: i / 10, y: :math.sin(i / 10)}
+  Kino.VegaLite.push(widget, point, window: 100)
+  Process.sleep(25)
+end
+```
