@@ -99,7 +99,7 @@ defmodule Livebook.Notebook.Explore do
   )
 
   defnotebook(:intro_to_kino,
-    description: "Learn about rich and interactive output in Livebook.",
+    description: "Display and control rich and interactive widgets in Livebook.",
     image_url: "/images/kino.png"
   )
 
