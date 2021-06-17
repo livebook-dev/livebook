@@ -36,9 +36,15 @@ const VegaLite = {
         spec.data = { values: [] };
       }
 
-      this.state.viewPromise = vegaEmbed(this.state.container, spec, {}).then(
-        (result) => result.view
-      );
+      this.state.viewPromise = vegaEmbed(this.state.container, spec, {})
+        .then((result) => result.view)
+        .catch((error) => {
+          const message = `Failed to render the given Vega-Lite specification, got the following error:\n\n    ${error.message}\n\nMake sure to check for typos.`;
+
+          this.state.container.innerHTML = `
+            <div class="text-red-600 whitespace-pre-wrap">${message}</div>
+          `;
+        });
     });
 
     this.handleEvent(
