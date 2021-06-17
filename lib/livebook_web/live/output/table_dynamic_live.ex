@@ -112,7 +112,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
               <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
                 <%= for column <- @columns do %>
                   <td class="py-3 px-6">
-                    <%= row.fields[column.key] %>
+                    <%= ensure_string!(row.fields[column.key]) %>
                   </td>
                 <% end %>
               </tr>
@@ -130,6 +130,11 @@ defmodule LivebookWeb.Output.TableDynamicLive do
   defp max_page(total_rows, limit) do
     ceil(total_rows / limit)
   end
+
+  defp ensure_string!(string) when is_binary(string), do: string
+
+  defp ensure_string!(value),
+    do: raise(RuntimeError, "expected table value to be a string, got: #{inspect(value)}")
 
   @impl true
   def handle_event("refetch", %{}, socket) do
