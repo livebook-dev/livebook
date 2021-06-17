@@ -112,7 +112,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
               <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
                 <%= for column <- @columns do %>
                   <td class="py-3 px-6">
-                    <%= row.fields[column.key] %>
+                    <%= to_string(row.fields[column.key]) %>
                   </td>
                 <% end %>
               </tr>
