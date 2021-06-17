@@ -132,17 +132,7 @@ end)
 ## ETS tables
 
 You can use `Kino.ETS.start/1` to render ETS tables and easily
-browse their contents.
-
-```elixir
-Kino.ETS.start(:elixir_config)
-```
-
-```elixir
-Kino.ETS.start(:logger)
-```
-
-Now, let's create our own table!
+browse their contents. Let's first create our own table:
 
 ```elixir
 tid = :ets.new(:users, [:set, :public])
