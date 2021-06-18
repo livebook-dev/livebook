@@ -389,7 +389,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     }
 
     ~L"""
-    <div class="tooltip right distant" aria-label="<%= evaluated_label(opts) %>">
+    <div class="tooltip bottom distant-less" aria-label="<%= evaluated_label(opts) %>">
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400 space-x-1">
           <%= @text %>
