@@ -386,11 +386,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       circle_class: circle_class,
       animated_circle_class: Keyword.get(opts, :animated_circle_class),
       change_indicator: Keyword.get(opts, :change_indicator, false),
-      evaluation_time_ms: Keyword.get(opts, :evaluation_time_ms)
+      evaluation_time_ms: Keyword.get(opts, :evaluation_time_ms),
+      has_tooltip?: opts |> Keyword.get(:evaluation_time_ms) |> is_nil() == false
     }
 
     ~L"""
-    <div class="tooltip bottom distant-medium" aria-label="<%= evaluated_label(@evaluation_time_ms) %>">
+    <div class="<%= if @has_tooltip? do %>tooltip <% end %> bottom distant-medium" aria-label="<%= evaluated_label(@evaluation_time_ms) %>">
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400 space-x-1">
           <%= @text %>
