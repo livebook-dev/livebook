@@ -144,8 +144,7 @@ defmodule Livebook.Evaluator do
         {:ok, result, binding, env} ->
           result_context = %{
             binding: binding,
-            env: env,
-            evaluation_time_ms: get_execution_time_delta!(start_time)
+            env: env
           }
 
           response = {:ok, result}
@@ -156,17 +155,18 @@ defmodule Livebook.Evaluator do
           {context, response}
       end
 
+    metadata = %{
+      evaluation_time_ms: get_execution_time_delta!(start_time)
+    }
+
     state = put_in(state.contexts[ref], result_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_buffers(state.io_proxy)
 
-    output = %{
-      response: state.formatter.format_response(response),
-      evaluation_time_ms: result_context.evaluation_time_ms
-    }
+    output = state.formatter.format_response(response)
 
-    send(send_to, {:evaluation_response, ref, output})
+    send(send_to, {:evaluation_response, ref, output, metadata})
 
     widget_pids = Evaluator.IOProxy.flush_widgets(state.io_proxy)
     state = track_evaluation_widgets(state, ref, widget_pids, output)

@@ -20,7 +20,8 @@ defprotocol Livebook.Runtime do
           kind: completion_item_kind(),
           detail: String.t() | nil,
           documentation: String.t() | nil,
-          insert_text: String.t()
+          insert_text: String.t(),
+          evaluation_time_ms: float() | nil
         }
 
   @type completion_item_kind :: :function | :module | :type | :variable | :field

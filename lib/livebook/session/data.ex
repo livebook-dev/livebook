@@ -293,14 +293,14 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, output}) do
+  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, output, metadata}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :evaluating <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
-      |> add_cell_evaluation_response(cell, output.response)
+      |> add_cell_evaluation_response(cell, output)
       |> finish_cell_evaluation(cell, section)
-      |> add_cell_evaluation_time(cell, output.evaluation_time_ms)
+      |> add_cell_evaluation_time(cell, metadata.evaluation_time_ms)
       |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
       |> wrap_ok()
