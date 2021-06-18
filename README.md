@@ -1,26 +1,36 @@
 <h1><img src="https://github.com/elixir-nx/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
-Livebook is a web application for writing interactive and collaborative code notebooks. It features:
+Livebook is a web application for writing interactive and collaborative code notebooks built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
-  * A deployable web app built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) where users can create, fork, and run multiple notebooks.
-
-  * Each notebook is made of multiple sections: each section is made of Markdown and Elixir cells. Code in Elixir cells can be evaluated on demand. Mathematical formulas are also supported via [KaTeX](https://katex.org/).
+  * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
 
   * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a subset of Markdown. This means your notebooks can be saved for later, easily shared, and they also play well with version control.
 
   * Sequential evaluation: code cells run in a specific order, guaranteeing future users of the same Livebook see the same output. If you re-execute a previous cell, following cells are marked as stale to make it clear they depend on outdated notebook state.
 
-  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir process, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
+  * Support for mathematical formulas via [KaTeX](https://katex.org/) and graphs via [Vega-Lite](https://vega.github.io/vega-lite/).
+
+  * Display and control rich and interactive widgets via [Kino](https://github.com/elixir-nx/kino): you can manipulate charts, tables, and more.
 
   * Explicit dependencies: if your notebook has dependencies, they are explicitly listed and installed with the help of the `Mix.install/2` command in Elixir v1.12+.
 
+  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
+
   * Collaborative features allow multiple users to work on the same notebook at once. Collaboration works either in single-node or multi-node deployments - without a need for additional tooling.
 
-There is a [screencast by José Valim showing some of Livebook features](https://www.youtube.com/watch?v=RKvqc-UEe34). Otherwise, here is a peek at the "Welcome to Livebook" introductory notebook:
+We are actively working on Livebook and you can consult the issues tracker to see some of the features we are exploring. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring some of our features.
+
+## Getting started
+
+Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Usage" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
 
 ![Screenshot](https://github.com/elixir-nx/livebook/raw/main/.github/imgs/welcome.png)
 
-We are actively working on Livebook and you can consult the issues tracker to see some of the features we have in mind. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring some of our features.
+From time to time, we also publish some videos for new Livebook releases:
+
+  * [Livebook's initial announcement by José Valim](https://www.youtube.com/watch?v=RKvqc-UEe34), also featuring [Nx](https://github.com/elixir-nx/nx) and [Axon](https://github.com/elixir-nx/axon)
+
+  * [New in Livebook v0.2 by José Valim](https://www.youtube.com/watch?v=MOTEgF-wIEI), exploring inputs, charts of mathemtical formulas, and live display of runtime metrics
 
 ## Usage
 

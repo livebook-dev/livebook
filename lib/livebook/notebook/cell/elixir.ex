@@ -31,6 +31,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
           | {:vega_lite_static, spec :: map()}
           # Vega-Lite graphic with dynamic data
           | {:vega_lite_dynamic, widget_process :: pid()}
+          # Interactive data table
+          | {:table_dynamic, widget_process :: pid()}
           # Internal output format for errors
           | {:error, message :: binary()}
 

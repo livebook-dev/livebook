@@ -98,6 +98,11 @@ defmodule Livebook.Notebook.Explore do
     image_url: "/images/vm_introspection.png"
   )
 
+  defnotebook(:intro_to_kino,
+    description: "Display and control rich and interactive widgets in Livebook.",
+    image_url: "/images/kino.png"
+  )
+
   @type notebook_info :: %{
           slug: String.t(),
           livemd: String.t(),
@@ -119,6 +124,7 @@ defmodule Livebook.Notebook.Explore do
       @distributed_portals_with_elixir,
       @elixir_and_livebook,
       @intro_to_vega_lite,
+      @intro_to_kino,
       @vm_introspection
       # @intro_to_nx, @intro_to_axon,
     ]

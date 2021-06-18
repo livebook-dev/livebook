@@ -1,14 +1,21 @@
-/* A set of reusable classes */
+@layer utilities {
+  /* A set of reusable classes */
 
-.bg-editor {
-  background-color: #282c34;
-}
+  .bg-editor {
+    background-color: #282c34;
+  }
 
-.text-editor {
-  color: #abb2bf;
-}
+  .text-editor {
+    color: #abb2bf;
+  }
 
-.font-editor {
-  font-family: "JetBrains Mono", "Droid Sans Mono", "monospace";
-  font-size: 14px;
+  .font-editor {
+    font-family: "JetBrains Mono", "Droid Sans Mono", "monospace";
+    font-size: 14px;
+  }
+
+  .shadow-xl-center {
+    box-shadow: 0 0 25px -5px rgba(0, 0, 0, 0.1),
+      0 0 10px -5px rgba(0, 0, 0, 0.04);
+  }
 }
