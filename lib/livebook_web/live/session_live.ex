@@ -851,7 +851,7 @@ defmodule LivebookWeb.SessionLive do
       outputs: cell.outputs,
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
-      last_evaluation_time: info.last_evaluation_time
+      evaluation_time_ms: info.evaluation_time_ms
     }
   end
 

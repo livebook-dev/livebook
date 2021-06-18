@@ -57,7 +57,7 @@ defmodule Livebook.Session.Data do
           revision_by_client_pid: %{pid() => cell_revision()},
           evaluation_digest: String.t() | nil,
           evaluation_start_time: float(),
-          last_evaluation_time: float()
+          evaluation_time_ms: float() | nil
         }
 
   @type cell_revision :: non_neg_integer()
@@ -298,8 +298,9 @@ defmodule Livebook.Session.Data do
          :evaluating <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
-      |> add_cell_evaluation_response(cell, output)
+      |> add_cell_evaluation_response(cell, output.response)
       |> finish_cell_evaluation(cell, section)
+      |> add_cell_evaluation_time(cell, output.evaluation_time_ms)
       |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
       |> wrap_ok()
@@ -606,20 +607,19 @@ defmodule Livebook.Session.Data do
   end
 
   defp finish_cell_evaluation(data_actions, cell, section) do
-    execution_time =
-      data_actions
-      |> elem(0)
-      |> Map.get(:cell_infos)
-      |> get_in([cell.id, :evaluation_start_time])
-      |> get_execution_time_delta!()
-
     data_actions
     |> set_cell_info!(cell.id,
       validity_status: :evaluated,
-      evaluation_status: :ready,
-      last_evaluation_time: execution_time
+      evaluation_status: :ready
     )
     |> set_section_info!(section.id, evaluating_cell_id: nil)
+  end
+
+  defp add_cell_evaluation_time(data_actions, cell, evaluation_time) do
+    data_actions
+    |> set_cell_info!(cell.id,
+      evaluation_time_ms: evaluation_time
+    )
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
@@ -892,7 +892,7 @@ defmodule Livebook.Session.Data do
       evaluation_status: :ready,
       evaluation_digest: nil,
       evaluation_start_time: 0,
-      last_evaluation_time: 0
+      evaluation_time_ms: 0
     }
   end
 
@@ -953,12 +953,5 @@ defmodule Livebook.Session.Data do
   def get_evaluating_cell_id(data, section_id) do
     info = data.section_infos[section_id]
     info && info.evaluating_cell_id
-  end
-
-  defp get_execution_time_delta!(started_at) do
-    System.monotonic_time()
-    |> Kernel.-(started_at)
-    |> System.convert_time_unit(:native, :millisecond)
-    |> Kernel./(1000)
   end
 end

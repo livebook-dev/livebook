@@ -1132,7 +1132,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{last_evaluation_time: evaluation_time}}
+                cell_infos: %{"c1" => %{evaluation_time_ms: evaluation_time}}
               }, []} = Data.apply_operation(data, operation)
 
       assert evaluation_time > 0

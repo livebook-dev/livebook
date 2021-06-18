@@ -137,11 +137,17 @@ defmodule Livebook.Evaluator do
     context = Map.get_lazy(state.contexts, prev_ref, fn -> initial_context() end)
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
+    start_time = System.monotonic_time()
 
     {result_context, response} =
       case eval(code, context.binding, context.env) do
         {:ok, result, binding, env} ->
-          result_context = %{binding: binding, env: env}
+          result_context = %{
+            binding: binding,
+            env: env,
+            evaluation_time_ms: get_execution_time_delta!(start_time)
+          }
+
           response = {:ok, result}
           {result_context, response}
 
@@ -155,7 +161,11 @@ defmodule Livebook.Evaluator do
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_buffers(state.io_proxy)
 
-    output = state.formatter.format_response(response)
+    output = %{
+      response: state.formatter.format_response(response),
+      evaluation_time_ms: result_context.evaluation_time_ms
+    }
+
     send(send_to, {:evaluation_response, ref, output})
 
     widget_pids = Evaluator.IOProxy.flush_widgets(state.io_proxy)
@@ -271,4 +281,10 @@ defmodule Livebook.Evaluator do
   end
 
   def widget_pid_from_output(_output), do: :error
+
+  defp get_execution_time_delta!(started_at) do
+    System.monotonic_time()
+    |> Kernel.-(started_at)
+    |> System.convert_time_unit(:native, :millisecond)
+  end
 end

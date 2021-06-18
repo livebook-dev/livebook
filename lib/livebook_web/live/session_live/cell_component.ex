@@ -366,7 +366,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell_status(%{validity_status: :evaluated} = cell_view, args) do
     render_status_indicator("Evaluated", "bg-green-400",
       change_indicator: true,
-      evaluation_time: cell_view.last_evaluation_time
+      evaluation_time: cell_view.evaluation_time_ms
     )
   end
 
@@ -391,13 +391,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     ~L"""
     <div class="flex items-center space-x-1">
-      <div class="flex text-xs text-gray-400">
+      <div class="flex text-xs text-gray-400 space-x-1">
         <%= @text %>
         <%= if @change_indicator do %>
           <span data-element="change-indicator">*</span>
         <% end %>
-        &nbsp;
-        <span><%= @evaluation_time %> seconds</span>
+        <%= if @evaluation_time > 100 do %>
+          <span><%= @evaluation_time/1000 %>s</span>
+        <%= else %>
+          <span><%= @evaluation_time %>ms</span>
+        <% end %>
       </div>
       <span class="flex relative h-3 w-3">
         <%= if @animated_circle_class do %>
