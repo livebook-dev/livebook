@@ -299,7 +299,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> add_cell_evaluation_response(cell, output)
       |> finish_cell_evaluation(cell, section)
-      |> add_cell_evaluation_time(cell, metadata.evaluation_time_ms)
+      |> finish_cell_evaluation(cell, metadata.evaluation_time_ms)
       |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
       |> wrap_ok()
@@ -613,7 +613,7 @@ defmodule Livebook.Session.Data do
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
 
-  defp add_cell_evaluation_time(data_actions, cell, evaluation_time) do
+  defp finish_cell_evaluation(data_actions, cell, evaluation_time) do
     data_actions
     |> set_cell_info!(cell.id,
       evaluation_time_ms: evaluation_time

@@ -395,7 +395,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400 space-x-1">
           <%= @text %>
-          <%= if @change_indicator do %>
+          <%= if @ change_indicator do %>
             <span data-element="change-indicator">*</span>
           <% end %>
         </div>
@@ -414,12 +414,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     evaluation_time =
       if time_ms > 100 do
         seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
-        # {seconds}s"
+        "#{seconds}s"
       else
         "#{time_ms}ms"
       end
 
     "Took " <> evaluation_time
   end
+
   defp evaluated_label(_time_ms), do: nil
 end
