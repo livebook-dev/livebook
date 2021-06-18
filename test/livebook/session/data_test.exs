@@ -1135,7 +1135,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{"c1" => %{evaluation_time_ms: evaluation_time}}
               }, []} = Data.apply_operation(data, operation)
 
-      assert evaluation_time > 0
+      assert evaluation_time >= 10
     end
   end
 

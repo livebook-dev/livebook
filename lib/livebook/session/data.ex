@@ -57,7 +57,7 @@ defmodule Livebook.Session.Data do
           revision_by_client_pid: %{pid() => cell_revision()},
           evaluation_digest: String.t() | nil,
           evaluation_start_time: float(),
-          evaluation_time_ms: float() | nil
+          evaluation_time_ms: integer() | nil
         }
 
   @type cell_revision :: non_neg_integer()

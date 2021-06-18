@@ -385,30 +385,36 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       text: text,
       circle_class: circle_class,
       animated_circle_class: Keyword.get(opts, :animated_circle_class),
-      change_indicator: Keyword.get(opts, :change_indicator, false),
-      evaluation_time: Keyword.get(opts, :evaluation_time, 0)
+      change_indicator: Keyword.get(opts, :change_indicator, false)
     }
 
     ~L"""
-    <div class="flex items-center space-x-1">
-      <div class="flex text-xs text-gray-400 space-x-1">
-        <%= @text %>
-        <%= if @change_indicator do %>
-          <span data-element="change-indicator">*</span>
-        <% end %>
-        <%= if @evaluation_time > 100 do %>
-          <span><%= @evaluation_time/1000 %>s</span>
-        <%= else %>
-          <span><%= @evaluation_time %>ms</span>
-        <% end %>
+    <div class="tooltip right distant" aria-label="<%= evaluated_label(opts) %>">
+      <div class="flex items-center space-x-1">
+        <div class="flex text-xs text-gray-400 space-x-1">
+          <%= @text %>
+          <%= if @change_indicator do %>
+            <span data-element="change-indicator">*</span>
+          <% end %>
+        </div>
+        <span class="flex relative h-3 w-3">
+          <%= if @animated_circle_class do %>
+            <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+          <% end %>
+          <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
+        </span>
       </div>
-      <span class="flex relative h-3 w-3">
-        <%= if @animated_circle_class do %>
-          <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
-        <% end %>
-        <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
-      </span>
     </div>
     """
+  end
+
+  defp evaluated_label(opts) do
+    evaluation_time =
+      case Keyword.get(opts, :evaluation_time, 0) do
+        sec when sec > 100 -> to_string(sec / 1000) <> "s"
+        ms -> to_string(ms) <> "ms"
+      end
+
+    "Took " <> evaluation_time
   end
 end

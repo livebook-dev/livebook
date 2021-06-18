@@ -67,7 +67,7 @@ defmodule Livebook.Evaluator do
   Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
   in which case the corresponding binding and environment are used during evaluation.
 
-  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response}`.
+  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response, metadata}`.
   Note that response is transformed with the configured formatter (identity by default).
 
   ## Options
@@ -156,7 +156,7 @@ defmodule Livebook.Evaluator do
       end
 
     metadata = %{
-      evaluation_time_ms: get_execution_time_delta!(start_time)
+      evaluation_time_ms: get_execution_time_delta(start_time)
     }
 
     state = put_in(state.contexts[ref], result_context)
@@ -282,7 +282,7 @@ defmodule Livebook.Evaluator do
 
   def widget_pid_from_output(_output), do: :error
 
-  defp get_execution_time_delta!(started_at) do
+  defp get_execution_time_delta(started_at) do
     System.monotonic_time()
     |> Kernel.-(started_at)
     |> System.convert_time_unit(:native, :millisecond)
