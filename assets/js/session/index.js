@@ -472,6 +472,14 @@ function focusCellFromUrl(hook) {
     if (getCellById(cellId)) {
       setFocusedCell(hook, cellId);
     }
+  } else {
+    // Explicitly scroll to the target element
+    // after the loading finishes
+    const htmlId = hash.replace(/^#/, "");
+    const element = document.getElementById(htmlId);
+    if (element) {
+      element.scrollIntoView();
+    }
   }
 }
 

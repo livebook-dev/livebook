@@ -19,6 +19,7 @@ COPY config config
 RUN mix do deps.get, deps.compile
 
 # Compile and build the release
+COPY rel rel
 COPY priv priv
 COPY lib lib
 # We need README.md during compilation
