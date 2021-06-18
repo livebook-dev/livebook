@@ -82,7 +82,7 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session_id, cell_id)
 
-      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}},
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}, %{evaluation_time_ms: _time_ms}},
                      @evaluation_wait_timeout
     end
   end
@@ -376,7 +376,7 @@ defmodule Livebook.SessionTest do
 
     Session.queue_cell_evaluation(session_id, cell_id)
     # Give it a bit more time as this involves starting a system process.
-    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _}},
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, %{evaluation_time_ms: _time_ms}}},
                    @evaluation_wait_timeout
   end
 
@@ -438,7 +438,7 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session_id, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}, %{evaluation_time_ms: _time_ms}}},
                      @evaluation_wait_timeout
 
       assert text_output =~ "Jake Peralta"
@@ -498,7 +498,7 @@ defmodule Livebook.SessionTest do
       Session.queue_cell_evaluation(session_id, cell_id)
 
       assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}}},
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output}, %{evaluation_time_ms: _time_ms}}},
                      @evaluation_wait_timeout
 
       assert text_output =~ "no matching Livebook input found"
