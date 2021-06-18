@@ -55,7 +55,9 @@ defmodule Livebook.Session.Data do
           revision: cell_revision(),
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
-          evaluation_digest: String.t() | nil
+          evaluation_digest: String.t() | nil,
+          evaluation_start_time: 0,
+          last_evaluation_time: 0
         }
 
   @type cell_revision :: non_neg_integer()
@@ -549,7 +551,10 @@ defmodule Livebook.Session.Data do
     |> update_section_info!(section.id, fn section ->
       %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
     end)
-    |> set_cell_info!(cell.id, evaluation_status: :queued)
+    |> set_cell_info!(cell.id,
+      evaluation_status: :queued,
+      evaluation_start_time: System.monotonic_time()
+    )
   end
 
   defp unqueue_cell_evaluation(data_actions, cell, section) do
@@ -601,10 +606,18 @@ defmodule Livebook.Session.Data do
   end
 
   defp finish_cell_evaluation(data_actions, cell, section) do
+    execution_time =
+      data_actions
+      |> elem(0)
+      |> Map.get(:cell_infos)
+      |> get_in([cell.id, :evaluation_start_time])
+      |> get_execution_time_delta!()
+
     data_actions
     |> set_cell_info!(cell.id,
       validity_status: :evaluated,
-      evaluation_status: :ready
+      evaluation_status: :ready,
+      last_evaluation_time: execution_time
     )
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
@@ -877,7 +890,9 @@ defmodule Livebook.Session.Data do
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      evaluation_digest: nil
+      evaluation_digest: nil,
+      evaluation_start_time: 0,
+      last_evaluation_time: 0
     }
   end
 
@@ -938,5 +953,12 @@ defmodule Livebook.Session.Data do
   def get_evaluating_cell_id(data, section_id) do
     info = data.section_infos[section_id]
     info && info.evaluating_cell_id
+  end
+
+  defp get_execution_time_delta!(started_at) do
+    System.monotonic_time()
+    |> Kernel.-(started_at)
+    |> System.convert_time_unit(:native, :millisecond)
+    |> Kernel./(1000)
   end
 end

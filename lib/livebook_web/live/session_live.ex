@@ -850,7 +850,8 @@ defmodule LivebookWeb.SessionLive do
       empty?: cell.source == "",
       outputs: cell.outputs,
       validity_status: info.validity_status,
-      evaluation_status: info.evaluation_status
+      evaluation_status: info.evaluation_status,
+      last_evaluation_time: info.last_evaluation_time
     }
   end
 
