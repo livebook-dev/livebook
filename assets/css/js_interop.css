@@ -51,8 +51,13 @@ solely client-side operations.
 [data-element="cell"]:not([data-js-focused])
   [data-element="actions"]:not(:focus-within) {
   /* Note: using opacity, so the buttons are focusable (via tab navigation)
-     and when focused we show the actions back. */
-  @apply opacity-0 pointer-events-none;
+      and when focused we show the actions back. */
+  @apply opacity-0;
+}
+
+[data-element="cell"]:not([data-js-focused])
+  [data-element="actions"]:not([data-primary]):not(:focus-within) {
+  @apply pointer-events-none;
 }
 
 [data-element="cell"]:not([data-js-focused]):hover

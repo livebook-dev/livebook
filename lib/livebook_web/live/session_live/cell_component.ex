@@ -18,7 +18,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render_cell_content(%{cell_view: %{type: :markdown}} = assigns) do
     ~L"""
     <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
+      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
         <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button">
@@ -76,7 +76,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render_cell_content(%{cell_view: %{type: :elixir}} = assigns) do
     ~L"""
     <div class="mb-1 flex items-center justify-between">
-      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions" data-primary>
+      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="queue_cell_evaluation"
@@ -97,7 +97,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           </button>
         <% end %>
       </div>
-      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
+      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
         <span class="tooltip top" aria-label="Cell settings">
           <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
@@ -149,7 +149,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render_cell_content(%{cell_view: %{type: :input}} = assigns) do
     ~L"""
     <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-10 flex items-center justify-end space-x-2" data-element="actions">
+      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
         <span class="tooltip top" aria-label="Cell settings">
           <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
