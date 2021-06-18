@@ -56,7 +56,6 @@ defmodule Livebook.Session.Data do
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
           evaluation_digest: String.t() | nil,
-          evaluation_start_time: float(),
           evaluation_time_ms: integer() | nil
         }
 
@@ -554,7 +553,6 @@ defmodule Livebook.Session.Data do
     end)
     |> set_cell_info!(cell.id,
       evaluation_status: :queued,
-      evaluation_start_time: System.monotonic_time()
     )
   end
 
@@ -891,8 +889,7 @@ defmodule Livebook.Session.Data do
       validity_status: :fresh,
       evaluation_status: :ready,
       evaluation_digest: nil,
-      evaluation_start_time: 0,
-      evaluation_time_ms: 0
+      evaluation_time_ms: nil
     }
   end
 

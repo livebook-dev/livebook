@@ -366,7 +366,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell_status(%{validity_status: :evaluated} = cell_view, args) do
     render_status_indicator("Evaluated", "bg-green-400",
       change_indicator: true,
-      evaluation_time: cell_view.evaluation_time_ms
+      evaluation_time_ms: cell_view.evaluation_time_ms
     )
   end
 
@@ -385,11 +385,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       text: text,
       circle_class: circle_class,
       animated_circle_class: Keyword.get(opts, :animated_circle_class),
-      change_indicator: Keyword.get(opts, :change_indicator, false)
+      change_indicator: Keyword.get(opts, :change_indicator, false),
+      evaluation_time_ms: Keyword.get(opts, :evaluation_time_ms)
     }
 
     ~L"""
-    <div class="tooltip bottom distant-less" aria-label="<%= evaluated_label(opts) %>">
+    <div class="tooltip bottom distant-medium" aria-label="<%= evaluated_label(@evaluation_time_ms) %>">
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400 space-x-1">
           <%= @text %>
@@ -408,13 +409,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp evaluated_label(opts) do
+  defp evaluated_label(time_ms) when is_integer(time_ms) do
     evaluation_time =
-      case Keyword.get(opts, :evaluation_time, 0) do
-        sec when sec > 100 -> to_string(sec / 1000) <> "s"
-        ms -> to_string(ms) <> "ms"
+      if time_ms > 100 do
+        seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
+        # {seconds}s"
+      else
+        "#{time_ms}ms"
       end
 
     "Took " <> evaluation_time
   end
+  defp evaluated_label(_time_ms), do: nil
 end
