@@ -1116,6 +1116,27 @@ defmodule Livebook.Session.DataTest do
                 }
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "adds evaluation time to the response" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}}
+
+      Process.sleep(10)
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{last_evaluation_time: evaluation_time}}
+              }, []} = Data.apply_operation(data, operation)
+
+      assert evaluation_time > 0
+    end
   end
 
   describe "apply_operation/2 given :reflect_evaluation_failure" do

@@ -56,8 +56,8 @@ defmodule Livebook.Session.Data do
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
           evaluation_digest: String.t() | nil,
-          evaluation_start_time: 0,
-          last_evaluation_time: 0
+          evaluation_start_time: float(),
+          last_evaluation_time: float()
         }
 
   @type cell_revision :: non_neg_integer()
