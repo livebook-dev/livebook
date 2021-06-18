@@ -34,7 +34,7 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
       Manager.set_owner(node(), self())
       Manager.evaluate_code(node(), "1 + 1", :container1, :evaluation1, nil)
 
-      assert_receive {:evaluation_response, :evaluation1, _}
+      assert_receive {:evaluation_response, :evaluation1, _, %{evaluation_time_ms: _time_ms}}
 
       Manager.stop(node())
     end
@@ -48,8 +48,8 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
           Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation1, nil)
           Manager.evaluate_code(node(), "defmodule Foo do end", :container1, :evaluation2, nil)
 
-          assert_receive {:evaluation_response, :evaluation1, _}
-          assert_receive {:evaluation_response, :evaluation2, _}
+          assert_receive {:evaluation_response, :evaluation1, _, %{evaluation_time_ms: _time_ms}}
+          assert_receive {:evaluation_response, :evaluation2, _, %{evaluation_time_ms: _time_ms}}
         end)
 
       assert stderr == ""
@@ -103,9 +103,10 @@ defmodule Livebook.Runtime.ErlDist.ManagerTest do
       Manager.set_owner(node(), self())
 
       Manager.evaluate_code(node(), "number = 10", :c1, :e1, nil)
-      assert_receive {:evaluation_response, :e1, _}
+      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       Manager.request_completion_items(node(), self(), :comp_ref, "num", :c1, :e1)
+
       assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}
 
       Manager.stop(node())

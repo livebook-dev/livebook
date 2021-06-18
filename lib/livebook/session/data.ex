@@ -298,8 +298,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> add_cell_evaluation_response(cell, output)
-      |> finish_cell_evaluation(cell, section)
-      |> finish_cell_evaluation(cell, metadata.evaluation_time_ms)
+      |> finish_cell_evaluation(cell, section, metadata)
       |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
       |> wrap_ok()
@@ -552,7 +551,7 @@ defmodule Livebook.Session.Data do
       %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
     end)
     |> set_cell_info!(cell.id,
-      evaluation_status: :queued,
+      evaluation_status: :queued
     )
   end
 
@@ -604,20 +603,14 @@ defmodule Livebook.Session.Data do
     |> Enum.join("\n")
   end
 
-  defp finish_cell_evaluation(data_actions, cell, section) do
+  defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions
     |> set_cell_info!(cell.id,
       validity_status: :evaluated,
-      evaluation_status: :ready
+      evaluation_status: :ready,
+      evaluation_time_ms: metadata.evaluation_time_ms
     )
     |> set_section_info!(section.id, evaluating_cell_id: nil)
-  end
-
-  defp finish_cell_evaluation(data_actions, cell, evaluation_time) do
-    data_actions
-    |> set_cell_info!(cell.id,
-      evaluation_time_ms: evaluation_time
-    )
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
