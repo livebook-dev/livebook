@@ -366,7 +366,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell_status(:evaluated, _, evaluation_time_ms) do
     render_status_indicator("Evaluated", "bg-green-400",
       change_indicator: true,
-      evaluation_time_ms: evaluation_time_ms
+      tooltip: evaluated_label(evaluation_time_ms)
     )
   end
 
@@ -386,12 +386,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       circle_class: circle_class,
       animated_circle_class: Keyword.get(opts, :animated_circle_class),
       change_indicator: Keyword.get(opts, :change_indicator, false),
-      evaluation_time_ms: Keyword.get(opts, :evaluation_time_ms),
-      has_tooltip?: opts |> Keyword.get(:evaluation_time_ms) |> is_nil() == false
+      tooltip: Keyword.get(opts, :tooltip)
     }
 
     ~L"""
-    <div class="<%= if @has_tooltip? do %>tooltip <% end %> bottom distant-medium" aria-label="<%= evaluated_label(@evaluation_time_ms) %>">
+    <div class="<%= if(@tooltip, do: "tooltip") %> bottom distant-medium" aria-label="<%= @tooltip %>">
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400 space-x-1">
           <%= @text %>
