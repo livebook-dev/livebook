@@ -24,7 +24,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         Cell settings
       </h3>
       <form phx-submit="save" phx-change="validate" phx-target="<%= @myself %>">
-        <div class="mt-4 flex space-x-8 items-center">
+        <div class="flex space-x-8 items-center">
           <%= render_select("type", [number: "Number", password: "Password", text: "Text", url: "URL"], @type) %>
         </div>
         <div>
