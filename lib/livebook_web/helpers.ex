@@ -125,9 +125,7 @@ defmodule LivebookWeb.Helpers do
     ~L"""
     <select class="input" name=<%= @name %>>
       <%= for {value, label} <- options do %>
-        <option value=<%= value %>
-          <%= if value == selected, do: "selected" %>
-        >
+        <%= tag :option, value: value, selected: value == selected %>
           <%= label %>
         </option>
       <% end %>
