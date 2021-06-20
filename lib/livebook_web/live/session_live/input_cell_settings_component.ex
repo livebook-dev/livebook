@@ -27,7 +27,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         <div class="flex space-x-8 items-center">
           <%= render_select("type", [number: "Number", password: "Password", text: "Text", url: "URL"], @type) %>
         </div>
-        <div>
+        <div class="mt-4">
           <div class="input-label">Name</div>
           <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
         </div>
