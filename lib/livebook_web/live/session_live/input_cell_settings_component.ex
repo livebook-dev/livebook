@@ -24,12 +24,12 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         Cell settings
       </h3>
       <form phx-submit="save" phx-change="validate" phx-target="<%= @myself %>">
-        <div>
+        <div class="flex space-x-8 items-center">
+          <%= render_select("type", [number: "Number", password: "Password", text: "Text", url: "URL"], @type) %>
+        </div>
+        <div class="mt-4">
           <div class="input-label">Name</div>
           <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
-        </div>
-        <div class="mt-4 flex space-x-8 items-center">
-          <%= render_radios("type", [text: "Text", url: "URL", number: "Number", password: "Password"], @type) %>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
