@@ -20,6 +20,7 @@ import VirtualizedLines from "./virtualized_lines";
 import Menu from "./menu";
 import UserForm from "./user_form";
 import VegaLite from "./vega_lite";
+import Timer from "./timer";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
@@ -33,6 +34,7 @@ const hooks = {
   Menu,
   UserForm,
   VegaLite,
+  Timer,
 };
 
 const csrfToken = document

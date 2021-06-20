@@ -353,7 +353,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell_status(cell_view, evaluation_status, evaluation_time_ms)
 
   defp render_cell_status(_, :evaluating, _) do
-    render_status_indicator("Evaluating", "bg-blue-500",
+    timer =
+      content_tag(:span, nil,
+        phx_hook: "Timer",
+        id: "evaluating-cell-timer",
+        phx_update: "ignore",
+        class: "font-mono"
+      )
+
+    render_status_indicator(timer, "bg-blue-500",
       animated_circle_class: "bg-blue-400",
       change_indicator: true
     )
@@ -380,9 +388,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp render_cell_status(_, _, _), do: nil
 
-  defp render_status_indicator(text, circle_class, opts \\ []) do
+  defp render_status_indicator(element, circle_class, opts \\ []) do
     assigns = %{
-      text: text,
+      element: element,
       circle_class: circle_class,
       animated_circle_class: Keyword.get(opts, :animated_circle_class),
       change_indicator: Keyword.get(opts, :change_indicator, false),
@@ -392,8 +400,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~L"""
     <div class="<%= if(@tooltip, do: "tooltip") %> bottom distant-medium" aria-label="<%= @tooltip %>">
       <div class="flex items-center space-x-1">
-        <div class="flex text-xs text-gray-400 space-x-1">
-          <%= @text %>
+        <div class="flex text-xs text-gray-400">
+          <%= @element %>
           <%= if @change_indicator do %>
             <span data-element="change-indicator">*</span>
           <% end %>
