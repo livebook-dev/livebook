@@ -67,7 +67,7 @@ defmodule Livebook.Evaluator do
   Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
   in which case the corresponding binding and environment are used during evaluation.
 
-  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response}`.
+  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response, metadata}`.
   Note that response is transformed with the configured formatter (identity by default).
 
   ## Options
@@ -137,6 +137,7 @@ defmodule Livebook.Evaluator do
     context = Map.get_lazy(state.contexts, prev_ref, fn -> initial_context() end)
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
+    start_time = System.monotonic_time()
 
     {result_context, response} =
       case eval(code, context.binding, context.env) do
@@ -150,13 +151,16 @@ defmodule Livebook.Evaluator do
           {context, response}
       end
 
+    evaluation_time_ms = get_execution_time_delta(start_time)
+
     state = put_in(state.contexts[ref], result_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_buffers(state.io_proxy)
 
     output = state.formatter.format_response(response)
-    send(send_to, {:evaluation_response, ref, output})
+    metadata = %{evaluation_time_ms: evaluation_time_ms}
+    send(send_to, {:evaluation_response, ref, output, metadata})
 
     widget_pids = Evaluator.IOProxy.flush_widgets(state.io_proxy)
     state = track_evaluation_widgets(state, ref, widget_pids, output)
@@ -271,4 +275,10 @@ defmodule Livebook.Evaluator do
   end
 
   def widget_pid_from_output(_output), do: :error
+
+  defp get_execution_time_delta(started_at) do
+    System.monotonic_time()
+    |> Kernel.-(started_at)
+    |> System.convert_time_unit(:native, :millisecond)
+  end
 end

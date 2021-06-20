@@ -224,7 +224,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= render_cell_status(@cell_view.validity_status, @cell_view.evaluation_status) %>
+          <%= render_cell_status(@cell_view.validity_status, @cell_view.evaluation_status, @cell_view.evaluation_time_ms) %>
         </div>
       <% end %>
     </div>
@@ -350,56 +350,76 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell_status(validity_status, evaluation_status)
+  defp render_cell_status(cell_view, evaluation_status, evaluation_time_ms)
 
-  defp render_cell_status(_, :evaluating) do
+  defp render_cell_status(_, :evaluating, _) do
     render_status_indicator("Evaluating", "bg-blue-500",
       animated_circle_class: "bg-blue-400",
       change_indicator: true
     )
   end
 
-  defp render_cell_status(_, :queued) do
+  defp render_cell_status(_, :queued, _) do
     render_status_indicator("Queued", "bg-gray-500", animated_circle_class: "bg-gray-400")
   end
 
-  defp render_cell_status(:evaluated, _) do
-    render_status_indicator("Evaluated", "bg-green-400", change_indicator: true)
+  defp render_cell_status(:evaluated, _, evaluation_time_ms) do
+    render_status_indicator("Evaluated", "bg-green-400",
+      change_indicator: true,
+      tooltip: evaluated_label(evaluation_time_ms)
+    )
   end
 
-  defp render_cell_status(:stale, _) do
+  defp render_cell_status(:stale, _, _) do
     render_status_indicator("Stale", "bg-yellow-200", change_indicator: true)
   end
 
-  defp render_cell_status(:aborted, _) do
+  defp render_cell_status(:aborted, _, _) do
     render_status_indicator("Aborted", "bg-red-400")
   end
 
-  defp render_cell_status(_, _), do: nil
+  defp render_cell_status(_, _, _), do: nil
 
   defp render_status_indicator(text, circle_class, opts \\ []) do
     assigns = %{
       text: text,
       circle_class: circle_class,
       animated_circle_class: Keyword.get(opts, :animated_circle_class),
-      change_indicator: Keyword.get(opts, :change_indicator, false)
+      change_indicator: Keyword.get(opts, :change_indicator, false),
+      tooltip: Keyword.get(opts, :tooltip)
     }
 
     ~L"""
-    <div class="flex items-center space-x-1">
-      <div class="flex text-xs text-gray-400">
-        <%= @text %>
-        <%= if @change_indicator do %>
-          <span data-element="change-indicator">*</span>
-        <% end %>
+    <div class="<%= if(@tooltip, do: "tooltip") %> bottom distant-medium" aria-label="<%= @tooltip %>">
+      <div class="flex items-center space-x-1">
+        <div class="flex text-xs text-gray-400 space-x-1">
+          <%= @text %>
+          <%= if @change_indicator do %>
+            <span data-element="change-indicator">*</span>
+          <% end %>
+        </div>
+        <span class="flex relative h-3 w-3">
+          <%= if @animated_circle_class do %>
+            <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+          <% end %>
+          <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
+        </span>
       </div>
-      <span class="flex relative h-3 w-3">
-        <%= if @animated_circle_class do %>
-          <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
-        <% end %>
-        <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
-      </span>
     </div>
     """
   end
+
+  defp evaluated_label(time_ms) when is_integer(time_ms) do
+    evaluation_time =
+      if time_ms > 100 do
+        seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
+        "#{seconds}s"
+      else
+        "#{time_ms}ms"
+      end
+
+    "Took " <> evaluation_time
+  end
+
+  defp evaluated_label(_time_ms), do: nil
 end
