@@ -145,7 +145,7 @@ and options.
 
 Livebook automatically shows the execution time of each Elixir
 cell on the bottom-right of the cell. After evaluation, the total
-time can be seen by hovering the green arrow.
+time can be seen by hovering the green dot.
 
 However, it is important to remember that all code outside of
 a module in Elixir is _evaluated_, and therefore executes much
