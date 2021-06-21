@@ -55,7 +55,8 @@ defmodule Livebook.Session.Data do
           revision: cell_revision(),
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
-          evaluation_digest: String.t() | nil
+          evaluation_digest: String.t() | nil,
+          evaluation_time_ms: integer() | nil
         }
 
   @type cell_revision :: non_neg_integer()
@@ -291,13 +292,13 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, output}) do
+  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, output, metadata}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :evaluating <- data.cell_infos[cell.id].evaluation_status do
       data
       |> with_actions()
       |> add_cell_evaluation_response(cell, output)
-      |> finish_cell_evaluation(cell, section)
+      |> finish_cell_evaluation(cell, section, metadata)
       |> mark_dependent_cells_as_stale(cell)
       |> maybe_evaluate_queued()
       |> wrap_ok()
@@ -549,7 +550,9 @@ defmodule Livebook.Session.Data do
     |> update_section_info!(section.id, fn section ->
       %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
     end)
-    |> set_cell_info!(cell.id, evaluation_status: :queued)
+    |> set_cell_info!(cell.id,
+      evaluation_status: :queued
+    )
   end
 
   defp unqueue_cell_evaluation(data_actions, cell, section) do
@@ -600,11 +603,12 @@ defmodule Livebook.Session.Data do
     |> Enum.join("\n")
   end
 
-  defp finish_cell_evaluation(data_actions, cell, section) do
+  defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions
     |> set_cell_info!(cell.id,
       validity_status: :evaluated,
-      evaluation_status: :ready
+      evaluation_status: :ready,
+      evaluation_time_ms: metadata.evaluation_time_ms
     )
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
@@ -877,7 +881,8 @@ defmodule Livebook.Session.Data do
       revision_by_client_pid: Map.new(client_pids, &{&1, 0}),
       validity_status: :fresh,
       evaluation_status: :ready,
-      evaluation_digest: nil
+      evaluation_digest: nil,
+      evaluation_time_ms: nil
     }
   end
 

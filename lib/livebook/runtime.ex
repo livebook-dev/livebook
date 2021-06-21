@@ -53,7 +53,7 @@ defprotocol Livebook.Runtime do
   The messages should be of the form:
 
     * `{:evaluation_output, ref, output}` - output captured during evaluation
-    * `{:evaluation_response, ref, output}` - final result of the evaluation
+    * `{:evaluation_response, ref, output, metadata}` - final result of the evaluation, recognised metadata entries are: `evaluation_time_ms`
 
   The evaluation may request user input by sending `{:evaluation_input, ref, reply_to, prompt}`
   to the runtime owner, who is supposed to reply with `{:evaluation_input_reply, reply}`

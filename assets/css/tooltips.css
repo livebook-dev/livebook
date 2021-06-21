@@ -21,6 +21,10 @@ Example usage:
   --distance: 28px;
 }
 
+.tooltip.distant-medium {
+  --distance: 10px;
+}
+
 /* Tooltip text */
 .tooltip:before {
   position: absolute;

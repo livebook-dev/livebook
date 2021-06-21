@@ -89,10 +89,10 @@ defmodule LivebookWeb.Output.TableDynamicLive do
       </p>
     <% else %>
       <!-- Data table -->
-      <div class="shadow-xl-center rounded-lg">
+      <div class="shadow-xl-center rounded-lg max-w-full overflow-y-auto tiny-scrollbar">
         <table class="w-full">
           <thead class="text-left">
-            <tr class="border-b border-gray-200">
+            <tr class="border-b border-gray-200 whitespace-nowrap">
               <%= for {column, idx} <- Enum.with_index(@columns) do %>
                 <th class="py-3 px-6 text-gray-700 font-smibold <%= if(:sorting in @features, do: "cursor-pointer", else: "pointer-events-none") %>"
                   phx-click="column_click"
@@ -109,7 +109,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
           </thead>
           <tbody class="text-gray-500">
             <%= for row <- @rows do %>
-              <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+              <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 whitespace-nowrap">
                 <%= for column <- @columns do %>
                   <td class="py-3 px-6">
                     <%= to_string(row.fields[column.key]) %>
