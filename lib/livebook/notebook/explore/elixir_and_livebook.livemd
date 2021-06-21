@@ -18,40 +18,6 @@ notebook.
 
 Let's move on.
 
-## Inputs
-
-Livebook supports inputs and you read the input values directly
-from your notebook code, using `IO.gets/1`. Let's see an example
-that expects a date in the format `YYYY-MM-DD` and returns if the
-data is valid or not:
-
-<!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
-
-```elixir
-# Read the date input, which returns something like "2020-02-30\n"
-input = IO.gets("Date: ")
-
-# So we trim the newline from the input value
-trimmed = String.trim(input)
-
-# And then match on the return value
-case Date.from_iso8601(trimmed) do
-  {:ok, date} ->
-    "We got a valid date: #{inspect(date)}"
-
-  {:error, reason} ->
-    "Oh no, the date is invalid. Reason: #{inspect(reason)}"
-end
-```
-
-The string passed to `IO.gets/1` must have the same suffix as the
-input name and the returned string is always appended with a newline.
-This is built-in on top of Erlang's IO protocol and built in a way
-that your notebooks can be exported to Elixir scripts and still work!
-
-Create your own inputs to learn more about the available input types
-and options.
-
 ## Autocompletion
 
 Elixir code cells also support autocompletion by
@@ -140,6 +106,86 @@ a new one.
 You can also choose to run inside a *Mix* project (as you would with `iex -S mix`),
 manually *attach* to an existing distributed node, or run your Elixir notebook
 *embedded* within the Livebook source itself.
+
+## Inputs
+
+Livebook supports inputs and you read the input values directly
+from your notebook code, using `IO.gets/1`. Let's see an example
+that expects a date in the format `YYYY-MM-DD` and returns if the
+data is valid or not:
+
+<!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
+
+```elixir
+# Read the date input, which returns something like "2020-02-30\n"
+input = IO.gets("Date: ")
+
+# So we trim the newline from the input value
+trimmed = String.trim(input)
+
+# And then match on the return value
+case Date.from_iso8601(trimmed) do
+  {:ok, date} ->
+    "We got a valid date: #{inspect(date)}"
+
+  {:error, reason} ->
+    "Oh no, the date is invalid. Reason: #{inspect(reason)}"
+end
+```
+
+The string passed to `IO.gets/1` must have the same suffix as the
+input name and the returned string is always appended with a newline.
+This is built-in on top of Erlang's IO protocol and built in a way
+that your notebooks can be exported to Elixir scripts and still work!
+
+Create your own inputs to learn more about the available input types
+and options.
+
+## Evaluation vs compilation
+
+Livebook automatically shows the execution time of each Elixir
+cell on the bottom-right of the cell. After evaluation, the total
+time can be seen by hovering the green dot.
+
+However, it is important to remember that all code outside of
+a module in Elixir is _evaluated_, and therefore executes much
+slower than code defined inside modules, which are _compiled_.
+
+Let's see an example. Run the cell below:
+
+```elixir
+Enum.reduce(1..1_000_000, 0, fn x, acc -> x + acc end)
+```
+
+We are adding all of the elements in a range by iterating them
+one by one. However, executing it likely takes some reasonable
+amount of time, as the invocation of the `Enum.reduce/3` as well
+as the anonymous function argument are evaluated.
+
+However, what if we move the above to inside a function? Let's do
+that:
+
+```elixir
+defmodule Bench do
+  def sum do
+    Enum.reduce(1..1_000_000, 0, fn x, acc -> x + acc end)
+  end
+end
+```
+
+Now let's try running it:
+
+```elixir
+Bench.sum()
+```
+
+The latest cell should execute orders of magnitude faster than
+the previous `Enum.reduce/3` call. While the call `Bench.example()`
+itself is evaluated, the one million iterations of `Enum.reduce/3`
+happen inside a module, which is compiled.
+
+If a notebook is performing slower than expected, consider moving
+the bulk of the execution to inside modules.
 
 ## Running tests
 
