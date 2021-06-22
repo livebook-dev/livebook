@@ -378,8 +378,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_cell_status(:stale, _, _) do
-    render_status_indicator("Stale", "bg-yellow-200", change_indicator: true)
+  defp render_cell_status(:stale, _, evaluation_time_ms) do
+    render_status_indicator("Stale", "bg-yellow-200",
+      change_indicator: true,
+      tooltip: evaluated_label(evaluation_time_ms)
+    )
   end
 
   defp render_cell_status(:aborted, _, _) do
