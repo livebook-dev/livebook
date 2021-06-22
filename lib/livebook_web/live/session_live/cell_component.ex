@@ -309,6 +309,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
+  defp render_output(_socket, {:image, content, mime_type}, id) do
+    live_component(LivebookWeb.Output.ImageComponent,
+      id: id,
+      content: content,
+      mime_type: mime_type
+    )
+  end
+
   defp render_output(_socket, {:error, formatted}, _id) do
     render_error_message_output(formatted)
   end
@@ -378,8 +386,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_cell_status(:stale, _, _) do
-    render_status_indicator("Stale", "bg-yellow-200", change_indicator: true)
+  defp render_cell_status(:stale, _, evaluation_time_ms) do
+    render_status_indicator("Stale", "bg-yellow-200",
+      change_indicator: true,
+      tooltip: evaluated_label(evaluation_time_ms)
+    )
   end
 
   defp render_cell_status(:aborted, _, _) do

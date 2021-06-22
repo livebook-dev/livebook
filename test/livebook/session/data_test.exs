@@ -1003,12 +1003,11 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
-    test "marks the cell as evaluated" do
+    test "marks the cell as ready" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"}
         ])
@@ -1018,8 +1017,34 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{validity_status: :evaluated, evaluation_status: :ready}},
+                cell_infos: %{"c1" => %{evaluation_status: :ready}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "preserves validity status" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          # Evaluate the first cell
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]},
+           %{evaluation_time_ms: 10}},
+          # Start evaluating the second cell
+          {:queue_cell_evaluation, self(), "c2"},
+          # Remove the first cell, marking the second as stale
+          {:delete_cell, self(), "c1"}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, self(), "c2", {:ok, [1, 2, 3]}, %{evaluation_time_ms: 10}}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{validity_status: :stale}}
               }, []} = Data.apply_operation(data, operation)
     end
 
