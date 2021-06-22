@@ -340,7 +340,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-follow="<%= follow %>">
       <div data-template class="hidden">
         <%= for line <- @lines do %>
-          <div><%= line %></div>
+          <%# Add a newline, so that multiple lines can be copied properly %>
+          <div><%= [line, "\n"] %></div>
         <% end %>
       </div>
       <div data-content class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
