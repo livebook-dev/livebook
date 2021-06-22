@@ -76,9 +76,6 @@ defmodule LivebookWeb.Helpers do
     )
     |> Phoenix.HTML.safe_to_string()
     |> String.split("\n")
-    # Keep trailing newline character so that a
-    # copy/paste of the markup retains newlines.
-    |> Enum.map(&[&1, "\n"])
     |> Enum.map(&Phoenix.HTML.raw/1)
   end
 
