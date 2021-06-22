@@ -314,16 +314,6 @@ defmodule Livebook.Evaluator.IOProxy do
   defp chars_from_input("", _count), do: {:eof, ""}
 
   defp chars_from_input(input, count) do
-    case byte_size(input) do
-      size when size >= count ->
-        chars = binary_part(input, 0, count)
-        rest = binary_part(input, count, byte_size(input) - count)
-        {chars, rest}
-
-      input ->
-        {input, ""}
-    end
-
     if byte_size(input) >= count do
       chars = binary_part(input, 0, count)
       rest = binary_part(input, count, byte_size(input) - count)
