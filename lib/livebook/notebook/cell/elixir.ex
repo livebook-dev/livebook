@@ -27,6 +27,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
           | binary()
           # Standalone text block
           | {:text, binary()}
+          # A raw image in the given format.
+          | {:image, content :: binary(), mime_type :: binary()}
           # Vega-Lite graphic
           | {:vega_lite_static, spec :: map()}
           # Vega-Lite graphic with dynamic data

@@ -309,6 +309,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
+  defp render_output(_socket, {:image, content, mime_type}, id) do
+    live_component(LivebookWeb.Output.ImageComponent,
+      id: id,
+      content: content,
+      mime_type: mime_type
+    )
+  end
+
   defp render_output(_socket, {:error, formatted}, _id) do
     render_error_message_output(formatted)
   end
