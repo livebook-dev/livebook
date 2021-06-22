@@ -606,7 +606,6 @@ defmodule Livebook.Session.Data do
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions
     |> set_cell_info!(cell.id,
-      validity_status: :evaluated,
       evaluation_status: :ready,
       evaluation_time_ms: metadata.evaluation_time_ms
     )
@@ -666,7 +665,15 @@ defmodule Livebook.Session.Data do
             data_actions
             |> set!(notebook: Notebook.update_cell(data.notebook, id, &%{&1 | outputs: []}))
             |> update_cell_info!(id, fn info ->
-              %{info | evaluation_status: :evaluating, evaluation_digest: nil}
+              %{
+                info
+                | evaluation_status: :evaluating,
+                  evaluation_digest: nil,
+                  # During evaluation notebook changes may invalidate the cell,
+                  # so we mark it as up-to-date straight away and possibly mark
+                  # it as stale during evaluation
+                  validity_status: :evaluated
+              }
             end)
             |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
             |> add_action({:start_evaluation, cell, section})
