@@ -197,8 +197,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               class="input <%= if(@cell_view.error, do: "input--error") %>"
               name="value"
               spellcheck="false"
-              tabindex="-1">
-<%= @cell_view.value %></textarea>
+              tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
           <% else %>
             <input type="<%= if(@cell_view.input_type == :password, do: "password", else: "text") %>"
               data-element="input"
