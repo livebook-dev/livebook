@@ -131,12 +131,12 @@ defmodule Livebook.Evaluator.IOProxy do
     put_chars(encoding, apply(mod, fun, args), req, state)
   end
 
-  defp io_request({:get_chars, _prompt, count}, state) when count >= 0 do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_chars, prompt, count}, state) when count >= 0 do
+    get_chars(:latin1, prompt, state, count)
   end
 
-  defp io_request({:get_chars, _encoding, _prompt, count}, state) when count >= 0 do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_chars, encoding, prompt, count}, state) when count >= 0 do
+    get_chars(encoding, prompt, state, count)
   end
 
   defp io_request({:get_line, prompt}, state) do
@@ -249,6 +249,28 @@ defmodule Livebook.Evaluator.IOProxy do
     end
   end
 
+  defp get_chars(encoding, prompt, state, count) do
+    prompt = :unicode.characters_to_binary(prompt, encoding, state.encoding)
+
+    case get_input(prompt, state) do
+      input when is_binary(input) ->
+        {chars, rest} = chars_from_input(input, count)
+
+        chars =
+          if is_binary(chars) do
+            :unicode.characters_to_binary(chars, state.encoding, encoding)
+          else
+            chars
+          end
+
+        state = put_in(state.input_buffers[prompt], rest)
+        {chars, state}
+
+      error ->
+        {error, state}
+    end
+  end
+
   defp get_input(prompt, state) do
     Map.get_lazy(state.input_buffers, prompt, fn ->
       request_input(prompt, state)
@@ -286,6 +308,28 @@ defmodule Livebook.Evaluator.IOProxy do
         line = binary_part(input, 0, pos + len)
         rest = binary_part(input, pos + len, size - pos - len)
         {line, rest}
+    end
+  end
+
+  defp chars_from_input("", _count), do: {:eof, ""}
+
+  defp chars_from_input(input, count) do
+    case byte_size(input) do
+      size when size >= count ->
+        chars = binary_part(input, 0, count)
+        rest = binary_part(input, count, byte_size(input) - count)
+        {chars, rest}
+
+      input ->
+        {input, ""}
+    end
+
+    if byte_size(input) >= count do
+      chars = binary_part(input, 0, count)
+      rest = binary_part(input, count, byte_size(input) - count)
+      {chars, rest}
+    else
+      {input, ""}
     end
   end
 
