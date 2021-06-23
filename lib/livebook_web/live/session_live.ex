@@ -489,6 +489,18 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("queue_bound_cells_evaluation", %{"cell_id" => cell_id}, socket) do
+    data = socket.private.data
+
+    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+      for {bound_cell, _} <- Session.Data.bound_cells_with_section(data, cell.id) do
+        Session.queue_cell_evaluation(socket.assigns.session_id, bound_cell.id)
+      end
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     Session.cancel_cell_evaluation(socket.assigns.session_id, cell_id)
 
@@ -851,7 +863,8 @@ defmodule LivebookWeb.SessionLive do
       outputs: cell.outputs,
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
-      evaluation_time_ms: info.evaluation_time_ms
+      evaluation_time_ms: info.evaluation_time_ms,
+      number_of_evaluations: info.number_of_evaluations
     }
   end
 

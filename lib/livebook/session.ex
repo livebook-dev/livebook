@@ -495,8 +495,10 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:evaluation_input, cell_id, reply_to, prompt}, state) do
+    input_cell = Notebook.input_cell_for_prompt(state.data.notebook, cell_id, prompt)
+
     reply =
-      with {:ok, cell} <- Notebook.input_cell_for_prompt(state.data.notebook, cell_id, prompt),
+      with {:ok, cell} <- input_cell,
            :ok <- Cell.Input.validate(cell) do
         {:ok, cell.value <> "\n"}
       else
@@ -504,6 +506,15 @@ defmodule Livebook.Session do
       end
 
     send(reply_to, {:evaluation_input_reply, reply})
+
+    state =
+      case input_cell do
+        {:ok, input_cell} ->
+          handle_operation(state, {:bind_input, self(), cell_id, input_cell.id})
+
+        :error ->
+          state
+      end
 
     {:noreply, state}
   end

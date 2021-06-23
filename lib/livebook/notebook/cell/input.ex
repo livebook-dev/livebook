@@ -6,7 +6,7 @@ defmodule Livebook.Notebook.Cell.Input do
   # It consists of an input that the user may fill
   # and then read during code evaluation.
 
-  defstruct [:id, :metadata, :type, :name, :value]
+  defstruct [:id, :metadata, :type, :name, :value, :reactive]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -16,7 +16,8 @@ defmodule Livebook.Notebook.Cell.Input do
           metadata: Cell.metadata(),
           type: type(),
           name: String.t(),
-          value: String.t()
+          value: String.t(),
+          reactive: boolean()
         }
 
   @type type :: :text | :url | :number | :password
@@ -31,7 +32,8 @@ defmodule Livebook.Notebook.Cell.Input do
       metadata: %{},
       type: :text,
       name: "input",
-      value: ""
+      value: "",
+      reactive: false
     }
   end
 

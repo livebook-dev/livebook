@@ -201,7 +201,9 @@ defmodule Livebook.LiveMarkdown.Import do
       | metadata: metadata,
         type: data["type"] |> String.to_existing_atom(),
         name: data["name"],
-        value: data["value"]
+        value: data["value"],
+        # Use default value for backward compatibility
+        reactive: Map.get(data, "reactive", false)
     }
 
     build_notebook(elems, [cell | cells], sections)

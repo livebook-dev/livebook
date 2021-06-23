@@ -56,7 +56,8 @@ defmodule Livebook.LiveMarkdown.Export do
         livebook_object: :cell_input,
         type: cell.type,
         name: cell.name,
-        value: value
+        value: value,
+        reactive: cell.reactive
       })
 
     "<!-- livebook:#{json} -->"
