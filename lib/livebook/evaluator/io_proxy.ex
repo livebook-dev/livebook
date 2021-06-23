@@ -314,14 +314,25 @@ defmodule Livebook.Evaluator.IOProxy do
   defp chars_from_input("", _count), do: {:eof, ""}
 
   defp chars_from_input(input, count) do
-    if byte_size(input) >= count do
-      chars = binary_part(input, 0, count)
-      rest = binary_part(input, count, byte_size(input) - count)
-      {chars, rest}
+    if byte_size_utf8(input) >= count do
+      chars_part(input, count)
     else
       {input, ""}
     end
   end
+
+  defp chars_part(chars, 0), do: {"", chars}
+
+  defp chars_part(<<head::utf8, tail::binary>>, count) do
+    {chars, rest} = chars_part(tail, count - 1)
+    {<<head::utf8>> <> chars, rest}
+  end
+
+  defp byte_size_utf8(chars), do: byte_size_utf8(chars, 1)
+
+  defp byte_size_utf8(<<>>, size), do: size
+
+  defp byte_size_utf8(<<_h::utf8, t::binary>>, size), do: byte_size_utf8(t, size + 1)
 
   defp io_reply(from, reply_as, reply) do
     send(from, {:io_reply, reply_as, reply})

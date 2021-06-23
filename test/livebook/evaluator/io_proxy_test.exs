@@ -124,12 +124,12 @@ defmodule Livebook.Evaluator.IOProxyTest do
   test "getn/1 return first character", %{io: io} do
     pid =
       spawn_link(fn ->
-        reply_to_input_request(:ref, "name: ", {:ok, "Terry Jeffords\n"}, 1)
+        reply_to_input_request(:ref, "name: ", {:ok, "🐈 test\n"}, 1)
       end)
 
     IOProxy.configure(io, pid, :ref)
 
-    assert IO.getn(io, "name: ") == "T"
+    assert IO.getn(io, "name: ") == "🐈"
   end
 
   test "getn/2 returns the number of defined characters ", %{io: io} do
