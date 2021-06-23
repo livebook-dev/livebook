@@ -7,7 +7,7 @@ programming language. We will explore both basic and advanced
 concepts to implement our own version of [the Portal
 game](http://en.wikipedia.org/wiki/Portal_(video_game)) to
 transfer data across notebooks using Elixir's distribution
-capabalities.
+capabilities.
 
 For a more structured introduction to the language, see [Elixir's
 Getting Started guide](https://elixir-lang.org/getting-started/introduction.html)
@@ -558,7 +558,7 @@ Portal.close(portal)
 ```
 
 We have made some good progress in our implementation, so now let's work
-a bit on the presentation. Currently the Portal being printed as a struct:
+a bit on the presentation. Currently, the Portal is printed as a struct:
 `%Portal{left: :orange, right: :blue}`. It would be nice if we actually
 had a printed representation of the portal transfer, allowing us to see
 the portal processes as we push data.
@@ -778,8 +778,8 @@ blue = {:blue, other_node}
 Portal.Door.get(blue)
 ```
 
-It works! We could successlly read something from the other node. Now,
-let's shoot a yellow port on this node and start a transfer between them:
+It works! We could successfully read something from the other node. Now,
+let's shoot a yellow portal on this node and start a transfer between them:
 
 ```elixir
 Portal.shoot(:yellow)
