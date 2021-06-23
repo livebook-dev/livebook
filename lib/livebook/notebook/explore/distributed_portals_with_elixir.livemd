@@ -558,7 +558,7 @@ Portal.close(portal)
 ```
 
 We have made some good progress in our implementation, so now let's work
-a bit on the presentation. Currently, the Portal is being printed as a struct:
+a bit on the presentation. Currently, the Portal is printed as a struct:
 `%Portal{left: :orange, right: :blue}`. It would be nice if we actually
 had a printed representation of the portal transfer, allowing us to see
 the portal processes as we push data.
