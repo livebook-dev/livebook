@@ -411,7 +411,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ## Section 1
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"pass","reactive":false,"type":"password","value":""} -->
+    <!-- livebook:{"livebook_object":"cell_input","name":"pass","type":"password","value":""} -->
     """
 
     document = Export.notebook_to_markdown(notebook)

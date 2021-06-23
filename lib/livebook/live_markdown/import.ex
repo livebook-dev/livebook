@@ -202,7 +202,7 @@ defmodule Livebook.LiveMarkdown.Import do
         type: data["type"] |> String.to_existing_atom(),
         name: data["name"],
         value: data["value"],
-        # Use default value for backward compatibility
+        # Optional flags
         reactive: Map.get(data, "reactive", false)
     }
 
