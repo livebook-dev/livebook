@@ -37,7 +37,12 @@ From time to time, we also publish some videos for new Livebook releases:
 We provide several distinct methods of running Livebook,
 pick the one that best fits your use case.
 
-You will need [Elixir v1.12](https://elixir-lang.org/install.html) or later.
+You will need [Elixir v1.12](https://elixir-lang.org/install.html) or later as well as the following Erlang applications: `inets`, `os_mon`, `runtime-tools`, `ssl`
+
+On Ubuntu, these Erlang applications can be installed as follows:
+```shell
+sudo apt install erlang-inets erlang-os-mon, erlang-runtime-tools, erlang-ssl
+```
 
 ### Escript
 
