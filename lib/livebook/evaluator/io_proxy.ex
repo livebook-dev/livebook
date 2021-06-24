@@ -329,9 +329,9 @@ defmodule Livebook.Evaluator.IOProxy do
     {<<head::utf8>> <> chars, rest}
   end
 
-  defp chars_part(<<head, tail::binary>>, :latin1, count) do
-    {chars, rest} = chars_part(tail, :latin1, count - 1)
-    {<<head>> <> chars, rest}
+  defp chars_part(input, :latin1, count) do
+    <<chars::binary-size(count), rest::binary>> = input
+    {chars, rest}
   end
 
   defp byte_size_utf8(chars), do: byte_size_utf8(chars, 1)
