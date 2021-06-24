@@ -19,7 +19,7 @@ defmodule LivebookWeb.Output.TextComponent do
         id="virtualized-text-<%= @id %>-content"
         phx-update="ignore"></div>
       <div class="absolute right-4 top-0 z-10">
-        <button class="icon-button bg-white" data-clipboard>
+        <button class="icon-button bg-gray-100" data-clipboard>
           <%= remix_icon("clipboard-line", class: "text-lg") %>
         </button>
       </div>
