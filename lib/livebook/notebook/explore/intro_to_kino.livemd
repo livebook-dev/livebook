@@ -10,7 +10,7 @@ and interact with it.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.1.2"},
+  {:kino, "~> 0.1.3"},
   {:vega_lite, "~> 0.1.0"}
 ])
 ```
@@ -19,7 +19,7 @@ Mix.install([
 alias VegaLite, as: Vl
 ```
 
-## VegaLite
+## Kino.VegaLite
 
 In the [Plotting with VegaLite](/explore/notebooks/intro-to-vega-lite) notebook we show
 numerous ways in which you can visualize your data. However, all of the plots
@@ -111,6 +111,43 @@ end
 
 Having the rows inserted, click on the "Refetch" icon in the table output
 above to see them.
+
+## Kino.DataTable
+
+When it comes to tables, we are not limited to ETS! You can render
+arbitrary tabular data using `Kino.DataTable.start/1`, let's have
+a look:
+
+```elixir
+data = [
+  %{id: 1, name: "Elixir", website: "https://elixir-lang.org"},
+  %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
+]
+
+Kino.DataTable.start(data)
+```
+
+The data must be an enumerable, with records being maps,
+keyword lists or tuples.
+
+Now, let's get some more realistic data:
+
+```elixir
+processes = Process.list() |> Enum.map(&Process.info/1)
+```
+
+We can easily pick only the data keys that are relevant
+for us:
+
+```elixir
+Kino.DataTable.start(
+  processes,
+  keys: [:registered_name, :initial_call, :reductions, :stack_size]
+)
+```
+
+We can sort by the number of reductions to identify the
+most busy processes!
 
 ## Kino.render/1
 
