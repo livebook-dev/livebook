@@ -156,7 +156,7 @@
   /* Toggleable menu */
 
   .menu {
-    @apply absolute right-0 z-20 rounded-lg bg-white flex flex-col py-2;
+    @apply absolute right-0 z-30 rounded-lg bg-white flex flex-col py-2;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 
