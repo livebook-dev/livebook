@@ -68,6 +68,13 @@ Elixir keeps escripts to your [$PATH](https://en.wikipedia.org/wiki/PATH_(variab
 If you installed Elixir with `asdf`, you'll need to run `asdf reshim elixir`
 once the escript is built.
 
+To try out features from the main branch you can alternatively
+install the escript directly from GitHub like this:
+
+```shell
+mix escript.install github elixir-nx/livebook
+```
+
 ### Docker
 
 Running Livebook using Docker is a great option for cloud deployments
@@ -87,6 +94,10 @@ docker run -p 8080:8080 -u $(id -u):$(id -g) -v <LOCAL_DIR>:/data livebook/liveb
 # for all options see the dedicated "Environment variables" section below
 docker run -p 8080:8080 -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
 ```
+
+To try out features from the main branch you can alternatively
+use the `livebook/livebook:edge` image.
+See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
 
 ### Mix
 
