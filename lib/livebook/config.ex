@@ -177,6 +177,10 @@ defmodule Livebook.Config do
             abort!(~s{"#{path}" does not point to a Mix project})
         end
 
+      "attached:" <> config ->
+        {node, cookie} = parse_connection_config!(config)
+        {Livebook.Runtime.Attached, [node, cookie]}
+
       other ->
         abort!(
           ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
@@ -193,6 +197,19 @@ defmodule Livebook.Config do
     else
       :error
     end
+  end
+
+  defp parse_connection_config!(config) do
+    [node, cookie] = String.split(config, ":", parts: 2)
+
+    unless node =~ "@" do
+      abort!(~s{expected node to include hostname, got: #{inspect(node)}})
+    end
+
+    node = String.to_atom(node)
+    cookie = String.to_atom(cookie)
+
+    {node, cookie}
   end
 
   @doc """
