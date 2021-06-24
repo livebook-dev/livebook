@@ -94,7 +94,7 @@ by pressing <kbd>?</kbd>.
 
 ## Next steps
 
-That's our quick your intro to Livebook! Where to go next?
+That's our quick intro to Livebook! Where to go next?
 
 * If you are not familiar with Elixir, there is a fast paced
   introduction to the language in the [Distributed portals
