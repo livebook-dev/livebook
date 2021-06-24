@@ -69,7 +69,8 @@ defmodule Livebook.MixProject do
   defp escript do
     [
       main_module: LivebookCLI,
-      app: nil
+      app: nil,
+      emu_args: "-proto_dist inet6_tcp"
     ]
   end
 
