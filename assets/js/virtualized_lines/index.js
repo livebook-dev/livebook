@@ -23,6 +23,8 @@ import { getLineHeight } from "../lib/utils";
  *
  *   * one annotated with `data-content` where the visible elements are rendered,
  *     it should contain any styling relevant for the container
+ *
+ * Also a `data-clipboard` child button is used for triggering copy-to-clipboard.
  */
 const VirtualizedLines = {
   mounted() {
