@@ -254,14 +254,7 @@ defmodule Livebook.Evaluator.IOProxy do
 
     case get_input(prompt, state) do
       input when is_binary(input) ->
-        {chars, rest} = chars_from_input(input, count)
-
-        chars =
-          if is_binary(chars) do
-            :unicode.characters_to_binary(chars, state.encoding, encoding)
-          else
-            chars
-          end
+        {chars, rest} = chars_from_input(input, encoding, count)
 
         state = put_in(state.input_buffers[prompt], rest)
         {chars, state}
@@ -311,21 +304,34 @@ defmodule Livebook.Evaluator.IOProxy do
     end
   end
 
-  defp chars_from_input("", _count), do: {:eof, ""}
+  defp chars_from_input("", _, _count), do: {:eof, ""}
 
-  defp chars_from_input(input, count) do
+  defp chars_from_input(input, :unicode, count) do
     if byte_size_utf8(input) >= count do
-      chars_part(input, count)
+      chars_part(input, :unicode, count)
     else
       {input, ""}
     end
   end
 
-  defp chars_part(chars, 0), do: {"", chars}
+  defp chars_from_input(input, :latin1, count) do
+    if byte_size(input) >= count do
+      chars_part(input, :latin1, count)
+    else
+      {input, ""}
+    end
+  end
 
-  defp chars_part(<<head::utf8, tail::binary>>, count) do
-    {chars, rest} = chars_part(tail, count - 1)
+  defp chars_part(chars, _, 0), do: {"", chars}
+
+  defp chars_part(<<head::utf8, tail::binary>>, :unicode, count) do
+    {chars, rest} = chars_part(tail, :unicode, count - 1)
     {<<head::utf8>> <> chars, rest}
+  end
+
+  defp chars_part(<<head, tail::binary>>, :latin1, count) do
+    {chars, rest} = chars_part(tail, :latin1, count - 1)
+    {<<head>> <> chars, rest}
   end
 
   defp byte_size_utf8(chars), do: byte_size_utf8(chars, 1)
