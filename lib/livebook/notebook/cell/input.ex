@@ -64,4 +64,20 @@ defmodule Livebook.Notebook.Cell.Input do
       _ -> {:error, "not a valid number"}
     end
   end
+
+  @doc """
+  Checks if the input changed in terms of content.
+  """
+  @spec invalidated?(t(), t()) :: boolean()
+  def invalidated?(cell, prev_cell) do
+    cell.value != prev_cell.value or cell.name != prev_cell.name
+  end
+
+  @doc """
+  Checks if the input change should trigger reactive update.
+  """
+  @spec reactive_update?(t(), t()) :: boolean()
+  def reactive_update?(cell, prev_cell) do
+    cell.reactive and cell.value != prev_cell.value and validate(cell) == :ok
+  end
 end

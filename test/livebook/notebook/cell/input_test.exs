@@ -46,4 +46,50 @@ defmodule Livebook.Notebook.Cell.InputText do
       assert Input.validate(input) == {:error, "not a valid number"}
     end
   end
+
+  describe "invalidated?/2" do
+    test "returns false if only the type changes" do
+      input = %{Input.new() | type: :text}
+      updated_input = %{input | type: :url}
+
+      refute Input.invalidated?(updated_input, input)
+    end
+
+    test "returns true if the name changes" do
+      input = %{Input.new() | name: "Name"}
+      updated_input = %{input | name: "Full name"}
+
+      assert Input.invalidated?(updated_input, input)
+    end
+
+    test "returns true if the value changes" do
+      input = %{Input.new() | value: "Jake Peralta"}
+      updated_input = %{input | value: "Amy Santiago"}
+
+      assert Input.invalidated?(updated_input, input)
+    end
+  end
+
+  describe "reactive_change?/2" do
+    test "returns false if the input is not reactive" do
+      input = %{Input.new() | reactive: false, value: "Jake Peralta"}
+      updated_input = %{input | value: "Amy Santiago"}
+
+      refute Input.reactive_update?(updated_input, input)
+    end
+
+    test "returns true if the input is reactive and value changes" do
+      input = %{Input.new() | reactive: true, value: "Jake Peralta"}
+      updated_input = %{input | value: "Amy Santiago"}
+
+      assert Input.reactive_update?(updated_input, input)
+    end
+
+    test "returns false if the new value is invalid" do
+      input = %{Input.new() | reactive: true, type: :number, value: "10"}
+      updated_input = %{input | value: "invalid"}
+
+      refute Input.reactive_update?(updated_input, input)
+    end
+  end
 end

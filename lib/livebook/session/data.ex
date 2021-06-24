@@ -860,14 +860,8 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
 
-  defp maybe_invalidate_bound_cells({data, _} = data_actions, cell, prev_cell) do
-    invalidates_bound_cells? =
-      case cell do
-        %Cell.Input{} -> cell.value != prev_cell.value or cell.name != prev_cell.name
-        _ -> false
-      end
-
-    if invalidates_bound_cells? do
+  defp maybe_invalidate_bound_cells({data, _} = data_actions, %Cell.Input{} = cell, prev_cell) do
+    if Cell.Input.invalidated?(cell, prev_cell) do
       bound_cells = bound_cells_with_section(data, cell.id)
 
       data_actions
@@ -880,17 +874,10 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp maybe_queue_bound_cells({data, _} = data_actions, cell, prev_cell) do
-    queue_bound_cells? =
-      case cell do
-        %Cell.Input{} ->
-          cell.reactive and cell.value != prev_cell.value and Cell.Input.validate(cell) == :ok
+  defp maybe_invalidate_bound_cells(data_actions, _cell, _prev_cell), do: data_actions
 
-        _ ->
-          false
-      end
-
-    if queue_bound_cells? do
+  defp maybe_queue_bound_cells({data, _} = data_actions, %Cell.Input{} = cell, prev_cell) do
+    if Cell.Input.reactive_update?(cell, prev_cell) do
       bound_cells = bound_cells_with_section(data, cell.id)
 
       data_actions
@@ -904,6 +891,8 @@ defmodule Livebook.Session.Data do
       data_actions
     end
   end
+
+  defp maybe_queue_bound_cells(data_actions, _cell, _prev_cell), do: data_actions
 
   defp set_runtime(data_actions, prev_data, runtime) do
     {data, _} = data_actions = set!(data_actions, runtime: runtime)
