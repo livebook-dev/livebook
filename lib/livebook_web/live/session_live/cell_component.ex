@@ -335,9 +335,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     ~L"""
     <div id="<%= @id %>"
+      class="relative"
       phx-hook="VirtualizedLines"
       data-max-height="300"
       data-follow="<%= follow %>">
+      <div class="absolute right-4 top-0 z-10">
+        <button class="icon-button bg-white" data-clipboard>
+          <%= remix_icon("clipboard-line", class: "text-lg") %>
+        </button>
+      </div>
       <div data-template class="hidden">
         <%= for line <- @lines do %>
           <%# Add a newline, so that multiple lines can be copied properly %>

@@ -62,6 +62,18 @@ const VirtualizedLines = {
       this.state.contentElement,
       config
     );
+
+    this.el
+      .querySelector("[data-clipboard]")
+      .addEventListener("click", (event) => {
+        const content = Array.from(this.state.templateElement.children)
+          .map((child) => child.innerText)
+          .join("");
+
+        if ("clipboard" in navigator) {
+          navigator.clipboard.writeText(content);
+        }
+      });
   },
 
   updated() {
