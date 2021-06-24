@@ -5,11 +5,13 @@ defmodule Livebook.Notebook do
   #
   # A notebook is just the representation and roughly
   # maps to a file that the user can edit.
+  #
   # A notebook *session* is a living process that holds a specific
   # notebook instance and allows users to collaboratively apply
   # changes to this notebook.
   #
-  # A notebook is divided into a set of isolated *sections*.
+  # A notebook is divided into a number of *sections*, each
+  # containing a number of *cells*.
 
   defstruct [:name, :version, :sections, :metadata]
 
