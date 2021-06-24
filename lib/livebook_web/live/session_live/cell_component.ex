@@ -286,15 +286,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp render_output(_socket, text, id) when is_binary(text) do
-    text
     # Captured output usually has a trailing newline that we can ignore,
     # because each line is itself an HTML block anyway.
-    |> String.replace_suffix("\n", "")
-    |> render_virtualized_output(id, follow: true)
+    text = String.replace_suffix(text, "\n", "")
+    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: true)
   end
 
   defp render_output(_socket, {:text, text}, id) do
-    render_virtualized_output(text, id)
+    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
+  end
+
+  defp render_output(_socket, {:image, content, mime_type}, id) do
+    live_component(LivebookWeb.Output.ImageComponent,
+      id: id,
+      content: content,
+      mime_type: mime_type
+    )
   end
 
   defp render_output(_socket, {:vega_lite_static, spec}, id) do
@@ -315,14 +322,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_output(_socket, {:image, content, mime_type}, id) do
-    live_component(LivebookWeb.Output.ImageComponent,
-      id: id,
-      content: content,
-      mime_type: mime_type
-    )
-  end
-
   defp render_output(_socket, {:error, formatted}, _id) do
     render_error_message_output(formatted)
   end
@@ -332,29 +331,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     Unknown output format: #{inspect(output)}. If you're using Kino,
     you may want to update Kino and Livebook to the latest version.
     """)
-  end
-
-  defp render_virtualized_output(text, id, opts \\ []) do
-    follow = Keyword.get(opts, :follow, false)
-    lines = ansi_to_html_lines(text)
-    assigns = %{lines: lines, id: id, follow: follow}
-
-    ~L"""
-    <div id="<%= @id %>"
-      phx-hook="VirtualizedLines"
-      data-max-height="300"
-      data-follow="<%= follow %>">
-      <div data-template class="hidden">
-        <%= for line <- @lines do %>
-          <%# Add a newline, so that multiple lines can be copied properly %>
-          <div><%= [line, "\n"] %></div>
-        <% end %>
-      </div>
-      <div data-content class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
-        id="<%= @id %>-content"
-        phx-update="ignore"></div>
-    </div>
-    """
   end
 
   defp render_error_message_output(message) do
