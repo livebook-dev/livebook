@@ -56,7 +56,9 @@ defmodule Livebook.Session.Data do
           deltas: list(Delta.t()),
           revision_by_client_pid: %{pid() => cell_revision()},
           evaluation_digest: String.t() | nil,
-          evaluation_time_ms: integer() | nil
+          evaluation_time_ms: integer() | nil,
+          number_of_evaluations: non_neg_integer(),
+          bound_to_input_ids: MapSet.t(Cell.id())
         }
 
   @type cell_revision :: non_neg_integer()
@@ -87,6 +89,7 @@ defmodule Livebook.Session.Data do
           | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), term()}
+          | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_cell_id :: Cell.id()}
           | {:reflect_evaluation_failure, pid()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
           | {:set_notebook_name, pid(), String.t()}
@@ -307,6 +310,20 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:bind_input, _client_pid, id, input_id}) do
+    with {:ok, %Cell.Elixir{} = cell, _section} <-
+           Notebook.fetch_cell_and_section(data.notebook, id),
+         {:ok, %Cell.Input{} = input_cell, _section} <-
+           Notebook.fetch_cell_and_section(data.notebook, input_id) do
+      data
+      |> with_actions()
+      |> bind_input(cell, input_cell)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   def apply_operation(data, {:reflect_evaluation_failure, _client_pid}) do
     data
     |> with_actions()
@@ -421,21 +438,15 @@ defmodule Livebook.Session.Data do
   def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          true <- Enum.all?(attrs, fn {key, _} -> Map.has_key?(cell, key) end) do
-      invalidates_dependent =
-        case cell do
-          %Cell.Input{} -> Map.has_key?(attrs, :value) or Map.has_key?(attrs, :name)
-          _ -> false
-        end
-
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
-      |> then(fn data_actions ->
-        if invalidates_dependent do
-          mark_dependent_cells_as_stale(data_actions, cell)
-        else
-          data_actions
-        end
+      |> then(fn {data, _} = data_actions ->
+        {:ok, updated_cell, _} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
+
+        data_actions
+        |> maybe_invalidate_bound_cells(updated_cell, cell)
+        |> maybe_queue_bound_cells(updated_cell, cell)
       end)
       |> set_dirty()
       |> wrap_ok()
@@ -548,11 +559,14 @@ defmodule Livebook.Session.Data do
   defp queue_cell_evaluation(data_actions, cell, section) do
     data_actions
     |> update_section_info!(section.id, fn section ->
-      %{section | evaluation_queue: section.evaluation_queue ++ [cell.id]}
+      %{section | evaluation_queue: append_new(section.evaluation_queue, cell.id)}
     end)
-    |> set_cell_info!(cell.id,
-      evaluation_status: :queued
-    )
+    |> update_cell_info!(cell.id, fn info ->
+      update_in(info.evaluation_status, fn
+        :ready -> :queued
+        other -> other
+      end)
+    end)
   end
 
   defp unqueue_cell_evaluation(data_actions, cell, section) do
@@ -605,20 +619,20 @@ defmodule Livebook.Session.Data do
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions
-    |> set_cell_info!(cell.id,
-      evaluation_status: :ready,
-      evaluation_time_ms: metadata.evaluation_time_ms
-    )
+    |> update_cell_info!(cell.id, fn info ->
+      %{
+        info
+        | evaluation_status: :ready,
+          evaluation_time_ms: metadata.evaluation_time_ms,
+          number_of_evaluations: info.number_of_evaluations + 1
+      }
+    end)
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
-    child_cells =
-      data.notebook
-      |> Notebook.child_cells_with_section(cell.id)
-      |> Enum.filter(fn {cell, _} -> is_struct(cell, Cell.Elixir) end)
-
-    mark_cells_as_stale(data_actions, child_cells)
+    dependent = dependent_cells_with_section(data, cell.id)
+    mark_cells_as_stale(data_actions, dependent)
   end
 
   defp mark_cells_as_stale({data, _} = data_actions, cells_with_section) do
@@ -672,7 +686,8 @@ defmodule Livebook.Session.Data do
                   # During evaluation notebook changes may invalidate the cell,
                   # so we mark it as up-to-date straight away and possibly mark
                   # it as stale during evaluation
-                  validity_status: :evaluated
+                  validity_status: :evaluated,
+                  bound_to_input_ids: MapSet.new()
               }
             end)
             |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
@@ -684,6 +699,13 @@ defmodule Livebook.Session.Data do
         end
       end)
     end
+  end
+
+  defp bind_input(data_actions, cell, input_cell) do
+    data_actions
+    |> update_cell_info!(cell.id, fn info ->
+      %{info | bound_to_input_ids: MapSet.put(info.bound_to_input_ids, input_cell.id)}
+    end)
   end
 
   defp clear_evaluation({data, _} = data_actions) do
@@ -730,8 +752,8 @@ defmodule Livebook.Session.Data do
   end
 
   defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell) do
-    dependent_cells = Notebook.child_cells_with_section(data.notebook, cell.id)
-    unqueue_cells_evaluation(data_actions, dependent_cells)
+    dependent = dependent_cells_with_section(data, cell.id)
+    unqueue_cells_evaluation(data_actions, dependent)
   end
 
   defp unqueue_cells_evaluation({data, _} = data_actions, cells_with_section) do
@@ -838,6 +860,40 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
 
+  defp maybe_invalidate_bound_cells({data, _} = data_actions, %Cell.Input{} = cell, prev_cell) do
+    if Cell.Input.invalidated?(cell, prev_cell) do
+      bound_cells = bound_cells_with_section(data, cell.id)
+
+      data_actions
+      |> reduce(bound_cells, fn data_actions, {bound_cell, section} ->
+        dependent = dependent_cells_with_section(data, bound_cell.id)
+        mark_cells_as_stale(data_actions, [{bound_cell, section} | dependent])
+      end)
+    else
+      data_actions
+    end
+  end
+
+  defp maybe_invalidate_bound_cells(data_actions, _cell, _prev_cell), do: data_actions
+
+  defp maybe_queue_bound_cells({data, _} = data_actions, %Cell.Input{} = cell, prev_cell) do
+    if Cell.Input.reactive_update?(cell, prev_cell) do
+      bound_cells = bound_cells_with_section(data, cell.id)
+
+      data_actions
+      |> reduce(bound_cells, fn data_actions, {bound_cell, section} ->
+        data_actions
+        |> queue_prerequisite_cells_evaluation(bound_cell)
+        |> queue_cell_evaluation(bound_cell, section)
+      end)
+      |> maybe_evaluate_queued()
+    else
+      data_actions
+    end
+  end
+
+  defp maybe_queue_bound_cells(data_actions, _cell, _prev_cell), do: data_actions
+
   defp set_runtime(data_actions, prev_data, runtime) do
     {data, _} = data_actions = set!(data_actions, runtime: runtime)
 
@@ -872,6 +928,14 @@ defmodule Livebook.Session.Data do
     {data, actions ++ [action]}
   end
 
+  defp append_new(list, item) do
+    if item in list do
+      list
+    else
+      list ++ [item]
+    end
+  end
+
   defp new_section_info() do
     %{
       evaluating_cell_id: nil,
@@ -889,7 +953,9 @@ defmodule Livebook.Session.Data do
       validity_status: :fresh,
       evaluation_status: :ready,
       evaluation_digest: nil,
-      evaluation_time_ms: nil
+      evaluation_time_ms: nil,
+      number_of_evaluations: 0,
+      bound_to_input_ids: MapSet.new()
     }
   end
 
@@ -950,5 +1016,24 @@ defmodule Livebook.Session.Data do
   def get_evaluating_cell_id(data, section_id) do
     info = data.section_infos[section_id]
     info && info.evaluating_cell_id
+  end
+
+  @doc """
+  Find child cells bound to the given input cell.
+  """
+  @spec bound_cells_with_section(t(), Cell.id()) :: list(Cell.t())
+  def bound_cells_with_section(data, cell_id) do
+    data
+    |> dependent_cells_with_section(cell_id)
+    |> Enum.filter(fn {child_cell, _} ->
+      info = data.cell_infos[child_cell.id]
+      MapSet.member?(info.bound_to_input_ids, cell_id)
+    end)
+  end
+
+  defp dependent_cells_with_section(data, cell_id) do
+    data.notebook
+    |> Notebook.child_cells_with_section(cell_id)
+    |> Enum.filter(fn {cell, _} -> is_struct(cell, Cell.Elixir) end)
   end
 end

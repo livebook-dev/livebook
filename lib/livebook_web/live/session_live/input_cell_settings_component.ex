@@ -12,6 +12,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       |> assign(assigns)
       |> assign_new(:name, fn -> cell.name end)
       |> assign_new(:type, fn -> cell.type end)
+      |> assign_new(:reactive, fn -> cell.reactive end)
 
     {:ok, socket}
   end
@@ -24,12 +25,18 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         Cell settings
       </h3>
       <form phx-submit="save" phx-change="validate" phx-target="<%= @myself %>">
-        <div class="flex space-x-8 items-center">
-          <%= render_select("type", [number: "Number", password: "Password", text: "Text", url: "URL"], @type) %>
-        </div>
-        <div class="mt-4">
-          <div class="input-label">Name</div>
-          <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
+        <div class="flex flex-col space-y-6">
+          <div>
+            <div class="input-label">Type</div>
+            <%= render_select("type", [number: "Number", password: "Password", text: "Text", url: "URL"], @type) %>
+          </div>
+          <div>
+            <div class="input-label">Name</div>
+            <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
+          </div>
+          <div>
+            <%= render_switch("reactive", @reactive, "Reactive (reevaluates dependent cells on change)") %>
+          </div>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
@@ -44,15 +51,22 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"name" => name, "type" => type}, socket) do
-    type = String.to_existing_atom(type)
-    {:noreply, assign(socket, name: name, type: type)}
+  def handle_event("validate", params, socket) do
+    attrs = params_to_attrs(params)
+    {:noreply, assign(socket, attrs)}
   end
 
-  def handle_event("save", %{"name" => name, "type" => type}, socket) do
-    type = String.to_existing_atom(type)
-    attrs = %{name: name, type: type}
+  def handle_event("save", params, socket) do
+    attrs = params_to_attrs(params)
     Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, attrs)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+  end
+
+  defp params_to_attrs(params) do
+    name = params["name"]
+    type = params["type"] |> String.to_existing_atom()
+    reactive = Map.has_key?(params, "reactive")
+
+    %{name: name, type: type, reactive: reactive}
   end
 end

@@ -6,7 +6,7 @@ defmodule Livebook.Notebook.Cell.Input do
   # It consists of an input that the user may fill
   # and then read during code evaluation.
 
-  defstruct [:id, :metadata, :type, :name, :value]
+  defstruct [:id, :metadata, :type, :name, :value, :reactive]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -16,7 +16,8 @@ defmodule Livebook.Notebook.Cell.Input do
           metadata: Cell.metadata(),
           type: type(),
           name: String.t(),
-          value: String.t()
+          value: String.t(),
+          reactive: boolean()
         }
 
   @type type :: :text | :url | :number | :password
@@ -31,7 +32,8 @@ defmodule Livebook.Notebook.Cell.Input do
       metadata: %{},
       type: :text,
       name: "input",
-      value: ""
+      value: "",
+      reactive: false
     }
   end
 
@@ -61,5 +63,21 @@ defmodule Livebook.Notebook.Cell.Input do
       {_number, ""} -> :ok
       _ -> {:error, "not a valid number"}
     end
+  end
+
+  @doc """
+  Checks if the input changed in terms of content.
+  """
+  @spec invalidated?(t(), t()) :: boolean()
+  def invalidated?(cell, prev_cell) do
+    cell.value != prev_cell.value or cell.name != prev_cell.name
+  end
+
+  @doc """
+  Checks if the input change should trigger reactive update.
+  """
+  @spec reactive_update?(t(), t()) :: boolean()
+  def reactive_update?(cell, prev_cell) do
+    cell.reactive and cell.value != prev_cell.value and validate(cell) == :ok
   end
 end

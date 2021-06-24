@@ -186,7 +186,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
       </div>
       <div>
-        <form phx-change="set_cell_value" onsubmit="return false">
+        <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
           <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
           <div class="input-label">
             <%= @cell_view.name %>
@@ -196,6 +196,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             class="input <%= if(@cell_view.error, do: "input--error") %>"
             name="value"
             value="<%= @cell_view.value %>"
+            phx-debounce="300"
             spellcheck="false"
             autocomplete="off"
             tabindex="-1" />
@@ -224,7 +225,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= render_cell_status(@cell_view.validity_status, @cell_view.evaluation_status, @cell_view.evaluation_time_ms) %>
+          <%= render_cell_status(
+                @cell_view.validity_status,
+                @cell_view.evaluation_status,
+                @cell_view.evaluation_time_ms,
+                "cell-#{@cell_view.id}-evaluation#{@cell_view.number_of_evaluations}"
+              ) %>
         </div>
       <% end %>
     </div>
@@ -359,13 +365,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell_status(cell_view, evaluation_status, evaluation_time_ms)
+  defp render_cell_status(cell_view, evaluation_status, evaluation_time_ms, evaluation_id)
 
-  defp render_cell_status(_, :evaluating, _) do
+  defp render_cell_status(_, :evaluating, _, evaluation_id) do
     timer =
       content_tag(:span, nil,
         phx_hook: "Timer",
-        id: "evaluating-cell-timer",
+        # Make sure each evaluation gets its own timer
+        id: "#{evaluation_id}-timer",
         phx_update: "ignore",
         class: "font-mono"
       )
@@ -376,29 +383,29 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_cell_status(_, :queued, _) do
+  defp render_cell_status(_, :queued, _, _) do
     render_status_indicator("Queued", "bg-gray-500", animated_circle_class: "bg-gray-400")
   end
 
-  defp render_cell_status(:evaluated, _, evaluation_time_ms) do
+  defp render_cell_status(:evaluated, _, evaluation_time_ms, _) do
     render_status_indicator("Evaluated", "bg-green-400",
       change_indicator: true,
       tooltip: evaluated_label(evaluation_time_ms)
     )
   end
 
-  defp render_cell_status(:stale, _, evaluation_time_ms) do
+  defp render_cell_status(:stale, _, evaluation_time_ms, _) do
     render_status_indicator("Stale", "bg-yellow-200",
       change_indicator: true,
       tooltip: evaluated_label(evaluation_time_ms)
     )
   end
 
-  defp render_cell_status(:aborted, _, _) do
+  defp render_cell_status(:aborted, _, _, _) do
     render_status_indicator("Aborted", "bg-red-400")
   end
 
-  defp render_cell_status(_, _, _), do: nil
+  defp render_cell_status(_, _, _, _), do: nil
 
   defp render_status_indicator(element, circle_class, opts \\ []) do
     assigns = %{
