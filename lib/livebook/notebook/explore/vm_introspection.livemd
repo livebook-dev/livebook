@@ -14,7 +14,7 @@ so let's add `:vega_lite` and `:kino` for that.
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.0"},
-  {:kino, "~> 0.1.1"}
+  {:kino, "~> 0.2.0"}
 ])
 ```
 
@@ -243,7 +243,7 @@ widget =
     |> Vl.encode_repeat(:y, :layer, type: :quantitative, title: "Memory usage (MB)")
     |> Vl.encode(:color, datum: [repeat: :layer], type: :nominal)
   )
-  |> Kino.VegaLite.start()
+  |> Kino.VegaLite.new()
   |> Kino.render()
 
 Kino.VegaLite.periodically(widget, 200, 1, fn i ->

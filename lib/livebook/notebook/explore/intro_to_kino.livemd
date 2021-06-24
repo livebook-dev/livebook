@@ -10,7 +10,7 @@ and interact with it.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.1.3"},
+  {:kino, "~> 0.2.0"},
   {:vega_lite, "~> 0.1.0"}
 ])
 ```
@@ -27,7 +27,7 @@ there are static.
 
 Using Kino, we can dynamically stream data to the plot, so that it keeps updating!
 To do that, all you need is a regular VegaLite specification that you then pass
-to `Kino.VegaLite.start/1`. You don't have to specify any data up-front.
+to `Kino.VegaLite.new/1`. You don't have to specify any data up-front.
 
 ```elixir
 widget =
@@ -35,7 +35,7 @@ widget =
   |> Vl.mark(:line)
   |> Vl.encode_field(:x, "x", type: :quantitative)
   |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.start()
+  |> Kino.VegaLite.new()
 ```
 
 Then you can push data to the plot widget at any point and see it update dynamically:
@@ -71,7 +71,7 @@ widget =
   |> Vl.mark(:line)
   |> Vl.encode_field(:x, "x", type: :quantitative)
   |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.start()
+  |> Kino.VegaLite.new()
   |> Kino.render()
 
 # Add a callback to run every 25ms
@@ -86,12 +86,12 @@ end)
 
 ## Kino.ETS
 
-You can use `Kino.ETS.start/1` to render ETS tables and easily
+You can use `Kino.ETS.new/1` to render ETS tables and easily
 browse their contents. Let's first create our own table:
 
 ```elixir
 tid = :ets.new(:users, [:set, :public])
-Kino.ETS.start(tid)
+Kino.ETS.new(tid)
 ```
 
 In fact, Livebook automatically recognises an ETS table and
@@ -115,7 +115,7 @@ above to see them.
 ## Kino.DataTable
 
 When it comes to tables, we are not limited to ETS! You can render
-arbitrary tabular data using `Kino.DataTable.start/1`, let's have
+arbitrary tabular data using `Kino.DataTable.new/1`, let's have
 a look:
 
 ```elixir
@@ -124,7 +124,7 @@ data = [
   %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
 ]
 
-Kino.DataTable.start(data)
+Kino.DataTable.new(data)
 ```
 
 The data must be an enumerable, with records being maps,
@@ -140,7 +140,7 @@ We can easily pick only the data keys that are relevant
 for us:
 
 ```elixir
-Kino.DataTable.start(
+Kino.DataTable.new(
   processes,
   keys: [:registered_name, :initial_call, :reductions, :stack_size]
 )
@@ -188,7 +188,7 @@ widget =
   |> Vl.mark(:line)
   |> Vl.encode_field(:x, "x", type: :quantitative)
   |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.start()
+  |> Kino.VegaLite.new()
   |> Kino.render()
 
 for i <- 1..300 do
