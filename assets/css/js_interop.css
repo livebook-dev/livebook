@@ -121,3 +121,7 @@ solely client-side operations.
 [data-element="clients-list-item"][data-js-followed] [data-meta="follow"] {
   @apply hidden;
 }
+
+[phx-hook="VirtualizedLines"]:not(:hover) [data-clipboard] {
+  @apply hidden;
+}

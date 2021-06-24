@@ -54,11 +54,11 @@
   }
 
   .icon-button {
-    @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800;
+    @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800 rounded-full;
   }
 
   .icon-button:focus {
-    @apply rounded-full bg-gray-100;
+    @apply bg-gray-100;
   }
 
   .icon-button i {
@@ -156,7 +156,7 @@
   /* Toggleable menu */
 
   .menu {
-    @apply absolute right-0 z-20 rounded-lg bg-white flex flex-col py-2;
+    @apply absolute right-0 z-30 rounded-lg bg-white flex flex-col py-2;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 

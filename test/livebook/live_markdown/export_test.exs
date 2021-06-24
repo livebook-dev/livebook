@@ -51,7 +51,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   Notebook.Cell.new(:input)
                   | type: :text,
                     name: "length",
-                    value: "100"
+                    value: "100",
+                    reactive: true
                 },
                 %{
                   Notebook.Cell.new(:elixir)
@@ -92,7 +93,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
 
     ```elixir
     IO.gets("length: ")

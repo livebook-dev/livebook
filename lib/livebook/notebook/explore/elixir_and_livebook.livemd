@@ -133,10 +133,11 @@ case Date.from_iso8601(trimmed) do
 end
 ```
 
-The string passed to `IO.gets/1` must have the same suffix as the
-input name and the returned string is always appended with a newline.
-This is built-in on top of Erlang's IO protocol and built in a way
-that your notebooks can be exported to Elixir scripts and still work!
+The string passed to `IO.gets/1` must be prefixed with the name you
+assigned to the input. The returned string is always appended with
+a newline. This is built-in on top of Erlang's IO protocol and built
+in a way that your notebooks can be exported to Elixir scripts and
+still work!
 
 Create your own inputs to learn more about the available input types
 and options.
@@ -180,7 +181,7 @@ Bench.sum()
 ```
 
 The latest cell should execute orders of magnitude faster than
-the previous `Enum.reduce/3` call. While the call `Bench.example()`
+the previous `Enum.reduce/3` call. While the call `Bench.sum()`
 itself is evaluated, the one million iterations of `Enum.reduce/3`
 happen inside a module, which is compiled.
 

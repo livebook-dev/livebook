@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.1 (2021-06-24)
+
+  * Add copy to clipboard button to virtualized output ([#393](https://github.com/elixir-nx/livebook/pull/393))
+  * Implement reactive input ([#389](https://github.com/elixir-nx/livebook/pull/389))
+  * Add support for image output ([#380](https://github.com/elixir-nx/livebook/pull/380))
+  * Add section on evaluation vs compilation on Elixir notebook ([#376](https://github.com/elixir-nx/livebook/pull/376))
+  * Show ticking timer while cell is evaluating ([#374](https://github.com/elixir-nx/livebook/pull/374))
+  * Show the evaluation time next to the cell indicator ([#366](https://github.com/elixir-nx/livebook/pull/366))
+
 ## v0.2.0 (2021-06-17)
 
   * Add Kino introductory notebook ([#364](https://github.com/elixir-nx/livebook/pull/364))

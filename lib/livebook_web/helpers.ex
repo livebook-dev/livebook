@@ -118,7 +118,6 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Renders a list of select input options with the given one selected.
   """
-
   def render_select(name, options, selected) do
     assigns = %{name: name, options: options, selected: selected}
 
@@ -130,6 +129,23 @@ defmodule LivebookWeb.Helpers do
         </option>
       <% end %>
     </select>
+    """
+  end
+
+  @doc """
+  Renders a checkbox input styled as a switch.
+  """
+  def render_switch(name, checked, label) do
+    assigns = %{name: name, checked: checked, label: label}
+
+    ~L"""
+    <div class="flex space-x-3 items-center justify-between">
+      <span class="text-gray-700"><%= @label %></span>
+      <label class="switch-button">
+        <%= tag :input, class: "switch-button__checkbox", type: "checkbox", name: @name, checked: @checked %>
+        <div class="switch-button__bg"></div>
+      </label>
+    </div>
     """
   end
 end

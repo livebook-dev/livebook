@@ -52,12 +52,14 @@ defmodule Livebook.LiveMarkdown.Export do
     value = if cell.type == :password, do: "", else: cell.value
 
     json =
-      Jason.encode!(%{
+      %{
         livebook_object: :cell_input,
         type: cell.type,
         name: cell.name,
         value: value
-      })
+      }
+      |> put_truthy(reactive: cell.reactive)
+      |> Jason.encode!()
 
     "<!-- livebook:#{json} -->"
     |> prepend_metadata(cell.metadata)
@@ -119,5 +121,15 @@ defmodule Livebook.LiveMarkdown.Export do
     rescue
       _ -> code
     end
+  end
+
+  defp put_truthy(map, entries) do
+    Enum.reduce(entries, map, fn {key, value}, map ->
+      if value do
+        Map.put(map, key, value)
+      else
+        map
+      end
+    end)
   end
 end
