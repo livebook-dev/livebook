@@ -41,7 +41,7 @@ You will need [Elixir v1.12](https://elixir-lang.org/install.html) or later as w
 
 On Ubuntu, these Erlang applications can be installed as follows:
 ```shell
-sudo apt install erlang-inets erlang-os-mon, erlang-runtime-tools, erlang-ssl
+sudo apt install erlang-inets erlang-os-mon erlang-runtime-tools erlang-ssl
 ```
 
 ### Escript
