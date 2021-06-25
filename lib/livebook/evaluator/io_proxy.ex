@@ -131,12 +131,12 @@ defmodule Livebook.Evaluator.IOProxy do
     put_chars(encoding, apply(mod, fun, args), req, state)
   end
 
-  defp io_request({:get_chars, _prompt, count}, state) when count >= 0 do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_chars, prompt, count}, state) when count >= 0 do
+    get_chars(:latin1, prompt, state, count)
   end
 
-  defp io_request({:get_chars, _encoding, _prompt, count}, state) when count >= 0 do
-    {{:error, :enotsup}, state}
+  defp io_request({:get_chars, encoding, prompt, count}, state) when count >= 0 do
+    get_chars(encoding, prompt, state, count)
   end
 
   defp io_request({:get_line, prompt}, state) do
@@ -249,6 +249,21 @@ defmodule Livebook.Evaluator.IOProxy do
     end
   end
 
+  defp get_chars(encoding, prompt, state, count) do
+    prompt = :unicode.characters_to_binary(prompt, encoding, state.encoding)
+
+    case get_input(prompt, state) do
+      input when is_binary(input) ->
+        {chars, rest} = chars_from_input(input, encoding, count)
+
+        state = put_in(state.input_buffers[prompt], rest)
+        {chars, state}
+
+      error ->
+        {error, state}
+    end
+  end
+
   defp get_input(prompt, state) do
     Map.get_lazy(state.input_buffers, prompt, fn ->
       request_input(prompt, state)
@@ -288,6 +303,55 @@ defmodule Livebook.Evaluator.IOProxy do
         {line, rest}
     end
   end
+
+  defp chars_from_input("", _, _count), do: {:eof, ""}
+
+  defp chars_from_input(input, :unicode, count) do
+    if byte_size_utf8(input) >= count do
+      chars_part(input, :unicode, count)
+    else
+      {input, ""}
+    end
+  end
+
+  defp chars_from_input(input, :latin1, count) do
+    if byte_size(input) >= count do
+      chars_part(input, :latin1, count)
+    else
+      {input, ""}
+    end
+  end
+
+  defp chars_part(chars, _, 0), do: {"", chars}
+
+  defp chars_part(input, :unicode, count) do
+    with {:ok, count} <- split_at(input, count, 0) do
+      <<chars::binary-size(count), rest::binary>> = input
+      {chars, rest}
+    end
+  end
+
+  defp chars_part(input, :latin1, count) do
+    <<chars::binary-size(count), rest::binary>> = input
+    {chars, rest}
+  end
+
+  defp split_at(_, 0, acc), do: {:ok, acc}
+
+  defp split_at(<<h::utf8, t::binary>>, count, acc),
+    do: split_at(t, count - 1, acc + byte_size(<<h::utf8>>))
+
+  defp split_at(<<_, _::binary>>, _count, _acc),
+    do: {:error, :invalid_unicode}
+
+  defp split_at(<<>>, _count, acc),
+    do: {:ok, acc}
+
+  defp byte_size_utf8(chars), do: byte_size_utf8(chars, 0)
+
+  defp byte_size_utf8(<<>>, size), do: size
+
+  defp byte_size_utf8(<<_h::utf8, t::binary>>, size), do: byte_size_utf8(t, size + 1)
 
   defp io_reply(from, reply_as, reply) do
     send(from, {:io_reply, reply_as, reply})

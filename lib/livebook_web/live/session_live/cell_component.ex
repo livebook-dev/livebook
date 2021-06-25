@@ -191,15 +191,26 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <div class="input-label">
             <%= @cell_view.name %>
           </div>
-          <input type="<%= if(@cell_view.input_type == :password, do: "password", else: "text") %>"
-            data-element="input"
-            class="input <%= if(@cell_view.error, do: "input--error") %>"
-            name="value"
-            value="<%= @cell_view.value %>"
-            phx-debounce="300"
-            spellcheck="false"
-            autocomplete="off"
-            tabindex="-1" />
+
+          <%= if (@cell_view.input_type == :textarea) do %>
+            <textarea
+              data-element="input"
+              class="input <%= if(@cell_view.error, do: "input--error") %>"
+              name="value"
+              spellcheck="false"
+              tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
+          <% else %>
+            <input type="<%= if(@cell_view.input_type == :password, do: "password", else: "text") %>"
+              data-element="input"
+              class="input <%= if(@cell_view.error, do: "input--error") %>"
+              name="value"
+              value="<%= @cell_view.value %>"
+              phx-debounce="300"
+              spellcheck="false"
+              autocomplete="off"
+              tabindex="-1" />
+          <% end %>
+
           <%= if @cell_view.error do %>
             <div class="input-error">
               <%= String.capitalize(@cell_view.error) %>

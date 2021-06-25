@@ -20,7 +20,7 @@ defmodule Livebook.Notebook.Cell.Input do
           reactive: boolean()
         }
 
-  @type type :: :text | :url | :number | :password
+  @type type :: :text | :url | :number | :password | :textarea
 
   @doc """
   Returns an empty cell.
@@ -49,6 +49,8 @@ defmodule Livebook.Notebook.Cell.Input do
   defp validate_value(_value, :text), do: :ok
 
   defp validate_value(_value, :password), do: :ok
+
+  defp validate_value(_value, :textarea), do: :ok
 
   defp validate_value(value, :url) do
     if Utils.valid_url?(value) do
