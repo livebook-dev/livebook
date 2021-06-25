@@ -324,15 +324,28 @@ defmodule Livebook.Evaluator.IOProxy do
 
   defp chars_part(chars, _, 0), do: {"", chars}
 
-  defp chars_part(<<head::utf8, tail::binary>>, :unicode, count) do
-    {chars, rest} = chars_part(tail, :unicode, count - 1)
-    {<<head::utf8>> <> chars, rest}
+  defp chars_part(input, :unicode, count) do
+    with {:ok, count} <- split_at(input, count, 0) do
+      <<chars::binary-size(count), rest::binary>> = input
+      {chars, rest}
+    end
   end
 
   defp chars_part(input, :latin1, count) do
     <<chars::binary-size(count), rest::binary>> = input
     {chars, rest}
   end
+
+  defp split_at(_, 0, acc), do: {:ok, acc}
+
+  defp split_at(<<h::utf8, t::binary>>, count, acc),
+    do: split_at(t, count - 1, acc + byte_size(<<h::utf8>>))
+
+  defp split_at(<<_, _::binary>>, _count, _acc),
+    do: {:error, :invalid_unicode}
+
+  defp split_at(<<>>, _count, acc),
+    do: {:ok, acc}
 
   defp byte_size_utf8(chars), do: byte_size_utf8(chars, 1)
 
