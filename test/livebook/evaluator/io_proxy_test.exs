@@ -57,6 +57,41 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
       assert IO.gets(io, "name: ") == {:error, "no matching Livebook input found"}
     end
+
+    test "IO.getn with unicode input", %{io: io} do
+      pid =
+        spawn_link(fn ->
+          reply_to_input_request(:ref, "name: ", {:ok, "🐈 test\n"}, 1)
+        end)
+
+      IOProxy.configure(io, pid, :ref)
+
+      assert IO.getn(io, "name: ", 3) == "🐈 t"
+    end
+
+    test "IO.getn returns the given number of characters", %{io: io} do
+      pid =
+        spawn_link(fn ->
+          reply_to_input_request(:ref, "name: ", {:ok, "Jake Peralta\nAmy Santiago\n"}, 1)
+        end)
+
+      IOProxy.configure(io, pid, :ref)
+
+      assert IO.getn(io, "name: ", 13) == "Jake Peralta\n"
+      assert IO.getn(io, "name: ", 13) == "Amy Santiago\n"
+      assert IO.getn(io, "name: ", 13) == :eof
+    end
+
+    test "IO.getn returns all characters if requested more than available", %{io: io} do
+      pid =
+        spawn_link(fn ->
+          reply_to_input_request(:ref, "name: ", {:ok, "Jake Peralta\nAmy Santiago\n"}, 1)
+        end)
+
+      IOProxy.configure(io, pid, :ref)
+
+      assert IO.getn(io, "name: ", 10_000) == "Jake Peralta\nAmy Santiago\n"
+    end
   end
 
   test "consumes the given input only once", %{io: io} do
@@ -119,41 +154,6 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
     assert IOProxy.flush_widgets(io) == MapSet.new([widget1_pid, widget2_pid])
     assert IOProxy.flush_widgets(io) == MapSet.new()
-  end
-
-  test "getn/1 return first character", %{io: io} do
-    pid =
-      spawn_link(fn ->
-        reply_to_input_request(:ref, "name: ", {:ok, "🐈 test\n"}, 1)
-      end)
-
-    IOProxy.configure(io, pid, :ref)
-
-    assert IO.getn(io, "name: ") == "🐈"
-  end
-
-  test "getn/2 returns the number of defined characters ", %{io: io} do
-    pid =
-      spawn_link(fn ->
-        reply_to_input_request(:ref, "name: ", {:ok, "Jake Peralta\nAmy Santiago\n"}, 1)
-      end)
-
-    IOProxy.configure(io, pid, :ref)
-
-    assert IO.getn(io, "name: ", 13) == "Jake Peralta\n"
-    assert IO.getn(io, "name: ", 13) == "Amy Santiago\n"
-    assert IO.getn(io, "name: ", 13) == :eof
-  end
-
-  test "getn/2 all characters", %{io: io} do
-    pid =
-      spawn_link(fn ->
-        reply_to_input_request(:ref, "name: ", {:ok, "Jake Peralta\nAmy Santiago\n"}, 1)
-      end)
-
-    IOProxy.configure(io, pid, :ref)
-
-    assert IO.getn(io, "name: ", 10_000) == "Jake Peralta\nAmy Santiago\n"
   end
 
   # Helpers
