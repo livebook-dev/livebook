@@ -432,6 +432,10 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("set_cell_value", %{"cell_id" => cell_id, "value" => value}, socket) do
+    # The browser may normalize newlines to \r\n, but we want \n
+    # to more closely imitate an actual shell
+    value = String.replace(value, "\r\n", "\n")
+
     Session.set_cell_attributes(socket.assigns.session_id, cell_id, %{value: value})
 
     {:noreply, socket}
