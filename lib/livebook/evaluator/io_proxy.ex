@@ -347,7 +347,7 @@ defmodule Livebook.Evaluator.IOProxy do
   defp split_at(<<>>, _count, acc),
     do: {:ok, acc}
 
-  defp byte_size_utf8(chars), do: byte_size_utf8(chars, 1)
+  defp byte_size_utf8(chars), do: byte_size_utf8(chars, 0)
 
   defp byte_size_utf8(<<>>, size), do: size
 
