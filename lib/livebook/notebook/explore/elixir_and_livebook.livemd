@@ -21,8 +21,7 @@ Let's move on.
 ## Autocompletion
 
 Elixir code cells also support autocompletion by
-pressing <kbd>ctrl</kbd> + <kbd>␣</kbd>
-(<kbd>⌘</kbd> + <kbd>␣</kbd> on a Mac). Try it out by
+pressing <kbd>ctrl</kbd> + <kbd>␣</kbd>. Try it out by
 autocompleting the code below to `System.version()`. First put
 the cursor after the `.` below and
 press <kbd>ctrl</kbd>&nbsp;+&nbsp;<kbd>␣</kbd>:
