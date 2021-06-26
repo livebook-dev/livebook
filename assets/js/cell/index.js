@@ -87,7 +87,10 @@ const Cell = {
             `[data-element="markdown-container"]`
           );
           const baseUrl = this.props.sessionPath;
-          const markdown = new Markdown(markdownContainer, source, baseUrl);
+          const markdown = new Markdown(markdownContainer, source, {
+            baseUrl,
+            emptyText: "Empty markdown cell",
+          });
 
           this.state.liveEditor.onChange((newSource) => {
             markdown.setContent(newSource);

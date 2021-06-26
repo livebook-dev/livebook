@@ -36,10 +36,11 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
  * Renders markdown content in the given container.
  */
 class Markdown {
-  constructor(container, content, baseUrl = null) {
+  constructor(container, content, { baseUrl = null, emptyText = "" } = {}) {
     this.container = container;
     this.content = content;
     this.baseUrl = baseUrl;
+    this.emptyText = emptyText;
 
     this.__render();
   }
@@ -81,7 +82,7 @@ class Markdown {
         } else {
           resolve(`
             <div class="text-gray-300">
-              Empty markdown cell
+              ${this.emptyText}
             </div>
           `);
         }
