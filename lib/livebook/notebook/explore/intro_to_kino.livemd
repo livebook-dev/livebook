@@ -10,7 +10,7 @@ and interact with it.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.2.0"},
+  {:kino, "~> 0.2.1"},
   {:vega_lite, "~> 0.1.0"}
 ])
 ```
@@ -148,6 +148,33 @@ Kino.DataTable.new(
 
 We can sort by the number of reductions to identify the
 most busy processes!
+
+## Kino.Markdown
+
+Sometimes you may want to render arbitrary content as rich-text,
+that's when `Kino.Markdown.new/1` comes into play:
+
+```elixir
+"""
+# Example
+
+A regular Markdown file.
+
+## Code
+
+```elixir
+"Elixir" |> String.graphemes() |> Enum.frequencies()
+```
+
+## Table
+
+| ID | Name   | Website                 |
+| -- | ------ | ----------------------- |
+| 1  | Elixir | https://elixir-lang.org |
+| 2  | Erlang | https://www.erlang.org  |
+"""
+|> Kino.Markdown.new()
+```
 
 ## Kino.render/1
 
