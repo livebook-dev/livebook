@@ -11,7 +11,7 @@ defmodule Livebook.LiveMarkdown.Import do
   @spec notebook_from_markdown(String.t()) :: {Notebook.t(), list(String.t())}
   def notebook_from_markdown(markdown) do
     {_, ast, earmark_messages} = EarmarkParser.as_ast(markdown)
-    earmark_messages = Enum.map(earmark_messages, &earmark_message_to_string/1)
+    earmark_messages = Enum.map(earmark_messages, &MarkdownHelpers.earmark_message_to_string/1)
 
     {ast, rewrite_messages} = rewrite_ast(ast)
 
@@ -21,10 +21,6 @@ defmodule Livebook.LiveMarkdown.Import do
       |> build_notebook()
 
     {notebook, earmark_messages ++ rewrite_messages}
-  end
-
-  defp earmark_message_to_string({_severity, line_number, message}) do
-    "Line #{line_number}: #{message}"
   end
 
   # Does initial pre-processing of the AST, so that it conforms to the expected form.

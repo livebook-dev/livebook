@@ -66,23 +66,23 @@
 }
 
 .markdown table {
-  @apply w-full my-4;
+  @apply w-full my-4 shadow-xl-center rounded-lg tiny-scrollbar;
 }
 
 .markdown table thead tr {
   @apply border-b border-gray-200;
 }
 
-.markdown table tbody tr:not(:last-child) {
-  @apply border-b border-gray-200;
+.markdown table tbody tr {
+  @apply border-b border-gray-200 last:border-b-0 hover:bg-gray-50;
 }
 
 .markdown table th {
-  @apply p-2 font-bold text-left;
+  @apply py-3 px-6 text-gray-700 font-semibold;
 }
 
 .markdown table td {
-  @apply p-2 text-left;
+  @apply py-3 px-6 text-gray-500;
 }
 
 .markdown table th[align="center"],
@@ -93,16 +93,6 @@
 .markdown table th[align="right"],
 .markdown table td[align="right"] {
   @apply text-right;
-}
-
-.markdown table th:first-child,
-.markdown table td:first-child {
-  @apply pl-0;
-}
-
-.markdown table th:last-child,
-.markdown table td:last-child {
-  @apply pr-0;
 }
 
 .markdown code {
@@ -139,13 +129,13 @@
 
 /* Overrides for user-entered markdown */
 
-[data-element="cell"] .markdown h1,
-[data-element="cell"] .markdown h2 {
+[data-element="cell"][data-type="markdown"] .markdown h1,
+[data-element="cell"][data-type="markdown"] .markdown h2 {
   font-size: 0;
 }
 
-[data-element="cell"] .markdown h1:after,
-[data-element="cell"] .markdown h2:after {
+[data-element="cell"][data-type="markdown"] .markdown h1:after,
+[data-element="cell"][data-type="markdown"] .markdown h2:after {
   @apply text-red-400 text-base font-medium;
   content: "warning: heading levels 1 and 2 are reserved for notebook and section names, please use heading 3 and above.";
 }

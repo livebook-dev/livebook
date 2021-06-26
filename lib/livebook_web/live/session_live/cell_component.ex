@@ -307,6 +307,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
   end
 
+  defp render_output(_socket, {:markdown, markdown}, id) do
+    live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
+  end
+
   defp render_output(_socket, {:image, content, mime_type}, id) do
     live_component(LivebookWeb.Output.ImageComponent,
       id: id,

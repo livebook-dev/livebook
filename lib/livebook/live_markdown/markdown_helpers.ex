@@ -1,4 +1,11 @@
 defmodule Livebook.LiveMarkdown.MarkdownHelpers do
+  @moduledoc false
+
+  @doc false
+  def earmark_message_to_string({_severity, line_number, message}) do
+    "Line #{line_number}: #{message}"
+  end
+
   @doc """
   Reformats the given markdown document.
   """
