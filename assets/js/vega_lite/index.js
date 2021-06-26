@@ -1,6 +1,7 @@
 import * as vega from "vega";
 import vegaEmbed from "vega-embed";
 import { getAttributeOrThrow } from "../lib/attribute";
+import { throttle } from "../lib/utils";
 
 // See https://github.com/vega/vega-lite/blob/b61b13c2cbd4ecde0448544aff6cdaea721fd22a/src/compile/data/assemble.ts#L228-L231
 const DEFAULT_DATASET_NAME = "source_0";
@@ -47,6 +48,8 @@ const VegaLite = {
         });
     });
 
+    const throttledResize = throttle((view) => view.resize(), 1_000);
+
     this.handleEvent(
       `vega_lite:${this.props.id}:push`,
       ({ data, dataset, window }) => {
@@ -55,6 +58,8 @@ const VegaLite = {
         this.state.viewPromise.then((view) => {
           const currentData = view.data(dataset);
           const changeset = buildChangeset(currentData, data, window);
+          // Schedule resize after the run finishes
+          throttledResize(view);
           view.change(dataset, changeset).run();
         });
       }
