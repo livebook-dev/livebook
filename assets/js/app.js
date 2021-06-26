@@ -21,6 +21,7 @@ import Menu from "./menu";
 import UserForm from "./user_form";
 import VegaLite from "./vega_lite";
 import Timer from "./timer";
+import MarkdownRenderer from "./markdown_renderer";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
@@ -35,6 +36,7 @@ const hooks = {
   UserForm,
   VegaLite,
   Timer,
+  MarkdownRenderer,
 };
 
 const csrfToken = document

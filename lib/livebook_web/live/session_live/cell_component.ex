@@ -57,8 +57,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
     </div>
 
-    <div class="flex">
-      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+    <div class="flex relative">
+      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
         <div class="pb-4" data-element="editor-box">
@@ -130,8 +130,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
     </div>
 
-    <div class="flex">
-      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+    <div class="flex relative">
+      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
         <%= render_editor(assigns) %>
@@ -182,8 +182,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
     </div>
 
-    <div class="flex">
-      <div class="w-1 rounded-lg relative -left-3" data-element="cell-focus-indicator">
+    <div class="flex relative">
+      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div>
         <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
@@ -305,6 +305,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp render_output(_socket, {:text, text}, id) do
     live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
+  end
+
+  defp render_output(_socket, {:markdown, markdown}, id) do
+    live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
   end
 
   defp render_output(_socket, {:image, content, mime_type}, id) do

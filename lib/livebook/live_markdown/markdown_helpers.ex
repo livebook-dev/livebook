@@ -1,4 +1,6 @@
 defmodule Livebook.LiveMarkdown.MarkdownHelpers do
+  @moduledoc false
+
   @doc """
   Reformats the given markdown document.
   """

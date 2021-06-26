@@ -94,7 +94,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
           <thead class="text-left">
             <tr class="border-b border-gray-200 whitespace-nowrap">
               <%= for {column, idx} <- Enum.with_index(@columns) do %>
-                <th class="py-3 px-6 text-gray-700 font-smibold <%= if(:sorting in @features, do: "cursor-pointer", else: "pointer-events-none") %>"
+                <th class="py-3 px-6 text-gray-700 font-semibold <%= if(:sorting in @features, do: "cursor-pointer", else: "pointer-events-none") %>"
                   phx-click="column_click"
                   phx-value-column_idx="<%= idx %>">
                   <div class="flex items-center space-x-1">
