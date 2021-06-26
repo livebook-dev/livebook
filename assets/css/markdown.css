@@ -69,6 +69,10 @@
   @apply w-full my-4 shadow-xl-center rounded-lg tiny-scrollbar;
 }
 
+.markdown table thead {
+  @apply text-left;
+}
+
 .markdown table thead tr {
   @apply border-b border-gray-200;
 }
