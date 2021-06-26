@@ -1,7 +1,9 @@
 defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   @moduledoc false
 
-  @doc false
+  @doc """
+  Converts an EarmarkParser warning/error into a human-readable message.
+  """
   def earmark_message_to_string({_severity, line_number, message}) do
     "Line #{line_number}: #{message}"
   end
