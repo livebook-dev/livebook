@@ -24,27 +24,27 @@ alias VegaLite, as: Vl
 
 ## Connecting to a remote node
 
-This time we will connect to a running node manually instead of
-injecting Livebook there, because we may not want to run `Mix.install/1`
-inside it. This will also give you a better idea of how you can
-inspect a remote node in general.
+While Livebook can run a notebook directly inside a remote node,
+this time we will connect to a running node manually to minimize
+the impact in the remote system. This will also give you a better
+idea of how you can inspect a remote node in general.
 
 The first thing we need is a separate Elixir node. For this example,
-you can do so by opening up [a new notebook](/explore/notebooks/new), since Livebook
-automatically starts each notebook as a remote node.
+you can do so by opening up [a new notebook](/explore/notebooks/new),
+since Livebook automatically starts each notebook as a remote node.
 
 In practice, you may want to start an existing Elixir system,
 such as by running the following in your production app:
 
 ```
-elixir --sname my_app -S mix TASK
+elixir --name my_app@IP -S mix TASK
 ```
 
 Or by connecting to a production assembled via
 [`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html).
 
-Once you start a new notebook, you can find the node name
-and cookie by running this:
+Once you start a new notebook, you can find its node name and
+cookie by running the following inside an Elixir cell:
 
 <!-- livebook:{"force_markdown":true} -->
 
@@ -53,11 +53,14 @@ IO.puts node()
 IO.puts Node.get_cookie()
 ```
 
-Now, let's paste these in the inputs below:
+Now, paste these in the inputs below:
 
 <!-- livebook:{"livebook_object":"cell_input","name":"Node","type":"text","value":""} -->
 
 <!-- livebook:{"livebook_object":"cell_input","name":"Cookie","type":"text","value":""} -->
+
+And now execute the code cell below, which will read the inputs,
+configure the cookie, and connect to the other notebook:
 
 ```elixir
 node =

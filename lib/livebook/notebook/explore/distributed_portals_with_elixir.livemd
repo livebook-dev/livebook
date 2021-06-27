@@ -684,8 +684,9 @@ Node.list(:hidden)
 Much better! We see one node, which is the Livebook server itself.
 
 Now there is one last piece of the puzzle: in order for nodes to connect to each
-other, they need to have the same cookie. We can read the cookie of our current
-notebook runtime like this:
+other, they need to have the same cookie. The cookie serves as a very simple
+authentication mechanism. We can read the cookie of our current notebook runtime
+like this:
 
 ```elixir
 Node.get_cookie()
@@ -756,9 +757,9 @@ Portal code has been defined in this notebook but it is not available
 in the other notebook. If we were working on an actual Elixir project,
 this issue wouldn't exist, because we would start multiple nodes on top
 of the same codebase with the same modules, but we can't do so here.
-To work around this, let's simply copy the cell that define the
-`Portal.Door` module into the other notebook and execute it. Now we should
-be able to shoot a door in the other node:
+To work around this, you should simply copy the cell that define the
+`Portal.Door` module from this notebook into the other notebook and
+execute it. Now we should be able to shoot a door in the other node:
 
 <!-- livebook:{"force_markdown":true} -->
 
