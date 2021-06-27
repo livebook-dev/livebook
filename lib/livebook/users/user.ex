@@ -63,7 +63,7 @@ defmodule Livebook.Users.User do
   defp change_name({user, errors}, _attrs), do: {user, errors}
 
   defp change_hex_color({user, errors}, %{"hex_color" => hex_color}) do
-    if hex_color_valid?(hex_color) do
+    if Utils.valid_hex_color?(hex_color) do
       {%{user | hex_color: hex_color}, errors}
     else
       {user, [{:hex_color, "not a valid color"} | errors]}
@@ -71,8 +71,6 @@ defmodule Livebook.Users.User do
   end
 
   defp change_hex_color({user, errors}, _attrs), do: {user, errors}
-
-  defp hex_color_valid?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
 
   @doc """
   Returns a random hex color for a user.

@@ -67,6 +67,14 @@ defmodule Livebook.Notebook.Cell.Input do
     end
   end
 
+  defp validate_value(value, :color) do
+    if Utils.valid_hex_color?(value) do
+      :ok
+    else
+      {:error, "not a valid hex color"}
+    end
+  end
+
   @doc """
   Checks if the input changed in terms of content.
   """

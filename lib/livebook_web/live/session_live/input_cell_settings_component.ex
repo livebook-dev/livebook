@@ -28,7 +28,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         <div class="flex flex-col space-y-6">
           <div>
             <div class="input-label">Type</div>
-            <%= render_select("type", [number: "Number", password: "Password", text: "Text", textarea: "Textarea", url: "URL"], @type) %>
+            <%= render_select("type", input_types(), @type) %>
           </div>
           <div>
             <div class="input-label">Name</div>
@@ -68,5 +68,16 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     reactive = Map.has_key?(params, "reactive")
 
     %{name: name, type: type, reactive: reactive}
+  end
+
+  defp input_types do
+    [
+      color: "Color",
+      number: "Number",
+      password: "Password",
+      text: "Text",
+      textarea: "Textarea",
+      url: "URL"
+    ]
   end
 end
