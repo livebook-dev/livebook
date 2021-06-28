@@ -212,8 +212,9 @@ defmodule LivebookWeb.SessionLive do
               <div class="flex justify-center">
                 <button class="button button-small"
                   phx-click="insert_section"
-                  phx-value-index="0"
-                  >+ Section</button>
+                  phx-value-index="0">
+                  + Section
+                </button>
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
@@ -344,16 +345,28 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("add_section", _params, socket) do
-    end_index = length(socket.private.data.notebook.sections)
-    Session.insert_section(socket.assigns.session_id, end_index)
+  def handle_event("insert_section", %{"index" => index}, socket) do
+    index = ensure_integer(index) |> max(0)
+    Session.insert_section(socket.assigns.session_id, index)
 
     {:noreply, socket}
   end
 
-  def handle_event("insert_section", %{"index" => index}, socket) do
+  def handle_event("insert_section_into", %{"section_id" => section_id, "index" => index}, socket) do
     index = ensure_integer(index) |> max(0)
-    Session.insert_section(socket.assigns.session_id, index)
+    Session.insert_section_into(socket.assigns.session_id, section_id, index)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("insert_section_below_cell", %{"cell_id" => cell_id}, socket) do
+    insert_section_next_to(socket, cell_id, idx_offset: 1)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("insert_section_above_cell", %{"cell_id" => cell_id}, socket) do
+    insert_section_next_to(socket, cell_id, idx_offset: 0)
 
     {:noreply, socket}
   end
@@ -672,6 +685,18 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:insert_section_into, client_pid, _section_id, _index, section_id}
+       ) do
+    if client_pid == self() do
+      push_event(socket, "section_inserted", %{section_id: section_id})
+    else
+      socket
+    end
+  end
+
   defp after_operation(socket, _prev_socket, {:delete_section, _client_pid, section_id}) do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
@@ -775,6 +800,12 @@ defmodule LivebookWeb.SessionLive do
     {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     index = Enum.find_index(section.cells, &(&1 == cell))
     Session.insert_cell(socket.assigns.session_id, section.id, index + idx_offset, type)
+  end
+
+  defp insert_section_next_to(socket, cell_id, idx_offset: idx_offset) do
+    {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
+    index = Enum.find_index(section.cells, &(&1 == cell))
+    Session.insert_section_into(socket.assigns.session_id, section.id, index + idx_offset)
   end
 
   defp ensure_integer(n) when is_integer(n), do: n

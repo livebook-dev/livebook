@@ -54,8 +54,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                   id: "#{@section_view.id}:#{index}",
                   persistent: false,
                   section_id: @section_view.id,
-                  insert_cell_index: index,
-                  insert_section_index: nil %>
+                  insert_cell_index: index %>
             <%= live_component LivebookWeb.SessionLive.CellComponent,
                   id: cell_view.id,
                   session_id: @session_id,
@@ -65,8 +64,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                 id: "#{@section_view.id}:last",
                 persistent: @section_view.cell_views == [],
                 section_id: @section_view.id,
-                insert_cell_index: length(@section_view.cell_views),
-                insert_section_index: @index + 1 %>
+                insert_cell_index: length(@section_view.cell_views) %>
         </div>
       </div>
     </div>

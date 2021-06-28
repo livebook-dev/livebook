@@ -95,6 +95,26 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Inserts `section` below the parent section.
+
+  Cells below the given index are moved to the newly inserted section.
+  """
+  @spec insert_section_into(t(), Section.id(), non_neg_integer(), Section.t()) :: t()
+  def insert_section_into(notebook, section_id, index, section) do
+    {sections_above, [parent_section | sections_below]} =
+      Enum.split_while(notebook.sections, &(&1.id != section_id))
+
+    {cells_above, cells_below} = Enum.split(parent_section.cells, index)
+
+    sections =
+      sections_above ++
+        [%{parent_section | cells: cells_above}, %{section | cells: cells_below}] ++
+        sections_below
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
   Inserts `cell` at the given `index` within section identified by `section_id`.
   """
   @spec insert_cell(t(), Section.id(), integer(), Cell.t()) :: t()

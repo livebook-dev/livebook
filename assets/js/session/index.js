@@ -274,6 +274,10 @@ function handleDocumentKeyDown(hook, event) {
     if (cmd && key === "s") {
       cancelEvent(event);
       saveNotebook(hook);
+    } else if (keyBuffer.tryMatch(["S", "n"])) {
+      insertSectionBelowFocusedCell(hook);
+    } else if (keyBuffer.tryMatch(["S", "N"])) {
+      insertSectionAboveFocusedCell(hook);
     } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
     } else if (
@@ -316,8 +320,6 @@ function handleDocumentKeyDown(hook, event) {
       insertCellBelowFocused(hook, "markdown");
     } else if (keyBuffer.tryMatch(["M"])) {
       insertCellAboveFocused(hook, "markdown");
-    } else if (keyBuffer.tryMatch(["S"])) {
-      addSection(hook);
     }
   }
 }
@@ -642,10 +644,6 @@ function insertCellAboveFocused(hook, type) {
   }
 }
 
-function addSection(hook) {
-  hook.pushEvent("add_section", {});
-}
-
 function insertFirstCell(hook, type) {
   const sectionIds = getSectionIds();
 
@@ -655,6 +653,27 @@ function insertFirstCell(hook, type) {
       index: 0,
       type,
     });
+  }
+}
+
+function insertSectionBelowFocusedCell(hook) {
+  if (hook.state.focusedCellId) {
+    hook.pushEvent("insert_section_below_cell", {
+      cell_id: hook.state.focusedCellId,
+    });
+  } else {
+    const sectionIds = getSectionIds();
+    hook.pushEvent("insert_section", { index: sectionIds.length });
+  }
+}
+
+function insertSectionAboveFocusedCell(hook) {
+  if (hook.state.focusedCellId) {
+    hook.pushEvent("insert_section_above_cell", {
+      cell_id: hook.state.focusedCellId,
+    });
+  } else {
+    hook.pushEvent("insert_section", { index: 0 });
   }
 }
 

@@ -116,6 +116,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends section insertion request to the server.
+  """
+  @spec insert_section_into(id(), Section.id(), non_neg_integer()) :: :ok
+  def insert_section_into(session_id, section_id, index) do
+    GenServer.cast(name(session_id), {:insert_section_into, self(), section_id, index})
+  end
+
+  @doc """
   Asynchronously sends cell insertion request to the server.
   """
   @spec insert_cell(id(), Section.id(), non_neg_integer(), Cell.type()) ::
@@ -349,6 +357,12 @@ defmodule Livebook.Session do
   def handle_cast({:insert_section, client_pid, index}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section, client_pid, index, Utils.random_id()}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:insert_section_into, client_pid, section_id, index}, state) do
+    # Include new id in the operation, so it's reproducible
+    operation = {:insert_section_into, client_pid, section_id, index, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 

@@ -80,6 +80,7 @@ defmodule Livebook.Session.Data do
 
   @type operation ::
           {:insert_section, pid(), index(), Section.id()}
+          | {:insert_section_into, pid(), Section.id(), index(), Section.id()}
           | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id()}
           | {:delete_section, pid(), Section.id()}
           | {:delete_cell, pid(), Cell.id()}
@@ -177,6 +178,18 @@ defmodule Livebook.Session.Data do
     |> insert_section(index, section)
     |> set_dirty()
     |> wrap_ok()
+  end
+
+  def apply_operation(data, {:insert_section_into, _client_pid, section_id, index, id}) do
+    with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
+      section = %{Section.new() | id: id}
+
+      data
+      |> with_actions()
+      |> insert_section_into(section_id, index, section)
+      |> set_dirty()
+      |> wrap_ok()
+    end
   end
 
   def apply_operation(data, {:insert_cell, _client_pid, section_id, index, type, id}) do
@@ -487,6 +500,14 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(
       notebook: Notebook.insert_section(data.notebook, index, section),
+      section_infos: Map.put(data.section_infos, section.id, new_section_info())
+    )
+  end
+
+  defp insert_section_into({data, _} = data_actions, section_id, index, section) do
+    data_actions
+    |> set!(
+      notebook: Notebook.insert_section_into(data.notebook, section_id, index, section),
       section_infos: Map.put(data.section_infos, section.id, new_section_info())
     )
   end

@@ -48,6 +48,49 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :insert_section_into" do
+    test "returns an error given invalid section id" do
+      data = Data.new()
+      operation = {:insert_section_into, self(), "nonexistent", 0, "s1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "adds new section below the given one and section info" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"}
+        ])
+
+      operation = {:insert_section_into, self(), "s1", 0, "s2"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1"}, %{id: "s2"}]
+                },
+                section_infos: %{"s2" => _}
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "moves cells below the given index to the newly inserted section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"}
+        ])
+
+      operation = {:insert_section_into, self(), "s1", 1, "s2"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{cells: [%{id: "c1"}]}, %{cells: [%{id: "c2"}]}]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :insert_cell" do
     test "returns an error given invalid section id" do
       data = Data.new()
