@@ -116,6 +116,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends section insertion request to the server.
+  """
+  @spec insert_section_into(id(), Section.id(), non_neg_integer()) :: :ok
+  def insert_section_into(session_id, section_id, index) do
+    GenServer.cast(name(session_id), {:insert_section_into, self(), section_id, index})
+  end
+
+  @doc """
   Asynchronously sends cell insertion request to the server.
   """
   @spec insert_cell(id(), Section.id(), non_neg_integer(), Cell.type()) ::
@@ -127,9 +135,9 @@ defmodule Livebook.Session do
   @doc """
   Asynchronously sends section deletion request to the server.
   """
-  @spec delete_section(id(), Section.id()) :: :ok
-  def delete_section(session_id, section_id) do
-    GenServer.cast(name(session_id), {:delete_section, self(), section_id})
+  @spec delete_section(id(), Section.id(), boolean()) :: :ok
+  def delete_section(session_id, section_id, delete_cells) do
+    GenServer.cast(name(session_id), {:delete_section, self(), section_id, delete_cells})
   end
 
   @doc """
@@ -352,14 +360,20 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:insert_section_into, client_pid, section_id, index}, state) do
+    # Include new id in the operation, so it's reproducible
+    operation = {:insert_section_into, client_pid, section_id, index, Utils.random_id()}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:insert_cell, client_pid, section_id, index, type}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:delete_section, client_pid, section_id}, state) do
-    operation = {:delete_section, client_pid, section_id}
+  def handle_cast({:delete_section, client_pid, section_id, delete_cells}, state) do
+    operation = {:delete_section, client_pid, section_id, delete_cells}
     {:noreply, handle_operation(state, operation)}
   end
 

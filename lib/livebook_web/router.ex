@@ -33,6 +33,7 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/settings/file", SessionLive, :file_settings
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
+    live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
     get "/sessions/:id/images/:image", SessionController, :show_image
 
     live_dashboard "/dashboard", metrics: LivebookWeb.Telemetry

@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive do
               <% end %>
             </div>
             <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
-              phx-click="add_section" >
+              phx-click="append_section">
               <%= remix_icon("add-line", class: "text-lg align-center") %>
               <span>New section</span>
             </button>
@@ -211,9 +211,9 @@ defmodule LivebookWeb.SessionLive do
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button button-small"
-                  phx-click="insert_section"
-                  phx-value-index="0"
-                  >+ Section</button>
+                  phx-click="append_section">
+                  + Section
+                </button>
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
@@ -287,6 +287,16 @@ defmodule LivebookWeb.SessionLive do
             uploads: @uploads,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
+
+    <%= if @live_action == :delete_section do %>
+      <%= live_modal LivebookWeb.SessionLive.DeleteSectionComponent,
+            id: :delete_section_modal,
+            modal_class: "w-full max-w-xl",
+            session_id: @session_id,
+            section: @section,
+            is_first: @section.id == @first_section_id,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
     """
   end
 
@@ -300,6 +310,12 @@ defmodule LivebookWeb.SessionLive do
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
+  end
+
+  def handle_params(%{"section_id" => section_id}, _url, socket) do
+    {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
+    first_section_id = hd(socket.private.data.notebook.sections).id
+    {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -344,22 +360,16 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("add_section", _params, socket) do
-    end_index = length(socket.private.data.notebook.sections)
-    Session.insert_section(socket.assigns.session_id, end_index)
+  def handle_event("append_section", %{}, socket) do
+    idx = length(socket.private.data.notebook.sections)
+    Session.insert_section(socket.assigns.session_id, idx)
 
     {:noreply, socket}
   end
 
-  def handle_event("insert_section", %{"index" => index}, socket) do
+  def handle_event("insert_section_into", %{"section_id" => section_id, "index" => index}, socket) do
     index = ensure_integer(index) |> max(0)
-    Session.insert_section(socket.assigns.session_id, index)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("delete_section", %{"section_id" => section_id}, socket) do
-    Session.delete_section(socket.assigns.session_id, section_id)
+    Session.insert_section_into(socket.assigns.session_id, section_id, index)
 
     {:noreply, socket}
   end
@@ -665,6 +675,18 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
+    if client_pid == self() do
+      push_event(socket, "section_inserted", %{section_id: section_id})
+    else
+      socket
+    end
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:insert_section_into, client_pid, _section_id, _index, section_id}
+       ) do
     if client_pid == self() do
       push_event(socket, "section_inserted", %{section_id: section_id})
     else

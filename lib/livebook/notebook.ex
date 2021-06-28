@@ -95,6 +95,26 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Inserts `section` below the parent section.
+
+  Cells below the given index are moved to the newly inserted section.
+  """
+  @spec insert_section_into(t(), Section.id(), non_neg_integer(), Section.t()) :: t()
+  def insert_section_into(notebook, section_id, index, section) do
+    {sections_above, [parent_section | sections_below]} =
+      Enum.split_while(notebook.sections, &(&1.id != section_id))
+
+    {cells_above, cells_below} = Enum.split(parent_section.cells, index)
+
+    sections =
+      sections_above ++
+        [%{parent_section | cells: cells_above}, %{section | cells: cells_below}] ++
+        sections_below
+
+    %{notebook | sections: sections}
+  end
+
+  @doc """
   Inserts `cell` at the given `index` within section identified by `section_id`.
   """
   @spec insert_cell(t(), Section.id(), integer(), Cell.t()) :: t()
@@ -106,11 +126,24 @@ defmodule Livebook.Notebook do
 
   @doc """
   Deletes section with the given id.
+
+  All cells are moved to the previous section if present.
   """
   @spec delete_section(t(), Section.id()) :: t()
   def delete_section(notebook, section_id) do
-    {_, notebook} = pop_in(notebook, [Access.key(:sections), access_by_id(section_id)])
-    notebook
+    sections =
+      case Enum.split_while(notebook.sections, &(&1.id != section_id)) do
+        {[], [_section | sections_below]} ->
+          sections_below
+
+        {sections_above, [section | sections_below]} ->
+          {prev_section, sections_above} = List.pop_at(sections_above, length(sections_above) - 1)
+
+          sections_above ++
+            [%{prev_section | cells: prev_section.cells ++ section.cells} | sections_below]
+      end
+
+    %{notebook | sections: sections}
   end
 
   @doc """

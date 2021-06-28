@@ -23,12 +23,11 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           phx-value-section_id="<%= @section_id %>"
           phx-value-index="<%= @insert_cell_index %>"
           >+ Input</button>
-        <%= if @insert_section_index do %>
-          <button class="button button-small"
-            phx-click="insert_section"
-            phx-value-index="<%= @insert_section_index %>"
-            >+ Section</button>
-        <% end %>
+        <button class="button button-small"
+          phx-click="insert_section_into"
+          phx-value-section_id="<%= @section_id %>"
+          phx-value-index="<%= @insert_cell_index %>"
+          >+ Section</button>
       </div>
     </div>
     """

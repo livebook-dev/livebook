@@ -80,8 +80,9 @@ defmodule Livebook.Session.Data do
 
   @type operation ::
           {:insert_section, pid(), index(), Section.id()}
+          | {:insert_section_into, pid(), Section.id(), index(), Section.id()}
           | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id()}
-          | {:delete_section, pid(), Section.id()}
+          | {:delete_section, pid(), Section.id(), delete_cells :: boolean()}
           | {:delete_cell, pid(), Cell.id()}
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
           | {:move_section, pid(), Section.id(), offset :: integer()}
@@ -179,6 +180,18 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
+  def apply_operation(data, {:insert_section_into, _client_pid, section_id, index, id}) do
+    with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
+      section = %{Section.new() | id: id}
+
+      data
+      |> with_actions()
+      |> insert_section_into(section_id, index, section)
+      |> set_dirty()
+      |> wrap_ok()
+    end
+  end
+
   def apply_operation(data, {:insert_cell, _client_pid, section_id, index, type, id}) do
     with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
       cell = %{Cell.new(type) | id: id}
@@ -191,39 +204,24 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:delete_section, _client_pid, id}) do
-    with {:ok, section} <- Notebook.fetch_section(data.notebook, id) do
+  def apply_operation(data, {:delete_section, _client_pid, id, delete_cells}) do
+    with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
+         true <- section != hd(data.notebook.sections) or delete_cells do
       data
       |> with_actions()
-      |> delete_section(section)
+      |> delete_section(section, delete_cells)
       |> set_dirty()
       |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
   def apply_operation(data, {:delete_cell, _client_pid, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
-      case data.cell_infos[cell.id].evaluation_status do
-        :evaluating ->
-          data
-          |> with_actions()
-          |> clear_evaluation()
-          |> add_action({:stop_evaluation, section})
-
-        :queued ->
-          data
-          |> with_actions()
-          |> unqueue_cell_evaluation(cell, section)
-          |> unqueue_dependent_cells_evaluation(cell)
-          |> mark_dependent_cells_as_stale(cell)
-
-        _ ->
-          data
-          |> with_actions()
-          |> mark_dependent_cells_as_stale(cell)
-      end
-      |> delete_cell(cell)
-      |> add_action({:forget_evaluation, cell, section})
+      data
+      |> with_actions()
+      |> delete_cell(cell, section)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -332,26 +330,14 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:cancel_cell_evaluation, _client_pid, id}) do
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
-      case data.cell_infos[cell.id].evaluation_status do
-        :evaluating ->
-          data
-          |> with_actions()
-          |> clear_evaluation()
-          |> add_action({:stop_evaluation, section})
-          |> wrap_ok()
-
-        :queued ->
-          data
-          |> with_actions()
-          |> unqueue_cell_evaluation(cell, section)
-          |> unqueue_dependent_cells_evaluation(cell)
-          |> mark_dependent_cells_as_stale(cell)
-          |> wrap_ok()
-
-        _ ->
-          :error
-      end
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         true <- data.cell_infos[cell.id].evaluation_status in [:evaluating, :queued] do
+      data
+      |> with_actions()
+      |> cancel_cell_evaluation(cell, section)
+      |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -491,6 +477,14 @@ defmodule Livebook.Session.Data do
     )
   end
 
+  defp insert_section_into({data, _} = data_actions, section_id, index, section) do
+    data_actions
+    |> set!(
+      notebook: Notebook.insert_section_into(data.notebook, section_id, index, section),
+      section_infos: Map.put(data.section_infos, section.id, new_section_info())
+    )
+  end
+
   defp insert_cell({data, _} = data_actions, section_id, index, cell) do
     data_actions
     |> set!(
@@ -499,18 +493,29 @@ defmodule Livebook.Session.Data do
     )
   end
 
-  defp delete_section({data, _} = data_actions, section) do
+  defp delete_section(data_actions, section, delete_cells) do
+    {data, _} =
+      data_actions =
+      if delete_cells do
+        data_actions
+        |> reduce(Enum.reverse(section.cells), &delete_cell(&1, &2, section))
+      else
+        data_actions
+      end
+
     data_actions
     |> set!(
       notebook: Notebook.delete_section(data.notebook, section.id),
       section_infos: Map.delete(data.section_infos, section.id),
-      deleted_sections: [section | data.deleted_sections]
+      deleted_sections: [%{section | cells: []} | data.deleted_sections]
     )
-    |> reduce(section.cells, &delete_cell_info/2)
   end
 
-  defp delete_cell({data, _} = data_actions, cell) do
+  defp delete_cell({data, _} = data_actions, cell, section) do
     data_actions
+    |> cancel_cell_evaluation(cell, section)
+    |> mark_dependent_cells_as_stale(cell)
+    |> add_action({:forget_evaluation, cell, section})
     |> set!(
       notebook: Notebook.delete_cell(data.notebook, cell.id),
       deleted_cells: [cell | data.deleted_cells]
@@ -629,6 +634,8 @@ defmodule Livebook.Session.Data do
     end)
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
+
+  defp mark_dependent_cells_as_stale(data_actions, %Cell.Markdown{}), do: data_actions
 
   defp mark_dependent_cells_as_stale({data, _} = data_actions, cell) do
     dependent = dependent_cells_with_section(data, cell.id)
@@ -749,6 +756,24 @@ defmodule Livebook.Session.Data do
     |> reduce(prerequisites_queue, fn data_actions, {cell, section} ->
       queue_cell_evaluation(data_actions, cell, section)
     end)
+  end
+
+  defp cancel_cell_evaluation({data, _} = data_actions, cell, section) do
+    case data.cell_infos[cell.id].evaluation_status do
+      :evaluating ->
+        data_actions
+        |> clear_evaluation()
+        |> add_action({:stop_evaluation, section})
+
+      :queued ->
+        data_actions
+        |> unqueue_cell_evaluation(cell, section)
+        |> unqueue_dependent_cells_evaluation(cell)
+        |> mark_dependent_cells_as_stale(cell)
+
+      _ ->
+        data_actions
+    end
   end
 
   defp unqueue_dependent_cells_evaluation({data, _} = data_actions, cell) do

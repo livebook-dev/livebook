@@ -95,6 +95,10 @@
     @apply relative inline-block w-14 h-7 mr-2 select-none transition;
   }
 
+  .switch-button--disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
   .switch-button__checkbox {
     @apply appearance-none absolute block w-7 h-7 rounded-full bg-gray-400 border-[5px] border-gray-100 cursor-pointer transition-all duration-300;
   }

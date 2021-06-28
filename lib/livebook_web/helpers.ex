@@ -135,13 +135,18 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Renders a checkbox input styled as a switch.
   """
-  def render_switch(name, checked, label) do
-    assigns = %{name: name, checked: checked, label: label}
+  def render_switch(name, checked, label, opts \\ []) do
+    assigns = %{
+      name: name,
+      checked: checked,
+      label: label,
+      disabled: Keyword.get(opts, :disabled, false)
+    }
 
     ~L"""
     <div class="flex space-x-3 items-center justify-between">
       <span class="text-gray-700"><%= @label %></span>
-      <label class="switch-button">
+      <label class="switch-button <%= if(@disabled, do: "switch-button--disabled") %>">
         <%= tag :input, class: "switch-button__checkbox", type: "checkbox", name: @name, checked: @checked %>
         <div class="switch-button__bg"></div>
       </label>
