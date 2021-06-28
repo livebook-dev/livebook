@@ -133,8 +133,8 @@ defmodule Livebook.Notebook do
   def delete_section(notebook, section_id) do
     sections =
       case Enum.split_while(notebook.sections, &(&1.id != section_id)) do
-        {[], [_section]} ->
-          []
+        {[], [_section | sections_below]} ->
+          sections_below
 
         {sections_above, [section | sections_below]} ->
           {prev_section, sections_above} = List.pop_at(sections_above, length(sections_above) - 1)

@@ -138,7 +138,7 @@ defmodule Livebook.Session.DataTest do
   describe "apply_operation/2 given :delete_section" do
     test "returns an error given invalid section id" do
       data = Data.new()
-      operation = {:delete_section, self(), "nonexistent"}
+      operation = {:delete_section, self(), "nonexistent", true}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -148,7 +148,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"}
         ])
 
-      operation = {:delete_section, self(), "s1"}
+      operation = {:delete_section, self(), "s1", true}
       empty_map = %{}
 
       assert {:ok,
@@ -159,6 +159,82 @@ defmodule Livebook.Session.DataTest do
                 section_infos: ^empty_map,
                 deleted_sections: [%{id: "s1"}]
               }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "returns error when cell deletion is disabled for the first cell" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+        ])
+
+      operation = {:delete_section, self(), "s1", false}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "keeps cells when cell deletion is disabled" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"}
+        ])
+
+      operation = {:delete_section, self(), "s2", false}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1", cells: [%{id: "c1"}, %{id: "c2"}]}]
+                },
+                deleted_cells: []
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "deletes cells when cell deletion is enabled" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"}
+        ])
+
+      operation = {:delete_section, self(), "s2", true}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1", cells: [%{id: "c1"}]}]
+                },
+                deleted_cells: [%{id: "c2"}]
+              },
+              [{:forget_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "marks evaluated child cells as stale when cells get deleted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          # Evaluate both cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:delete_section, self(), "s1", true}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{validity_status: :stale}}
+              }, _actions} = Data.apply_operation(data, operation)
     end
   end
 
@@ -247,6 +323,26 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{validity_status: :stale}}
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "deleting a markdown cell does not change child cell validity" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :markdown, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          # Evaluate the elixir cell
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:delete_cell, self(), "c1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{validity_status: :evaluated}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 

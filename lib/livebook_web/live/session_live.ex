@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive do
               <% end %>
             </div>
             <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
-              phx-click="add_section" >
+              phx-click="insert_section_at_end">
               <%= remix_icon("add-line", class: "text-lg align-center") %>
               <span>New section</span>
             </button>
@@ -211,8 +211,7 @@ defmodule LivebookWeb.SessionLive do
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button button-small"
-                  phx-click="insert_section"
-                  phx-value-index="0">
+                  phx-click="insert_section_at_start">
                   + Section
                 </button>
               </div>
@@ -361,9 +360,15 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("insert_section", %{"index" => index}, socket) do
-    index = ensure_integer(index) |> max(0)
-    Session.insert_section(socket.assigns.session_id, index)
+  def handle_event("insert_section_at_start", %{}, socket) do
+    Session.insert_section(socket.assigns.session_id, 0)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("insert_section_at_end", %{}, socket) do
+    idx = length(socket.private.data.notebook.sections)
+    Session.insert_section(socket.assigns.session_id, idx)
 
     {:noreply, socket}
   end

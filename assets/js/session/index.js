@@ -662,8 +662,7 @@ function insertSectionBelowFocusedCell(hook) {
       cell_id: hook.state.focusedCellId,
     });
   } else {
-    const sectionIds = getSectionIds();
-    hook.pushEvent("insert_section", { index: sectionIds.length });
+    hook.pushEvent("insert_section_at_end", {});
   }
 }
 
@@ -673,7 +672,7 @@ function insertSectionAboveFocusedCell(hook) {
       cell_id: hook.state.focusedCellId,
     });
   } else {
-    hook.pushEvent("insert_section", { index: 0 });
+    hook.pushEvent("insert_section_at_start", {});
   }
 }
 
