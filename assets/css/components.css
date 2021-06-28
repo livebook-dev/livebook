@@ -75,6 +75,10 @@
     @apply w-full px-3 py-2 bg-gray-50 text-sm border border-gray-200 rounded-lg placeholder-gray-400 text-gray-600;
   }
 
+  .input[type="color"] {
+    @apply py-0 w-16;
+  }
+
   .input--error {
     @apply bg-red-50 border-red-600 text-red-600;
   }

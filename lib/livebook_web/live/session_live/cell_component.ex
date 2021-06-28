@@ -200,7 +200,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               spellcheck="false"
               tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
           <% else %>
-            <input type="<%= if(@cell_view.input_type == :password, do: "password", else: "text") %>"
+            <input type="<%= html_input_type(@cell_view.input_type) %>"
               data-element="input"
               class="input <%= if(@cell_view.error, do: "input--error") %>"
               name="value"
@@ -440,4 +440,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
+
+  defp html_input_type(:password), do: "password"
+  defp html_input_type(:number), do: "number"
+  defp html_input_type(:color), do: "color"
+  defp html_input_type(_), do: "text"
 end

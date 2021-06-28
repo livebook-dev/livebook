@@ -115,4 +115,24 @@ defmodule Livebook.Utils do
     uri = URI.parse(url)
     uri.scheme != nil and uri.host != nil and uri.host =~ "."
   end
+
+  @doc """
+  Validates if the given hex color is the correct format
+
+  ## Examples
+
+    iex> Livebook.Utils.valid_hex_color?("#111111")
+    true
+
+    iex> Livebook.Utils.valid_hex_color?("#ABC123")
+    true
+
+    iex> Livebook.Utils.valid_hex_color?("ABCDEF")
+    false
+
+    iex> Livebook.Utils.valid_hex_color?("#111")
+    false
+  """
+  @spec valid_hex_color?(String.t()) :: boolean()
+  def valid_hex_color?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
 end
