@@ -37,15 +37,15 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "delete_section/2" do
+  describe "delete_section/3" do
     test "sends a delete opreation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
       {section_id, _cell_id} = insert_section_and_cell(session_id)
 
-      Session.delete_section(session_id, section_id)
-      assert_receive {:operation, {:delete_section, ^pid, ^section_id}}
+      Session.delete_section(session_id, section_id, false)
+      assert_receive {:operation, {:delete_section, ^pid, ^section_id, false}}
     end
   end
 

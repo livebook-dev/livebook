@@ -126,11 +126,24 @@ defmodule Livebook.Notebook do
 
   @doc """
   Deletes section with the given id.
+
+  All cells are moved to the previous section if present.
   """
   @spec delete_section(t(), Section.id()) :: t()
   def delete_section(notebook, section_id) do
-    {_, notebook} = pop_in(notebook, [Access.key(:sections), access_by_id(section_id)])
-    notebook
+    sections =
+      case Enum.split_while(notebook.sections, &(&1.id != section_id)) do
+        {[], [_section]} ->
+          []
+
+        {sections_above, [section | sections_below]} ->
+          {prev_section, sections_above} = List.pop_at(sections_above, length(sections_above) - 1)
+
+          sections_above ++
+            [%{prev_section | cells: prev_section.cells ++ section.cells} | sections_below]
+      end
+
+    %{notebook | sections: sections}
   end
 
   @doc """

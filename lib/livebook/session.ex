@@ -135,9 +135,9 @@ defmodule Livebook.Session do
   @doc """
   Asynchronously sends section deletion request to the server.
   """
-  @spec delete_section(id(), Section.id()) :: :ok
-  def delete_section(session_id, section_id) do
-    GenServer.cast(name(session_id), {:delete_section, self(), section_id})
+  @spec delete_section(id(), Section.id(), boolean()) :: :ok
+  def delete_section(session_id, section_id, delete_cells) do
+    GenServer.cast(name(session_id), {:delete_section, self(), section_id, delete_cells})
   end
 
   @doc """
@@ -372,8 +372,8 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:delete_section, client_pid, section_id}, state) do
-    operation = {:delete_section, client_pid, section_id}
+  def handle_cast({:delete_section, client_pid, section_id, delete_cells}, state) do
+    operation = {:delete_section, client_pid, section_id, delete_cells}
     {:noreply, handle_operation(state, operation)}
   end
 

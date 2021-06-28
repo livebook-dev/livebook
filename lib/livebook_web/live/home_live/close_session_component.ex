@@ -16,8 +16,8 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
         This won't delete any persisted files.
       </p>
       <div class="mt-8 flex justify-end space-x-2">
-      <button class="button button-red" phx-click="close" phx-target="<%= @myself %>">
-        <%= remix_icon("close-circle-line", class: "align-middle mr-1") %>
+        <button class="button button-red" phx-click="close" phx-target="<%= @myself %>">
+          <%= remix_icon("close-circle-line", class: "align-middle mr-1") %>
           Close session
         </button>
         <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>

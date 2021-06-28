@@ -82,7 +82,7 @@ defmodule Livebook.Session.Data do
           {:insert_section, pid(), index(), Section.id()}
           | {:insert_section_into, pid(), Section.id(), index(), Section.id()}
           | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id()}
-          | {:delete_section, pid(), Section.id()}
+          | {:delete_section, pid(), Section.id(), delete_cells :: boolean()}
           | {:delete_cell, pid(), Cell.id()}
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
           | {:move_section, pid(), Section.id(), offset :: integer()}
@@ -204,11 +204,12 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:delete_section, _client_pid, id}) do
-    with {:ok, section} <- Notebook.fetch_section(data.notebook, id) do
+  def apply_operation(data, {:delete_section, _client_pid, id, delete_cells}) do
+    with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
+         true <- section != hd(data.notebook.sections) or not delete_cells do
       data
       |> with_actions()
-      |> delete_section(section)
+      |> delete_section(section, delete_cells)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -520,14 +521,21 @@ defmodule Livebook.Session.Data do
     )
   end
 
-  defp delete_section({data, _} = data_actions, section) do
-    data_actions
-    |> set!(
-      notebook: Notebook.delete_section(data.notebook, section.id),
-      section_infos: Map.delete(data.section_infos, section.id),
-      deleted_sections: [section | data.deleted_sections]
-    )
-    |> reduce(section.cells, &delete_cell_info/2)
+  defp delete_section({data, _} = data_actions, section, delete_cells) do
+    data_actions =
+      data_actions
+      |> set!(
+        notebook: Notebook.delete_section(data.notebook, section.id),
+        section_infos: Map.delete(data.section_infos, section.id),
+        deleted_sections: [%{section | cells: []} | data.deleted_sections]
+      )
+
+    if delete_cells do
+      data_actions
+      |> reduce(Enum.reverse(section.cells), &delete_cell/2)
+    else
+      data_actions
+    end
   end
 
   defp delete_cell({data, _} = data_actions, cell) do

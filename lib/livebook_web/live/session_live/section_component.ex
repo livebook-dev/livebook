@@ -41,9 +41,10 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             </button>
           </span>
           <span class="tooltip top" aria-label="Delete">
-            <button class="icon-button" phx-click="delete_section" phx-value-section_id="<%= @section_view.id %>" tabindex="-1">
+            <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
+                  class: "icon-button" do %>
               <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
-            </button>
+            <% end %>
           </span>
         </div>
       </div>

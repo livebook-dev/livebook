@@ -134,15 +134,25 @@ defmodule LivebookWeb.Helpers do
 
   @doc """
   Renders a checkbox input styled as a switch.
+
+  All additional attributes are passed to the input tag.
   """
-  def render_switch(name, checked, label) do
-    assigns = %{name: name, checked: checked, label: label}
+  def render_switch(name, checked, label, attrs \\ []) do
+    attrs =
+      Keyword.merge(attrs,
+        class: "switch-button__checkbox",
+        type: "checkbox",
+        name: name,
+        checked: checked
+      )
+
+    assigns = %{label: label, attrs: attrs}
 
     ~L"""
     <div class="flex space-x-3 items-center justify-between">
       <span class="text-gray-700"><%= @label %></span>
       <label class="switch-button">
-        <%= tag :input, class: "switch-button__checkbox", type: "checkbox", name: @name, checked: @checked %>
+        <%= tag :input, @attrs %>
         <div class="switch-button__bg"></div>
       </label>
     </div>

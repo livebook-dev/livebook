@@ -288,6 +288,16 @@ defmodule LivebookWeb.SessionLive do
             uploads: @uploads,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
+
+    <%= if @live_action == :delete_section do %>
+      <%= live_modal LivebookWeb.SessionLive.DeleteSectionComponent,
+            id: :delete_section_modal,
+            modal_class: "w-full max-w-xl",
+            session_id: @session_id,
+            section: @section,
+            is_first: @section.id == @first_section_id,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
     """
   end
 
@@ -301,6 +311,12 @@ defmodule LivebookWeb.SessionLive do
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
+  end
+
+  def handle_params(%{"section_id" => section_id}, _url, socket) do
+    {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
+    first_section_id = hd(socket.private.data.notebook.sections).id
+    {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -367,12 +383,6 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("insert_section_above_cell", %{"cell_id" => cell_id}, socket) do
     insert_section_next_to(socket, cell_id, idx_offset: 0)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("delete_section", %{"section_id" => section_id}, socket) do
-    Session.delete_section(socket.assigns.session_id, section_id)
 
     {:noreply, socket}
   end
