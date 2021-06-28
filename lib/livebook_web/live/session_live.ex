@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive do
               <% end %>
             </div>
             <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
-              phx-click="insert_section_at_end">
+              phx-click="append_section">
               <%= remix_icon("add-line", class: "text-lg align-center") %>
               <span>New section</span>
             </button>
@@ -211,7 +211,7 @@ defmodule LivebookWeb.SessionLive do
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button button-small"
-                  phx-click="insert_section_at_start">
+                  phx-click="append_section">
                   + Section
                 </button>
               </div>
@@ -360,13 +360,7 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("insert_section_at_start", %{}, socket) do
-    Session.insert_section(socket.assigns.session_id, 0)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("insert_section_at_end", %{}, socket) do
+  def handle_event("append_section", %{}, socket) do
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session_id, idx)
 
@@ -376,18 +370,6 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("insert_section_into", %{"section_id" => section_id, "index" => index}, socket) do
     index = ensure_integer(index) |> max(0)
     Session.insert_section_into(socket.assigns.session_id, section_id, index)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("insert_section_below_cell", %{"cell_id" => cell_id}, socket) do
-    insert_section_next_to(socket, cell_id, idx_offset: 1)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("insert_section_above_cell", %{"cell_id" => cell_id}, socket) do
-    insert_section_next_to(socket, cell_id, idx_offset: 0)
 
     {:noreply, socket}
   end
@@ -815,12 +797,6 @@ defmodule LivebookWeb.SessionLive do
     {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     index = Enum.find_index(section.cells, &(&1 == cell))
     Session.insert_cell(socket.assigns.session_id, section.id, index + idx_offset, type)
-  end
-
-  defp insert_section_next_to(socket, cell_id, idx_offset: idx_offset) do
-    {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
-    index = Enum.find_index(section.cells, &(&1 == cell))
-    Session.insert_section_into(socket.assigns.session_id, section.id, index + idx_offset)
   end
 
   defp ensure_integer(n) when is_integer(n), do: n

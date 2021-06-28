@@ -274,10 +274,6 @@ function handleDocumentKeyDown(hook, event) {
     if (cmd && key === "s") {
       cancelEvent(event);
       saveNotebook(hook);
-    } else if (keyBuffer.tryMatch(["S", "n"])) {
-      insertSectionBelowFocusedCell(hook);
-    } else if (keyBuffer.tryMatch(["S", "N"])) {
-      insertSectionAboveFocusedCell(hook);
     } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
     } else if (
@@ -653,26 +649,6 @@ function insertFirstCell(hook, type) {
       index: 0,
       type,
     });
-  }
-}
-
-function insertSectionBelowFocusedCell(hook) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("insert_section_below_cell", {
-      cell_id: hook.state.focusedCellId,
-    });
-  } else {
-    hook.pushEvent("insert_section_at_end", {});
-  }
-}
-
-function insertSectionAboveFocusedCell(hook) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("insert_section_above_cell", {
-      cell_id: hook.state.focusedCellId,
-    });
-  } else {
-    hook.pushEvent("insert_section_at_start", {});
   }
 }
 
