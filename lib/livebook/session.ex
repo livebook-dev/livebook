@@ -692,6 +692,14 @@ defmodule Livebook.Session do
     state
   end
 
+  defp after_operation(state, _prev_state, {:delete_cell, _client_pid, cell_id}) do
+    entry = Enum.find(state.data.bin_entries, fn entry -> entry.cell.id == cell_id end)
+    # The session LV drops cell's source, so we send them
+    # the complete bin entry to override
+    broadcast_message(state.session_id, {:hydrate_bin_entry, entry})
+    state
+  end
+
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do

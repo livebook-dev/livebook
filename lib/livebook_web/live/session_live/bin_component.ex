@@ -93,8 +93,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   <pre><code
                     id="bin-cell-<%= cell.id %>-source"
                     phx-hook="Highlight"
-                    data-language="<%= Cell.type(cell) %>"
-                    phx-update="ignore"><%= cell.source %></code></pre>
+                    data-language="<%= Cell.type(cell) %>"><%= cell.source %></code></pre>
                 </div>
               </div>
             <% end %>

@@ -367,9 +367,7 @@ defmodule LivebookWeb.SessionLive do
 
         # From this point on we don't need cell source in the LV,
         # so we are going to drop it altogether
-
-        # TODO: enable and figure out how to get the source for cells bin
-        # socket = remove_cell_source(socket, cell_id)
+        socket = remove_cell_source(socket, cell_id)
 
         {:reply, payload, socket}
 
@@ -652,6 +650,24 @@ defmodule LivebookWeb.SessionLive do
     message = info |> to_string() |> upcase_first()
 
     {:noreply, put_flash(socket, :info, message)}
+  end
+
+  def handle_info({:hydrate_bin_entry, hydrated_entry}, socket) do
+    data =
+      Map.update!(socket.private.data, :bin_entries, fn bin_entries ->
+        Enum.map(bin_entries, fn entry ->
+          if entry.cell.id == hydrated_entry.cell.id do
+            hydrated_entry
+          else
+            entry
+          end
+        end)
+      end)
+
+    {:noreply,
+     socket
+     |> assign_private(data: data)
+     |> assign(data_view: data_to_view(data))}
   end
 
   def handle_info(:session_closed, socket) do

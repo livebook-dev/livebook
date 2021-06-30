@@ -12,15 +12,13 @@ const Highlight = {
   mounted() {
     this.props = getProps(this);
 
-    const code = this.el.innerText;
-
-    highlight(code, this.props.language).then((html) => {
-      this.el.innerHTML = html;
-    });
+    highlightIn(this.el, this.props.language);
   },
 
   updated() {
     this.props = getProps(this);
+
+    highlightIn(this.el, this.props.language);
   },
 };
 
@@ -28,6 +26,14 @@ function getProps(hook) {
   return {
     language: getAttributeOrThrow(hook.el, "data-language"),
   };
+}
+
+function highlightIn(element, language) {
+  const code = element.innerText;
+
+  highlight(code, language).then((html) => {
+    element.innerHTML = html;
+  });
 }
 
 export default Highlight;
