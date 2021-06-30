@@ -2,21 +2,14 @@ import marked from "marked";
 import morphdom from "morphdom";
 import DOMPurify from "dompurify";
 import katex from "katex";
-import monaco from "./live_editor/monaco";
+import { highlight } from "./live_editor/monaco";
 
 // Reuse Monaco highlighter for Markdown code blocks
 marked.setOptions({
   highlight: (code, lang, callback) => {
-    monaco.editor
-      .colorize(code, lang)
-      .then((result) => {
-        // `colorize` always adds additional newline, so we remove it
-        result = result.replace(/<br\/>$/, "");
-        callback(null, result);
-      })
-      .catch((error) => {
-        callback(error, null);
-      });
+    highlight(code, lang)
+      .then((html) => callback(null, html))
+      .catch((error) => callback(error, null));
   },
 });
 

@@ -9,17 +9,18 @@ defmodule LivebookWeb.Output.TextComponent do
       phx-hook="VirtualizedLines"
       data-max-height="300"
       data-follow="<%= @follow %>">
-      <div data-template class="hidden">
-        <%= for line <- ansi_to_html_lines(@content) do %>
-          <%# Add a newline, so that multiple lines can be copied properly %>
-          <div><%= [line, "\n"] %></div>
-        <% end %>
-      </div>
+      <%# Add a newline to each element, so that multiple lines can be copied properly %>
+      <div data-template class="hidden"
+        id="virtualized-text-<%= @id %>-template"
+        ><%= for line <- ansi_to_html_lines(@content) do %><div><%= [line, "\n"] %></div><% end %></div>
       <div data-content class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
         id="virtualized-text-<%= @id %>-content"
         phx-update="ignore"></div>
       <div class="absolute right-4 top-0 z-10">
-        <button class="icon-button bg-gray-100" data-clipboard>
+        <button class="icon-button bg-gray-100"
+          id="virtualized-text-<%= @id %>-clipcopy"
+          phx-hook="ClipCopy"
+          data-target-id="virtualized-text-<%= @id %>-template">
           <%= remix_icon("clipboard-line", class: "text-lg") %>
         </button>
       </div>

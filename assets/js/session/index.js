@@ -140,6 +140,10 @@ const Session = {
       }
     );
 
+    this.handleEvent("cell_restored", ({ cell_id: cellId }) => {
+      handleCellRestored(this, cellId);
+    });
+
     this.handleEvent("cell_moved", ({ cell_id }) => {
       handleCellMoved(this, cell_id);
     });
@@ -293,6 +297,8 @@ function handleDocumentKeyDown(hook, event) {
       toggleClientsList(hook);
     } else if (keyBuffer.tryMatch(["s", "r"])) {
       showNotebookRuntimeSettings(hook);
+    } else if (keyBuffer.tryMatch(["s", "b"])) {
+      showBin(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
       cancelFocusedCellEvaluation(hook);
     } else if (keyBuffer.tryMatch(["?"])) {
@@ -327,6 +333,11 @@ function handleDocumentKeyDown(hook, event) {
  * (e.g. if the user starts selecting some text within the editor)
  */
 function handleDocumentMouseDown(hook, event) {
+  // If the click is outside the notebook element, keep the focus as is
+  if (!event.target.closest(`[data-element="notebook"]`)) {
+    return;
+  }
+
   // If click targets a clickable element that awaits mouse up, keep the focus as is
   if (event.target.closest(`a, button`)) {
     // If the pencil icon is clicked, enter insert mode
@@ -533,6 +544,10 @@ function showNotebookRuntimeSettings(hook) {
   hook.pushEvent("show_runtime_settings", {});
 }
 
+function showBin(hook) {
+  hook.pushEvent("show_bin", {});
+}
+
 function saveNotebook(hook) {
   hook.pushEvent("save", {});
 }
@@ -704,6 +719,10 @@ function handleCellDeleted(hook, cellId, siblingCellId) {
   if (hook.state.focusedCellId === cellId) {
     setFocusedCell(hook, siblingCellId);
   }
+}
+
+function handleCellRestored(hook, cellId) {
+  setFocusedCell(hook, cellId);
 }
 
 function handleCellMoved(hook, cellId) {

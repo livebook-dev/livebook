@@ -97,6 +97,13 @@ defmodule LivebookWeb.SessionLive do
                 label: "Runtime settings (sr)",
                 active: @live_action == :runtime_settings
               },
+              %{
+                type: :link,
+                icon: "delete-bin-6-fill",
+                path: Routes.session_path(@socket, :bin, @session_id),
+                label: "Bin (sb)",
+                active: @live_action == :bin
+              },
               %{type: :break},
               %{
                 type: :link,
@@ -295,6 +302,15 @@ defmodule LivebookWeb.SessionLive do
             session_id: @session_id,
             section: @section,
             is_first: @section.id == @first_section_id,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
+    <%= if @live_action == :bin do %>
+      <%= live_modal LivebookWeb.SessionLive.BinComponent,
+            id: :bin_modal,
+            modal_class: "w-full max-w-4xl",
+            session_id: @session_id,
+            bin_entries: @data_view.bin_entries,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
     """
@@ -545,6 +561,11 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
+  def handle_event("show_bin", %{}, socket) do
+    {:noreply,
+     push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session_id))}
+  end
+
   def handle_event("completion_request", %{"hint" => hint, "cell_id" => cell_id}, socket) do
     data = socket.private.data
 
@@ -629,6 +650,25 @@ defmodule LivebookWeb.SessionLive do
     message = info |> to_string() |> upcase_first()
 
     {:noreply, put_flash(socket, :info, message)}
+  end
+
+  def handle_info({:hydrate_bin_entries, hydrated_entries}, socket) do
+    hydrated_entries_map = Map.new(hydrated_entries, fn entry -> {entry.cell.id, entry} end)
+
+    data =
+      Map.update!(socket.private.data, :bin_entries, fn bin_entries ->
+        Enum.map(bin_entries, fn entry ->
+          case Map.fetch(hydrated_entries_map, entry.cell.id) do
+            {:ok, hydrated_entry} -> hydrated_entry
+            :error -> entry
+          end
+        end)
+      end)
+
+    {:noreply,
+     socket
+     |> assign_private(data: data)
+     |> assign(data_view: data_to_view(data))}
   end
 
   def handle_info(:session_closed, socket) do
@@ -732,6 +772,14 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "cell_deleted", %{cell_id: cell_id, sibling_cell_id: sibling_cell_id})
   end
 
+  defp after_operation(socket, _prev_socket, {:restore_cell, client_pid, cell_id}) do
+    if client_pid == self() do
+      push_event(socket, "cell_restored", %{cell_id: cell_id})
+    else
+      socket
+    end
+  end
+
   defp after_operation(socket, _prev_socket, {:move_cell, client_pid, cell_id, _offset}) do
     if client_pid == self() do
       push_event(socket, "cell_moved", %{cell_id: cell_id})
@@ -831,7 +879,8 @@ defmodule LivebookWeb.SessionLive do
         data.clients_map
         |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
-      section_views: section_views(data.notebook.sections, data)
+      section_views: section_views(data.notebook.sections, data),
+      bin_entries: data.bin_entries
     }
   end
 

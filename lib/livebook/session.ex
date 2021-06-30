@@ -149,6 +149,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends cell restoration request to the server.
+  """
+  @spec restore_cell(id(), Cell.id()) :: :ok
+  def restore_cell(session_id, cell_id) do
+    GenServer.cast(name(session_id), {:restore_cell, self(), cell_id})
+  end
+
+  @doc """
   Asynchronously sends cell move request to the server.
   """
   @spec move_cell(id(), Cell.id(), integer()) :: :ok
@@ -379,6 +387,11 @@ defmodule Livebook.Session do
 
   def handle_cast({:delete_cell, client_pid, cell_id}, state) do
     operation = {:delete_cell, client_pid, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:restore_cell, client_pid, cell_id}, state) do
+    operation = {:restore_cell, client_pid, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -675,6 +688,24 @@ defmodule Livebook.Session do
     unless Map.has_key?(state.data.users_map, user_id) do
       Phoenix.PubSub.unsubscribe(Livebook.PubSub, "users:#{user_id}")
     end
+
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:delete_cell, _client_pid, cell_id}) do
+    entry = Enum.find(state.data.bin_entries, fn entry -> entry.cell.id == cell_id end)
+    # The session LV drops cell's source, so we send them
+    # the complete bin entry to override
+    broadcast_message(state.session_id, {:hydrate_bin_entries, [entry]})
+
+    state
+  end
+
+  defp after_operation(state, prev_state, {:delete_section, _client_pid, section_id, true}) do
+    {:ok, section} = Notebook.fetch_section(prev_state.data.notebook, section_id)
+    cell_ids = Enum.map(section.cells, & &1.id)
+    entries = Enum.filter(state.data.bin_entries, fn entry -> entry.cell.id in cell_ids end)
+    broadcast_message(state.session_id, {:hydrate_bin_entries, entries})
 
     state
   end

@@ -24,7 +24,6 @@ import { getLineHeight } from "../lib/utils";
  *   * one annotated with `data-content` where the visible elements are rendered,
  *     it should contain any styling relevant for the container
  *
- * Also a `data-clipboard` child button is used for triggering copy-to-clipboard.
  */
 const VirtualizedLines = {
   mounted() {
@@ -64,18 +63,6 @@ const VirtualizedLines = {
       this.state.contentElement,
       config
     );
-
-    this.el
-      .querySelector("[data-clipboard]")
-      .addEventListener("click", (event) => {
-        const content = Array.from(this.state.templateElement.children)
-          .map((child) => child.innerText)
-          .join("");
-
-        if ("clipboard" in navigator) {
-          navigator.clipboard.writeText(content);
-        }
-      });
   },
 
   updated() {

@@ -17,20 +17,32 @@ defmodule Livebook.Notebook.Cell do
 
   ## Recognised entries
 
-  * `disable_formatting` - whether this particular cell should no be automatically formatted.
-     Relevant for Elixir cells only.
+    * `disable_formatting` - whether this particular cell should
+      not be automatically formatted. Relevant for Elixir cells only.
   """
   @type metadata :: %{String.t() => term()}
 
   @type t :: Cell.Elixir.t() | Cell.Markdown.t() | Cell.Input.t()
 
+  @type type :: :markdown | :elixir | :input
+
   @doc """
   Returns an empty cell of the given type.
   """
-  @spec new(:markdown | :elixir | :input) :: t()
+  @spec new(type()) :: t()
   def new(type)
 
   def new(:markdown), do: Cell.Markdown.new()
   def new(:elixir), do: Cell.Elixir.new()
   def new(:input), do: Cell.Input.new()
+
+  @doc """
+  Returns an atom representing the type of the given cell.
+  """
+  @spec type(t()) :: type()
+  def type(cell)
+
+  def type(%Cell.Elixir{}), do: :elixir
+  def type(%Cell.Markdown{}), do: :markdown
+  def type(%Cell.Input{}), do: :input
 end

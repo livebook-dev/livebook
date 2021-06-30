@@ -41,3 +41,15 @@ monaco.languages.registerCompletionItemProvider("elixir", {
 });
 
 export default monaco;
+
+/**
+ * Highlights the given code using the same rules as in the editor.
+ *
+ * Returns a promise resolving to HTML that renders as the highlighted code.
+ */
+export function highlight(code, language) {
+  return monaco.editor.colorize(code, language).then((result) => {
+    // `colorize` always adds additional newline, so we remove it
+    return result.replace(/<br\/>$/, "");
+  });
+}
