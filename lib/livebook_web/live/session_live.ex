@@ -612,6 +612,19 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("format_code", %{"code" => code}, socket) do
+    formatted =
+      try do
+        code
+        |> Code.format_string!()
+        |> IO.iodata_to_binary()
+      rescue
+        _ -> code
+      end
+
+    {:reply, %{code: formatted}, socket}
+  end
+
   defp create_session(socket, opts) do
     case SessionSupervisor.create_session(opts) do
       {:ok, id} ->

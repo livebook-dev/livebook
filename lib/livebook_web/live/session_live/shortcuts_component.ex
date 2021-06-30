@@ -4,13 +4,24 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @shortcuts %{
     insert_mode: [
       %{seq: ["esc"], desc: "Switch back to navigation mode"},
-      %{seq: ["ctrl", "↵"], press_all: true, desc: "Evaluate cell and stay in insert mode"},
+      %{
+        seq: ["ctrl", "↵"],
+        seq_mac: ["⌘", "↵"],
+        press_all: true,
+        desc: "Evaluate cell and stay in insert mode"
+      },
       %{seq: ["tab"], desc: "Autocomplete expression when applicable"},
       %{
         seq: ["ctrl", "␣"],
         press_all: true,
-        transform_for_mac: false,
         desc: "Show completion list, use twice for details"
+      },
+      %{
+        seq: ["ctrl", "shift", "i"],
+        seq_mac: ["⇧", "⌥", "f"],
+        seq_windows: ["shift", "alt", "f"],
+        press_all: true,
+        desc: "Format Elixir code"
       }
     ],
     navigation_mode: [
@@ -36,7 +47,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["s", "b"], desc: "Show bin"}
     ],
     universal: [
-      %{seq: ["ctrl", "s"], press_all: true, desc: "Save notebook"}
+      %{seq: ["ctrl", "s"], seq_mac: ["⌘", "s"], press_all: true, desc: "Save notebook"}
     ]
   }
 
@@ -74,7 +85,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     <h3 class="text-lg font-medium text-gray-900 pt-4">
       <%= @title %>
     </h3>
-    <div class="mt-2 flex sm:flex-row flex-col">
+    <div class="mt-2 flex flex-col sm:flex-row sm:space-x-2">
       <div class="flex-grow">
         <%= render_shortcuts_section_table(@left, @platform) %>
       </div>
@@ -107,18 +118,12 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   end
 
   defp render_shortcut_seq(shortcut, platform) do
-    seq =
-      if platform == :mac and Map.get(shortcut, :transform_for_mac, true) do
-        seq_for_mac(shortcut.seq)
-      else
-        shortcut.seq
-      end
-
+    seq = shortcut[:"seq_#{platform}"] || shortcut.seq
     press_all = Map.get(shortcut, :press_all, false)
 
     joiner =
       if press_all do
-        remix_icon("add-line", class: "text-xl text-gray-600")
+        remix_icon("add-line", class: "text-lg text-gray-600")
       end
 
     elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))
@@ -131,14 +136,6 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <% end %>
     </div>
     """
-  end
-
-  defp seq_for_mac(seq) do
-    Enum.map(seq, fn
-      "ctrl" -> "⌘"
-      "alt" -> "⌥"
-      key -> key
-    end)
   end
 
   defp split_in_half(list) do
