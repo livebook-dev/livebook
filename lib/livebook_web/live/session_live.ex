@@ -367,7 +367,9 @@ defmodule LivebookWeb.SessionLive do
 
         # From this point on we don't need cell source in the LV,
         # so we are going to drop it altogether
-        socket = remove_cell_source(socket, cell_id)
+
+        # TODO: enable and figure out how to get the source for cells bin
+        # socket = remove_cell_source(socket, cell_id)
 
         {:reply, payload, socket}
 
