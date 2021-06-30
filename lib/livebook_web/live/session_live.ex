@@ -652,14 +652,15 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, put_flash(socket, :info, message)}
   end
 
-  def handle_info({:hydrate_bin_entry, hydrated_entry}, socket) do
+  def handle_info({:hydrate_bin_entries, hydrated_entries}, socket) do
+    hydrated_entries_map = Map.new(hydrated_entries, fn entry -> {entry.cell.id, entry} end)
+
     data =
       Map.update!(socket.private.data, :bin_entries, fn bin_entries ->
         Enum.map(bin_entries, fn entry ->
-          if entry.cell.id == hydrated_entry.cell.id do
-            hydrated_entry
-          else
-            entry
+          case Map.fetch(hydrated_entries_map, entry.cell.id) do
+            {:ok, hydrated_entry} -> hydrated_entry
+            :error -> entry
           end
         end)
       end)

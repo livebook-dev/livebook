@@ -696,7 +696,17 @@ defmodule Livebook.Session do
     entry = Enum.find(state.data.bin_entries, fn entry -> entry.cell.id == cell_id end)
     # The session LV drops cell's source, so we send them
     # the complete bin entry to override
-    broadcast_message(state.session_id, {:hydrate_bin_entry, entry})
+    broadcast_message(state.session_id, {:hydrate_bin_entries, [entry]})
+
+    state
+  end
+
+  defp after_operation(state, prev_state, {:delete_section, _client_pid, section_id, true}) do
+    {:ok, section} = Notebook.fetch_section(prev_state.data.notebook, section_id)
+    cell_ids = Enum.map(section.cells, & &1.id)
+    entries = Enum.filter(state.data.bin_entries, fn entry -> entry.cell.id in cell_ids end)
+    broadcast_message(state.session_id, {:hydrate_bin_entries, entries})
+
     state
   end
 
