@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
       </h3>
       <div class="w-full flex-col space-y-5">
         <p class="text-gray-700">
-          Here you can find all the cells deleted within this session.
+          Here you can find all the deleted cells from this notebook session.
         </p>
         <%= if @bin_entries == [] do %>
           <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
               spellcheck="false"
               autofocus />
           </form>
-          <div class="flex flex-col space-y-8 overflow-y-auto tiny-scrollbar h-[30rem] pr-3 pb-1">
+          <div class="flex flex-col space-y-8 h-[30rem] pb-1">
             <%= for %{cell: cell} = entry <- Enum.take(@matching_entries, @limit) do %>
               <div class="flex flex-col space-y-1">
                 <div class="flex justify-between items-center">
