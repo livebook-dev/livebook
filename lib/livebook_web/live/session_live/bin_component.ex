@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
               spellcheck="false"
               autofocus />
           </form>
-          <div class="flex flex-col space-y-8 overflow-y-auto tiny-scrollbar max-h-96 pr-3 pb-1">
+          <div class="flex flex-col space-y-8 overflow-y-auto tiny-scrollbar h-[30rem] pr-3 pb-1">
             <%= for %{cell: cell} = entry <- Enum.take(@matching_entries, @limit) do %>
               <div class="flex flex-col space-y-1">
                 <div class="flex justify-between items-center">
@@ -71,20 +71,20 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     </span>
                   </p>
                   <div class="flex justify-end space-x-2">
-                    <span class="tooltip left" aria-label="Restore">
-                      <button class="icon-button"
-                        phx-click="restore"
-                        phx-value-cell_id="<%= entry.cell.id %>"
-                        phx-target="<%= @myself %>">
-                        <%= remix_icon("arrow-go-back-line", class: "text-lg") %>
-                      </button>
-                    </span>
                     <span class="tooltip left" aria-label="Copy source">
                       <button class="icon-button"
                         id="bin-cell-<%= cell.id %>-clipcopy"
                         phx-hook="ClipCopy"
                         data-target-id="bin-cell-<%= cell.id %>-source">
                         <%= remix_icon("clipboard-line", class: "text-lg") %>
+                      </button>
+                    </span>
+                    <span class="tooltip left" aria-label="Restore">
+                      <button class="icon-button"
+                        phx-click="restore"
+                        phx-value-cell_id="<%= entry.cell.id %>"
+                        phx-target="<%= @myself %>">
+                        <%= remix_icon("arrow-go-back-line", class: "text-lg") %>
                       </button>
                     </span>
                   </div>
