@@ -61,6 +61,19 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "restore_cell/2" do
+    test "sends a restore opreation to subscribers", %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      pid = self()
+
+      {_section_id, cell_id} = insert_section_and_cell(session_id)
+      Session.delete_cell(session_id, cell_id)
+
+      Session.restore_cell(session_id, cell_id)
+      assert_receive {:operation, {:restore_cell, ^pid, ^cell_id}}
+    end
+  end
+
   describe "queue_cell_evaluation/2" do
     test "sends a queue evaluation operation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")

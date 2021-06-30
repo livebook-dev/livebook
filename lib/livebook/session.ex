@@ -149,6 +149,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends cell restoration request to the server.
+  """
+  @spec restore_cell(id(), Cell.id()) :: :ok
+  def restore_cell(session_id, cell_id) do
+    GenServer.cast(name(session_id), {:restore_cell, self(), cell_id})
+  end
+
+  @doc """
   Asynchronously sends cell move request to the server.
   """
   @spec move_cell(id(), Cell.id(), integer()) :: :ok
@@ -379,6 +387,11 @@ defmodule Livebook.Session do
 
   def handle_cast({:delete_cell, client_pid, cell_id}, state) do
     operation = {:delete_cell, client_pid, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:restore_cell, client_pid, cell_id}, state) do
+    operation = {:restore_cell, client_pid, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 

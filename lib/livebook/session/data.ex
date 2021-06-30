@@ -20,8 +20,7 @@ defmodule Livebook.Session.Data do
     :dirty,
     :section_infos,
     :cell_infos,
-    :deleted_sections,
-    :deleted_cells,
+    :bin_entries,
     :runtime,
     :clients_map,
     :users_map
@@ -37,8 +36,7 @@ defmodule Livebook.Session.Data do
           dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
           cell_infos: %{Cell.id() => cell_info()},
-          deleted_sections: list(Section.t()),
-          deleted_cells: list(Cell.t()),
+          bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t() | nil,
           clients_map: %{pid() => User.id()},
           users_map: %{User.id() => User.t()}
@@ -59,6 +57,14 @@ defmodule Livebook.Session.Data do
           evaluation_time_ms: integer() | nil,
           number_of_evaluations: non_neg_integer(),
           bound_to_input_ids: MapSet.t(Cell.id())
+        }
+
+  @type cell_bin_entry :: %{
+          cell: Cell.t(),
+          section_id: Section.id(),
+          section_name: String.t(),
+          index: non_neg_integer(),
+          deleted_at: DateTime.t()
         }
 
   @type cell_revision :: non_neg_integer()
@@ -84,6 +90,7 @@ defmodule Livebook.Session.Data do
           | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id()}
           | {:delete_section, pid(), Section.id(), delete_cells :: boolean()}
           | {:delete_cell, pid(), Cell.id()}
+          | {:restore_cell, pid(), Cell.id()}
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
           | {:move_section, pid(), Section.id(), offset :: integer()}
           | {:queue_cell_evaluation, pid(), Cell.id()}
@@ -123,8 +130,7 @@ defmodule Livebook.Session.Data do
       dirty: false,
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
-      deleted_sections: [],
-      deleted_cells: [],
+      bin_entries: [],
       runtime: nil,
       clients_map: %{},
       users_map: %{}
@@ -224,6 +230,19 @@ defmodule Livebook.Session.Data do
       |> delete_cell(cell, section)
       |> set_dirty()
       |> wrap_ok()
+    end
+  end
+
+  def apply_operation(data, {:restore_cell, _client_pid, id}) do
+    with {:ok, cell_bin_entry} <- fetch_cell_bin_entry(data, id),
+         true <- data.notebook.sections != [] do
+      data
+      |> with_actions()
+      |> restore_cell(cell_bin_entry)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -506,8 +525,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(
       notebook: Notebook.delete_section(data.notebook, section.id),
-      section_infos: Map.delete(data.section_infos, section.id),
-      deleted_sections: [%{section | cells: []} | data.deleted_sections]
+      section_infos: Map.delete(data.section_infos, section.id)
     )
   end
 
@@ -518,7 +536,16 @@ defmodule Livebook.Session.Data do
     |> add_action({:forget_evaluation, cell, section})
     |> set!(
       notebook: Notebook.delete_cell(data.notebook, cell.id),
-      deleted_cells: [cell | data.deleted_cells]
+      bin_entries: [
+        %{
+          cell: cell,
+          section_id: section.id,
+          section_name: section.name,
+          index: Enum.find_index(section.cells, &(&1 == cell)),
+          deleted_at: DateTime.utc_now()
+        }
+        | data.bin_entries
+      ]
     )
     |> delete_cell_info(cell)
   end
@@ -526,6 +553,21 @@ defmodule Livebook.Session.Data do
   defp delete_cell_info({data, _} = data_actions, cell) do
     data_actions
     |> set!(cell_infos: Map.delete(data.cell_infos, cell.id))
+  end
+
+  defp restore_cell({data, _} = data_actions, cell_bin_entry) do
+    {section, index} =
+      case Notebook.fetch_section(data.notebook, cell_bin_entry.section_id) do
+        # Insert at the index of deletion, it may be no longer accurate,
+        # but even then makes for a good approximation and the cell can be easily moved
+        {:ok, section} -> {section, cell_bin_entry.index}
+        # Insert at the end of the notebook if the section no longer exists
+        :error -> {List.last(data.notebook.sections), -1}
+      end
+
+    data_actions
+    |> insert_cell(section.id, index, cell_bin_entry.cell)
+    |> set!(bin_entries: List.delete(data.bin_entries, cell_bin_entry))
   end
 
   defp move_cell({data, _} = data_actions, cell, offset) do
@@ -947,6 +989,12 @@ defmodule Livebook.Session.Data do
     deltas = Enum.take(cell_info.deltas, -necessary_deltas)
 
     %{cell_info | deltas: deltas}
+  end
+
+  defp fetch_cell_bin_entry(data, cell_id) do
+    Enum.find_value(data.bin_entries, :error, fn entry ->
+      entry.cell.id == cell_id && {:ok, entry}
+    end)
   end
 
   defp add_action({data, actions}, action) do

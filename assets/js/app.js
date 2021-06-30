@@ -22,6 +22,8 @@ import UserForm from "./user_form";
 import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
+import Highlight from "./highlight";
+import ClipCopy from "./clip_copy";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
@@ -37,6 +39,8 @@ const hooks = {
   VegaLite,
   Timer,
   MarkdownRenderer,
+  Highlight,
+  ClipCopy,
 };
 
 const csrfToken = document

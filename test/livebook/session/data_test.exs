@@ -142,7 +142,7 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "removes the section from notebook and section info, adds to deleted sections" do
+    test "removes the section from notebook and section info" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"}
@@ -156,8 +156,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: []
                 },
-                section_infos: ^empty_map,
-                deleted_sections: [%{id: "s1"}]
+                section_infos: ^empty_map
               }, []} = Data.apply_operation(data, operation)
     end
 
@@ -188,7 +187,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [%{id: "s1", cells: [%{id: "c1"}, %{id: "c2"}]}]
                 },
-                deleted_cells: []
+                bin_entries: []
               }, []} = Data.apply_operation(data, operation)
     end
 
@@ -208,7 +207,15 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [%{id: "s1", cells: [%{id: "c1"}]}]
                 },
-                deleted_cells: [%{id: "c2"}]
+                bin_entries: [
+                  %{
+                    cell: %{id: "c2"},
+                    section_id: "s2",
+                    section_name: "Section",
+                    index: 0,
+                    deleted_at: _
+                  }
+                ]
               },
               [{:forget_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
                Data.apply_operation(data, operation)
@@ -281,7 +288,15 @@ defmodule Livebook.Session.DataTest do
                   sections: [%{cells: []}]
                 },
                 cell_infos: ^empty_map,
-                deleted_cells: [%{id: "c1"}]
+                bin_entries: [
+                  %{
+                    cell: %{id: "c1"},
+                    section_id: "s1",
+                    section_name: "Section",
+                    index: 0,
+                    deleted_at: _
+                  }
+                ]
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -357,6 +372,75 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, _data, [{:forget_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
                Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :restore_cell" do
+    test "returns an error if cell with the given id is not in the bin" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+        ])
+
+      operation = {:restore_cell, self(), "c1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error if there are no sections to restore to" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:delete_section, self(), "s1", true}
+        ])
+
+      operation = {:restore_cell, self(), "c1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "if the original section exists, restores cell at the index of deletion" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:delete_cell, self(), "c2"}
+        ])
+
+      operation = {:restore_cell, self(), "c2"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1", cells: [%{id: "c1"}, %{id: "c2"}, %{id: "c3"}]}]
+                },
+                cell_infos: %{"c2" => %{}},
+                bin_entries: []
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "if the original section does not exist, restores cell at the end of the notebook" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:delete_section, self(), "s1", true}
+        ])
+
+      operation = {:restore_cell, self(), "c1"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s2", cells: [%{id: "c2"}, %{id: "c1"}]}]
+                },
+                cell_infos: %{"c2" => %{}},
+                bin_entries: []
+              }, _actions} = Data.apply_operation(data, operation)
     end
   end
 
