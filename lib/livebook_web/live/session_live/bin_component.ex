@@ -59,12 +59,12 @@ defmodule LivebookWeb.SessionLive.BinComponent do
               spellcheck="false"
               autofocus />
           </form>
-          <div class="flex flex-col space-y-8 h-[30rem] pb-1">
-            <%= for %{cell: cell} = entry <- Enum.take(@matching_entries, @limit) do %>
-              <div class="flex flex-col space-y-1">
+          <div class="flex flex-col space-y-8 h-[30rem] pt-3">
+            <%= for {%{cell: cell} = entry, index} <- Enum.take(@matching_entries, @limit) |> Enum.with_index(1) do %>
+              <div class="flex flex-col space-y-1 pb-3">
                 <div class="flex justify-between items-center">
                   <p class="text-sm text-gray-700">
-                    <span class="font-semibold"><%= Cell.type(cell) |> Atom.to_string() |> String.capitalize() %></span> cell
+                    <span class="font-semibold">#<%= index %> <%= Cell.type(cell) |> Atom.to_string() |> String.capitalize() %></span> cell
                     deleted from <span class="font-semibold">“<%= entry.section_name %>”</span> section
                     <span class="font-semibold">
                       <%= entry.deleted_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words() %> ago
