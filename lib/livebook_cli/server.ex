@@ -55,7 +55,7 @@ defmodule LivebookCLI.Server do
     case start_server() do
       :ok ->
         if opts[:open] do
-          browser_open(Livebook.Application.access_url())
+          browser_open(LivebookWeb.Endpoint.access_url())
         end
 
         Process.sleep(:infinity)

@@ -72,4 +72,15 @@ defmodule LivebookWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug LivebookWeb.Router
+
+  def access_url() do
+    root_url = url()
+
+    if Livebook.Config.auth_mode() == :token do
+      token = Application.fetch_env!(:livebook, :token)
+      root_url <> "/?token=" <> token
+    else
+      root_url
+    end
+  end
 end
