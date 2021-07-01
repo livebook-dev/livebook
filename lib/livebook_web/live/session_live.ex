@@ -271,7 +271,7 @@ defmodule LivebookWeb.SessionLive do
     <%= if @live_action == :shortcuts do %>
       <%= live_modal LivebookWeb.SessionLive.ShortcutsComponent,
             id: :shortcuts_modal,
-            modal_class: "w-full max-w-5xl",
+            modal_class: "w-full max-w-6xl",
             platform: @platform,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
