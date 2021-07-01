@@ -237,6 +237,7 @@ function handleDocumentKeyDown(hook, event) {
   }
 
   const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+  const alt = event.altKey;
   const key = event.key;
   const keyBuffer = hook.state.keyBuffer;
 
@@ -257,7 +258,7 @@ function handleDocumentKeyDown(hook, event) {
       if (!monacoInputOpen && !completionBoxOpen) {
         escapeInsertMode(hook);
       }
-    } else if (cmd && key === "Enter") {
+    } else if (cmd && key === "Enter" && !alt) {
       cancelEvent(event);
       if (hook.state.focusedCellType === "elixir") {
         queueFocusedCellEvaluation(hook);
