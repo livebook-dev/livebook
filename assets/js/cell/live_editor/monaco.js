@@ -40,6 +40,19 @@ monaco.languages.registerCompletionItemProvider("elixir", {
   },
 });
 
+// Define custom code formatting provider.
+// Formatting is cell agnostic, but we still delegate
+// to a cell specific implementation to communicate with LV.
+monaco.languages.registerDocumentFormattingEditProvider("elixir", {
+  provideDocumentFormattingEdits: function (model, options, token) {
+    if (model.__getDocumentFormattingEdits) {
+      return model.__getDocumentFormattingEdits(model);
+    } else {
+      return [];
+    }
+  },
+});
+
 export default monaco;
 
 /**
