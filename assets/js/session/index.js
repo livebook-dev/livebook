@@ -306,7 +306,7 @@ function handleDocumentKeyDown(hook, event) {
       restartRuntime(hook);
     } else if (keyBuffer.tryMatch(["?"])) {
       showShortcuts(hook);
-    } else if (keyBuffer.tryMatch(["i"])) {
+    } else if (keyBuffer.tryMatch(["i"]) || key === "Enter") {
       cancelEvent(event);
       enterInsertMode(hook);
     } else if (keyBuffer.tryMatch(["j"])) {
