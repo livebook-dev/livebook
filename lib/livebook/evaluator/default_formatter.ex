@@ -83,12 +83,14 @@ defmodule Livebook.Evaluator.DefaultFormatter do
 
   defp error_type(error) do
     cond do
-      mix_install_vm_error?(error) -> :mix_install_vm_error
+      mix_install_vm_error?(error) -> :runtime_restart_required
       true -> :other
     end
   end
 
   defp mix_install_vm_error?(exception) do
-    Exception.message(exception) =~ "Mix.install/2 can only be called with the same dependencies"
+    is_struct(exception, Mix.Error) and
+      Exception.message(exception) =~
+        "Mix.install/2 can only be called with the same dependencies"
   end
 end

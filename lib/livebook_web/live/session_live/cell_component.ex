@@ -337,7 +337,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_output(_socket, {:error, formatted, :mix_install_vm_error}, _id) do
+  defp render_output(_socket, {:error, formatted, :runtime_restart_required}, _id) do
     assigns = %{formatted: formatted}
 
     ~L"""
