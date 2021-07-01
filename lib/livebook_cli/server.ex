@@ -158,10 +158,6 @@ defmodule LivebookCLI.Server do
     opts_to_config(opts, [{:livebook, :default_runtime, default_runtime} | config])
   end
 
-  defp opts_to_config([{:open, _} | opts], config) do
-    opts_to_config(opts, config)
-  end
-
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
 
   defp browser_open(url) do
