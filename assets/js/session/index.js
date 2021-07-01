@@ -306,7 +306,12 @@ function handleDocumentKeyDown(hook, event) {
       restartRuntime(hook);
     } else if (keyBuffer.tryMatch(["?"])) {
       showShortcuts(hook);
-    } else if (keyBuffer.tryMatch(["i"]) || key === "Enter") {
+    } else if (
+      keyBuffer.tryMatch(["i"]) ||
+      (event.target === document.body &&
+        hook.state.focusedCellId &&
+        key === "Enter")
+    ) {
       cancelEvent(event);
       enterInsertMode(hook);
     } else if (keyBuffer.tryMatch(["j"])) {
