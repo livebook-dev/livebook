@@ -22,6 +22,54 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq_windows: ["shift", "alt", "f"],
         press_all: true,
         desc: "Format Elixir code"
+      },
+      %{
+        seq: ["ctrl", "/"],
+        seq_mac: ["⌘", "/"],
+        press_all: true,
+        desc: "Toggle lines comment"
+      },
+      %{
+        seq: ["ctrl", "shift", "k"],
+        seq_mac: ["⌘", "⇧", "k"],
+        press_all: true,
+        desc: "Delete lines"
+      },
+      %{
+        seq: ["ctrl", "]"],
+        seq_mac: ["⌘", "]"],
+        press_all: true,
+        desc: "Indent lines"
+      },
+      %{
+        seq: ["ctrl", "]"],
+        seq_mac: ["⌘", "]"],
+        press_all: true,
+        desc: "Outdent lines"
+      },
+      %{
+        seq: ["ctrl", "f"],
+        seq_mac: ["⌘", "f"],
+        press_all: true,
+        desc: "Find"
+      },
+      %{
+        seq: ["ctrl", "h"],
+        seq_mac: ["⌘", "⌥", "f"],
+        press_all: true,
+        desc: "Replace"
+      },
+      %{
+        seq: ["alt", "↑"],
+        seq_mac: ["⌥", "↑"],
+        press_all: true,
+        desc: "Move lines up"
+      },
+      %{
+        seq: ["alt", "↓"],
+        seq_mac: ["⌥", "↓"],
+        press_all: true,
+        desc: "Move lines down"
       }
     ],
     navigation_mode: [
