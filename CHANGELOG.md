@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.2.2 (2021-07-01)
+
+  * Highlight matching brackets only in insert mode ([#421](https://github.com/elixir-nx/livebook/pull/421))
+  * Document editor shortcuts and add basic view ([#419](https://github.com/elixir-nx/livebook/pull/419))
+  * Suggest restarting runtime on Mix.install error and add restart shortcut ([#418](https://github.com/elixir-nx/livebook/pull/418))
+  * livebook server: Add --open flag ([#417](https://github.com/elixir-nx/livebook/pull/417))
+  * Add code formatting integration to Elixir cells ([#416](https://github.com/elixir-nx/livebook/pull/416))
+  * Implement cells bin ([#414](https://github.com/elixir-nx/livebook/pull/414))
+  * Improve section management ([#411](https://github.com/elixir-nx/livebook/pull/411))
+  * Add support for a color input type ([#410](https://github.com/elixir-nx/livebook/pull/410))
+  * Add support for markdown output ([#404](https://github.com/elixir-nx/livebook/pull/404))
+  * Add support for a textarea input type ([#382](https://github.com/elixir-nx/livebook/pull/382))
+  * Support configuring Attached as the default runtime ([#397](https://github.com/elixir-nx/livebook/pull/397))
+
 ## v0.2.1 (2021-06-24)
 
   * Add copy to clipboard button to virtualized output ([#393](https://github.com/elixir-nx/livebook/pull/393))
