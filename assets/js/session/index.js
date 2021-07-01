@@ -301,6 +301,8 @@ function handleDocumentKeyDown(hook, event) {
       showBin(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
       cancelFocusedCellEvaluation(hook);
+    } else if (keyBuffer.tryMatch(["0", "0"])) {
+      restartRuntime(hook);
     } else if (keyBuffer.tryMatch(["?"])) {
       showShortcuts(hook);
     } else if (keyBuffer.tryMatch(["i"])) {
@@ -592,6 +594,10 @@ function cancelFocusedCellEvaluation(hook) {
       cell_id: hook.state.focusedCellId,
     });
   }
+}
+
+function restartRuntime(hook) {
+  hook.pushEvent("restart_runtime", {});
 }
 
 function showShortcuts(hook) {

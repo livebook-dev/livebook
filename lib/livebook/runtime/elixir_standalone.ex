@@ -113,4 +113,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
       evaluation_ref
     )
   end
+
+  def duplicate(_runtime) do
+    Livebook.Runtime.ElixirStandalone.init()
+  end
 end

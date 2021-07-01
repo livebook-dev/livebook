@@ -89,4 +89,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
       evaluation_ref
     )
   end
+
+  def duplicate(_runtime) do
+    {:error, "attached runtime is connected to a specific VM and cannot be duplicated"}
+  end
 end

@@ -166,4 +166,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
       evaluation_ref
     )
   end
+
+  def duplicate(runtime) do
+    Livebook.Runtime.MixStandalone.init(runtime.project_path)
+  end
 end
