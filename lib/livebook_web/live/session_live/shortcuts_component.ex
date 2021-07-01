@@ -155,11 +155,11 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     <h3 class="text-lg font-medium text-gray-900 pt-4">
       <%= @title %>
     </h3>
-    <div class="mt-2 flex flex-col sm:flex-row sm:space-x-2">
-      <div class="flex-grow">
+    <div class="mt-2 flex flex-col lg:flex-row lg:space-x-4">
+      <div class="lg:flex-grow">
         <%= render_shortcuts_section_table(@left, @platform) %>
       </div>
-      <div class="flex-grow">
+      <div class="lg:w-1/2">
         <%= render_shortcuts_section_table(@right, @platform) %>
       </div>
     </div>
@@ -177,7 +177,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
             <td class="py-2 pr-3">
               <%= render_shortcut_seq(shortcut, @platform) %>
             </td>
-            <td>
+            <td class="lg:whitespace-nowrap">
               <%= shortcut.desc %>
             </td>
           </tr>
