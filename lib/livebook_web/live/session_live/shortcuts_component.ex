@@ -4,7 +4,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @shortcuts %{
     insert_mode: [
       %{seq: ["esc"], desc: "Switch back to navigation mode", basic: true},
-      %{seq: ["tab"], desc: "Autocomplete expression when applicable"},
+      %{seq: ["tab"], desc: "Autocomplete expression when applicable", basic: true},
       %{
         seq: ["ctrl", "␣"],
         press_all: true,
@@ -42,12 +42,6 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq_mac: ["⌘", "]"],
         press_all: true,
         desc: "Outdent lines"
-      },
-      %{
-        seq: ["ctrl", "f"],
-        seq_mac: ["⌘", "f"],
-        press_all: true,
-        desc: "Find"
       },
       %{
         seq: ["ctrl", "h"],
