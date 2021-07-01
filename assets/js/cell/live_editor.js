@@ -39,7 +39,12 @@ class LiveEditor {
       this._onChange && this._onChange(this.source);
     });
 
+    this.editor.onDidFocusEditorWidget(() => {
+      this.editor.updateOptions({ matchBrackets: "always" });
+    });
+
     this.editor.onDidBlurEditorWidget(() => {
+      this.editor.updateOptions({ matchBrackets: "never" });
       this._onBlur && this._onBlur();
     });
 
