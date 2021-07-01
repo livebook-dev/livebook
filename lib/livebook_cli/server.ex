@@ -32,6 +32,7 @@ defmodule LivebookCLI.Server do
       --name               Set a name for the app distributed node
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
+      --open               Open browser window pointing to the application
       -p, --port           The port to start the web application on, defaults to 8080
       --root-path          The root path to use for file selection
       --sname              Set a short name for the app distributed node
@@ -47,11 +48,16 @@ defmodule LivebookCLI.Server do
 
   @impl true
   def call(args) do
-    config_entries = args_to_config(args)
+    opts = args_to_options(args)
+    config_entries = opts_to_config(opts, [])
     put_config_entries(config_entries)
 
     case start_server() do
       :ok ->
+        if opts[:open] do
+          browser_open(LivebookWeb.Endpoint.access_url())
+        end
+
         Process.sleep(:infinity)
 
       :error ->
@@ -85,6 +91,7 @@ defmodule LivebookCLI.Server do
     default_runtime: :string,
     ip: :string,
     name: :string,
+    open: :boolean,
     port: :integer,
     root_path: :string,
     sname: :string,
@@ -95,10 +102,10 @@ defmodule LivebookCLI.Server do
     p: :port
   ]
 
-  defp args_to_config(args) do
+  defp args_to_options(args) do
     {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     validate_options!(opts)
-    opts_to_config(opts, [])
+    opts
   end
 
   defp validate_options!(opts) do
@@ -152,4 +159,15 @@ defmodule LivebookCLI.Server do
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
+
+  defp browser_open(url) do
+    {cmd, args} =
+      case :os.type() do
+        {:win32, _} -> {"cmd", ["/c", "start", url]}
+        {:unix, :darwin} -> {"open", [url]}
+        {:unix, _} -> {"xdg-open", [url]}
+      end
+
+    System.cmd(cmd, args)
+  end
 end

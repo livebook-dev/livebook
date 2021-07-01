@@ -117,18 +117,7 @@ defmodule Livebook.Application do
 
   defp display_startup_info() do
     if Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
-      IO.puts("[Livebook] Application running at #{access_url()}")
-    end
-  end
-
-  defp access_url() do
-    root_url = LivebookWeb.Endpoint.url()
-
-    if Livebook.Config.auth_mode() == :token do
-      token = Application.fetch_env!(:livebook, :token)
-      root_url <> "/?token=" <> token
-    else
-      root_url
+      IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
 end
