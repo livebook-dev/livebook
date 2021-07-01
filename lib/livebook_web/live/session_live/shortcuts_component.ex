@@ -44,7 +44,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["s", "s"], desc: "Toggle sections panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
       %{seq: ["s", "r"], desc: "Show runtime settings"},
-      %{seq: ["s", "b"], desc: "Show bin"}
+      %{seq: ["s", "b"], desc: "Show bin"},
+      %{seq: ["0", "0"], desc: "Restart current runtime"}
     ],
     universal: [
       %{seq: ["ctrl", "s"], seq_mac: ["⌘", "s"], press_all: true, desc: "Save notebook"}

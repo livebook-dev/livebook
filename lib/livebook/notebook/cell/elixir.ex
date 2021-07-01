@@ -38,7 +38,7 @@ defmodule Livebook.Notebook.Cell.Elixir do
           # Interactive data table
           | {:table_dynamic, widget_process :: pid()}
           # Internal output format for errors
-          | {:error, message :: binary()}
+          | {:error, message :: binary(), type :: :other | :runtime_restart_required}
 
   @doc """
   Returns an empty cell.

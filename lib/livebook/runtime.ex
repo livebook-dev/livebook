@@ -106,4 +106,10 @@ defprotocol Livebook.Runtime do
         container_ref,
         evaluation_ref
       )
+
+  @doc """
+  Synchronously starts a runtime of the same type with the same parameters.
+  """
+  @spec duplicate(Runtime.t()) :: {:ok, Runtime.t()} | {:error, String.t()}
+  def duplicate(runtime)
 end

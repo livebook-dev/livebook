@@ -337,7 +337,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_output(_socket, {:error, formatted}, _id) do
+  defp render_output(_socket, {:error, formatted, :runtime_restart_required}, _id) do
+    assigns = %{formatted: formatted}
+
+    ~L"""
+    <div class="flex flex-col space-y-4">
+      <%= render_error_message_output(@formatted) %>
+      <div>
+        <button class="button button-gray" phx-click="restart_runtime">
+          Restart runtime
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_output(_socket, {:error, formatted, _type}, _id) do
     render_error_message_output(formatted)
   end
 

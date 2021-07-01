@@ -15,5 +15,6 @@ defmodule Livebook.Runtime.NoopRuntime do
     def forget_evaluation(_, _, _), do: :ok
     def drop_container(_, _), do: :ok
     def request_completion_items(_, _, _, _, _, _), do: :ok
+    def duplicate(_), do: {:ok, Livebook.Runtime.NoopRuntime.new()}
   end
 end

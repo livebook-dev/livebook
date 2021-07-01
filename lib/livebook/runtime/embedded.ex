@@ -95,4 +95,9 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
       evaluation_ref
     )
   end
+
+  def duplicate(_runtime) do
+    {:error,
+     "embedded runtime is connected to the Livebook application VM and cannot be duplicated"}
+  end
 end

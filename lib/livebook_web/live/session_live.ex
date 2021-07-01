@@ -566,6 +566,24 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session_id))}
   end
 
+  def handle_event("restart_runtime", %{}, socket) do
+    socket =
+      if runtime = socket.private.data.runtime do
+        case Runtime.duplicate(runtime) do
+          {:ok, new_runtime} ->
+            Session.connect_runtime(socket.assigns.session_id, new_runtime)
+            socket
+
+          {:error, message} ->
+            put_flash(socket, :error, "Failed to setup runtime - #{message}")
+        end
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
   def handle_event("completion_request", %{"hint" => hint, "cell_id" => cell_id}, socket) do
     data = socket.private.data
 
