@@ -121,7 +121,8 @@ defmodule Livebook.Application do
     end
   end
 
-  defp access_url() do
+  @doc false
+  def access_url() do
     root_url = LivebookWeb.Endpoint.url()
 
     if Livebook.Config.auth_mode() == :token do
