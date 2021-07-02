@@ -157,6 +157,7 @@ class LiveEditor {
       renderLineHighlight: "none",
       theme: "custom",
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
+      fontSize: 14,
       tabIndex: -1,
       quickSuggestions: false,
       tabCompletion: "on",
