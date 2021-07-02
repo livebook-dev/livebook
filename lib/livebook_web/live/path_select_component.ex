@@ -20,7 +20,16 @@ defmodule LivebookWeb.PathSelectComponent do
   @impl true
   def mount(socket) do
     inner_block = Map.get(socket.assigns, :inner_block, nil)
-    {:ok, assign(socket, inner_block: inner_block, current_dir: nil, new_directory_name: nil)}
+
+    {:ok,
+     assign(socket,
+       inner_block: inner_block,
+       current_dir: nil,
+       new_directory_name: nil,
+       deleting_path: nil,
+       renaming_path: nil,
+       renamed_name: ""
+     )}
   end
 
   @impl true
@@ -89,6 +98,27 @@ defmodule LivebookWeb.PathSelectComponent do
           </div>
         <% end %>
       </div>
+      <%= if @deleting_path do %>
+        <div class="mb-4 px-4 py-3 flex space-x-4 items-center border border-gray-200 rounded-lg">
+          <p class="flex-grow text-gray-700 text-sm">
+            Are you sure you want to irreversibly delete
+            <span class="font-semibold"><%= @deleting_path %></span>?
+          </p>
+          <div class="flex space-x-4">
+            <button class="text-red-600 font-medium text-sm whitespace-nowrap"
+              phx-click="do_delete_file"
+              phx-target="<%= @myself %>">
+              <%= remix_icon("delete-bin-6-line", class: "align-middle mr-1") %>
+              Delete
+            </button>
+            <button class="text-gray-600 font-medium text-sm"
+              phx-click="cancel_delete_file"
+              phx-target="<%= @myself %>">
+              Cancel
+            </button>
+          </div>
+        </div>
+      <% end %>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
         <%= if @new_directory_name do %>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
@@ -97,19 +127,21 @@ defmodule LivebookWeb.PathSelectComponent do
                 <%= remix_icon("folder-add-fill", class: "text-xl align-middle text-gray-400") %>
               </span>
               <span class="flex font-medium text-gray-500">
-                <form phx-submit="create_directory" phx-target="<%= @myself %>">
+                <div
+                  phx-window-keydown="cancel_new_directory"
+                  phx-key="escape"
+                  phx-target="<%= @myself %>">
                   <input
                     type="text"
-                    name="name"
                     value="<%= @new_directory_name %>"
                     autofocus
                     spellcheck="false"
                     autocomplete="off"
                     phx-blur="cancel_new_directory"
-                    phx-window-keydown="cancel_new_directory"
-                    phx-key="escape"
+                    phx-window-keydown="create_directory"
+                    phx-key="enter"
                     phx-target="<%= @myself %>" />
-                </form>
+                </div>
               </span>
             </div>
           </div>
@@ -118,14 +150,14 @@ defmodule LivebookWeb.PathSelectComponent do
         <%= if highlighting?(@files) do %>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
             <%= for file <- @files, file.highlighted != "" do %>
-              <%= render_file(file, @phx_target) %>
+              <%= render_file(file, @phx_target, @myself, @renaming_path, @renamed_name) %>
             <% end %>
           </div>
         <% end %>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           <%= for file <- @files, file.highlighted == "" do %>
-            <%= render_file(file, @phx_target) %>
+            <%= render_file(file, @phx_target, @myself, @renaming_path, @renamed_name) %>
           <% end %>
         </div>
       </div>
@@ -137,7 +169,42 @@ defmodule LivebookWeb.PathSelectComponent do
     Enum.any?(files, &(&1.highlighted != ""))
   end
 
-  defp render_file(file, phx_target) do
+  defp render_file(
+         %{path: renaming_path} = file,
+         _phx_target,
+         myself,
+         renaming_path,
+         renamed_name
+       ) do
+    assigns = %{file: file, myself: myself, renamed_name: renamed_name}
+
+    ~L"""
+    <div class="flex space-x-2 items-center p-2 rounded-lg">
+      <span class="block">
+        <%= remix_icon("edit-line", class: "text-xl align-middle text-gray-400") %>
+      </span>
+      <span class="flex font-medium text-gray-500">
+        <div
+          phx-window-keydown="cancel_rename_file"
+          phx-key="escape"
+          phx-target="<%= @myself %>">
+          <input class="w-full"
+            type="text"
+            value="<%= @renamed_name %>"
+            autofocus
+            spellcheck="false"
+            autocomplete="off"
+            phx-blur="cancel_rename_file"
+            phx-window-keydown="do_rename_file"
+            phx-key="enter"
+            phx-target="<%= @myself %>" />
+        </div>
+      </span>
+    </div>
+    """
+  end
+
+  defp render_file(file, phx_target, myself, _renaming_path, _renamed_name) do
     icon =
       case file do
         %{is_running: true} -> "play-circle-line"
@@ -145,27 +212,50 @@ defmodule LivebookWeb.PathSelectComponent do
         _ -> "file-code-line"
       end
 
-    assigns = %{file: file, icon: icon}
+    assigns = %{file: file, icon: icon, myself: myself}
 
     ~L"""
-    <button class="flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
-      phx-click="set_path"
-      phx-value-path="<%= @file.path %>"
-      <%= if phx_target, do: "phx-target=#{phx_target}" %>>
-      <span class="block">
-        <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
-      </span>
-      <span class="flex font-medium overflow-hidden overflow-ellipsis whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
-        <%= if @file.highlighted != "" do %>
-          <span class="font-medium <%= if(@file.is_running, do: "text-green-400", else: "text-gray-900") %>">
-            <%= @file.highlighted %>
-          </span>
-        <% end %>
-        <span>
-          <%= @file.unhighlighted %>
+    <div class="relative"
+      id="file-menu-<%= @file.path %>"
+      phx-hook="Menu"
+      data-primary="false"
+      data-element="menu">
+      <button class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
+        data-toggle
+        phx-click="set_path"
+        phx-value-path="<%= @file.path %>"
+        <%= if phx_target, do: "phx-target=#{phx_target}" %>>
+        <span class="block">
+          <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
         </span>
-      </span>
-    </button>
+        <span class="flex font-medium overflow-hidden whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
+          <%= if @file.highlighted != "" do %>
+            <span class="font-medium <%= if(@file.is_running, do: "text-green-400", else: "text-gray-900") %>">
+              <%= @file.highlighted %>
+            </span>
+          <% end %>
+          <span class="overflow-hidden overflow-ellipsis">
+            <%= @file.unhighlighted %>
+          </span>
+        </span>
+      </button>
+      <div class="menu" data-content>
+        <button class="menu__item text-gray-500"
+          phx-click="rename_file"
+          phx-target="<%= @myself %>"
+          phx-value-path="<%= @file.path %>">
+          <%= remix_icon("edit-line") %>
+          <span class="font-medium">Rename</span>
+        </button>
+        <button class="menu__item text-red-600"
+          phx-click="delete_file"
+          phx-target="<%= @myself %>"
+          phx-value-path="<%= @file.path %>">
+          <%= remix_icon("delete-bin-6-line") %>
+          <span class="font-medium">Delete</span>
+        </button>
+      </div>
+    </div>
     """
   end
 
@@ -264,7 +354,7 @@ defmodule LivebookWeb.PathSelectComponent do
     {:noreply, assign(socket, new_directory_name: nil)}
   end
 
-  def handle_event("create_directory", %{"name" => name}, socket) do
+  def handle_event("create_directory", %{"value" => name}, socket) do
     socket =
       case create_directory(socket.assigns.current_dir, name) do
         :ok ->
@@ -279,10 +369,71 @@ defmodule LivebookWeb.PathSelectComponent do
     {:noreply, socket}
   end
 
+  def handle_event("delete_file", %{"path" => path}, socket) do
+    {:noreply, assign(socket, deleting_path: path)}
+  end
+
+  def handle_event("cancel_delete_file", %{}, socket) do
+    {:noreply, assign(socket, deleting_path: nil)}
+  end
+
+  def handle_event("do_delete_file", %{}, socket) do
+    socket =
+      case delete_file(socket.assigns.deleting_path) do
+        :ok ->
+          socket
+          |> assign(deleting_path: nil)
+          |> update_files(true)
+
+        _ ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("rename_file", %{"path" => path}, socket) do
+    {_, name} = path |> Path.expand() |> split_path()
+    {:noreply, assign(socket, renaming_path: path, renamed_name: name)}
+  end
+
+  def handle_event("cancel_rename_file", %{}, socket) do
+    {:noreply, assign(socket, renaming_path: nil)}
+  end
+
+  def handle_event("do_rename_file", %{"value" => name}, socket) do
+    socket =
+      case rename_file(socket.assigns.renaming_path, name) do
+        :ok ->
+          socket
+          |> assign(renaming_path: nil)
+          |> update_files(true)
+
+        _ ->
+          assign(socket, renamed_name: name)
+      end
+
+    {:noreply, socket}
+  end
+
   defp create_directory(_parent_dir, ""), do: {:error, :empty}
 
   defp create_directory(parent_dir, name) do
     new_dir = Path.join(parent_dir, name)
     File.mkdir(new_dir)
+  end
+
+  defp delete_file(path) do
+    with {:ok, _paths} <- File.rm_rf(path) do
+      :ok
+    end
+  end
+
+  defp rename_file(_path, ""), do: {:error, :empty}
+
+  defp rename_file(path, name) do
+    dir = path |> Path.expand() |> Path.dirname()
+    new_path = Path.join(dir, name)
+    File.rename(path, new_path)
   end
 end
