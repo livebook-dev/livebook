@@ -10,6 +10,19 @@ export function getAttributeOrThrow(element, attr, transform = null) {
   return transform ? transform(value) : value;
 }
 
+export function getAttributeOrDefault(
+  element,
+  attr,
+  defaultAttrVal,
+  transform = null
+) {
+  const value = element.hasAttribute(attr)
+    ? element.getAttribute(attr)
+    : defaultAttrVal;
+
+  return transform ? transform(value) : value;
+}
+
 export function parseBoolean(value) {
   if (value === "true") {
     return true;
