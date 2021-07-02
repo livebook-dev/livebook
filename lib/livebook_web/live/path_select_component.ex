@@ -20,14 +20,22 @@ defmodule LivebookWeb.PathSelectComponent do
   @impl true
   def mount(socket) do
     inner_block = Map.get(socket.assigns, :inner_block, nil)
-    {:ok, assign(socket, inner_block: inner_block, current_dir: nil)}
+    {:ok, assign(socket, inner_block: inner_block, current_dir: nil, new_directory_name: nil)}
   end
 
   @impl true
   def update(assigns, socket) do
     {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
 
-    %{assigns: assigns} = socket = assign(socket, assigns)
+    socket =
+      socket
+      |> assign(assigns)
+      |> update_files(force_reload?)
+
+    {:ok, socket}
+  end
+
+  defp update_files(%{assigns: assigns} = socket, force_reload?) do
     {dir, basename} = split_path(assigns.path)
     dir = Path.expand(dir)
 
@@ -38,14 +46,14 @@ defmodule LivebookWeb.PathSelectComponent do
         assigns.files
       end
 
-    {:ok, assign(socket, files: annotate_matching(files, basename), current_dir: dir)}
+    assign(socket, files: annotate_matching(files, basename), current_dir: dir)
   end
 
   @impl true
   def render(assigns) do
     ~L"""
     <div class="h-full flex flex-col">
-      <div class="flex space-x-5 items-center mb-4">
+      <div class="flex space-x-3 items-center mb-4">
         <form class="flex-grow"
           phx-change="set_path"
           <%= if @phx_submit do %>
@@ -64,6 +72,17 @@ defmodule LivebookWeb.PathSelectComponent do
             spellcheck="false"
             autocomplete="off" />
         </form>
+        <div class="relative" id="path-selector-menu" phx-hook="Menu" data-element="menu">
+          <button class="icon-button" data-toggle tabindex="-1">
+            <%= remix_icon("more-2-fill", class: "text-xl") %>
+          </button>
+          <div class="menu" data-content>
+            <button class="menu__item text-gray-500" phx-click="new_directory" phx-target="<%= @myself %>">
+              <%= remix_icon("folder-add-fill", class: "text-gray-400") %>
+              <span class="font-medium">New directory</span>
+            </button>
+          </div>
+        </div>
         <%= if @inner_block do %>
           <div>
             <%= render_block(@inner_block) %>
@@ -71,6 +90,31 @@ defmodule LivebookWeb.PathSelectComponent do
         <% end %>
       </div>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
+        <%= if @new_directory_name do %>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
+            <div class="flex space-x-2 items-center p-2 rounded-lg">
+              <span class="block">
+                <%= remix_icon("folder-add-fill", class: "text-xl align-middle text-gray-400") %>
+              </span>
+              <span class="flex font-medium text-gray-500">
+                <form phx-submit="create_directory" phx-target="<%= @myself %>">
+                  <input
+                    type="text"
+                    name="name"
+                    value="<%= @new_directory_name %>"
+                    autofocus
+                    spellcheck="false"
+                    autocomplete="off"
+                    phx-blur="cancel_new_directory"
+                    phx-window-keydown="cancel_new_directory"
+                    phx-key="escape"
+                    phx-target="<%= @myself %>" />
+                </form>
+              </span>
+            </div>
+          </div>
+        <% end %>
+
         <%= if highlighting?(@files) do %>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
             <%= for file <- @files, file.highlighted != "" do %>
@@ -209,5 +253,36 @@ defmodule LivebookWeb.PathSelectComponent do
     else
       path <> "/"
     end
+  end
+
+  @impl true
+  def handle_event("new_directory", %{}, socket) do
+    {:noreply, assign(socket, new_directory_name: "")}
+  end
+
+  def handle_event("cancel_new_directory", %{}, socket) do
+    {:noreply, assign(socket, new_directory_name: nil)}
+  end
+
+  def handle_event("create_directory", %{"name" => name}, socket) do
+    socket =
+      case create_directory(socket.assigns.current_dir, name) do
+        :ok ->
+          socket
+          |> assign(new_directory_name: nil)
+          |> update_files(true)
+
+        _ ->
+          assign(socket, new_directory_name: name)
+      end
+
+    {:noreply, socket}
+  end
+
+  defp create_directory(_parent_dir, ""), do: {:error, :empty}
+
+  defp create_directory(parent_dir, name) do
+    new_dir = Path.join(parent_dir, name)
+    File.mkdir(new_dir)
   end
 end
