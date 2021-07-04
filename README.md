@@ -82,17 +82,17 @@ and also for local usage in case you don't have Elixir installed.
 
 ```shell
 # Running with the default configuration
-docker run -p 8080:8080 livebook/livebook
+docker run -p 8080:8080 --pull always livebook/livebook
 
 # In order to access and save notebooks directly to your machine
 # you can mount a local directory into the container.
 # Make sure to specify the user with "-u $(id -u):$(id -g)"
 # so that the created files have proper permissions
-docker run -p 8080:8080 -u $(id -u):$(id -g) -v <LOCAL_DIR>:/data livebook/livebook
+docker run -p 8080:8080 --pull always -u $(id -u):$(id -g) -v <LOCAL_DIR>:/data livebook/livebook
 
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
-docker run -p 8080:8080 -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
+docker run -p 8080:8080 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
 ```
 
 To try out features from the main branch you can alternatively
