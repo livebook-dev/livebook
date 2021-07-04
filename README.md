@@ -40,7 +40,7 @@ pick the one that best fits your use case.
 You will need [Elixir v1.12](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, and `ssl`. Those applications come with
-most Erlang distributions but certain package manages may split
+most Erlang distributions but certain package managers may split
 them apart. For example, on Ubuntu, these Erlang applications could
 be installed as follows:
 
