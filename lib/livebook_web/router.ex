@@ -37,7 +37,9 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
     get "/sessions/:id/images/:image", SessionController, :show_image
 
-    live_dashboard "/dashboard", metrics: LivebookWeb.Telemetry
+    live_dashboard "/dashboard",
+      metrics: LivebookWeb.Telemetry,
+      home_app: {"Livebook", :livebook}
   end
 
   scope "/authenticate", LivebookWeb do
