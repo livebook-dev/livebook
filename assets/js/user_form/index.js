@@ -10,8 +10,8 @@ import { storeUserData } from "../lib/user";
 const UserForm = {
   mounted() {
     this.el.addEventListener("submit", (event) => {
-      const name = this.el.data_name.value;
-      const hex_color = this.el.data_hex_color.value;
+      const name = this.el.user_form_name.value;
+      const hex_color = this.el.user_form_hex_color.value;
       storeUserData({ name, hex_color });
     });
   },
