@@ -89,7 +89,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   def duplicate(runtime) do
     case Livebook.Runtime.Attached.init(runtime.node, runtime.cookie) do
       {:ok, runtime} -> {:ok, runtime}
-      {:error, :unreachable} -> "node #{inspect(runtime.node)} is unreachable"
+      {:error, :unreachable} -> {:error, "node #{inspect(runtime.node)} is unreachable"}
     end
   end
 end
