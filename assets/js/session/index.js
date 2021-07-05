@@ -343,6 +343,9 @@ function handleDocumentKeyDown(hook, event) {
 function handleDocumentMouseDown(hook, event) {
   // If the click is outside the notebook element, keep the focus as is
   if (!event.target.closest(`[data-element="notebook"]`)) {
+    if (hook.state.insertMode) {
+      setInsertMode(hook, false);
+    }
     return;
   }
 
