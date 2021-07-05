@@ -10,11 +10,15 @@ export default class MonacoEditorAdapter {
   constructor(editor) {
     this.editor = editor;
     this._onDelta = null;
+    this.isLastChangeRemote = false;
 
     this.editor.onDidChangeModelContent((event) => {
       if (this.ignoreChange) {
         return;
       }
+
+      this.isLastChangeRemote = false;
+
       const delta = this.__deltaFromEditorChange(event);
       this._onDelta && this._onDelta(delta);
     });
@@ -32,19 +36,38 @@ export default class MonacoEditorAdapter {
    * Applies the given delta to the editor content.
    */
   applyDelta(delta) {
+    const isStandaloneChange = delta.ops.some((op) => {
+      if (isDelete(op)) {
+        return true;
+      }
+
+      if (isInsert(op)) {
+        return op.insert.match(/\s+/);
+      }
+
+      return false;
+    });
+
+    // Explicitly close the last stack element when the remote
+    // change inserts whitespace or deletes text. Otherwise
+    // merge subsequent remote changes whenever possible.
+    if (isStandaloneChange || !this.isLastChangeRemote) {
+      this.editor.getModel().pushStackElement();
+    } else {
+      this.editor.getModel().popStackElement();
+    }
+
     const operations = this.__deltaToEditorOperations(delta);
     this.ignoreChange = true;
-    // Apply the operations without adding them to the undo stack
-    this.editor.getModel().applyEdits(operations);
+    // Apply the operations and add them to the undo stack
+    this.editor.getModel().pushEditOperations(null, operations, null);
+    // Close the stack element upfront in case the next
+    // change is local. If another remote change comes,
+    // we open the element back using `popStackElement`.
+    this.editor.getModel().pushStackElement();
     this.ignoreChange = false;
 
-    // Clear the undo/redo stack as the operations may no longer be valid
-    // after applying the concurrent change.
-    // Note: there's not public method for getting EditStack for the text model,
-    // so we use the private attribute.
-    // (https://github.com/microsoft/vscode/blob/11ac71b27220a2354b6bb28966ed3ead183cc495/src/vs/editor/common/model/textModel.ts#L287)
-    const editStack = this.editor.getModel()._commandManager;
-    editStack.clear();
+    this.isLastChangeRemote = true;
   }
 
   __deltaFromEditorChange(event) {
