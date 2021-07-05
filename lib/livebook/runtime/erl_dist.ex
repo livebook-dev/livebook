@@ -8,13 +8,16 @@ defmodule Livebook.Runtime.ErlDist do
   # code evaluation may take place in a separate Elixir runtime,
   # which also makes it easy to terminate the whole
   # evaluation environment without stopping Livebook.
-  # This is what both `Runtime.ElixirStandalone` and `Runtime.Attached` do
-  # and this module contains the shared functionality they need.
+  # This is what `Runtime.ElixirStandalone`, `Runtime.MixStandalone`
+  # and `Runtime.Attached` do, so this module contains the shared
+  # functionality they need.
   #
   # To work with a separate node, we have to inject the necessary
   # Livebook modules there and also start the relevant processes
   # related to evaluation. Fortunately Erlang allows us to send modules
   # binary representation to the other node and load them dynamically.
+  #
+  # For further details see `Livebook.Runtime.ErlDist.NodeManager`.
 
   # Modules to load into the connected node.
   @required_modules [
@@ -23,29 +26,31 @@ defmodule Livebook.Runtime.ErlDist do
     Livebook.Evaluator.DefaultFormatter,
     Livebook.Completion,
     Livebook.Runtime.ErlDist,
-    Livebook.Runtime.ErlDist.Manager,
+    Livebook.Runtime.ErlDist.NodeManager,
+    Livebook.Runtime.ErlDist.RuntimeServer,
     Livebook.Runtime.ErlDist.EvaluatorSupervisor,
     Livebook.Runtime.ErlDist.IOForwardGL,
     Livebook.Runtime.ErlDist.LoggerGLBackend
   ]
 
   @doc """
-  Loads the necessary modules into the given node
-  and starts the primary Livebook remote process.
+  Starts a runtime server on the given node.
 
-  The initialization may be invoked only once on the given
-  node until its disconnected.
+  If necessary, the required modules are loaded
+  into the given node and the node manager process
+  is started with `node_manager_opts`.
   """
-  @spec initialize(node()) :: :ok | {:error, :already_in_use}
-  def initialize(node) do
-    if initialized?(node) do
-      {:error, :already_in_use}
-    else
+  @spec initialize(node(), keyword()) :: pid()
+  def initialize(node, node_manager_opts \\ []) do
+    unless modules_loaded?(node) do
       load_required_modules(node)
-      start_manager(node)
-
-      :ok
     end
+
+    unless node_manager_started?(node) do
+      start_node_manager(node, node_manager_opts)
+    end
+
+    start_runtime_server(node)
   end
 
   defp load_required_modules(node) do
@@ -55,12 +60,20 @@ defmodule Livebook.Runtime.ErlDist do
     end
   end
 
-  defp start_manager(node) do
-    :rpc.call(node, Livebook.Runtime.ErlDist.Manager, :start, [])
+  defp start_node_manager(node, opts) do
+    :rpc.call(node, Livebook.Runtime.ErlDist.NodeManager, :start, [opts])
   end
 
-  defp initialized?(node) do
-    case :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.Manager]) do
+  defp start_runtime_server(node) do
+    Livebook.Runtime.ErlDist.NodeManager.start_runtime_server(node)
+  end
+
+  defp modules_loaded?(node) do
+    :rpc.call(node, Code, :ensure_loaded?, [Livebook.Runtime.ErlDist.NodeManager])
+  end
+
+  defp node_manager_started?(node) do
+    case :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.NodeManager]) do
       nil -> false
       _pid -> true
     end

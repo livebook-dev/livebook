@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.MixStandalone do
-  defstruct [:node, :primary_pid, :project_path]
+  defstruct [:node, :server_pid, :project_path]
 
   # A runtime backed by a standalone Elixir node managed by Livebook.
   #
@@ -13,7 +13,7 @@ defmodule Livebook.Runtime.MixStandalone do
 
   @type t :: %__MODULE__{
           node: node(),
-          primary_pid: pid(),
+          server_pid: pid(),
           project_path: String.t()
         }
 
@@ -56,10 +56,10 @@ defmodule Livebook.Runtime.MixStandalone do
              :ok <- run_mix_task("compile", project_path, output_emitter),
              eval = child_node_eval_string(),
              port = start_elixir_mix_node(elixir_path, child_node, eval, argv, project_path),
-             {:ok, primary_pid} <- parent_init_sequence(child_node, port, output_emitter) do
+             {:ok, server_pid} <- parent_init_sequence(child_node, port, output_emitter) do
           runtime = %__MODULE__{
             node: child_node,
-            primary_pid: primary_pid,
+            server_pid: server_pid,
             project_path: project_path
           }
 
@@ -122,12 +122,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
-    ErlDist.Manager.set_owner(runtime.node, self())
-    Process.monitor({ErlDist.Manager, runtime.node})
+    ErlDist.RuntimeServer.set_owner(runtime.server_pid, self())
+    Process.monitor(runtime.server_pid)
   end
 
   def disconnect(runtime) do
-    ErlDist.Manager.stop(runtime.node)
+    ErlDist.RuntimeServer.stop(runtime.server_pid)
   end
 
   def evaluate_code(
@@ -138,8 +138,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
         prev_evaluation_ref,
         opts \\ []
       ) do
-    ErlDist.Manager.evaluate_code(
-      runtime.node,
+    ErlDist.RuntimeServer.evaluate_code(
+      runtime.server_pid,
       code,
       container_ref,
       evaluation_ref,
@@ -149,16 +149,16 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   end
 
   def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    ErlDist.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
+    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, container_ref, evaluation_ref)
   end
 
   def drop_container(runtime, container_ref) do
-    ErlDist.Manager.drop_container(runtime.node, container_ref)
+    ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
   def request_completion_items(runtime, send_to, ref, hint, container_ref, evaluation_ref) do
-    ErlDist.Manager.request_completion_items(
-      runtime.node,
+    ErlDist.RuntimeServer.request_completion_items(
+      runtime.server_pid,
       send_to,
       ref,
       hint,

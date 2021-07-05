@@ -7,11 +7,11 @@ defmodule Livebook.Runtime.Embedded do
   # where there is no option of starting a separate
   # Elixir runtime.
 
-  defstruct [:node, :manager_pid]
+  defstruct [:node, :server_pid]
 
   @type t :: %__MODULE__{
           node: node(),
-          manager_pid: pid()
+          server_pid: pid()
         }
 
   alias Livebook.Runtime.ErlDist
@@ -20,7 +20,7 @@ defmodule Livebook.Runtime.Embedded do
   Initializes new runtime by starting the necessary
   processes within the current node.
   """
-  @spec init() :: {:ok, t()} | {:error, :failure}
+  @spec init() :: {:ok, t()}
   def init() do
     # As we run in the Livebook node, all the necessary modules
     # are in place, so we just start the manager process.
@@ -33,17 +33,9 @@ defmodule Livebook.Runtime.Embedded do
     # We tell manager to not override :standard_error,
     # as we already do it for the Livebook application globally
     # (see Livebook.Application.start/2).
-    case ErlDist.Manager.start(
-           anonymous: true,
-           cleanup_on_termination: false,
-           register_standard_error_proxy: false
-         ) do
-      {:ok, pid} ->
-        {:ok, %__MODULE__{node: node(), manager_pid: pid}}
 
-      _ ->
-        {:error, :failure}
-    end
+    server_pid = ErlDist.initialize(node(), unload_modules_on_termination: false)
+    {:ok, %__MODULE__{node: node(), server_pid: server_pid}}
   end
 end
 
@@ -51,12 +43,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
-    ErlDist.Manager.set_owner(runtime.manager_pid, self())
-    Process.monitor(runtime.manager_pid)
+    ErlDist.RuntimeServer.set_owner(runtime.server_pid, self())
+    Process.monitor(runtime.server_pid)
   end
 
   def disconnect(runtime) do
-    ErlDist.Manager.stop(runtime.manager_pid)
+    ErlDist.RuntimeServer.stop(runtime.server_pid)
   end
 
   def evaluate_code(
@@ -67,8 +59,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
         prev_evaluation_ref,
         opts \\ []
       ) do
-    ErlDist.Manager.evaluate_code(
-      runtime.manager_pid,
+    ErlDist.RuntimeServer.evaluate_code(
+      runtime.server_pid,
       code,
       container_ref,
       evaluation_ref,
@@ -78,16 +70,16 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    ErlDist.Manager.forget_evaluation(runtime.manager_pid, container_ref, evaluation_ref)
+    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, container_ref, evaluation_ref)
   end
 
   def drop_container(runtime, container_ref) do
-    ErlDist.Manager.drop_container(runtime.manager_pid, container_ref)
+    ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
   def request_completion_items(runtime, send_to, ref, hint, container_ref, evaluation_ref) do
-    ErlDist.Manager.request_completion_items(
-      runtime.manager_pid,
+    ErlDist.RuntimeServer.request_completion_items(
+      runtime.server_pid,
       send_to,
       ref,
       hint,
@@ -97,7 +89,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def duplicate(_runtime) do
-    {:error,
-     "embedded runtime is connected to the Livebook application VM and cannot be duplicated"}
+    Livebook.Runtime.Embedded.init()
   end
 end

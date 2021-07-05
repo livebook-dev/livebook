@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.ElixirStandalone do
-  defstruct [:node, :primary_pid]
+  defstruct [:node, :server_pid]
 
   # A runtime backed by a standalone Elixir node managed by Livebook.
   #
@@ -13,7 +13,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
   @type t :: %__MODULE__{
           node: node(),
-          primary_pid: pid()
+          server_pid: pid()
         }
 
   @doc """
@@ -38,10 +38,10 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
       with {:ok, elixir_path} <- find_elixir_executable(),
            port = start_elixir_node(elixir_path, child_node, child_node_eval_string(), argv),
-           {:ok, primary_pid} <- parent_init_sequence(child_node, port) do
+           {:ok, server_pid} <- parent_init_sequence(child_node, port) do
         runtime = %__MODULE__{
           node: child_node,
-          primary_pid: primary_pid
+          server_pid: server_pid
         }
 
         {:ok, runtime}
@@ -69,12 +69,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
-    ErlDist.Manager.set_owner(runtime.node, self())
-    Process.monitor({ErlDist.Manager, runtime.node})
+    ErlDist.RuntimeServer.set_owner(runtime.server_pid, self())
+    Process.monitor(runtime.server_pid)
   end
 
   def disconnect(runtime) do
-    ErlDist.Manager.stop(runtime.node)
+    ErlDist.RuntimeServer.stop(runtime.server_pid)
   end
 
   def evaluate_code(
@@ -85,8 +85,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
         prev_evaluation_ref,
         opts \\ []
       ) do
-    ErlDist.Manager.evaluate_code(
-      runtime.node,
+    ErlDist.RuntimeServer.evaluate_code(
+      runtime.server_pid,
       code,
       container_ref,
       evaluation_ref,
@@ -96,16 +96,16 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   end
 
   def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    ErlDist.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
+    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, container_ref, evaluation_ref)
   end
 
   def drop_container(runtime, container_ref) do
-    ErlDist.Manager.drop_container(runtime.node, container_ref)
+    ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
   def request_completion_items(runtime, send_to, ref, hint, container_ref, evaluation_ref) do
-    ErlDist.Manager.request_completion_items(
-      runtime.node,
+    ErlDist.RuntimeServer.request_completion_items(
+      runtime.server_pid,
       send_to,
       ref,
       hint,

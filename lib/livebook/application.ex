@@ -15,10 +15,6 @@ defmodule Livebook.Application do
       LivebookWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: Livebook.PubSub},
-      # Start the our own :standard_error handler (standard error -> group leader)
-      # This way we can run multiple embedded runtimes without worrying
-      # about restoring :standard_error to a valid process when terminating
-      {Livebook.Runtime.ErlDist.IOForwardGL, name: :standard_error},
       # Start the supervisor dynamically managing sessions
       Livebook.SessionSupervisor,
       # Start the server responsible for associating files with sessions
@@ -28,10 +24,6 @@ defmodule Livebook.Application do
       # Start the Endpoint (http/https)
       LivebookWeb.Endpoint
     ]
-
-    # Similarly as with :standard_error, we register our backend
-    # within the Livebook node, specifically for the embedded runtime
-    Logger.add_backend(Livebook.Runtime.ErlDist.LoggerGLBackend)
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
