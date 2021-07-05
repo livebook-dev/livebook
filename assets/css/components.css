@@ -82,7 +82,7 @@
   .input[type="range"] {
     @apply outline-none appearance-none  bg-gray-200 border-none;
     padding: 0;
-    height: 15px;    
+    height: 15px;
   }
 
   .input[type="range"]::-webkit-slider-thumb {
