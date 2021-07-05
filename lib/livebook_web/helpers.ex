@@ -83,7 +83,7 @@ defmodule LivebookWeb.Helpers do
   Returns path to specific process dialog within LiveDashboard.
   """
   def live_dashboard_process_path(socket, pid) do
-    pid_str = Phoenix.LiveDashboard.Helpers.encode_pid(pid)
+    pid_str = Phoenix.LiveDashboard.PageBuilder.encode_pid(pid)
     Routes.live_dashboard_path(socket, :page, node(), "processes", info: pid_str)
   end
 
