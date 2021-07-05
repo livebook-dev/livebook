@@ -60,14 +60,14 @@ defmodule Livebook.Runtime.StandaloneInit do
   # 1. The child sends {:node_initialized, ref} message to the parent
   #    to communicate it's ready for initialization.
   #
-  # 2. The parent initializes the child node - loads necessary modules
-  #    and starts the Manager process.
+  # 2. The parent initializes the child node - loads necessary modules,
+  #    starts the NodeManager process and a single RuntimeServer process.
   #
   # 3. The parent sends {:node_initialized, ref} message back to the child,
   #    to communicate successful initialization.
   #
-  # 4. The child starts monitoring the Manager process and freezes
-  #    until the Manager process terminates. The Manager process
+  # 4. The child starts monitoring the NodeManager process and freezes
+  #    until the NodeManager process terminates. The NodeManager process
   #    serves as the leading remote process and represents the node from now on.
   #
   # The nodes either successfully go through this flow or return an error,
@@ -90,12 +90,11 @@ defmodule Livebook.Runtime.StandaloneInit do
         {:node_started, init_ref, ^child_node, primary_pid} ->
           Port.demonitor(port_ref)
 
-          # We've just created the node, so it is surely not in use
-          :ok = Livebook.Runtime.ErlDist.initialize(child_node)
+          server_pid = Livebook.Runtime.ErlDist.initialize(child_node)
 
           send(primary_pid, {:node_initialized, init_ref})
 
-          {:ok, primary_pid}
+          {:ok, server_pid}
 
         {^port, {:data, output}} ->
           # Pass all the outputs through the given emitter.
@@ -122,7 +121,7 @@ defmodule Livebook.Runtime.StandaloneInit do
   parent_process = {node(), String.to_atom(parent_node)};\
   send(parent_process, {:node_started, init_ref, node(), self()});\
   receive do {:node_initialized, ^init_ref} ->\
-    manager_ref = Process.monitor(Livebook.Runtime.ErlDist.Manager);\
+    manager_ref = Process.monitor(Livebook.Runtime.ErlDist.NodeManager);\
     receive do {:DOWN, ^manager_ref, :process, _object, _reason} -> :ok end;\
   after 10_000 ->\
     :timeout;\

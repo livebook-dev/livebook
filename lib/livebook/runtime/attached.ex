@@ -9,31 +9,27 @@ defmodule Livebook.Runtime.Attached do
   # The node can be an ordinary Elixir runtime,
   # a Mix project shell, a running release or anything else.
 
-  defstruct [:node, :cookie]
+  defstruct [:node, :cookie, :server_pid]
 
   @type t :: %__MODULE__{
           node: node(),
-          cookie: atom()
+          cookie: atom(),
+          server_pid: pid()
         }
 
   @doc """
   Checks if the given node is available for use and initializes
   it with Livebook-specific modules and processes.
   """
-  @spec init(node(), atom()) :: {:ok, t()} | {:error, :unreachable | :already_in_use}
+  @spec init(node(), atom()) :: {:ok, t()} | {:error, :unreachable}
   def init(node, cookie \\ Node.get_cookie()) do
     # Set cookie for connecting to this specific node
     Node.set_cookie(node, cookie)
 
     case Node.ping(node) do
       :pong ->
-        case Livebook.Runtime.ErlDist.initialize(node) do
-          :ok ->
-            {:ok, %__MODULE__{node: node, cookie: cookie}}
-
-          {:error, :already_in_use} ->
-            {:error, :already_in_use}
-        end
+        server_pid = Livebook.Runtime.ErlDist.initialize(node)
+        {:ok, %__MODULE__{node: node, cookie: cookie, server_pid: server_pid}}
 
       :pang ->
         {:error, :unreachable}
@@ -45,12 +41,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   alias Livebook.Runtime.ErlDist
 
   def connect(runtime) do
-    ErlDist.Manager.set_owner(runtime.node, self())
-    Process.monitor({ErlDist.Manager, runtime.node})
+    ErlDist.RuntimeServer.set_owner(runtime.server_pid, self())
+    Process.monitor(runtime.server_pid)
   end
 
   def disconnect(runtime) do
-    ErlDist.Manager.stop(runtime.node)
+    ErlDist.RuntimeServer.stop(runtime.server_pid)
   end
 
   def evaluate_code(
@@ -61,8 +57,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
         prev_evaluation_ref,
         opts \\ []
       ) do
-    ErlDist.Manager.evaluate_code(
-      runtime.node,
+    ErlDist.RuntimeServer.evaluate_code(
+      runtime.server_pid,
       code,
       container_ref,
       evaluation_ref,
@@ -72,16 +68,16 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   end
 
   def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    ErlDist.Manager.forget_evaluation(runtime.node, container_ref, evaluation_ref)
+    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, container_ref, evaluation_ref)
   end
 
   def drop_container(runtime, container_ref) do
-    ErlDist.Manager.drop_container(runtime.node, container_ref)
+    ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
   def request_completion_items(runtime, send_to, ref, hint, container_ref, evaluation_ref) do
-    ErlDist.Manager.request_completion_items(
-      runtime.node,
+    ErlDist.RuntimeServer.request_completion_items(
+      runtime.server_pid,
       send_to,
       ref,
       hint,
@@ -90,7 +86,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     )
   end
 
-  def duplicate(_runtime) do
-    {:error, "attached runtime is connected to a specific VM and cannot be duplicated"}
+  def duplicate(runtime) do
+    case Livebook.Runtime.Attached.init(runtime.node, runtime.cookie) do
+      {:ok, runtime} -> {:ok, runtime}
+      {:error, :unreachable} -> {:error, "node #{inspect(runtime.node)} is unreachable"}
+    end
   end
 end

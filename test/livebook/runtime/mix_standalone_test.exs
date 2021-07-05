@@ -38,6 +38,6 @@ defmodule Livebook.Runtime.MixStandaloneTest do
   end
 
   defp manager_started?(node) do
-    :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.Manager]) != nil
+    :rpc.call(node, Process, :whereis, [Livebook.Runtime.ErlDist.NodeManager]) != nil
   end
 end

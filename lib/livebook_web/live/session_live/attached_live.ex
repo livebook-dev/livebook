@@ -39,7 +39,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       <p class="text-gray-700">
         Then enter the connection information below:
       </p>
-      <%= f = form_for :data, "#", phx_submit: "init", phx_change: "validate" %>
+      <%= f = form_for :data, "#", phx_submit: "init", phx_change: "validate", autocomplete: "off", spellcheck: "false" %>
         <div class="flex flex-col space-y-4">
           <div>
             <div class="input-label">Name</div>
@@ -94,7 +94,4 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   end
 
   defp runtime_error_to_message(:unreachable), do: "Node unreachable"
-
-  defp runtime_error_to_message(:already_in_use),
-    do: "Another session is already connected to this node"
 end
