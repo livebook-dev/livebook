@@ -40,6 +40,22 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :root_path)
   end
 
+  @doc """
+  Return the name of the router's helpers module.
+  """
+  @spec router_helpers_module() :: atom()
+  def router_helpers_module() do
+    Application.get_env(:livebook, :router_helpers_module, LivebookWeb.Router.Helpers)
+  end
+
+  @doc """
+  Return the base url for livebook.
+  """
+  @spec base_url_path() :: binary()
+  def base_url_path() do
+    Application.get_env(:livebook, :base_url_path, "/")
+  end
+
   ## Parsing
 
   @doc """

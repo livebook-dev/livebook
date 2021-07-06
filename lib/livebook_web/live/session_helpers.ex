@@ -1,6 +1,5 @@
 defmodule LivebookWeb.SessionHelpers do
   import Phoenix.LiveView
-  alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
   Creates a new session, redirects on success,
@@ -12,7 +11,7 @@ defmodule LivebookWeb.SessionHelpers do
   def create_session(socket, opts \\ []) do
     case Livebook.SessionSupervisor.create_session(opts) do
       {:ok, id} ->
-        push_redirect(socket, to: Routes.session_path(socket, :page, id))
+        push_redirect(socket, to: Livebook.Config.router_helpers_module().session_path(socket, :page, id))
 
       {:error, reason} ->
         put_flash(socket, :error, "Failed to create session: #{reason}")

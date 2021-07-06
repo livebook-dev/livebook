@@ -8,7 +8,7 @@ defmodule LivebookWeb.ConnCase do
       import Phoenix.ConnTest
       import LivebookWeb.ConnCase
 
-      alias LivebookWeb.Router.Helpers, as: Routes
+      alias unquote(Livebook.Config.router_helpers_module), as: Routes
 
       # The default endpoint for testing
       @endpoint LivebookWeb.Endpoint

@@ -6,7 +6,7 @@ defmodule LivebookWeb do
       use Phoenix.Controller, namespace: LivebookWeb
 
       import Plug.Conn
-      alias LivebookWeb.Router.Helpers, as: Routes
+      alias unquote(Livebook.Config.router_helpers_module), as: Routes
     end
   end
 
@@ -62,7 +62,7 @@ defmodule LivebookWeb do
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
-      alias LivebookWeb.Router.Helpers, as: Routes
+      alias unquote(Livebook.Config.router_helpers_module), as: Routes
 
       # Custom helpers
       import LivebookWeb.Helpers
