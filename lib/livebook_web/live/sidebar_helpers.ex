@@ -6,6 +6,12 @@ defmodule LivebookWeb.SidebarHelpers do
 
   alias LivebookWeb.Router.Helpers, as: Routes
 
+  @doc """
+  Renders sidebar container.
+
+  Other functions in this module render sidebar
+  items of various type.
+  """
   def sidebar(assigns) do
     ~H"""
     <div class="w-16 flex flex-col items-center space-y-5 px-3 py-7 bg-gray-900">

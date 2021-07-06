@@ -4,7 +4,7 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.SidebarHelpers
+  alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
   alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
   @impl true
@@ -101,7 +101,7 @@ defmodule LivebookWeb.HomeLive do
               <%# Note: it's fine to use stateless components in this comprehension,
                   because @notebook_infos never change %>
               <%= for info <- @notebook_infos do %>
-                <%= live_component LivebookWeb.NotebookCardComponent, notebook_info: info %>
+                <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
               <% end %>
             </div>
           </div>
