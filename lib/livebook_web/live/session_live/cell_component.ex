@@ -10,16 +10,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-cell-id={@cell_view.id}
       data-type={@cell_view.type}
       data-session-path={Routes.session_path(@socket, :page, @session_id)}>
-      <%= render_cell_content(assigns) %>
+      <%= render_cell(assigns) %>
     </div>
     """
   end
 
-  def render_cell_content(%{cell_view: %{type: :markdown}} = assigns) do
+  def render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_anchor_link cell_id={@cell_view.id} />
+        <.cell_link_button cell_id={@cell_view.id} />
         <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button">
             <.remix_icon icon="pencil-line" class="text-xl" />
@@ -31,29 +31,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <.remix_icon icon="image-add-line" class="text-xl" />
           <% end %>
         </span>
-        <span class="tooltip top" aria-label="Move up">
-          <button class="icon-button"
-            phx-click="move_cell"
-            phx-value-cell_id={@cell_view.id}
-            phx-value-offset="-1">
-            <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Move down">
-          <button class="icon-button"
-            phx-click="move_cell"
-            phx-value-cell_id={@cell_view.id}
-            phx-value-offset="1">
-            <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Delete">
-          <button class="icon-button"
-            phx-click="delete_cell"
-            phx-value-cell_id={@cell_view.id}>
-            <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-          </button>
-        </span>
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
       </div>
     </div>
 
@@ -71,7 +51,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell_content(%{cell_view: %{type: :elixir}} = assigns) do
+  def render_cell(%{cell_view: %{type: :elixir}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
@@ -96,35 +76,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </div>
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_anchor_link cell_id={@cell_view.id} />
-        <span class="tooltip top" aria-label="Cell settings">
-          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
-            <.remix_icon icon="list-settings-line" class="text-xl" />
-          <% end %>
-        </span>
-        <span class="tooltip top" aria-label="Move up">
-          <button class="icon-button"
-            phx-click="move_cell"
-            phx-value-cell_id={@cell_view.id}
-            phx-value-offset="-1">
-            <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Move down">
-          <button class="icon-button"
-            phx-click="move_cell"
-            phx-value-cell_id={@cell_view.id}
-            phx-value-offset="1">
-            <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Delete">
-          <button class="icon-button"
-            phx-click="delete_cell"
-            phx-value-cell_id={@cell_view.id}>
-            <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-          </button>
-        </span>
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
       </div>
     </div>
 
@@ -140,39 +96,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell_content(%{cell_view: %{type: :input}} = assigns) do
+  def render_cell(%{cell_view: %{type: :input}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_anchor_link cell_id={@cell_view.id} />
-        <span class="tooltip top" aria-label="Cell settings">
-          <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
-            <.remix_icon icon="list-settings-line" class="text-xl" />
-          <% end %>
-        </span>
-        <span class="tooltip top" aria-label="Move up">
-          <button class="icon-button"
-            phx-click="move_cell"
-            phx-value-cell_id={@cell_view.id}
-            phx-value-offset="-1">
-            <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Move down">
-          <button class="icon-button"
-            phx-click="move_cell"
-            phx-value-cell_id={@cell_view.id}
-            phx-value-offset="1">
-            <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" aria-label="Delete">
-          <button class="icon-button"
-            phx-click="delete_cell"
-            phx-value-cell_id={@cell_view.id}>
-            <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-          </button>
-        </span>
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
       </div>
     </div>
 
@@ -224,6 +156,64 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp cell_link_button(assigns) do
+    ~H"""
+    <span class="tooltip top" aria-label="Link">
+      <a href={"#cell-#{@cell_id}"} class="icon-button">
+        <.remix_icon icon="link" class="text-xl" />
+      </a>
+    </span>
+    """
+  end
+
+  defp cell_settings_button(assigns) do
+    ~H"""
+    <span class="tooltip top" aria-label="Cell settings">
+      <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id), class: "icon-button" do %>
+        <.remix_icon icon="list-settings-line" class="text-xl" />
+      <% end %>
+    </span>
+    """
+  end
+
+  defp move_cell_up_button(assigns) do
+    ~H"""
+    <span class="tooltip top" aria-label="Move up">
+      <button class="icon-button"
+        phx-click="move_cell"
+        phx-value-cell_id={@cell_id}
+        phx-value-offset="-1">
+        <.remix_icon icon="arrow-up-s-line" class="text-xl" />
+      </button>
+    </span>
+    """
+  end
+
+  defp move_cell_down_button(assigns) do
+    ~H"""
+    <span class="tooltip top" aria-label="Move down">
+      <button class="icon-button"
+        phx-click="move_cell"
+        phx-value-cell_id={@cell_id}
+        phx-value-offset="1">
+        <.remix_icon icon="arrow-down-s-line" class="text-xl" />
+      </button>
+    </span>
+    """
+  end
+
+  defp delete_cell_button(assigns) do
+    ~H"""
+    <span class="tooltip top" aria-label="Delete">
+      <button class="icon-button"
+        phx-click="delete_cell"
+        phx-value-cell_id={@cell_id}>
+        <.remix_icon icon="delete-bin-6-line" class="text-xl" />
+      </button>
+    </span>
+    """
+  end
+
   defp editor(assigns) do
     ~H"""
     <div class="py-3 rounded-lg bg-editor relative">
@@ -242,16 +232,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       <% end %>
     </div>
-    """
-  end
-
-  defp cell_anchor_link(assigns) do
-    ~H"""
-    <span class="tooltip top" aria-label="Link">
-      <a href={"#cell-#{@cell_id}"} class="icon-button">
-        <.remix_icon icon="link" class="text-xl" />
-      </a>
-    </span>
     """
   end
 

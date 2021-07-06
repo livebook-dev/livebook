@@ -37,7 +37,8 @@ defmodule LivebookWeb.HomeLive do
       </SidebarHelpers.sidebar>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
-          <div class="flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
+          <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
+                      sm:flex-row sm:space-y-0 sm:justify-between">
             <div class="text-2xl text-gray-800 font-semibold">
               <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
@@ -50,6 +51,7 @@ defmodule LivebookWeb.HomeLive do
               </button>
             </div>
           </div>
+
           <div class="h-80">
             <%= live_component LivebookWeb.PathSelectComponent,
                   id: "path_select",
@@ -70,22 +72,22 @@ defmodule LivebookWeb.HomeLive do
                         to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
                         class: "button button-blue" %>
                 <% else %>
-                  <%= content_tag :span,
-                        if(
-                          File.regular?(@path) and not file_writable?(@path),
-                          do: [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"],
-                          else: []
-                        ) do %>
+                  <span {if(
+                    File.regular?(@path) and not file_writable?(@path),
+                    do: [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"],
+                    else: []
+                  )}>
                     <button class="button button-blue"
                       phx-click="open"
                       disabled={not path_openable?(@path, @session_summaries)}>
                       Open
                     </button>
-                  <% end %>
+                  </span>
                 <% end %>
               </div>
             <% end %>
           </div>
+
           <div class="py-12">
             <div class="mb-4 flex justify-between items-center">
               <h2 class="text-xl font-semibold text-gray-800">
@@ -105,24 +107,12 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
           </div>
+
           <div class="py-12">
             <h2 class="mb-4 text-xl font-semibold text-gray-800">
               Running sessions
             </h2>
-            <%= if @session_summaries == [] do %>
-              <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
-                <div>
-                  <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
-                </div>
-                <div class="text-gray-600">
-                  You do not have any running sessions.
-                  <br>
-                  Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
-                </div>
-              </div>
-            <% else %>
-              <%= live_component LivebookWeb.HomeLive.SessionsComponent, session_summaries: @session_summaries %>
-            <% end %>
+            <.sessions_list session_summaries={@session_summaries} socket={@socket} />
           </div>
         </div>
       </div>
@@ -151,6 +141,65 @@ defmodule LivebookWeb.HomeLive do
             return_to: Routes.home_path(@socket, :page),
             tab: @tab %>
     <% end %>
+    """
+  end
+
+  defp sessions_list(%{session_summaries: []} = assigns) do
+    ~H"""
+    <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+      <div>
+        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
+      </div>
+      <div class="text-gray-600">
+        You do not have any running sessions.
+        <br>
+        Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
+      </div>
+    </div>
+    """
+  end
+
+  defp sessions_list(assigns) do
+    ~H"""
+    <div class="flex flex-col space-y-4">
+      <%= for summary <- @session_summaries do %>
+        <div class="p-5 flex items-center border border-gray-200 rounded-lg"
+          data-test-session-id={summary.session_id}>
+          <div class="flex-grow flex flex-col space-y-1">
+            <%= live_redirect summary.notebook_name,
+                  to: Routes.session_path(@socket, :page, summary.session_id),
+                  class: "font-semibold text-gray-800 hover:text-gray-900" %>
+            <div class="text-gray-600 text-sm">
+              <%= summary.path || "No file" %>
+            </div>
+          </div>
+          <div class="relative" id={"session-#{summary.session_id}-menu"} phx-hook="Menu" data-element="menu">
+            <button class="icon-button" data-toggle>
+              <.remix_icon icon="more-2-fill" class="text-xl" />
+            </button>
+            <div class="menu" data-content>
+              <button class="menu__item text-gray-500"
+                phx-click="fork_session"
+                phx-value-id={summary.session_id}>
+                <.remix_icon icon="git-branch-line" />
+                <span class="font-medium">Fork</span>
+              </button>
+              <a class="menu__item text-gray-500"
+                href={live_dashboard_process_path(@socket, summary.pid)}
+                target="_blank">
+                <.remix_icon icon="dashboard-2-line" />
+                <span class="font-medium">See on Dashboard</span>
+              </a>
+              <%= live_patch to: Routes.home_path(@socket, :close_session, summary.session_id),
+                    class: "menu__item text-red-600" do %>
+                <.remix_icon icon="close-circle-line" />
+                <span class="font-medium">Close</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
     """
   end
 
