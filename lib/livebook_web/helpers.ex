@@ -1,5 +1,6 @@
 defmodule LivebookWeb.Helpers do
-  import Phoenix.LiveView.Helpers
+  use Phoenix.Component
+
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -117,8 +118,8 @@ defmodule LivebookWeb.Helpers do
   def remix_icon(assigns) do
     assigns =
       assigns
-      |> Phoenix.LiveView.assign_new(:class, fn -> "" end)
-      |> Phoenix.LiveView.assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
+      |> assign_new(:class, fn -> "" end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
 
     ~H"""
     <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
@@ -158,7 +159,7 @@ defmodule LivebookWeb.Helpers do
         checked={@likes_cats} />
   """
   def switch_checkbox(assigns) do
-    assigns = Phoenix.LiveView.assign_new(assigns, :disabled, fn -> false end)
+    assigns = assign_new(assigns, :disabled, fn -> false end)
 
     ~H"""
     <div class="flex space-x-3 items-center justify-between">
@@ -183,8 +184,8 @@ defmodule LivebookWeb.Helpers do
   def choice_button(assigns) do
     assigns =
       assigns
-      |> Phoenix.LiveView.assign_new(:class, fn -> "" end)
-      |> Phoenix.LiveView.assign(:attrs, assigns_to_attributes(assigns, [:active, :class]))
+      |> assign_new(:class, fn -> "" end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:active, :class]))
 
     ~H"""
     <button class={"choice-button #{if(@active, do: "active")} #{@class}"} {@attrs}>

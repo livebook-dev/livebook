@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <%= render_cell_anchor_link(assigns) %>
+        <.cell_anchor_link cell_id={@cell_view.id} />
         <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button">
             <.remix_icon icon="pencil-line" class="text-xl" />
@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </div>
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <%= render_cell_anchor_link(assigns) %>
+        <.cell_anchor_link cell_id={@cell_view.id} />
         <span class="tooltip top" aria-label="Cell settings">
           <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
             <.remix_icon icon="list-settings-line" class="text-xl" />
@@ -153,7 +153,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <%= render_cell_anchor_link(assigns) %>
+        <.cell_anchor_link cell_id={@cell_view.id} />
         <span class="tooltip top" aria-label="Cell settings">
           <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id), class: "icon-button" do %>
             <.remix_icon icon="list-settings-line" class="text-xl" />
@@ -251,10 +251,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell_anchor_link(assigns) do
+  defp cell_anchor_link(assigns) do
     ~H"""
     <span class="tooltip top" aria-label="Link">
-      <a href={"#cell-#{@cell_view.id}"} class="icon-button">
+      <a href={"#cell-#{@cell_id}"} class="icon-button">
         <.remix_icon icon="link" class="text-xl" />
       </a>
     </span>

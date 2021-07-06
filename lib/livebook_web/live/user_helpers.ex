@@ -1,6 +1,5 @@
 defmodule LivebookWeb.UserHelpers do
-  import Phoenix.LiveView
-  import Phoenix.LiveView.Helpers
+  use Phoenix.Component
 
   alias Livebook.Users.User
 
@@ -14,8 +13,8 @@ defmodule LivebookWeb.UserHelpers do
   def user_avatar(assigns) do
     assigns =
       assigns
-      |> Phoenix.LiveView.assign_new(:class, fn -> "w-full h-full" end)
-      |> Phoenix.LiveView.assign_new(:text_class, fn -> "" end)
+      |> assign_new(:class, fn -> "w-full h-full" end)
+      |> assign_new(:text_class, fn -> "" end)
 
     ~H"""
     <div class={"#{@class} rounded-full flex items-center justify-center"} style={"background-color: #{@user.hex_color}"}>
