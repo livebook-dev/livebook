@@ -53,7 +53,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
         <%= if :refetch in @features do %>
           <span class="tooltip left" aria-label="Refetch">
             <button class="icon-button" phx-click="refetch">
-              <%= remix_icon("refresh-line", class: "text-xl") %>
+              <.remix_icon icon="refresh-line" class="text-xl" />
             </button>
           </span>
         <% end %>
@@ -64,7 +64,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
           <button class="flex items-center font-medium text-sm text-gray-400 hover:text-gray-800 disabled:pointer-events-none disabled:text-gray-300"
             phx-click="prev"
             disabled={@page == 1}>
-            <%= remix_icon("arrow-left-s-line", class: "text-xl") %>
+            <.remix_icon icon="arrow-left-s-line" class="text-xl" />
             <span>Prev</span>
           </button>
           <div class="flex items-center px-3 py-1 rounded-lg border border-gray-300 font-medium text-sm text-gray-400">
@@ -74,7 +74,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
             phx-click="next"
             disabled={@page == max_page(@total_rows, @limit)}>
             <span>Next</span>
-            <%= remix_icon("arrow-right-s-line", class: "text-xl") %>
+            <.remix_icon icon="arrow-right-s-line" class="text-xl" />
           </button>
         </div>
       <% end %>
@@ -97,7 +97,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
                   <div class="flex items-center space-x-1">
                     <span><%= column.label %></span>
                     <span class={unless(@order_by == column.key, do: "invisible")}>
-                      <%= remix_icon(order_icon(@order), class: "text-xl align-middle leading-none") %>
+                      <.remix_icon icon={order_icon(@order)} class="text-xl align-middle leading-none" />
                     </span>
                   </div>
                 </th>

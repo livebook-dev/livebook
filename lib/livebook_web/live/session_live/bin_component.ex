@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
         <%= if @bin_entries == [] do %>
           <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
             <div>
-              <%= remix_icon("windy-line", class: "text-gray-400 text-xl") %>
+              <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
             </div>
             <div class="text-gray-600">
               There are currently no cells in the bin.
@@ -75,7 +75,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                         id={"bin-cell-#{cell.id}-clipcopy"}
                         phx-hook="ClipCopy"
                         data-target-id={"bin-cell-#{cell.id}-source"}>
-                        <%= remix_icon("clipboard-line", class: "text-lg") %>
+                        <.remix_icon icon="clipboard-line" class="text-lg" />
                       </button>
                     </span>
                     <span class="tooltip left" aria-label="Restore">
@@ -83,7 +83,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                         phx-click="restore"
                         phx-value-cell_id={entry.cell.id}
                         phx-target={@myself}>
-                        <%= remix_icon("arrow-go-back-line", class: "text-lg") %>
+                        <.remix_icon icon="arrow-go-back-line" class="text-lg" />
                       </button>
                     </span>
                   </div>

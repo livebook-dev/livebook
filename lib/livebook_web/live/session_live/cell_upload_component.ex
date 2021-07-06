@@ -39,7 +39,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
             <label>
               <%= live_file_input @uploads.cell_image, class: "hidden" %>
               <div class="cursor-pointer button button-gray button-square-icon">
-                <%= remix_icon("folder-upload-line") %>
+                <.remix_icon icon="folder-upload-line" />
               </div>
             </label>
           </div>

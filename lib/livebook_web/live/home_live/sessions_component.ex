@@ -17,24 +17,24 @@ defmodule LivebookWeb.HomeLive.SessionsComponent do
           </div>
           <div class="relative" id={"session-#{summary.session_id}-menu"} phx-hook="Menu" data-element="menu">
             <button class="icon-button" data-toggle>
-              <%= remix_icon("more-2-fill", class: "text-xl") %>
+              <.remix_icon icon="more-2-fill" class="text-xl" />
             </button>
             <div class="menu" data-content>
               <button class="menu__item text-gray-500"
                 phx-click="fork_session"
                 phx-value-id={summary.session_id}>
-                <%= remix_icon("git-branch-line") %>
+                <.remix_icon icon="git-branch-line" />
                 <span class="font-medium">Fork</span>
               </button>
               <a class="menu__item text-gray-500"
                 href={live_dashboard_process_path(@socket, summary.pid)}
                 target="_blank">
-                <%= remix_icon("dashboard-2-line") %>
+                <.remix_icon icon="dashboard-2-line" />
                 <span class="font-medium">See on Dashboard</span>
               </a>
               <%= live_patch to: Routes.home_path(@socket, :close_session, summary.session_id),
                     class: "menu__item text-red-600" do %>
-                <%= remix_icon("close-circle-line") %>
+                <.remix_icon icon="close-circle-line" />
                 <span class="font-medium">Close</span>
               <% end %>
             </div>

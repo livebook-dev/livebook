@@ -62,7 +62,7 @@ defmodule LivebookWeb.HomeLive do
                 <button class="button button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
                   disabled={not path_forkable?(@path)}>
-                  <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
+                  <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
                   <span>Fork</span>
                 </button>
                 <%= if path_running?(@path, @session_summaries) do %>
@@ -94,7 +94,7 @@ defmodule LivebookWeb.HomeLive do
               <%= live_redirect to: Routes.explore_path(@socket, :page),
                     class: "flex items-center text-blue-600" do %>
                 <span class="font-semibold">See all</span>
-                <%= remix_icon("arrow-right-line", class: "align-middle ml-1") %>
+                <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
               <% end %>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -112,7 +112,7 @@ defmodule LivebookWeb.HomeLive do
             <%= if @session_summaries == [] do %>
               <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
                 <div>
-                  <%= remix_icon("windy-line", class: "text-gray-400 text-xl") %>
+                  <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
                 </div>
                 <div class="text-gray-600">
                   You do not have any running sessions.

@@ -42,12 +42,23 @@ defmodule LivebookWeb.Helpers do
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
   @doc """
-  Returns [Remix](https://remixicon.com) icon tag.
+  Renders [Remix](https://remixicon.com) icon.
+
+  ## Examples
+
+      <.remix_icon icon="cpu-line" />
+
+      <.remix_icon icon="cpu-line" class="align-middle mr-1" />
   """
-  def remix_icon(name, attrs \\ []) do
-    icon_class = "ri-#{name}"
-    attrs = Keyword.update(attrs, :class, icon_class, fn class -> "#{icon_class} #{class}" end)
-    content_tag(:i, "", attrs)
+  def remix_icon(%{icon: icon} = assigns) do
+    assigns =
+      assigns
+      |> Phoenix.LiveView.assign_new(:class, fn -> "" end)
+      |> Phoenix.LiveView.assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
+
+    ~H"""
+    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
+    """
   end
 
   defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI

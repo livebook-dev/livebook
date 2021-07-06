@@ -20,7 +20,7 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
         <%= render_switch("delete_cells", @is_first, "Delete all cells in this section", disabled: @is_first) %>
         <div class="mt-8 flex justify-end space-x-2">
           <button type="submit" class="button button-red">
-            <%= remix_icon("delete-bin-6-line", class: "align-middle mr-1") %>
+            <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
             Delete
           </button>
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>

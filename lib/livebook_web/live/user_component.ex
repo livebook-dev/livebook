@@ -55,7 +55,7 @@ defmodule LivebookWeb.UserComponent do
                   type="button"
                   phx-click="randomize_color"
                   phx-target={@myself}>
-                  <%= remix_icon("refresh-line", class: "text-xl") %>
+                  <.remix_icon icon="refresh-line" class="text-xl" />
                 </button>
               </div>
             </div>
@@ -64,7 +64,7 @@ defmodule LivebookWeb.UserComponent do
             class="button button-blue flex space-x-1 justify-center items-center"
             type="submit"
             disabled={not @valid}>
-            <%= remix_icon("save-line") %>
+            <.remix_icon icon="save-line" />
             <span>Save</span>
           </button>
         </div>

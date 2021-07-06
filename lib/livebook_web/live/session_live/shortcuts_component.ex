@@ -197,7 +197,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
 
     joiner =
       if press_all do
-        remix_icon("add-line", class: "text-lg text-gray-600")
+        remix_icon(%{icon: "add-line", class: "text-lg text-gray-600"})
       end
 
     elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))

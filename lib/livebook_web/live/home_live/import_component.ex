@@ -11,14 +11,14 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
       <div class="tabs">
         <%= live_patch to: Routes.home_path(@socket, :import, "url"),
               class: "tab #{if(@tab == "url", do: "active")}" do %>
-          <%= remix_icon("download-cloud-2-line", class: "align-middle") %>
+          <.remix_icon icon="download-cloud-2-line" class="align-middle" />
           <span class="font-medium">
             From URL
           </span>
         <% end %>
         <%= live_patch to: Routes.home_path(@socket, :import, "content"),
               class: "tab #{if(@tab == "content", do: "active")}" do %>
-          <%= remix_icon("clipboard-line", class: "align-middle") %>
+          <.remix_icon icon="clipboard-line" class="align-middle" />
           <span class="font-medium">
             From clipboard
           </span>

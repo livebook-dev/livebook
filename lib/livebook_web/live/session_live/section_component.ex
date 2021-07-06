@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         <div class="flex space-x-2 items-center" data-element="section-actions">
           <span class="tooltip top" aria-label="Link">
             <a href={"##{@section_view.html_id}"} class="icon-button">
-              <%= remix_icon("link", class: "text-xl") %>
+              <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
           <span class="tooltip top" aria-label="Move up">
@@ -27,7 +27,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="-1">
-              <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
+              <.remix_icon icon="arrow-up-s-line" class="text-xl" />
             </button>
           </span>
           <span class="tooltip top" aria-label="Move down">
@@ -35,13 +35,13 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="1">
-              <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
+              <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </span>
           <span class="tooltip top" aria-label="Delete">
             <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
                   class: "icon-button" do %>
-              <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
+              <.remix_icon icon="delete-bin-6-line" class="text-xl" />
             <% end %>
           </span>
         </div>

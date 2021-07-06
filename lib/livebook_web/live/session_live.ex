@@ -131,7 +131,7 @@ defmodule LivebookWeb.SessionLive do
             </div>
             <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
               phx-click="append_section">
-              <%= remix_icon("add-line", class: "text-lg align-center") %>
+              <.remix_icon icon="add-line" class="text-lg align-center" />
               <span>New section</span>
             </button>
           </div>
@@ -161,14 +161,14 @@ defmodule LivebookWeb.SessionLive do
                       data-element="client-follow-toggle"
                       data-meta="follow">
                       <button class="icon-button">
-                        <%= remix_icon("pushpin-line", class: "text-lg") %>
+                        <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
                     </span>
                     <span class="tooltip left" aria-label="Unfollow this user"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
                       <button class="icon-button">
-                        <%= remix_icon("pushpin-fill", class: "text-lg") %>
+                        <.remix_icon icon="pushpin-fill" class="text-lg" />
                       </button>
                     </span>
                   <% end %>
@@ -191,23 +191,23 @@ defmodule LivebookWeb.SessionLive do
               data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
             <div class="relative" id="session-menu" phx-hook="Menu" data-element="menu">
               <button class="icon-button" data-toggle>
-                <%= remix_icon("more-2-fill", class: "text-xl") %>
+                <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
               <div class="menu" data-content>
                 <button class="menu__item text-gray-500"
                   phx-click="fork_session">
-                  <%= remix_icon("git-branch-line") %>
+                  <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
                 <a class="menu__item text-gray-500"
                   href={live_dashboard_process_path(@socket, @session_pid)}
                   target="_blank">
-                  <%= remix_icon("dashboard-2-line") %>
+                  <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
                       class: "menu__item text-red-600" do %>
-                  <%= remix_icon("close-circle-line") %>
+                  <.remix_icon icon="close-circle-line" />
                   <span class="font-medium">Close</span>
                 <% end %>
               </div>

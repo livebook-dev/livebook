@@ -24,7 +24,7 @@ defmodule LivebookWeb.ModalComponent do
 
           <%= live_patch to: @return_to, class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center" do %>
             <span class="text-sm">(esc)</span>
-            <%= remix_icon("close-line", class: "text-2xl") %>
+            <.remix_icon icon="close-line" class="text-2xl" />
           <% end %>
 
           <%= live_component @component, @opts %>

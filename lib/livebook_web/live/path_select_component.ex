@@ -80,11 +80,11 @@ defmodule LivebookWeb.PathSelectComponent do
         </form>
         <div class="relative" id="path-selector-menu" phx-hook="Menu" data-element="menu">
           <button class="icon-button" data-toggle tabindex="-1">
-            <%= remix_icon("more-2-fill", class: "text-xl") %>
+            <.remix_icon icon="more-2-fill" class="text-xl" />
           </button>
           <div class="menu" data-content>
             <button class="menu__item text-gray-500" phx-click="new_directory" phx-target={@myself}>
-              <%= remix_icon("folder-add-fill", class: "text-gray-400") %>
+              <.remix_icon icon="folder-add-fill" class="text-gray-400" />
               <span class="font-medium">New directory</span>
             </button>
           </div>
@@ -105,7 +105,7 @@ defmodule LivebookWeb.PathSelectComponent do
             <button class="text-red-600 font-medium text-sm whitespace-nowrap"
               phx-click="do_delete_file"
               phx-target={@myself}>
-              <%= remix_icon("delete-bin-6-line", class: "align-middle mr-1") %>
+              <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
               Delete
             </button>
             <button class="text-gray-600 font-medium text-sm"
@@ -121,7 +121,7 @@ defmodule LivebookWeb.PathSelectComponent do
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
             <div class="flex space-x-2 items-center p-2 rounded-lg">
               <span class="block">
-                <%= remix_icon("folder-add-fill", class: "text-xl align-middle text-gray-400") %>
+                <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
               </span>
               <span class="flex font-medium text-gray-500">
                 <div
@@ -178,7 +178,7 @@ defmodule LivebookWeb.PathSelectComponent do
     ~H"""
     <div class="flex space-x-2 items-center p-2 rounded-lg">
       <span class="block">
-        <%= remix_icon("edit-line", class: "text-xl align-middle text-gray-400") %>
+        <.remix_icon icon="edit-line" class="text-xl align-middle text-gray-400" />
       </span>
       <span class="flex font-medium text-gray-500">
         <div
@@ -223,7 +223,7 @@ defmodule LivebookWeb.PathSelectComponent do
         phx-value-path={@file.path}
         phx-target={@phx_target}>
         <span class="block">
-          <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
+          <.remix_icon icon={@icon} class={"text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}"} />
         </span>
         <span class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file.is_running, do: "text-green-300", else: "text-gray-500")}"}>
           <%= if @file.highlighted != "" do %>
@@ -241,14 +241,14 @@ defmodule LivebookWeb.PathSelectComponent do
           phx-click="rename_file"
           phx-target={@myself}
           phx-value-path={@file.path}>
-          <%= remix_icon("edit-line") %>
+          <.remix_icon icon="edit-line" />
           <span class="font-medium">Rename</span>
         </button>
         <button class="menu__item text-red-600"
           phx-click="delete_file"
           phx-target={@myself}
           phx-value-path={@file.path}>
-          <%= remix_icon("delete-bin-6-line") %>
+          <.remix_icon icon="delete-bin-6-line" />
           <span class="font-medium">Delete</span>
         </button>
       </div>

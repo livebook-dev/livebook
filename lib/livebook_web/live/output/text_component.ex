@@ -21,7 +21,7 @@ defmodule LivebookWeb.Output.TextComponent do
           id={"virtualized-text-#{@id}-clipcopy"}
           phx-hook="ClipCopy"
           data-target-id={"virtualized-text-#{@id}-template"}>
-          <%= remix_icon("clipboard-line", class: "text-lg") %>
+          <.remix_icon icon="clipboard-line" class="text-lg" />
         </button>
       </div>
     </div>
