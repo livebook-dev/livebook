@@ -459,5 +459,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp html_input_type(:password), do: "password"
   defp html_input_type(:number), do: "number"
   defp html_input_type(:color), do: "color"
+  defp html_input_type(:range), do: "range"
   defp html_input_type(_), do: "text"
 end

@@ -20,7 +20,7 @@ defmodule Livebook.Notebook.Cell.Input do
           reactive: boolean()
         }
 
-  @type type :: :text | :url | :number | :password | :textarea
+  @type type :: :text | :url | :number | :password | :textarea | :range
 
   @doc """
   Returns an empty cell.
@@ -72,6 +72,13 @@ defmodule Livebook.Notebook.Cell.Input do
       :ok
     else
       {:error, "not a valid hex color"}
+    end
+  end
+
+  defp validate_value(value, :range) do
+    case Integer.parse(value) do
+      {_number, ""} -> :ok
+      _ -> {:error, "not a valid number"}
     end
   end
 

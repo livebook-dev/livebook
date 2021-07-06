@@ -79,6 +79,24 @@
     @apply py-0 w-16;
   }
 
+  .input[type="range"] {
+    @apply outline-none appearance-none  bg-gray-200 border-none;
+    padding: 0;
+    height: 15px;
+  }
+
+  .input[type="range"]::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    @apply appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
+  }
+
+  .input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    @apply appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
+  }
+
   .input--error {
     @apply bg-red-50 border-red-600 text-red-600;
   }

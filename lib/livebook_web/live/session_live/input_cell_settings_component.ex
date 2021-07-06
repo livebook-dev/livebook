@@ -77,7 +77,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       password: "Password",
       text: "Text",
       textarea: "Textarea",
-      url: "URL"
+      url: "URL",
+      range: "Range"
     ]
   end
 end
