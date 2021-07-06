@@ -70,26 +70,30 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           <% end %>
         </div>
         <div class="flex space-x-4">
-          <%= content_tag :button, "Elixir standalone",
-            class: "choice-button #{if(@type == "elixir_standalone", do: "active")}",
-            phx_click: "set_runtime_type",
-            phx_value_type: "elixir_standalone",
-            phx_target: @myself %>
-          <%= content_tag :button, "Mix standalone",
-            class: "choice-button #{if(@type == "mix_standalone", do: "active")}",
-            phx_click: "set_runtime_type",
-            phx_value_type: "mix_standalone",
-            phx_target: @myself %>
-          <%= content_tag :button, "Attached node",
-            class: "choice-button #{if(@type == "attached", do: "active")}",
-            phx_click: "set_runtime_type",
-            phx_value_type: "attached",
-            phx_target: @myself %>
-          <%= content_tag :button, "Embedded",
-            class: "choice-button #{if(@type == "embedded", do: "active")}",
-            phx_click: "set_runtime_type",
-            phx_value_type: "embedded",
-            phx_target: @myself %>
+          <button class={"choice-button #{if(@type == "elixir_standalone", do: "active")}"}
+            phx-click="set_runtime_type"
+            phx-value-type="elixir_standalone"
+            phx-target={@myself}>
+            Elixir standalone
+          </button>
+          <button class={"choice-button #{if(@type == "mix_standalone", do: "active")}"}
+            phx-click="set_runtime_type"
+            phx-value-type="mix_standalone"
+            phx-target={@myself}>
+            Mix standalone
+          </button>
+          <button class={"choice-button #{if(@type == "attached", do: "active")}"}
+            phx-click="set_runtime_type"
+            phx-value-type="attached"
+            phx-target={@myself}>
+            Attached node
+          </button>
+          <button class={"choice-button #{if(@type == "embedded", do: "active")}"}
+            phx-click="set_runtime_type"
+            phx-value-type="embedded"
+            phx-target={@myself}>
+            Embedded
+          </button>
         </div>
         <div>
           <%= live_render @socket, live_view_for_type(@type),
