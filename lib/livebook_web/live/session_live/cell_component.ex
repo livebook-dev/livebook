@@ -57,22 +57,17 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
     </div>
 
-    <div class="flex relative">
-      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
+    <.cell_body>
+      <div class="pb-4" data-element="editor-box">
+        <.editor cell_view={@cell_view} />
       </div>
-      <div class="w-full">
-        <div class="pb-4" data-element="editor-box">
-          <%= render_editor(assigns) %>
-        </div>
-
-        <div class="markdown"
-          data-element="markdown-container"
-          id={"markdown-container-#{@cell_view.id}"}
-          phx-update="ignore">
-          <%= render_content_placeholder("bg-gray-200", @cell_view.empty?) %>
-        </div>
+      <div class="markdown"
+        data-element="markdown-container"
+        id={"markdown-container-#{@cell_view.id}"}
+        phx-update="ignore">
+        <.content_placeholder bg_class="bg-gray-200" empty={@cell_view.empty?} />
       </div>
-    </div>
+    </.cell_body>
     """
   end
 
@@ -133,19 +128,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
     </div>
 
-    <div class="flex relative">
-      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
-      </div>
-      <div class="w-full">
-        <%= render_editor(assigns) %>
+    <.cell_body>
+      <.editor cell_view={@cell_view} />
 
-        <%= if @cell_view.outputs != [] do %>
-          <div class="mt-2">
-            <%= render_outputs(assigns, @socket) %>
-          </div>
-        <% end %>
-      </div>
-    </div>
+      <%= if @cell_view.outputs != [] do %>
+        <div class="mt-2">
+          <.outputs cell_view={@cell_view} socket={@socket} />
+        </div>
+      <% end %>
+    </.cell_body>
     """
   end
 
@@ -185,47 +176,55 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
     </div>
 
+    <.cell_body>
+      <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
+        <input type="hidden" name="cell_id" value={@cell_view.id} />
+        <div class="input-label">
+          <%= @cell_view.name %>
+        </div>
+
+        <%= if @cell_view.input_type == :textarea do %>
+          <textarea
+            data-element="input"
+            class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
+            name="value"
+            spellcheck="false"
+            tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
+        <% else %>
+          <input type={html_input_type(@cell_view.input_type)}
+            data-element="input"
+            class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
+            name="value"
+            value={@cell_view.value}
+            phx-debounce="300"
+            spellcheck="false"
+            autocomplete="off"
+            tabindex="-1" />
+        <% end %>
+
+        <%= if @cell_view.error do %>
+          <div class="input-error">
+            <%= String.capitalize(@cell_view.error) %>
+          </div>
+        <% end %>
+      </form>
+    </.cell_body>
+    """
+  end
+
+  defp cell_body(assigns) do
+    ~H"""
     <div class="flex relative">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
-      <div>
-        <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
-          <input type="hidden" name="cell_id" value={@cell_view.id} />
-          <div class="input-label">
-            <%= @cell_view.name %>
-          </div>
-
-          <%= if (@cell_view.input_type == :textarea) do %>
-            <textarea
-              data-element="input"
-              class={"input #{if(@cell_view.error, do: "input--error")}"}
-              name="value"
-              spellcheck="false"
-              tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
-          <% else %>
-            <input type={html_input_type(@cell_view.input_type)}
-              data-element="input"
-              class={"input #{if(@cell_view.error, do: "input--error")}"}
-              name="value"
-              value={@cell_view.value}
-              phx-debounce="300"
-              spellcheck="false"
-              autocomplete="off"
-              tabindex="-1" />
-          <% end %>
-
-          <%= if @cell_view.error do %>
-            <div class="input-error">
-              <%= String.capitalize(@cell_view.error) %>
-            </div>
-          <% end %>
-        </form>
+      <div class="w-full">
+        <%= render_block(@inner_block) %>
       </div>
     </div>
     """
   end
 
-  defp render_editor(assigns) do
+  defp editor(assigns) do
     ~H"""
     <div class="py-3 rounded-lg bg-editor relative">
       <div
@@ -233,18 +232,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-element="editor-container"
         phx-update="ignore">
         <div class="px-8">
-          <%= render_content_placeholder("bg-gray-500", @cell_view.empty?) %>
+          <.content_placeholder bg_class="bg-gray-500" empty={@cell_view.empty?} />
         </div>
       </div>
 
       <%= if @cell_view.type == :elixir do %>
         <div class="absolute bottom-2 right-2">
-          <%= render_cell_status(
-                @cell_view.validity_status,
-                @cell_view.evaluation_status,
-                @cell_view.evaluation_time_ms,
-                "cell-#{@cell_view.id}-evaluation#{@cell_view.number_of_evaluations}"
-              ) %>
+          <.cell_status cell_view={@cell_view} />
         </div>
       <% end %>
     </div>
@@ -265,56 +259,50 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   # There may be a tiny delay before the markdown is rendered
   # or editors are mounted, so show neat placeholders immediately.
 
-  defp render_content_placeholder(_bg_class, true = _empty) do
-    assigns = %{}
-
+  defp content_placeholder(assigns) do
     ~H"""
-    <div class="h-4"></div>
-    """
-  end
-
-  defp render_content_placeholder(bg_class, false = _empty) do
-    assigns = %{bg_class: bg_class}
-
-    ~H"""
-    <div class="max-w-2xl w-full animate-pulse">
-      <div class="flex-1 space-y-4">
-        <div class={"#{@bg_class} h-4 rounded-lg w-3/4"}></div>
-        <div class={"#{@bg_class} h-4 rounded-lg"}></div>
-        <div class={"#{@bg_class} h-4 rounded-lg w-5/6"}></div>
+    <%= if @empty  do %>
+      <div class="h-4"></div>
+    <% else %>
+      <div class="max-w-2xl w-full animate-pulse">
+        <div class="flex-1 space-y-4">
+          <div class={"#{@bg_class} h-4 rounded-lg w-3/4"}></div>
+          <div class={"#{@bg_class} h-4 rounded-lg"}></div>
+          <div class={"#{@bg_class} h-4 rounded-lg w-5/6"}></div>
+        </div>
       </div>
-    </div>
+    <% end %>
     """
   end
 
-  defp render_outputs(assigns, socket) do
+  defp outputs(assigns) do
     ~H"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
-          <%= render_output(socket, output, "cell-#{@cell_view.id}-output#{index}") %>
+          <%= render_output(output, %{id: "cell-#{@cell_view.id}-output#{index}", socket: @socket}) %>
         </div>
       <% end %>
     </div>
     """
   end
 
-  defp render_output(_socket, text, id) when is_binary(text) do
+  defp render_output(text, %{id: id}) when is_binary(text) do
     # Captured output usually has a trailing newline that we can ignore,
     # because each line is itself an HTML block anyway.
     text = String.replace_suffix(text, "\n", "")
     live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: true)
   end
 
-  defp render_output(_socket, {:text, text}, id) do
+  defp render_output({:text, text}, %{id: id}) do
     live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
   end
 
-  defp render_output(_socket, {:markdown, markdown}, id) do
+  defp render_output({:markdown, markdown}, %{id: id}) do
     live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
   end
 
-  defp render_output(_socket, {:image, content, mime_type}, id) do
+  defp render_output({:image, content, mime_type}, %{id: id}) do
     live_component(LivebookWeb.Output.ImageComponent,
       id: id,
       content: content,
@@ -322,25 +310,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_output(_socket, {:vega_lite_static, spec}, id) do
+  defp render_output({:vega_lite_static, spec}, %{id: id}) do
     live_component(LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
   end
 
-  defp render_output(socket, {:vega_lite_dynamic, pid}, id) do
+  defp render_output({:vega_lite_dynamic, pid}, %{id: id, socket: socket}) do
     live_render(socket, LivebookWeb.Output.VegaLiteDynamicLive,
       id: id,
       session: %{"id" => id, "pid" => pid}
     )
   end
 
-  defp render_output(socket, {:table_dynamic, pid}, id) do
+  defp render_output({:table_dynamic, pid}, %{id: id, socket: socket}) do
     live_render(socket, LivebookWeb.Output.TableDynamicLive,
       id: id,
       session: %{"id" => id, "pid" => pid}
     )
   end
 
-  defp render_output(_socket, {:error, formatted, :runtime_restart_required}, _id) do
+  defp render_output({:error, formatted, :runtime_restart_required}, %{}) do
     assigns = %{formatted: formatted}
 
     ~H"""
@@ -355,11 +343,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_output(_socket, {:error, formatted, _type}, _id) do
+  defp render_output({:error, formatted, _type}, %{}) do
     render_error_message_output(formatted)
   end
 
-  defp render_output(_socket, output, _id) do
+  defp render_output(output, %{}) do
     render_error_message_output("""
     Unknown output format: #{inspect(output)}. If you're using Kino,
     you may want to update Kino and Livebook to the latest version.
@@ -374,62 +362,67 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell_status(cell_view, evaluation_status, evaluation_time_ms, evaluation_id)
-
-  defp render_cell_status(_, :evaluating, _, evaluation_id) do
-    timer =
-      content_tag(:span, nil,
-        phx_hook: "Timer",
-        # Make sure each evaluation gets its own timer
-        id: "#{evaluation_id}-timer",
-        phx_update: "ignore",
-        class: "font-mono"
-      )
-
-    render_status_indicator(timer, "bg-blue-500",
-      animated_circle_class: "bg-blue-400",
-      change_indicator: true
-    )
+  defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
+      <span class="font-mono"
+        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
+        phx-hook="Timer"
+        phx-update="ignore">
+      </span>
+    </.status_inticator>
+    """
   end
 
-  defp render_cell_status(_, :queued, _, _) do
-    render_status_indicator("Queued", "bg-gray-500", animated_circle_class: "bg-gray-400")
+  defp cell_status(%{cell_view: %{evaluation_status: :queued}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-gray-500" animated_circle_class="bg-gray-400">
+      Queued
+    </.status_inticator>
+    """
   end
 
-  defp render_cell_status(:evaluated, _, evaluation_time_ms, _) do
-    render_status_indicator("Evaluated", "bg-green-400",
-      change_indicator: true,
-      tooltip: evaluated_label(evaluation_time_ms)
-    )
+  defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
+    ~H"""
+    <.status_inticator
+      circle_class="bg-green-400"
+      change_indicator={true}
+      tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
+      Evaluated
+    </.status_inticator>
+    """
   end
 
-  defp render_cell_status(:stale, _, evaluation_time_ms, _) do
-    render_status_indicator("Stale", "bg-yellow-200",
-      change_indicator: true,
-      tooltip: evaluated_label(evaluation_time_ms)
-    )
+  defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-yellow-200" change_indicator={true}>
+      Stale
+    </.status_inticator>
+    """
   end
 
-  defp render_cell_status(:aborted, _, _, _) do
-    render_status_indicator("Aborted", "bg-red-400")
+  defp cell_status(%{cell_view: %{validity_status: :aborted}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-red-400">
+      Aborted
+    </.status_inticator>
+    """
   end
 
-  defp render_cell_status(_, _, _, _), do: nil
+  defp cell_status(assigns), do: ~H""
 
-  defp render_status_indicator(element, circle_class, opts \\ []) do
-    assigns = %{
-      element: element,
-      circle_class: circle_class,
-      animated_circle_class: Keyword.get(opts, :animated_circle_class),
-      change_indicator: Keyword.get(opts, :change_indicator, false),
-      tooltip: Keyword.get(opts, :tooltip)
-    }
+  defp status_inticator(assigns) do
+    assigns =
+      assigns
+      |> Phoenix.LiveView.assign_new(:animated_circle_class, fn -> nil end)
+      |> Phoenix.LiveView.assign_new(:change_indicator, fn -> false end)
+      |> Phoenix.LiveView.assign_new(:tooltip, fn -> nil end)
 
     ~H"""
     <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} aria-label={@tooltip}>
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400">
-          <%= @element %>
+          <%= render_block(@inner_block) %>
           <%= if @change_indicator do %>
             <span data-element="change-indicator">*</span>
           <% end %>
