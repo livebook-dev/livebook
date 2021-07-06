@@ -28,14 +28,17 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         <div class="flex flex-col space-y-6">
           <div>
             <div class="input-label">Type</div>
-            <%= render_select("type", input_types(), @type) %>
+            <.select name="type" selected={@type} options={input_types()} />
           </div>
           <div>
             <div class="input-label">Name</div>
             <input type="text" class="input" name="name" value={@name} spellcheck="false" autocomplete="off" autofocus />
           </div>
           <div>
-            <%= render_switch("reactive", @reactive, "Reactive (reevaluates dependent cells on change)") %>
+            <.switch_checkbox
+              name="reactive"
+              label="Reactive (reevaluates dependent cells on change)"
+              checked={@reactive} />
           </div>
         </div>
         <div class="mt-8 flex justify-end space-x-2">

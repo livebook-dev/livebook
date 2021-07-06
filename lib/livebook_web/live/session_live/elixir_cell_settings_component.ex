@@ -22,7 +22,10 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
       </h3>
       <form phx-submit="save" phx-target={@myself}>
         <div class="w-full flex-col space-y-6">
-          <%= render_switch("disable_formatting", @disable_formatting, "Disable code formatting (when saving to file)") %>
+          <.switch_checkbox
+            name="disable_formatting"
+            label="Disable code formatting (when saving to file)"
+            checked={@disable_formatting} />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>

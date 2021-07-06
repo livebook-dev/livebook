@@ -139,7 +139,10 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <.shortcuts_section title="Universal" shortcuts={@shortcuts.universal} basic={@basic} platform={@platform} />
       <div class="mt-8 flex justify-end">
         <form phx-change="settings" onsubmit="return false;" phx-target={@myself}>
-          <%= render_switch("basic", @basic, "Basic view (essential shortcuts only)") %>
+          <.switch_checkbox
+            name="basic"
+            label="Basic view (essential shortcuts only)"
+            checked={@basic} />
         </form>
       </div>
     </div>
@@ -197,7 +200,11 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
 
     joiner =
       if press_all do
-        remix_icon(%{icon: "add-line", class: "text-lg text-gray-600"})
+        assigns = %{}
+
+        ~H"""
+        <.remix_icon icon="add-line" class="text-lg text-gray-600" />
+        """
       end
 
     elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))

@@ -153,7 +153,7 @@ defmodule LivebookWeb.SessionLive do
                   <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
                     disabled={client_pid == @self}
                     data-element="client-link">
-                    <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
+                    <.user_avatar user={user} class="h-7 w-7 flex-shrink-0" text_class="text-xs" />
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>

@@ -17,7 +17,11 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
           Options
         </h3>
         <%# If there is no previous section, all cells need to be deleted %>
-        <%= render_switch("delete_cells", @is_first, "Delete all cells in this section", disabled: @is_first) %>
+        <.switch_checkbox
+          name="delete_cells"
+          label="Delete all cells in this section"
+          checked={@is_first}
+          disabled={@is_first} />
         <div class="mt-8 flex justify-end space-x-2">
           <button type="submit" class="button button-red">
             <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />

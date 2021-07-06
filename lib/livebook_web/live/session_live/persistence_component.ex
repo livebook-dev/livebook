@@ -22,18 +22,20 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
           Specify where the notebook should be automatically persisted.
         </p>
         <div class="flex space-x-4">
-          <button class={"choice-button #{if(@path != nil, do: "active")}"}
+          <.choice_button
+            active={@path != nil}
             phx-click="set_persistence_type"
             phx-value-type="file"
             phx-target={@myself}>
             Save to file
-          </button>
-          <button class={"choice-button #{if(@path == nil, do: "active")}"}
+          </.choice_button>
+          <.choice_button
+            active={@path == nil}
             phx-click="set_persistence_type"
             phx-value-type="memory"
             phx-target={@myself}>
             Memory only
-          </button>
+          </.choice_button>
         </div>
         <%= if @path != nil do %>
           <div class="h-full h-52">

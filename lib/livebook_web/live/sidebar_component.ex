@@ -61,7 +61,7 @@ defmodule LivebookWeb.SidebarComponent do
     <span class="tooltip right distant" aria-label="User profile">
       <%= live_patch to: @item.path,
             class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
-        <%= render_user_avatar(@item.current_user, class: "h-full w-full", text_class: "text-xs") %>
+        <.user_avatar user={@item.current_user} text_class="text-xs" />
       <% end %>
     </span>
     """

@@ -70,30 +70,34 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           <% end %>
         </div>
         <div class="flex space-x-4">
-          <button class={"choice-button #{if(@type == "elixir_standalone", do: "active")}"}
+          <.choice_button
+            active={@type == "elixir_standalone"}
             phx-click="set_runtime_type"
             phx-value-type="elixir_standalone"
             phx-target={@myself}>
             Elixir standalone
-          </button>
-          <button class={"choice-button #{if(@type == "mix_standalone", do: "active")}"}
+          </.choice_button>
+          <.choice_button
+            active={@type == "mix_standalone"}
             phx-click="set_runtime_type"
             phx-value-type="mix_standalone"
             phx-target={@myself}>
             Mix standalone
-          </button>
-          <button class={"choice-button #{if(@type == "attached", do: "active")}"}
+          </.choice_button>
+          <.choice_button
+            active={@type == "attached"}
             phx-click="set_runtime_type"
             phx-value-type="attached"
             phx-target={@myself}>
             Attached node
-          </button>
-          <button class={"choice-button #{if(@type == "embedded", do: "active")}"}
+          </.choice_button>
+          <.choice_button
+            active={@type == "embedded"}
             phx-click="set_runtime_type"
             phx-value-type="embedded"
             phx-target={@myself}>
             Embedded
-          </button>
+          </.choice_button>
         </div>
         <div>
           <%= live_render @socket, live_view_for_type(@type),

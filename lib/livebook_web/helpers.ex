@@ -1,6 +1,5 @@
 defmodule LivebookWeb.Helpers do
   import Phoenix.LiveView.Helpers
-  import Phoenix.HTML.Tag
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -40,26 +39,6 @@ defmodule LivebookWeb.Helpers do
   defp linux?(user_agent), do: String.match?(user_agent, ~r/Linux/)
   defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
-
-  @doc """
-  Renders [Remix](https://remixicon.com) icon.
-
-  ## Examples
-
-      <.remix_icon icon="cpu-line" />
-
-      <.remix_icon icon="cpu-line" class="align-middle mr-1" />
-  """
-  def remix_icon(%{icon: icon} = assigns) do
-    assigns =
-      assigns
-      |> Phoenix.LiveView.assign_new(:class, fn -> "" end)
-      |> Phoenix.LiveView.assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
-
-    ~H"""
-    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
-    """
-  end
 
   defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI
 
@@ -127,15 +106,40 @@ defmodule LivebookWeb.Helpers do
   end
 
   @doc """
-  Renders a list of select input options with the given one selected.
+  Renders [Remix](https://remixicon.com) icon.
+
+  ## Examples
+
+      <.remix_icon icon="cpu-line" />
+
+      <.remix_icon icon="cpu-line" class="align-middle mr-1" />
   """
-  def render_select(name, options, selected) do
-    assigns = %{name: name, options: options, selected: selected}
+  def remix_icon(assigns) do
+    assigns =
+      assigns
+      |> Phoenix.LiveView.assign_new(:class, fn -> "" end)
+      |> Phoenix.LiveView.assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
 
     ~H"""
+    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
+    """
+  end
+
+  @doc """
+  Renders a list of select input options with the given one selected.
+
+  ## Examples
+
+      <.select
+        name="language"
+        selected={@language}
+        options={[en: "English", pl: "Polski", fr: "Français"]} />
+  """
+  def select(assigns) do
+    ~H"""
     <select class="input" name={@name}>
-      <%= for {value, label} <- options do %>
-        <option value={value} selectet={value == selected}>
+      <%= for {value, label} <- @options do %>
+        <option value={value} selected={value == @selected}>
           <%= label %>
         </option>
       <% end %>
@@ -145,14 +149,16 @@ defmodule LivebookWeb.Helpers do
 
   @doc """
   Renders a checkbox input styled as a switch.
+
+  ## Examples
+
+      <.switch_checkbox
+        name="likes_cats"
+        label="I very much like cats"
+        checked={@likes_cats} />
   """
-  def render_switch(name, checked, label, opts \\ []) do
-    assigns = %{
-      name: name,
-      checked: checked,
-      label: label,
-      disabled: Keyword.get(opts, :disabled, false)
-    }
+  def switch_checkbox(assigns) do
+    assigns = Phoenix.LiveView.assign_new(assigns, :disabled, fn -> false end)
 
     ~H"""
     <div class="flex space-x-3 items-center justify-between">
@@ -162,6 +168,28 @@ defmodule LivebookWeb.Helpers do
         <div class="switch-button__bg"></div>
       </label>
     </div>
+    """
+  end
+
+  @doc """
+  Renders a choice button that is either active or not.
+
+  ## Examples
+
+      <.choice_button active={@tab == "my_tab"} phx-click="set_my_tab">
+        My tab
+      </.choice_button>
+  """
+  def choice_button(assigns) do
+    assigns =
+      assigns
+      |> Phoenix.LiveView.assign_new(:class, fn -> "" end)
+      |> Phoenix.LiveView.assign(:attrs, assigns_to_attributes(assigns, [:active, :class]))
+
+    ~H"""
+    <button class={"choice-button #{if(@active, do: "active")} #{@class}"} {@attrs}>
+      <%= render_block(@inner_block) %>
+    </button>
     """
   end
 end
