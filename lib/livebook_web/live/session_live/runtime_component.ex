@@ -29,7 +29,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         Runtime
@@ -60,7 +60,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
             <button class="button button-outlined-red"
               type="button"
               phx-click="disconnect"
-              phx-target="<%= @myself %>">
+              phx-target={@myself}>
               Disconnect
             </button>
           <% else %>
@@ -92,26 +92,9 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
             phx_target: @myself %>
         </div>
         <div>
-          <%= if @type == "elixir_standalone" do %>
-            <%= live_render @socket, LivebookWeb.SessionLive.ElixirStandaloneLive,
-              id: :elixir_standalone_runtime,
-              session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
-          <% end %>
-          <%= if @type == "mix_standalone" do %>
-            <%= live_render @socket, LivebookWeb.SessionLive.MixStandaloneLive,
-              id: :mix_standalone_runtime,
-              session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
-          <% end %>
-          <%= if @type == "attached" do %>
-            <%= live_render @socket, LivebookWeb.SessionLive.AttachedLive,
-              id: :attached_runtime,
-              session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
-          <% end %>
-          <%= if @type == "embedded" do %>
-            <%= live_render @socket, LivebookWeb.SessionLive.EmbeddedLive,
-              id: :embedded_runtime,
-              session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
-          <% end %>
+          <%= live_render @socket, live_view_for_type(@type),
+                id: "runtime-config-#{@type}",
+                session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
         </div>
       </div>
     </div>
@@ -127,6 +110,11 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   defp runtime_type(%Runtime.MixStandalone{}), do: "mix_standalone"
   defp runtime_type(%Runtime.Attached{}), do: "attached"
   defp runtime_type(%Runtime.Embedded{}), do: "embedded"
+
+  defp live_view_for_type("elixir_standalone"), do: LivebookWeb.SessionLive.ElixirStandaloneLive
+  defp live_view_for_type("mix_standalone"), do: LivebookWeb.SessionLive.MixStandaloneLive
+  defp live_view_for_type("attached"), do: LivebookWeb.SessionLive.AttachedLive
+  defp live_view_for_type("embedded"), do: LivebookWeb.SessionLive.EmbeddedLive
 
   @impl true
   def handle_event("set_runtime_type", %{"type" => type}, socket) do

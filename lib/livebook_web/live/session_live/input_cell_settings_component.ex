@@ -19,12 +19,12 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Cell settings
       </h3>
-      <form phx-submit="save" phx-change="validate" phx-target="<%= @myself %>">
+      <form phx-submit="save" phx-change="validate" phx-target={@myself}>
         <div class="flex flex-col space-y-6">
           <div>
             <div class="input-label">Type</div>
@@ -32,7 +32,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
           </div>
           <div>
             <div class="input-label">Name</div>
-            <input type="text" class="input" name="name" value="<%= @name %>" spellcheck="false" autocomplete="off" autofocus />
+            <input type="text" class="input" name="name" value={@name} spellcheck="false" autocomplete="off" autofocus />
           </div>
           <div>
             <%= render_switch("reactive", @reactive, "Reactive (reevaluates dependent cells on change)") %>
@@ -40,10 +40,9 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
-          <%= content_tag :button, "Save",
-                type: :submit,
-                class: "button button-blue",
-                disabled: @name == "" %>
+          <button class="button button-blue" type="submit" disabled={@name == ""}>
+            Save
+          </button>
         </div>
       </form>
     </div>

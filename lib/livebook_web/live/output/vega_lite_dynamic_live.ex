@@ -10,8 +10,8 @@ defmodule LivebookWeb.Output.VegaLiteDynamicLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
-    <div id="vega-lite-<%= @id %>" phx-hook="VegaLite" phx-update="ignore" data-id="<%= @id %>">
+    ~H"""
+    <div id={"vega-lite-#{@id}"} phx-hook="VegaLite" phx-update="ignore" data-id={@id}>
     </div>
     """
   end

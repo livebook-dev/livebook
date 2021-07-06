@@ -2,21 +2,21 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex flex-col relative"
       data-element="cell"
-      id="cell-<%= @cell_view.id %>"
+      id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
-      data-cell-id="<%= @cell_view.id %>"
-      data-type="<%= @cell_view.type %>"
-      data-session-path="<%= Routes.session_path(@socket, :page, @session_id) %>">
+      data-cell-id={@cell_view.id}
+      data-type={@cell_view.type}
+      data-session-path={Routes.session_path(@socket, :page, @session_id)}>
       <%= render_cell_content(assigns) %>
     </div>
     """
   end
 
   def render_cell_content(%{cell_view: %{type: :markdown}} = assigns) do
-    ~L"""
+    ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
@@ -34,7 +34,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-cell_id={@cell_view.id}
             phx-value-offset="-1">
             <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
           </button>
@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Move down">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-cell_id={@cell_view.id}
             phx-value-offset="1">
             <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
           </button>
@@ -50,7 +50,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Delete">
           <button class="icon-button"
             phx-click="delete_cell"
-            phx-value-cell_id="<%= @cell_view.id %>">
+            phx-value-cell_id={@cell_view.id}>
             <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
           </button>
         </span>
@@ -65,7 +65,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= render_editor(assigns) %>
         </div>
 
-        <div class="markdown" data-element="markdown-container" id="markdown-container-<%= @cell_view.id %>" phx-update="ignore">
+        <div class="markdown"
+          data-element="markdown-container"
+          id={"markdown-container-#{@cell_view.id}"}
+          phx-update="ignore">
           <%= render_content_placeholder("bg-gray-200", @cell_view.empty?) %>
         </div>
       </div>
@@ -74,13 +77,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   def render_cell_content(%{cell_view: %{type: :elixir}} = assigns) do
-    ~L"""
+    ~H"""
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="queue_cell_evaluation"
-            phx-value-cell_id="<%= @cell_view.id %>">
+            phx-value-cell_id={@cell_view.id}>
             <%= remix_icon("play-circle-fill", class: "text-xl") %>
             <span class="text-sm font-medium">
               <%= if(@cell_view.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
@@ -89,7 +92,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% else %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="cancel_cell_evaluation"
-            phx-value-cell_id="<%= @cell_view.id %>">
+            phx-value-cell_id={@cell_view.id}>
             <%= remix_icon("stop-circle-fill", class: "text-xl") %>
             <span class="text-sm font-medium">
               Stop
@@ -107,7 +110,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-cell_id={@cell_view.id}
             phx-value-offset="-1">
             <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
           </button>
@@ -115,7 +118,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Move down">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-cell_id={@cell_view.id}
             phx-value-offset="1">
             <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
           </button>
@@ -123,7 +126,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Delete">
           <button class="icon-button"
             phx-click="delete_cell"
-            phx-value-cell_id="<%= @cell_view.id %>">
+            phx-value-cell_id={@cell_view.id}>
             <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
           </button>
         </span>
@@ -147,7 +150,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   def render_cell_content(%{cell_view: %{type: :input}} = assigns) do
-    ~L"""
+    ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
         <%= render_cell_anchor_link(assigns) %>
@@ -159,7 +162,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Move up">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-cell_id={@cell_view.id}
             phx-value-offset="-1">
             <%= remix_icon("arrow-up-s-line", class: "text-xl") %>
           </button>
@@ -167,7 +170,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Move down">
           <button class="icon-button"
             phx-click="move_cell"
-            phx-value-cell_id="<%= @cell_view.id %>"
+            phx-value-cell_id={@cell_view.id}
             phx-value-offset="1">
             <%= remix_icon("arrow-down-s-line", class: "text-xl") %>
           </button>
@@ -175,7 +178,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" aria-label="Delete">
           <button class="icon-button"
             phx-click="delete_cell"
-            phx-value-cell_id="<%= @cell_view.id %>">
+            phx-value-cell_id={@cell_view.id}>
             <%= remix_icon("delete-bin-6-line", class: "text-xl") %>
           </button>
         </span>
@@ -187,7 +190,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </div>
       <div>
         <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
-          <input type="hidden" name="cell_id" value="<%= @cell_view.id %>" />
+          <input type="hidden" name="cell_id" value={@cell_view.id} />
           <div class="input-label">
             <%= @cell_view.name %>
           </div>
@@ -195,16 +198,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= if (@cell_view.input_type == :textarea) do %>
             <textarea
               data-element="input"
-              class="input <%= if(@cell_view.error, do: "input--error") %>"
+              class={"input #{if(@cell_view.error, do: "input--error")}"}
               name="value"
               spellcheck="false"
               tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
           <% else %>
-            <input type="<%= html_input_type(@cell_view.input_type) %>"
+            <input type={html_input_type(@cell_view.input_type)}
               data-element="input"
-              class="input <%= if(@cell_view.error, do: "input--error") %>"
+              class={"input #{if(@cell_view.error, do: "input--error")}"}
               name="value"
-              value="<%= @cell_view.value %>"
+              value={@cell_view.value}
               phx-debounce="300"
               spellcheck="false"
               autocomplete="off"
@@ -223,10 +226,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp render_editor(assigns) do
-    ~L"""
+    ~H"""
     <div class="py-3 rounded-lg bg-editor relative">
       <div
-        id="editor-container-<%= @cell_view.id %>"
+        id={"editor-container-#{@cell_view.id}"}
         data-element="editor-container"
         phx-update="ignore">
         <div class="px-8">
@@ -249,9 +252,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp render_cell_anchor_link(assigns) do
-    ~L"""
+    ~H"""
     <span class="tooltip top" aria-label="Link">
-      <a href="#cell-<%= @cell_view.id %>" class="icon-button">
+      <a href={"#cell-#{@cell_view.id}"} class="icon-button">
         <%= remix_icon("link", class: "text-xl") %>
       </a>
     </span>
@@ -265,7 +268,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_content_placeholder(_bg_class, true = _empty) do
     assigns = %{}
 
-    ~L"""
+    ~H"""
     <div class="h-4"></div>
     """
   end
@@ -273,19 +276,19 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_content_placeholder(bg_class, false = _empty) do
     assigns = %{bg_class: bg_class}
 
-    ~L"""
+    ~H"""
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
-        <div class="h-4 <%= @bg_class %> rounded-lg w-3/4"></div>
-        <div class="h-4 <%= @bg_class %> rounded-lg"></div>
-        <div class="h-4 <%= @bg_class %> rounded-lg w-5/6"></div>
+        <div class={"#{@bg_class} h-4 rounded-lg w-3/4"}></div>
+        <div class={"#{@bg_class} h-4 rounded-lg"}></div>
+        <div class={"#{@bg_class} h-4 rounded-lg w-5/6"}></div>
       </div>
     </div>
     """
   end
 
   defp render_outputs(assigns, socket) do
-    ~L"""
+    ~H"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
@@ -340,7 +343,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_output(_socket, {:error, formatted, :runtime_restart_required}, _id) do
     assigns = %{formatted: formatted}
 
-    ~L"""
+    ~H"""
     <div class="flex flex-col space-y-4">
       <%= render_error_message_output(@formatted) %>
       <div>
@@ -366,7 +369,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_error_message_output(message) do
     assigns = %{message: message}
 
-    ~L"""
+    ~H"""
     <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
     """
   end
@@ -422,8 +425,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       tooltip: Keyword.get(opts, :tooltip)
     }
 
-    ~L"""
-    <div class="<%= if(@tooltip, do: "tooltip") %> bottom distant-medium" aria-label="<%= @tooltip %>">
+    ~H"""
+    <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} aria-label={@tooltip}>
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400">
           <%= @element %>
@@ -433,9 +436,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
         <span class="flex relative h-3 w-3">
           <%= if @animated_circle_class do %>
-            <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full <%= @animated_circle_class %> opacity-75"></span>
+            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
           <% end %>
-          <span class="relative inline-flex rounded-full h-3 w-3 <%= @circle_class %>"></span>
+          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
         </span>
       </div>
     </div>

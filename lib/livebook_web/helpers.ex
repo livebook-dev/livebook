@@ -121,10 +121,10 @@ defmodule LivebookWeb.Helpers do
   def render_select(name, options, selected) do
     assigns = %{name: name, options: options, selected: selected}
 
-    ~L"""
-    <select class="input" name=<%= @name %>>
+    ~H"""
+    <select class="input" name={@name}>
       <%= for {value, label} <- options do %>
-        <%= tag :option, value: value, selected: value == selected %>
+        <option value={value} selectet={value == selected}>
           <%= label %>
         </option>
       <% end %>
@@ -143,11 +143,11 @@ defmodule LivebookWeb.Helpers do
       disabled: Keyword.get(opts, :disabled, false)
     }
 
-    ~L"""
+    ~H"""
     <div class="flex space-x-3 items-center justify-between">
       <span class="text-gray-700"><%= @label %></span>
-      <label class="switch-button <%= if(@disabled, do: "switch-button--disabled") %>">
-        <%= tag :input, class: "switch-button__checkbox", type: "checkbox", name: @name, checked: @checked %>
+      <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
+        <input class="switch-button__checkbox" type="checkbox" name={@name} checked={@checked} />
         <div class="switch-button__bg"></div>
       </label>
     </div>

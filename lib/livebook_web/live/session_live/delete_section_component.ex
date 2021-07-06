@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Delete section
@@ -12,7 +12,7 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
         Are you sure you want to delete this section -
         <span class="font-semibold">“<%= @section.name %>”</span>?
       </p>
-      <form phx-submit="delete" phx-target="<%= @myself %>">
+      <form phx-submit="delete" phx-target={@myself}>
         <h3 class="mb-1 text-lg font-semibold text-gray-800">
           Options
         </h3>

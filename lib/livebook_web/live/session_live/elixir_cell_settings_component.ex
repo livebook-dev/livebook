@@ -15,12 +15,12 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Cell settings
       </h3>
-      <form phx-submit="save" phx-target="<%= @myself %>">
+      <form phx-submit="save" phx-target={@myself}>
         <div class="w-full flex-col space-y-6">
           <%= render_switch("disable_formatting", @disable_formatting, "Disable code formatting (when saving to file)") %>
         </div>

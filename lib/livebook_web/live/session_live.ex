@@ -67,7 +67,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex flex-grow h-full"
       id="session"
       data-element="session"
@@ -124,7 +124,7 @@ defmodule LivebookWeb.SessionLive do
               <%= for section_item <- @data_view.sections_items do %>
                 <button class="text-left hover:text-gray-900 text-gray-500"
                   data-element="sections-list-item"
-                  data-section-id="<%= section_item.id %>">
+                  data-section-id={section_item.id}>
                   <%= section_item.name %>
                 </button>
               <% end %>
@@ -147,11 +147,11 @@ defmodule LivebookWeb.SessionLive do
             <div class="mt-4 flex flex-col space-y-4">
               <%= for {client_pid, user} <- @data_view.clients do %>
                 <div class="flex items-center justify-between space-x-2"
-                  id="clients-list-item-<%= inspect(client_pid) %>"
+                  id={"clients-list-item-#{inspect(client_pid)}"}
                   data-element="clients-list-item"
-                  data-client-pid="<%= inspect(client_pid) %>">
+                  data-client-pid={inspect(client_pid)}>
                   <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
-                    <%= if client_pid == @self, do: "disabled" %>
+                    disabled={client_pid == @self}
                     data-element="client-link">
                     <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
                     <span><%= user.name || "Anonymous" %></span>
@@ -199,12 +199,12 @@ defmodule LivebookWeb.SessionLive do
                   <%= remix_icon("git-branch-line") %>
                   <span class="font-medium">Fork</span>
                 </button>
-                <%= link to: live_dashboard_process_path(@socket, @session_pid),
-                      class: "menu__item text-gray-500",
-                      target: "_blank" do %>
+                <a class="menu__item text-gray-500"
+                  href={live_dashboard_process_path(@socket, @session_pid)}
+                  target="_blank">
                   <%= remix_icon("dashboard-2-line") %>
                   <span class="font-medium">See on Dashboard</span>
-                <% end %>
+                </a>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
                       class: "menu__item text-red-600" do %>
                   <%= remix_icon("close-circle-line") %>
@@ -236,7 +236,10 @@ defmodule LivebookWeb.SessionLive do
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
         <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
               session_id: @session_id,
-              data_view: @data_view %>
+              path: @data_view.path,
+              dirty: @data_view.dirty,
+              runtime: @data_view.runtime,
+              global_evaluation_status: @data_view.global_evaluation_status %>
       </div>
     </div>
 

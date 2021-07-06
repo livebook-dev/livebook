@@ -10,7 +10,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Insert image
@@ -28,12 +28,12 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
           </div>
           <div class="w-full h-2 rounded-lg bg-blue-200">
             <div class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
-              style="width: <%= entry.progress %>%">
+              style={"width: #{entry.progress}%"}>
             </div>
           </div>
         </div>
       <% end %>
-      <form phx-submit="save" phx-change="validate" phx-target="<%= @myself %>">
+      <form phx-submit="save" phx-change="validate" phx-target={@myself}>
         <div class="w-full flex space-x-2">
           <div>
             <label>
@@ -44,15 +44,16 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
             </label>
           </div>
           <div class="flex-grow">
-            <input class="input" name="name" placeholder="Name" autocomplete="off" value="<%= @name %>" />
+            <input class="input" name="name" value={@name} placeholder="Name" autocomplete="off" />
           </div>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
-          <%= content_tag :button, "Upload",
-                type: :submit,
-                class: "button button-blue",
-                disabled: @uploads.cell_image.entries == [] or @name == "" %>
+          <button class="button button-blue"
+            type="submit"
+            disabled={@uploads.cell_image.entries == [] or @name == ""}>
+            Upload
+          </button>
         </div>
       </form>
     </div>

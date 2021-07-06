@@ -5,7 +5,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         Close session
@@ -16,7 +16,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
         This won't delete any persisted files.
       </p>
       <div class="mt-8 flex justify-end space-x-2">
-        <button class="button button-red" phx-click="close" phx-target="<%= @myself %>">
+        <button class="button button-red" phx-click="close" phx-target={@myself}>
           <%= remix_icon("close-circle-line", class: "align-middle mr-1") %>
           Close session
         </button>

@@ -60,24 +60,21 @@ defmodule LivebookWeb.PathSelectComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="h-full flex flex-col">
       <div class="flex space-x-3 items-center mb-4">
         <form class="flex-grow"
           phx-change="set_path"
-          <%= if @phx_submit do %>
-            phx-submit="<%= @phx_submit %>"
-          <% else %>
-            onsubmit="return false"
-          <% end %>
-          <%= if @phx_target, do: "phx-target=#{@phx_target}" %>>
+          phx-submit={@phx_submit}
+          onsubmit={unless(@phx_submit, do: "return false")}
+          phx-target={@phx_target}>
           <input class="input"
             id="input-path"
             phx-hook="FocusOnUpdate"
             type="text"
             name="path"
             placeholder="File"
-            value="<%= @path %>"
+            value={@path}
             spellcheck="false"
             autocomplete="off" />
         </form>
@@ -86,7 +83,7 @@ defmodule LivebookWeb.PathSelectComponent do
             <%= remix_icon("more-2-fill", class: "text-xl") %>
           </button>
           <div class="menu" data-content>
-            <button class="menu__item text-gray-500" phx-click="new_directory" phx-target="<%= @myself %>">
+            <button class="menu__item text-gray-500" phx-click="new_directory" phx-target={@myself}>
               <%= remix_icon("folder-add-fill", class: "text-gray-400") %>
               <span class="font-medium">New directory</span>
             </button>
@@ -107,13 +104,13 @@ defmodule LivebookWeb.PathSelectComponent do
           <div class="flex space-x-4">
             <button class="text-red-600 font-medium text-sm whitespace-nowrap"
               phx-click="do_delete_file"
-              phx-target="<%= @myself %>">
+              phx-target={@myself}>
               <%= remix_icon("delete-bin-6-line", class: "align-middle mr-1") %>
               Delete
             </button>
             <button class="text-gray-600 font-medium text-sm"
               phx-click="cancel_delete_file"
-              phx-target="<%= @myself %>">
+              phx-target={@myself}>
               Cancel
             </button>
           </div>
@@ -130,17 +127,17 @@ defmodule LivebookWeb.PathSelectComponent do
                 <div
                   phx-window-keydown="cancel_new_directory"
                   phx-key="escape"
-                  phx-target="<%= @myself %>">
+                  phx-target={@myself}>
                   <input
                     type="text"
-                    value="<%= @new_directory_name %>"
+                    value={@new_directory_name}
                     autofocus
                     spellcheck="false"
                     autocomplete="off"
                     phx-blur="cancel_new_directory"
                     phx-window-keydown="create_directory"
                     phx-key="enter"
-                    phx-target="<%= @myself %>" />
+                    phx-target={@myself} />
                 </div>
               </span>
             </div>
@@ -178,7 +175,7 @@ defmodule LivebookWeb.PathSelectComponent do
        ) do
     assigns = %{file: file, myself: myself, renamed_name: renamed_name}
 
-    ~L"""
+    ~H"""
     <div class="flex space-x-2 items-center p-2 rounded-lg">
       <span class="block">
         <%= remix_icon("edit-line", class: "text-xl align-middle text-gray-400") %>
@@ -187,17 +184,17 @@ defmodule LivebookWeb.PathSelectComponent do
         <div
           phx-window-keydown="cancel_rename_file"
           phx-key="escape"
-          phx-target="<%= @myself %>">
+          phx-target={@myself}>
           <input class="w-full"
             type="text"
-            value="<%= @renamed_name %>"
+            value={@renamed_name}
             autofocus
             spellcheck="false"
             autocomplete="off"
             phx-blur="cancel_rename_file"
             phx-window-keydown="do_rename_file"
             phx-key="enter"
-            phx-target="<%= @myself %>" />
+            phx-target={@myself} />
         </div>
       </span>
     </div>
@@ -212,25 +209,25 @@ defmodule LivebookWeb.PathSelectComponent do
         _ -> "file-code-line"
       end
 
-    assigns = %{file: file, icon: icon, myself: myself}
+    assigns = %{file: file, icon: icon, myself: myself, phx_target: phx_target}
 
-    ~L"""
+    ~H"""
     <div class="relative"
-      id="file-menu-<%= @file.path %>"
+      id={"file-menu-#{@file.path}"}
       phx-hook="Menu"
       data-primary="false"
       data-element="menu">
       <button class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
         data-toggle
         phx-click="set_path"
-        phx-value-path="<%= @file.path %>"
-        <%= if phx_target, do: "phx-target=#{phx_target}" %>>
+        phx-value-path={@file.path}
+        phx-target={@phx_target}>
         <span class="block">
           <%= remix_icon(@icon, class: "text-xl align-middle #{if(@file.is_running, do: "text-green-300", else: "text-gray-400")}") %>
         </span>
-        <span class="flex font-medium overflow-hidden whitespace-nowrap <%= if(@file.is_running, do: "text-green-300", else: "text-gray-500") %>">
+        <span class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file.is_running, do: "text-green-300", else: "text-gray-500")}"}>
           <%= if @file.highlighted != "" do %>
-            <span class="font-medium <%= if(@file.is_running, do: "text-green-400", else: "text-gray-900") %>">
+            <span class={"font-medium #{if(@file.is_running, do: "text-green-400", else: "text-gray-900")}"}>
               <%= @file.highlighted %>
             </span>
           <% end %>
@@ -242,15 +239,15 @@ defmodule LivebookWeb.PathSelectComponent do
       <div class="menu" data-content>
         <button class="menu__item text-gray-500"
           phx-click="rename_file"
-          phx-target="<%= @myself %>"
-          phx-value-path="<%= @file.path %>">
+          phx-target={@myself}
+          phx-value-path={@file.path}>
           <%= remix_icon("edit-line") %>
           <span class="font-medium">Rename</span>
         </button>
         <button class="menu__item text-red-600"
           phx-click="delete_file"
-          phx-target="<%= @myself %>"
-          phx-value-path="<%= @file.path %>">
+          phx-target={@myself}
+          phx-value-path={@file.path}>
           <%= remix_icon("delete-bin-6-line") %>
           <span class="font-medium">Delete</span>
         </button>
