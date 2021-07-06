@@ -2,10 +2,11 @@ defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.UserHelpers
+  import Livebook.Utils, only: [access_by_id: 1]
 
+  alias LivebookWeb.SidebarHelpers
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
   alias Livebook.Notebook.Cell
-  import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = session, socket) do
@@ -72,47 +73,36 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session">
-      <%= live_component LivebookWeb.SidebarComponent,
-            items: [
-              %{type: :logo},
-              %{
-                type: :button,
-                data_element: "sections-list-toggle",
-                icon: "booklet-fill",
-                label: "Sections (ss)",
-                active: false
-              },
-              %{
-                type: :button,
-                data_element: "clients-list-toggle",
-                icon: "group-fill",
-                label: "Connected users (su)",
-                active: false
-              },
-              %{
-                type: :link,
-                icon: "cpu-line",
-                path: Routes.session_path(@socket, :runtime_settings, @session_id),
-                label: "Runtime settings (sr)",
-                active: @live_action == :runtime_settings
-              },
-              %{
-                type: :link,
-                icon: "delete-bin-6-fill",
-                path: Routes.session_path(@socket, :bin, @session_id),
-                label: "Bin (sb)",
-                active: @live_action == :bin
-              },
-              %{type: :break},
-              %{
-                type: :link,
-                icon: "keyboard-box-fill",
-                path: Routes.session_path(@socket, :shortcuts, @session_id),
-                label: "Keyboard shortcuts (?)",
-                active: @live_action == :shortcuts
-              },
-              %{type: :user, current_user: @current_user, path: Routes.session_path(@socket, :user, @session_id)}
-            ] %>
+      <SidebarHelpers.sidebar>
+        <SidebarHelpers.logo_item socket={@socket} />
+        <SidebarHelpers.button_item
+          icon="booklet-fill"
+          label="Sections (ss)"
+          data_element="sections-list-toggle" />
+        <SidebarHelpers.button_item
+          icon="group-fill"
+          label="Connected users (su)"
+          data_element="clients-list-toggle" />
+        <SidebarHelpers.link_item
+          icon="cpu-line"
+          label="Runtime settings (sr)"
+          path={Routes.session_path(@socket, :runtime_settings, @session_id)}
+          active={@live_action == :runtime_settings} />
+        <SidebarHelpers.link_item
+          icon="delete-bin-6-fill"
+          label="Bin (sb)"
+          path={Routes.session_path(@socket, :bin, @session_id)}
+          active={@live_action == :bin} />
+        <SidebarHelpers.break_item />
+        <SidebarHelpers.link_item
+          icon="keyboard-box-fill"
+          label="Keyboard shortcuts (?)"
+          path={Routes.session_path(@socket, :shortcuts, @session_id)}
+          active={@live_action == :shortcuts} />
+        <SidebarHelpers.user_item
+          current_user={@current_user}
+          path={Routes.session_path(@socket, :user, @session_id)} />
+      </SidebarHelpers.sidebar>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none overflow-y-auto bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">

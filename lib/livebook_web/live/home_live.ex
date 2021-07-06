@@ -4,6 +4,7 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
 
+  alias LivebookWeb.SidebarHelpers
   alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
 
   @impl true
@@ -30,11 +31,10 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-grow h-full">
-      <%= live_component LivebookWeb.SidebarComponent,
-            items: [
-              %{type: :break},
-              %{type: :user, current_user: @current_user, path: Routes.home_path(@socket, :user)}
-            ] %>
+      <SidebarHelpers.sidebar>
+        <SidebarHelpers.break_item />
+        <SidebarHelpers.user_item current_user={@current_user} path={Routes.home_path(@socket, :user)} />
+      </SidebarHelpers.sidebar>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
