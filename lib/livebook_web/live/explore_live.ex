@@ -26,10 +26,9 @@ defmodule LivebookWeb.ExploreLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex flex-grow h-full">
       <%= live_component LivebookWeb.SidebarComponent,
-            id: :sidebar,
             items: [
               %{type: :logo},
               %{type: :break},
@@ -61,19 +60,20 @@ defmodule LivebookWeb.ExploreLive do
                 <%= @lead_notebook_info.description %>
               </p>
               <div class="mt-4">
-                <%= live_patch "Let's go", to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
+                <%= live_patch "Let's go",
+                      to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
                       class: "button button-blue" %>
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">
-              <img src="<%= @lead_notebook_info.image_url %>" height="120" width="120" alt="livebook" />
+              <img src={@lead_notebook_info.image_url} height="120" width="120" alt="livebook" />
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
-              <%= live_component LivebookWeb.NotebookCardComponent,
-                    id: "notebook-card-#{idx}",
-                    notebook_info: info %>
+            <%# Note: it's fine to use stateless components in this comprehension,
+                because @notebook_infos never change %>
+            <%= for info <- @notebook_infos do %>
+              <%= live_component LivebookWeb.NotebookCardComponent, notebook_info: info %>
             <% end %>
           </div>
         </div>
@@ -82,7 +82,7 @@ defmodule LivebookWeb.ExploreLive do
 
     <%= if @live_action == :user do %>
       <%= live_modal LivebookWeb.UserComponent,
-            id: :user_modal,
+            id: "user",
             modal_class: "w-full max-w-sm",
             user: @current_user,
             return_to: Routes.explore_path(@socket, :page) %>

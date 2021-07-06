@@ -5,7 +5,7 @@ defmodule LivebookWeb.UserHelpers do
   alias Livebook.Users.User
 
   @doc """
-  Renders user avatar,
+  Renders user avatar.
 
   ## Options
 
@@ -21,9 +21,9 @@ defmodule LivebookWeb.UserHelpers do
       text_class: Keyword.get(opts, :text_class)
     }
 
-    ~L"""
-    <div class="rounded-full <%= @class %> flex items-center justify-center" style="background-color: <%= @hex_color %>">
-      <div class="<%= @text_class %> text-gray-100 font-semibold">
+    ~H"""
+    <div class={"#{@class} rounded-full flex items-center justify-center"} style={"background-color: #{@hex_color}"}>
+      <div class={"#{@text_class} text-gray-100 font-semibold"}>
         <%= avatar_text(@name) %>
       </div>
     </div>

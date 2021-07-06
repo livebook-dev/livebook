@@ -3,9 +3,8 @@ defmodule LivebookWeb.ModalComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
-    <div class="fixed z-[10000] inset-0"
-      id="<%= @id %>">
+    ~H"""
+    <div class="fixed z-[10000] inset-0">
 
       <!-- Modal container -->
       <div class="h-screen flex items-center justify-center p-4">
@@ -15,11 +14,11 @@ defmodule LivebookWeb.ModalComponent do
           phx-capture-click="close"
           phx-window-keydown="close"
           phx-key="escape"
-          phx-target="#<%= @id %>"
+          phx-target={@myself}
           phx-page-loading></div>
 
         <!-- Modal box -->
-        <div class="relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl <%= @modal_class %>"
+        <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@modal_class}"}
           role="dialog"
           aria-modal="true">
 

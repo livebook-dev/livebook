@@ -28,14 +28,13 @@ defmodule LivebookWeb.HomeLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex flex-grow h-full">
-    <%= live_component LivebookWeb.SidebarComponent,
-          id: :sidebar,
-          items: [
-            %{type: :break},
-            %{type: :user, current_user: @current_user, path: Routes.home_path(@socket, :user)}
-          ] %>
+      <%= live_component LivebookWeb.SidebarComponent,
+            items: [
+              %{type: :break},
+              %{type: :user, current_user: @current_user, path: Routes.home_path(@socket, :user)}
+            ] %>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center sm:flex-row sm:space-y-0 sm:justify-between sm:pb-4 pb-8 border-b border-gray-200">
@@ -43,45 +42,46 @@ defmodule LivebookWeb.HomeLive do
               <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
             <div class="flex space-x-2 pt-2">
-              <%= live_patch to: Routes.home_path(@socket, :import, "url"),
-                    class: "button button-outlined-gray whitespace-nowrap" do %>
-                Import
-              <% end %>
-              <button class="button button-blue"
-                phx-click="new">
+              <%= live_patch "Import",
+                    to: Routes.home_path(@socket, :import, "url"),
+                    class: "button button-outlined-gray whitespace-nowrap" %>
+              <button class="button button-blue" phx-click="new">
                 New notebook
               </button>
             </div>
           </div>
           <div class="h-80">
             <%= live_component LivebookWeb.PathSelectComponent,
-              id: "path_select",
-              path: @path,
-              extnames: [LiveMarkdown.extension()],
-              running_paths: paths(@session_summaries),
-              phx_target: nil,
-              phx_submit: nil do %>
+                  id: "path_select",
+                  path: @path,
+                  extnames: [LiveMarkdown.extension()],
+                  running_paths: paths(@session_summaries),
+                  phx_target: nil,
+                  phx_submit: nil do %>
               <div class="flex justify-end space-x-2">
-                <%= content_tag :button,
-                  class: "button button-outlined-gray whitespace-nowrap",
-                  phx_click: "fork",
-                  disabled: not path_forkable?(@path) do %>
+                <button class="button button-outlined-gray whitespace-nowrap"
+                  phx-click="fork"
+                  disabled={not path_forkable?(@path)}>
                   <%= remix_icon("git-branch-line", class: "align-middle mr-1") %>
                   <span>Fork</span>
-                <% end %>
+                </button>
                 <%= if path_running?(@path, @session_summaries) do %>
-                  <%= live_redirect "Join session", to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
-                    class: "button button-blue" %>
+                  <%= live_redirect "Join session",
+                        to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
+                        class: "button button-blue" %>
                 <% else %>
-                  <%= tag :span, if(File.regular?(@path) and not file_writable?(@path),
-                        do: [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"],
-                        else: []
-                      ) %>
-                    <%= content_tag :button, "Open",
-                      class: "button button-blue",
-                      phx_click: "open",
-                      disabled: not path_openable?(@path, @session_summaries) %>
-                  </span>
+                  <%= content_tag :span,
+                        if(
+                          File.regular?(@path) and not file_writable?(@path),
+                          do: [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"],
+                          else: []
+                        ) do %>
+                    <button class="button button-blue"
+                      phx-click="open"
+                      disabled={not path_openable?(@path, @session_summaries)}>
+                      Open
+                    </button>
+                  <% end %>
                 <% end %>
               </div>
             <% end %>
@@ -98,10 +98,10 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <%= for {info, idx} <- Enum.with_index(@notebook_infos) do %>
-                <%= live_component LivebookWeb.NotebookCardComponent,
-                      id: "notebook-card-#{idx}",
-                      notebook_info: info %>
+              <%# Note: it's fine to use stateless components in this comprehension,
+                  because @notebook_infos never change %>
+              <%= for info <- @notebook_infos do %>
+                <%= live_component LivebookWeb.NotebookCardComponent, notebook_info: info %>
               <% end %>
             </div>
           </div>
@@ -121,9 +121,7 @@ defmodule LivebookWeb.HomeLive do
                 </div>
               </div>
             <% else %>
-              <%= live_component LivebookWeb.HomeLive.SessionsComponent,
-                id: "sessions_list",
-                session_summaries: @session_summaries %>
+              <%= live_component LivebookWeb.HomeLive.SessionsComponent, session_summaries: @session_summaries %>
             <% end %>
           </div>
         </div>
@@ -132,7 +130,7 @@ defmodule LivebookWeb.HomeLive do
 
     <%= if @live_action == :user do %>
       <%= live_modal LivebookWeb.UserComponent,
-            id: :user_modal,
+            id: "user",
             modal_class: "w-full max-w-sm",
             user: @current_user,
             return_to: Routes.home_path(@socket, :page) %>
@@ -140,7 +138,7 @@ defmodule LivebookWeb.HomeLive do
 
     <%= if @live_action == :close_session do %>
       <%= live_modal LivebookWeb.HomeLive.CloseSessionComponent,
-            id: :close_session_modal,
+            id: "close-session",
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
             session_summary: @session_summary %>
@@ -148,7 +146,7 @@ defmodule LivebookWeb.HomeLive do
 
     <%= if @live_action == :import do %>
       <%= live_modal LivebookWeb.HomeLive.ImportComponent,
-            id: :import_modal,
+            id: "import",
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
             tab: @tab %>

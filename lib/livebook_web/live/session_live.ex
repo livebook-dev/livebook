@@ -73,7 +73,6 @@ defmodule LivebookWeb.SessionLive do
       data-element="session"
       phx-hook="Session">
       <%= live_component LivebookWeb.SidebarComponent,
-            id: :sidebar,
             items: [
               %{type: :logo},
               %{
@@ -243,7 +242,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :user do %>
       <%= live_modal LivebookWeb.UserComponent,
-            id: :user_modal,
+            id: "user",
             modal_class: "w-full max-w-sm",
             user: @current_user,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
@@ -251,7 +250,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :runtime_settings do %>
       <%= live_modal LivebookWeb.SessionLive.RuntimeComponent,
-            id: :runtime_settings_modal,
+            id: "runtime-settings",
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -260,7 +259,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :file_settings do %>
       <%= live_modal LivebookWeb.SessionLive.PersistenceComponent,
-            id: :runtime_settings_modal,
+            id: "persistence",
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -270,7 +269,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :shortcuts do %>
       <%= live_modal LivebookWeb.SessionLive.ShortcutsComponent,
-            id: :shortcuts_modal,
+            id: "shortcuts",
             modal_class: "w-full max-w-6xl",
             platform: @platform,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
@@ -278,7 +277,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :cell_settings do %>
       <%= live_modal settings_component_for(@cell),
-            id: :cell_settings_modal,
+            id: "cell-settings",
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
             cell: @cell,
@@ -287,7 +286,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :cell_upload do %>
       <%= live_modal LivebookWeb.SessionLive.CellUploadComponent,
-            id: :cell_upload_modal,
+            id: "cell-upload",
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
             cell: @cell,
@@ -297,7 +296,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :delete_section do %>
       <%= live_modal LivebookWeb.SessionLive.DeleteSectionComponent,
-            id: :delete_section_modal,
+            id: "delete-section",
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
             section: @section,
@@ -307,7 +306,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :bin do %>
       <%= live_modal LivebookWeb.SessionLive.BinComponent,
-            id: :bin_modal,
+            id: "bin",
             modal_class: "w-full max-w-4xl",
             session_id: @session_id,
             bin_entries: @data_view.bin_entries,
