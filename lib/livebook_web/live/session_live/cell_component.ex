@@ -275,6 +275,98 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
+      <span class="font-mono"
+        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
+        phx-hook="Timer"
+        phx-update="ignore">
+      </span>
+    </.status_inticator>
+    """
+  end
+
+  defp cell_status(%{cell_view: %{evaluation_status: :queued}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-gray-500" animated_circle_class="bg-gray-400">
+      Queued
+    </.status_inticator>
+    """
+  end
+
+  defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
+    ~H"""
+    <.status_inticator
+      circle_class="bg-green-400"
+      change_indicator={true}
+      tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
+      Evaluated
+    </.status_inticator>
+    """
+  end
+
+  defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-yellow-200" change_indicator={true}>
+      Stale
+    </.status_inticator>
+    """
+  end
+
+  defp cell_status(%{cell_view: %{validity_status: :aborted}} = assigns) do
+    ~H"""
+    <.status_inticator circle_class="bg-red-400">
+      Aborted
+    </.status_inticator>
+    """
+  end
+
+  defp cell_status(assigns), do: ~H""
+
+  defp status_inticator(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:animated_circle_class, fn -> nil end)
+      |> assign_new(:change_indicator, fn -> false end)
+      |> assign_new(:tooltip, fn -> nil end)
+
+    ~H"""
+    <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} aria-label={@tooltip}>
+      <div class="flex items-center space-x-1">
+        <div class="flex text-xs text-gray-400">
+          <%= render_block(@inner_block) %>
+          <%= if @change_indicator do %>
+            <span data-element="change-indicator">*</span>
+          <% end %>
+        </div>
+        <span class="flex relative h-3 w-3">
+          <%= if @animated_circle_class do %>
+            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
+          <% end %>
+          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+        </span>
+      </div>
+    </div>
+    """
+  end
+
+  defp evaluated_label(time_ms) when is_integer(time_ms) do
+    evaluation_time =
+      if time_ms > 100 do
+        seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
+        "#{seconds}s"
+      else
+        "#{time_ms}ms"
+      end
+
+    "Took " <> evaluation_time
+  end
+
+  defp evaluated_label(_time_ms), do: nil
+
+  # Outputs
+
   defp outputs(assigns) do
     ~H"""
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
@@ -361,96 +453,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
     """
   end
-
-  defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
-    ~H"""
-    <.status_inticator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
-      <span class="font-mono"
-        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
-        phx-hook="Timer"
-        phx-update="ignore">
-      </span>
-    </.status_inticator>
-    """
-  end
-
-  defp cell_status(%{cell_view: %{evaluation_status: :queued}} = assigns) do
-    ~H"""
-    <.status_inticator circle_class="bg-gray-500" animated_circle_class="bg-gray-400">
-      Queued
-    </.status_inticator>
-    """
-  end
-
-  defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
-    ~H"""
-    <.status_inticator
-      circle_class="bg-green-400"
-      change_indicator={true}
-      tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
-      Evaluated
-    </.status_inticator>
-    """
-  end
-
-  defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
-    ~H"""
-    <.status_inticator circle_class="bg-yellow-200" change_indicator={true}>
-      Stale
-    </.status_inticator>
-    """
-  end
-
-  defp cell_status(%{cell_view: %{validity_status: :aborted}} = assigns) do
-    ~H"""
-    <.status_inticator circle_class="bg-red-400">
-      Aborted
-    </.status_inticator>
-    """
-  end
-
-  defp cell_status(assigns), do: ~H""
-
-  defp status_inticator(assigns) do
-    assigns =
-      assigns
-      |> Phoenix.LiveView.assign_new(:animated_circle_class, fn -> nil end)
-      |> Phoenix.LiveView.assign_new(:change_indicator, fn -> false end)
-      |> Phoenix.LiveView.assign_new(:tooltip, fn -> nil end)
-
-    ~H"""
-    <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} aria-label={@tooltip}>
-      <div class="flex items-center space-x-1">
-        <div class="flex text-xs text-gray-400">
-          <%= render_block(@inner_block) %>
-          <%= if @change_indicator do %>
-            <span data-element="change-indicator">*</span>
-          <% end %>
-        </div>
-        <span class="flex relative h-3 w-3">
-          <%= if @animated_circle_class do %>
-            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
-          <% end %>
-          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
-        </span>
-      </div>
-    </div>
-    """
-  end
-
-  defp evaluated_label(time_ms) when is_integer(time_ms) do
-    evaluation_time =
-      if time_ms > 100 do
-        seconds = time_ms |> Kernel./(1000) |> Float.floor(1)
-        "#{seconds}s"
-      else
-        "#{time_ms}ms"
-      end
-
-    "Took " <> evaluation_time
-  end
-
-  defp evaluated_label(_time_ms), do: nil
 
   defp html_input_type(:password), do: "password"
   defp html_input_type(:number), do: "number"

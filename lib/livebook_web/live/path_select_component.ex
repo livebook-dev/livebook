@@ -19,11 +19,10 @@ defmodule LivebookWeb.PathSelectComponent do
 
   @impl true
   def mount(socket) do
-    inner_block = Map.get(socket.assigns, :inner_block, nil)
-
     {:ok,
-     assign(socket,
-       inner_block: inner_block,
+     socket
+     |> assign_new(:inner_block, fn -> nil end)
+     |> assign(
        current_dir: nil,
        new_directory_name: nil,
        deleting_path: nil,
@@ -147,14 +146,24 @@ defmodule LivebookWeb.PathSelectComponent do
         <%= if highlighting?(@files) do %>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
             <%= for file <- @files, file.highlighted != "" do %>
-              <%= render_file(file, @phx_target, @myself, @renaming_path, @renamed_name) %>
+              <.file
+                file={file}
+                phx_target={@phx_target}
+                myself={@myself}
+                renaming_path={@renaming_path}
+                renamed_name={@renamed_name} />
             <% end %>
           </div>
         <% end %>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           <%= for file <- @files, file.highlighted == "" do %>
-            <%= render_file(file, @phx_target, @myself, @renaming_path, @renamed_name) %>
+            <.file
+              file={file}
+              phx_target={@phx_target}
+              myself={@myself}
+              renaming_path={@renaming_path}
+              renamed_name={@renamed_name} />
           <% end %>
         </div>
       </div>
@@ -166,15 +175,7 @@ defmodule LivebookWeb.PathSelectComponent do
     Enum.any?(files, &(&1.highlighted != ""))
   end
 
-  defp render_file(
-         %{path: renaming_path} = file,
-         _phx_target,
-         myself,
-         renaming_path,
-         renamed_name
-       ) do
-    assigns = %{file: file, myself: myself, renamed_name: renamed_name}
-
+  defp file(%{file: %{path: path}, renaming_path: path} = assigns) do
     ~H"""
     <div class="flex space-x-2 items-center p-2 rounded-lg">
       <span class="block">
@@ -201,15 +202,15 @@ defmodule LivebookWeb.PathSelectComponent do
     """
   end
 
-  defp render_file(file, phx_target, myself, _renaming_path, _renamed_name) do
+  defp file(assigns) do
     icon =
-      case file do
+      case assigns.file do
         %{is_running: true} -> "play-circle-line"
         %{is_dir: true} -> "folder-fill"
         _ -> "file-code-line"
       end
 
-    assigns = %{file: file, icon: icon, myself: myself, phx_target: phx_target}
+    assigns = assign(assigns, :icon, icon)
 
     ~H"""
     <div class="relative"

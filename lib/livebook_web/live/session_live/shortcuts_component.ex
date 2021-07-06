@@ -158,7 +158,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       end
 
     {left, right} = split_in_half(shortcuts)
-    assigns = Phoenix.LiveView.assign(assigns, left: left, right: right)
+    assigns = assign(assigns, left: left, right: right)
 
     ~H"""
     <h3 class="text-lg font-medium text-gray-900 pt-4">
