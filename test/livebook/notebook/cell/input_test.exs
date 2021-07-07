@@ -45,6 +45,28 @@ defmodule Livebook.Notebook.Cell.InputText do
       input = %{Input.new() | type: :number, value: "-"}
       assert Input.validate(input) == {:error, "not a valid number"}
     end
+
+    test "given color input allows valid hex colors" do
+      input = %{Input.new() | type: :color, value: "#111111"}
+      assert Input.validate(input) == :ok
+
+      input = %{Input.new() | type: :color, value: "ABCDEF"}
+      assert Input.validate(input) == {:error, "not a valid hex color"}
+    end
+
+    test "given range input allows numbers in the configured range" do
+      input = %{Input.new() | type: :range, value: "0", props: %{min: -5, max: 5, step: 1}}
+      assert Input.validate(input) == :ok
+
+      input = %{Input.new() | type: :range, value: "", props: %{min: -5, max: 5, step: 1}}
+      assert Input.validate(input) == {:error, "not a valid number"}
+
+      input = %{Input.new() | type: :range, value: "-10", props: %{min: -5, max: 5, step: 1}}
+      assert Input.validate(input) == {:error, "number too small"}
+
+      input = %{Input.new() | type: :range, value: "10", props: %{min: -5, max: 5, step: 1}}
+      assert Input.validate(input) == {:error, "number too big"}
+    end
   end
 
   describe "invalidated?/2" do

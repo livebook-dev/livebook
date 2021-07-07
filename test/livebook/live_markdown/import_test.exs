@@ -38,6 +38,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```elixir
     IO.gets("length: ")
     ```
+
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
     """
 
     {notebook, []} = Import.notebook_from_markdown(markdown)
@@ -92,6 +94,13 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      source: """
                      IO.gets("length: ")\
                      """
+                   },
+                   %Cell.Input{
+                     metadata: %{},
+                     type: :range,
+                     name: "length",
+                     value: "100",
+                     props: %{min: 50, max: 150, step: 2}
                    }
                  ]
                }
@@ -436,6 +445,35 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      [1, 2, 3]
                      ```\
                      """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
+  test "sets default input types props if not provided" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"extra":100,"max":150},"type":"range","value":"100"} -->
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    expected_props = %{min: 0, max: 150, step: 1}
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Input{
+                     type: :range,
+                     props: ^expected_props
                    }
                  ]
                }

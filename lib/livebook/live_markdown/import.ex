@@ -195,17 +195,8 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp build_notebook([{:cell, :input, data} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
-
-    cell = %{
-      Notebook.Cell.new(:input)
-      | metadata: metadata,
-        type: data["type"] |> String.to_existing_atom(),
-        name: data["name"],
-        value: data["value"],
-        # Optional flags
-        reactive: Map.get(data, "reactive", false)
-    }
-
+    attrs = parse_input_attrs(data)
+    cell = %{Notebook.Cell.new(:input) | metadata: metadata} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections)
   end
 
@@ -246,4 +237,26 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp grab_metadata(elems), do: {%{}, elems}
+
+  defp parse_input_attrs(data) do
+    type = data["type"] |> String.to_existing_atom()
+
+    %{
+      type: type,
+      name: data["name"],
+      value: data["value"],
+      # Fields with implicit value
+      reactive: Map.get(data, "reactive", false),
+      props: data |> Map.get("props", %{}) |> parse_input_props(type)
+    }
+  end
+
+  defp parse_input_props(data, type) do
+    default_props = Notebook.Cell.Input.default_props(type)
+
+    Map.new(default_props, fn {key, default_value} ->
+      value = Map.get(data, to_string(key), default_value)
+      {key, value}
+    end)
+  end
 end

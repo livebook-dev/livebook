@@ -6,7 +6,7 @@ defmodule Livebook.Notebook.Cell.Input do
   # It consists of an input that the user may fill
   # and then read during code evaluation.
 
-  defstruct [:id, :metadata, :type, :name, :value, :reactive]
+  defstruct [:id, :metadata, :type, :name, :value, :reactive, :props]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -17,10 +17,16 @@ defmodule Livebook.Notebook.Cell.Input do
           type: type(),
           name: String.t(),
           value: String.t(),
-          reactive: boolean()
+          reactive: boolean(),
+          props: props()
         }
 
-  @type type :: :text | :url | :number | :password | :textarea | :range
+  @type type :: :text | :url | :number | :password | :textarea | :color | :range
+
+  @typedoc """
+  Additional properties adjusting the given input type.
+  """
+  @type props :: %{atom() => term()}
 
   @doc """
   Returns an empty cell.
@@ -33,7 +39,8 @@ defmodule Livebook.Notebook.Cell.Input do
       type: :text,
       name: "input",
       value: "",
-      reactive: false
+      reactive: false,
+      props: %{}
     }
   end
 
@@ -42,17 +49,9 @@ defmodule Livebook.Notebook.Cell.Input do
   for its type.
   """
   @spec validate(t()) :: :ok | {:error, String.t()}
-  def validate(cell) do
-    validate_value(cell.value, cell.type)
-  end
+  def validate(cell)
 
-  defp validate_value(_value, :text), do: :ok
-
-  defp validate_value(_value, :password), do: :ok
-
-  defp validate_value(_value, :textarea), do: :ok
-
-  defp validate_value(value, :url) do
+  def validate(%{value: value, type: :url}) do
     if Utils.valid_url?(value) do
       :ok
     else
@@ -60,14 +59,14 @@ defmodule Livebook.Notebook.Cell.Input do
     end
   end
 
-  defp validate_value(value, :number) do
+  def validate(%{value: value, type: :number}) do
     case Float.parse(value) do
       {_number, ""} -> :ok
       _ -> {:error, "not a valid number"}
     end
   end
 
-  defp validate_value(value, :color) do
+  def validate(%{value: value, type: :color}) do
     if Utils.valid_hex_color?(value) do
       :ok
     else
@@ -75,12 +74,30 @@ defmodule Livebook.Notebook.Cell.Input do
     end
   end
 
-  defp validate_value(value, :range) do
-    case Integer.parse(value) do
-      {_number, ""} -> :ok
-      _ -> {:error, "not a valid number"}
+  def validate(%{value: value, type: :range, props: props}) do
+    case Float.parse(value) do
+      {number, ""} ->
+        cond do
+          number < props.min -> {:error, "number too small"}
+          number > props.max -> {:error, "number too big"}
+          true -> :ok
+        end
+
+      _ ->
+        {:error, "not a valid number"}
     end
   end
+
+  def validate(_cell), do: :ok
+
+  @doc """
+  Returns default properties for input of the given type.
+  """
+  @spec default_props(type()) :: props()
+  def default_props(type)
+
+  def default_props(:range), do: %{min: 0, max: 100, step: 1}
+  def default_props(_type), do: %{}
 
   @doc """
   Checks if the input changed in terms of content.
