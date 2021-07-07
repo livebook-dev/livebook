@@ -70,22 +70,22 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     <span class="font-semibold"><%= format_date_relatively(entry.deleted_at) %></span>
                   </p>
                   <div class="flex justify-end space-x-2">
-                    <.tooltip label="Copy source" direction="left">
+                    <span class="tooltip left" aria-label="Copy source">
                       <button class="icon-button"
                         id={"bin-cell-#{cell.id}-clipcopy"}
                         phx-hook="ClipCopy"
                         data-target-id={"bin-cell-#{cell.id}-source"}>
                         <.remix_icon icon="clipboard-line" class="text-lg" />
                       </button>
-                    </.tooltip>
-                    <.tooltip label="Restore" direction="left">
+                    </span>
+                    <span class="tooltip left" aria-label="Restore">
                       <button class="icon-button"
                         phx-click="restore"
                         phx-value-cell_id={entry.cell.id}
                         phx-target={@myself}>
                         <.remix_icon icon="arrow-go-back-line" class="text-lg" />
                       </button>
-                    </.tooltip>
+                    </span>
                   </div>
                 </div>
                 <div class="markdown">

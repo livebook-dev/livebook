@@ -32,23 +32,23 @@ defmodule LivebookWeb.SidebarHelpers do
 
   def button_item(assigns) do
     ~H"""
-    <.tooltip label={@label} direction="right" distance="28px">
+    <span class="tooltip right distant" aria-label={@label}>
       <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
         data-element={@data_element}>
         <.remix_icon icon={@icon} />
       </button>
-    </.tooltip>
+    </span>
     """
   end
 
   def link_item(assigns) do
     ~H"""
-    <.tooltip label={@label} direction="right" distance="28px">
+    <span class="tooltip right distant" aria-label={@label}>
       <%= live_patch to: @path,
             class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@active, do: "text-gray-50 bg-gray-700")}" do %>
         <.remix_icon icon={@icon} class="text-2xl" />
       <% end %>
-    </.tooltip>
+    </span>
     """
   end
 
@@ -60,11 +60,11 @@ defmodule LivebookWeb.SidebarHelpers do
 
   def user_item(assigns) do
     ~H"""
-    <.tooltip label="User profile" direction="right" distance="28px">
+    <span class="tooltip right distant" aria-label="User profile">
       <%= live_patch to: @path, class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
         <.user_avatar user={@current_user} text_class="text-xs" />
       <% end %>
-    </.tooltip>
+    </span>
     """
   end
 end

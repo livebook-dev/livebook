@@ -7,27 +7,27 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     <div class="flex flex-col space-y-2 items-center" data-element="notebook-indicators">
       <%= if @path do %>
         <%= if @dirty do %>
-          <.tooltip label="Autosave pending" direction="left">
+          <span class="tooltip left" aria-label="Autosave pending">
             <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
                   class: "icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50" do %>
               <.remix_icon icon="save-line" class="text-xl text-blue-500" />
             <% end %>
-          </.tooltip>
+          </span>
         <% else %>
-          <.tooltip label="Notebook saved" direction="left">
+          <span class="tooltip left" aria-label="Notebook saved">
             <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
                   class: "icon-button icon-outlined-button border-green-300 hover:bg-green-50 focus:bg-green-50" do %>
               <.remix_icon icon="save-line" class="text-xl text-green-400" />
             <% end %>
-          </.tooltip>
+          </span>
         <% end %>
       <% else %>
-        <.tooltip label="Choose a file to save the notebook" direction="left">
+        <span class="tooltip left" aria-label="Choose a file to save the notebook">
           <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
                 class: "icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100" do %>
             <.remix_icon icon="save-line" class="text-xl text-gray-400" />
           <% end %>
-        </.tooltip>
+        </span>
       <% end %>
 
       <%= if @runtime do %>
@@ -35,67 +35,67 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           status={elem(@global_evaluation_status, 0)}
           cell_id={elem(@global_evaluation_status, 1)} />
       <% else %>
-        <.tooltip label="Choose a runtime to run the notebook in" direction="left">
+        <span class="tooltip left" aria-label="Choose a runtime to run the notebook in">
           <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session_id),
                 class: "icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100" do %>
             <.remix_icon icon="loader-3-line" class="text-xl text-gray-400" />
           <% end %>
-        </.tooltip>
+        </span>
       <% end %>
 
       <%# Note: this indicator is shown/hidden using CSS based on the current mode %>
-      <.tooltip label="Insert mode" data-element="insert-mode-indicator" direction="left">
+      <span class="tooltip left" aria-label="Insert mode" data-element="insert-mode-indicator">
         <span class="text-sm text-gray-400 font-medium cursor-default">
           ins
         </span>
-      </.tooltip>
+      </span>
     </div>
     """
   end
 
   defp global_evaluation_status(%{status: :evaluating} = assigns) do
     ~H"""
-    <.tooltip label="Go to evaluating cell" direction="left">
+    <span class="tooltip left" aria-label="Go to evaluating cell">
       <button class="icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50"
         data-element="focus-cell-button"
         data-target={@cell_id}>
         <.remix_icon icon="loader-3-line" class="text-xl text-blue-500 animate-spin" />
       </button>
-    </.tooltip>
+    </span>
     """
   end
 
   defp global_evaluation_status(%{status: :evaluated} = assigns) do
     ~H"""
-    <.tooltip label="Go to last evaluated cell" direction="left">
+    <span class="tooltip left" aria-label="Go to last evaluated cell">
       <button class="icon-button icon-outlined-button border-green-300 hover:bg-green-50 focus:bg-green-50"
         data-element="focus-cell-button"
         data-target={@cell_id}>
         <.remix_icon icon="loader-3-line" class="text-xl text-green-400" />
       </button>
-    </.tooltip>
+    </span>
     """
   end
 
   defp global_evaluation_status(%{status: :stale} = assigns) do
     ~H"""
-    <.tooltip label="Go to first stale cell" direction="left">
+    <span class="tooltip left" aria-label="Go to first stale cell">
       <button class="icon-button icon-outlined-button border-yellow-200 hover:bg-yellow-50 focus:bg-yellow-50"
         data-element="focus-cell-button"
         data-target={@cell_id}>
         <.remix_icon icon="loader-3-line" class="text-xl text-yellow-300" />
       </button>
-    </.tooltip>
+    </span>
     """
   end
 
   defp global_evaluation_status(%{status: :fresh} = assigns) do
     ~H"""
-    <.tooltip label="Ready to evaluate" direction="left">
+    <span class="tooltip left" aria-label="Ready to evaluate">
       <button class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100 cursor-default">
         <.remix_icon icon="loader-3-line" class="text-xl text-gray-400" />
       </button>
-    </.tooltip>
+    </span>
     """
   end
 end

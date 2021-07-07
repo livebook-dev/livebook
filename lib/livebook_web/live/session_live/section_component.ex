@@ -18,33 +18,33 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <%# ^ Note it's important there's no space between <h2> and </h2>
             because we want the content to exactly match section name. %>
         <div class="flex space-x-2 items-center" data-element="section-actions">
-          <.tooltip label="Link">
+          <span class="tooltip top" aria-label="Link">
             <a href={"##{@section_view.html_id}"} class="icon-button">
               <.remix_icon icon="link" class="text-xl" />
             </a>
-          </.tooltip>
-          <.tooltip label="Move up">
+          </span>
+          <span class="tooltip top" aria-label="Move up">
             <button class="icon-button"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="-1">
               <.remix_icon icon="arrow-up-s-line" class="text-xl" />
             </button>
-          </.tooltip>
-          <.tooltip label="Move down">
+          </span>
+          <span class="tooltip top" aria-label="Move down">
             <button class="icon-button"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="1">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
-          </.tooltip>
-          <.tooltip label="Delete">
+          </span>
+          <span class="tooltip top" aria-label="Delete">
             <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
                   class: "icon-button" do %>
               <.remix_icon icon="delete-bin-6-line" class="text-xl" />
             <% end %>
-          </.tooltip>
+          </span>
         </div>
       </div>
       <div class="container">
