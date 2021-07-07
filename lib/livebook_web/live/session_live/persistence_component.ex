@@ -12,7 +12,7 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         File
@@ -22,26 +22,30 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
           Specify where the notebook should be automatically persisted.
         </p>
         <div class="flex space-x-4">
-          <%= content_tag :button, "Save to file",
-            class: "choice-button #{if(@path != nil, do: "active")}",
-            phx_click: "set_persistence_type",
-            phx_value_type: "file",
-            phx_target: @myself %>
-          <%= content_tag :button, "Memory only",
-            class: "choice-button #{if(@path == nil, do: "active")}",
-            phx_click: "set_persistence_type",
-            phx_value_type: "memory",
-            phx_target: @myself %>
+          <.choice_button
+            active={@path != nil}
+            phx-click="set_persistence_type"
+            phx-value-type="file"
+            phx-target={@myself}>
+            Save to file
+          </.choice_button>
+          <.choice_button
+            active={@path == nil}
+            phx-click="set_persistence_type"
+            phx-value-type="memory"
+            phx-target={@myself}>
+            Memory only
+          </.choice_button>
         </div>
         <%= if @path != nil do %>
           <div class="h-full h-52">
             <%= live_component LivebookWeb.PathSelectComponent,
-              id: "path_select",
-              path: @path,
-              extnames: [LiveMarkdown.extension()],
-              running_paths: @running_paths,
-              phx_target: @myself,
-              phx_submit: if(disabled?(@path, @current_path, @running_paths), do: nil, else: "save") %>
+                  id: "path_select",
+                  path: @path,
+                  extnames: [LiveMarkdown.extension()],
+                  running_paths: @running_paths,
+                  phx_target: @myself,
+                  phx_submit: if(disabled?(@path, @current_path, @running_paths), do: nil, else: "save") %>
           </div>
         <% end %>
         <div class="flex flex-col space-y-2">
@@ -51,11 +55,12 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
             </div>
           <% end %>
           <div>
-            <%= content_tag :button, "Save",
-              class: "button button-blue mt-2",
-              phx_click: "save",
-              phx_target: @myself,
-              disabled: disabled?(@path, @current_path, @running_paths) %>
+            <button class="button button-blue mt-2"
+              phx-click="save"
+              phx-target={@myself}
+              disabled={disabled?(@path, @current_path, @running_paths)}>
+              Save
+            </button>
           </div>
         </div>
       </div>

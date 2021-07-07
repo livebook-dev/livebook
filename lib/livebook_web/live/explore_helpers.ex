@@ -1,13 +1,17 @@
-defmodule LivebookWeb.NotebookCardComponent do
-  use LivebookWeb, :live_component
+defmodule LivebookWeb.ExploreHelpers do
+  use Phoenix.Component
 
-  @impl true
-  def render(assigns) do
-    ~L"""
+  alias LivebookWeb.Router.Helpers, as: Routes
+
+  @doc """
+  Renders an explore notebook card.
+  """
+  def notebook_card(assigns) do
+    ~H"""
     <div class="flex flex-col">
       <%= live_redirect to: Routes.explore_path(@socket, :notebook, @notebook_info.slug),
             class: "flex items-center justify-center p-6 border-2 border-gray-100 rounded-t-2xl h-[150px]" do %>
-        <img src="<%= @notebook_info.image_url %>" class="max-h-full max-w-[75%]" />
+        <img src={@notebook_info.image_url} class="max-h-full max-w-[75%]" />
       <% end %>
       <div class="px-6 py-4 bg-gray-100 rounded-b-2xl flex-grow">
         <%= live_redirect @notebook_info.title,

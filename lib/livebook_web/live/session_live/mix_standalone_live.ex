@@ -24,7 +24,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex-col space-y-5">
       <p class="text-gray-700">
         Start a new local node in the context of a Mix project.
@@ -40,17 +40,16 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
       <%= if @status == :initial do %>
         <div class="h-full h-52">
           <%= live_component LivebookWeb.PathSelectComponent,
-            id: "path_select",
-            path: @path,
-            extnames: [],
-            running_paths: [],
-            phx_target: nil,
-            phx_submit: if(disabled?(@path), do: nil, else: "init") %>
+                id: "path_select",
+                path: @path,
+                extnames: [],
+                running_paths: [],
+                phx_target: nil,
+                phx_submit: if(disabled?(@path), do: nil, else: "init") %>
         </div>
-        <%= content_tag :button, if(matching_runtime?(@current_runtime, @path), do: "Reconnect", else: "Connect"),
-          class: "button button-blue",
-          phx_click: "init",
-          disabled: disabled?(@path) %>
+        <button class="button button-blue" phx-click="init" disabled={disabled?(@path)}>
+          <%= if(matching_runtime?(@current_runtime, @path), do: "Reconnect", else: "Connect") %>
+        </button>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
@@ -58,7 +57,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
             id="mix-standalone-init-output"
             phx-update="append"
             phx-hook="ScrollOnUpdate"
-            ><%= for {output, i} <- @outputs do %><span id="output-<%= i %>"><%= ansi_string_to_html(output) %></span><% end %></code></pre>
+            ><%= for {output, i} <- @outputs do %><span id={"output-#{i}"}><%= ansi_string_to_html(output) %></span><% end %></code></pre>
         </div>
       <% end %>
     </div>

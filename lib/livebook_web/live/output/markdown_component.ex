@@ -13,11 +13,11 @@ defmodule LivebookWeb.Output.MarkdownComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="markdown"
-      id="markdown-renderer-<%= @id %>"
+      id={"markdown-renderer-#{@id}"}
       phx-hook="MarkdownRenderer"
-      data-id="<%= @id %>">
+      data-id={@id}>
     </div>
     """
   end

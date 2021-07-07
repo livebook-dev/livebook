@@ -281,11 +281,10 @@ function handleDocumentKeyDown(hook, event) {
       saveNotebook(hook);
     } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
-    } else if (
-      hook.state.focusedCellType === "elixir" &&
-      (keyBuffer.tryMatch(["e", "e"]) || (cmd && key === "Enter"))
-    ) {
-      queueFocusedCellEvaluation(hook);
+    } else if (keyBuffer.tryMatch(["e", "e"]) || (cmd && key === "Enter")) {
+      if (hook.state.focusedCellType === "elixir") {
+        queueFocusedCellEvaluation(hook);
+      }
     } else if (keyBuffer.tryMatch(["e", "a"])) {
       queueAllCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "s"])) {

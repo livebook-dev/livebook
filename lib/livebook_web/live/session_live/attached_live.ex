@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex-col space-y-5">
       <%= if @error_message do %>
         <div class="error-box">
@@ -39,7 +39,12 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
       <p class="text-gray-700">
         Then enter the connection information below:
       </p>
-      <%= f = form_for :data, "#", phx_submit: "init", phx_change: "validate", autocomplete: "off", spellcheck: "false" %>
+      <.form let={f} for={:data}
+        url="#"
+        phx-submit="init"
+        phx-change="validate"
+        autocomplete="off"
+        spellcheck="false">
         <div class="flex flex-col space-y-4">
           <div>
             <div class="input-label">Name</div>
@@ -50,8 +55,12 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
             <%= text_input f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie" %>
           </div>
         </div>
-        <%= submit "Connect", class: "mt-5 button button-blue", disabled: not data_valid?(@data) %>
-      </form>
+        <button class="mt-5 button button-blue"
+          type="submit"
+          disabled={not data_valid?(@data)}>
+          Connect
+        </button>
+      </.form>
     </div>
     """
   end

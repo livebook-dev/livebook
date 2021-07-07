@@ -30,7 +30,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
 
   @impl true
   def render(%{loading: true} = assigns) do
-    ~L"""
+    ~H"""
     <div class="max-w-2xl w-full animate-pulse">
       <div class="flex-1 space-y-4">
         <div class="h-4 bg-gray-200 rounded-lg w-3/4"></div>
@@ -42,7 +42,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
   end
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="mb-4 flex items-center space-x-3">
       <h3 class="font-semibold text-gray-800">
         <%= @name %>
@@ -52,9 +52,8 @@ defmodule LivebookWeb.Output.TableDynamicLive do
       <div class="flex space-x-2">
         <%= if :refetch in @features do %>
           <span class="tooltip left" aria-label="Refetch">
-            <%= tag :button, class: "icon-button",
-                  phx_click: "refetch" %>
-              <%= remix_icon("refresh-line", class: "text-xl") %>
+            <button class="icon-button" phx-click="refetch">
+              <.remix_icon icon="refresh-line" class="text-xl" />
             </button>
           </span>
         <% end %>
@@ -62,22 +61,20 @@ defmodule LivebookWeb.Output.TableDynamicLive do
       <!-- Pagination -->
       <%= if :pagination in @features and @total_rows > 0 do %>
         <div class="flex space-x-2">
-          <%= tag :button,
-                class: "flex items-center font-medium text-sm text-gray-400 hover:text-gray-800 disabled:pointer-events-none disabled:text-gray-300",
-                disabled: @page == 1,
-                phx_click: "prev" %>
-            <%= remix_icon("arrow-left-s-line", class: "text-xl") %>
+          <button class="flex items-center font-medium text-sm text-gray-400 hover:text-gray-800 disabled:pointer-events-none disabled:text-gray-300"
+            phx-click="prev"
+            disabled={@page == 1}>
+            <.remix_icon icon="arrow-left-s-line" class="text-xl" />
             <span>Prev</span>
           </button>
           <div class="flex items-center px-3 py-1 rounded-lg border border-gray-300 font-medium text-sm text-gray-400">
             <span><%= @page %> of <%= max_page(@total_rows, @limit) %></span>
           </div>
-          <%= tag :button,
-                class: "flex items-center font-medium text-sm text-gray-400 hover:text-gray-800 disabled:pointer-events-none disabled:text-gray-300",
-                disabled: @page == max_page(@total_rows, @limit),
-                phx_click: "next" %>
+          <button class="flex items-center font-medium text-sm text-gray-400 hover:text-gray-800 disabled:pointer-events-none disabled:text-gray-300"
+            phx-click="next"
+            disabled={@page == max_page(@total_rows, @limit)}>
             <span>Next</span>
-            <%= remix_icon("arrow-right-s-line", class: "text-xl") %>
+            <.remix_icon icon="arrow-right-s-line" class="text-xl" />
           </button>
         </div>
       <% end %>
@@ -94,13 +91,13 @@ defmodule LivebookWeb.Output.TableDynamicLive do
           <thead class="text-left">
             <tr class="border-b border-gray-200 whitespace-nowrap">
               <%= for {column, idx} <- Enum.with_index(@columns) do %>
-                <th class="py-3 px-6 text-gray-700 font-semibold <%= if(:sorting in @features, do: "cursor-pointer", else: "pointer-events-none") %>"
+                <th class={"py-3 px-6 text-gray-700 font-semibold #{if(:sorting in @features, do: "cursor-pointer", else: "pointer-events-none")}"}
                   phx-click="column_click"
-                  phx-value-column_idx="<%= idx %>">
+                  phx-value-column_idx={idx}>
                   <div class="flex items-center space-x-1">
                     <span><%= column.label %></span>
-                    <%= tag :span, class: unless(@order_by == column.key, do: "invisible") %>
-                      <%= remix_icon(order_icon(@order), class: "text-xl align-middle leading-none") %>
+                    <span class={unless(@order_by == column.key, do: "invisible")}>
+                      <.remix_icon icon={order_icon(@order)} class="text-xl align-middle leading-none" />
                     </span>
                   </div>
                 </th>

@@ -5,7 +5,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManagerTest do
 
   test "terminates when the last runtime server terminates" do
     {:ok, manager_pid} =
-      NodeManager.start_link(unload_modules_on_termination: false, anonymous: true)
+      start_supervised({NodeManager, [unload_modules_on_termination: false, anonymous: true]})
 
     server1 = NodeManager.start_runtime_server(manager_pid)
     server2 = NodeManager.start_runtime_server(manager_pid)
