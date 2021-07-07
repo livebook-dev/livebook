@@ -5,7 +5,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
   setup do
     {:ok, manager_pid} =
-      NodeManager.start_link(unload_modules_on_termination: false, anonymous: true)
+      start_supervised({NodeManager, [unload_modules_on_termination: false, anonymous: true]})
 
     runtime_server_pid = NodeManager.start_runtime_server(manager_pid)
     RuntimeServer.set_owner(runtime_server_pid, self())
