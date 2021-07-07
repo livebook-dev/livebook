@@ -418,4 +418,57 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "handles backticks in code cell" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | source: """
+                    \"\"\"
+                    ```elixir
+                    x = 1
+                    ```
+
+                    ````markdown
+                    # Heading
+                    ````
+                    \"\"\"\
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    `````elixir
+    \"\"\"
+    ```elixir
+    x = 1
+    ```
+
+    ````markdown
+    # Heading
+    ````
+    \"\"\"
+    `````
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end
