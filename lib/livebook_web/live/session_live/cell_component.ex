@@ -257,54 +257,54 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
     ~H"""
-    <.status_inticator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
+    <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
       <span class="font-mono"
         id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
         phx-hook="Timer"
         phx-update="ignore">
       </span>
-    </.status_inticator>
+    </.status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{evaluation_status: :queued}} = assigns) do
     ~H"""
-    <.status_inticator circle_class="bg-gray-500" animated_circle_class="bg-gray-400">
+    <.status_indicator circle_class="bg-gray-500" animated_circle_class="bg-gray-400">
       Queued
-    </.status_inticator>
+    </.status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
     ~H"""
-    <.status_inticator
+    <.status_indicator
       circle_class="bg-green-400"
       change_indicator={true}
       tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
       Evaluated
-    </.status_inticator>
+    </.status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
     ~H"""
-    <.status_inticator circle_class="bg-yellow-200" change_indicator={true}>
+    <.status_indicator circle_class="bg-yellow-200" change_indicator={true}>
       Stale
-    </.status_inticator>
+    </.status_indicator>
     """
   end
 
   defp cell_status(%{cell_view: %{validity_status: :aborted}} = assigns) do
     ~H"""
-    <.status_inticator circle_class="bg-red-400">
+    <.status_indicator circle_class="bg-red-400">
       Aborted
-    </.status_inticator>
+    </.status_indicator>
     """
   end
 
   defp cell_status(assigns), do: ~H""
 
-  defp status_inticator(assigns) do
+  defp status_indicator(assigns) do
     assigns =
       assigns
       |> assign_new(:animated_circle_class, fn -> nil end)

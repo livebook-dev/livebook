@@ -72,11 +72,7 @@ defmodule LivebookWeb.HomeLive do
                         to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
                         class: "button button-blue" %>
                 <% else %>
-                  <span {if(
-                    File.regular?(@path) and not file_writable?(@path),
-                    do: [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"],
-                    else: []
-                  )}>
+                  <span {open_button_tooltip_attrs(@path)}>
                     <button class="button button-blue"
                       phx-click="open"
                       disabled={not path_openable?(@path, @session_summaries)}>
@@ -142,6 +138,14 @@ defmodule LivebookWeb.HomeLive do
             tab: @tab %>
     <% end %>
     """
+  end
+
+  defp open_button_tooltip_attrs(path) do
+    if File.regular?(path) and not file_writable?(path) do
+      [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"]
+    else
+      []
+    end
   end
 
   defp sessions_list(%{session_summaries: []} = assigns) do
