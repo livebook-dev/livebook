@@ -193,4 +193,56 @@ defmodule LivebookWeb.Helpers do
     </button>
     """
   end
+
+  @doc """
+  Adds a tooltip to the inner content.
+
+  ## Example
+
+      <.tooltip label="Click me">
+        <button>...</button>
+      <./tooltip>
+
+      <.tooltip
+        label="Click me"
+        direction="right"
+        distance="28px"
+        if={@some_condition}>
+        <button>...</button>
+      <./tooltip>
+  """
+  def tooltip(assigns)
+
+  def tooltip(%{if: false} = assigns) do
+    ~H"""
+    <span>
+      <%= render_block(@inner_block) %>
+    </span>
+    """
+  end
+
+  def tooltip(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:direction, fn -> "top" end)
+      |> assign_new(:distance, fn -> "4px" end)
+      |> assign_new(:class, fn -> "" end)
+      |> assign_new(:style, fn -> "" end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:direction, :label, :class, :style]))
+
+    if assigns.direction not in ["top", "bottom", "right", "left"] do
+      raise ArgumentError,
+            ~s{expected direction to be either "top", "bottom", "right" or "left", got: #{inspect(assigns.direction)}}
+    end
+
+    ~H"""
+    <span
+      class={"tooltip #{@direction} #{@class}"}
+      aria-label={@label}
+      style={"--distance: #{@distance}; #{@style}"}
+      {@attrs}>
+      <%= render_block(@inner_block) %>
+    </span>
+    """
+  end
 end

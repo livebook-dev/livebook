@@ -20,17 +20,17 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
         <.cell_link_button cell_id={@cell_view.id} />
-        <span class="tooltip top" aria-label="Edit content" data-element="enable-insert-mode-button">
+        <.tooltip label="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button">
             <.remix_icon icon="pencil-line" class="text-xl" />
           </button>
-        </span>
-        <span class="tooltip top" aria-label="Insert image" data-element="insert-image-button">
+        </.tooltip>
+        <.tooltip label="Insert image" data-element="insert-image-button">
           <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_view.id),
                 class: "icon-button" do %>
             <.remix_icon icon="image-add-line" class="text-xl" />
           <% end %>
-        </span>
+        </.tooltip>
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
@@ -158,59 +158,59 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_link_button(assigns) do
     ~H"""
-    <span class="tooltip top" aria-label="Link">
+    <.tooltip label="Link">
       <a href={"#cell-#{@cell_id}"} class="icon-button">
         <.remix_icon icon="link" class="text-xl" />
       </a>
-    </span>
+    </.tooltip>
     """
   end
 
   defp cell_settings_button(assigns) do
     ~H"""
-    <span class="tooltip top" aria-label="Cell settings">
+    <.tooltip label="Cell settings">
       <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id), class: "icon-button" do %>
         <.remix_icon icon="list-settings-line" class="text-xl" />
       <% end %>
-    </span>
+    </.tooltip>
     """
   end
 
   defp move_cell_up_button(assigns) do
     ~H"""
-    <span class="tooltip top" aria-label="Move up">
+    <.tooltip label="Move up">
       <button class="icon-button"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="-1">
         <.remix_icon icon="arrow-up-s-line" class="text-xl" />
       </button>
-    </span>
+    </.tooltip>
     """
   end
 
   defp move_cell_down_button(assigns) do
     ~H"""
-    <span class="tooltip top" aria-label="Move down">
+    <.tooltip label="Move down">
       <button class="icon-button"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="1">
         <.remix_icon icon="arrow-down-s-line" class="text-xl" />
       </button>
-    </span>
+    </.tooltip>
     """
   end
 
   defp delete_cell_button(assigns) do
     ~H"""
-    <span class="tooltip top" aria-label="Delete">
+    <.tooltip label="Delete">
       <button class="icon-button"
         phx-click="delete_cell"
         phx-value-cell_id={@cell_id}>
         <.remix_icon icon="delete-bin-6-line" class="text-xl" />
       </button>
-    </span>
+    </.tooltip>
     """
   end
 
@@ -312,7 +312,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       |> assign_new(:tooltip, fn -> nil end)
 
     ~H"""
-    <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} aria-label={@tooltip}>
+    <.tooltip label={@tooltip} direction="bottom" distance="10px" if={@tooltip != nil}>
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400">
           <%= render_block(@inner_block) %>
@@ -327,7 +327,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
         </span>
       </div>
-    </div>
+    </.tooltip>
     """
   end
 

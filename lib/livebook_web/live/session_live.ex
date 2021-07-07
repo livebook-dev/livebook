@@ -147,20 +147,20 @@ defmodule LivebookWeb.SessionLive do
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>
-                    <span class="tooltip left" aria-label="Follow this user"
+                    <.tooltip label="Follow this user" direction="left"
                       data-element="client-follow-toggle"
                       data-meta="follow">
                       <button class="icon-button">
                         <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
-                    </span>
-                    <span class="tooltip left" aria-label="Unfollow this user"
+                    </.tooltip>
+                    <.tooltip label="Unfollow this user" direction="left"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
                       <button class="icon-button">
                         <.remix_icon icon="pushpin-fill" class="text-lg" />
                       </button>
-                    </span>
+                    </.tooltip>
                   <% end %>
                 </div>
               <% end %>
