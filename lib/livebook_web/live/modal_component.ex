@@ -3,9 +3,8 @@ defmodule LivebookWeb.ModalComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
-    <div class="fixed z-[10000] inset-0"
-      id="<%= @id %>">
+    ~H"""
+    <div class="fixed z-[10000] inset-0">
 
       <!-- Modal container -->
       <div class="h-screen flex items-center justify-center p-4">
@@ -15,17 +14,17 @@ defmodule LivebookWeb.ModalComponent do
           phx-capture-click="close"
           phx-window-keydown="close"
           phx-key="escape"
-          phx-target="#<%= @id %>"
+          phx-target={@myself}
           phx-page-loading></div>
 
         <!-- Modal box -->
-        <div class="relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl <%= @modal_class %>"
+        <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@modal_class}"}
           role="dialog"
           aria-modal="true">
 
           <%= live_patch to: @return_to, class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center" do %>
             <span class="text-sm">(esc)</span>
-            <%= remix_icon("close-line", class: "text-2xl") %>
+            <.remix_icon icon="close-line" class="text-2xl" />
           <% end %>
 
           <%= live_component @component, @opts %>

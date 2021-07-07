@@ -3,8 +3,8 @@ defmodule LivebookWeb.Output.ImageComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
-    <%= tag :img, src: data_url(@content, @mime_type), alt: "output image" %>
+    ~H"""
+    <img src={data_url(@content, @mime_type)} alt="output image" />
     """
   end
 

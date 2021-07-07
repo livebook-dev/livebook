@@ -2,10 +2,11 @@ defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.UserHelpers
+  import Livebook.Utils, only: [access_by_id: 1]
 
+  alias LivebookWeb.SidebarHelpers
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
   alias Livebook.Notebook.Cell
-  import Livebook.Utils, only: [access_by_id: 1]
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = session, socket) do
@@ -67,53 +68,41 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex flex-grow h-full"
       id="session"
       data-element="session"
       phx-hook="Session">
-      <%= live_component LivebookWeb.SidebarComponent,
-            id: :sidebar,
-            items: [
-              %{type: :logo},
-              %{
-                type: :button,
-                data_element: "sections-list-toggle",
-                icon: "booklet-fill",
-                label: "Sections (ss)",
-                active: false
-              },
-              %{
-                type: :button,
-                data_element: "clients-list-toggle",
-                icon: "group-fill",
-                label: "Connected users (su)",
-                active: false
-              },
-              %{
-                type: :link,
-                icon: "cpu-line",
-                path: Routes.session_path(@socket, :runtime_settings, @session_id),
-                label: "Runtime settings (sr)",
-                active: @live_action == :runtime_settings
-              },
-              %{
-                type: :link,
-                icon: "delete-bin-6-fill",
-                path: Routes.session_path(@socket, :bin, @session_id),
-                label: "Bin (sb)",
-                active: @live_action == :bin
-              },
-              %{type: :break},
-              %{
-                type: :link,
-                icon: "keyboard-box-fill",
-                path: Routes.session_path(@socket, :shortcuts, @session_id),
-                label: "Keyboard shortcuts (?)",
-                active: @live_action == :shortcuts
-              },
-              %{type: :user, current_user: @current_user, path: Routes.session_path(@socket, :user, @session_id)}
-            ] %>
+      <SidebarHelpers.sidebar>
+        <SidebarHelpers.logo_item socket={@socket} />
+        <SidebarHelpers.button_item
+          icon="booklet-fill"
+          label="Sections (ss)"
+          data_element="sections-list-toggle" />
+        <SidebarHelpers.button_item
+          icon="group-fill"
+          label="Connected users (su)"
+          data_element="clients-list-toggle" />
+        <SidebarHelpers.link_item
+          icon="cpu-line"
+          label="Runtime settings (sr)"
+          path={Routes.session_path(@socket, :runtime_settings, @session_id)}
+          active={@live_action == :runtime_settings} />
+        <SidebarHelpers.link_item
+          icon="delete-bin-6-fill"
+          label="Bin (sb)"
+          path={Routes.session_path(@socket, :bin, @session_id)}
+          active={@live_action == :bin} />
+        <SidebarHelpers.break_item />
+        <SidebarHelpers.link_item
+          icon="keyboard-box-fill"
+          label="Keyboard shortcuts (?)"
+          path={Routes.session_path(@socket, :shortcuts, @session_id)}
+          active={@live_action == :shortcuts} />
+        <SidebarHelpers.user_item
+          current_user={@current_user}
+          path={Routes.session_path(@socket, :user, @session_id)} />
+      </SidebarHelpers.sidebar>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none overflow-y-auto bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">
@@ -125,14 +114,14 @@ defmodule LivebookWeb.SessionLive do
               <%= for section_item <- @data_view.sections_items do %>
                 <button class="text-left hover:text-gray-900 text-gray-500"
                   data-element="sections-list-item"
-                  data-section-id="<%= section_item.id %>">
+                  data-section-id={section_item.id}>
                   <%= section_item.name %>
                 </button>
               <% end %>
             </div>
             <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
               phx-click="append_section">
-              <%= remix_icon("add-line", class: "text-lg align-center") %>
+              <.remix_icon icon="add-line" class="text-lg align-center" />
               <span>New section</span>
             </button>
           </div>
@@ -148,13 +137,13 @@ defmodule LivebookWeb.SessionLive do
             <div class="mt-4 flex flex-col space-y-4">
               <%= for {client_pid, user} <- @data_view.clients do %>
                 <div class="flex items-center justify-between space-x-2"
-                  id="clients-list-item-<%= inspect(client_pid) %>"
+                  id={"clients-list-item-#{inspect(client_pid)}"}
                   data-element="clients-list-item"
-                  data-client-pid="<%= inspect(client_pid) %>">
+                  data-client-pid={inspect(client_pid)}>
                   <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
-                    <%= if client_pid == @self, do: "disabled" %>
+                    disabled={client_pid == @self}
                     data-element="client-link">
-                    <%= render_user_avatar(user, class: "h-7 w-7 flex-shrink-0", text_class: "text-xs") %>
+                    <.user_avatar user={user} class="h-7 w-7 flex-shrink-0" text_class="text-xs" />
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>
@@ -162,14 +151,14 @@ defmodule LivebookWeb.SessionLive do
                       data-element="client-follow-toggle"
                       data-meta="follow">
                       <button class="icon-button">
-                        <%= remix_icon("pushpin-line", class: "text-lg") %>
+                        <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
                     </span>
                     <span class="tooltip left" aria-label="Unfollow this user"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
                       <button class="icon-button">
-                        <%= remix_icon("pushpin-fill", class: "text-lg") %>
+                        <.remix_icon icon="pushpin-fill" class="text-lg" />
                       </button>
                     </span>
                   <% end %>
@@ -192,23 +181,23 @@ defmodule LivebookWeb.SessionLive do
               data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
             <div class="relative" id="session-menu" phx-hook="Menu" data-element="menu">
               <button class="icon-button" data-toggle>
-                <%= remix_icon("more-2-fill", class: "text-xl") %>
+                <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
               <div class="menu" data-content>
                 <button class="menu__item text-gray-500"
                   phx-click="fork_session">
-                  <%= remix_icon("git-branch-line") %>
+                  <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
-                <%= link to: live_dashboard_process_path(@socket, @session_pid),
-                      class: "menu__item text-gray-500",
-                      target: "_blank" do %>
-                  <%= remix_icon("dashboard-2-line") %>
+                <a class="menu__item text-gray-500"
+                  href={live_dashboard_process_path(@socket, @session_pid)}
+                  target="_blank">
+                  <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
-                <% end %>
+                </a>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
                       class: "menu__item text-red-600" do %>
-                  <%= remix_icon("close-circle-line") %>
+                  <.remix_icon icon="close-circle-line" />
                   <span class="font-medium">Close</span>
                 <% end %>
               </div>
@@ -237,13 +226,16 @@ defmodule LivebookWeb.SessionLive do
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
         <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
               session_id: @session_id,
-              data_view: @data_view %>
+              path: @data_view.path,
+              dirty: @data_view.dirty,
+              runtime: @data_view.runtime,
+              global_evaluation_status: @data_view.global_evaluation_status %>
       </div>
     </div>
 
     <%= if @live_action == :user do %>
       <%= live_modal LivebookWeb.UserComponent,
-            id: :user_modal,
+            id: "user",
             modal_class: "w-full max-w-sm",
             user: @current_user,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
@@ -251,7 +243,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :runtime_settings do %>
       <%= live_modal LivebookWeb.SessionLive.RuntimeComponent,
-            id: :runtime_settings_modal,
+            id: "runtime-settings",
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -260,7 +252,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :file_settings do %>
       <%= live_modal LivebookWeb.SessionLive.PersistenceComponent,
-            id: :runtime_settings_modal,
+            id: "persistence",
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
@@ -270,7 +262,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :shortcuts do %>
       <%= live_modal LivebookWeb.SessionLive.ShortcutsComponent,
-            id: :shortcuts_modal,
+            id: "shortcuts",
             modal_class: "w-full max-w-6xl",
             platform: @platform,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
@@ -278,7 +270,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :cell_settings do %>
       <%= live_modal settings_component_for(@cell),
-            id: :cell_settings_modal,
+            id: "cell-settings",
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
             cell: @cell,
@@ -287,7 +279,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :cell_upload do %>
       <%= live_modal LivebookWeb.SessionLive.CellUploadComponent,
-            id: :cell_upload_modal,
+            id: "cell-upload",
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
             cell: @cell,
@@ -297,7 +289,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :delete_section do %>
       <%= live_modal LivebookWeb.SessionLive.DeleteSectionComponent,
-            id: :delete_section_modal,
+            id: "delete-section",
             modal_class: "w-full max-w-xl",
             session_id: @session_id,
             section: @section,
@@ -307,7 +299,7 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :bin do %>
       <%= live_modal LivebookWeb.SessionLive.BinComponent,
-            id: :bin_modal,
+            id: "bin",
             modal_class: "w-full max-w-4xl",
             session_id: @session_id,
             bin_entries: @data_view.bin_entries,

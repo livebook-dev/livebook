@@ -34,14 +34,14 @@ defmodule Livebook.MixProject do
 
   defp deps do
     [
-      {:phoenix, "~> 1.5.7"},
+      {:phoenix, "1.6.0-dev", github: "phoenixframework/phoenix", override: true},
       # We point LV to an exact version, because we install
       # the npm package from there to bundle all the assets,
       # so the Elixir-side version must match
-      {:phoenix_live_view, "0.15.7"},
-      {:phoenix_live_dashboard, "~> 0.4"},
+      {:phoenix_live_view, "0.16.0-dev", github: "phoenixframework/phoenix_live_view"},
+      {:phoenix_live_dashboard, "0.5.0-dev", github: "phoenixframework/phoenix_live_dashboard"},
       {:floki, ">= 0.27.0", only: :test},
-      {:phoenix_html, "~> 2.11"},
+      {:phoenix_html, "3.0.0-dev", github: "phoenixframework/phoenix_html", override: true},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},

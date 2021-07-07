@@ -1,6 +1,6 @@
 defmodule LivebookWeb.Helpers do
-  import Phoenix.LiveView.Helpers
-  import Phoenix.HTML.Tag
+  use Phoenix.Component
+
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -14,7 +14,7 @@ defmodule LivebookWeb.Helpers do
     modal_class = Keyword.get(opts, :modal_class)
 
     modal_opts = [
-      id: :modal,
+      id: "modal",
       return_to: path,
       modal_class: modal_class,
       component: component,
@@ -40,15 +40,6 @@ defmodule LivebookWeb.Helpers do
   defp linux?(user_agent), do: String.match?(user_agent, ~r/Linux/)
   defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
-
-  @doc """
-  Returns [Remix](https://remixicon.com) icon tag.
-  """
-  def remix_icon(name, attrs \\ []) do
-    icon_class = "ri-#{name}"
-    attrs = Keyword.update(attrs, :class, icon_class, fn class -> "#{icon_class} #{class}" end)
-    content_tag(:i, "", attrs)
-  end
 
   defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI
 
@@ -83,7 +74,7 @@ defmodule LivebookWeb.Helpers do
   Returns path to specific process dialog within LiveDashboard.
   """
   def live_dashboard_process_path(socket, pid) do
-    pid_str = Phoenix.LiveDashboard.Helpers.encode_pid(pid)
+    pid_str = Phoenix.LiveDashboard.PageBuilder.encode_pid(pid)
     Routes.live_dashboard_path(socket, :page, node(), "processes", info: pid_str)
   end
 
@@ -116,15 +107,40 @@ defmodule LivebookWeb.Helpers do
   end
 
   @doc """
-  Renders a list of select input options with the given one selected.
-  """
-  def render_select(name, options, selected) do
-    assigns = %{name: name, options: options, selected: selected}
+  Renders [Remix](https://remixicon.com) icon.
 
-    ~L"""
-    <select class="input" name=<%= @name %>>
-      <%= for {value, label} <- options do %>
-        <%= tag :option, value: value, selected: value == selected %>
+  ## Examples
+
+      <.remix_icon icon="cpu-line" />
+
+      <.remix_icon icon="cpu-line" class="align-middle mr-1" />
+  """
+  def remix_icon(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:class, fn -> "" end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
+
+    ~H"""
+    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
+    """
+  end
+
+  @doc """
+  Renders a list of select input options with the given one selected.
+
+  ## Examples
+
+      <.select
+        name="language"
+        selected={@language}
+        options={[en: "English", pl: "Polski", fr: "Français"]} />
+  """
+  def select(assigns) do
+    ~H"""
+    <select class="input" name={@name}>
+      <%= for {value, label} <- @options do %>
+        <option value={value} selected={value == @selected}>
           <%= label %>
         </option>
       <% end %>
@@ -134,23 +150,47 @@ defmodule LivebookWeb.Helpers do
 
   @doc """
   Renders a checkbox input styled as a switch.
-  """
-  def render_switch(name, checked, label, opts \\ []) do
-    assigns = %{
-      name: name,
-      checked: checked,
-      label: label,
-      disabled: Keyword.get(opts, :disabled, false)
-    }
 
-    ~L"""
+  ## Examples
+
+      <.switch_checkbox
+        name="likes_cats"
+        label="I very much like cats"
+        checked={@likes_cats} />
+  """
+  def switch_checkbox(assigns) do
+    assigns = assign_new(assigns, :disabled, fn -> false end)
+
+    ~H"""
     <div class="flex space-x-3 items-center justify-between">
       <span class="text-gray-700"><%= @label %></span>
-      <label class="switch-button <%= if(@disabled, do: "switch-button--disabled") %>">
-        <%= tag :input, class: "switch-button__checkbox", type: "checkbox", name: @name, checked: @checked %>
+      <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
+        <input class="switch-button__checkbox" type="checkbox" name={@name} checked={@checked} />
         <div class="switch-button__bg"></div>
       </label>
     </div>
+    """
+  end
+
+  @doc """
+  Renders a choice button that is either active or not.
+
+  ## Examples
+
+      <.choice_button active={@tab == "my_tab"} phx-click="set_my_tab">
+        My tab
+      </.choice_button>
+  """
+  def choice_button(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:class, fn -> "" end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:active, :class]))
+
+    ~H"""
+    <button class={"choice-button #{if(@active, do: "active")} #{@class}"} {@attrs}>
+      <%= render_block(@inner_block) %>
+    </button>
     """
   end
 end

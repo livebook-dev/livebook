@@ -10,7 +10,7 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex-col space-y-5">
       <p class="text-gray-700">
         Run the notebook code within the Livebook node itself.

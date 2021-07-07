@@ -30,7 +30,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="p-6 max-w-4xl flex flex-col space-y-3">
       <h3 class="text-2xl font-semibold text-gray-800">
         Bin
@@ -42,18 +42,18 @@ defmodule LivebookWeb.SessionLive.BinComponent do
         <%= if @bin_entries == [] do %>
           <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
             <div>
-              <%= remix_icon("windy-line", class: "text-gray-400 text-xl") %>
+              <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
             </div>
             <div class="text-gray-600">
               There are currently no cells in the bin.
             </div>
           </div>
         <% else %>
-          <form phx-change="search" onsubmit="return false" phx-target="<%= @myself %>">
+          <form phx-change="search" onsubmit="return false" phx-target={@myself}>
             <input class="input"
               type="text"
               name="search"
-              value="<%= @search %>"
+              value={@search}
               placeholder="Search"
               autocomplete="off"
               spellcheck="false"
@@ -67,40 +67,38 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     <%= index %>.
                     <span class="font-semibold"><%= Cell.type(cell) |> Atom.to_string() |> String.capitalize() %></span> cell
                     deleted from <span class="font-semibold">“<%= entry.section_name %>”</span> section
-                    <span class="font-semibold">
-                      <%= entry.deleted_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words() %> ago
-                    </span>
+                    <span class="font-semibold"><%= format_date_relatively(entry.deleted_at) %></span>
                   </p>
                   <div class="flex justify-end space-x-2">
                     <span class="tooltip left" aria-label="Copy source">
                       <button class="icon-button"
-                        id="bin-cell-<%= cell.id %>-clipcopy"
+                        id={"bin-cell-#{cell.id}-clipcopy"}
                         phx-hook="ClipCopy"
-                        data-target-id="bin-cell-<%= cell.id %>-source">
-                        <%= remix_icon("clipboard-line", class: "text-lg") %>
+                        data-target-id={"bin-cell-#{cell.id}-source"}>
+                        <.remix_icon icon="clipboard-line" class="text-lg" />
                       </button>
                     </span>
                     <span class="tooltip left" aria-label="Restore">
                       <button class="icon-button"
                         phx-click="restore"
-                        phx-value-cell_id="<%= entry.cell.id %>"
-                        phx-target="<%= @myself %>">
-                        <%= remix_icon("arrow-go-back-line", class: "text-lg") %>
+                        phx-value-cell_id={entry.cell.id}
+                        phx-target={@myself}>
+                        <.remix_icon icon="arrow-go-back-line" class="text-lg" />
                       </button>
                     </span>
                   </div>
                 </div>
                 <div class="markdown">
                   <pre><code
-                    id="bin-cell-<%= cell.id %>-source"
+                    id={"bin-cell-#{cell.id}-source"}
                     phx-hook="Highlight"
-                    data-language="<%= Cell.type(cell) %>"><%= cell.source %></code></pre>
+                    data-language={Cell.type(cell)}><%= cell.source %></code></pre>
                 </div>
               </div>
             <% end %>
             <%= if length(@matching_entries) > @limit do %>
               <div class="flex justify-center">
-                <button class="button button-outlined-gray" phx-click="more" phx-target="<%= @myself %>">
+                <button class="button button-outlined-gray" phx-click="more" phx-target={@myself}>
                   Older
                 </button>
               </div>
@@ -110,6 +108,11 @@ defmodule LivebookWeb.SessionLive.BinComponent do
       </div>
     </div>
     """
+  end
+
+  defp format_date_relatively(date) do
+    time_words = date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
+    time_words <> " ago"
   end
 
   @impl true

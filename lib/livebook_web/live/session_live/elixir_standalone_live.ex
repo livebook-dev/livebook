@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
 
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex-col space-y-5">
       <%= if @error_message do %>
         <div class="error-box">

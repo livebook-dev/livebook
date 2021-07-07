@@ -1,30 +1,25 @@
 defmodule LivebookWeb.UserHelpers do
-  import Phoenix.LiveView
-  import Phoenix.LiveView.Helpers
+  use Phoenix.Component
 
   alias Livebook.Users.User
 
   @doc """
-  Renders user avatar,
+  Renders user avatar.
 
-  ## Options
+  ## Examples
 
-    * `:class` - class added to the avatar box
-
-    * `:text_class` - class added to the avatar text
+      <.user_avatar user={@user} class="h-20 w-20" text_class="text-3xl" />
   """
-  def render_user_avatar(user, opts \\ []) do
-    assigns = %{
-      name: user.name,
-      hex_color: user.hex_color,
-      class: Keyword.get(opts, :class, "w-full h-full"),
-      text_class: Keyword.get(opts, :text_class)
-    }
+  def user_avatar(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:class, fn -> "w-full h-full" end)
+      |> assign_new(:text_class, fn -> "" end)
 
-    ~L"""
-    <div class="rounded-full <%= @class %> flex items-center justify-center" style="background-color: <%= @hex_color %>">
-      <div class="<%= @text_class %> text-gray-100 font-semibold">
-        <%= avatar_text(@name) %>
+    ~H"""
+    <div class={"#{@class} rounded-full flex items-center justify-center"} style={"background-color: #{@user.hex_color}"}>
+      <div class={"#{@text_class} text-gray-100 font-semibold"}>
+        <%= avatar_text(@user.name) %>
       </div>
     </div>
     """

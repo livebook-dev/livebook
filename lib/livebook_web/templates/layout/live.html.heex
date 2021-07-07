@@ -4,7 +4,7 @@
       <div class="flex items-center space-x-2 rounded-lg px-4 py-2 bg-blue-100 text-blue-600 hover:opacity-75 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
         phx-value-key="info">
-        <%= remix_icon("information-line", class: "text-2xl") %>
+        <.remix_icon icon="information-line" class="text-2xl" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :info) %></span>
       </div>
     <% end %>
@@ -13,7 +13,7 @@
       <div class="flex items-center space-x-2 rounded-lg px-4 py-2 bg-red-100 text-red-400 hover:opacity-75 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
         phx-value-key="error">
-        <%= remix_icon("error-warning-line", class: "text-2xl") %>
+        <.remix_icon icon="error-warning-line" class="text-2xl" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :error) %></span>
       </div>
     <% end %>
