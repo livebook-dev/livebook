@@ -14,7 +14,6 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
         Import notebook by directly pasting the <span class="font-semibold">live markdown</span> content.
       </p>
       <.form let={f} for={:data}
-        url="#"
         phx-submit="import"
         phx-change="validate"
         phx-target={@myself}

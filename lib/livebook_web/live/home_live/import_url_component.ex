@@ -21,7 +21,6 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
         Paste the URL to a .livemd file, to a GitHub file, or to a Gist to import it.
       </p>
       <.form let={f} for={:data}
-        url="#"
         phx-submit="import"
         phx-change="validate"
         phx-target={@myself}

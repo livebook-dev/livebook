@@ -28,7 +28,6 @@ defmodule LivebookWeb.UserComponent do
         <.user_avatar user={@preview_user} class="h-20 w-20" text_class="text-3xl" />
       </div>
       <.form let={f} for={:data}
-        url="#"
         phx-submit="save"
         phx-change="validate"
         phx-target={@myself}

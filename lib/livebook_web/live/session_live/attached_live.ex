@@ -40,7 +40,6 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Then enter the connection information below:
       </p>
       <.form let={f} for={:data}
-        url="#"
         phx-submit="init"
         phx-change="validate"
         autocomplete="off"
