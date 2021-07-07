@@ -39,11 +39,12 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp render_cell(%Cell.Elixir{} = cell) do
     code = get_elixir_cell_code(cell)
+    delimiter = code_block_delimiter(code)
 
     """
-    ```elixir
+    #{delimiter}elixir
     #{code}
-    ```\
+    #{delimiter}\
     """
     |> prepend_metadata(cell.metadata)
   end
@@ -117,10 +118,21 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp format_code(code) do
     try do
-      Code.format_string!(code)
+      code
+      |> Code.format_string!()
+      |> IO.iodata_to_binary()
     rescue
       _ -> code
     end
+  end
+
+  defp code_block_delimiter(code) do
+    max_streak =
+      Regex.scan(~r/`{3,}/, code)
+      |> Enum.map(fn [string] -> byte_size(string) end)
+      |> Enum.max(&>=/2, fn -> 2 end)
+
+    String.duplicate("`", max_streak + 1)
   end
 
   defp put_truthy(map, entries) do

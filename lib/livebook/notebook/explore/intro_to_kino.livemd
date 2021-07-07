@@ -154,7 +154,7 @@ most busy processes!
 Sometimes you may want to render arbitrary content as rich-text,
 that's when `Kino.Markdown.new/1` comes into play:
 
-```elixir
+````elixir
 """
 # Example
 
@@ -174,7 +174,7 @@ A regular Markdown file.
 | 2  | Erlang | https://www.erlang.org  |
 """
 |> Kino.Markdown.new()
-```
+````
 
 ## Kino.render/1
 
