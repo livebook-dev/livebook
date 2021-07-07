@@ -129,11 +129,10 @@ defmodule Livebook.LiveMarkdown.Export do
   defp code_block_delimiter(code) do
     max_streak =
       Regex.scan(~r/`{3,}/, code)
-      |> Enum.map(fn [string] -> String.length(string) end)
-      |> Enum.max(&>=/2, fn -> 0 end)
+      |> Enum.map(fn [string] -> byte_size(string) end)
+      |> Enum.max(&>=/2, fn -> 2 end)
 
-    backticks = max(max_streak + 1, 3)
-    String.duplicate("`", backticks)
+    String.duplicate("`", max_streak + 1)
   end
 
   defp put_truthy(map, entries) do
