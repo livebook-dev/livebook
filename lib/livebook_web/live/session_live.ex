@@ -987,7 +987,8 @@ defmodule LivebookWeb.SessionLive do
         case Cell.Input.validate(cell) do
           :ok -> nil
           {:error, error} -> error
-        end
+        end,
+      props: cell.props
     }
   end
 

@@ -360,6 +360,51 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "input cell settings" do
+    test "setting input cell attributes updates data", %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_input_cell(session_id, section_id)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}/cell-settings/#{cell_id}")
+
+      form_selector = ~s/[role="dialog"] form/
+
+      assert view
+             |> element(form_selector)
+             |> render_change(%{attrs: %{type: "range"}}) =~
+               ~s{<div class="input-label">Min</div>}
+
+      view
+      |> element(form_selector)
+      |> render_change(%{attrs: %{name: "length"}})
+
+      view
+      |> element(form_selector)
+      |> render_change(%{attrs: %{props: %{min: "10"}}})
+
+      view
+      |> element(form_selector)
+      |> render_submit()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       %{
+                         id: ^cell_id,
+                         type: :range,
+                         name: "length",
+                         props: %{min: 10, max: 100, step: 1}
+                       }
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session_id)
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_id) do

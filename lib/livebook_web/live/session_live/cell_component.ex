@@ -115,24 +115,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= @cell_view.name %>
         </div>
 
-        <%= if @cell_view.input_type == :textarea do %>
-          <textarea
-            data-element="input"
-            class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
-            name="value"
-            spellcheck="false"
-            tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
-        <% else %>
-          <input type={html_input_type(@cell_view.input_type)}
-            data-element="input"
-            class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
-            name="value"
-            value={@cell_view.value}
-            phx-debounce="300"
-            spellcheck="false"
-            autocomplete="off"
-            tabindex="-1" />
-        <% end %>
+        <.cell_input cell_view={@cell_view} />
 
         <%= if @cell_view.error do %>
           <div class="input-error">
@@ -143,6 +126,58 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </.cell_body>
     """
   end
+
+  defp cell_input(%{cell_view: %{input_type: :textarea}} = assigns) do
+    ~H"""
+    <textarea
+      data-element="input"
+      class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
+      name="value"
+      spellcheck="false"
+      tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
+    """
+  end
+
+  defp cell_input(%{cell_view: %{input_type: :range}} = assigns) do
+    ~H"""
+    <div class="flex items-center space-x-2">
+      <div><%= @cell_view.props.min %></div>
+      <input type="range"
+        data-element="input"
+        class="input-range"
+        name="value"
+        value={@cell_view.value}
+        phx-debounce="300"
+        spellcheck="false"
+        autocomplete="off"
+        tabindex="-1"
+        min={@cell_view.props.min}
+        max={@cell_view.props.max}
+        step={@cell_view.props.step} />
+      <div><%= @cell_view.props.max %></div>
+    </div>
+    """
+  end
+
+  defp cell_input(assigns) do
+    ~H"""
+    <input type={html_input_type(@cell_view.input_type)}
+      data-element="input"
+      class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
+      name="value"
+      value={@cell_view.value}
+      phx-debounce="300"
+      spellcheck="false"
+      autocomplete="off"
+      tabindex="-1" />
+    """
+  end
+
+  defp html_input_type(:password), do: "password"
+  defp html_input_type(:number), do: "number"
+  defp html_input_type(:color), do: "color"
+  defp html_input_type(:range), do: "range"
+  defp html_input_type(_), do: "text"
 
   defp cell_body(assigns) do
     ~H"""
@@ -433,10 +468,4 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
     """
   end
-
-  defp html_input_type(:password), do: "password"
-  defp html_input_type(:number), do: "number"
-  defp html_input_type(:color), do: "color"
-  defp html_input_type(:range), do: "range"
-  defp html_input_type(_), do: "text"
 end
