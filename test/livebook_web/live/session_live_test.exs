@@ -360,6 +360,174 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "input cell settings" do
+    test "setting input cell attributes updates data", %{conn: conn, session_id: session_id} do
+      section_id = insert_section(session_id)
+      cell_id = insert_input_cell(session_id, section_id)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}/cell-settings/#{cell_id}")
+
+      form_selector = ~s/[role="dialog"] form/
+
+      assert view
+             |> element(form_selector)
+             |> render_change(%{attrs: %{type: "range"}}) =~
+               ~s{<div class="input-label">Min</div>}
+
+      view
+      |> element(form_selector)
+      |> render_change(%{attrs: %{name: "length"}})
+
+      view
+      |> element(form_selector)
+      |> render_change(%{attrs: %{props: %{min: "10"}}})
+
+      view
+      |> element(form_selector)
+      |> render_submit()
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       %{
+                         id: ^cell_id,
+                         type: :range,
+                         name: "length",
+                         props: %{min: 10, max: 100, step: 1}
+                       }
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session_id)
+    end
+  end
+
+  describe "relative paths" do
+    test "renders an info message when the path doesn't have notebook extension",
+         %{conn: conn, session_id: session_id} do
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/document.pdf")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+      assert render(view) =~ "Got unrecognised session path: document.pdf"
+    end
+
+    test "renders an info message when the session has no associated path",
+         %{conn: conn, session_id: session_id} do
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~
+               "Cannot resolve notebook path notebook.livemd, because the current notebook has no file"
+    end
+
+    @tag :tmp_dir
+    test "renders an error message when the relative notebook does not exist",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~
+               "Failed to open #{notebook_path}, reason: no such file or directory"
+    end
+
+    @tag :tmp_dir
+    test "opens a relative notebook if it exists",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      File.write!(notebook_path, "# Sibling notebook")
+
+      assert {:error, {:live_redirect, %{to: _session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~ "Sibling notebook"
+    end
+
+    @tag :tmp_dir
+    test "if the notebook is already open, redirects to the session",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      File.write!(notebook_path, "# Sibling notebook")
+
+      assert {:error, {:live_redirect, %{to: session_path}}} =
+               live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               live(conn, "/sessions/#{session_id}/notebook.livemd")
+    end
+
+    @tag :tmp_dir
+    test "handles nested paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      parent_path = Path.join(tmp_dir, "parent.livemd")
+      child_dir = Path.join(tmp_dir, "dir")
+      child_path = Path.join(child_dir, "child.livemd")
+
+      Session.set_path(session_id, parent_path)
+      wait_for_session_update(session_id)
+
+      File.mkdir!(child_dir)
+      File.write!(child_path, "# Child notebook")
+
+      {:ok, view, _} =
+        conn
+        |> live("/sessions/#{session_id}/dir/child.livemd")
+        |> follow_redirect(conn)
+
+      assert render(view) =~ "Child notebook"
+    end
+
+    @tag :tmp_dir
+    test "handles parent paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      parent_path = Path.join(tmp_dir, "parent.livemd")
+      child_dir = Path.join(tmp_dir, "dir")
+      child_path = Path.join(child_dir, "child.livemd")
+
+      File.mkdir!(child_dir)
+      Session.set_path(session_id, child_path)
+      wait_for_session_update(session_id)
+
+      File.write!(parent_path, "# Parent notebook")
+
+      {:ok, view, _} =
+        conn
+        |> live("/sessions/#{session_id}/__parent__/parent.livemd")
+        |> follow_redirect(conn)
+
+      assert render(view) =~ "Parent notebook"
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_id) do

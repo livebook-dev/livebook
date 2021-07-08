@@ -18,4 +18,28 @@ defmodule LivebookWeb.SessionHelpers do
         put_flash(socket, :error, "Failed to create session: #{reason}")
     end
   end
+
+  @doc """
+  Formats the given list of notebook import messages and puts
+  into the info flash.
+  """
+  @spec put_import_flash_messages(Phoenix.LiveView.Socket.t(), list(String.t())) ::
+          Phoenix.LiveView.Socket.t()
+  def put_import_flash_messages(socket, messages)
+
+  def put_import_flash_messages(socket, []), do: socket
+
+  def put_import_flash_messages(socket, messages) do
+    list =
+      messages
+      |> Enum.map(fn message -> ["- ", message] end)
+      |> Enum.intersperse("\n")
+
+    flash =
+      IO.iodata_to_binary([
+        "We found problems while importing the file and tried to autofix them:\n" | list
+      ])
+
+    put_flash(socket, :info, flash)
+  end
 end

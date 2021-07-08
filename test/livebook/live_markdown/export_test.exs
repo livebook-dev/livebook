@@ -60,6 +60,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     source: """
                     IO.gets("length: ")
                     """
+                },
+                %{
+                  Notebook.Cell.new(:input)
+                  | type: :range,
+                    name: "length",
+                    value: "100",
+                    props: %{min: 50, max: 150, step: 2}
                 }
               ]
           }
@@ -98,6 +105,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```elixir
     IO.gets("length: ")
     ```
+
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
     """
 
     document = Export.notebook_to_markdown(notebook)
@@ -384,7 +393,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "save password as empty string" do
+  test "saves password as empty string" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",

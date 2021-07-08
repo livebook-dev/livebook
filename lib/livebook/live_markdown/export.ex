@@ -59,7 +59,7 @@ defmodule Livebook.LiveMarkdown.Export do
         name: cell.name,
         value: value
       }
-      |> put_truthy(reactive: cell.reactive)
+      |> put_unless_implicit(reactive: cell.reactive, props: cell.props)
       |> Jason.encode!()
 
     "<!-- livebook:#{json} -->"
@@ -135,12 +135,12 @@ defmodule Livebook.LiveMarkdown.Export do
     String.duplicate("`", max_streak + 1)
   end
 
-  defp put_truthy(map, entries) do
+  defp put_unless_implicit(map, entries) do
     Enum.reduce(entries, map, fn {key, value}, map ->
-      if value do
-        Map.put(map, key, value)
-      else
+      if value in [false, %{}] do
         map
+      else
+        Map.put(map, key, value)
       end
     end)
   end
