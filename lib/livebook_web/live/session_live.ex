@@ -328,65 +328,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"path" => path}, _url, %{assigns: %{live_action: :catch_all}} = socket) do
-    cond do
-      String.ends_with?(path, LiveMarkdown.extension()) ->
-        {:noreply, handle_relative_notebook_path(path, socket)}
-
-      true ->
-        {:noreply,
-         socket
-         |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
-         |> put_flash(
-           :error,
-           "Got unrecognised session path: #{path}\nIf you want to link another notebook, make sure to include the .livemd extension"
-         )}
-    end
-  end
-
-  defp handle_relative_notebook_path(relative_path, socket) do
-    case socket.private.data.path do
-      nil ->
-        socket
-        |> put_flash(
-          :info,
-          "Cannot resolve notebook path #{relative_path}, because the current notebook has no file"
-        )
-        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
-
-      path ->
-        target_path = path |> Path.dirname() |> Path.join(relative_path)
-
-        case session_id_by_path(target_path) do
-          {:ok, session_id} ->
-            push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
-
-          :error ->
-            case File.read(target_path) do
-              {:ok, content} ->
-                {notebook, messages} = LiveMarkdown.Import.notebook_from_markdown(content)
-                socket = put_import_flash_messages(socket, messages)
-                create_session(socket, notebook: notebook, path: target_path)
-
-              {:error, error} ->
-                message = :file.format_error(error) |> IO.inspect()
-
-                socket
-                |> put_flash(
-                  :error,
-                  "Failed to open #{target_path}, reason: #{message}"
-                )
-                |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
-            end
-        end
-    end
-  end
-
-  defp session_id_by_path(path) do
-    session_summaries = SessionSupervisor.get_session_summaries()
-
-    Enum.find_value(session_summaries, :error, fn summary ->
-      summary.path == path && {:ok, summary.session_id}
-    end)
+    {:noreply, handle_relative_path(socket, path)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -772,6 +714,67 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp handle_relative_path(socket, path) do
+    cond do
+      String.ends_with?(path, LiveMarkdown.extension()) ->
+        handle_relative_notebook_path(socket, path)
+
+      true ->
+        socket
+        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+        |> put_flash(
+          :error,
+          "Got unrecognised session path: #{path}\nIf you want to link another notebook, make sure to include the .livemd extension"
+        )
+    end
+  end
+
+  defp handle_relative_notebook_path(socket, relative_path) do
+    case socket.private.data.path do
+      nil ->
+        socket
+        |> put_flash(
+          :info,
+          "Cannot resolve notebook path #{relative_path}, because the current notebook has no file"
+        )
+        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+
+      path ->
+        target_path = path |> Path.dirname() |> Path.join(relative_path)
+        maybe_open_notebook(socket, target_path)
+    end
+  end
+
+  defp maybe_open_notebook(socket, path) do
+    if session_id = session_id_by_path(path) do
+      push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
+    else
+      case File.read(path) do
+        {:ok, content} ->
+          {notebook, messages} = LiveMarkdown.Import.notebook_from_markdown(content)
+
+          socket
+          |> put_import_flash_messages(messages)
+          |> create_session(notebook: notebook, path: path)
+
+        {:error, error} ->
+          message = :file.format_error(error)
+
+          socket
+          |> put_flash(:error, "Failed to open #{path}, reason: #{message}")
+          |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+      end
+    end
+  end
+
+  defp session_id_by_path(path) do
+    session_summaries = SessionSupervisor.get_session_summaries()
+
+    Enum.find_value(session_summaries, fn summary ->
+      summary.path == path && summary.session_id
+    end)
+  end
 
   defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
     push_event(socket, "client_joined", %{client: client_info(client_pid, user)})

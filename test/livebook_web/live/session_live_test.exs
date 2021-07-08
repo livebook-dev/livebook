@@ -405,6 +405,89 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "relative paths" do
+    test "renders an info message when the path doesn't have notebook extension",
+         %{conn: conn, session_id: session_id} do
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/document.pdf")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+      assert render(view) =~ "Got unrecognised session path: document.pdf"
+    end
+
+    test "renders an info message when the session has no associated path",
+         %{conn: conn, session_id: session_id} do
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~
+               "Cannot resolve notebook path notebook.livemd, because the current notebook has no file"
+    end
+
+    @tag :tmp_dir
+    test "renders an error message when the relative notebook does not exist",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~
+               "Failed to open #{notebook_path}, reason: no such file or directory"
+    end
+
+    @tag :tmp_dir
+    test "opens a relative notebook if it exists",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      File.write!(notebook_path, "# Sibling notebook")
+
+      assert {:error, {:live_redirect, %{to: _session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~ "Sibling notebook"
+    end
+
+    @tag :tmp_dir
+    test "if the notebook is already open, redirects to the session",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      File.write!(notebook_path, "# Sibling notebook")
+
+      assert {:error, {:live_redirect, %{to: session_path}}} =
+               live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               live(conn, "/sessions/#{session_id}/notebook.livemd")
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_id) do
