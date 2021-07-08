@@ -311,22 +311,6 @@ defmodule LivebookWeb.HomeLive do
     LiveMarkdown.Import.notebook_from_markdown(content)
   end
 
-  defp put_import_flash_messages(socket, []), do: socket
-
-  defp put_import_flash_messages(socket, messages) do
-    list =
-      messages
-      |> Enum.map(fn message -> ["- ", message] end)
-      |> Enum.intersperse("\n")
-
-    flash =
-      IO.iodata_to_binary([
-        "We found problems while importing the file and tried to autofix them:\n" | list
-      ])
-
-    put_flash(socket, :info, flash)
-  end
-
   defp session_id_by_path(path, session_summaries) do
     summary = Enum.find(session_summaries, &(&1.path == path))
     summary.session_id
