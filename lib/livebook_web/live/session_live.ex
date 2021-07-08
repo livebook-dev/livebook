@@ -2,10 +2,11 @@ defmodule LivebookWeb.SessionLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.UserHelpers
+  import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [access_by_id: 1]
 
   alias LivebookWeb.SidebarHelpers
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
 
   @impl true
@@ -326,6 +327,21 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
   end
 
+  def handle_params(
+        %{"path_parts" => path_parts},
+        _url,
+        %{assigns: %{live_action: :catch_all}} = socket
+      ) do
+    path_parts =
+      Enum.map(path_parts, fn
+        "__parent__" -> ".."
+        part -> part
+      end)
+
+    path = Path.join(path_parts)
+    {:noreply, handle_relative_path(socket, path)}
+  end
+
   def handle_params(_params, _url, socket) do
     {:noreply, socket}
   end
@@ -608,7 +624,7 @@ defmodule LivebookWeb.SessionLive do
     data = Session.get_data(socket.assigns.session_id)
     notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
-    create_session(socket, notebook: notebook, copy_images_from: images_dir)
+    {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
   end
 
   def handle_event("location_report", report, socket) do
@@ -633,16 +649,6 @@ defmodule LivebookWeb.SessionLive do
       end
 
     {:reply, %{code: formatted}, socket}
-  end
-
-  defp create_session(socket, opts) do
-    case SessionSupervisor.create_session(opts) do
-      {:ok, id} ->
-        {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, id))}
-
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Failed to create a notebook: #{reason}")}
-    end
   end
 
   @impl true
@@ -719,6 +725,67 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp handle_relative_path(socket, path) do
+    cond do
+      String.ends_with?(path, LiveMarkdown.extension()) ->
+        handle_relative_notebook_path(socket, path)
+
+      true ->
+        socket
+        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+        |> put_flash(
+          :error,
+          "Got unrecognised session path: #{path}\nIf you want to link another notebook, make sure to include the .livemd extension"
+        )
+    end
+  end
+
+  defp handle_relative_notebook_path(socket, relative_path) do
+    case socket.private.data.path do
+      nil ->
+        socket
+        |> put_flash(
+          :info,
+          "Cannot resolve notebook path #{relative_path}, because the current notebook has no file"
+        )
+        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+
+      path ->
+        target_path = path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
+        maybe_open_notebook(socket, target_path)
+    end
+  end
+
+  defp maybe_open_notebook(socket, path) do
+    if session_id = session_id_by_path(path) do
+      push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
+    else
+      case File.read(path) do
+        {:ok, content} ->
+          {notebook, messages} = LiveMarkdown.Import.notebook_from_markdown(content)
+
+          socket
+          |> put_import_flash_messages(messages)
+          |> create_session(notebook: notebook, path: path)
+
+        {:error, error} ->
+          message = :file.format_error(error)
+
+          socket
+          |> put_flash(:error, "Failed to open #{path}, reason: #{message}")
+          |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+      end
+    end
+  end
+
+  defp session_id_by_path(path) do
+    session_summaries = SessionSupervisor.get_session_summaries()
+
+    Enum.find_value(session_summaries, fn summary ->
+      summary.path == path && summary.session_id
+    end)
+  end
 
   defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
     push_event(socket, "client_joined", %{client: client_info(client_pid, user)})

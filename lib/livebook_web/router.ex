@@ -23,9 +23,11 @@ defmodule LivebookWeb.Router do
     live "/home/user-profile", HomeLive, :user
     live "/home/import/:tab", HomeLive, :import
     live "/home/sessions/:session_id/close", HomeLive, :close_session
+
     live "/explore", ExploreLive, :page
     live "/explore/user-profile", ExploreLive, :user
     live "/explore/notebooks/:slug", ExploreLive, :notebook
+
     live "/sessions/:id", SessionLive, :page
     live "/sessions/:id/user-profile", SessionLive, :user
     live "/sessions/:id/shortcuts", SessionLive, :shortcuts
@@ -36,6 +38,7 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
     live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
     get "/sessions/:id/images/:image", SessionController, :show_image
+    live "/sessions/:id/*path_parts", SessionLive, :catch_all
 
     live_dashboard "/dashboard",
       metrics: LivebookWeb.Telemetry,
