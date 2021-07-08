@@ -4,8 +4,22 @@ import DOMPurify from "dompurify";
 import katex from "katex";
 import { highlight } from "./live_editor/monaco";
 
-// Reuse Monaco highlighter for Markdown code blocks
+// Custom renderer overrides
+const renderer = new marked.Renderer();
+renderer.link = function (href, title, text) {
+  // Browser normalizes URLs with .. so we use a __parent__ modifier
+  // instead and handle it on the server
+  href = href
+    .split("/")
+    .map((part) => (part === ".." ? "__parent__" : part))
+    .join("/");
+
+  return marked.Renderer.prototype.link.call(this, href, title, text);
+};
+
 marked.setOptions({
+  renderer,
+  // Reuse Monaco highlighter for Markdown code blocks
   highlight: (code, lang, callback) => {
     highlight(code, lang)
       .then((html) => callback(null, html))

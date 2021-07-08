@@ -332,6 +332,12 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
+    path_parts =
+      Enum.map(path_parts, fn
+        "__parent__" -> ".."
+        part -> part
+      end)
+
     path = Path.join(path_parts)
     {:noreply, handle_relative_path(socket, path)}
   end
@@ -746,7 +752,7 @@ defmodule LivebookWeb.SessionLive do
         |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
 
       path ->
-        target_path = path |> Path.dirname() |> Path.join(relative_path)
+        target_path = path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
         maybe_open_notebook(socket, target_path)
     end
   end

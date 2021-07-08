@@ -488,24 +488,43 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     @tag :tmp_dir
-    test "handles nested paths",
-         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
-      index_path = Path.join(tmp_dir, "index.livemd")
+    test "handles nested paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      parent_path = Path.join(tmp_dir, "parent.livemd")
       child_dir = Path.join(tmp_dir, "dir")
-      notebook_path = Path.join(child_dir, "notebook.livemd")
+      child_path = Path.join(child_dir, "child.livemd")
 
-      Session.set_path(session_id, index_path)
+      Session.set_path(session_id, parent_path)
       wait_for_session_update(session_id)
 
       File.mkdir!(child_dir)
-      File.write!(notebook_path, "# Sibling notebook")
+      File.write!(child_path, "# Child notebook")
 
       {:ok, view, _} =
         conn
-        |> live("/sessions/#{session_id}/dir/notebook.livemd")
+        |> live("/sessions/#{session_id}/dir/child.livemd")
         |> follow_redirect(conn)
 
-      assert render(view) =~ "Sibling notebook"
+      assert render(view) =~ "Child notebook"
+    end
+
+    @tag :tmp_dir
+    test "handles parent paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      parent_path = Path.join(tmp_dir, "parent.livemd")
+      child_dir = Path.join(tmp_dir, "dir")
+      child_path = Path.join(child_dir, "child.livemd")
+
+      File.mkdir!(child_dir)
+      Session.set_path(session_id, child_path)
+      wait_for_session_update(session_id)
+
+      File.write!(parent_path, "# Parent notebook")
+
+      {:ok, view, _} =
+        conn
+        |> live("/sessions/#{session_id}/__parent__/parent.livemd")
+        |> follow_redirect(conn)
+
+      assert render(view) =~ "Parent notebook"
     end
   end
 
