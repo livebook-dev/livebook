@@ -7,10 +7,10 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/jetbrains-mono";
 
-import "phoenix_html";
-import { Socket } from "phoenix";
+import "../../deps/phoenix_html/priv/static/phoenix_html.js";
+import { Socket } from "../../deps/phoenix/priv/static/phoenix.js";
 import topbar from "topbar";
-import { LiveSocket } from "phoenix_live_view";
+import { LiveSocket } from "../../deps/phoenix_live_view/priv/static/phoenix_live_view.js";
 import ContentEditable from "./content_editable";
 import Cell from "./cell";
 import Session from "./session";
