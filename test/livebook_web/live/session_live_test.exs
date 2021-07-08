@@ -486,6 +486,27 @@ defmodule LivebookWeb.SessionLiveTest do
       assert {:error, {:live_redirect, %{to: ^session_path}}} =
                live(conn, "/sessions/#{session_id}/notebook.livemd")
     end
+
+    @tag :tmp_dir
+    test "handles nested paths",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      child_dir = Path.join(tmp_dir, "dir")
+      notebook_path = Path.join(child_dir, "notebook.livemd")
+
+      Session.set_path(session_id, index_path)
+      wait_for_session_update(session_id)
+
+      File.mkdir!(child_dir)
+      File.write!(notebook_path, "# Sibling notebook")
+
+      {:ok, view, _} =
+        conn
+        |> live("/sessions/#{session_id}/dir/notebook.livemd")
+        |> follow_redirect(conn)
+
+      assert render(view) =~ "Sibling notebook"
+    end
   end
 
   # Helpers

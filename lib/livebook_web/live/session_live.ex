@@ -327,7 +327,12 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
   end
 
-  def handle_params(%{"path" => path}, _url, %{assigns: %{live_action: :catch_all}} = socket) do
+  def handle_params(
+        %{"path_parts" => path_parts},
+        _url,
+        %{assigns: %{live_action: :catch_all}} = socket
+      ) do
+    path = Path.join(path_parts)
     {:noreply, handle_relative_path(socket, path)}
   end
 
