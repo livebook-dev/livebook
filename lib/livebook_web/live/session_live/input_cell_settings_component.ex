@@ -11,6 +11,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       socket
       |> assign(assigns)
       |> assign_new(:name, fn -> cell.name end)
+      |> assign_new(:min, fn -> cell.min end)
+      |> assign_new(:max, fn -> cell.max end)
       |> assign_new(:type, fn -> cell.type end)
       |> assign_new(:reactive, fn -> cell.reactive end)
 
@@ -30,6 +32,9 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
             <div class="input-label">Type</div>
             <.select name="type" selected={@type} options={input_types()} />
           </div>
+
+          <%= render_input_settings(@type, assigns) %>
+
           <div>
             <div class="input-label">Name</div>
             <input type="text" class="input" name="name" value={@name} spellcheck="false" autocomplete="off" autofocus />
@@ -66,10 +71,12 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp params_to_attrs(params) do
     name = params["name"]
+    min = params["min"]
+    max = params["max"]
     type = params["type"] |> String.to_existing_atom()
     reactive = Map.has_key?(params, "reactive")
 
-    %{name: name, type: type, reactive: reactive}
+    %{name: name, min: min, max: max, type: type, reactive: reactive}
   end
 
   defp input_types do

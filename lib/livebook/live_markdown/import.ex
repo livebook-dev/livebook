@@ -202,6 +202,8 @@ defmodule Livebook.LiveMarkdown.Import do
         type: data["type"] |> String.to_existing_atom(),
         name: data["name"],
         value: data["value"],
+        min: data["min"],
+        max: data["max"],
         # Optional flags
         reactive: Map.get(data, "reactive", false)
     }

@@ -59,6 +59,7 @@ defmodule Livebook.LiveMarkdown.Export do
         name: cell.name,
         value: value
       }
+      |> put_keys_type(cell)
       |> put_truthy(reactive: cell.reactive)
       |> Jason.encode!()
 
@@ -144,4 +145,12 @@ defmodule Livebook.LiveMarkdown.Export do
       end
     end)
   end
+
+  defp put_keys_type(%{type: :range} = cell, data) do
+    cell
+    |> Map.put(:min, data.min)
+    |> Map.put(:max, data.max)
+  end
+
+  defp put_keys_type(cell, _data), do: cell
 end

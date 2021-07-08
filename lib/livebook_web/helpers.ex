@@ -193,4 +193,22 @@ defmodule LivebookWeb.Helpers do
     </button>
     """
   end
+
+  def render_input_settings(:range, assigns) do
+    ~L"""
+    <div class="flex flex-row">
+      <div class="w-2/4">
+        <div class="input-label">Min</div>
+        <input type="text" class="input" name="min" value="<%= if @min, do: @min, else: 0 %>" spellcheck="false" autocomplete="off" autofocus />
+      </div>
+
+      <div class="w-2/4 ml-3">
+        <div class="input-label">Max</div>
+        <input type="text" class="input" name="max" value="<%= if @max, do: @max, else: 100 %>" spellcheck="false" autocomplete="off" autofocus />
+      </div>
+    </div>
+    """
+  end
+
+  def render_input_settings(_, _assigns), do: ""
 end

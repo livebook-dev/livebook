@@ -983,6 +983,8 @@ defmodule LivebookWeb.SessionLive do
       input_type: cell.type,
       name: cell.name,
       value: cell.value,
+      min: cell.min,
+      max: cell.max,
       error:
         case Cell.Input.validate(cell) do
           :ok -> nil
