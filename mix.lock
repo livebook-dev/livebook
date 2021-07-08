@@ -14,7 +14,7 @@
   "phoenix_html": {:git, "https://github.com/phoenixframework/phoenix_html.git", "d35bebbea395569573ef0e1757cbec735da0573b", []},
   "phoenix_live_dashboard": {:git, "https://github.com/phoenixframework/phoenix_live_dashboard.git", "1cc67e3c7275b8e68d8201e5dc3660893ae9e4ec", []},
   "phoenix_live_reload": {:hex, :phoenix_live_reload, "1.3.3", "3a53772a6118d5679bf50fc1670505a290e32a1d195df9e069d8c53ab040c054", [:mix], [{:file_system, "~> 0.2.1 or ~> 0.3", [hex: :file_system, repo: "hexpm", optional: false]}, {:phoenix, "~> 1.4", [hex: :phoenix, repo: "hexpm", optional: false]}], "hexpm", "766796676e5f558dbae5d1bdb066849673e956005e3730dfd5affd7a6da4abac"},
-  "phoenix_live_view": {:git, "https://github.com/phoenixframework/phoenix_live_view.git", "92100b658b257a9dffc11a4ca13e4e9054048f61", []},
+  "phoenix_live_view": {:git, "https://github.com/phoenixframework/phoenix_live_view.git", "dcdde14ba2a42908bc7b55d1662e9e33c667ed0e", []},
   "phoenix_pubsub": {:hex, :phoenix_pubsub, "2.0.0", "a1ae76717bb168cdeb10ec9d92d1480fec99e3080f011402c0a2d68d47395ffb", [:mix], [], "hexpm", "c52d948c4f261577b9c6fa804be91884b381a7f8f18450c5045975435350f771"},
   "phoenix_view": {:git, "https://github.com/phoenixframework/phoenix_view.git", "90ce9c9ef5f832f80e956b77d079f79171ed45d0", []},
   "plug": {:hex, :plug, "1.11.1", "f2992bac66fdae679453c9e86134a4201f6f43a687d8ff1cd1b2862d53c80259", [:mix], [{:mime, "~> 1.0", [hex: :mime, repo: "hexpm", optional: false]}, {:plug_crypto, "~> 1.1.1 or ~> 1.2", [hex: :plug_crypto, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "23524e4fefbb587c11f0833b3910bfb414bf2e2534d61928e920f54e3a1b881f"},
