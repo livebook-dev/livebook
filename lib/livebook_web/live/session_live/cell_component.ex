@@ -128,8 +128,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
             name="value"
             value={@cell_view.value}
-            min={@cell_view.min}
-            max={@cell_view.max}
             phx-debounce="300"
             spellcheck="false"
             autocomplete="off"
