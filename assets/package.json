@@ -1,6 +1,5 @@
 {
-  "repository": {},
-  "description": " ",
+  "private": true,
   "license": "MIT",
   "scripts": {
     "deploy": "NODE_ENV=production webpack --mode production",
