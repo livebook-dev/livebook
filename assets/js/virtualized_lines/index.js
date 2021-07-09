@@ -85,7 +85,8 @@ const VirtualizedLines = {
     this.state.virtualizedList.refresh(this.state.contentElement, config);
 
     if (this.props.follow && isAtTheEnd) {
-      this.state.contentElement.scrollTop = this.state.contentElement.scrollHeight;
+      this.state.contentElement.scrollTop =
+        this.state.contentElement.scrollHeight;
     }
   },
 };

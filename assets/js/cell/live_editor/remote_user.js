@@ -51,16 +51,15 @@ class CursorWidget {
 
     this._editor.addContentWidget(this);
 
-    this._onDidChangeModelContentDisposable = this._editor.onDidChangeModelContent(
-      (event) => {
+    this._onDidChangeModelContentDisposable =
+      this._editor.onDidChangeModelContent((event) => {
         // We may receive new cursor position before content update,
         // and the position may be invalid (e.g. column 10, even though the line has currently length 9).
         // If that's the case then we want to update the cursor once the content is updated.
         if (!this._isPositionValid) {
           this.update(this._position);
         }
-      }
-    );
+      });
   }
 
   getId() {
