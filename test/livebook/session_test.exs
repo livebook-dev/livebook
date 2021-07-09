@@ -7,7 +7,7 @@ defmodule Livebook.SessionTest do
   # requires the runtime to synchronously start first,
   # so we use a longer timeout just to make sure the tests
   # pass reliably
-  @evaluation_wait_timeout 2_000
+  @evaluation_wait_timeout 3_000
 
   setup do
     session_id = start_session()
