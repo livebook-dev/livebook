@@ -37,7 +37,7 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
   end
 
   def handle_event("import", %{"data" => %{"content" => content}}, socket) do
-    send(self(), {:import_content, content})
+    send(self(), {:import_content, content, []})
 
     {:noreply, socket}
   end
