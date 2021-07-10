@@ -25,7 +25,27 @@ defmodule Livebook.ContentLoaderTest do
     end
   end
 
-  describe "fetch_content/1" do
+  describe "fetch_content/1 with local file URL" do
+    @tag :tmp_dir
+    test "returns an error then the file cannot be read", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "nonexistent.livemd")
+      url = "file://" <> path
+
+      assert ContentLoader.fetch_content(url) ==
+               {:error, "failed to read #{path}, reason: no such file or directory"}
+    end
+
+    @tag :tmp_dir
+    test "returns file contents when read successfully", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "notebook.livemd")
+      File.write!(path, "# My notebook")
+      url = "file://" <> path
+
+      assert ContentLoader.fetch_content(url) == {:ok, "# My notebook"}
+    end
+  end
+
+  describe "fetch_content/1 with remote URL" do
     setup do
       bypass = Bypass.open()
       {:ok, bypass: bypass}

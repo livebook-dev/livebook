@@ -55,8 +55,23 @@ defmodule Livebook.ContentLoader do
 
   @doc """
   Loads binary content from the given URl and validates if its plain text.
+
+  Supports local file:// URLs and remote http(s):// URLs.
   """
   @spec fetch_content(String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  def fetch_content(url)
+
+  def fetch_content("file://" <> path) do
+    case File.read(path) do
+      {:ok, content} ->
+        {:ok, content}
+
+      {:error, error} ->
+        message = :file.format_error(error)
+        {:error, "failed to read #{path}, reason: #{message}"}
+    end
+  end
+
   def fetch_content(url) do
     case :httpc.request(:get, {url, []}, http_opts(), body_format: :binary) do
       {:ok, {{_, 200, _}, headers, body}} ->

@@ -50,11 +50,11 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
     |> ContentLoader.fetch_content()
     |> case do
       {:ok, content} ->
-        send(self(), {:import_content, content})
+        send(self(), {:import_content, content, [origin_url: url]})
         {:noreply, socket}
 
       {:error, message} ->
-        {:noreply, assign(socket, error_message: String.capitalize(message))}
+        {:noreply, assign(socket, error_message: Utils.upcase_first(message))}
     end
   end
 end

@@ -417,7 +417,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "Got unrecognised session path: document.pdf"
     end
 
-    test "renders an info message when the session has no associated path",
+    test "renders an info message when the session has neither original url nor path",
          %{conn: conn, session_id: session_id} do
       session_path = "/sessions/#{session_id}"
 
@@ -427,7 +427,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = follow_redirect(result, conn)
 
       assert render(view) =~
-               "Cannot resolve notebook path notebook.livemd, because the current notebook has no file"
+               "Cannot resolve notebook path notebook.livemd, because the current notebook has no location"
     end
 
     @tag :tmp_dir
@@ -447,7 +447,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = follow_redirect(result, conn)
 
       assert render(view) =~
-               "Failed to open #{notebook_path}, reason: no such file or directory"
+               "Cannot navigate, failed to read #{notebook_path}, reason: no such file or directory"
     end
 
     @tag :tmp_dir
@@ -461,12 +461,37 @@ defmodule LivebookWeb.SessionLiveTest do
 
       File.write!(notebook_path, "# Sibling notebook")
 
-      assert {:error, {:live_redirect, %{to: _session_path}}} =
+      assert {:error, {:live_redirect, %{to: new_session_path}}} =
                result = live(conn, "/sessions/#{session_id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
-
       assert render(view) =~ "Sibling notebook"
+
+      "/sessions/" <> session_id = new_session_path
+      data = Session.get_data(session_id)
+      assert data.path == notebook_path
+    end
+
+    @tag :tmp_dir
+    test "if the current session has no path, forks the relative notebook",
+         %{conn: conn, tmp_dir: tmp_dir} do
+      index_path = Path.join(tmp_dir, "index.livemd")
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      {:ok, session_id} = SessionSupervisor.create_session(origin_url: "file://" <> index_path)
+
+      File.write!(notebook_path, "# Sibling notebook")
+
+      assert {:error, {:live_redirect, %{to: new_session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+      assert render(view) =~ "Sibling notebook - fork"
+
+      "/sessions/" <> session_id = new_session_path
+      data = Session.get_data(session_id)
+      assert data.path == nil
+      assert data.origin_url == "file://" <> notebook_path
     end
 
     @tag :tmp_dir
@@ -526,6 +551,80 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert render(view) =~ "Parent notebook"
     end
+
+    test "resolves remote URLs", %{conn: conn} do
+      bypass = Bypass.open()
+
+      Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "# My notebook")
+      end)
+
+      index_url = url(bypass.port) <> "/index.livemd"
+      {:ok, session_id} = SessionSupervisor.create_session(origin_url: index_url)
+
+      {:ok, view, _} =
+        conn
+        |> live("/sessions/#{session_id}/notebook.livemd")
+        |> follow_redirect(conn)
+
+      assert render(view) =~ "My notebook"
+    end
+
+    test "renders an error message if relative remote notebook cannot be loaded", %{conn: conn} do
+      bypass = Bypass.open()
+
+      Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
+        Plug.Conn.resp(conn, 500, "Error")
+      end)
+
+      index_url = url(bypass.port) <> "/index.livemd"
+
+      {:ok, session_id} = SessionSupervisor.create_session(origin_url: index_url)
+
+      session_path = "/sessions/#{session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^session_path}}} =
+               result = live(conn, "/sessions/#{session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+      assert render(view) =~ "Cannot navigate, failed to download notebook from the given URL"
+    end
+
+    test "if the remote notebook is already imported, redirects to the session",
+         %{conn: conn, test: test} do
+      index_url = "http://example.com/#{test}/index.livemd"
+      notebook_url = "http://example.com/#{test}/notebook.livemd"
+
+      {:ok, index_session_id} = SessionSupervisor.create_session(origin_url: index_url)
+      {:ok, notebook_session_id} = SessionSupervisor.create_session(origin_url: notebook_url)
+
+      notebook_session_path = "/sessions/#{notebook_session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^notebook_session_path}}} =
+               live(conn, "/sessions/#{index_session_id}/notebook.livemd")
+    end
+
+    test "renders an error message if there are already multiple session imported from the relative URL",
+         %{conn: conn, test: test} do
+      index_url = "http://example.com/#{test}/index.livemd"
+      notebook_url = "http://example.com/#{test}/notebook.livemd"
+
+      {:ok, index_session_id} = SessionSupervisor.create_session(origin_url: index_url)
+      {:ok, _notebook_session_id1} = SessionSupervisor.create_session(origin_url: notebook_url)
+      {:ok, _notebook_session_id2} = SessionSupervisor.create_session(origin_url: notebook_url)
+
+      index_session_path = "/sessions/#{index_session_id}"
+
+      assert {:error, {:live_redirect, %{to: ^index_session_path}}} =
+               result = live(conn, "/sessions/#{index_session_id}/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+
+      assert render(view) =~
+               "Cannot navigate, because multiple sessions were found for #{notebook_url}"
+    end
   end
 
   # Helpers
@@ -572,4 +671,6 @@ defmodule LivebookWeb.SessionLiveTest do
     {:ok, user} = User.new() |> User.change(%{"name" => name})
     user
   end
+
+  defp url(port), do: "http://localhost:#{port}"
 end

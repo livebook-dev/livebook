@@ -121,18 +121,59 @@ defmodule Livebook.Utils do
 
   ## Examples
 
-    iex> Livebook.Utils.valid_hex_color?("#111111")
-    true
+      iex> Livebook.Utils.valid_hex_color?("#111111")
+      true
 
-    iex> Livebook.Utils.valid_hex_color?("#ABC123")
-    true
+      iex> Livebook.Utils.valid_hex_color?("#ABC123")
+      true
 
-    iex> Livebook.Utils.valid_hex_color?("ABCDEF")
-    false
+      iex> Livebook.Utils.valid_hex_color?("ABCDEF")
+      false
 
-    iex> Livebook.Utils.valid_hex_color?("#111")
-    false
+      iex> Livebook.Utils.valid_hex_color?("#111")
+      false
   """
   @spec valid_hex_color?(String.t()) :: boolean()
   def valid_hex_color?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
+
+  @doc """
+  Changes the first letter in the given string to upper case.
+
+  ## Examples
+
+      iex> Livebook.Utils.upcase_first("sippin tea")
+      "Sippin tea"
+
+      iex> Livebook.Utils.upcase_first("short URL")
+      "Short URL"
+
+      iex> Livebook.Utils.upcase_first("")
+      ""
+  """
+  @spec upcase_first(String.t()) :: String.t()
+  def upcase_first(string) do
+    {first, rest} = String.split_at(string, 1)
+    String.upcase(first) <> rest
+  end
+
+  @doc """
+  Expands a relative path in terms of the given URL.
+
+  ## Examples
+
+      iex> Livebook.Utils.expand_url("file:///home/user/lib/file.ex", "../root.ex")
+      "file:///home/user/root.ex"
+
+      iex> Livebook.Utils.expand_url("https://example.com/lib/file.ex?token=supersecret", "../root.ex")
+      "https://example.com/root.ex?token=supersecret"
+  """
+  @spec expand_url(String.t(), String.t()) :: String.t()
+  def expand_url(url, relative_path) do
+    url
+    |> URI.parse()
+    |> Map.update!(:path, fn path ->
+      path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
+    end)
+    |> URI.to_string()
+  end
 end
