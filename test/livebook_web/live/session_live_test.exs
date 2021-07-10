@@ -447,7 +447,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = follow_redirect(result, conn)
 
       assert render(view) =~
-               "Failed to read #{notebook_path}, reason: no such file or directory"
+               "Cannot navigate, failed to read #{notebook_path}, reason: no such file or directory"
     end
 
     @tag :tmp_dir
@@ -589,7 +589,7 @@ defmodule LivebookWeb.SessionLiveTest do
                result = live(conn, "/sessions/#{session_id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
-      assert render(view) =~ "Failed to download notebook from the given URL"
+      assert render(view) =~ "Cannot navigate, failed to download notebook from the given URL"
     end
 
     test "if the remote notebook is already imported, redirects to the session",
@@ -621,7 +621,9 @@ defmodule LivebookWeb.SessionLiveTest do
                result = live(conn, "/sessions/#{index_session_id}/notebook.livemd")
 
       {:ok, view, _} = follow_redirect(result, conn)
-      assert render(view) =~ "Multiple sessions found for #{notebook_url}"
+
+      assert render(view) =~
+               "Cannot navigate, because multiple sessions were found for #{notebook_url}"
     end
   end
 

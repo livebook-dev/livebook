@@ -765,7 +765,10 @@ defmodule LivebookWeb.SessionLive do
 
           {:error, :many} ->
             socket
-            |> put_flash(:error, "Multiple sessions found for #{target_url}")
+            |> put_flash(
+              :error,
+              "Cannot navigate, because multiple sessions were found for #{target_url}"
+            )
             |> redirect_to_self()
         end
     end
@@ -793,7 +796,7 @@ defmodule LivebookWeb.SessionLive do
 
       {:error, message} ->
         socket
-        |> put_flash(:error, Livebook.Utils.upcase_first(message))
+        |> put_flash(:error, "Cannot navigate, " <> message)
         |> redirect_to_self()
     end
   end
