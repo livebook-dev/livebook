@@ -22,7 +22,7 @@ defmodule Livebook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
-          runtime_monitor_ref: reference()
+          runtime_monitor_ref: reference() | nil
         }
 
   @type summary :: %{
@@ -30,7 +30,8 @@ defmodule Livebook.Session do
           pid: pid(),
           notebook_name: String.t(),
           path: String.t() | nil,
-          images_dir: String.t()
+          images_dir: String.t(),
+          origin_url: String.t() | nil
         }
 
   @typedoc """
@@ -51,6 +52,9 @@ defmodule Livebook.Session do
     * `:id` (**required**) - a unique identifier to register the session under
 
     * `:notebook` - the initial `Notebook` structure (e.g. imported from a file)
+
+    * `:origin_url` - location from where the notebook was obtained,
+      can be a local file:// URL or a remote http(s):// URL
 
     * `:path` - the file to which the notebook should be saved
 
@@ -322,10 +326,12 @@ defmodule Livebook.Session do
   end
 
   defp init_data(opts) do
-    notebook = Keyword.get(opts, :notebook)
-    path = Keyword.get(opts, :path)
+    notebook = opts[:notebook]
+    path = opts[:path]
+    origin_url = opts[:origin_url]
 
     data = if(notebook, do: Data.new(notebook), else: Data.new())
+    data = %{data | origin_url: origin_url}
 
     if path do
       case FileGuard.lock(path, self()) do
@@ -579,7 +585,8 @@ defmodule Livebook.Session do
       pid: self(),
       notebook_name: state.data.notebook.name,
       path: state.data.path,
-      images_dir: images_dir_from_state(state)
+      images_dir: images_dir_from_state(state),
+      origin_url: state.data.origin_url
     }
   end
 

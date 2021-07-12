@@ -229,24 +229,47 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("fork", %{}, socket) do
-    {notebook, messages} = import_notebook(socket.assigns.path)
+    path = socket.assigns.path
+    {notebook, messages} = import_notebook(path)
     socket = put_import_flash_messages(socket, messages)
     notebook = Notebook.forked(notebook)
-    images_dir = Session.images_dir_for_notebook(socket.assigns.path)
-    {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+    images_dir = Session.images_dir_for_notebook(path)
+
+    {:noreply,
+     create_session(socket,
+       notebook: notebook,
+       copy_images_from: images_dir,
+       origin_url: "file://" <> path
+     )}
   end
 
   def handle_event("open", %{}, socket) do
-    {notebook, messages} = import_notebook(socket.assigns.path)
+    path = socket.assigns.path
+    {notebook, messages} = import_notebook(path)
     socket = put_import_flash_messages(socket, messages)
-    {:noreply, create_session(socket, notebook: notebook, path: socket.assigns.path)}
+
+    {:noreply,
+     create_session(socket, notebook: notebook, path: path, origin_url: "file://" <> path)}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     data = Session.get_data(session_id)
     notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(session_id)
-    {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+
+    origin_url =
+      if data.path do
+        "file://" <> data.path
+      else
+        data.origin_url
+      end
+
+    {:noreply,
+     create_session(socket,
+       notebook: notebook,
+       copy_images_from: images_dir,
+       origin_url: origin_url
+     )}
   end
 
   @impl true
@@ -261,10 +284,11 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session_summaries: session_summaries)}
   end
 
-  def handle_info({:import_content, content}, socket) do
+  def handle_info({:import_content, content, session_opts}, socket) do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
     socket = put_import_flash_messages(socket, messages)
-    {:noreply, create_session(socket, notebook: notebook)}
+    session_opts = Keyword.merge(session_opts, notebook: notebook)
+    {:noreply, create_session(socket, session_opts)}
   end
 
   def handle_info(

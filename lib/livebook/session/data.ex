@@ -16,6 +16,7 @@ defmodule Livebook.Session.Data do
 
   defstruct [
     :notebook,
+    :origin_url,
     :path,
     :dirty,
     :section_infos,
@@ -32,6 +33,7 @@ defmodule Livebook.Session.Data do
 
   @type t :: %__MODULE__{
           notebook: Notebook.t(),
+          origin_url: String.t() | nil,
           path: nil | String.t(),
           dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
@@ -126,6 +128,7 @@ defmodule Livebook.Session.Data do
   def new(notebook \\ Notebook.new()) do
     %__MODULE__{
       notebook: notebook,
+      origin_url: nil,
       path: nil,
       dirty: false,
       section_infos: initial_section_infos(notebook),

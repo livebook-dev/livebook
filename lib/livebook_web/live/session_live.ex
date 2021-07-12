@@ -733,58 +733,104 @@ defmodule LivebookWeb.SessionLive do
 
       true ->
         socket
-        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
         |> put_flash(
           :error,
           "Got unrecognised session path: #{path}\nIf you want to link another notebook, make sure to include the .livemd extension"
         )
+        |> redirect_to_self()
     end
   end
 
   defp handle_relative_notebook_path(socket, relative_path) do
-    case socket.private.data.path do
+    resolution_url = location(socket.private.data)
+
+    case resolution_url do
       nil ->
         socket
         |> put_flash(
           :info,
-          "Cannot resolve notebook path #{relative_path}, because the current notebook has no file"
+          "Cannot resolve notebook path #{relative_path}, because the current notebook has no location"
         )
-        |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+        |> redirect_to_self()
 
-      path ->
-        target_path = path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
-        maybe_open_notebook(socket, target_path)
+      url ->
+        target_url = Livebook.Utils.expand_url(url, relative_path)
+
+        case session_id_by_url(target_url) do
+          {:ok, session_id} ->
+            push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
+
+          {:error, :none} ->
+            open_notebook(socket, target_url)
+
+          {:error, :many} ->
+            socket
+            |> put_flash(
+              :error,
+              "Cannot navigate, because multiple sessions were found for #{target_url}"
+            )
+            |> redirect_to_self()
+        end
     end
   end
 
-  defp maybe_open_notebook(socket, path) do
-    if session_id = session_id_by_path(path) do
-      push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
+  defp location(data)
+  defp location(%{path: path}) when is_binary(path), do: "file://" <> path
+  defp location(%{origin_url: origin_url}), do: origin_url
+
+  defp open_notebook(socket, url) do
+    url
+    |> Livebook.ContentLoader.rewrite_url()
+    |> Livebook.ContentLoader.fetch_content()
+    |> case do
+      {:ok, content} ->
+        {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+
+        # If the current session has no path, fork the notebook
+        fork? = socket.private.data.path == nil
+        {path, notebook} = path_and_notebook(fork?, url, notebook)
+
+        socket
+        |> put_import_flash_messages(messages)
+        |> create_session(notebook: notebook, origin_url: url, path: path)
+
+      {:error, message} ->
+        socket
+        |> put_flash(:error, "Cannot navigate, " <> message)
+        |> redirect_to_self()
+    end
+  end
+
+  defp path_and_notebook(fork?, url, notebook)
+  defp path_and_notebook(false, "file://" <> path, notebook), do: {path, notebook}
+  defp path_and_notebook(true, "file://" <> _path, notebook), do: {nil, Notebook.forked(notebook)}
+  defp path_and_notebook(_fork?, _url, notebook), do: {nil, notebook}
+
+  defp session_id_by_url(url) do
+    session_summaries = SessionSupervisor.get_session_summaries()
+
+    session_with_path =
+      Enum.find(session_summaries, fn summary ->
+        summary.path && "file://" <> summary.path == url
+      end)
+
+    # A session associated with the given path takes
+    # precedence over sessions originating from this path
+    if session_with_path do
+      {:ok, session_with_path.session_id}
     else
-      case File.read(path) do
-        {:ok, content} ->
-          {notebook, messages} = LiveMarkdown.Import.notebook_from_markdown(content)
-
-          socket
-          |> put_import_flash_messages(messages)
-          |> create_session(notebook: notebook, path: path)
-
-        {:error, error} ->
-          message = :file.format_error(error)
-
-          socket
-          |> put_flash(:error, "Failed to open #{path}, reason: #{message}")
-          |> push_patch(to: Routes.session_path(socket, :page, socket.assigns.session_id))
+      session_summaries
+      |> Enum.filter(fn summary -> summary.origin_url == url end)
+      |> case do
+        [summary] -> {:ok, summary.session_id}
+        [] -> {:error, :none}
+        _ -> {:error, :many}
       end
     end
   end
 
-  defp session_id_by_path(path) do
-    session_summaries = SessionSupervisor.get_session_summaries()
-
-    Enum.find_value(session_summaries, fn summary ->
-      summary.path == path && summary.session_id
-    end)
+  defp redirect_to_self(socket) do
+    push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session_id))
   end
 
   defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
