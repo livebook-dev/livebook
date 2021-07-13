@@ -206,6 +206,18 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "indented code block" do
+      markdown = """
+      Text before
+
+          Code _is here_
+
+      Text after\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
     test "display math" do
       markdown = """
       $$
@@ -414,7 +426,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       #       that happens when a notebook is saved to disk and
       #       subsequently restored
       {:ok, ast, []} = EarmarkParser.as_ast(markdown)
-      markdown1 = MarkdownHelpers.markdown_from_ast(ast)
+      markdown1 = MarkdownHelpers.markdown_from_ast(ast) |> IO.inspect()
 
       {:ok, ast1, []} = EarmarkParser.as_ast(markdown1)
       MarkdownHelpers.markdown_from_ast(ast1)
