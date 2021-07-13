@@ -274,8 +274,14 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
     # By reformatting we can assert correct rendering
     # by comparing against the original content.
     defp reformat(markdown) do
+      # NOTE: this simulates the complete export -> import flow
+      #       that happens when a notebook is saved to disk and
+      #       subsequently restored
       {:ok, ast, []} = EarmarkParser.as_ast(markdown)
-      MarkdownHelpers.markdown_from_ast(ast)
+      markdown1 = MarkdownHelpers.markdown_from_ast(ast)
+
+      {:ok, ast1, []} = EarmarkParser.as_ast(markdown1)
+      MarkdownHelpers.markdown_from_ast(ast1)
     end
   end
 end
