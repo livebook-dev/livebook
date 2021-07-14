@@ -379,6 +379,12 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "escaped Markdown" do
+      markdown = "not a \\[link\\]()"
+
+      assert markdown == reformat(markdown)
+    end
+
     test "raw html" do
       markdown = """
       <div class="box" aria-label="box">
