@@ -15,20 +15,30 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp render_notebook(notebook) do
     name = "# #{notebook.name}"
-    sections = Enum.map(notebook.sections, &render_section/1)
+    sections = Enum.map(notebook.sections, &render_section(&1, notebook))
 
     [name | sections]
     |> Enum.intersperse("\n\n")
     |> prepend_metadata(notebook.metadata)
   end
 
-  defp render_section(section) do
+  defp render_section(section, notebook) do
     name = "## #{section.name}"
     cells = Enum.map(section.cells, &render_cell/1)
+    metadata = section_metadata(section, notebook)
 
     [name | cells]
     |> Enum.intersperse("\n\n")
-    |> prepend_metadata(section.metadata)
+    |> prepend_metadata(metadata)
+  end
+
+  defp section_metadata(%{parent_id: nil} = section, _notebook) do
+    section.metadata
+  end
+
+  defp section_metadata(section, notebook) do
+    parent_idx = Notebook.section_index(notebook, section.parent_id)
+    Map.put(section.metadata, "branch_parent_index", parent_idx)
   end
 
   defp render_cell(%Cell.Markdown{} = cell) do

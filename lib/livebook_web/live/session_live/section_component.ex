@@ -23,6 +23,35 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
+          <%= if @section_view.valid_parents != [] and not @section_view.has_children? do %>
+            <div class="relative" id={"section-#{@section_view.id}-branch-menu"} phx-hook="Menu" data-element="menu">
+              <span class="tooltip top" aria-label="Branch out from">
+                <button class="icon-button" data-toggle>
+                  <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
+                </button>
+              </span>
+              <div class="menu" data-content>
+                <%= for parent <- @section_view.valid_parents do %>
+                  <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
+                    <button class="menu__item text-gray-900"
+                      phx-click="unset_section_parent"
+                      phx-value-section_id={@section_view.id}>
+                      <.remix_icon icon="arrow-right-s-line" />
+                      <span class="font-medium"><%= parent.name %></span>
+                    </button>
+                  <% else %>
+                    <button class="menu__item text-gray-500"
+                      phx-click="set_section_parent"
+                      phx-value-section_id={@section_view.id}
+                      phx-value-parent_id={parent.id}>
+                      <.remix_icon icon="arrow-right-s-line" />
+                      <span class="font-medium"><%= parent.name %></span>
+                    </button>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
           <span class="tooltip top" aria-label="Move up">
             <button class="icon-button"
               phx-click="move_section"
@@ -39,14 +68,24 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </span>
-          <span class="tooltip top" aria-label="Delete">
-            <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
-                  class: "icon-button" do %>
-              <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-            <% end %>
-          </span>
+          <%= unless @section_view.has_children? do %>
+            <span class="tooltip top" aria-label="Delete">
+              <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
+                    class: "icon-button" do %>
+                <.remix_icon icon="delete-bin-6-line" class="text-xl" />
+              <% end %>
+            </span>
+          <% end %>
         </div>
       </div>
+      <%= if @section_view.parent do %>
+        <h3 class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800">
+          <span class="tooltip bottom" aria-label={"This section branches out from the main flow\nand can be evaluated in parallel"}>
+            <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
+          </span>
+          <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>
+        </h3>
+      <% end %>
       <div class="container">
         <div class="flex flex-col space-y-1">
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>

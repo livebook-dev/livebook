@@ -35,36 +35,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
   end
 
-  describe "evaluate_code/6" do
+  describe "evaluate_code/5" do
     test "spawns a new evaluator when necessary", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "1 + 1", :container1, :evaluation1, nil)
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_response, :evaluation1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
     end
 
     test "prevents from module redefinition warning being printed to standard error", %{pid: pid} do
       stderr =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          RuntimeServer.evaluate_code(pid, "defmodule Foo do end", :container1, :evaluation1, nil)
-          RuntimeServer.evaluate_code(pid, "defmodule Foo do end", :container1, :evaluation2, nil)
+          code = "defmodule Foo do end"
+          RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
+          RuntimeServer.evaluate_code(pid, code, {:c1, :e2}, {:c1, nil})
 
-          assert_receive {:evaluation_response, :evaluation1, _, %{evaluation_time_ms: _time_ms}}
-          assert_receive {:evaluation_response, :evaluation2, _, %{evaluation_time_ms: _time_ms}}
+          assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+          assert_receive {:evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
         end)
 
       assert stderr == ""
     end
 
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
-      RuntimeServer.evaluate_code(
-        pid,
-        ~s{IO.puts(:stderr, "error")},
-        :container1,
-        :evaluation1,
-        nil
-      )
+      RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :evaluation1, "error\n"}
+      assert_receive {:evaluation_output, :e1, "error\n"}
     end
 
     @tag capture_log: true
@@ -74,24 +69,79 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       Logger.error("hey")
       """
 
-      RuntimeServer.evaluate_code(pid, code, :container1, :evaluation1, nil)
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :evaluation1, log_message}
+      assert_receive {:evaluation_output, :e1, log_message}
       assert log_message =~ "[error] hey"
+    end
+
+    test "supports cross-container evaluation context references", %{pid: pid} do
+      RuntimeServer.evaluate_code(pid, "x = 1", {:c1, :e1}, {:c1, nil})
+      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+
+      RuntimeServer.evaluate_code(pid, "x", {:c2, :e2}, {:c1, :e1})
+
+      assert_receive {:evaluation_response, :e2, {:text, "\e[34m1\e[0m"},
+                      %{evaluation_time_ms: _time_ms}}
+    end
+
+    test "evaluates code in different containers in parallel", %{pid: pid} do
+      # Start a process that waits for two joins and only then
+      # sends a response back to the callers and terminates
+      code = """
+      loop = fn loop, state ->
+        receive do
+          {:join, caller} ->
+            state = update_in(state.count, &(&1 + 1))
+            state = update_in(state.callers, &[caller | &1])
+
+            if state.count < 2 do
+              loop.(loop, state)
+            else
+              for caller <- state.callers do
+                send(caller, :join_ack)
+              end
+            end
+        end
+      end
+
+      pid = spawn(fn -> loop.(loop, %{callers: [], count: 0}) end)
+      """
+
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
+      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+
+      await_code = """
+      send(pid, {:join, self()})
+
+      receive do
+        :join_ack -> :ok
+      end
+      """
+
+      # Note: it's important to first start evaluation in :c2,
+      # because it needs to copy evaluation context from :c1
+
+      RuntimeServer.evaluate_code(pid, await_code, {:c2, :e2}, {:c1, :e1})
+      RuntimeServer.evaluate_code(pid, await_code, {:c1, :e3}, {:c1, :e1})
+
+      assert_receive {:evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :e3, _, %{evaluation_time_ms: _time_ms}}
     end
   end
 
   describe "request_completion_items/6" do
     test "provides basic completion when no evaluation reference is given", %{pid: pid} do
-      RuntimeServer.request_completion_items(pid, self(), :comp_ref, "System.ver", nil, nil)
+      RuntimeServer.request_completion_items(pid, self(), :comp_ref, "System.ver", {:c1, nil})
+
       assert_receive {:completion_response, :comp_ref, [%{label: "version/0"}]}
     end
 
     test "provides extended completion when previous evaluation reference is given", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "number = 10", :c1, :e1, nil)
+      RuntimeServer.evaluate_code(pid, "number = 10", {:c1, :e1}, {:c1, nil})
       assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
-      RuntimeServer.request_completion_items(pid, self(), :comp_ref, "num", :c1, :e1)
+      RuntimeServer.request_completion_items(pid, self(), :comp_ref, "num", {:c1, :e1})
 
       assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}
     end
@@ -102,9 +152,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     spawn_link(fn -> Process.exit(self(), :kill) end)
     """
 
-    RuntimeServer.evaluate_code(pid, code, :container1, :evaluation1, nil)
+    RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
 
-    assert_receive {:container_down, :container1, message}
+    assert_receive {:container_down, :c1, message}
     assert message =~ "killed"
   end
 end

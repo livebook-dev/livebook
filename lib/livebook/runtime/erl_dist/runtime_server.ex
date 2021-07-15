@@ -5,14 +5,18 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   #
   # This process handles `Livebook.Runtime` operations,
   # like evaluation and completion. It spawns/terminates
-  # individual evaluators as necessary.
+  # individual evaluators corresponding to evaluation
+  # containers as necessary.
   #
   # Every runtime server must have an owner process,
   # to which the server lifetime is bound.
+  #
+  # For more specification see `Livebook.Runtime`.
 
   use GenServer, restart: :temporary
 
   alias Livebook.Evaluator
+  alias Livebook.Runtime
   alias Livebook.Runtime.ErlDist
 
   @await_owner_timeout 5_000
@@ -20,7 +24,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Starts the manager.
 
-  Note: make sure to call `set_owner` within `@await_owner_timeout`
+  Note: make sure to call `set_owner` within #{@await_owner_timeout}ms
   or the runtime server assumes it's not needed and terminates.
   """
   def start_link(opts \\ []) do
@@ -40,77 +44,60 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Evaluates the given code using an `Evaluator` process
-  belonging to the given `container_ref` and instructs
+  Evaluates the given code using an `Livebook.Evaluator`
+  process belonging to the given container and instructs
   it to send all the outputs to the owner process.
 
-  If that's the first evaluation for this `container_ref`,
-  a new evaluator is started.
+  If no evaluator exists for the given container, a new
+  one is started.
 
-  See `Evaluator` for more details.
+  See `Livebook.Evaluator` for more details.
   """
-  @spec evaluate_code(
-          pid(),
-          String.t(),
-          Evaluator.ref(),
-          Evaluator.ref(),
-          Evaluator.ref() | nil,
-          keyword()
-        ) :: :ok
-  def evaluate_code(pid, code, container_ref, evaluation_ref, prev_evaluation_ref, opts \\ []) do
-    GenServer.cast(
-      pid,
-      {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref, opts}
-    )
+  @spec evaluate_code(pid(), String.t(), Runtime.locator(), Runtime.locator(), keyword()) :: :ok
+  def evaluate_code(pid, code, locator, prev_locator, opts \\ []) do
+    GenServer.cast(pid, {:evaluate_code, code, locator, prev_locator, opts})
   end
 
   @doc """
   Removes the specified evaluation from the history.
 
-  See `Evaluator` for more details.
+  See `Livebook.Evaluator` for more details.
   """
-  @spec forget_evaluation(pid(), Evaluator.ref(), Evaluator.ref()) :: :ok
-  def forget_evaluation(pid, container_ref, evaluation_ref) do
-    GenServer.cast(pid, {:forget_evaluation, container_ref, evaluation_ref})
+  @spec forget_evaluation(pid(), Runtime.locator()) :: :ok
+  def forget_evaluation(pid, locator) do
+    GenServer.cast(pid, {:forget_evaluation, locator})
   end
 
   @doc """
-  Terminates the `Evaluator` process belonging to the given container.
+  Terminates the `Livebook.Evaluator` process that belongs
+  to the given container.
   """
-  @spec drop_container(pid(), Evaluator.ref()) :: :ok
+  @spec drop_container(pid(), Runtime.container_ref()) :: :ok
   def drop_container(pid, container_ref) do
     GenServer.cast(pid, {:drop_container, container_ref})
   end
 
   @doc """
-  Asynchronously sends completion request for the given `hint` text.
+  Asynchronously sends completion request for the given
+  `hint` text.
 
-  The completion request is forwarded to `Evaluator` process
-  belonging to the given `container_ref`. If there's not evaluator,
-  there's also no binding and environment, so the completion is handled
-  by a temporary process.
+  The completion request is forwarded to `Livebook.Evaluator`
+  process that belongs to the given container. If there's no
+  evaluator, there's also no binding and environment, so a
+  generic completion is handled by a temporary process.
 
   See `Livebook.Runtime` for more details.
   """
-  @spec request_completion_items(
-          pid(),
-          pid(),
-          term(),
-          String.t(),
-          Evaluator.ref(),
-          Evaluator.ref()
-        ) :: :ok
-  def request_completion_items(pid, send_to, ref, hint, container_ref, evaluation_ref) do
-    GenServer.cast(
-      pid,
-      {:request_completion_items, send_to, ref, hint, container_ref, evaluation_ref}
-    )
+  @spec request_completion_items(pid(), pid(), term(), String.t(), Runtime.locator()) :: :ok
+  def request_completion_items(pid, send_to, completion_ref, hint, locator) do
+    GenServer.cast(pid, {:request_completion_items, send_to, completion_ref, hint, locator})
   end
 
   @doc """
   Stops the manager.
 
-  This results in all Livebook-related modules being unloaded from this node.
+  This results in all Livebook-related modules being unloaded
+  from the runtime node.
   """
   @spec stop(pid()) :: :ok
   def stop(pid) do
@@ -174,10 +161,25 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, code, container_ref, evaluation_ref, prev_evaluation_ref, opts},
+        {:evaluate_code, code, {container_ref, evaluation_ref}, prev_locator, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
+
+    prev_evaluation_ref =
+      case prev_locator do
+        {^container_ref, evaluation_ref} ->
+          evaluation_ref
+
+        {parent_container_ref, evaluation_ref} ->
+          Evaluator.initialize_from(
+            state.evaluators[container_ref],
+            state.evaluators[parent_container_ref],
+            evaluation_ref
+          )
+
+          nil
+      end
 
     Evaluator.evaluate_code(
       state.evaluators[container_ref],
@@ -191,7 +193,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:forget_evaluation, container_ref, evaluation_ref}, state) do
+  def handle_cast({:forget_evaluation, {container_ref, evaluation_ref}}, state) do
     with {:ok, evaluator} <- Map.fetch(state.evaluators, container_ref) do
       Evaluator.forget_evaluation(evaluator, evaluation_ref)
     end
@@ -205,7 +207,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:request_completion_items, send_to, ref, hint, container_ref, evaluation_ref},
+        {:request_completion_items, send_to, ref, hint, {container_ref, evaluation_ref}},
         state
       ) do
     if evaluator = Map.get(state.evaluators, container_ref) do
