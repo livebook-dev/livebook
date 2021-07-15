@@ -264,8 +264,8 @@ defmodule Livebook.LiveMarkdown.Import do
   defp postprocess_notebook(notebook) do
     sections =
       Enum.map(notebook.sections, fn section ->
-        # Set parent_id based on the persisted parent_index if present
-        {parent_idx, metadata} = Map.pop(section.metadata, "parent_index")
+        # Set parent_id based on the persisted branch_parent_index if present
+        {parent_idx, metadata} = Map.pop(section.metadata, "branch_parent_index")
         parent = parent_idx && Enum.at(notebook.sections, parent_idx)
         %{section | metadata: metadata, parent_id: parent && parent.id}
       end)

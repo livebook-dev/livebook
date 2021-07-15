@@ -38,7 +38,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp section_metadata(section, notebook) do
     parent_idx = Notebook.section_index(notebook, section.parent_id)
-    Map.put(section.metadata, "parent_index", parent_idx)
+    Map.put(section.metadata, "branch_parent_index", parent_idx)
   end
 
   defp render_cell(%Cell.Markdown{} = cell) do

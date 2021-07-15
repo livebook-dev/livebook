@@ -41,7 +41,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
 
-    <!-- livebook:{"parent_index":1} -->
+    <!-- livebook:{"branch_parent_index":1} -->
 
     ## Section 3
 
