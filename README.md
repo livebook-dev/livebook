@@ -4,19 +4,19 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
 
-  * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a subset of Markdown. This means your notebooks can be saved for later, easily shared, and they also play well with version control.
+  * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a subset of Markdown with [KaTex](https://katex.org/) for mathematical formulas. This means your notebooks can be saved, easily shared, and play well with version control.
 
-  * Sequential evaluation: code cells run in a specific order, guaranteeing future users of the same Livebook see the same output. If you re-execute a previous cell, following cells are marked as stale to make it clear they depend on outdated notebook state.
+  * Interactive widgets via [Kino](https://github.com/elixir-nx/kino): you can manipulate [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, and more.
 
-  * Support for mathematical formulas via [KaTeX](https://katex.org/) and graphs via [Vega-Lite](https://vega.github.io/vega-lite/).
-
-  * Display and control rich and interactive widgets via [Kino](https://github.com/elixir-nx/kino): you can manipulate charts, tables, and more.
+  * Rich code editor through [Monaco](https://microsoft.github.io/monaco-editor/): with support for autocompletion, inline documentation, code formatting, etc.
 
   * Explicit dependencies: if your notebook has dependencies, they are explicitly listed and installed with the help of the `Mix.install/2` command in Elixir v1.12+.
 
+  * Sequential evaluation: code cells run in a specific order, guaranteeing future users of the same Livebook see the same output. If you re-execute a previous cell, following cells are marked as stale to make it clear they depend on outdated notebook state.
+
   * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
 
-  * Collaborative features allow multiple users to work on the same notebook at once. Collaboration works either in single-node or multi-node deployments - without a need for additional tooling.
+  * Collaboration: multiple users can work on the same notebook at once. It works out-of-the-box either in single-node or multi-node deployments - without a need for additional tooling.
 
 We are actively working on Livebook and you can consult the issues tracker to see some of the features we are exploring. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring some of our features.
 
