@@ -103,7 +103,7 @@ defmodule Livebook.Session.Data do
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), term()}
           | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_cell_id :: Cell.id()}
-          | {:reflect_evaluation_failure, pid()}
+          | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
           | {:set_notebook_name, pid(), String.t()}
@@ -384,10 +384,10 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:reflect_evaluation_failure, _client_pid}) do
+  def apply_operation(data, {:reflect_main_evaluation_failure, _client_pid}) do
     data
     |> with_actions()
-    |> clear_evaluation()
+    |> clear_main_evaluation()
     |> wrap_ok()
   end
 
@@ -937,9 +937,16 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp clear_evaluation({data, _} = data_actions) do
+  defp clear_all_evaluation({data, _} = data_actions) do
     data_actions
     |> reduce(data.notebook.sections, &clear_section_evaluation/2)
+  end
+
+  defp clear_main_evaluation({data, _} = data_actions) do
+    regular_sections = Enum.filter(data.notebook.sections, &(&1.parent_id == nil))
+
+    data_actions
+    |> reduce(regular_sections, &clear_section_evaluation/2)
   end
 
   defp clear_section_evaluation(data_actions, section) do
@@ -988,7 +995,7 @@ defmodule Livebook.Session.Data do
           if section.parent_id do
             clear_section_evaluation(data_actions, section)
           else
-            clear_evaluation(data_actions)
+            clear_main_evaluation(data_actions)
           end
         end)
         |> add_action({:stop_evaluation, section})
@@ -1163,7 +1170,7 @@ defmodule Livebook.Session.Data do
     if prev_data.runtime == nil and data.runtime != nil do
       maybe_evaluate_queued(data_actions)
     else
-      clear_evaluation(data_actions)
+      clear_all_evaluation(data_actions)
     end
   end
 

@@ -616,7 +616,7 @@ defmodule Livebook.Session do
 
     operation =
       case container_ref do
-        :main_flow -> {:reflect_evaluation_failure, self()}
+        :main_flow -> {:reflect_main_evaluation_failure, self()}
         section_id -> {:reflect_evaluation_failure, self(), section_id}
       end
 

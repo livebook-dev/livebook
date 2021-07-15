@@ -2078,7 +2078,7 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :reflect_evaluation_failure" do
+  describe "apply_operation/2 given :reflect_main_evaluation_failure" do
     test "clears evaluation queue and marks evaluated and evaluating cells as aborted" do
       data =
         data_after_operations!([
@@ -2093,7 +2093,7 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
-      operation = {:reflect_evaluation_failure, self()}
+      operation = {:reflect_main_evaluation_failure, self()}
 
       assert {:ok,
               %{
@@ -2107,9 +2107,42 @@ defmodule Livebook.Session.DataTest do
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
+
+    test "leaves branching sections unchanged" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:reflect_main_evaluation_failure, self()}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :evaluated, evaluation_status: :ready},
+                  "c3" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: "c3", evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
   end
 
-  describe "apply_operation/2 given :reflect_evaluation_failure with section" do
+  describe "apply_operation/2 given :reflect_evaluation_failure" do
     test "clears section evaluation queue and marks evaluated and evaluating cells as aborted" do
       data =
         data_after_operations!([
