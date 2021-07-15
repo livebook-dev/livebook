@@ -16,6 +16,7 @@ defmodule Livebook.Notebook do
   defstruct [:name, :version, :sections, :metadata]
 
   alias Livebook.Notebook.{Section, Cell}
+  alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
   @type metadata :: %{String.t() => term()}
@@ -249,6 +250,46 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Checks if `section` can be moved by `offset`.
+
+  Specifically, this function checks if after the move
+  all child sections are still below their parent sections.
+  """
+  @spec can_move_section_by?(t(), Section.t(), integer()) :: boolean()
+  def can_move_section_by?(notebook, section, offset)
+
+  def can_move_section_by?(notebook, %{parent_id: nil} = section, offset) do
+    notebook.sections
+    |> Enum.with_index()
+    |> Enum.filter(fn {that_section, _idx} -> that_section.parent_id == section.id end)
+    |> Enum.map(fn {_section, idx} -> idx end)
+    |> case do
+      [] ->
+        true
+
+      child_indices ->
+        section_idx = section_index(notebook, section.id)
+        section_idx + offset < Enum.min(child_indices)
+    end
+  end
+
+  def can_move_section_by?(notebook, section, offset) do
+    parent_idx = section_index(notebook, section.parent_id)
+    section_idx = section_index(notebook, section.id)
+    parent_idx < section_idx + offset
+  end
+
+  @doc """
+  Returns sections that are valid parents for the given section.
+  """
+  @spec valid_parents_for(t(), Section.id()) :: list(Section.t())
+  def valid_parents_for(notebook, section_id) do
+    notebook.sections
+    |> Enum.take_while(&(&1.id != section_id))
+    |> Enum.filter(&(&1.parent_id == nil))
+  end
+
+  @doc """
   Moves section by the given offset.
   """
   @spec move_section(t(), Section.id(), integer()) :: t()
@@ -257,11 +298,7 @@ defmodule Livebook.Notebook do
     # Then we find its' new index from given offset.
     # Finally, we move the section, and return the new notebook.
 
-    idx =
-      Enum.find_index(notebook.sections, fn
-        section -> section.id == section_id
-      end)
-
+    idx = section_index(notebook, section_id)
     new_idx = (idx + offset) |> clamp_index(notebook.sections)
 
     {section, sections} = List.pop_at(notebook.sections, idx)
@@ -298,9 +335,17 @@ defmodule Livebook.Notebook do
   """
   @spec parent_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
   def parent_cells_with_section(notebook, cell_id) do
+    parent_cell_ids =
+      notebook
+      |> cell_dependency_graph()
+      |> Graph.find_path(cell_id, nil)
+      |> MapSet.new()
+      |> MapSet.delete(cell_id)
+      |> MapSet.delete(nil)
+
     notebook
     |> cells_with_section()
-    |> Enum.take_while(fn {cell, _} -> cell.id != cell_id end)
+    |> Enum.filter(fn {cell, _} -> MapSet.member?(parent_cell_ids, cell.id) end)
     |> Enum.reverse()
   end
 
@@ -312,10 +357,87 @@ defmodule Livebook.Notebook do
   """
   @spec child_cells_with_section(t(), Cell.id()) :: list({Cell.t(), Section.t()})
   def child_cells_with_section(notebook, cell_id) do
+    graph = cell_dependency_graph(notebook)
+
+    child_cell_ids =
+      graph
+      |> Graph.leaves()
+      |> Enum.flat_map(&Graph.find_path(graph, &1, cell_id))
+      |> MapSet.new()
+      |> MapSet.delete(cell_id)
+
     notebook
     |> cells_with_section()
-    |> Enum.drop_while(fn {cell, _} -> cell.id != cell_id end)
-    |> Enum.drop(1)
+    |> Enum.filter(fn {cell, _} -> MapSet.member?(child_cell_ids, cell.id) end)
+  end
+
+  @doc """
+  Computes cell dependency graph.
+
+  Every cell has one or none parent cells, so the graph
+  is represented as a map, with cell id as the key and
+  its parent cell id as the value. Cells with no parent
+  are also included with the value of `nil`.
+
+  ## Options
+
+    * `:cell_filter` - a function determining if the given
+      cell should be included in the graph. If a cell is
+      excluded, transitive parenthood still applies.
+      By default all cells are included.
+  """
+  @spec cell_dependency_graph(t()) :: Graph.t(Cell.id())
+  def cell_dependency_graph(notebook, opts \\ []) do
+    notebook.sections
+    |> Enum.reduce(
+      {%{}, nil, %{}},
+      fn section, {graph, prev_regular_section, last_id_by_section} ->
+        prev_section_id =
+          if section.parent_id,
+            do: section.parent_id,
+            else: prev_regular_section && prev_regular_section.id
+
+        # Cell that this section directly depends on,
+        # if the section it's empty it's last id of the previous section
+        prev_cell_id = prev_section_id && last_id_by_section[prev_section_id]
+
+        {graph, last_cell_id} =
+          if filter = opts[:cell_filter] do
+            Enum.filter(section.cells, filter)
+          else
+            section.cells
+          end
+          |> Enum.map(& &1.id)
+          |> Enum.reduce({graph, prev_cell_id}, fn cell_id, {graph, prev_cell_id} ->
+            {put_in(graph[cell_id], prev_cell_id), cell_id}
+          end)
+
+        last_id_by_section = put_in(last_id_by_section[section.id], last_cell_id)
+
+        {
+          graph,
+          if(section.parent_id, do: prev_regular_section, else: section),
+          last_id_by_section
+        }
+      end
+    )
+    |> elem(0)
+  end
+
+  @doc """
+  Returns index of the given section or `nil` if not found.
+  """
+  @spec section_index(t(), Section.id()) :: non_neg_integer() | nil
+  def section_index(notebook, section_id) do
+    Enum.find_index(notebook.sections, &(&1.id == section_id))
+  end
+
+  @doc """
+  Returns a list of sections branching from the given one.
+  """
+  @spec child_sections(t(), Section.id()) :: list(Section.t())
+  def child_sections(notebook, section_id) do
+    Enum.filter(notebook.sections, &(&1.parent_id == section_id))
   end
 
   @doc """

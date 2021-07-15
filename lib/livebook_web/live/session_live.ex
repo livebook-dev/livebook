@@ -399,6 +399,22 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event(
+        "set_section_parent",
+        %{"section_id" => section_id, "parent_id" => parent_id},
+        socket
+      ) do
+    Session.set_section_parent(socket.assigns.session_id, section_id, parent_id)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("unset_section_parent", %{"section_id" => section_id}, socket) do
+    Session.unset_section_parent(socket.assigns.session_id, section_id)
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
         "insert_cell",
         %{"section_id" => section_id, "index" => index, "type" => type},
         socket
@@ -595,17 +611,13 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("completion_request", %{"hint" => hint, "cell_id" => cell_id}, socket) do
     data = socket.private.data
 
-    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if data.runtime do
-        prev_ref =
-          data.notebook
-          |> Notebook.parent_cells_with_section(cell.id)
-          |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
+        completion_ref = make_ref()
+        prev_locator = Session.find_prev_locator(data.notebook, cell, section)
+        Runtime.request_completion_items(data.runtime, self(), completion_ref, hint, prev_locator)
 
-        ref = make_ref()
-        Runtime.request_completion_items(data.runtime, self(), ref, hint, :main, prev_ref)
-
-        {:reply, %{"completion_ref" => inspect(ref)}, socket}
+        {:reply, %{"completion_ref" => inspect(completion_ref)}, socket}
       else
         {:reply, %{"completion_ref" => nil},
          put_flash(
@@ -1057,9 +1069,22 @@ defmodule LivebookWeb.SessionLive do
         id: section.id,
         html_id: html_id,
         name: section.name,
+        parent: parent_section_view(section.parent_id, data),
+        has_children?: Notebook.child_sections(data.notebook, section.id) != [],
+        valid_parents:
+          for parent <- Notebook.valid_parents_for(data.notebook, section.id) do
+            %{id: parent.id, name: parent.name}
+          end,
         cell_views: Enum.map(section.cells, &cell_to_view(&1, data))
       }
     end)
+  end
+
+  defp parent_section_view(nil, _data), do: nil
+
+  defp parent_section_view(parent_id, data) do
+    {:ok, section} = Notebook.fetch_section(data.notebook, parent_id)
+    %{id: section.id, name: section.name}
   end
 
   defp cell_to_view(%Cell.Elixir{} = cell, data) do
