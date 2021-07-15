@@ -64,6 +64,197 @@ defmodule Livebook.NotebookTest do
     end
   end
 
+  describe "cell_dependency_graph/1" do
+    test "computes a linear graph for regular sections" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:markdown) | id: "c1"},
+                  %{Cell.new(:elixir) | id: "c2"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s2",
+                cells: [
+                  %{Cell.new(:input) | id: "c3"},
+                  %{Cell.new(:elixir) | id: "c4"}
+                ]
+            }
+          ]
+      }
+
+      assert Notebook.cell_dependency_graph(notebook) == %{
+               "c4" => "c3",
+               "c3" => "c2",
+               "c2" => "c1",
+               "c1" => nil
+             }
+    end
+
+    test "ignores empty sections" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Section.new() | id: "s1", cells: [%{Cell.new(:elixir) | id: "c1"}]},
+            %{Section.new() | id: "s2", cells: []},
+            %{Section.new() | id: "s3", cells: [%{Cell.new(:elixir) | id: "c2"}]}
+          ]
+      }
+
+      assert Notebook.cell_dependency_graph(notebook) == %{
+               "c2" => "c1",
+               "c1" => nil
+             }
+    end
+
+    test "computes a non-linear graph if there are branching sections" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1"},
+                  %{Cell.new(:elixir) | id: "c2"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s2",
+                parent_id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c3"},
+                  %{Cell.new(:elixir) | id: "c4"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s3",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c5"},
+                  %{Cell.new(:elixir) | id: "c6"}
+                ]
+            }
+          ]
+      }
+
+      assert Notebook.cell_dependency_graph(notebook) == %{
+               "c6" => "c5",
+               "c5" => "c2",
+               "c4" => "c3",
+               "c3" => "c2",
+               "c2" => "c1",
+               "c1" => nil
+             }
+    end
+
+    test "handles branching sections pointing to empty sections" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s2",
+                cells: []
+            },
+            %{
+              Section.new()
+              | id: "s3",
+                parent_id: "s2",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c2"}
+                ]
+            }
+          ]
+      }
+
+      assert Notebook.cell_dependency_graph(notebook) == %{
+               "c2" => "c1",
+               "c1" => nil
+             }
+    end
+
+    test "handles branching sections placed further in the notebook" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s2",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c2"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s3",
+                parent_id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c3"}
+                ]
+            },
+            %{
+              Section.new()
+              | id: "s4",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c4"}
+                ]
+            }
+          ]
+      }
+
+      assert Notebook.cell_dependency_graph(notebook) == %{
+               "c4" => "c2",
+               "c3" => "c1",
+               "c2" => "c1",
+               "c1" => nil
+             }
+    end
+
+    test "given :cell_filter option, includes only the matching cells" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1"},
+                  %{Cell.new(:markdown) | id: "c2"},
+                  %{Cell.new(:elixir) | id: "c3"}
+                ]
+            }
+          ]
+      }
+
+      assert Notebook.cell_dependency_graph(notebook, cell_filter: &is_struct(&1, Cell.Elixir)) ==
+               %{
+                 "c3" => "c1",
+                 "c1" => nil
+               }
+    end
+  end
+
   describe "input_cell_for_prompt/3" do
     test "returns an error if no input matches the given prompt" do
       cell1 = Cell.new(:elixir)

@@ -40,6 +40,14 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
 
     <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
+
+    <!-- livebook:{"branch_parent_index":1} -->
+
+    ## Section 3
+
+    ```elixir
+    Process.info()
+    ```
     """
 
     {notebook, []} = Import.notebook_from_markdown(markdown)
@@ -79,6 +87,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  ]
                },
                %Notebook.Section{
+                 id: section2_id,
                  name: "Section 2",
                  metadata: %{},
                  cells: [
@@ -101,6 +110,19 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      name: "length",
                      value: "100",
                      props: %{min: 50, max: 150, step: 2}
+                   }
+                 ]
+               },
+               %Notebook.Section{
+                 name: "Section 3",
+                 metadata: %{},
+                 parent_id: section2_id,
+                 cells: [
+                   %Cell.Elixir{
+                     metadata: %{},
+                     source: """
+                     Process.info()\
+                     """
                    }
                  ]
                }

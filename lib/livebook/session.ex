@@ -8,9 +8,40 @@ defmodule Livebook.Session do
   # Receives update requests from the clients and notifies
   # them of any changes applied to the notebook.
   #
-  # The core concept is the `Data` structure
+  # ## Collaborative state
+  #
+  # The core concept is the `Livebook.Session.Data` structure
   # to which we can apply reproducible operations.
-  # See `Data` for more information.
+  # See `Livebook.Session.Data` for more information.
+  #
+  # ## Evaluation
+  #
+  # All regular sections are evaluated in the same process
+  # (the :main_flow evaluation container). On the other hand,
+  # each branching section is evaluated in its own process
+  # and thus runs concurrently.
+  #
+  # ### Implementation considerations
+  #
+  # In practice, every evaluation container is a `Livebook.Evaluator`
+  # process, so we have one such process for the main flow and one
+  # for each branching section. Since a branching section inherits
+  # the evaluation context from the parent section, the last context
+  # needs to be copied from the main flow evaluator to the branching
+  # section evaluator. The latter synchronously asks the former for
+  # that context using `Livebook.Evaluator.fetch_evaluation_context/3`.
+  # Consequently, in order to evaluate the first cell in a branching
+  # section, the main flow needs to be free of work, otherwise we wait.
+  # This assumptions are mirrored in by `Livebook.Session.Data` when
+  # determining cells for evaluation.
+  #
+  # Note: the context could be copied asynchronously if evaluator
+  # kept the contexts in its process dictionary, however the other
+  # evaluator could only read the whole process dictionary, thus
+  # allocating a lot of memory unnecessarily, which would be unacceptable
+  # for large data. By making a synchronous request to the evalutor
+  # for a single specific evaluation context we make sure to copy
+  # as little memory as necessary.
 
   use GenServer, restart: :temporary
 
@@ -125,6 +156,22 @@ defmodule Livebook.Session do
   @spec insert_section_into(id(), Section.id(), non_neg_integer()) :: :ok
   def insert_section_into(session_id, section_id, index) do
     GenServer.cast(name(session_id), {:insert_section_into, self(), section_id, index})
+  end
+
+  @doc """
+  Asynchronously sends parent update request to the server.
+  """
+  @spec set_section_parent(id(), Section.id(), Section.id()) :: :ok
+  def set_section_parent(session_id, section_id, parent_id) do
+    GenServer.cast(name(session_id), {:set_section_parent, self(), section_id, parent_id})
+  end
+
+  @doc """
+  Asynchronously sends parent update request to the server.
+  """
+  @spec unset_section_parent(id(), Section.id()) :: :ok
+  def unset_section_parent(session_id, section_id) do
+    GenServer.cast(name(session_id), {:unset_section_parent, self(), section_id})
   end
 
   @doc """
@@ -380,6 +427,18 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:set_section_parent, client_pid, section_id, parent_id}, state) do
+    # Include new id in the operation, so it's reproducible
+    operation = {:set_section_parent, client_pid, section_id, parent_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:unset_section_parent, client_pid, section_id}, state) do
+    # Include new id in the operation, so it's reproducible
+    operation = {:unset_section_parent, client_pid, section_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:insert_cell, client_pid, section_id, index, type}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id()}
@@ -552,10 +611,15 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:container_down, :main, message}, state) do
+  def handle_info({:container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
-    operation = {:reflect_evaluation_failure, self()}
+    operation =
+      case container_ref do
+        :main_flow -> {:reflect_main_evaluation_failure, self()}
+        section_id -> {:reflect_evaluation_failure, self(), section_id}
+      end
+
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -647,13 +711,16 @@ defmodule Livebook.Session do
     end
   end
 
-  # Given any operation on `Data`, the process does the following:
+  # Given any operation on `Livebook.Session.Data`, the process
+  # does the following:
   #
   #   * broadcasts the operation to all clients immediately,
-  #     so that they can update their local `Data`
-  #   * applies the operation to own local `Data`
+  #     so that they can update their local `Livebook.Session.Data`
+  #
+  #   * applies the operation to own local `Livebook.Session.Data`
+  #
   #   * if necessary, performs the relevant actions (e.g. starts cell evaluation),
-  #     to reflect the new `Data`
+  #     to reflect the new `Livebook.Session.Data`
   #
   defp handle_operation(state, operation) do
     broadcast_operation(state.session_id, operation)
@@ -739,33 +806,29 @@ defmodule Livebook.Session do
     end
   end
 
-  defp handle_action(state, {:start_evaluation, cell, _section}) do
-    prev_ref =
-      state.data.notebook
-      |> Notebook.parent_cells_with_section(cell.id)
-      |> Enum.find_value(fn {cell, _} -> is_struct(cell, Cell.Elixir) && cell.id end)
-
+  defp handle_action(state, {:start_evaluation, cell, section}) do
     file = (state.data.path || "") <> "#cell"
     opts = [file: file]
 
-    Runtime.evaluate_code(state.data.runtime, cell.source, :main, cell.id, prev_ref, opts)
+    locator = {container_ref_for_section(section), cell.id}
+    prev_locator = find_prev_locator(state.data.notebook, cell, section)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, prev_locator, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
-
     handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
   end
 
-  defp handle_action(state, {:stop_evaluation, _section}) do
+  defp handle_action(state, {:stop_evaluation, section}) do
     if state.data.runtime do
-      Runtime.drop_container(state.data.runtime, :main)
+      Runtime.drop_container(state.data.runtime, container_ref_for_section(section))
     end
 
     state
   end
 
-  defp handle_action(state, {:forget_evaluation, cell, _section}) do
+  defp handle_action(state, {:forget_evaluation, cell, section}) do
     if state.data.runtime do
-      Runtime.forget_evaluation(state.data.runtime, :main, cell.id)
+      Runtime.forget_evaluation(state.data.runtime, {container_ref_for_section(section), cell.id})
     end
 
     state
@@ -808,4 +871,30 @@ defmodule Livebook.Session do
       state
     end
   end
+
+  @doc """
+  Determines locator of the evaluation that the given
+  cell depends on.
+  """
+  @spec find_prev_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
+  def find_prev_locator(notebook, cell, section) do
+    default =
+      case section.parent_id do
+        nil ->
+          {container_ref_for_section(section), nil}
+
+        parent_id ->
+          {:ok, parent} = Notebook.fetch_section(notebook, parent_id)
+          {container_ref_for_section(parent), nil}
+      end
+
+    notebook
+    |> Notebook.parent_cells_with_section(cell.id)
+    |> Enum.find_value(default, fn {cell, section} ->
+      is_struct(cell, Cell.Elixir) && {container_ref_for_section(section), cell.id}
+    end)
+  end
+
+  defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
+  defp container_ref_for_section(section), do: section.id
 end

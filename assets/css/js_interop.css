@@ -109,7 +109,7 @@ solely client-side operations.
 
 [data-element="section-headline"]:not(:hover)
   [data-element="section-name"]:not(:focus)
-  + [data-element="section-actions"] {
+  + [data-element="section-actions"]:not(:focus-within) {
   @apply hidden;
 }
 

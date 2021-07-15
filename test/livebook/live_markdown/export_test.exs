@@ -44,7 +44,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
           },
           %{
             Notebook.Section.new()
-            | name: "Section 2",
+            | id: "s2",
+              name: "Section 2",
               metadata: %{},
               cells: [
                 %{
@@ -58,7 +59,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   Notebook.Cell.new(:elixir)
                   | metadata: %{},
                     source: """
-                    IO.gets("length: ")
+                    IO.gets("length: ")\
                     """
                 },
                 %{
@@ -67,6 +68,21 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     name: "length",
                     value: "100",
                     props: %{min: 50, max: 150, step: 2}
+                }
+              ]
+          },
+          %{
+            Notebook.Section.new()
+            | name: "Section 3",
+              metadata: %{},
+              parent_id: "s2",
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | metadata: %{},
+                    source: """
+                    Process.info()\
+                    """
                 }
               ]
           }
@@ -107,6 +123,14 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```
 
     <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
+
+    <!-- livebook:{"branch_parent_index":1} -->
+
+    ## Section 3
+
+    ```elixir
+    Process.info()
+    ```
     """
 
     document = Export.notebook_to_markdown(notebook)

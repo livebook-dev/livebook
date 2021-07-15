@@ -106,6 +106,48 @@ You can also choose to run inside a *Mix* project (as you would with `iex -S mix
 manually *attach* to an existing distributed node, or run your Elixir notebook
 *embedded* within the Livebook source itself.
 
+## More on branches #1
+
+We already mentioned branching sections in
+[Welcome to Livebook](/explore/notebooks/intro-to-livebook),
+but in Elixir terms each branching section:
+
+* runs in a separate process from the main flow
+* copies relevant bindings, imports and alises from the parent
+* updates its process dictionary to mirror the parent
+
+Let's see this in practice:
+
+```elixir
+parent = self()
+```
+
+```elixir
+Process.put(:info, "deal carefully with process dictionaries")
+```
+
+<!-- livebook:{"branch_parent_index":5} -->
+
+## More on branches #2
+
+```elixir
+parent
+```
+
+```elixir
+self()
+```
+
+```elixir
+Process.get(:info)
+```
+
+Since this branch is a separate process, a crash has limited scope:
+
+```elixir
+Process.exit(self(), :kill)
+```
+
 ## Inputs
 
 Livebook supports inputs and you read the input values directly
@@ -148,8 +190,8 @@ cell on the bottom-right of the cell. After evaluation, the total
 time can be seen by hovering the green dot.
 
 However, it is important to remember that all code outside of
-a module in Elixir is _evaluated_, and therefore executes much
-slower than code defined inside modules, which are _compiled_.
+a module in Elixir is *evaluated*, and therefore executes much
+slower than code defined inside modules, which are *compiled*.
 
 Let's see an example. Run the cell below:
 

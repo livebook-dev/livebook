@@ -49,40 +49,25 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     ErlDist.RuntimeServer.stop(runtime.server_pid)
   end
 
-  def evaluate_code(
-        runtime,
-        code,
-        container_ref,
-        evaluation_ref,
-        prev_evaluation_ref,
-        opts \\ []
-      ) do
-    ErlDist.RuntimeServer.evaluate_code(
-      runtime.server_pid,
-      code,
-      container_ref,
-      evaluation_ref,
-      prev_evaluation_ref,
-      opts
-    )
+  def evaluate_code(runtime, code, locator, prev_locator, opts \\ []) do
+    ErlDist.RuntimeServer.evaluate_code(runtime.server_pid, code, locator, prev_locator, opts)
   end
 
-  def forget_evaluation(runtime, container_ref, evaluation_ref) do
-    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, container_ref, evaluation_ref)
+  def forget_evaluation(runtime, locator) do
+    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, locator)
   end
 
   def drop_container(runtime, container_ref) do
     ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def request_completion_items(runtime, send_to, ref, hint, container_ref, evaluation_ref) do
+  def request_completion_items(runtime, send_to, completion_ref, hint, locator) do
     ErlDist.RuntimeServer.request_completion_items(
       runtime.server_pid,
       send_to,
-      ref,
+      completion_ref,
       hint,
-      container_ref,
-      evaluation_ref
+      locator
     )
   end
 

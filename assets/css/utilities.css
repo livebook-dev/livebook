@@ -18,4 +18,8 @@
     box-shadow: 0 0 25px -5px rgba(0, 0, 0, 0.1),
       0 0 10px -5px rgba(0, 0, 0, 0.04);
   }
+
+  .flip-horizontally {
+    transform: scaleY(-1);
+  }
 }

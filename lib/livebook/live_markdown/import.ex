@@ -19,6 +19,7 @@ defmodule Livebook.LiveMarkdown.Import do
       ast
       |> group_elements()
       |> build_notebook()
+      |> postprocess_notebook()
 
     {notebook, earmark_messages ++ rewrite_messages}
   end
@@ -258,5 +259,17 @@ defmodule Livebook.LiveMarkdown.Import do
       value = Map.get(data, to_string(key), default_value)
       {key, value}
     end)
+  end
+
+  defp postprocess_notebook(notebook) do
+    sections =
+      Enum.map(notebook.sections, fn section ->
+        # Set parent_id based on the persisted branch_parent_index if present
+        {parent_idx, metadata} = Map.pop(section.metadata, "branch_parent_index")
+        parent = parent_idx && Enum.at(notebook.sections, parent_idx)
+        %{section | metadata: metadata, parent_id: parent && parent.id}
+      end)
+
+    %{notebook | sections: sections}
   end
 end

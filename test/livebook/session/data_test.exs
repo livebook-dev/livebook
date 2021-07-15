@@ -91,6 +91,261 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_section_parent" do
+    test "returns an error given invalid section id" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"}
+        ])
+
+      operation = {:set_section_parent, self(), "nonexistent", "s1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given invalid parent section id" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"}
+        ])
+
+      operation = {:set_section_parent, self(), "s1", "nonexistent"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error if the parent section is below the given section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"}
+        ])
+
+      operation = {:set_section_parent, self(), "s1", "s2"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error if the parent section is a branch section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          {:set_section_parent, self(), "s2", "s1"}
+        ])
+
+      operation = {:set_section_parent, self(), "s3", "s2"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error if there are sections branching out from the given section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          {:set_section_parent, self(), "s3", "s2"}
+        ])
+
+      operation = {:set_section_parent, self(), "s2", "s1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "sets parent id on section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"}
+        ])
+
+      operation = {:set_section_parent, self(), "s2", "s1"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1", parent_id: nil}, %{id: "s2", parent_id: "s1"}]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "marks cells in this and further sections as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:set_section_parent, self(), "s2", "s1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "if a cell is evaluating in this section, clears all sections evaluation and queues" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:set_section_parent, self(), "s2", "s1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s3" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              },
+              [{:stop_evaluation, %{id: "s2", parent_id: nil}}]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :unset_section_parent" do
+    test "returns an error given invalid section id" do
+      data = Data.new()
+      operation = {:unset_section_parent, self(), "nonexistent"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error given section with no parent" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"}
+        ])
+
+      operation = {:unset_section_parent, self(), "s1"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "sets parent id on section to nil" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:set_section_parent, self(), "s2", "s1"}
+        ])
+
+      operation = {:unset_section_parent, self(), "s2"}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{id: "s1", parent_id: nil}, %{id: "s2", parent_id: nil}]
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "returns stop evaluation action" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:set_section_parent, self(), "s2", "s1"}
+        ])
+
+      operation = {:unset_section_parent, self(), "s2"}
+
+      assert {:ok, %{}, [{:stop_evaluation, %{id: "s2", parent_id: "s1"}}]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "marks cells in this and further sections as stale" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:unset_section_parent, self(), "s2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "if a cell is evaluating in this section, marks evaluated and evaluating cells as aborted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:unset_section_parent, self(), "s2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :stale, evaluation_status: :evaluating}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :insert_cell" do
     test "returns an error given invalid section id" do
       data = Data.new()
@@ -242,6 +497,82 @@ defmodule Livebook.Session.DataTest do
               %{
                 cell_infos: %{"c2" => %{validity_status: :stale}}
               }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "marks cells in this and further sections as stale if branching section is deleted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:delete_section, self(), "s2", false}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "does not mark cells in further sections as stale if branching section is deleted with cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:delete_section, self(), "s2", true}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c3" => %{validity_status: :evaluated}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error if the section has branching sections" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:set_section_parent, self(), "s2", "s1"}
+        ])
+
+      operation = {:delete_section, self(), "s1", false}
+
+      assert :error = Data.apply_operation(data, operation)
     end
   end
 
@@ -474,13 +805,13 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}, %{evaluation_time_ms: 20}},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 30}},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c4"},
-          {:add_cell_evaluation_response, self(), "c4", {:ok, nil}, %{evaluation_time_ms: 40}}
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_cell, self(), "c3", -1}
@@ -515,13 +846,13 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}, %{evaluation_time_ms: 20}},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 30}},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c4"},
-          {:add_cell_evaluation_response, self(), "c4", {:ok, nil}, %{evaluation_time_ms: 40}}
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_cell, self(), "c2", 1}
@@ -580,11 +911,11 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}, %{evaluation_time_ms: 20}},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 30}}
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_cell, self(), "c1", 1}
@@ -605,7 +936,7 @@ defmodule Livebook.Session.DataTest do
           # Evaluate the Elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_cell, self(), "c2", -1}
@@ -652,9 +983,9 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 20}}
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_cell, self(), "c1", 1}
@@ -664,6 +995,86 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{validity_status: :evaluated},
                   "c3" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "invalidates only relevant cells if a cell is moved within a branch section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:set_section_parent, self(), "s2", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:move_cell, self(), "c2", 1}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale},
+                  "c4" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "invalidates cells only in relevant branch sections" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:insert_section, self(), 3, "s4"},
+          {:insert_cell, self(), "s4", 0, :elixir, "c5"},
+          {:set_section_parent, self(), "s3", "s2"},
+          {:set_section_parent, self(), "s4", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c5"},
+          {:add_cell_evaluation_response, self(), "c5", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:move_cell, self(), "c2", 1}
+
+      # Section s4 is independent of section s2, so it shouldn't be invalidated
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :stale},
+                  "c3" => %{validity_status: :stale},
+                  "c4" => %{validity_status: :stale},
+                  "c5" => %{validity_status: :evaluated}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -700,13 +1111,13 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}, %{evaluation_time_ms: 20}},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 30}},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c4"},
-          {:add_cell_evaluation_response, self(), "c4", {:ok, nil}, %{evaluation_time_ms: 40}}
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_section, self(), "s2", -1}
@@ -745,13 +1156,13 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 100}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}, %{evaluation_time_ms: 20}},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c4"},
-          {:add_cell_evaluation_response, self(), "c4", {:ok, nil}, %{evaluation_time_ms: 0}}
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_section, self(), "s1", 1}
@@ -790,11 +1201,11 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:add_cell_evaluation_response, self(), "c2", {:ok, nil}, %{evaluation_time_ms: 20}},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 30}}
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_section, self(), "s1", 1}
@@ -816,7 +1227,7 @@ defmodule Livebook.Session.DataTest do
           # Evaluate the Elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_section, self(), "s2", -1}
@@ -868,9 +1279,9 @@ defmodule Livebook.Session.DataTest do
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c3"},
-          {:add_cell_evaluation_response, self(), "c3", {:ok, nil}, %{evaluation_time_ms: 20}}
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
         ])
 
       operation = {:move_section, self(), "s4", -1}
@@ -882,6 +1293,73 @@ defmodule Livebook.Session.DataTest do
                   "c3" => %{validity_status: :evaluated}
                 }
               }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "does not invalidate any cells if a branching sections is moved" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_section, self(), 3, "s4"},
+          {:insert_cell, self(), "s4", 0, :elixir, "c4"},
+          {:set_section_parent, self(), "s2", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:move_section, self(), "s2", 1}
+
+      # Section s2 is branching, so moving it should have no impact on validity
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :evaluated},
+                  "c3" => %{validity_status: :evaluated},
+                  "c4" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error when moving a regular section below one of its child sections" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          {:set_section_parent, self(), "s2", "s1"}
+        ])
+
+      operation = {:move_section, self(), "s1", 1}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "returns an error when moving a child section above its parent section" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          {:set_section_parent, self(), "s2", "s1"}
+        ])
+
+      operation = {:move_section, self(), "s2", -1}
+
+      assert :error = Data.apply_operation(data, operation)
     end
   end
 
@@ -1073,6 +1551,152 @@ defmodule Livebook.Session.DataTest do
                   "s1" => %{evaluating_cell_id: "c2", evaluation_queue: []},
                   "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c3", "c4"]}
                 }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "queues only required parent cells when queueing a branch cell" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s3", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()}
+        ])
+
+      operation = {:queue_cell_evaluation, self(), "c3"}
+
+      # Cell 3 depends directly on cell 1, so cell 2 shouldn't be queued
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated, evaluation_status: :evaluating},
+                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :queued}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s3" => %{evaluating_cell_id: nil, evaluation_queue: ["c3"]}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "marks first branch cell as queued if a regular section is evaluating" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:queue_cell_evaluation, self(), "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{evaluation_status: :queued},
+                  "c3" => %{evaluation_status: :evaluating}
+                },
+                section_infos: %{
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c2"]},
+                  "s3" => %{evaluating_cell_id: "c3", evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "marks first branch cell as evaluating if no regular section is evaluating" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:queue_cell_evaluation, self(), "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{evaluation_status: :evaluating}},
+                section_infos: %{"s2" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
+              },
+              [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "marks the second branch cell as evaluating if the first one is evaluated, even if a regular section is evaluating" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c4"}
+        ])
+
+      operation = {:queue_cell_evaluation, self(), "c3"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c3" => %{evaluation_status: :evaluating},
+                  "c4" => %{evaluation_status: :evaluating}
+                },
+                section_infos: %{
+                  "s2" => %{evaluating_cell_id: "c3", evaluation_queue: []},
+                  "s3" => %{evaluating_cell_id: "c4", evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "marks regular cell as evaluating if only a branch cell is evaluating" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"}
+        ])
+
+      operation = {:queue_cell_evaluation, self(), "c3"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c3" => %{evaluation_status: :evaluating}},
+                section_infos: %{"s3" => %{evaluating_cell_id: "c3", evaluation_queue: []}}
               }, _actions} = Data.apply_operation(data, operation)
     end
   end
@@ -1313,29 +1937,6 @@ defmodule Livebook.Session.DataTest do
                Data.apply_operation(data, operation)
     end
 
-    test "if parent cells are not evaluated, marks them for evaluation first" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:set_runtime, self(), NoopRuntime.new()}
-        ])
-
-      operation = {:queue_cell_evaluation, self(), "c2"}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c1" => %{evaluation_status: :evaluating},
-                  "c2" => %{evaluation_status: :queued}
-                },
-                section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
-              },
-              [{:start_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
-               Data.apply_operation(data, operation)
-    end
-
     test "marks evaluated child cells as stale" do
       data =
         data_after_operations!([
@@ -1367,6 +1968,48 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
+    test "marks evaluated child cells as stale in relevant branch sections" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_section, self(), 3, "s4"},
+          {:insert_cell, self(), "s4", 0, :elixir, "c4"},
+          {:set_section_parent, self(), "s3", "s2"},
+          {:set_section_parent, self(), "s4", "s1"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta},
+          # Queue the second cell again
+          {:queue_cell_evaluation, self(), "c2"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+
+      # Section s4 is independent of section s2, so it shouldn't be invalidated
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated},
+                  "c2" => %{validity_status: :evaluated},
+                  "c3" => %{validity_status: :stale},
+                  "c4" => %{validity_status: :evaluated}
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
     test "adds evaluation time to the response" do
       data =
         data_after_operations!([
@@ -1376,7 +2019,8 @@ defmodule Livebook.Session.DataTest do
           {:queue_cell_evaluation, self(), "c1"}
         ])
 
-      operation = {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+      operation =
+        {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}, %{evaluation_time_ms: 10}}
 
       Process.sleep(10)
 
@@ -1434,7 +2078,7 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :reflect_evaluation_failure" do
+  describe "apply_operation/2 given :reflect_main_evaluation_failure" do
     test "clears evaluation queue and marks evaluated and evaluating cells as aborted" do
       data =
         data_after_operations!([
@@ -1449,7 +2093,7 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
-      operation = {:reflect_evaluation_failure, self()}
+      operation = {:reflect_main_evaluation_failure, self()}
 
       assert {:ok,
               %{
@@ -1460,6 +2104,79 @@ defmodule Livebook.Session.DataTest do
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "leaves branching sections unchanged" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:reflect_main_evaluation_failure, self()}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :evaluated, evaluation_status: :ready},
+                  "c3" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: "c3", evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :reflect_evaluation_failure" do
+    test "clears section evaluation queue and marks evaluated and evaluating cells as aborted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:reflect_evaluation_failure, self(), "s2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c4" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s3" => %{evaluating_cell_id: "c4", evaluation_queue: []}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -1532,6 +2249,43 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, _data, [{:stop_evaluation, %{id: "s1"}}]} =
                Data.apply_operation(data, operation)
+    end
+
+    test "if the cell is evaluating within branched section, clears this section evaluation and queue" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:queue_cell_evaluation, self(), "c4"}
+        ])
+
+      operation = {:cancel_cell_evaluation, self(), "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :evaluated, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready},
+                  "c4" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s3" => %{evaluating_cell_id: "c4", evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
     end
 
     test "if the cell is queued, unqueues it" do

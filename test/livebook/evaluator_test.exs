@@ -4,7 +4,7 @@ defmodule Livebook.EvaluatorTest do
   alias Livebook.Evaluator
 
   setup do
-    {:ok, evaluator} = Evaluator.start_link()
+    evaluator = start_supervised!(Evaluator)
     %{evaluator: evaluator}
   end
 
@@ -77,9 +77,8 @@ defmodule Livebook.EvaluatorTest do
                        [{List, :first, _arity, _location}]}, %{evaluation_time_ms: _time_ms}}
     end
 
-    test "in case of an error returns only the relevant part of stacktrace", %{
-      evaluator: evaluator
-    } do
+    test "in case of an error returns only the relevant part of stacktrace",
+         %{evaluator: evaluator} do
       code = """
       defmodule Livebook.EvaluatorTest.Stacktrace.Math do
         def bad_math do
@@ -241,6 +240,35 @@ defmodule Livebook.EvaluatorTest do
       Evaluator.request_completion_items(evaluator, self(), :comp_ref, "ANSI.brigh", :code_1)
 
       assert_receive {:completion_response, :comp_ref, [%{label: "bright/0"}]}, 1_000
+    end
+  end
+
+  describe "initialize_from/3" do
+    setup do
+      parent_evaluator = start_supervised!(Evaluator, id: :parent_evaluator)
+      %{parent_evaluator: parent_evaluator}
+    end
+
+    test "copies the given context and sets as the initial one",
+         %{evaluator: evaluator, parent_evaluator: parent_evaluator} do
+      Evaluator.evaluate_code(parent_evaluator, self(), "x = 1", :code_1)
+      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+
+      Evaluator.initialize_from(evaluator, parent_evaluator, :code_1)
+
+      Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
+      assert_receive {:evaluation_response, :code_2, {:ok, 1}, %{evaluation_time_ms: _time_ms}}
+    end
+
+    test "mirrors process dictionary of the given evaluator",
+         %{evaluator: evaluator, parent_evaluator: parent_evaluator} do
+      Evaluator.evaluate_code(parent_evaluator, self(), "Process.put(:data, 1)", :code_1)
+      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+
+      Evaluator.initialize_from(evaluator, parent_evaluator, :code_1)
+
+      Evaluator.evaluate_code(evaluator, self(), "Process.get(:data)", :code_2)
+      assert_receive {:evaluation_response, :code_2, {:ok, 1}, %{evaluation_time_ms: _time_ms}}
     end
   end
 
