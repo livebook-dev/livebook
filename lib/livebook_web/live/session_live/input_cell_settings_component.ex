@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
             <div class="input-label">Name</div>
             <input type="text" class="input" name="attrs[name]" value={@attrs.name} autofocus />
           </div>
-          <.extra_fields type={@attrs.type} props={@attrs.props} />
+          <.extra_fields type={@attrs.type} props={@attrs.props} myself={@myself} />
           <.switch_checkbox
             name="attrs[reactive]"
             label="Reactive (reevaluates dependent cells on change)"
@@ -78,6 +78,58 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     """
   end
 
+  defp extra_fields(%{type: :select} = assigns) do
+    ~H"""
+    <div class="flex space-x-4">
+      <div class="flex-grow">
+        <div class="input-label">Options</div>
+          <input
+           list="option-id"
+           type="text"
+           class="input"
+           name="attrs[props][option]"
+           value={@props.option}
+          />
+
+          <div class="flex-grow">
+            <datalist class="input" name="attrs[props][options]" id="option-id">
+              <%= for item <- @props.options do %>
+                <option value={item}>
+              <% end %>
+            </datalist>
+          </div>
+
+      </div>
+
+      <div class="mt-4">
+        <%= if(@props.option in @props.options) do %>
+        <button
+          class="mt-2 ri-delete-bin-6-fill text-2xl text-red-600"
+          type="button"
+          phx-target={@myself}
+          phx-click="action_option_select"
+          phx-value-option={@props.option}
+          phx-value-action={:delete}
+        >
+        </button>
+        <% else %>
+          <button
+            class="mt-2 text-blue-600 ri-add-circle-fill text-2xl"
+            type="button"
+            phx-target={@myself}
+            phx-click="action_option_select"
+            phx-value-option={@props.option}
+            phx-value-action={:add}
+          >
+          </button>
+        <% end %>
+      </div>
+
+    </div>
+
+    """
+  end
+
   defp extra_fields(assigns), do: ~H""
 
   @impl true
@@ -100,6 +152,39 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 
+  def handle_event("action_option_select", %{"option" => ""} = _params, socket),
+    do: {:noreply, socket}
+
+  def handle_event("action_option_select", params, socket) do
+    options =
+      case params["action"] do
+        "add" -> socket.assigns.attrs.props.options ++ [params["option"]]
+        "delete" -> socket.assigns.attrs.props.options -- [params["option"]]
+      end
+
+    props =
+      socket.assigns.attrs.props
+      |> Map.put(:options, options)
+      |> Map.put(:option, "")
+
+    attrs = Map.put(socket.assigns.attrs, :props, props)
+
+    {:noreply, socket |> assign(attrs: attrs) |> assign(props: props)}
+  end
+
+  defp add_props(data, prev_attrs) do
+    if data["type"] == "select" do
+      option = data["props"]["option"]
+      options = prev_attrs.props.options
+
+      props = %{"option" => option, "options" => options}
+
+      Map.put(data, "props", props)
+    else
+      data
+    end
+  end
+
   defp validate_attrs(data, prev_attrs) do
     name = data["name"]
     type = data["type"] |> String.to_existing_atom()
@@ -107,7 +192,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
     {props_valid?, props} =
       if type == prev_attrs.type do
-        data |> Map.get("props", %{}) |> validate_props(type)
+        data |> add_props(prev_attrs) |> Map.get("props", %{}) |> validate_props(type)
       else
         {true, Cell.Input.default_props(type)}
       end
@@ -124,6 +209,11 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     valid? = min != nil and max != nil and step != nil and min < max and step > 0
     data = %{min: min, max: max, step: step}
     {valid?, data}
+  end
+
+  defp validate_props(data, :select) do
+    options = if(data["options"], do: data["options"], else: [])
+    {true, %{option: data["option"], options: options}}
   end
 
   defp validate_props(_data, _type) do
@@ -153,7 +243,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       text: "Text",
       textarea: "Textarea",
       url: "URL",
-      range: "Range"
+      range: "Range",
+      select: "Select"
     ]
   end
 end
