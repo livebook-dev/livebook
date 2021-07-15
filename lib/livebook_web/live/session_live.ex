@@ -104,7 +104,7 @@ defmodule LivebookWeb.SessionLive do
           current_user={@current_user}
           path={Routes.session_path(@socket, :user, @session_id)} />
       </SidebarHelpers.sidebar>
-      <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none overflow-y-auto bg-gray-50 border-r border-gray-100 px-6 py-10"
+      <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">
           <div class="flex-grow flex flex-col">
@@ -113,10 +113,15 @@ defmodule LivebookWeb.SessionLive do
             </h3>
             <div class="mt-4 flex flex-col space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
-                <button class="text-left hover:text-gray-900 text-gray-500"
+                <button class="text-left hover:text-gray-900 text-gray-500 flex items-center space-x-1"
                   data-element="sections-list-item"
                   data-section-id={section_item.id}>
-                  <%= section_item.name %>
+                  <span><%= section_item.name %></span>
+                  <%= if section_item.parent do %>
+                    <span class="tooltip right" aria-label={"Branches from\n”#{section_item.parent.name}”"}>
+                      <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
+                    </span>
+                  <% end %>
                 </button>
               <% end %>
             </div>
@@ -1021,7 +1026,11 @@ defmodule LivebookWeb.SessionLive do
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
-          %{id: section.id, name: section.name}
+          %{
+            id: section.id,
+            name: section.name,
+            parent: parent_section_view(section.parent_id, data)
+          }
         end,
       clients:
         data.clients_map
