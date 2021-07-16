@@ -106,6 +106,10 @@ defmodule Livebook.Completion do
     {:ok, List.to_atom(var)}
   end
 
+  defp expand_dot_path({:module_attribute, _attribute}, _ctx) do
+    :error
+  end
+
   defp expand_dot_path({:dot, parent, call}, ctx) do
     case expand_dot_path(parent, ctx) do
       {:ok, %{} = map} -> Map.fetch(map, List.to_atom(call))

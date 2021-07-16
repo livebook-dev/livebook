@@ -925,4 +925,9 @@ defmodule Livebook.CompletionTest do
              }
            ] = Completion.get_completion_items("@modu", binding, env)
   end
+
+  test "handles calls on module attribute" do
+    {binding, env} = eval(do: nil)
+    assert [] = Completion.get_completion_items("@attr.value", binding, env)
+  end
 end
