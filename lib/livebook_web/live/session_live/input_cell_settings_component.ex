@@ -83,46 +83,50 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     <div class="flex space-x-4">
       <div class="flex-grow">
         <div class="input-label">Options</div>
-          <input
-           list="option-id"
-           type="text"
-           class="input"
-           name="attrs[props][option]"
-           value={@props.option}
-          />
 
           <div class="flex-grow">
-            <datalist class="input" name="attrs[props][options]" id="option-id">
+            <ul class="input options-select" name="attrs[props][options]" id="option-id">
               <%= for item <- @props.options do %>
-                <option value={item}>
+                <li class="justify-between flex pl-4 pr-4">
+                  <span class="mt-2"><%= item %></span>
+                  <button
+                    class="mt-2 ri-delete-bin-6-fill text-2xl hover:text-gray-900 text-gray-400"
+                    type="button"
+                    phx-target={@myself}
+                    phx-click="action_option_select"
+                    phx-value-option={item}
+                    phx-value-action={:delete}
+                  >
+                  </button>
+                </li>
               <% end %>
-            </datalist>
+              <li class="justify-between flex pl-4 pr-4 pb-3">
+                <input
+                  type="text"
+                  class="w-96 bg-transparent"
+                  placeholder="New option"
+                  name="attrs[props][option]"
+                  value={@props.option}
+                />
+                <%= if @props.option in @props.options do %>
+                  <div class="input-error mt-6 mt-4">
+                    <%= String.capitalize("Alread added") %>
+                  </div>
+                <% else %>
+                  <button
+                    class="mt-2 text-blue-600 ri-add-circle-fill text-2xl"
+                    type="button"
+                    phx-target={@myself}
+                    phx-click="action_option_select"
+                    phx-value-option={@props.option}
+                    phx-value-action={:add}
+                  >
+                  </button>
+                <% end %>
+              </li>
+            </ul>
           </div>
 
-      </div>
-
-      <div class="mt-4">
-        <%= if(@props.option in @props.options) do %>
-        <button
-          class="mt-2 ri-delete-bin-6-fill text-2xl text-red-600"
-          type="button"
-          phx-target={@myself}
-          phx-click="action_option_select"
-          phx-value-option={@props.option}
-          phx-value-action={:delete}
-        >
-        </button>
-        <% else %>
-          <button
-            class="mt-2 text-blue-600 ri-add-circle-fill text-2xl"
-            type="button"
-            phx-target={@myself}
-            phx-click="action_option_select"
-            phx-value-option={@props.option}
-            phx-value-action={:add}
-          >
-          </button>
-        <% end %>
       </div>
 
     </div>
@@ -157,10 +161,11 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   def handle_event("action_option_select", params, socket) do
     options =
-      case params["action"] do
-        "add" -> socket.assigns.attrs.props.options ++ [params["option"]]
-        "delete" -> socket.assigns.attrs.props.options -- [params["option"]]
-      end
+      handle_options_select(
+        params["action"],
+        params["option"],
+        socket.assigns.attrs.props.options
+      )
 
     props =
       socket.assigns.attrs.props
@@ -171,6 +176,14 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
     {:noreply, socket |> assign(attrs: attrs) |> assign(props: props)}
   end
+
+  defp handle_options_select("add", option, options) do
+    if(option in options, do: options, else: options ++ [option])
+  end
+
+  defp handle_options_select("delete", option, options), do: options -- [option]
+
+  defp handle_options_select(_, _option, options), do: options
 
   defp add_props(data, prev_attrs) do
     if data["type"] == "select" do

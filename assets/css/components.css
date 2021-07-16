@@ -104,6 +104,20 @@
     @apply w-60;
   }
 
+  .options-select {
+    padding: 0;
+    height: 200px;
+    overflow-y: auto;
+  }
+  
+  li {
+    @apply p-1;
+  }
+
+  li:nth-child(odd) {
+    @apply bg-gray-100;
+  }
+
   .input-label {
     @apply mb-0.5 text-sm text-gray-800 font-medium;
   }
