@@ -109,7 +109,7 @@
     height: 200px;
     overflow-y: auto;
   }
-  
+
   li {
     @apply p-1;
   }
