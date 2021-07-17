@@ -83,54 +83,42 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     <div class="flex space-x-4">
       <div class="flex-grow">
         <div class="input-label">Options</div>
-
           <div class="flex-grow">
-            <ul class="input options-select" name="attrs[props][options]" id="option-id">
-              <%= for item <- @props.options do %>
-                <li class="justify-between flex pl-4 pr-4">
-                  <span class="mt-2"><%= item %></span>
-                  <button
-                    class="mt-2 ri-delete-bin-6-fill text-2xl hover:text-gray-900 text-gray-400"
-                    type="button"
-                    phx-target={@myself}
-                    phx-click="action_option_select"
-                    phx-value-option={item}
-                    phx-value-action={:delete}
-                  >
-                  </button>
-                </li>
-              <% end %>
-              <li class="justify-between flex pl-4 pr-4 pb-3">
+            <%= for item <- @props.options do %>
+              <div class="justify-between flex mt-2">
                 <input
                   type="text"
-                  class="w-96 bg-transparent"
-                  placeholder="New option"
-                  name="attrs[props][option]"
-                  value={@props.option}
+                  class="input mr-1"
+                  placeholder="option name"
+                  name="attrs[props][options][]"
+                  value={item}
                 />
-                <%= if @props.option in @props.options do %>
-                  <div class="input-error mt-6 mt-4">
-                    <%= String.capitalize("Alread added") %>
-                  </div>
-                <% else %>
-                  <button
-                    class="mt-2 text-blue-600 ri-add-circle-fill text-2xl"
-                    type="button"
-                    phx-target={@myself}
-                    phx-click="action_option_select"
-                    phx-value-option={@props.option}
-                    phx-value-action={:add}
-                  >
-                  </button>
-                <% end %>
-              </li>
-            </ul>
-          </div>
-
+                <button
+                  class="mt-2 ri-delete-bin-6-fill text-2xl hover:text-gray-900 text-gray-400"
+                  type="button"
+                  phx-target={@myself}
+                  phx-click="action_option_select"
+                  phx-value-option={item}
+                  phx-value-action={:delete}
+                >
+                </button>
+              </div>
+            <% end %>
+            <div class="justify-between flex pr-4 pb-3">
+              <button
+                class="button button-blue ml-1 mt-2"
+                type="button"
+                phx-target={@myself}
+                phx-click="action_option_select"
+                phx-value-option=""
+                phx-value-action={:add}
+              >
+              Add
+              </button>
+            </div>
+        </div>
       </div>
-
     </div>
-
     """
   end
 
@@ -156,9 +144,6 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 
-  def handle_event("action_option_select", %{"option" => ""} = _params, socket),
-    do: {:noreply, socket}
-
   def handle_event("action_option_select", params, socket) do
     options =
       handle_options_select(
@@ -173,8 +158,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       |> Map.put(:option, "")
 
     attrs = Map.put(socket.assigns.attrs, :props, props)
-
-    {:noreply, socket |> assign(attrs: attrs) |> assign(props: props)}
+    valid? = valid_options?(options)
+    {:noreply, socket |> assign(attrs: attrs) |> assign(props: props) |> assign(valid: valid?)}
   end
 
   defp handle_options_select("add", option, options) do
@@ -185,19 +170,6 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp handle_options_select(_, _option, options), do: options
 
-  defp add_props(data, prev_attrs) do
-    if data["type"] == "select" do
-      option = data["props"]["option"]
-      options = prev_attrs.props.options
-
-      props = %{"option" => option, "options" => options}
-
-      Map.put(data, "props", props)
-    else
-      data
-    end
-  end
-
   defp validate_attrs(data, prev_attrs) do
     name = data["name"]
     type = data["type"] |> String.to_existing_atom()
@@ -205,9 +177,9 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
     {props_valid?, props} =
       if type == prev_attrs.type do
-        data |> add_props(prev_attrs) |> Map.get("props", %{}) |> validate_props(type)
+        data |> Map.get("props", %{}) |> validate_props(type)
       else
-        {true, Cell.Input.default_props(type)}
+        {type != :select, Cell.Input.default_props(type)}
       end
 
     valid? = name != "" and props_valid?
@@ -226,11 +198,24 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp validate_props(data, :select) do
     options = if(data["options"], do: data["options"], else: [])
-    {true, %{option: data["option"], options: options}}
+
+    valid? = valid_options?(options)
+
+    {valid?, %{option: data["option"], options: options}}
   end
 
   defp validate_props(_data, _type) do
     {true, %{}}
+  end
+
+  defp valid_options?(options) do
+    size = length(options)
+    options = Enum.uniq(options)
+
+    invalid? =
+      Enum.empty?(options) or length(options) != size or Enum.any?(options, fn s -> s == "" end)
+
+    !invalid?
   end
 
   defp parse_number(string) do
