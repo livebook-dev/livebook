@@ -155,7 +155,6 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     props =
       socket.assigns.attrs.props
       |> Map.put(:options, options)
-      |> Map.put(:option, "")
 
     attrs = Map.put(socket.assigns.attrs, :props, props)
     valid? = valid_options?(options)
