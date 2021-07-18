@@ -80,43 +80,39 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp extra_fields(%{type: :select} = assigns) do
     ~H"""
-    <div class="flex space-x-4">
-      <div class="flex-grow">
-        <div class="input-label">Options</div>
-          <div class="flex-grow">
-            <%= for item <- @props.options do %>
-              <div class="justify-between flex mt-2">
-                <input
-                  type="text"
-                  class="input mr-1"
-                  placeholder="option name"
-                  name="attrs[props][options][]"
-                  value={item}
-                />
-                <button
-                  class="mt-2 ri-delete-bin-6-fill text-2xl hover:text-gray-900 text-gray-400"
-                  type="button"
-                  phx-target={@myself}
-                  phx-click="action_option_select"
-                  phx-value-option={item}
-                  phx-value-action={:delete}
-                >
-                </button>
-              </div>
-            <% end %>
-            <div class="justify-between flex pr-4 pb-3">
-              <button
-                class="button button-blue ml-1 mt-2"
-                type="button"
-                phx-target={@myself}
-                phx-click="action_option_select"
-                phx-value-option=""
-                phx-value-action={:add}
-              >
-              Add
-              </button>
-            </div>
-        </div>
+    <div class="flex flex-col">
+      <div class="input-label mb-0">Options</div>
+      <div class="my-2 flex flex-col space-y-2">
+        <%= for {option, idx} <- Enum.with_index(@props.options) do %>
+          <div class="flex items-center space-x-2">
+            <input
+              type="text"
+              class="input"
+              name="attrs[props][options][]"
+              value={option} />
+            <button
+              class="button button-gray button-square-icon"
+              type="button"
+              tabindex="-1"
+              phx-target={@myself}
+              phx-click="select_options_action"
+              phx-value-action="delete"
+              phx-value-index={idx}
+              disabled={length(@props.options) == 1}>
+              <.remix_icon icon="delete-bin-6-line" />
+            </button>
+          </div>
+        <% end %>
+      </div>
+      <div>
+        <button
+          class="button button-outlined-gray"
+          type="button"
+          phx-target={@myself}
+          phx-click="select_options_action"
+          phx-value-action="add">
+          Add
+        </button>
       </div>
     </div>
     """
@@ -144,30 +140,23 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 
-  def handle_event("action_option_select", params, socket) do
-    options =
-      handle_options_select(
-        params["action"],
-        params["option"],
-        socket.assigns.attrs.props.options
-      )
-
-    props =
-      socket.assigns.attrs.props
-      |> Map.put(:options, options)
-
-    attrs = Map.put(socket.assigns.attrs, :props, props)
+  def handle_event("select_options_action", params, socket) do
+    {action, params} = Map.pop!(params, "action")
+    attrs = socket.assigns.attrs
+    options = select_options_action(action, params, attrs.props.options)
+    attrs = put_in(attrs.props.options, options)
     valid? = valid_options?(options)
-    {:noreply, socket |> assign(attrs: attrs) |> assign(props: props) |> assign(valid: valid?)}
+    {:noreply, socket |> assign(attrs: attrs) |> assign(valid: valid?)}
   end
 
-  defp handle_options_select("add", option, options) do
-    if(option in options, do: options, else: options ++ [option])
+  defp select_options_action("add", _params, options) do
+    options ++ [""]
   end
 
-  defp handle_options_select("delete", option, options), do: options -- [option]
-
-  defp handle_options_select(_, _option, options), do: options
+  defp select_options_action("delete", %{"index" => index}, options) do
+    index = String.to_integer(index)
+    List.delete_at(options, index)
+  end
 
   defp validate_attrs(data, prev_attrs) do
     name = data["name"]
@@ -178,7 +167,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       if type == prev_attrs.type do
         data |> Map.get("props", %{}) |> validate_props(type)
       else
-        {type != :select, Cell.Input.default_props(type)}
+        {true, Cell.Input.default_props(type)}
       end
 
     valid? = name != "" and props_valid?
@@ -196,11 +185,9 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   end
 
   defp validate_props(data, :select) do
-    options = if(data["options"], do: data["options"], else: [])
-
+    options = data["options"] || []
     valid? = valid_options?(options)
-
-    {valid?, %{option: data["option"], options: options}}
+    {valid?, %{options: options}}
   end
 
   defp validate_props(_data, _type) do
@@ -208,13 +195,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   end
 
   defp valid_options?(options) do
-    size = length(options)
-    options = Enum.uniq(options)
-
-    invalid? =
-      Enum.empty?(options) or length(options) != size or Enum.any?(options, fn s -> s == "" end)
-
-    !invalid?
+    options != [] and options == Enum.uniq(options)
   end
 
   defp parse_number(string) do
@@ -230,6 +211,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp default_value(:color, _props), do: "#3E64FF"
   defp default_value(:range, %{min: min}), do: to_string(min)
+  defp default_value(:select, %{options: [option | _]}), do: option
   defp default_value(_type, _props), do: ""
 
   defp input_types do

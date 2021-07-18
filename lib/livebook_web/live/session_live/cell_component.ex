@@ -168,11 +168,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
        phx-debounce="300"
        class="input input-select"
        tabindex="-1"
-       name="value"
-      >
-        <option value="" selected={"" == @cell_view.value}/>
+       name="value">
         <%= for option <- @cell_view.props.options do %>
-        <option value={option} selected={option == @cell_view.value}>
+          <option value={option} selected={option == @cell_view.value}>
             <%= option %>
           </option>
         <% end %>
