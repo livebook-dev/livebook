@@ -159,6 +159,26 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp cell_input(%{cell_view: %{input_type: :select}} = assigns) do
+    ~H"""
+    <div class="flex items-center space-x-2">
+      <select
+       data-element="input"
+       spellcheck="false"
+       phx-debounce="300"
+       class="input input-select"
+       tabindex="-1"
+       name="value">
+        <%= for option <- @cell_view.props.options do %>
+          <option value={option} selected={option == @cell_view.value}>
+            <%= option %>
+          </option>
+        <% end %>
+      </select>
+    </div>
+    """
+  end
+
   defp cell_input(assigns) do
     ~H"""
     <input type={html_input_type(@cell_view.input_type)}
@@ -177,6 +197,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp html_input_type(:number), do: "number"
   defp html_input_type(:color), do: "color"
   defp html_input_type(:range), do: "range"
+  defp html_input_type(:select), do: "select"
   defp html_input_type(_), do: "text"
 
   defp cell_body(assigns) do

@@ -100,6 +100,10 @@
     @apply appearance-none border-transparent bg-blue-600 hover:bg-blue-700 cursor-pointer rounded-xl;
   }
 
+  .input-select {
+    @apply w-60;
+  }
+
   .input-label {
     @apply mb-0.5 text-sm text-gray-800 font-medium;
   }

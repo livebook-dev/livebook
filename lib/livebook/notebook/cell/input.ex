@@ -21,7 +21,7 @@ defmodule Livebook.Notebook.Cell.Input do
           props: props()
         }
 
-  @type type :: :text | :url | :number | :password | :textarea | :color | :range
+  @type type :: :text | :url | :number | :password | :textarea | :color | :range | :select
 
   @typedoc """
   Additional properties adjusting the given input type.
@@ -97,6 +97,7 @@ defmodule Livebook.Notebook.Cell.Input do
   def default_props(type)
 
   def default_props(:range), do: %{min: 0, max: 100, step: 1}
+  def default_props(:select), do: %{options: [""]}
   def default_props(_type), do: %{}
 
   @doc """

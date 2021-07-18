@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
             <div class="input-label">Name</div>
             <input type="text" class="input" name="attrs[name]" value={@attrs.name} autofocus />
           </div>
-          <.extra_fields type={@attrs.type} props={@attrs.props} />
+          <.extra_fields type={@attrs.type} props={@attrs.props} myself={@myself} />
           <.switch_checkbox
             name="attrs[reactive]"
             label="Reactive (reevaluates dependent cells on change)"
@@ -78,6 +78,46 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     """
   end
 
+  defp extra_fields(%{type: :select} = assigns) do
+    ~H"""
+    <div class="flex flex-col">
+      <div class="input-label mb-0">Options</div>
+      <div class="my-2 flex flex-col space-y-2">
+        <%= for {option, idx} <- Enum.with_index(@props.options) do %>
+          <div class="flex items-center space-x-2">
+            <input
+              type="text"
+              class="input"
+              name="attrs[props][options][]"
+              value={option} />
+            <button
+              class="button button-gray button-square-icon"
+              type="button"
+              tabindex="-1"
+              phx-target={@myself}
+              phx-click="select_options_action"
+              phx-value-action="delete"
+              phx-value-index={idx}
+              disabled={length(@props.options) == 1}>
+              <.remix_icon icon="delete-bin-6-line" />
+            </button>
+          </div>
+        <% end %>
+      </div>
+      <div>
+        <button
+          class="button button-outlined-gray"
+          type="button"
+          phx-target={@myself}
+          phx-click="select_options_action"
+          phx-value-action="add">
+          Add
+        </button>
+      </div>
+    </div>
+    """
+  end
+
   defp extra_fields(assigns), do: ~H""
 
   @impl true
@@ -98,6 +138,24 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
     Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, attrs)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+  end
+
+  def handle_event("select_options_action", params, socket) do
+    {action, params} = Map.pop!(params, "action")
+    attrs = socket.assigns.attrs
+    options = select_options_action(action, params, attrs.props.options)
+    attrs = put_in(attrs.props.options, options)
+    valid? = valid_options?(options)
+    {:noreply, socket |> assign(attrs: attrs) |> assign(valid: valid?)}
+  end
+
+  defp select_options_action("add", _params, options) do
+    options ++ [""]
+  end
+
+  defp select_options_action("delete", %{"index" => index}, options) do
+    index = String.to_integer(index)
+    List.delete_at(options, index)
   end
 
   defp validate_attrs(data, prev_attrs) do
@@ -126,8 +184,18 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     {valid?, data}
   end
 
+  defp validate_props(data, :select) do
+    options = data["options"] || []
+    valid? = valid_options?(options)
+    {valid?, %{options: options}}
+  end
+
   defp validate_props(_data, _type) do
     {true, %{}}
+  end
+
+  defp valid_options?(options) do
+    options != [] and options == Enum.uniq(options)
   end
 
   defp parse_number(string) do
@@ -143,6 +211,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp default_value(:color, _props), do: "#3E64FF"
   defp default_value(:range, %{min: min}), do: to_string(min)
+  defp default_value(:select, %{options: [option | _]}), do: option
   defp default_value(_type, _props), do: ""
 
   defp input_types do
@@ -153,7 +222,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       text: "Text",
       textarea: "Textarea",
       url: "URL",
-      range: "Range"
+      range: "Range",
+      select: "Select"
     ]
   end
 end
