@@ -1078,6 +1078,30 @@ defmodule Livebook.Session.DataTest do
                 }
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "moving a cell back and forth doesn't impact validity" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          # Add cells
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          # Evaluate cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      {:ok, data_moved, []} = Data.apply_operation(data, {:move_cell, self(), "c2", -1})
+      {:ok, data_reversed, []} = Data.apply_operation(data_moved, {:move_cell, self(), "c2", 1})
+
+      assert data_reversed == data
+    end
   end
 
   describe "apply_operation/2 given :move_section" do
