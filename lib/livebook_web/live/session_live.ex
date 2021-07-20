@@ -613,23 +613,43 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("completion_request", %{"hint" => hint, "cell_id" => cell_id}, socket) do
+  def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
+    request =
+      case params do
+        %{"type" => "completion", "hint" => hint} ->
+          {:completion, hint}
+
+        %{"type" => "details", "line" => line, "index" => index} ->
+          {:details, line, index}
+
+        %{"type" => "format", "code" => code} ->
+          {:format, code}
+      end
+
     data = socket.private.data
 
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if data.runtime do
-        completion_ref = make_ref()
+        ref = make_ref()
         prev_locator = Session.find_prev_locator(data.notebook, cell, section)
-        Runtime.request_completion_items(data.runtime, self(), completion_ref, hint, prev_locator)
+        Runtime.handle_intellisense(data.runtime, self(), ref, request, prev_locator)
 
-        {:reply, %{"completion_ref" => inspect(completion_ref)}, socket}
+        {:reply, %{"ref" => inspect(ref)}, socket}
       else
-        {:reply, %{"completion_ref" => nil},
-         put_flash(
-           socket,
-           :info,
-           "You need to start a runtime (or evaluate a cell) for accurate completion"
-         )}
+        info =
+          case params["type"] do
+            "completion" ->
+              "You need to start a runtime (or evaluate a cell) for code completion"
+
+            "format" ->
+              "You need to start a runtime (or evaluate a cell) to enable code formatting"
+
+            _ ->
+              nil
+          end
+
+        socket = if info, do: put_flash(socket, :info, info), else: socket
+        {:reply, %{"ref" => nil}, socket}
       end
     else
       _ -> {:noreply, socket}
@@ -724,9 +744,9 @@ defmodule LivebookWeb.SessionLive do
      |> push_redirect(to: Routes.home_path(socket, :page))}
   end
 
-  def handle_info({:completion_response, ref, items}, socket) do
-    payload = %{"completion_ref" => inspect(ref), "items" => items}
-    {:noreply, push_event(socket, "completion_response", payload)}
+  def handle_info({:intellisense_response, ref, response}, socket) do
+    payload = %{"ref" => inspect(ref), "response" => response}
+    {:noreply, push_event(socket, "intellisense_response", payload)}
   end
 
   def handle_info(

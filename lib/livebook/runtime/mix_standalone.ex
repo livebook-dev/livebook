@@ -142,14 +142,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
     ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def request_completion_items(runtime, send_to, completion_ref, hint, locator) do
-    ErlDist.RuntimeServer.request_completion_items(
-      runtime.server_pid,
-      send_to,
-      completion_ref,
-      hint,
-      locator
-    )
+  def handle_intellisense(runtime, send_to, ref, request, locator) do
+    ErlDist.RuntimeServer.handle_intellisense(runtime.server_pid, send_to, ref, request, locator)
   end
 
   def duplicate(runtime) do

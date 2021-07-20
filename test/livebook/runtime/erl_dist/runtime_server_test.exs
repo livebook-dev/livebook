@@ -130,20 +130,40 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
   end
 
-  describe "request_completion_items/6" do
+  describe "handle_intellisense/5 given completion request" do
     test "provides basic completion when no evaluation reference is given", %{pid: pid} do
-      RuntimeServer.request_completion_items(pid, self(), :comp_ref, "System.ver", {:c1, nil})
+      request = {:completion, "System.ver"}
+      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:completion_response, :comp_ref, [%{label: "version/0"}]}
+      assert_receive {:intellisense_response, :ref, %{items: [%{label: "version/0"}]}}
     end
 
     test "provides extended completion when previous evaluation reference is given", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, "number = 10", {:c1, :e1}, {:c1, nil})
       assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
-      RuntimeServer.request_completion_items(pid, self(), :comp_ref, "num", {:c1, :e1})
+      request = {:completion, "num"}
+      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
 
-      assert_receive {:completion_response, :comp_ref, [%{label: "number"}]}
+      assert_receive {:intellisense_response, :ref, %{items: [%{label: "number"}]}}
+    end
+  end
+
+  describe "handle_intellisense/5 given details request" do
+    test "responds with identifier details", %{pid: pid} do
+      request = {:details, "System.version", 10}
+      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
+
+      assert_receive {:intellisense_response, :ref, %{range: %{from: 0, to: 14}, contents: [_]}}
+    end
+  end
+
+  describe "handle_intellisense/5 given format request" do
+    test "responds with a formatted code", %{pid: pid} do
+      request = {:format, "System.version"}
+      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
+
+      assert_receive {:intellisense_response, :ref, %{code: "System.version()"}}
     end
   end
 

@@ -26,29 +26,43 @@ document.fonts.addEventListener("loadingdone", (event) => {
   }
 });
 
-// Define custom completion provider.
-// In our case the completion behaviour is cell-dependent,
-// so we delegate the implementation to the appropriate cell.
-// See cell/live_editor.js for more details.
+/**
+ * Define custom providers for various editor features.
+ *
+ * In our case, each cell has its own editor and behaviour
+ * of requests like completion and hover are cell dependent.
+ * For this reason we delegate the implementation to the
+ * specific cell by using its text model object.
+ *
+ * See cell/live_editor.js for more details.
+ */
+
 monaco.languages.registerCompletionItemProvider("elixir", {
-  provideCompletionItems: (model, position) => {
+  provideCompletionItems: (model, position, context, token) => {
     if (model.__getCompletionItems) {
       return model.__getCompletionItems(model, position);
     } else {
-      return [];
+      return null;
     }
   },
 });
 
-// Define custom code formatting provider.
-// Formatting is cell agnostic, but we still delegate
-// to a cell specific implementation to communicate with LV.
+monaco.languages.registerHoverProvider("elixir", {
+  provideHover: (model, position, token) => {
+    if (model.__getHover) {
+      return model.__getHover(model, position);
+    } else {
+      return null;
+    }
+  },
+});
+
 monaco.languages.registerDocumentFormattingEditProvider("elixir", {
-  provideDocumentFormattingEdits: function (model, options, token) {
+  provideDocumentFormattingEdits: (model, options, token) => {
     if (model.__getDocumentFormattingEdits) {
       return model.__getDocumentFormattingEdits(model);
     } else {
-      return [];
+      return null;
     }
   },
 });

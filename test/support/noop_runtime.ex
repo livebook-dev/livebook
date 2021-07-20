@@ -14,7 +14,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def evaluate_code(_, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
     def drop_container(_, _), do: :ok
-    def request_completion_items(_, _, _, _, _), do: :ok
+    def handle_intellisense(_, _, _, _, _), do: :ok
     def duplicate(_), do: {:ok, Livebook.Runtime.NoopRuntime.new()}
   end
 end

@@ -78,19 +78,24 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Asynchronously sends completion request for the given
-  `hint` text.
+  Asynchronously sends an intellisense request to the server.
 
-  The completion request is forwarded to `Livebook.Evaluator`
-  process that belongs to the given container. If there's no
-  evaluator, there's also no binding and environment, so a
-  generic completion is handled by a temporary process.
+  Completions are forwarded to `Livebook.Evaluator` process
+  that belongs to the given container. If there's no evaluator,
+  there's also no binding and environment, so a generic
+  completion is handled by a temporary process.
 
   See `Livebook.Runtime` for more details.
   """
-  @spec request_completion_items(pid(), pid(), term(), String.t(), Runtime.locator()) :: :ok
-  def request_completion_items(pid, send_to, completion_ref, hint, locator) do
-    GenServer.cast(pid, {:request_completion_items, send_to, completion_ref, hint, locator})
+  @spec handle_intellisense(
+          pid(),
+          pid(),
+          reference(),
+          Runtime.intellisense_request(),
+          Runtime.locator()
+        ) :: :ok
+  def handle_intellisense(pid, send_to, ref, request, locator) do
+    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, locator})
   end
 
   @doc """
@@ -206,19 +211,19 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast(
-        {:request_completion_items, send_to, ref, hint, {container_ref, evaluation_ref}},
-        state
-      ) do
-    if evaluator = Map.get(state.evaluators, container_ref) do
-      Evaluator.request_completion_items(evaluator, send_to, ref, hint, evaluation_ref)
+  def handle_cast({:handle_intellisense, send_to, ref, request, locator}, state) do
+    {container_ref, evaluation_ref} = locator
+    evaluator = state.evaluators[container_ref]
+
+    if evaluator != nil and elem(request, 0) not in [:format] do
+      Evaluator.handle_intellisense(evaluator, send_to, ref, request, evaluation_ref)
     else
-      # Since there's no evaluator, we may as well get the completion items here.
+      # Handle the request in a temporary process using an empty evaluation context
       Task.Supervisor.start_child(state.completion_supervisor, fn ->
         binding = []
         env = :elixir.env_for_eval([])
-        items = Livebook.Completion.get_completion_items(hint, binding, env)
-        send(send_to, {:completion_response, ref, items})
+        response = Livebook.Intellisense.handle_request(request, binding, env)
+        send(send_to, {:intellisense_response, ref, response})
       end)
     end
 

@@ -240,9 +240,13 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element("#session")
-      |> render_hook("completion_request", %{"cell_id" => cell_id, "hint" => "System.ver"})
+      |> render_hook("intellisense_request", %{
+        "cell_id" => cell_id,
+        "type" => "completion",
+        "hint" => "System.ver"
+      })
 
-      assert_reply view, %{"completion_ref" => nil}
+      assert_reply view, %{"ref" => nil}
     end
 
     test "replies with completion reference and then sends asynchronous response",
@@ -257,14 +261,18 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element("#session")
-      |> render_hook("completion_request", %{"cell_id" => cell_id, "hint" => "System.ver"})
+      |> render_hook("intellisense_request", %{
+        "cell_id" => cell_id,
+        "type" => "completion",
+        "hint" => "System.ver"
+      })
 
-      assert_reply view, %{"completion_ref" => ref}
+      assert_reply view, %{"ref" => ref}
       assert ref != nil
 
-      assert_push_event(view, "completion_response", %{
-        "completion_ref" => ^ref,
-        "items" => [%{label: "version/0"}]
+      assert_push_event(view, "intellisense_response", %{
+        "ref" => ^ref,
+        "response" => %{items: [%{label: "version/0"}]}
       })
     end
   end
