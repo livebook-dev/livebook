@@ -304,7 +304,7 @@ class LiveEditor {
 
       if (handler) {
         handler(response);
-        delete this.handlerByRef[completionRef];
+        delete this.handlerByRef[ref];
       }
     });
   }

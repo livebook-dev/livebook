@@ -162,11 +162,43 @@ defmodule Livebook.Intellisense do
     end
   end
 
+  # Reference: https://github.com/elixir-lang/elixir/blob/d1223e11fda880d5646f6385b33684d1b2ec0b9c/lib/elixir/lib/code.ex#L341-L345
+  @operators '\\<>+-*/:=|&~^@%'
+  @non_closing_punctuation '.,([{;'
+  @closing_punctuation ')]}'
+  @space '\t\s'
+  @closing_identifier '?!'
+  @punctuation @non_closing_punctuation ++ @closing_punctuation
+
   defp subject_range(line, index) do
     {left, right} = String.split_at(line, index)
-    [left] = Regex.run(~r/^[a-zA-Z0-9_:@\.]*/, String.reverse(left))
-    [right] = Regex.run(~r/^[a-zA-Z0-9_:]*/, right)
+
+    left =
+      left
+      |> String.to_charlist()
+      |> Enum.reverse()
+      |> consume_until(@space ++ @operators ++ (@punctuation -- '.') ++ @closing_identifier, ':@')
+      |> List.to_string()
+
+    right =
+      right
+      |> String.to_charlist()
+      |> consume_until(@space ++ @operators ++ @punctuation, @closing_identifier)
+      |> List.to_string()
+
     {index - byte_size(left), index + byte_size(right)}
+  end
+
+  defp consume_until(acc \\ [], chars, stop, stop_include)
+
+  defp consume_until(acc, [], _, _), do: Enum.reverse(acc)
+
+  defp consume_until(acc, [char | chars], stop, stop_include) do
+    cond do
+      char in stop_include -> consume_until([char | acc], [], stop, stop_include)
+      char in stop -> consume_until(acc, [], stop, stop_include)
+      true -> consume_until([char | acc], chars, stop, stop_include)
+    end
   end
 
   defp format_details_item({:variable, name, value}) do
