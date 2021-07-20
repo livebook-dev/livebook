@@ -1,12 +1,68 @@
-/* Monaco overrides */
+/* === Monaco overrides === */
 
-/* Add some spacing to code snippets in completion suggestions */
-div.suggest-details-container div.monaco-tokenized-source {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+/*
+CSS normalization removes the default styles of HTML elements,
+so we need to adjust styles of Monaco-rendered Markdown docs.
+Also some spacing adjustments.
+*/
+
+.suggest-details .header p {
+  @apply pb-0 pt-3 !important;
 }
 
-/* Monaco cursor widget */
+.monaco-hover p,
+.suggest-details .docs p {
+  @apply my-2 !important;
+}
+
+.suggest-details h1,
+.monaco-hover h1 {
+  @apply text-xl font-semibold mt-4 mb-2;
+}
+
+.suggest-details h2,
+.monaco-hover h2 {
+  @apply text-lg font-medium mt-4 mb-2;
+}
+
+.suggest-details h3,
+.monaco-hover h3 {
+  @apply font-medium mt-4 mb-2;
+}
+
+.suggest-details ul,
+.monaco-hover ul {
+  @apply list-disc;
+}
+
+.suggest-details ol,
+.monaco-hover ol {
+  @apply list-decimal;
+}
+
+.suggest-details hr,
+.monaco-hover hr {
+  @apply my-2 !important;
+}
+
+.suggest-details blockquote,
+.monaco-hover blockquote {
+  @apply border-l-4 border-gray-200 pl-4 py-0.5 my-2;
+}
+
+/* Add some spacing to code snippets in completion suggestions */
+.suggest-details div.monaco-tokenized-source,
+.monaco-hover div.monaco-tokenized-source {
+  @apply my-2;
+}
+
+/* Increase the hover box limits */
+.monaco-hover-content {
+  max-width: 1000px !important;
+  max-height: 300px !important;
+}
+
+/* === Monaco cursor widget === */
 
 .monaco-cursor-widget-container {
   pointer-events: none;

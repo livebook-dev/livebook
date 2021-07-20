@@ -31,8 +31,36 @@ defprotocol Livebook.Runtime do
   @type locator :: {container_ref(), evaluation_ref() | nil}
 
   @typedoc """
-  A single completion result.
+  Recognised intellisense requests.
   """
+  @type intellisense_request ::
+          completion_request()
+          | details_request()
+          | format_request()
+
+  @typedoc """
+  Expected intellisense responses.
+
+  Responding with `nil` indicates there is no relevant reply
+  and effectively aborts the request, so it's suitable for
+  error cases.
+  """
+  @type intellisense_response ::
+          nil
+          | completion_response()
+          | details_response()
+          | format_response()
+
+  @typedoc """
+  Looks up a list of identifiers that are suitable code
+  completions for the given hint.
+  """
+  @type completion_request :: {:completion, hint :: String.t()}
+
+  @type completion_response :: %{
+          items: list(completion_item())
+        }
+
   @type completion_item :: %{
           label: String.t(),
           kind: completion_item_kind(),
@@ -42,6 +70,28 @@ defprotocol Livebook.Runtime do
         }
 
   @type completion_item_kind :: :function | :module | :type | :variable | :field
+
+  @typedoc """
+  Looks up more details about an identifier found at `index` in `line`.
+  """
+  @type details_request :: {:details, line :: String.t(), index :: non_neg_integer()}
+
+  @type details_response :: %{
+          range: %{
+            from: non_neg_integer(),
+            to: non_neg_integer()
+          },
+          contents: list(String.t())
+        }
+
+  @typedoc """
+  Formats the given code snippet.
+  """
+  @type format_request :: {:format, code :: String.t()}
+
+  @type format_response :: %{
+          code: String.t()
+        }
 
   @doc """
   Sets the caller as runtime owner.
@@ -127,19 +177,20 @@ defprotocol Livebook.Runtime do
   def drop_container(runtime, container_ref)
 
   @doc """
-  Asynchronously finds completion items matching the given `hint` text.
+  Asynchronously handles an intellisense request.
 
-  The given `locator` idenfities an evaluation, which bindings
-  and environment are used to provide a more relevant completion
-  results. If there's no appropriate evaluation, `nil` refs can
-  be provided.
+  This part of runtime functionality is used to provide
+  language and context specific intellisense features in
+  the text editor.
 
-  Completion response is sent to the `send_to` process as
-  `{:completion_response, ref, items}`, where `items` is a
-  list of `t:Livebook.Runtime.completion_item/0`.
+  The response is sent to the `send_to` process as
+  `{:intellisense_response, ref, response}`.
+
+  The given `locator` idenfities an evaluation that may be used
+  as context when resolving the request (if relevant).
   """
-  @spec request_completion_items(t(), pid(), term(), String.t(), locator()) :: :ok
-  def request_completion_items(runtime, send_to, completion_ref, hint, locator)
+  @spec handle_intellisense(t(), pid(), reference(), intellisense_request(), locator()) :: :ok
+  def handle_intellisense(runtime, send_to, ref, request, locator)
 
   @doc """
   Synchronously starts a runtime of the same type with the
