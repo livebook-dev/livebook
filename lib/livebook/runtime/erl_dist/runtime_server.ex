@@ -99,19 +99,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Asynchronously sends details request.
-
-  The flow is the same as for `request_completion_items/5`.
-
-  See `Livebook.Runtime` for more details.
-  """
-  @spec request_details(pid(), pid(), term(), String.t(), non_neg_integer(), Runtime.locator()) ::
-          :ok
-  def request_details(pid, send_to, details_ref, line, index, locator) do
-    GenServer.cast(pid, {:request_details, send_to, details_ref, line, index, locator})
-  end
-
-  @doc """
   Stops the manager.
 
   This results in all Livebook-related modules being unloaded
