@@ -313,6 +313,11 @@ defmodule Livebook.IntellisenseTest do
                """,
                insert_text: "concat"
              } in Intellisense.get_completion_items("Enum.concat/", binding, env)
+
+      assert [
+               %{label: "count/1"},
+               %{label: "count/2"}
+             ] = Intellisense.get_completion_items("Enum.count/", binding, env)
     end
 
     test "function completion same name with different arities" do
@@ -409,6 +414,69 @@ defmodule Livebook.IntellisenseTest do
                }
              ] = Intellisense.get_completion_items("mod.ve", binding, env)
     end
+
+    # TODO: Enable on Elixir 1.13
+
+    # test "operator completion" do
+    #   {binding, env} = eval(do: nil)
+
+    #   assert [
+    #            %{
+    #              label: "++/2",
+    #              kind: :function,
+    #              detail: "left ++ right",
+    #              documentation: """
+    #              List concatenation operator. Concatenates a proper list and a term, returning a list.
+
+    #              ```
+    #              @spec list() ++ term() ::
+    #                maybe_improper_list()
+    #              ```\
+    #              """,
+    #              insert_text: "++"
+    #            },
+    #            %{
+    #              label: "+/1",
+    #              kind: :function,
+    #              detail: "+value",
+    #              documentation: """
+    #              Arithmetic positive unary operator.
+
+    #              ```
+    #              @spec +integer() :: integer()
+    #              @spec +float() :: float()
+    #              ```\
+    #              """,
+    #              insert_text: "+"
+    #            },
+    #            %{
+    #              label: "+/2",
+    #              kind: :function,
+    #              detail: "left + right",
+    #              documentation: """
+    #              Arithmetic addition operator.
+
+    #              ```
+    #              @spec integer() + integer() ::
+    #                integer()
+    #              @spec float() + float() :: float()
+    #              @spec integer() + float() :: float()
+    #              @spec float() + integer() :: float()
+    #              ```\
+    #              """,
+    #              insert_text: "+"
+    #            }
+    #          ] = Intellisense.get_completion_items("+", binding, env)
+
+    #   assert [
+    #            %{label: "+/1"},
+    #            %{label: "+/2"}
+    #          ] = Intellisense.get_completion_items("+/", binding, env)
+
+    #   assert [
+    #            %{label: "++/2"}
+    #          ] = Intellisense.get_completion_items("++/", binding, env)
+    # end
 
     test "map atom key completion" do
       {binding, env} =
@@ -692,6 +760,11 @@ defmodule Livebook.IntellisenseTest do
                %{label: "derive/2"},
                %{label: "derive/3"}
              ] = Intellisense.get_completion_items("der", binding, env)
+
+      assert [
+               %{label: "count/1"},
+               %{label: "count/2"}
+             ] = Intellisense.get_completion_items("count/", binding, env)
     end
 
     test "ignores quoted variables when performing variable completion" do

@@ -277,7 +277,14 @@ defmodule Livebook.Intellisense do
   defp format_signatures([], _module), do: nil
 
   defp format_signatures(signatures, module) do
-    module_to_prefix(module) <> Enum.join(signatures, "\n")
+    signatures_string = Enum.join(signatures, "\n")
+
+    # Don't add module prefix to operator signatures
+    if :binary.match(signatures_string, ["(", "/"]) != :nomatch do
+      module_to_prefix(module) <> signatures_string
+    else
+      signatures_string
+    end
   end
 
   defp module_to_prefix(mod) do

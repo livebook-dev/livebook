@@ -23,6 +23,9 @@ defmodule Livebook.Intellisense.Completion do
   @type signature :: String.t()
   @type spec :: tuple() | nil
 
+  @exact_matcher &Kernel.==/2
+  @prefix_matcher &String.starts_with?/2
+
   @doc """
   Returns a list of identifiers matching the given `hint`
   together with relevant information.
@@ -40,7 +43,7 @@ defmodule Livebook.Intellisense.Completion do
   @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t(), keyword()) ::
           list(completion_item())
   def get_completion_items(hint, binding, env, opts \\ []) do
-    matcher = if opts[:exact], do: &Kernel.==/2, else: &String.starts_with?/2
+    matcher = if opts[:exact], do: @exact_matcher, else: @prefix_matcher
 
     complete(hint, %{binding: binding, env: env, matcher: matcher})
   end
@@ -57,7 +60,7 @@ defmodule Livebook.Intellisense.Completion do
         complete_dot(path, List.to_string(hint), ctx)
 
       {:dot_arity, path, hint} ->
-        complete_dot(path, List.to_string(hint), ctx)
+        complete_dot(path, List.to_string(hint), %{ctx | matcher: @exact_matcher})
 
       {:dot_call, _path, _hint} ->
         complete_default(ctx)
@@ -69,9 +72,18 @@ defmodule Livebook.Intellisense.Completion do
         complete_local_or_var(List.to_string(local_or_var), ctx)
 
       {:local_arity, local} ->
-        complete_local(List.to_string(local), ctx)
+        complete_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
 
       {:local_call, _local} ->
+        complete_default(ctx)
+
+      {:operator, operator} ->
+        complete_local_or_var(List.to_string(operator), ctx)
+
+      {:operator_arity, operator} ->
+        complete_local(List.to_string(operator), %{ctx | matcher: @exact_matcher})
+
+      {:operator_call, _operator} ->
         complete_default(ctx)
 
       {:module_attribute, attribute} ->
