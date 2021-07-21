@@ -313,6 +313,11 @@ defmodule Livebook.IntellisenseTest do
                """,
                insert_text: "concat"
              } in Intellisense.get_completion_items("Enum.concat/", binding, env)
+
+      assert [
+               %{label: "count/1"},
+               %{label: "count/2"}
+             ] = Intellisense.get_completion_items("Enum.count/", binding, env)
     end
 
     test "function completion same name with different arities" do
@@ -692,6 +697,11 @@ defmodule Livebook.IntellisenseTest do
                %{label: "derive/2"},
                %{label: "derive/3"}
              ] = Intellisense.get_completion_items("der", binding, env)
+
+      assert [
+               %{label: "count/1"},
+               %{label: "count/2"}
+             ] = Intellisense.get_completion_items("count/", binding, env)
     end
 
     test "ignores quoted variables when performing variable completion" do
