@@ -408,7 +408,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
-          <%= render_output(output, %{id: "cell-#{@cell_view.id}-output#{index}", socket: @socket}) %>
+          <%= render_output(output, %{id: "cell-#{@cell_view.id}-evaluation#{@cell_view.number_of_evaluations}-output#{index}", socket: @socket}) %>
         </div>
       <% end %>
     </div>
