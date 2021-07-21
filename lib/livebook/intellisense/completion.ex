@@ -77,6 +77,15 @@ defmodule Livebook.Intellisense.Completion do
       {:local_call, _local} ->
         complete_default(ctx)
 
+      {:operator, operator} ->
+        complete_local_or_var(List.to_string(operator), ctx)
+
+      {:operator_arity, operator} ->
+        complete_local(List.to_string(operator), %{ctx | matcher: @exact_matcher})
+
+      {:operator_call, _operator} ->
+        complete_default(ctx)
+
       {:module_attribute, attribute} ->
         complete_module_attribute(List.to_string(attribute), ctx)
 
