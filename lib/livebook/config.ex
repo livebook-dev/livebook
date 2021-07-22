@@ -200,7 +200,7 @@ defmodule Livebook.Config do
   end
 
   defp parse_connection_config!(config) do
-    [node, cookie] = String.split(config, ":", parts: 2)
+    [cookie, node] = String.split(config, ":", parts: 2)
 
     unless node =~ "@" do
       abort!(~s{expected node to include hostname, got: #{inspect(node)}})

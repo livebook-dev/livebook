@@ -25,7 +25,7 @@ defmodule LivebookCLI.Server do
                            Supported options:
                              * standalone - Elixir standalone
                              * mix[:PATH] - Mix standalone
-                             * attached:NODE:COOKIE - Attached
+                             * attached:COOKIE:NODE - Attached
                              * embedded - Embedded
       --ip                 The ip address to start the web application on, defaults to 127.0.0.1
                            Must be a valid IPv4 or IPv6 address
