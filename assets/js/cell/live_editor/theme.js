@@ -27,6 +27,8 @@ const theme = {
     { token: "keyword.table", foreground: "#e06c75" },
     { token: "string.link.md", foreground: "#61afef" },
     { token: "variable.md", foreground: "#56b6c2" },
+    { token: "string.md", foreground: "#abb2bf" },
+    { token: "variable.source.md", foreground: "#abb2bf" },
   ],
 
   colors: {
