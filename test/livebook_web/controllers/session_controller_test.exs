@@ -36,4 +36,28 @@ defmodule LivebookWeb.SessionControllerTest do
       SessionSupervisor.close_session(session_id)
     end
   end
+
+  describe "download_source" do
+    test "returns not found when the given session does not exist", %{conn: conn} do
+      conn = get(conn, Routes.session_path(conn, :download_source, "nonexistent"))
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+    end
+
+    test "returns live markdown notebook source", %{conn: conn} do
+      {:ok, session_id} = SessionSupervisor.create_session()
+
+      conn = get(conn, Routes.session_path(conn, :download_source, session_id))
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") == ["text/plain"]
+
+      assert conn.resp_body == """
+             # Untitled notebook
+             """
+
+      SessionSupervisor.close_session(session_id)
+    end
+  end
 end

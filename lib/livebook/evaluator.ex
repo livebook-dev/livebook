@@ -118,15 +118,21 @@ defmodule Livebook.Evaluator do
   end
 
   @doc """
-  Asynchronously finds completion items matching the given `hint` text.
+  Asynchronously handles the given intellisense request.
 
   If `evaluation_ref` is given, its binding and environment are also
-  used for the completion. Response is sent to the `send_to` process
-  as `{:completion_response, ref, items}`.
+  used as context for the intellisense. Response is sent to the `send_to`
+  process as `{:intellisense_response, ref, response}`.
   """
-  @spec request_completion_items(t(), pid(), term(), String.t(), ref() | nil) :: :ok
-  def request_completion_items(evaluator, send_to, ref, hint, evaluation_ref \\ nil) do
-    GenServer.cast(evaluator, {:request_completion_items, send_to, ref, hint, evaluation_ref})
+  @spec handle_intellisense(
+          t(),
+          pid(),
+          term(),
+          Livebook.Runtime.intellisense_request(),
+          ref() | nil
+        ) :: :ok
+  def handle_intellisense(evaluator, send_to, ref, request, evaluation_ref \\ nil) do
+    GenServer.cast(evaluator, {:handle_intellisense, send_to, ref, request, evaluation_ref})
   end
 
   ## Callbacks
@@ -206,10 +212,10 @@ defmodule Livebook.Evaluator do
     {:noreply, state}
   end
 
-  def handle_cast({:request_completion_items, send_to, ref, hint, evaluation_ref}, state) do
+  def handle_cast({:handle_intellisense, send_to, ref, request, evaluation_ref}, state) do
     context = get_context(state, evaluation_ref)
-    items = Livebook.Completion.get_completion_items(hint, context.binding, context.env)
-    send(send_to, {:completion_response, ref, items})
+    response = Livebook.Intellisense.handle_request(request, context.binding, context.env)
+    send(send_to, {:intellisense_response, ref, response})
 
     {:noreply, state}
   end

@@ -22,8 +22,7 @@ class LiveEditor {
     this.__mountEditor();
 
     if (type === "elixir") {
-      this.__setupCompletion();
-      this.__setupFormatting();
+      this.__setupIntellisense();
     }
 
     const serverAdapter = new HookServerAdapter(hook, cellId);
@@ -196,9 +195,17 @@ class LiveEditor {
     });
   }
 
-  __setupCompletion() {
+  /**
+   * Defines cell-specific providers for various editor features.
+   */
+  __setupIntellisense() {
+    this.handlerByRef = {};
+
     /**
-     * Completion happens asynchronously, the flow goes as follows:
+     * Intellisense requests such as completion or formatting are
+     * handled asynchronously by the runtime.
+     *
+     * As an example, let's go through the steps for completion:
      *
      *   * the user opens the completion list, which triggers the global
      *     completion provider registered in `live_editor/monaco.js`
@@ -210,101 +217,124 @@ class LiveEditor {
      *   * then `__getCompletionItems` sends a completion request to the LV process
      *     and gets a unique reference, under which it keeps completion callback
      *
-     *   * finally the hook receives the "completion_response" event with completion items,
-     *     it looks up completion callback for the received reference and calls it
-     *     with the received items list
+     *   * finally the hook receives the "intellisense_response" event with completion
+     *     response, it looks up completion callback for the received reference and calls
+     *     it with the response, which finally returns the completion items to the editor
      */
-
-    const completionHandlerByRef = {};
 
     this.editor.getModel().__getCompletionItems = (model, position) => {
       const line = model.getLineContent(position.lineNumber);
       const lineUntilCursor = line.slice(0, position.column - 1);
 
-      return new Promise((resolve, reject) => {
-        this.hook.pushEvent(
-          "completion_request",
-          {
-            hint: lineUntilCursor,
-            cell_id: this.cellId,
-          },
-          ({ completion_ref: completionRef }) => {
-            if (completionRef) {
-              completionHandlerByRef[completionRef] = (items) => {
-                const suggestions = completionItemsToSuggestions(items);
-                resolve({ suggestions });
-              };
-            } else {
-              resolve({ suggestions: [] });
-            }
-          }
-        );
-      });
+      return this.__asyncIntellisenseRequest("completion", {
+        hint: lineUntilCursor,
+      })
+        .then((response) => {
+          const suggestions = completionItemsToSuggestions(response.items);
+          return { suggestions };
+        })
+        .catch(() => null);
     };
 
-    this.hook.handleEvent(
-      "completion_response",
-      ({ completion_ref: completionRef, items }) => {
-        const handler = completionHandlerByRef[completionRef];
+    this.editor.getModel().__getHover = (model, position) => {
+      const line = model.getLineContent(position.lineNumber);
+      const index = position.column - 1;
 
-        if (handler) {
-          handler(items);
-          delete completionHandlerByRef[completionRef];
-        }
-      }
-    );
-  }
+      return this.__asyncIntellisenseRequest("details", { line, index })
+        .then((response) => {
+          const contents = response.contents.map((content) => ({
+            value: content,
+            isTrusted: true,
+          }));
 
-  __setupFormatting() {
-    /**
-     * Similarly to completion, formatting is delegated to the function
-     * defined below, where we simply communicate with LV to get
-     * a formatted version of the current editor content.
-     */
+          const range = new monaco.Range(
+            position.lineNumber,
+            response.range.from + 1,
+            position.lineNumber,
+            response.range.to + 1
+          );
+
+          return { contents, range };
+        })
+        .catch(() => null);
+    };
 
     this.editor.getModel().__getDocumentFormattingEdits = (model) => {
       const content = model.getValue();
 
-      return new Promise((resolve, reject) => {
-        this.hook.pushEvent(
-          "format_code",
-          { code: content },
-          ({ code: formatted }) => {
-            /**
-             * We use a single edit replacing the whole editor content,
-             * but the editor itself optimises this into a list of edits
-             * that produce minimal diff using the Myers string difference.
-             *
-             * References:
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L324
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/common/services/editorSimpleWorker.ts#L489
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/base/common/diff/diff.ts#L227-L231
-             *
-             * Eventually the editor will received the optimised list of edits,
-             * which we then convert to Delta and send to the server.
-             * Consequently, the Delta carries only the minimal formatting diff.
-             *
-             * Also, if edits are applied to the editor, either by typing
-             * or receiving remote changes, the formatting is cancelled.
-             * In other words the formatting changes are actually applied
-             * only if the editor stays intact.
-             *
-             * References:
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L313
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/browser/core/editorState.ts#L137
-             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L326
-             */
+      return this.__asyncIntellisenseRequest("format", { code: content })
+        .then((response) => {
+          /**
+           * We use a single edit replacing the whole editor content,
+           * but the editor itself optimises this into a list of edits
+           * that produce minimal diff using the Myers string difference.
+           *
+           * References:
+           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L324
+           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/common/services/editorSimpleWorker.ts#L489
+           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/base/common/diff/diff.ts#L227-L231
+           *
+           * Eventually the editor will received the optimised list of edits,
+           * which we then convert to Delta and send to the server.
+           * Consequently, the Delta carries only the minimal formatting diff.
+           *
+           * Also, if edits are applied to the editor, either by typing
+           * or receiving remote changes, the formatting is cancelled.
+           * In other words the formatting changes are actually applied
+           * only if the editor stays intact.
+           *
+           * References:
+           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L313
+           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/browser/core/editorState.ts#L137
+           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L326
+           */
 
-            const replaceEdit = {
-              range: model.getFullModelRange(),
-              text: formatted,
-            };
+          const replaceEdit = {
+            range: model.getFullModelRange(),
+            text: response.code,
+          };
 
-            resolve([replaceEdit]);
-          }
-        );
-      });
+          return [replaceEdit];
+        })
+        .catch(() => null);
     };
+
+    this.hook.handleEvent("intellisense_response", ({ ref, response }) => {
+      const handler = this.handlerByRef[ref];
+
+      if (handler) {
+        handler(response);
+        delete this.handlerByRef[ref];
+      }
+    });
+  }
+
+  /**
+   * Pushes an intellisense request.
+   *
+   * The returned promise is either resolved with a valid
+   * response or rejected with null.
+   */
+  __asyncIntellisenseRequest(type, props) {
+    return new Promise((resolve, reject) => {
+      this.hook.pushEvent(
+        "intellisense_request",
+        { cell_id: this.cellId, type, ...props },
+        ({ ref }) => {
+          if (ref) {
+            this.handlerByRef[ref] = (response) => {
+              if (response) {
+                resolve(response);
+              } else {
+                reject(null);
+              }
+            };
+          } else {
+            reject(null);
+          }
+        }
+      );
+    });
   }
 }
 
