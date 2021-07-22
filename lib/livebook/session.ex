@@ -143,6 +143,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Returns the notebook content as LiveMarkdown.
+  """
+  @spec get_notebook_source(id()) :: binary()
+  def get_notebook_source(session_id) do
+    GenServer.call(name(session_id), :get_notebook_source)
+  end
+
+  @doc """
   Asynchronously sends section insertion request to the server.
   """
   @spec insert_section(id(), non_neg_integer()) :: :ok
@@ -408,6 +416,11 @@ defmodule Livebook.Session do
 
   def handle_call(:get_summary, _from, state) do
     {:reply, summary_from_state(state), state}
+  end
+
+  def handle_call(:get_notebook_source, _from, state) do
+    content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
+    {:reply, content, state}
   end
 
   def handle_call(:save, _from, state) do
