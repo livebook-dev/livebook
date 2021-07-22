@@ -16,7 +16,8 @@ defmodule LivebookWeb.SessionController do
 
   def download_source(conn, %{"id" => id}) do
     if SessionSupervisor.session_exists?(id) do
-      source = Session.get_notebook_source(id)
+      notebook = Session.get_notebook(id)
+      source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook)
 
       send_download(conn, {:binary, source},
         filename: "notebook.livemd",

@@ -11,7 +11,10 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
       if socket.assigns[:source] do
         socket
       else
-        source = Session.get_notebook_source(socket.assigns.session_id)
+        # Note: we need to load the notebook, because the local data
+        # has cell contents stripped out
+        notebook = Session.get_notebook(socket.assigns.session_id)
+        source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook)
         assign(socket, :source, source)
       end
 

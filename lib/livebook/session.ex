@@ -143,11 +143,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Returns the notebook content as LiveMarkdown.
+  Returns the current notebook structure.
   """
-  @spec get_notebook_source(id()) :: binary()
-  def get_notebook_source(session_id) do
-    GenServer.call(name(session_id), :get_notebook_source)
+  @spec get_notebook(id()) :: Notebook.t()
+  def get_notebook(session_id) do
+    GenServer.call(name(session_id), :get_notebook)
   end
 
   @doc """
@@ -418,9 +418,8 @@ defmodule Livebook.Session do
     {:reply, summary_from_state(state), state}
   end
 
-  def handle_call(:get_notebook_source, _from, state) do
-    content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
-    {:reply, content, state}
+  def handle_call(:get_notebook, _from, state) do
+    {:reply, state.data.notebook, state}
   end
 
   def handle_call(:save, _from, state) do
