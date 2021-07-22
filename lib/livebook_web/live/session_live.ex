@@ -201,6 +201,11 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
+                <%= live_patch to: Routes.session_path(@socket, :export, @session_id),
+                      class: "menu__item text-gray-500" do %>
+                  <.remix_icon icon="download-2-line" />
+                  <span class="font-medium">Export</span>
+                <% end %>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
                       class: "menu__item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
@@ -309,6 +314,14 @@ defmodule LivebookWeb.SessionLive do
             modal_class: "w-full max-w-4xl",
             session_id: @session_id,
             bin_entries: @data_view.bin_entries,
+            return_to: Routes.session_path(@socket, :page, @session_id) %>
+    <% end %>
+
+    <%= if @live_action == :export do %>
+      <%= live_modal LivebookWeb.SessionLive.ExportComponent,
+            id: "export",
+            modal_class: "w-full max-w-4xl",
+            session_id: @session_id,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
     """

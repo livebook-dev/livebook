@@ -10,8 +10,21 @@ defmodule LivebookWeb.SessionController do
          true <- File.exists?(path) do
       serve_static(conn, path)
     else
-      _ ->
-        send_resp(conn, 404, "Not found")
+      _ -> send_resp(conn, 404, "Not found")
+    end
+  end
+
+  def download_source(conn, %{"id" => id}) do
+    if SessionSupervisor.session_exists?(id) do
+      notebook = Session.get_notebook(id)
+      source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook)
+
+      send_download(conn, {:binary, source},
+        filename: "notebook.livemd",
+        content_type: "text/plain"
+      )
+    else
+      send_resp(conn, 404, "Not found")
     end
   end
 
