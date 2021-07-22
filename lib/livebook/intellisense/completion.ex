@@ -174,6 +174,7 @@ defmodule Livebook.Intellisense.Completion do
 
   defp complete_variable(hint, ctx) do
     for {key, value} <- ctx.binding,
+        is_atom(key),
         name = Atom.to_string(key),
         ctx.matcher.(name, hint),
         do: {:variable, name, value}
