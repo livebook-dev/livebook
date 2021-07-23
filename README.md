@@ -156,7 +156,7 @@ The following environment variables configure Livebook:
 Livebook is primarily a Phoenix web application and can be setup as such:
 
 ```shell
-git clone https://github.com/elixir-nx/livebook.git
+git clone https://github.com/livebook-dev/livebook.git
 cd livebook
 mix deps.get
 
