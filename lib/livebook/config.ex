@@ -200,7 +200,7 @@ defmodule Livebook.Config do
   end
 
   defp parse_connection_config!(config) do
-    [node, cookie] = String.split(config, ":", parts: 2)
+    {node, cookie} = split_at_last_occurrence(config, ":")
 
     unless node =~ "@" do
       abort!(~s{expected node to include hostname, got: #{inspect(node)}})
@@ -210,6 +210,15 @@ defmodule Livebook.Config do
     cookie = String.to_atom(cookie)
 
     {node, cookie}
+  end
+
+  defp split_at_last_occurrence(string, pattern) do
+    {idx, 1} = string |> :binary.matches(pattern) |> List.last()
+
+    {
+      binary_part(string, 0, idx),
+      binary_part(string, idx + 1, byte_size(string) - idx - 1)
+    }
   end
 
   @doc """
