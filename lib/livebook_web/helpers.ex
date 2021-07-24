@@ -159,13 +159,25 @@ defmodule LivebookWeb.Helpers do
         checked={@likes_cats} />
   """
   def switch_checkbox(assigns) do
-    assigns = assign_new(assigns, :disabled, fn -> false end)
+    assigns =
+      assigns
+      |> assign_new(:disabled, fn -> false end)
+      |> assign_new(:label, fn -> nil end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:label, :name, :checked, :disabled]))
 
     ~H"""
     <div class="flex space-x-3 items-center justify-between">
-      <span class="text-gray-700"><%= @label %></span>
+      <%= unless is_nil(@label) do %>
+        <span class="text-gray-700"><%= @label %></span>
+      <% end %>
       <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
-        <input class="switch-button__checkbox" type="checkbox" name={@name} checked={@checked} />
+        <input
+          {@attrs}
+          value="true"
+          class="switch-button__checkbox"
+          type="checkbox"
+          name={@name}
+          checked={@checked} />
         <div class="switch-button__bg"></div>
       </label>
     </div>

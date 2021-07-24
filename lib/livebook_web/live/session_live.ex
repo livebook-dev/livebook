@@ -499,6 +499,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_cell_value", %{"cell_id" => cell_id} = value, socket)
+  when not is_map_key(value, "value") do
+    # Handle unchecking checkbox
+    Session.set_cell_attributes(socket.assigns.session_id, cell_id, %{value: "false"})
+
+    {:noreply, socket}
+  end
+
   def handle_event("set_cell_value", %{"cell_id" => cell_id, "value" => value}, socket) do
     # The browser may normalize newlines to \r\n, but we want \n
     # to more closely imitate an actual shell
