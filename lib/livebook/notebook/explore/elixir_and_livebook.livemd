@@ -84,9 +84,13 @@ Mix.install([
 ```
 
 It is a good idea to specify versions of the installed packages,
-so that the notebook is easily reproducible later on.
+so that the notebook is easily reproducible later on. The install
+command goes beyond simply installing dependencies, it also caches
+them, consolidates protocols, and more. Check
+[its documentation](https://hexdocs.pm/mix/Mix.html#install/2)
+to learn more.
 
-Also keep in mind that `Mix.install/2` can be called only once
+Finally, keep in mind that `Mix.install/2` can be called only once
 per runtime, so if you need to modify the dependencies, you should
 go to the notebook runtime configuration and **reconnect** the current
 runtime. Let's learn how to do that.
