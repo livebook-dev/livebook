@@ -50,7 +50,7 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
   end
 
   defp update_metadata(metadata, form_data) do
-    if Map.has_key?(form_data, "disable_formatting") do
+    if form_data["disable_formatting"] == "true" do
       Map.put(metadata, "disable_formatting", true)
     else
       Map.delete(metadata, "disable_formatting")

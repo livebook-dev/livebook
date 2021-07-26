@@ -21,7 +21,8 @@ defmodule Livebook.Notebook.Cell.Input do
           props: props()
         }
 
-  @type type :: :text | :url | :number | :password | :textarea | :color | :range | :select
+  @type type ::
+          :text | :url | :number | :password | :textarea | :color | :range | :select | :checkbox
 
   @typedoc """
   Additional properties adjusting the given input type.

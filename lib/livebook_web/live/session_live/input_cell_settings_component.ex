@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   defp validate_attrs(data, prev_attrs) do
     name = data["name"]
     type = data["type"] |> String.to_existing_atom()
-    reactive = Map.has_key?(data, "reactive")
+    reactive = data["reactive"] == "true"
 
     {props_valid?, props} =
       if type == prev_attrs.type do
@@ -209,6 +209,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
     end
   end
 
+  defp default_value(:checkbox, _props), do: "false"
   defp default_value(:color, _props), do: "#3E64FF"
   defp default_value(:range, %{min: min}), do: to_string(min)
   defp default_value(:select, %{options: [option | _]}), do: option
@@ -216,6 +217,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
   defp input_types do
     [
+      checkbox: "Checkbox",
       color: "Color",
       number: "Number",
       password: "Password",

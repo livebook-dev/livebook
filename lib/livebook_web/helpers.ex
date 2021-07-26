@@ -151,6 +151,10 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Renders a checkbox input styled as a switch.
 
+  Also, a hidden input with the same name is rendered
+  alongside the checkbox, so the submitted value is
+  always either `"true"` or `"false"`.
+
   ## Examples
 
       <.switch_checkbox
@@ -159,13 +163,30 @@ defmodule LivebookWeb.Helpers do
         checked={@likes_cats} />
   """
   def switch_checkbox(assigns) do
-    assigns = assign_new(assigns, :disabled, fn -> false end)
+    assigns =
+      assigns
+      |> assign_new(:label, fn -> nil end)
+      |> assign_new(:disabled, fn -> false end)
+      |> assign_new(:class, fn -> "" end)
+      |> assign(
+        :attrs,
+        assigns_to_attributes(assigns, [:label, :name, :checked, :disabled, :class])
+      )
 
     ~H"""
     <div class="flex space-x-3 items-center justify-between">
-      <span class="text-gray-700"><%= @label %></span>
+      <%= if @label do %>
+        <span class="text-gray-700"><%= @label %></span>
+      <% end %>
       <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
-        <input class="switch-button__checkbox" type="checkbox" name={@name} checked={@checked} />
+        <input type="hidden" value="false" name={@name} />
+        <input
+          type="checkbox"
+          value="true"
+          class={"switch-button__checkbox #{@class}"}
+          name={@name}
+          checked={@checked}
+          {@attrs} />
         <div class="switch-button__bg"></div>
       </label>
     </div>
