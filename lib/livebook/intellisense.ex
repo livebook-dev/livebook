@@ -172,6 +172,7 @@ defmodule Livebook.Intellisense do
 
   defp subject_range(line, index) do
     {left, right} = String.split_at(line, index)
+    bytes_until_index = byte_size(left)
 
     left =
       left
@@ -186,7 +187,7 @@ defmodule Livebook.Intellisense do
       |> consume_until(@space ++ @operators ++ @punctuation, @closing_identifier)
       |> List.to_string()
 
-    {index - byte_size(left), index + byte_size(right)}
+    {bytes_until_index - byte_size(left), bytes_until_index + byte_size(right)}
   end
 
   defp consume_until(acc \\ [], chars, stop, stop_include)

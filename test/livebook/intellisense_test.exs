@@ -1064,5 +1064,11 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [file_read]} = Intellisense.get_details(":file.read()", 8, binding, env)
       assert file_read =~ "Typical error reasons:"
     end
+
+    test "properly parses unicode" do
+      {binding, env} = eval(do: nil)
+
+      assert nil == Intellisense.get_details("msg = '🍵'", 8, binding, env)
+    end
   end
 end
