@@ -181,10 +181,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_input(%{cell_view: %{input_type: :checkbox}} = assigns) do
     ~H"""
-    <.switch_checkbox
-      data-element="input"
-      name="value"
-      checked={@cell_view.value == "true"} />
+    <div class="mt-1">
+      <.switch_checkbox
+        data-element="input"
+        name="value"
+        checked={@cell_view.value == "true"} />
+    </div>
     """
   end
 

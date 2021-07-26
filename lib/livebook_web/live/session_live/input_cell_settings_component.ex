@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   defp validate_attrs(data, prev_attrs) do
     name = data["name"]
     type = data["type"] |> String.to_existing_atom()
-    reactive = Map.has_key?(data, "reactive")
+    reactive = data["reactive"] == "true"
 
     {props_valid?, props} =
       if type == prev_attrs.type do
@@ -225,7 +225,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       textarea: "Textarea",
       url: "URL",
       range: "Range",
-      select: "Select",
+      select: "Select"
     ]
   end
 end

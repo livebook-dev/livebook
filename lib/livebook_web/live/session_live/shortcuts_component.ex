@@ -226,8 +226,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   end
 
   @impl true
-  def handle_event("settings", params, socket) do
-    basic? = Map.has_key?(params, "basic")
+  def handle_event("settings", %{"basic" => basic}, socket) do
+    basic? = basic == "true"
     {:noreply, assign(socket, :basic, basic?)}
   end
 end
