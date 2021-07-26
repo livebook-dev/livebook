@@ -1181,7 +1181,9 @@ defmodule LivebookWeb.SessionLive do
         data_view
 
       {:apply_cell_delta, _pid, cell_id, _delta, _revision} ->
-        update_cell_view(data_view, data, cell_id)
+        data_view
+        |> update_cell_view(data, cell_id)
+        |> update_dirty_status(data)
 
       _ ->
         data_to_view(data)
@@ -1197,5 +1199,11 @@ defmodule LivebookWeb.SessionLive do
       [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
       cell_view
     )
+  end
+
+  # Changes that affect only a single cell are still likely to
+  # have impact on dirtyness, so we need to always mirror it
+  defp update_dirty_status(data_view, data) do
+    put_in(data_view.dirty, data.dirty)
   end
 end
