@@ -43,4 +43,27 @@ defmodule Livebook.JSInteropTest do
       assert JSInterop.apply_delta_to_string(delta, string) == " cats"
     end
   end
+
+  describe "convert_column_to_elixir/2" do
+    test "keeps the column as is for ASCII characters" do
+      column = 4
+      line = "String.replace"
+      assert JSInterop.convert_column_to_elixir(column, line) == 4
+    end
+
+    test "shifts the column given characters spanning multiple UTF-16 code units" do
+      # 🚀 consists of 2 UTF-16 code units, so JavaScript assumes "🚀".length is 2
+      column = 7
+      line = "🚀🚀 String.replace"
+      assert JSInterop.convert_column_to_elixir(column, line) == 5
+    end
+
+    test "returns proper column if a middle UTF-16 code unit is given" do
+      # 🚀 consists of 2 UTF-16 code units, so JavaScript assumes "🚀".length is 2
+      # 3th and 4th code unit correspond to the second 🚀
+      column = 3
+      line = "🚀🚀 String.replace"
+      assert JSInterop.convert_column_to_elixir(column, line) == 2
+    end
+  end
 end
