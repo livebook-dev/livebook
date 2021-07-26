@@ -24,7 +24,20 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp render_section(section, notebook) do
     name = "## #{section.name}"
-    cells = Enum.map(section.cells, &render_cell/1)
+
+    {cells, _} =
+      Enum.map_reduce(section.cells, nil, fn cell, prev_cell ->
+        separator =
+          if is_struct(cell, Cell.Markdown) and is_struct(prev_cell, Cell.Markdown) do
+            [~s/<!-- livebook:{"break_markdown":true} -->\n\n/]
+          else
+            []
+          end
+
+        rendered = separator ++ [render_cell(cell)]
+        {rendered, cell}
+      end)
+
     metadata = section_metadata(section, notebook)
 
     [name | cells]

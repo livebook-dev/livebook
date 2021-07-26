@@ -142,6 +142,13 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp group_elements(
+         [{:comment, _, [~s/livebook:{"break_markdown":true}/], %{comment: true}} | ast],
+         elems
+       ) do
+    group_elements(ast, [{:cell, :markdown, []} | elems])
+  end
+
+  defp group_elements(
          [{:comment, _, ["livebook:" <> json], %{comment: true}} | ast],
          elems
        ) do
