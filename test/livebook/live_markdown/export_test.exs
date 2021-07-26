@@ -504,4 +504,51 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "separates consecutive markdown cells by a break annotation" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        metadata: %{},
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              metadata: %{},
+              cells: [
+                %{
+                  Notebook.Cell.new(:markdown)
+                  | metadata: %{},
+                    source: """
+                    Cell 1\
+                    """
+                },
+                %{
+                  Notebook.Cell.new(:markdown)
+                  | metadata: %{},
+                    source: """
+                    Cell 2\
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+
+    <!-- livebook:{"break_markdown":true} -->
+
+    Cell 2
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end
