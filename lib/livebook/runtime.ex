@@ -72,9 +72,9 @@ defprotocol Livebook.Runtime do
   @type completion_item_kind :: :function | :module | :type | :variable | :field
 
   @typedoc """
-  Looks up more details about an identifier found at `index` in `line`.
+  Looks up more details about an identifier found in `column` in `line`.
   """
-  @type details_request :: {:details, line :: String.t(), index :: non_neg_integer()}
+  @type details_request :: {:details, line :: String.t(), column :: pos_integer()}
 
   @type details_response :: %{
           range: %{

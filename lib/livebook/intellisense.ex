@@ -31,8 +31,8 @@ defmodule Livebook.Intellisense do
     %{items: items}
   end
 
-  def handle_request({:details, line, index}, binding, env) do
-    get_details(line, index, binding, env)
+  def handle_request({:details, line, column}, binding, env) do
+    get_details(line, column, binding, env)
   end
 
   def handle_request({:format, code}, _binding, _env) do
@@ -140,12 +140,12 @@ defmodule Livebook.Intellisense do
 
   @doc """
   Returns detailed information about identifier being
-  at `index` in `line`.
+  in `column` in `line`.
   """
-  @spec get_details(String.t(), non_neg_integer(), Code.binding(), Macro.Env.t()) ::
+  @spec get_details(String.t(), pos_integer(), Code.binding(), Macro.Env.t()) ::
           Livebook.Runtime.details() | nil
-  def get_details(line, index, binding, env) do
-    {from, to} = subject_range(line, index)
+  def get_details(line, column, binding, env) do
+    {from, to} = subject_range(line, column)
 
     if from < to do
       subject = binary_part(line, from, to - from)
@@ -170,9 +170,9 @@ defmodule Livebook.Intellisense do
   @closing_identifier '?!'
   @punctuation @non_closing_punctuation ++ @closing_punctuation
 
-  defp subject_range(line, index) do
-    {left, right} = String.split_at(line, index)
-    bytes_until_index = byte_size(left)
+  defp subject_range(line, column) do
+    {left, right} = String.split_at(line, column)
+    bytes_until_column = byte_size(left)
 
     left =
       left
@@ -187,7 +187,7 @@ defmodule Livebook.Intellisense do
       |> consume_until(@space ++ @operators ++ @punctuation, @closing_identifier)
       |> List.to_string()
 
-    {bytes_until_index - byte_size(left), bytes_until_index + byte_size(right)}
+    {bytes_until_column - byte_size(left), bytes_until_column + byte_size(right)}
   end
 
   defp consume_until(acc \\ [], chars, stop, stop_include)

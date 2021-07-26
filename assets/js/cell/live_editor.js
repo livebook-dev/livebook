@@ -238,9 +238,9 @@ class LiveEditor {
 
     this.editor.getModel().__getHover = (model, position) => {
       const line = model.getLineContent(position.lineNumber);
-      const index = position.column - 1;
+      const column = position.column;
 
-      return this.__asyncIntellisenseRequest("details", { line, index })
+      return this.__asyncIntellisenseRequest("details", { line, column })
         .then((response) => {
           const contents = response.contents.map((content) => ({
             value: content,

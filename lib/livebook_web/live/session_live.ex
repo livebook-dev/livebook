@@ -632,8 +632,8 @@ defmodule LivebookWeb.SessionLive do
         %{"type" => "completion", "hint" => hint} ->
           {:completion, hint}
 
-        %{"type" => "details", "line" => line, "index" => index} ->
-          {:details, line, index}
+        %{"type" => "details", "line" => line, "column" => column} ->
+          {:details, line, column}
 
         %{"type" => "format", "code" => code} ->
           {:format, code}
