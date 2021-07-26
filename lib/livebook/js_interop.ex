@@ -40,6 +40,21 @@ defmodule Livebook.JSInterop do
     apply_to_code_units(ops, Enum.slice(code_units, n..-1))
   end
 
+  @doc """
+  Returns a column number in the Elixir string corresponding to
+  the given column interpreted in terms of UTF-16 code units as
+  JavaScript does.
+  """
+  @spec convert_column_to_elixir(pos_integer(), String.t()) :: pos_integer()
+  def convert_column_to_elixir(column, line) do
+    line
+    |> string_to_utf16_code_units()
+    |> Enum.take(column - 1)
+    |> utf16_code_units_to_string()
+    |> String.length()
+    |> Kernel.+(1)
+  end
+
   # ---
 
   defp string_to_utf16_code_units(string) do

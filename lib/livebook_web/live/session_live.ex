@@ -632,8 +632,9 @@ defmodule LivebookWeb.SessionLive do
         %{"type" => "completion", "hint" => hint} ->
           {:completion, hint}
 
-        %{"type" => "details", "line" => line, "index" => index} ->
-          {:details, line, index}
+        %{"type" => "details", "line" => line, "column" => column} ->
+          column = Livebook.JSInterop.convert_column_to_elixir(column, line)
+          {:details, line, column}
 
         %{"type" => "format", "code" => code} ->
           {:format, code}
