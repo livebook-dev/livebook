@@ -502,4 +502,41 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              ]
            } = notebook
   end
+
+  test "imports markdown content into separate cells when a break annotation is encountered" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+
+    <!-- livebook:{"break_markdown":true} -->
+
+    Cell 2
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Markdown{
+                     source: """
+                     Cell 1\
+                     """
+                   },
+                   %Cell.Markdown{
+                     source: """
+                     Cell 2\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
 end
