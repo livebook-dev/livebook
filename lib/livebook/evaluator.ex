@@ -13,6 +13,8 @@ defmodule Livebook.Evaluator do
 
   use GenServer, restart: :temporary
 
+  require Logger
+
   alias Livebook.Evaluator
 
   @type t :: GenServer.server()
@@ -214,7 +216,15 @@ defmodule Livebook.Evaluator do
 
   def handle_cast({:handle_intellisense, send_to, ref, request, evaluation_ref}, state) do
     context = get_context(state, evaluation_ref)
-    response = Livebook.Intellisense.handle_request(request, context.binding, context.env)
+
+    # Safely rescue from intellisense errors
+    response =
+      try do
+        Livebook.Intellisense.handle_request(request, context.binding, context.env)
+      rescue
+        error -> Logger.error(Exception.format(:error, error, __STACKTRACE__))
+      end
+
     send(send_to, {:intellisense_response, ref, response})
 
     {:noreply, state}
