@@ -154,7 +154,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:details, "System.version", 10}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, %{range: %{from: 0, to: 14}, contents: [_]}}
+      assert_receive {:intellisense_response, :ref, %{range: %{from: 1, to: 15}, contents: [_]}}
     end
   end
 

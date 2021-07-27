@@ -25,7 +25,7 @@ defmodule Livebook.Runtime.ErlDist do
     Livebook.Evaluator.IOProxy,
     Livebook.Evaluator.DefaultFormatter,
     Livebook.Intellisense,
-    Livebook.Intellisense.Completion,
+    Livebook.Intellisense.IdentifierMatcher,
     Livebook.Runtime.ErlDist,
     Livebook.Runtime.ErlDist.NodeManager,
     Livebook.Runtime.ErlDist.RuntimeServer,
