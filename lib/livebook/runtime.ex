@@ -184,7 +184,7 @@ defprotocol Livebook.Runtime do
   the text editor.
 
   The response is sent to the `send_to` process as
-  `{:intellisense_response, ref, response}`.
+  `{:intellisense_response, ref, request, response}`.
 
   The given `locator` idenfities an evaluation that may be used
   as context when resolving the request (if relevant).

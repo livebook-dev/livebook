@@ -135,7 +135,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:completion, "System.ver"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, %{items: [%{label: "version/0"}]}}
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "version/0"}]}}
     end
 
     test "provides extended completion when previous evaluation reference is given", %{pid: pid} do
@@ -145,7 +145,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:completion, "num"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
 
-      assert_receive {:intellisense_response, :ref, %{items: [%{label: "number"}]}}
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}}
     end
   end
 
@@ -154,7 +154,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:details, "System.version", 10}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, %{range: %{from: 1, to: 15}, contents: [_]}}
+      assert_receive {:intellisense_response, :ref, ^request,
+                      %{range: %{from: 1, to: 15}, contents: [_]}}
     end
   end
 
@@ -163,7 +164,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:format, "System.version"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, %{code: "System.version()"}}
+      assert_receive {:intellisense_response, :ref, ^request, %{code: "System.version()"}}
     end
   end
 

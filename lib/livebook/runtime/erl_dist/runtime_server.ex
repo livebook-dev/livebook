@@ -223,7 +223,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         binding = []
         env = :elixir.env_for_eval([])
         response = Livebook.Intellisense.handle_request(request, binding, env)
-        send(send_to, {:intellisense_response, ref, response})
+        send(send_to, {:intellisense_response, ref, request, response})
       end)
     end
 

@@ -225,7 +225,7 @@ defmodule Livebook.Evaluator do
         error -> Logger.error(Exception.format(:error, error, __STACKTRACE__))
       end
 
-    send(send_to, {:intellisense_response, ref, response})
+    send(send_to, {:intellisense_response, ref, request, response})
 
     {:noreply, state}
   end

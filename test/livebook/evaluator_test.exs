@@ -223,7 +223,9 @@ defmodule Livebook.EvaluatorTest do
     test "sends completion response to the given process", %{evaluator: evaluator} do
       request = {:completion, "System.ver"}
       Evaluator.handle_intellisense(evaluator, self(), :ref, request)
-      assert_receive {:intellisense_response, :ref, %{items: [%{label: "version/0"}]}}, 1_000
+
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "version/0"}]}},
+                     1_000
     end
 
     test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
@@ -237,12 +239,15 @@ defmodule Livebook.EvaluatorTest do
 
       request = {:completion, "num"}
       Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
-      assert_receive {:intellisense_response, :ref, %{items: [%{label: "number"}]}}, 1_000
+
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}},
+                     1_000
 
       request = {:completion, "ANSI.brigh"}
       Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
 
-      assert_receive {:intellisense_response, :ref, %{items: [%{label: "bright/0"}]}}, 1_000
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}},
+                     1_000
     end
   end
 
