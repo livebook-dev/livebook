@@ -8,6 +8,7 @@ defmodule LivebookWeb.SessionLive do
   alias LivebookWeb.SidebarHelpers
   alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
+  alias Livebook.JSInterop
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = session, socket) do
@@ -633,7 +634,7 @@ defmodule LivebookWeb.SessionLive do
           {:completion, hint}
 
         %{"type" => "details", "line" => line, "column" => column} ->
-          column = Livebook.JSInterop.convert_column_to_elixir(column, line)
+          column = JSInterop.js_column_to_elixir(column, line)
           {:details, line, column}
 
         %{"type" => "format", "code" => code} ->
@@ -758,7 +759,8 @@ defmodule LivebookWeb.SessionLive do
      |> push_redirect(to: Routes.home_path(socket, :page))}
   end
 
-  def handle_info({:intellisense_response, ref, response}, socket) do
+  def handle_info({:intellisense_response, ref, request, response}, socket) do
+    response = process_intellisense_response(response, request)
     payload = %{"ref" => inspect(ref), "response" => response}
     {:noreply, push_event(socket, "intellisense_response", payload)}
   end
@@ -1045,6 +1047,21 @@ defmodule LivebookWeb.SessionLive do
       Notebook.update_cell(notebook, cell_id, &%{&1 | source: nil})
     end)
   end
+
+  defp process_intellisense_response(
+         %{range: %{from: from, to: to}} = response,
+         {:details, line, _column}
+       ) do
+    %{
+      response
+      | range: %{
+          from: JSInterop.elixir_column_to_js(from, line),
+          to: JSInterop.elixir_column_to_js(to, line)
+        }
+    }
+  end
+
+  defp process_intellisense_response(response, _request), do: response
 
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
