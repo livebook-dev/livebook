@@ -249,9 +249,9 @@ class LiveEditor {
 
           const range = new monaco.Range(
             position.lineNumber,
-            response.range.from + 1,
+            response.range.from,
             position.lineNumber,
-            response.range.to + 1
+            response.range.to
           );
 
           return { contents, range };

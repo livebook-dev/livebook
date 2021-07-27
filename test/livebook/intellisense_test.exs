@@ -1028,10 +1028,10 @@ defmodule Livebook.IntellisenseTest do
     test "returns subject range" do
       {binding, env} = eval(do: nil)
 
-      assert %{range: %{from: 0, to: 17}} =
+      assert %{range: %{from: 1, to: 18}} =
                Intellisense.get_details("Integer.to_string(10)", 15, binding, env)
 
-      assert %{range: %{from: 0, to: 7}} =
+      assert %{range: %{from: 1, to: 8}} =
                Intellisense.get_details("Integer.to_string(10)", 2, binding, env)
     end
 
@@ -1069,6 +1069,13 @@ defmodule Livebook.IntellisenseTest do
       {binding, env} = eval(do: nil)
 
       assert nil == Intellisense.get_details("msg = '🍵'", 8, binding, env)
+    end
+
+    test "handles operators" do
+      {binding, env} = eval(do: nil)
+
+      assert %{contents: [match_op]} = Intellisense.get_details("x = 1", 3, binding, env)
+      assert match_op =~ "Match operator."
     end
   end
 end

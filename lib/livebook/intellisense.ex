@@ -7,7 +7,7 @@ defmodule Livebook.Intellisense do
   # In a way, this provides the very basic features of a
   # language server that Livebook uses.
 
-  alias Livebook.Intellisense.Completion
+  alias Livebook.Intellisense.IdentifierMatcher
 
   # Configures width used for inspect and specs formatting.
   @line_length 30
@@ -65,7 +65,7 @@ defmodule Livebook.Intellisense do
   @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t()) ::
           list(Livebook.Runtime.completion_item())
   def get_completion_items(hint, binding, env) do
-    Completion.get_completion_items(hint, binding, env)
+    IdentifierMatcher.completion_identifiers(hint, binding, env)
     |> Enum.map(&format_completion_item/1)
     |> Enum.sort_by(&completion_item_priority/1)
   end
@@ -139,66 +139,23 @@ defmodule Livebook.Intellisense do
   end
 
   @doc """
-  Returns detailed information about identifier being
+  Returns detailed information about an identifier located
   in `column` in `line`.
   """
   @spec get_details(String.t(), pos_integer(), Code.binding(), Macro.Env.t()) ::
           Livebook.Runtime.details() | nil
   def get_details(line, column, binding, env) do
-    {from, to} = subject_range(line, column)
+    case IdentifierMatcher.locate_identifier(line, column, binding, env) do
+      %{matches: []} ->
+        nil
 
-    if from < to do
-      subject = binary_part(line, from, to - from)
+      %{matches: matches, range: range} ->
+        contents =
+          matches
+          |> Enum.map(&format_details_item/1)
+          |> Enum.uniq()
 
-      Completion.get_completion_items(subject, binding, env, exact: true)
-      |> Enum.map(&format_details_item/1)
-      |> Enum.uniq()
-      |> case do
-        [] -> nil
-        contents -> %{range: %{from: from, to: to}, contents: contents}
-      end
-    else
-      nil
-    end
-  end
-
-  # Reference: https://github.com/elixir-lang/elixir/blob/d1223e11fda880d5646f6385b33684d1b2ec0b9c/lib/elixir/lib/code.ex#L341-L345
-  @operators '\\<>+-*/:=|&~^@%'
-  @non_closing_punctuation '.,([{;'
-  @closing_punctuation ')]}'
-  @space '\t\s'
-  @closing_identifier '?!'
-  @punctuation @non_closing_punctuation ++ @closing_punctuation
-
-  defp subject_range(line, column) do
-    {left, right} = String.split_at(line, column)
-    bytes_until_column = byte_size(left)
-
-    left =
-      left
-      |> String.to_charlist()
-      |> Enum.reverse()
-      |> consume_until(@space ++ @operators ++ (@punctuation -- '.') ++ @closing_identifier, ':@')
-      |> List.to_string()
-
-    right =
-      right
-      |> String.to_charlist()
-      |> consume_until(@space ++ @operators ++ @punctuation, @closing_identifier)
-      |> List.to_string()
-
-    {bytes_until_column - byte_size(left), bytes_until_column + byte_size(right)}
-  end
-
-  defp consume_until(acc \\ [], chars, stop, stop_include)
-
-  defp consume_until(acc, [], _, _), do: Enum.reverse(acc)
-
-  defp consume_until(acc, [char | chars], stop, stop_include) do
-    cond do
-      char in stop_include -> consume_until([char | acc], [], stop, stop_include)
-      char in stop -> consume_until(acc, [], stop, stop_include)
-      true -> consume_until([char | acc], chars, stop, stop_include)
+        %{range: range, contents: contents}
     end
   end
 
