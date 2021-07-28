@@ -103,3 +103,15 @@ export function throttle(fn, windowMs) {
     }
   };
 }
+
+export function findChildOrThrow(element, selector) {
+  const child = element.querySelector(selector);
+
+  if (!child) {
+    throw new Error(
+      `expected a child matching ${selector}, but none was found`
+    );
+  }
+
+  return child;
+}

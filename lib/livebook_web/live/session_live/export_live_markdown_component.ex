@@ -37,11 +37,10 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
         </div>
       </div>
       <div class="markdown">
-        <pre><code
-          class="tiny-scrollbar"
-          id="export-notebook-source"
-          phx-hook="Highlight"
-          data-language="markdown"><%= @source %></code></pre>
+      <.code_preview
+        source_id="export-notebook-source"
+        language="markdown"
+        source={@source} />
       </div>
     </div>
     """
