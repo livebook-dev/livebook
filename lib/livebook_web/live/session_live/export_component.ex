@@ -8,14 +8,13 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
     socket = assign(socket, assigns)
 
     socket =
-      if socket.assigns[:source] do
+      if socket.assigns[:notebook] do
         socket
       else
         # Note: we need to load the notebook, because the local data
         # has cell contents stripped out
         notebook = Session.get_notebook(socket.assigns.session_id)
-        source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook)
-        assign(socket, :source, source)
+        assign(socket, :notebook, notebook)
       end
 
     {:ok, socket}
@@ -32,38 +31,30 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
         <p class="text-gray-700">
           Here you can preview and directly export the notebook source.
         </p>
-        <div class="flex flex-col space-y-1">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-700 font-semibold">
-              .livemd
+        <div class="tabs">
+          <%= live_patch to: Routes.session_path(@socket, :export, @session_id, "livemd"),
+                class: "tab #{if(@tab == "livemd", do: "active")}" do %>
+            <span class="font-medium">
+              Live Markdown
             </span>
-            <div class="flex justify-end space-x-2">
-              <span class="tooltip left" aria-label="Copy source">
-                <button class="icon-button"
-                  id="export-notebook-source-clipcopy"
-                  phx-hook="ClipCopy"
-                  data-target-id="export-notebook-source">
-                  <.remix_icon icon="clipboard-line" class="text-lg" />
-                </button>
-              </span>
-              <span class="tooltip left" aria-label="Download source">
-                <a class="icon-button"
-                  href={Routes.session_path(@socket, :download_source, @session_id)}>
-                  <.remix_icon icon="download-2-line" class="text-lg" />
-                </a>
-              </span>
-            </div>
-          </div>
-          <div class="markdown">
-            <pre><code
-              class="tiny-scrollbar"
-              id="export-notebook-source"
-              phx-hook="Highlight"
-              data-language="markdown"><%= @source %></code></pre>
-          </div>
+          <% end %>
+          <%= live_patch to: Routes.session_path(@socket, :export, @session_id, "exs"),
+                class: "tab #{if(@tab == "exs", do: "active")}" do %>
+            <span class="font-medium">
+              Elixir Script
+            </span>
+          <% end %>
         </div>
+        <div>
+        <%= live_component component_for_tab(@tab),
+              session_id: @session_id,
+              notebook: @notebook %>
+      </div>
       </div>
     </div>
     """
   end
+
+  defp component_for_tab("livemd"), do: LivebookWeb.SessionLive.ExportLiveMarkdownComponent
+  defp component_for_tab("exs"), do: LivebookWeb.SessionLive.ExportElixirComponent
 end

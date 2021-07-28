@@ -34,8 +34,8 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
     live "/sessions/:id/settings/file", SessionLive, :file_settings
     live "/sessions/:id/bin", SessionLive, :bin
-    live "/sessions/:id/export", SessionLive, :export
-    get "/sessions/:id/export/download", SessionController, :download_source
+    get "/sessions/:id/export/download/:format", SessionController, :download_source
+    live "/sessions/:id/export/:tab", SessionLive, :export
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
     live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section

@@ -202,7 +202,7 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <%= live_patch to: Routes.session_path(@socket, :export, @session_id),
+                <%= live_patch to: Routes.session_path(@socket, :export, @session_id, "livemd"),
                       class: "menu__item text-gray-500" do %>
                   <.remix_icon icon="download-2-line" />
                   <span class="font-medium">Export</span>
@@ -323,6 +323,7 @@ defmodule LivebookWeb.SessionLive do
             id: "export",
             modal_class: "w-full max-w-4xl",
             session_id: @session_id,
+            tab: @tab,
             return_to: Routes.session_path(@socket, :page, @session_id) %>
     <% end %>
     """
@@ -359,6 +360,10 @@ defmodule LivebookWeb.SessionLive do
 
     path = Path.join(path_parts)
     {:noreply, handle_relative_path(socket, path)}
+  end
+
+  def handle_params(%{"tab" => tab}, _url, socket) do
+    {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
