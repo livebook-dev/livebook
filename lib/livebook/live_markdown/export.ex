@@ -14,7 +14,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_notebook(notebook) do
-    name = "# #{notebook.name}"
+    name = ["# ", notebook.name]
     sections = Enum.map(notebook.sections, &render_section(&1, notebook))
 
     [name | sections]
@@ -23,7 +23,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_section(section, notebook) do
-    name = "## #{section.name}"
+    name = ["## ", section.name]
 
     {cells, _} =
       Enum.map_reduce(section.cells, nil, fn cell, prev_cell ->
@@ -61,14 +61,10 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_cell(%Cell.Elixir{} = cell) do
+    delimiter = code_block_delimiter(cell.source)
     code = get_elixir_cell_code(cell)
-    delimiter = code_block_delimiter(code)
 
-    """
-    #{delimiter}elixir
-    #{code}
-    #{delimiter}\
-    """
+    [delimiter, "elixir\n", code, "\n", delimiter]
     |> prepend_metadata(cell.metadata)
   end
 
@@ -141,9 +137,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp format_code(code) do
     try do
-      code
-      |> Code.format_string!()
-      |> IO.iodata_to_binary()
+      Code.format_string!(code)
     rescue
       _ -> code
     end

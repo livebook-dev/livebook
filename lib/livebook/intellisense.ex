@@ -428,8 +428,7 @@ defmodule Livebook.Intellisense do
 
     inner
     |> String.split("\n")
-    |> Enum.map(&("> " <> &1))
-    |> Enum.join("\n")
+    |> Enum.map_intersperse("\n", &["> ", &1])
   end
 
   defp render_unordered_list(content) do
