@@ -214,4 +214,26 @@ defmodule LivebookWeb.Helpers do
     </button>
     """
   end
+
+  @doc """
+  Renders a highlighted code snippet.
+
+  ## Examples
+
+      <.code_preview
+        source_id="my-snippet"
+        language="elixir"
+        source="System.version()" />
+  """
+  def code_preview(assigns) do
+    ~H"""
+    <div class="markdown">
+      <pre><code
+        class="tiny-scrollbar"
+        id={"#{@source_id}-highlight"}
+        phx-hook="Highlight"
+        data-language={@language}><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
+    </div>
+    """
+  end
 end

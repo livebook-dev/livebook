@@ -47,13 +47,10 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
             </span>
           </div>
         </div>
-        <div class="markdown">
-          <pre><code
-            class="tiny-scrollbar"
-            id="export-notebook-source"
-            phx-hook="Highlight"
-            data-language="elixir"><%= @source %></code></pre>
-        </div>
+        <.code_preview
+          source_id="export-notebook-source"
+          language="elixir"
+          source={@source} />
       </div>
     </div>
     """

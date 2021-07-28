@@ -88,12 +88,10 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     </span>
                   </div>
                 </div>
-                <div class="markdown">
-                  <pre><code
-                    id={"bin-cell-#{cell.id}-source"}
-                    phx-hook="Highlight"
-                    data-language={Cell.type(cell)}><%= cell.source %></code></pre>
-                </div>
+                <.code_preview
+                  source_id={"bin-cell-#{cell.id}-source"}
+                  language={Cell.type(cell)}
+                  source={cell.source} />
               </div>
             <% end %>
             <%= if length(@matching_entries) > @limit do %>

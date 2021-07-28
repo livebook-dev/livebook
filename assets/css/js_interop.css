@@ -13,6 +13,10 @@ solely client-side operations.
   @apply hidden;
 }
 
+[phx-hook="Highlight"][data-highlighted] > [data-source] {
+  @apply hidden;
+}
+
 /* === Session === */
 
 [data-element="session"]:not([data-js-insert-mode])

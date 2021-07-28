@@ -4,7 +4,7 @@ import {
   parseBoolean,
   parseInteger,
 } from "../lib/attribute";
-import { getLineHeight } from "../lib/utils";
+import { findChildOrThrow, getLineHeight } from "../lib/utils";
 
 /**
  * A hook used to render text lines as a virtual list,
@@ -37,21 +37,8 @@ const VirtualizedLines = {
 
     this.state.lineHeight = getLineHeight(this.el);
 
-    this.state.templateElement = this.el.querySelector("[data-template]");
-
-    if (!this.state.templateElement) {
-      throw new Error(
-        "VirtualizedLines must have a child with data-template attribute"
-      );
-    }
-
-    this.state.contentElement = this.el.querySelector("[data-content]");
-
-    if (!this.state.contentElement) {
-      throw new Error(
-        "VirtualizedLines must have a child with data-content attribute"
-      );
-    }
+    this.state.templateElement = findChildOrThrow(this.el, "[data-template]");
+    this.state.contentElement = findChildOrThrow(this.el, "[data-content]");
 
     const config = hyperListConfig(
       this.state.contentElement,
