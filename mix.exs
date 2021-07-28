@@ -34,7 +34,7 @@ defmodule Livebook.MixProject do
 
   defp deps do
     [
-      {:phoenix, "1.6.0-dev", github: "phoenixframework/phoenix", override: true},
+      {:phoenix, "~> 1.5.9"},
       # We point LV to an exact version, because we install
       # the npm package from there to bundle all the assets,
       # so the Elixir-side version must match
