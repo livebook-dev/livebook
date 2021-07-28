@@ -39,22 +39,46 @@ defmodule LivebookWeb.SessionControllerTest do
 
   describe "download_source" do
     test "returns not found when the given session does not exist", %{conn: conn} do
-      conn = get(conn, Routes.session_path(conn, :download_source, "nonexistent"))
+      conn = get(conn, Routes.session_path(conn, :download_source, "nonexistent", "livemd"))
 
       assert conn.status == 404
       assert conn.resp_body == "Not found"
     end
 
-    test "returns live markdown notebook source", %{conn: conn} do
+    test "returns bad request when given an invalid format", %{conn: conn} do
       {:ok, session_id} = SessionSupervisor.create_session()
 
-      conn = get(conn, Routes.session_path(conn, :download_source, session_id))
+      conn = get(conn, Routes.session_path(conn, :download_source, session_id, "invalid"))
+
+      assert conn.status == 400
+      assert conn.resp_body == "Invalid format, supported formats: livemd, exs"
+    end
+
+    test "handles live markdown notebook source", %{conn: conn} do
+      {:ok, session_id} = SessionSupervisor.create_session()
+
+      conn = get(conn, Routes.session_path(conn, :download_source, session_id, "livemd"))
 
       assert conn.status == 200
       assert get_resp_header(conn, "content-type") == ["text/plain"]
 
       assert conn.resp_body == """
              # Untitled notebook
+             """
+
+      SessionSupervisor.close_session(session_id)
+    end
+
+    test "handles elixir notebook source", %{conn: conn} do
+      {:ok, session_id} = SessionSupervisor.create_session()
+
+      conn = get(conn, Routes.session_path(conn, :download_source, session_id, "exs"))
+
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") == ["text/plain"]
+
+      assert conn.resp_body == """
+             # Title: Untitled notebook
              """
 
       SessionSupervisor.close_session(session_id)
