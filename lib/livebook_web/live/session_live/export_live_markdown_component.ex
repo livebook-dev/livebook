@@ -24,10 +24,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col space-y-6">
-      <div class="flex flex-col items-start space-y-3">
-        <h3 class="font-semibold text-gray-800">
-          Options
-        </h3>
+      <div class="flex">
         <form phx-change="set_options" onsubmit="return false;" phx-target={@myself}>
           <.switch_checkbox
             name="include_outputs"
