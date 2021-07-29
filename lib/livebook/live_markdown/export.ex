@@ -5,24 +5,33 @@ defmodule Livebook.LiveMarkdown.Export do
 
   @doc """
   Converts the given notebook into a Markdown document.
+
+  ## Options
+
+    * `:include_outputs` - whether to render cell outputs.
+      Only textual outputs are included. Defaults to `false`.
   """
-  @spec notebook_to_markdown(Notebook.t()) :: String.t()
-  def notebook_to_markdown(notebook) do
-    iodata = render_notebook(notebook)
+  @spec notebook_to_markdown(Notebook.t(), keyword()) :: String.t()
+  def notebook_to_markdown(notebook, opts \\ []) do
+    ctx = %{
+      include_outputs?: Keyword.get(opts, :include_outputs, false)
+    }
+
+    iodata = render_notebook(notebook, ctx)
     # Add trailing newline
     IO.iodata_to_binary([iodata, "\n"])
   end
 
-  defp render_notebook(notebook) do
+  defp render_notebook(notebook, ctx) do
     name = ["# ", notebook.name]
-    sections = Enum.map(notebook.sections, &render_section(&1, notebook))
+    sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     [name | sections]
     |> Enum.intersperse("\n\n")
     |> prepend_metadata(notebook.metadata)
   end
 
-  defp render_section(section, notebook) do
+  defp render_section(section, notebook, ctx) do
     name = ["## ", section.name]
 
     {cells, _} =
@@ -34,7 +43,7 @@ defmodule Livebook.LiveMarkdown.Export do
             []
           end
 
-        rendered = separator ++ [render_cell(cell)]
+        rendered = separator ++ [render_cell(cell, ctx)]
         {rendered, cell}
       end)
 
@@ -54,21 +63,29 @@ defmodule Livebook.LiveMarkdown.Export do
     Map.put(section.metadata, "branch_parent_index", parent_idx)
   end
 
-  defp render_cell(%Cell.Markdown{} = cell) do
+  defp render_cell(%Cell.Markdown{} = cell, _ctx) do
     cell.source
     |> format_markdown_source()
     |> prepend_metadata(cell.metadata)
   end
 
-  defp render_cell(%Cell.Elixir{} = cell) do
+  defp render_cell(%Cell.Elixir{} = cell, ctx) do
     delimiter = code_block_delimiter(cell.source)
     code = get_elixir_cell_code(cell)
+    outputs = if ctx.include_outputs?, do: render_outputs(cell), else: []
 
-    [delimiter, "elixir\n", code, "\n", delimiter]
-    |> prepend_metadata(cell.metadata)
+    cell =
+      [delimiter, "elixir\n", code, "\n", delimiter]
+      |> prepend_metadata(cell.metadata)
+
+    if outputs == [] do
+      cell
+    else
+      [cell, "\n\n", outputs]
+    end
   end
 
-  defp render_cell(%Cell.Input{} = cell) do
+  defp render_cell(%Cell.Input{} = cell, _ctx) do
     value = if cell.type == :password, do: "", else: cell.value
 
     json =
@@ -84,6 +101,29 @@ defmodule Livebook.LiveMarkdown.Export do
     "<!-- livebook:#{json} -->"
     |> prepend_metadata(cell.metadata)
   end
+
+  defp render_outputs(cell) do
+    cell.outputs
+    |> Enum.reverse()
+    |> Enum.map(&render_output/1)
+    |> Enum.reject(&(&1 == :ignored))
+    |> Enum.intersperse("\n\n")
+  end
+
+  defp render_output(text) when is_binary(text) do
+    text = String.replace_suffix(text, "\n", "")
+    delimiter = code_block_delimiter(text)
+    text = strip_ansi(text)
+    [delimiter, "output\n", text, "\n", delimiter]
+  end
+
+  defp render_output({:text, text}) do
+    delimiter = code_block_delimiter(text)
+    text = strip_ansi(text)
+    [delimiter, "output\n", text, "\n", delimiter]
+  end
+
+  defp render_output(_output), do: :ignored
 
   defp get_elixir_cell_code(%{source: source, metadata: %{"disable_formatting" => true}}),
     do: source
@@ -160,5 +200,11 @@ defmodule Livebook.LiveMarkdown.Export do
         Map.put(map, key, value)
       end
     end)
+  end
+
+  defp strip_ansi(string) do
+    string
+    |> Livebook.Utils.ANSI.parse_ansi_string()
+    |> Enum.map(fn {_modifiers, string} -> string end)
   end
 end

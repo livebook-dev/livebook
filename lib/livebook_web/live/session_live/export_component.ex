@@ -47,6 +47,7 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
         </div>
         <div>
         <%= live_component component_for_tab(@tab),
+              id: "export-notebook-#{@tab}",
               session_id: @session_id,
               notebook: @notebook %>
       </div>
