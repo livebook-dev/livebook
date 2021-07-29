@@ -159,7 +159,8 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", "elixir"}], [source], %{}}], %{}} | ast],
          elems
        ) do
-    group_elements(ast, [{:cell, :elixir, source} | elems])
+    {outputs, ast} = take_outputs(ast, [])
+    group_elements(ast, [{:cell, :elixir, source, outputs} | elems])
   end
 
   defp group_elements([ast_node | ast], [{:cell, :markdown, md_ast} | rest]) do
@@ -182,15 +183,25 @@ defmodule Livebook.LiveMarkdown.Import do
     end
   end
 
+  defp take_outputs(
+         [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
+         outputs
+       ) do
+    take_outputs(ast, [output | outputs])
+  end
+
+  defp take_outputs(ast, outputs), do: {outputs, ast}
+
   # Builds a notebook from the list of elements obtained in the previous step.
   # Note that the list of elements is reversed:
   # first we group elements by traversing Earmark AST top-down
   # and then aggregate elements into data strictures going bottom-up.
   defp build_notebook(elems, cells \\ [], sections \\ [])
 
-  defp build_notebook([{:cell, :elixir, source} | elems], cells, sections) do
+  defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
-    cell = %{Notebook.Cell.new(:elixir) | source: source, metadata: metadata}
+    outputs = Enum.map(outputs, &{:text, &1})
+    cell = %{Notebook.Cell.new(:elixir) | source: source, metadata: metadata, outputs: outputs}
     build_notebook(elems, [cell | cells], sections)
   end
 

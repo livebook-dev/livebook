@@ -539,4 +539,45 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              ]
            } = notebook
   end
+
+  describe "outputs" do
+    test "imports output snippets as cell textual outputs" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```output
+      hey
+      ```
+
+      ```output
+      :ok
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Elixir{
+                       source: """
+                       IO.puts("hey")\
+                       """,
+                       outputs: [{:text, ":ok"}, {:text, "hey"}]
+                     }
+                   ]
+                 }
+               ]
+             } = notebook
+    end
+  end
 end
