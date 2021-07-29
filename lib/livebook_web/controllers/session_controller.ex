@@ -25,7 +25,8 @@ defmodule LivebookWeb.SessionController do
   end
 
   defp send_notebook_source(conn, notebook, "livemd") do
-    source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook)
+    opts = [include_outputs: conn.params["include_outputs"] == "true"]
+    source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook, opts)
 
     send_download(conn, {:binary, source},
       filename: "notebook.livemd",

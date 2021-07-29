@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-3">
+    <div class="flex flex-col space-y-6">
       <p class="text-gray-700">
         <span class="font-semibold">Note:</span>
         the script export is available as a convenience, rather than
