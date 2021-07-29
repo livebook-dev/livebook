@@ -41,35 +41,6 @@ defmodule LivebookWeb.Helpers do
   defp mac?(user_agent), do: String.match?(user_agent, ~r/Mac OS X/)
   defp windows?(user_agent), do: String.match?(user_agent, ~r/Windows/)
 
-  defdelegate ansi_string_to_html(string, opts \\ []), to: LivebookWeb.ANSI
-
-  @doc """
-  Converts a string with ANSI escape codes into HTML lines.
-
-  This method is similar to `ansi_string_to_html/2`,
-  but makes sure each line is itself a valid HTML
-  (as opposed to just splitting HTML into lines).
-  """
-  @spec ansi_to_html_lines(String.t()) :: list(Phoenix.HTML.safe())
-  def ansi_to_html_lines(string) do
-    string
-    |> ansi_string_to_html(
-      # Make sure every line is styled separately,
-      # so that later we can safely split the whole HTML
-      # into valid HTML lines.
-      renderer: fn style, content ->
-        content
-        |> IO.iodata_to_binary()
-        |> String.split("\n")
-        |> Enum.map(&LivebookWeb.ANSI.default_renderer(style, &1))
-        |> Enum.intersperse("\n")
-      end
-    )
-    |> Phoenix.HTML.safe_to_string()
-    |> String.split("\n")
-    |> Enum.map(&Phoenix.HTML.raw/1)
-  end
-
   @doc """
   Returns path to specific process dialog within LiveDashboard.
   """
@@ -236,4 +207,7 @@ defmodule LivebookWeb.Helpers do
     </div>
     """
   end
+
+  defdelegate ansi_string_to_html(string), to: LivebookWeb.Helpers.ANSI
+  defdelegate ansi_string_to_html_lines(string), to: LivebookWeb.Helpers.ANSI
 end
