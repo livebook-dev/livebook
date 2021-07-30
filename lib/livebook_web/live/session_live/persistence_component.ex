@@ -28,11 +28,11 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 flex flex-col space-y-3">
+    <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         File
       </h3>
-      <div class="w-full flex-col space-y-6">
+      <div class="w-full flex-col space-y-8">
         <div class="flex">
           <form phx-change="set_options" onsubmit="return false;" phx-target={@myself}>
             <.switch_checkbox
@@ -68,14 +68,14 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
                   phx_submit: if(disabled?(@new_attrs, @attrs, @running_paths), do: nil, else: "save") %>
           </div>
         <% end %>
-        <div class="flex flex-col space-y-2">
+        <div class="flex flex-col space-y-8">
           <%= if @new_attrs.path != nil do %>
             <div class="text-gray-500 text-sm">
               File: <%= normalize_path(@new_attrs.path) %>
             </div>
           <% end %>
           <div>
-            <button class="button button-blue mt-2"
+            <button class="button button-blue"
               phx-click="save"
               phx-target={@myself}
               disabled={disabled?(@new_attrs, @attrs, @running_paths)}>
