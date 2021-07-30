@@ -10,20 +10,18 @@ defmodule Livebook.Notebook.Section do
   # a branching section. Such section logically follows its
   # parent section and has no impact on any further sections.
 
-  defstruct [:id, :name, :cells, :parent_id, :metadata]
+  defstruct [:id, :name, :cells, :parent_id]
 
   alias Livebook.Notebook.Cell
   alias Livebook.Utils
 
   @type id :: Utils.id()
-  @type metadata :: %{String.t() => term()}
 
   @type t :: %__MODULE__{
           id: id(),
           name: String.t(),
           cells: list(Cell.t()),
-          parent_id: id() | nil,
-          metadata: metadata()
+          parent_id: id() | nil
         }
 
   @doc """
@@ -35,8 +33,7 @@ defmodule Livebook.Notebook.Section do
       id: Utils.random_id(),
       name: "Section",
       cells: [],
-      parent_id: nil,
-      metadata: %{}
+      parent_id: nil
     }
   end
 end

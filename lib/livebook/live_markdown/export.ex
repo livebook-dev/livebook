@@ -26,9 +26,15 @@ defmodule Livebook.LiveMarkdown.Export do
     name = ["# ", notebook.name]
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
+    metadata = notebook_metadata(notebook)
+
     [name | sections]
     |> Enum.intersperse("\n\n")
-    |> prepend_metadata(notebook.metadata)
+    |> prepend_metadata(metadata)
+  end
+
+  defp notebook_metadata(_notebook) do
+    %{}
   end
 
   defp render_section(section, notebook, ctx) do
@@ -54,19 +60,21 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(metadata)
   end
 
-  defp section_metadata(%{parent_id: nil} = section, _notebook) do
-    section.metadata
+  defp section_metadata(%{parent_id: nil} = _section, _notebook) do
+    %{}
   end
 
   defp section_metadata(section, notebook) do
     parent_idx = Notebook.section_index(notebook, section.parent_id)
-    Map.put(section.metadata, "branch_parent_index", parent_idx)
+    %{"branch_parent_index" => parent_idx}
   end
 
   defp render_cell(%Cell.Markdown{} = cell, _ctx) do
+    metadata = cell_metadata(cell)
+
     cell.source
     |> format_markdown_source()
-    |> prepend_metadata(cell.metadata)
+    |> prepend_metadata(metadata)
   end
 
   defp render_cell(%Cell.Elixir{} = cell, ctx) do
@@ -74,9 +82,11 @@ defmodule Livebook.LiveMarkdown.Export do
     code = get_elixir_cell_code(cell)
     outputs = if ctx.include_outputs?, do: render_outputs(cell), else: []
 
+    metadata = cell_metadata(cell)
+
     cell =
       [delimiter, "elixir\n", code, "\n", delimiter]
-      |> prepend_metadata(cell.metadata)
+      |> prepend_metadata(metadata)
 
     if outputs == [] do
       cell
@@ -98,9 +108,17 @@ defmodule Livebook.LiveMarkdown.Export do
       |> put_unless_implicit(reactive: cell.reactive, props: cell.props)
       |> Jason.encode!()
 
+    metadata = cell_metadata(cell)
+
     "<!-- livebook:#{json} -->"
-    |> prepend_metadata(cell.metadata)
+    |> prepend_metadata(metadata)
   end
+
+  defp cell_metadata(%Cell.Elixir{} = cell) do
+    put_unless_implicit(%{}, disable_formatting: cell.disable_formatting)
+  end
+
+  defp cell_metadata(_cell), do: %{}
 
   defp render_outputs(cell) do
     cell.outputs
@@ -125,7 +143,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp render_output(_output), do: :ignored
 
-  defp get_elixir_cell_code(%{source: source, metadata: %{"disable_formatting" => true}}),
+  defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
     do: source
 
   defp get_elixir_cell_code(%{source: source}), do: format_code(source)

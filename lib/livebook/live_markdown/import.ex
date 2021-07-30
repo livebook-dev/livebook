@@ -200,29 +200,31 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
+    attrs = cell_metadata_to_attrs(:elixir, metadata)
     outputs = Enum.map(outputs, &{:text, &1})
-    cell = %{Notebook.Cell.new(:elixir) | source: source, metadata: metadata, outputs: outputs}
+    cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections)
   end
 
   defp build_notebook([{:cell, :markdown, md_ast} | elems], cells, sections) do
     {metadata, elems} = grab_metadata(elems)
+    attrs = cell_metadata_to_attrs(:markdown, metadata)
     source = md_ast |> Enum.reverse() |> MarkdownHelpers.markdown_from_ast()
-    cell = %{Notebook.Cell.new(:markdown) | source: source, metadata: metadata}
+    cell = %{Notebook.Cell.new(:markdown) | source: source} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections)
   end
 
   defp build_notebook([{:cell, :input, data} | elems], cells, sections) do
-    {metadata, elems} = grab_metadata(elems)
     attrs = parse_input_attrs(data)
-    cell = %{Notebook.Cell.new(:input) | metadata: metadata} |> Map.merge(attrs)
+    cell = Notebook.Cell.new(:input) |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections)
   end
 
   defp build_notebook([{:section_name, content} | elems], cells, sections) do
     name = MarkdownHelpers.text_from_ast(content)
     {metadata, elems} = grab_metadata(elems)
-    section = %{Notebook.Section.new() | name: name, cells: cells, metadata: metadata}
+    attrs = section_metadata_to_attrs(metadata)
+    section = %{Notebook.Section.new() | name: name, cells: cells} |> Map.merge(attrs)
     build_notebook(elems, [], [section | sections])
   end
 
@@ -242,7 +244,8 @@ defmodule Livebook.LiveMarkdown.Import do
   defp build_notebook([{:notebook_name, content} | elems], [], sections) do
     name = MarkdownHelpers.text_from_ast(content)
     {metadata, []} = grab_metadata(elems)
-    %{Notebook.new() | name: name, sections: sections, metadata: metadata}
+    attrs = notebook_metadata_to_attrs(metadata)
+    %{Notebook.new() | name: name, sections: sections} |> Map.merge(attrs)
   end
 
   # If there's no explicit notebook heading, use the defaults.
@@ -279,13 +282,48 @@ defmodule Livebook.LiveMarkdown.Import do
     end)
   end
 
+  defp notebook_metadata_to_attrs(_metadata) do
+    %{}
+  end
+
+  defp section_metadata_to_attrs(metadata) do
+    Enum.reduce(metadata, %{}, fn
+      {"branch_parent_index", parent_idx}, attrs ->
+        # At this point we cannot extract other section id,
+        # so we temporarily keep the index
+        Map.put(attrs, :parent_id, {:idx, parent_idx})
+
+      _entry, attrs ->
+        attrs
+    end)
+  end
+
+  defp cell_metadata_to_attrs(:elixir, metadata) do
+    Enum.reduce(metadata, %{}, fn
+      {"disable_formatting", disable_formatting}, attrs ->
+        Map.put(attrs, :disable_formatting, disable_formatting)
+
+      _entry, attrs ->
+        attrs
+    end)
+  end
+
+  defp cell_metadata_to_attrs(_type, _metadata) do
+    %{}
+  end
+
   defp postprocess_notebook(notebook) do
     sections =
       Enum.map(notebook.sections, fn section ->
         # Set parent_id based on the persisted branch_parent_index if present
-        {parent_idx, metadata} = Map.pop(section.metadata, "branch_parent_index")
-        parent = parent_idx && Enum.at(notebook.sections, parent_idx)
-        %{section | metadata: metadata, parent_id: parent && parent.id}
+        case section.parent_id do
+          nil ->
+            section
+
+          {:idx, parent_idx} ->
+            parent = Enum.at(notebook.sections, parent_idx)
+            %{section | parent_id: parent.id}
+        end
       end)
 
     %{notebook | sections: sections}

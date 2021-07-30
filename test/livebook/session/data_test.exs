@@ -2782,14 +2782,13 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
 
-      metadata = %{"disable_formatting" => true}
-      attrs = %{metadata: metadata}
+      attrs = %{disable_formatting: true}
       operation = {:set_cell_attributes, self(), "c1", attrs}
 
       assert {:ok,
               %{
                 notebook: %{
-                  sections: [%{cells: [%{metadata: ^metadata}]}]
+                  sections: [%{cells: [%{disable_formatting: true}]}]
                 }
               }, _} = Data.apply_operation(data, operation)
     end

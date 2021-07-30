@@ -173,7 +173,7 @@ defmodule Livebook.SessionTest do
       pid = self()
 
       {_section_id, cell_id} = insert_section_and_cell(session_id)
-      attrs = %{metadata: %{"disable_formatting" => true}}
+      attrs = %{disable_formatting: true}
 
       Session.set_cell_attributes(session_id, cell_id, attrs)
       assert_receive {:operation, {:set_cell_attributes, ^pid, ^cell_id, ^attrs}}
