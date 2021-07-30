@@ -5,12 +5,14 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
 
   @impl true
   def update(assigns, socket) do
-    metadata = assigns.cell.metadata
+    cell = assigns.cell
 
-    assigns =
-      Map.merge(assigns, %{disable_formatting: Map.get(metadata, "disable_formatting", false)})
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign_new(:disable_formatting, fn -> cell.disable_formatting end)
 
-    {:ok, assign(socket, assigns)}
+    {:ok, socket}
   end
 
   @impl true
@@ -39,21 +41,13 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
   end
 
   @impl true
-  def handle_event("save", params, socket) do
-    metadata = update_metadata(socket.assigns.cell.metadata, params)
+  def handle_event("save", %{"disable_formatting" => disable_formatting}, socket) do
+    disable_formatting = disable_formatting == "true"
 
     Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, %{
-      metadata: metadata
+      disable_formatting: disable_formatting
     })
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-  end
-
-  defp update_metadata(metadata, form_data) do
-    if form_data["disable_formatting"] == "true" do
-      Map.put(metadata, "disable_formatting", true)
-    else
-      Map.delete(metadata, "disable_formatting")
-    end
   end
 end

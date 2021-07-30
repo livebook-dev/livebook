@@ -7,15 +7,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
   test "acceptance" do
     markdown = """
-    <!-- livebook:{"author":"Sherlock Holmes"} -->
-
     # My Notebook
 
-    <!-- livebook:{"created_at":"2021-02-15"} -->
-
     ## Section 1
-
-    <!-- livebook:{"updated_at":"2021-02-15"} -->
 
     Make sure to install:
 
@@ -23,7 +17,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     * Elixir
     * PostgreSQL
 
-    <!-- livebook:{"readonly":true} -->
+    <!-- livebook:{"disable_formatting": true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -56,14 +50,11 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     assert %Notebook{
              name: "My Notebook",
-             metadata: %{"author" => "Sherlock Holmes"},
              sections: [
                %Notebook.Section{
                  name: "Section 1",
-                 metadata: %{"created_at" => "2021-02-15"},
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{"updated_at" => "2021-02-15"},
                      source: """
                      Make sure to install:
 
@@ -73,13 +64,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      """
                    },
                    %Cell.Elixir{
-                     metadata: %{"readonly" => true},
+                     disable_formatting: true,
                      source: """
                      Enum.to_list(1..10)\
                      """
                    },
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      This is it for this section.\
                      """
@@ -89,23 +79,19 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  id: section2_id,
                  name: "Section 2",
-                 metadata: %{},
                  cells: [
                    %Cell.Input{
-                     metadata: %{},
                      type: :text,
                      name: "length",
                      value: "100",
                      reactive: true
                    },
                    %Cell.Elixir{
-                     metadata: %{},
                      source: """
                      IO.gets("length: ")\
                      """
                    },
                    %Cell.Input{
-                     metadata: %{},
                      type: :range,
                      name: "length",
                      value: "100",
@@ -115,11 +101,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                },
                %Notebook.Section{
                  name: "Section 3",
-                 metadata: %{},
                  parent_id: section2_id,
                  cells: [
                    %Cell.Elixir{
-                     metadata: %{},
                      source: """
                      Process.info()\
                      """
@@ -152,10 +136,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              sections: [
                %Notebook.Section{
                  name: "Section 1",
-                 metadata: %{},
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      Line 1.\\
                      Line 2.
@@ -213,7 +195,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Probably section 1",
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      ### Heading
 
@@ -226,7 +207,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Probably section 2",
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      **Tiny heading**\
                      """
@@ -330,7 +310,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     assert %Notebook{
              name: "My Notebook",
-             metadata: %{"author" => "Sherlock Holmes"},
              sections: [
                %Notebook.Section{
                  name: "Section",

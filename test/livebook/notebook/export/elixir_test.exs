@@ -8,17 +8,14 @@ defmodule Livebook.Notebook.Export.ElixirTest do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
-        metadata: %{"author" => "Sherlock Holmes"},
         sections: [
           %{
             Notebook.Section.new()
             | name: "Section 1",
-              metadata: %{"created_at" => "2021-02-15"},
               cells: [
                 %{
                   Notebook.Cell.new(:markdown)
-                  | metadata: %{"updated_at" => "2021-02-15"},
-                    source: """
+                  | source: """
                     Make sure to install:
 
                     * Erlang
@@ -28,15 +25,14 @@ defmodule Livebook.Notebook.Export.ElixirTest do
                 },
                 %{
                   Notebook.Cell.new(:elixir)
-                  | metadata: %{"readonly" => true},
+                  | disable_formatting: true,
                     source: """
                     Enum.to_list(1..10)\
                     """
                 },
                 %{
                   Notebook.Cell.new(:markdown)
-                  | metadata: %{},
-                    source: """
+                  | source: """
                     This is it for this section.\
                     """
                 }
@@ -46,7 +42,6 @@ defmodule Livebook.Notebook.Export.ElixirTest do
             Notebook.Section.new()
             | id: "s2",
               name: "Section 2",
-              metadata: %{},
               cells: [
                 %{
                   Notebook.Cell.new(:input)
@@ -57,8 +52,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
                 },
                 %{
                   Notebook.Cell.new(:elixir)
-                  | metadata: %{},
-                    source: """
+                  | source: """
                     IO.gets("length: ")\
                     """
                 },
@@ -74,13 +68,11 @@ defmodule Livebook.Notebook.Export.ElixirTest do
           %{
             Notebook.Section.new()
             | name: "Section 3",
-              metadata: %{},
               parent_id: "s2",
               cells: [
                 %{
                   Notebook.Cell.new(:elixir)
-                  | metadata: %{},
-                    source: """
+                  | source: """
                     Process.info()\
                     """
                 }

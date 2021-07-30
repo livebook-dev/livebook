@@ -8,17 +8,14 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
-        metadata: %{"author" => "Sherlock Holmes"},
         sections: [
           %{
             Notebook.Section.new()
             | name: "Section 1",
-              metadata: %{"created_at" => "2021-02-15"},
               cells: [
                 %{
                   Notebook.Cell.new(:markdown)
-                  | metadata: %{"updated_at" => "2021-02-15"},
-                    source: """
+                  | source: """
                     Make sure to install:
 
                     * Erlang
@@ -28,7 +25,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                 },
                 %{
                   Notebook.Cell.new(:elixir)
-                  | metadata: %{"readonly" => true},
+                  | disable_formatting: true,
                     source: """
                     Enum.to_list(1..10)\
                     """
@@ -85,15 +82,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     }
 
     expected_document = """
-    <!-- livebook:{"author":"Sherlock Holmes"} -->
-
     # My Notebook
 
-    <!-- livebook:{"created_at":"2021-02-15"} -->
-
     ## Section 1
-
-    <!-- livebook:{"updated_at":"2021-02-15"} -->
 
     Make sure to install:
 
@@ -101,7 +92,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     * Elixir
     * PostgreSQL
 
-    <!-- livebook:{"readonly":true} -->
+    <!-- livebook:{"disable_formatting":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -355,7 +346,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "does not format code in Elixir cells which explicitly state so in metadata" do
+  test "does not format code in Elixir cells which have formatting disabled" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -366,7 +357,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               cells: [
                 %{
                   Notebook.Cell.new(:elixir)
-                  | metadata: %{"disable_formatting" => true},
+                  | disable_formatting: true,
                     source: """
                     [1,2,3] # Comment\
                     """

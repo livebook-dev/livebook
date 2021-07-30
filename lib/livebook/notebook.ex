@@ -13,19 +13,16 @@ defmodule Livebook.Notebook do
   # A notebook is divided into a number of *sections*, each
   # containing a number of *cells*.
 
-  defstruct [:name, :version, :sections, :metadata]
+  defstruct [:name, :version, :sections]
 
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Utils.Graph
   import Livebook.Utils, only: [access_by_id: 1]
 
-  @type metadata :: %{String.t() => term()}
-
   @type t :: %__MODULE__{
           name: String.t(),
           version: String.t(),
-          sections: list(Section.t()),
-          metadata: metadata()
+          sections: list(Section.t())
         }
 
   @version "1.0"
@@ -38,8 +35,7 @@ defmodule Livebook.Notebook do
     %__MODULE__{
       name: "Untitled notebook",
       version: @version,
-      sections: [],
-      metadata: %{}
+      sections: []
     }
   end
 

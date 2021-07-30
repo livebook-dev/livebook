@@ -65,7 +65,7 @@ defmodule Livebook.Notebook.Export.Elixir do
   defp comment_out(""), do: ""
   defp comment_out(line), do: ["# ", line]
 
-  defp get_elixir_cell_code(%{source: source, metadata: %{"disable_formatting" => true}}),
+  defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
     do: source
 
   defp get_elixir_cell_code(%{source: source}), do: format_code(source)
