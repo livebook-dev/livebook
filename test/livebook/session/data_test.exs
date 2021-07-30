@@ -48,6 +48,29 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_notebook_attributes" do
+    test "returns an error given an unknown attribute key" do
+      data = Data.new()
+
+      attrs = %{unknown: :value}
+      operation = {:set_notebook_attributes, self(), attrs}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "updates notebook with the given attributes" do
+      data = Data.new()
+
+      attrs = %{persist_outputs: true}
+      operation = {:set_notebook_attributes, self(), attrs}
+
+      assert {:ok,
+              %{
+                notebook: %{persist_outputs: true}
+              }, _} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :insert_section_into" do
     test "returns an error given invalid section id" do
       data = Data.new()
@@ -1844,6 +1867,22 @@ defmodule Livebook.Session.DataTest do
                 }
               }, []} = Data.apply_operation(data, operation)
     end
+
+    test "sets dirty flag to true if outputs are persisted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:set_notebook_attributes, self(), %{persist_outputs: true}},
+          {:mark_as_not_dirty, self()}
+        ])
+
+      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+
+      assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :add_cell_evaluation_response" do
@@ -2054,6 +2093,23 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
 
       assert evaluation_time >= 10
+    end
+
+    test "sets dirty flag to true if outputs are persisted" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:set_notebook_attributes, self(), %{persist_outputs: true}},
+          {:mark_as_not_dirty, self()}
+        ])
+
+      operation =
+        {:add_cell_evaluation_response, self(), "c1", {:ok, [1, 2, 3]}, %{evaluation_time_ms: 10}}
+
+      assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
   end
 

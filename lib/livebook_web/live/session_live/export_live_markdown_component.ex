@@ -2,13 +2,13 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
   use LivebookWeb, :live_component
 
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, include_outputs: false)}
-  end
-
-  @impl true
   def update(assigns, socket) do
-    {:ok, socket |> assign(assigns) |> assign_source()}
+    socket = assign(socket, assigns)
+
+    {:ok,
+     socket
+     |> assign_new(:include_outputs, fn -> socket.assigns.notebook.persist_outputs end)
+     |> assign_source()}
   end
 
   defp assign_source(%{assigns: assigns} = socket) do

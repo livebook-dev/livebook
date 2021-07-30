@@ -14,6 +14,17 @@ defmodule Livebook.SessionTest do
     %{session_id: session_id}
   end
 
+  describe "set_notebook_attributes/2" do
+    test "sends an attributes update to subscribers", %{session_id: session_id} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      pid = self()
+
+      attrs = %{set_notebook_attributes: true}
+      Session.set_notebook_attributes(session_id, attrs)
+      assert_receive {:operation, {:set_notebook_attributes, ^pid, ^attrs}}
+    end
+  end
+
   describe "insert_section/2" do
     test "sends an insert opreation to subscribers", %{session_id: session_id} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")

@@ -558,5 +558,17 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                ]
              } = notebook
     end
+
+    test "imports notebook :persist_outputs attribute" do
+      markdown = """
+      <!-- livebook:{"persist_outputs":true} -->
+
+      # My Notebook
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{name: "My Notebook", persist_outputs: true} = notebook
+    end
   end
 end

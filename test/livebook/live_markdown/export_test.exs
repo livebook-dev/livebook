@@ -668,4 +668,86 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
   end
+
+  test "includes outputs when notebook has :persist_outputs set" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        persist_outputs: true,
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | source: """
+                    IO.puts("hey")\
+                    """,
+                    outputs: ["hey"]
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    <!-- livebook:{"persist_outputs":true} -->
+
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    IO.puts("hey")
+    ```
+
+    ```output
+    hey
+    ```
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
+
+  test "the :include_outputs option takes precedence over notebook's :persist_outputs" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        persist_outputs: true,
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:elixir)
+                  | source: """
+                    IO.puts("hey")\
+                    """,
+                    outputs: ["hey"]
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    <!-- livebook:{"persist_outputs":true} -->
+
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    IO.puts("hey")
+    ```
+    """
+
+    document = Export.notebook_to_markdown(notebook, include_outputs: false)
+
+    assert expected_document == document
+  end
 end

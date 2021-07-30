@@ -151,6 +151,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends notebook attributes update to the server.
+  """
+  @spec set_notebook_attributes(id(), map()) :: :ok
+  def set_notebook_attributes(session_id, attrs) do
+    GenServer.cast(name(session_id), {:set_notebook_attributes, self(), attrs})
+  end
+
+  @doc """
   Asynchronously sends section insertion request to the server.
   """
   @spec insert_section(id(), non_neg_integer()) :: :ok
@@ -427,6 +435,11 @@ defmodule Livebook.Session do
   end
 
   @impl true
+  def handle_cast({:set_notebook_attributes, client_pid, attrs}, state) do
+    operation = {:set_notebook_attributes, client_pid, attrs}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:insert_section, client_pid, index}, state) do
     # Include new id in the operation, so it's reproducible
     operation = {:insert_section, client_pid, index, Utils.random_id()}
