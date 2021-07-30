@@ -217,7 +217,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       view
-      |> element("form")
+      |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: path})
 
       view
@@ -227,6 +227,24 @@ defmodule LivebookWeb.SessionLiveTest do
       assert view
              |> element("button", "notebook.livemd")
              |> has_element?()
+    end
+
+    test "changing output persistence updates data", %{conn: conn, session_id: session_id} do
+      {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/file")
+
+      view
+      |> element("button", "Save to file")
+      |> render_click()
+
+      view
+      |> element(~s{form[phx-change="set_options"]})
+      |> render_change(%{persist_outputs: "true"})
+
+      view
+      |> element(~s{button[phx-click="save"]}, "Save")
+      |> render_click()
+
+      assert %{notebook: %{persist_outputs: true}} = Session.get_data(session_id)
     end
   end
 

@@ -107,7 +107,8 @@ defmodule Livebook.Session.Data do
   # and is passed for informative purposes only.
 
   @type operation ::
-          {:insert_section, pid(), index(), Section.id()}
+          {:set_notebook_attributes, pid(), map()}
+          | {:insert_section, pid(), index(), Section.id()}
           | {:insert_section_into, pid(), Section.id(), index(), Section.id()}
           | {:set_section_parent, pid(), Section.id(), parent_id :: Section.id()}
           | {:unset_section_parent, pid(), Section.id()}
@@ -201,6 +202,18 @@ defmodule Livebook.Session.Data do
   """
   @spec apply_operation(t(), operation()) :: {:ok, t(), list(action())} | :error
   def apply_operation(data, operation)
+
+  def apply_operation(data, {:set_notebook_attributes, _client_pid, attrs}) do
+    with true <- valid_attrs_for?(data.notebook, attrs) do
+      data
+      |> with_actions()
+      |> set_notebook_attributes(attrs)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
 
   def apply_operation(data, {:insert_section, _client_pid, index, id}) do
     section = %{Section.new() | id: id}
@@ -375,6 +388,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> add_cell_evaluation_output(cell, output)
+      |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
       _ -> :error
@@ -391,6 +405,7 @@ defmodule Livebook.Session.Data do
       |> compute_snapshots_and_validity()
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
+      |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
       _ -> :error
@@ -521,7 +536,7 @@ defmodule Livebook.Session.Data do
 
   def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-         true <- Enum.all?(attrs, fn {key, _} -> Map.has_key?(cell, key) end) do
+         true <- valid_attrs_for?(cell, attrs) do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
@@ -565,6 +580,11 @@ defmodule Livebook.Session.Data do
   defp with_actions(data, actions \\ []), do: {data, actions}
 
   defp wrap_ok({data, actions}), do: {:ok, data, actions}
+
+  defp set_notebook_attributes({data, _} = data_actions, attrs) do
+    data_actions
+    |> set!(notebook: Map.merge(data.notebook, attrs))
+  end
 
   defp insert_section({data, _} = data_actions, index, section) do
     data_actions
@@ -1257,6 +1277,16 @@ defmodule Livebook.Session.Data do
 
   defp set_dirty(data_actions, dirty \\ true) do
     set!(data_actions, dirty: dirty)
+  end
+
+  defp mark_dirty_if_persisting_outputs({%{notebook: %{persist_outputs: true}}, _} = data_actions) do
+    set_dirty(data_actions)
+  end
+
+  defp mark_dirty_if_persisting_outputs(data_actions), do: data_actions
+
+  defp valid_attrs_for?(struct, attrs) do
+    Enum.all?(attrs, fn {key, _} -> Map.has_key?(struct, key) end)
   end
 
   @doc """

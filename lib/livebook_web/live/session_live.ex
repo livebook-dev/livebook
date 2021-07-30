@@ -268,8 +268,8 @@ defmodule LivebookWeb.SessionLive do
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
             session_id: @session_id,
-            current_path: @data_view.path,
-            path: @data_view.path %>
+            path: @data_view.path,
+            persist_outputs: @data_view.persist_outputs %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -1076,6 +1076,7 @@ defmodule LivebookWeb.SessionLive do
   defp data_to_view(data) do
     %{
       path: data.path,
+      persist_outputs: data.notebook.persist_outputs,
       dirty: data.dirty,
       runtime: data.runtime,
       global_evaluation_status: global_evaluation_status(data),

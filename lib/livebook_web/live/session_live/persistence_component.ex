@@ -11,54 +11,74 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   end
 
   @impl true
+  def update(assigns, socket) do
+    {path, assigns} = Map.pop!(assigns, :path)
+    {persist_outputs, assigns} = Map.pop!(assigns, :persist_outputs)
+
+    attrs = %{path: path, persist_outputs: persist_outputs}
+
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(attrs: attrs, new_attrs: attrs)
+
+    {:ok, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 flex flex-col space-y-3">
+    <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
         File
       </h3>
-      <div class="w-full flex-col space-y-5">
-        <p class="text-gray-700">
-          Specify where the notebook should be automatically persisted.
-        </p>
+      <div class="w-full flex-col space-y-8">
+        <div class="flex">
+          <form phx-change="set_options" onsubmit="return false;" phx-target={@myself}>
+            <.switch_checkbox
+              name="persist_outputs"
+              label="Persist outputs"
+              checked={@new_attrs.persist_outputs} />
+          </form>
+        </div>
         <div class="flex space-x-4">
           <.choice_button
-            active={@path != nil}
+            active={@new_attrs.path != nil}
             phx-click="set_persistence_type"
             phx-value-type="file"
             phx-target={@myself}>
             Save to file
           </.choice_button>
           <.choice_button
-            active={@path == nil}
+            active={@new_attrs.path == nil}
             phx-click="set_persistence_type"
             phx-value-type="memory"
             phx-target={@myself}>
             Memory only
           </.choice_button>
         </div>
-        <%= if @path != nil do %>
+        <%= if @new_attrs.path != nil do %>
           <div class="h-full h-52">
             <%= live_component LivebookWeb.PathSelectComponent,
                   id: "path_select",
-                  path: @path,
+                  path: @new_attrs.path,
                   extnames: [LiveMarkdown.extension()],
                   running_paths: @running_paths,
                   phx_target: @myself,
-                  phx_submit: if(disabled?(@path, @current_path, @running_paths), do: nil, else: "save") %>
+                  phx_submit: if(disabled?(@new_attrs, @attrs, @running_paths), do: nil, else: "save") %>
           </div>
         <% end %>
-        <div class="flex flex-col space-y-2">
-          <%= if @path != nil do %>
+        <div class="flex flex-col space-y-8">
+          <%= if @new_attrs.path != nil do %>
             <div class="text-gray-500 text-sm">
-              File: <%= normalize_path(@path) %>
+              File: <%= normalize_path(@new_attrs.path) %>
             </div>
           <% end %>
           <div>
-            <button class="button button-blue mt-2"
+            <button class="button button-blue"
               phx-click="save"
               phx-target={@myself}
-              disabled={disabled?(@path, @current_path, @running_paths)}>
+              disabled={disabled?(@new_attrs, @attrs, @running_paths)}>
               Save
             </button>
           </div>
@@ -72,27 +92,40 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
   def handle_event("set_persistence_type", %{"type" => type}, socket) do
     path =
       case type do
-        "file" -> socket.assigns.current_path || default_path()
+        "file" -> socket.assigns.attrs.path || default_path()
         "memory" -> nil
       end
 
-    {:noreply, assign(socket, path: path)}
+    {:noreply, put_new_attr(socket, :path, path)}
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
-    {:noreply, assign(socket, path: path)}
+    {:noreply, put_new_attr(socket, :path, path)}
   end
 
-  def handle_event("save", %{}, socket) do
-    path = normalize_path(socket.assigns.path)
-    Session.set_path(socket.assigns.session_id, path)
-    Session.save_sync(socket.assigns.session_id)
+  def handle_event("set_options", %{"persist_outputs" => persist_outputs}, socket) do
+    persist_outputs = persist_outputs == "true"
+    {:noreply, put_new_attr(socket, :persist_outputs, persist_outputs)}
+  end
+
+  def handle_event("save", %{}, %{assigns: assigns} = socket) do
+    path = normalize_path(assigns.new_attrs.path)
+
+    if path != assigns.attrs.path do
+      Session.set_path(assigns.session_id, path)
+    end
+
+    Session.set_notebook_attributes(assigns.session_id, %{
+      persist_outputs: assigns.new_attrs.persist_outputs
+    })
+
+    Session.save_sync(assigns.session_id)
 
     running_paths =
       if path do
-        [path | socket.assigns.running_paths]
+        [path | assigns.running_paths]
       else
-        List.delete(socket.assigns.running_paths, path)
+        List.delete(assigns.running_paths, path)
       end
 
     # After saving the file reload the directory contents,
@@ -104,6 +137,12 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     )
 
     {:noreply, assign(socket, running_paths: running_paths)}
+  end
+
+  defp put_new_attr(socket, key, value) do
+    new_attrs = socket.assigns.new_attrs
+    new_attrs = put_in(new_attrs[key], value)
+    assign(socket, :new_attrs, new_attrs)
   end
 
   defp default_path() do
@@ -130,7 +169,11 @@ defmodule LivebookWeb.SessionLive.PersistenceComponent do
     end
   end
 
-  defp disabled?(path, current_path, running_paths) do
-    not path_savable?(normalize_path(path), running_paths) or normalize_path(path) == current_path
+  defp disabled?(new_attrs, attrs, running_paths) do
+    if normalize_path(new_attrs.path) == attrs.path do
+      new_attrs.persist_outputs == attrs.persist_outputs
+    else
+      not path_savable?(normalize_path(new_attrs.path), running_paths)
+    end
   end
 end

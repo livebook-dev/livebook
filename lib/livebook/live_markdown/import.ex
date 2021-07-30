@@ -282,8 +282,14 @@ defmodule Livebook.LiveMarkdown.Import do
     end)
   end
 
-  defp notebook_metadata_to_attrs(_metadata) do
-    %{}
+  defp notebook_metadata_to_attrs(metadata) do
+    Enum.reduce(metadata, %{}, fn
+      {"persist_outputs", persist_outputs}, attrs ->
+        Map.put(attrs, :persist_outputs, persist_outputs)
+
+      _entry, attrs ->
+        attrs
+    end)
   end
 
   defp section_metadata_to_attrs(metadata) do

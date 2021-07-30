@@ -9,12 +9,13 @@ defmodule Livebook.LiveMarkdown.Export do
   ## Options
 
     * `:include_outputs` - whether to render cell outputs.
-      Only textual outputs are included. Defaults to `false`.
+      Only textual outputs are included. Defaults to the
+      value of `:persist_outputs` notebook attribute.
   """
   @spec notebook_to_markdown(Notebook.t(), keyword()) :: String.t()
   def notebook_to_markdown(notebook, opts \\ []) do
     ctx = %{
-      include_outputs?: Keyword.get(opts, :include_outputs, false)
+      include_outputs?: Keyword.get(opts, :include_outputs, notebook.persist_outputs)
     }
 
     iodata = render_notebook(notebook, ctx)
@@ -33,8 +34,8 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(metadata)
   end
 
-  defp notebook_metadata(_notebook) do
-    %{}
+  defp notebook_metadata(notebook) do
+    put_unless_implicit(%{}, persist_outputs: notebook.persist_outputs)
   end
 
   defp render_section(section, notebook, ctx) do
