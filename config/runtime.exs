@@ -24,7 +24,9 @@ end
 
 config :livebook,
        :cookie,
-       Livebook.Config.cookie!("LIVEBOOK_COOKIE") || Livebook.Utils.random_cookie()
+       Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
+         Livebook.Config.cookie!("RELEASE_COOKIE") ||
+         Livebook.Utils.random_cookie()
 
 config :livebook,
        :default_runtime,
