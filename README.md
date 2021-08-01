@@ -152,8 +152,8 @@ The following environment variables configure Livebook:
 <!-- Environment variables -->
 
 If running Livebook as a Docker image or an Elixir release, [the environment
-variables used by Elixir releases are also available]
-(https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-environment-variables).
+variables used by Elixir releases are also available](
+https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-environment-variables).
 The notables ones are `RELEASE_NODE` and `RELEASE_DISTRIBUTION`.
 
 ## Development
