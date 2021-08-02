@@ -79,7 +79,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_cell(%Cell.Elixir{} = cell, ctx) do
-    delimiter = code_block_delimiter(cell.source)
+    delimiter = MarkdownHelpers.code_block_delimiter(cell.source)
     code = get_elixir_cell_code(cell)
     outputs = if ctx.include_outputs?, do: render_outputs(cell), else: []
 
@@ -131,13 +131,13 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp render_output(text) when is_binary(text) do
     text = String.replace_suffix(text, "\n", "")
-    delimiter = code_block_delimiter(text)
+    delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
     [delimiter, "output\n", text, "\n", delimiter]
   end
 
   defp render_output({:text, text}) do
-    delimiter = code_block_delimiter(text)
+    delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
     [delimiter, "output\n", text, "\n", delimiter]
   end
@@ -163,7 +163,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp format_markdown_source(markdown) do
     markdown
-    |> EarmarkParser.as_ast()
+    |> MarkdownHelpers.markdown_to_block_ast()
     |> elem(1)
     |> rewrite_ast()
     |> MarkdownHelpers.markdown_from_ast()
@@ -200,15 +200,6 @@ defmodule Livebook.LiveMarkdown.Export do
     rescue
       _ -> code
     end
-  end
-
-  defp code_block_delimiter(code) do
-    max_streak =
-      Regex.scan(~r/`{3,}/, code)
-      |> Enum.map(fn [string] -> byte_size(string) end)
-      |> Enum.max(&>=/2, fn -> 2 end)
-
-    String.duplicate("`", max_streak + 1)
   end
 
   defp put_unless_implicit(map, entries) do

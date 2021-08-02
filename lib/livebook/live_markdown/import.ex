@@ -10,7 +10,7 @@ defmodule Livebook.LiveMarkdown.Import do
   """
   @spec notebook_from_markdown(String.t()) :: {Notebook.t(), list(String.t())}
   def notebook_from_markdown(markdown) do
-    {_, ast, earmark_messages} = EarmarkParser.as_ast(markdown)
+    {_, ast, earmark_messages} = MarkdownHelpers.markdown_to_block_ast(markdown)
     earmark_messages = Enum.map(earmark_messages, &earmark_message_to_string/1)
 
     {ast, rewrite_messages} = rewrite_ast(ast)
@@ -221,7 +221,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook([{:section_name, content} | elems], cells, sections) do
-    name = MarkdownHelpers.text_from_ast(content)
+    name = text_from_markdown(content)
     {metadata, elems} = grab_metadata(elems)
     attrs = section_metadata_to_attrs(metadata)
     section = %{Notebook.Section.new() | name: name, cells: cells} |> Map.merge(attrs)
@@ -242,7 +242,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook([{:notebook_name, content} | elems], [], sections) do
-    name = MarkdownHelpers.text_from_ast(content)
+    name = text_from_markdown(content)
     {metadata, []} = grab_metadata(elems)
     attrs = notebook_metadata_to_attrs(metadata)
     %{Notebook.new() | name: name, sections: sections} |> Map.merge(attrs)
@@ -251,6 +251,13 @@ defmodule Livebook.LiveMarkdown.Import do
   # If there's no explicit notebook heading, use the defaults.
   defp build_notebook([], [], sections) do
     %{Notebook.new() | sections: sections}
+  end
+
+  defp text_from_markdown(markdown) do
+    markdown
+    |> MarkdownHelpers.markdown_to_ast()
+    |> elem(1)
+    |> MarkdownHelpers.text_from_ast()
   end
 
   # Takes optional leading metadata JSON object and returns {metadata, rest}.
