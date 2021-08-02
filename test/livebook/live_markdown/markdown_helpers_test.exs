@@ -9,6 +9,16 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "other emphasis" do
+      markdown = "The Game, _Mrs Hudson_, is on!"
+      assert markdown == reformat(markdown)
+    end
+
+    test "nested emphasis" do
+      markdown = "The *Game, _Mrs Hudson_, is* on!"
+      assert markdown == reformat(markdown)
+    end
+
     test "bold" do
       markdown = "The Game, **Mrs Hudson**, is on!"
       assert markdown == reformat(markdown)
@@ -24,13 +34,53 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "inline code with a line break" do
+      markdown = "The Game, `Mrs\nHudson`, is on!"
+      assert markdown == reformat(markdown)
+    end
+
+    test "inline code with extra spaces" do
+      markdown = "The Game, `Mrs Huds  on`, is on!"
+      assert markdown == reformat(markdown)
+    end
+
     test "combined" do
       markdown = "The Game, ~~***`Mrs Hudson`***~~, is on!"
       assert markdown == reformat(markdown)
     end
 
+    test "inline math" do
+      markdown = "The Game, $Mrs_{ij} Hudson_{ij}$, is on!"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "alternate brackets for inline math" do
+      markdown = "The Game, \\(Mrs_{ij} Hudson_{ij}\\), is on!"
+
+      assert markdown == reformat(markdown)
+    end
+
     test "link" do
       markdown = "The Game, [Mrs Hudson](https://youtu.be/M-KqaO1oH2E), is on!"
+      assert markdown == reformat(markdown)
+    end
+
+    test "link with IAL" do
+      markdown = "[link](url){: .classy}"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "link followed by escaped IAL" do
+      markdown = "[link](url)\\{: .classy}"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "autolink" do
+      markdown = "<https://elixir-lang.com>"
+
       assert markdown == reformat(markdown)
     end
 
@@ -98,11 +148,91 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "alternate headings" do
+      markdown = """
+      Heading 1
+      =========
+
+      Heading 2
+      ---------
+
+      Body\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "manual headings" do
+      markdown = """
+      <h1>Heading 1</h1>
+
+      <h2>Heading 2</h2>
+
+      <h3>Heading 3</h3>
+
+      <h4>Heading 4</h4>
+
+      <h5>Heading 5</h5>
+
+      <h6>Heading 6</h6>\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
     test "code block" do
       markdown = """
       ```elixir
       Enum.to_list(1..10)
       ```\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "code block with fences inside it" do
+      markdown = """
+      ~~~~elixir
+      before
+
+      ```
+      _inside_
+      ```
+
+      after
+      ~~~~\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "indented code block" do
+      markdown = """
+      Text before
+
+          Code _is here_
+
+      Text after\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "display math" do
+      markdown = """
+      $$
+      R_{ij}^{kl} = R_{ij} - \Gamma^k_{kl}
+      $$\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "alternate brackets for display math" do
+      markdown = """
+      \\[
+      R_{ij}^{kl} = R_{ij} - \Gamma^k_{kl}
+      \\]\
       """
 
       assert markdown == reformat(markdown)
@@ -243,12 +373,36 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "surprise ordered list" do
+      markdown = "1986\\. What a great season."
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "escaped Markdown" do
+      markdown = "not a \\[link\\]()"
+
+      assert markdown == reformat(markdown)
+    end
+
     test "raw html" do
       markdown = """
       <div class="box" aria-label="box">
         Some content
       </div>\
       """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "raw html at beginning of line" do
+      markdown = "mypara\n<hr />"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "raw html not at beginning of line" do
+      markdown = "mypara\n  <hr />"
 
       assert markdown == reformat(markdown)
     end
@@ -274,8 +428,14 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
     # By reformatting we can assert correct rendering
     # by comparing against the original content.
     defp reformat(markdown) do
+      # NOTE: this simulates the complete export -> import flow
+      #       that happens when a notebook is saved to disk and
+      #       subsequently restored
       {:ok, ast, []} = EarmarkParser.as_ast(markdown)
-      MarkdownHelpers.markdown_from_ast(ast)
+      markdown1 = MarkdownHelpers.markdown_from_ast(ast) |> IO.inspect()
+
+      {:ok, ast1, []} = EarmarkParser.as_ast(markdown1)
+      MarkdownHelpers.markdown_from_ast(ast1)
     end
   end
 end
