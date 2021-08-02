@@ -17,6 +17,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     * Elixir
     * PostgreSQL
 
+    $x_{i} + y_{i}$
+
     <!-- livebook:{"disable_formatting": true} -->
 
     ```elixir
@@ -60,7 +62,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
                      * Erlang
                      * Elixir
-                     * PostgreSQL\
+                     * PostgreSQL
+
+                     $x_{i} + y_{i}$\
                      """
                    },
                    %Cell.Elixir{
@@ -120,9 +124,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 1
 
-    Line 1.\s\s
-    Line 2.
-
     |State|Abbrev|Capital|
     | --: | :-: | --- |
     | Texas | TX | Austin |
@@ -139,9 +140,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  cells: [
                    %Cell.Markdown{
                      source: """
-                     Line 1.\\
-                     Line 2.
-
                      | State | Abbrev | Capital |
                      | ----: | :----: | ------- |
                      | Texas | TX     | Austin  |

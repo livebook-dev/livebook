@@ -2,12 +2,31 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   @moduledoc false
 
   @doc """
+  Wraps `EarmarkParser.as_ast/2`.
+  """
+  @spec markdown_to_ast(String.t()) :: {:ok | :error, EarmarkParser.ast(), list()}
+  def markdown_to_ast(markdown) do
+    EarmarkParser.as_ast(markdown)
+  end
+
+  @doc """
+  Wraps `EarmarkParser.as_ast/2`.
+
+  Markdown blocks are parsed into the AST, while inline
+  content is kept as is.
+  """
+  @spec markdown_to_block_ast(String.t()) :: {:ok | :error, EarmarkParser.ast(), list()}
+  def markdown_to_block_ast(markdown) do
+    EarmarkParser.as_ast(markdown, parse_inline: false)
+  end
+
+  @doc """
   Reformats the given markdown document.
   """
   @spec reformat(String.t()) :: String.t()
   def reformat(markdown) do
     markdown
-    |> EarmarkParser.as_ast()
+    |> markdown_to_block_ast()
     |> elem(1)
     |> markdown_from_ast()
   end
@@ -26,6 +45,20 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
 
   def text_from_ast(ast) when is_binary(ast), do: ast
   def text_from_ast({_, _, ast, _}), do: text_from_ast(ast)
+
+  @doc """
+  Determines suitable Markdown fence delimiter for the
+  given code.
+  """
+  @spec code_block_delimiter(String.t()) :: String.t()
+  def code_block_delimiter(code) do
+    max_streak =
+      Regex.scan(~r/`{3,}/, code)
+      |> Enum.map(fn [string] -> byte_size(string) end)
+      |> Enum.max(&>=/2, fn -> 2 end)
+
+    String.duplicate("`", max_streak + 1)
+  end
 
   @doc """
   Renders Markdown string from the given `EarmarkParser` AST.
@@ -161,12 +194,12 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   @void_elements ~W(area base br col command embed hr img input keygen link meta param source track wbr)
 
   defp render_html(tag, attrs, []) when tag in @void_elements do
-    ["<", tag, " ", attrs_to_string(attrs), " />"]
+    ["<", tag, attrs_to_string(attrs), " />"]
   end
 
   defp render_html(tag, attrs, lines) do
     inner = Enum.intersperse(lines, "\n")
-    ["<", tag, " ", attrs_to_string(attrs), ">\n", inner, "\n</", tag, ">"]
+    ["<", tag, attrs_to_string(attrs), ">\n", inner, "\n</", tag, ">"]
   end
 
   defp render_emphasis(content) do
@@ -243,8 +276,9 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   end
 
   defp render_code_block(content, attrs) do
+    delimiter = code_block_delimiter(content)
     language = get_attr(attrs, "class", "")
-    ["```", language, "\n", content, "\n```"]
+    [delimiter, language, "\n", content, "\n", delimiter]
   end
 
   defp render_blockquote(content) do
@@ -376,9 +410,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   end
 
   defp attrs_to_string(attrs) do
-    attrs
-    |> Enum.map(fn {key, value} -> ~s/#{key}="#{value}"/ end)
-    |> Enum.join(" ")
+    Enum.map(attrs, fn {key, value} -> ~s/ #{key}="#{value}"/ end)
   end
 
   defp blank?(string), do: String.trim(string) == ""

@@ -50,13 +50,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
     end
 
     test "inline math" do
-      markdown = "The Game, $Mrs_{ij} Hudson_{ij}$, is on!"
-
-      assert markdown == reformat(markdown)
-    end
-
-    test "alternate brackets for inline math" do
-      markdown = "The Game, \\(Mrs_{ij} Hudson_{ij}\\), is on!"
+      markdown = "The Game, $x_{i} + y_{i}$, is on!"
 
       assert markdown == reformat(markdown)
     end
@@ -96,6 +90,11 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
 
     test "img tag with additional attributes is kept as a tag" do
       markdown = ~s{<img src="https://example.com" alt="Mrs Hudson" width="300" />}
+      assert markdown == reformat(markdown)
+    end
+
+    test "line break" do
+      markdown = "Line 1.\\\nLine 2."
       assert markdown == reformat(markdown)
     end
 
@@ -148,38 +147,6 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
-    test "alternate headings" do
-      markdown = """
-      Heading 1
-      =========
-
-      Heading 2
-      ---------
-
-      Body\
-      """
-
-      assert markdown == reformat(markdown)
-    end
-
-    test "manual headings" do
-      markdown = """
-      <h1>Heading 1</h1>
-
-      <h2>Heading 2</h2>
-
-      <h3>Heading 3</h3>
-
-      <h4>Heading 4</h4>
-
-      <h5>Heading 5</h5>
-
-      <h6>Heading 6</h6>\
-      """
-
-      assert markdown == reformat(markdown)
-    end
-
     test "code block" do
       markdown = """
       ```elixir
@@ -192,7 +159,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
 
     test "code block with fences inside it" do
       markdown = """
-      ~~~~elixir
+      ````elixir
       before
 
       ```
@@ -200,19 +167,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       ```
 
       after
-      ~~~~\
-      """
-
-      assert markdown == reformat(markdown)
-    end
-
-    test "indented code block" do
-      markdown = """
-      Text before
-
-          Code _is here_
-
-      Text after\
+      ````\
       """
 
       assert markdown == reformat(markdown)
@@ -223,16 +178,6 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       $$
       R_{ij}^{kl} = R_{ij} - \Gamma^k_{kl}
       $$\
-      """
-
-      assert markdown == reformat(markdown)
-    end
-
-    test "alternate brackets for display math" do
-      markdown = """
-      \\[
-      R_{ij}^{kl} = R_{ij} - \Gamma^k_{kl}
-      \\]\
       """
 
       assert markdown == reformat(markdown)
@@ -395,14 +340,14 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
-    test "raw html at beginning of line" do
-      markdown = "mypara\n<hr />"
+    test "raw html at the beginning of a line" do
+      markdown = "line\n\n<hr />"
 
       assert markdown == reformat(markdown)
     end
 
-    test "raw html not at beginning of line" do
-      markdown = "mypara\n  <hr />"
+    test "raw html not at the beginning of a line" do
+      markdown = "line\n  <hr />"
 
       assert markdown == reformat(markdown)
     end
@@ -428,14 +373,10 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
     # By reformatting we can assert correct rendering
     # by comparing against the original content.
     defp reformat(markdown) do
-      # NOTE: this simulates the complete export -> import flow
-      #       that happens when a notebook is saved to disk and
-      #       subsequently restored
-      {:ok, ast, []} = EarmarkParser.as_ast(markdown)
-      markdown1 = MarkdownHelpers.markdown_from_ast(ast) |> IO.inspect()
-
-      {:ok, ast1, []} = EarmarkParser.as_ast(markdown1)
-      MarkdownHelpers.markdown_from_ast(ast1)
+      # Note: we don't parse inline content, so some of the tests
+      # above are not stricly necessary, but we keep them for completeness.
+      {:ok, ast, []} = MarkdownHelpers.markdown_to_block_ast(markdown)
+      MarkdownHelpers.markdown_from_ast(ast)
     end
   end
 end

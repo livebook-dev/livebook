@@ -20,7 +20,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
                     * Erlang
                     * Elixir
-                    * PostgreSQL\
+                    * PostgreSQL
+
+                    $x_{i} + y_{i}$\
                     """
                 },
                 %{
@@ -91,6 +93,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     * Erlang
     * Elixir
     * PostgreSQL
+
+    $x_{i} + y_{i}$
 
     <!-- livebook:{"disable_formatting":true} -->
 
