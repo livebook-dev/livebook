@@ -34,12 +34,13 @@ defmodule Livebook.MixProject do
 
   defp deps do
     [
-      # We point phoenix, phoenix_live_view and phoenix_tag to
+      # We point phoenix, phoenix_live_view and phoenix_html to
       # exact versions, because we install the corresponding npm
-      # packages directly from deps when creating the assets bundle
-      # and the Elixir-side versions must match at runtime.
-      # Specifically, this is necessary because mix.lock is not
-      # loaded when installing the Escript.
+      # packages directly from the local deps (using "file:"),
+      # they end up in the final assets bundle and the Elixir-side
+      # versions must match at runtime. Specifically, this is
+      # necessary because mix.lock is not loaded when installing
+      # the Escript and we don't want newer versions to be installed.
       {:phoenix, "1.5.10"},
       {:phoenix_live_view, "0.16.0"},
       {:phoenix_live_dashboard, "~> 0.5.0"},
