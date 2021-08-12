@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2.3 (2021-08-12)
+
+  * Add option to export and persist Live Markdown with output ([#483](https://github.com/elixir-nx/livebook/pull/483) and [#485](https://github.com/elixir-nx/livebook/pull/485))
+  * Add Elixir source export ([#476](https://github.com/elixir-nx/livebook/pull/476))
+  * Add support for checkbox input type ([#461](https://github.com/elixir-nx/livebook/pull/461))
+  * Add notebook source preview and export ([#457](https://github.com/elixir-nx/livebook/pull/457))
+  * Show full documentation when hovering over an identifier ([#453](https://github.com/elixir-nx/livebook/pull/453))
+  * Add support for select input type ([#448](https://github.com/elixir-nx/livebook/pull/448))
+  * Introduce branching sections ([#449](https://github.com/elixir-nx/livebook/pull/449))
+  * Implement relative navigation between notebooks ([#441](https://github.com/elixir-nx/livebook/pull/441) and [#445](https://github.com/elixir-nx/livebook/pull/445))
+  * Add support for a range (slider) input type ([#435](https://github.com/elixir-nx/livebook/pull/435) and [#440](https://github.com/elixir-nx/livebook/pull/440))
+  * Restructure remote node processes and allow for multiple connections ([#434](https://github.com/elixir-nx/livebook/pull/434))
+  * Merge undo stack for collaborative editing ([#433](https://github.com/elixir-nx/livebook/pull/433))
+  * List livebook version on dashboard home
+  * Add UI for file deletion and renaming ([#426](https://github.com/elixir-nx/livebook/pull/426))
+  * Fix editor font size for MacOS
+  * Add UI for directory creation ([#424](https://github.com/elixir-nx/livebook/pull/424))
+
 ## v0.2.2 (2021-07-01)
 
   * Highlight matching brackets only in insert mode ([#421](https://github.com/elixir-nx/livebook/pull/421))
