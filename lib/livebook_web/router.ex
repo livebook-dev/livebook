@@ -24,6 +24,11 @@ defmodule LivebookWeb.Router do
     live "/home/import/:tab", HomeLive, :import
     live "/home/sessions/:session_id/close", HomeLive, :close_session
 
+    live "/settings", SettingsLive, :page
+    live "/settings/user-profile", SettingsLive, :user
+    live "/settings/add-file-system", SettingsLive, :add_file_system
+    live "/settings/detach-file-system/:file_system_index", SettingsLive, :detach_file_system
+
     live "/explore", ExploreLive, :page
     live "/explore/user-profile", ExploreLive, :user
     live "/explore/notebooks/:slug", ExploreLive, :notebook

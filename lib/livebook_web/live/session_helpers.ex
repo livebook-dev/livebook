@@ -10,6 +10,15 @@ defmodule LivebookWeb.SessionHelpers do
   """
   @spec create_session(Phoenix.LiveView.Socket.t(), keyword()) :: Phoenix.LiveView.Socket.t()
   def create_session(socket, opts \\ []) do
+    # Revert persistence options to default values if there is
+    # no file attached to the new session
+    opts =
+      if opts[:notebook] != nil and opts[:file] == nil do
+        Keyword.update!(opts, :notebook, &Livebook.Notebook.reset_persistence_options/1)
+      else
+        opts
+      end
+
     case Livebook.SessionSupervisor.create_session(opts) do
       {:ok, id} ->
         push_redirect(socket, to: Routes.session_path(socket, :page, id))

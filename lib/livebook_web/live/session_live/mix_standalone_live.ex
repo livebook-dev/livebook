@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   use LivebookWeb, :live_view
 
-  alias Livebook.{Session, Runtime, Utils}
+  alias Livebook.{Session, Runtime, Utils, FileSystem}
 
   @type status :: :initial | :initializing | :finished
 
@@ -16,7 +16,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
        session_id: session_id,
        status: :initial,
        current_runtime: current_runtime,
-       path: initial_path(current_runtime),
+       file: initial_file(current_runtime),
        outputs: [],
        emitter: nil
      ), temporary_assigns: [outputs: []]}
@@ -39,16 +39,16 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
       </p>
       <%= if @status == :initial do %>
         <div class="h-full h-52">
-          <%= live_component LivebookWeb.PathSelectComponent,
-                id: "path_select",
-                path: @path,
+          <%= live_component LivebookWeb.FileSelectComponent,
+                id: "mix-project-dir",
+                file: @file,
                 extnames: [],
-                running_paths: [],
-                phx_target: nil,
-                phx_submit: if(disabled?(@path), do: nil, else: "init") %>
+                running_files: [],
+                submit_event: if(disabled?(@file.path), do: nil, else: :init),
+                file_system_select_disabled: true %>
         </div>
-        <button class="button button-blue" phx-click="init" disabled={disabled?(@path)}>
-          <%= if(matching_runtime?(@current_runtime, @path), do: "Reconnect", else: "Connect") %>
+        <button class="button button-blue" phx-click="init" disabled={disabled?(@file.path)}>
+          <%= if(matching_runtime?(@current_runtime, @file.path), do: "Reconnect", else: "Connect") %>
         </button>
       <% end %>
       <%= if @status != :initial do %>
@@ -65,17 +65,19 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   end
 
   @impl true
-  def handle_event("set_path", %{"path" => path}, socket) do
-    {:noreply, assign(socket, path: path)}
-  end
-
   def handle_event("init", _params, socket) do
-    emitter = Utils.Emitter.new(self())
-    Runtime.MixStandalone.init_async(socket.assigns.path, emitter)
-    {:noreply, assign(socket, status: :initializing, emitter: emitter)}
+    handle_init(socket)
   end
 
   @impl true
+  def handle_info({:set_file, file, _info}, socket) do
+    {:noreply, assign(socket, :file, file)}
+  end
+
+  def handle_info(:init, socket) do
+    handle_init(socket)
+  end
+
   def handle_info({:emitter, ref, message}, %{assigns: %{emitter: %{ref: ref}}} = socket) do
     case message do
       {:output, output} ->
@@ -96,18 +98,24 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   def handle_info(_, socket), do: {:noreply, socket}
 
+  defp handle_init(socket) do
+    emitter = Utils.Emitter.new(self())
+    Runtime.MixStandalone.init_async(socket.assigns.file.path, emitter)
+    {:noreply, assign(socket, status: :initializing, emitter: emitter)}
+  end
+
   defp add_output(socket, output) do
     assign(socket, outputs: socket.assigns.outputs ++ [{output, Utils.random_id()}])
   end
 
-  defp initial_path(%Runtime.MixStandalone{} = current_runtime) do
-    current_runtime.project_path
+  defp initial_file(%Runtime.MixStandalone{} = current_runtime) do
+    FileSystem.File.local(current_runtime.project_path)
   end
 
-  defp initial_path(_runtime), do: File.cwd!() <> "/"
-
-  defp mix_project_root?(path) do
-    File.dir?(path) and File.exists?(Path.join(path, "mix.exs"))
+  defp initial_file(_runtime) do
+    Livebook.Config.file_systems()
+    |> Enum.find(&is_struct(&1, FileSystem.Local))
+    |> FileSystem.File.new()
   end
 
   defp matching_runtime?(%Runtime.MixStandalone{} = runtime, path) do
@@ -118,5 +126,9 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   defp disabled?(path) do
     not mix_project_root?(path)
+  end
+
+  defp mix_project_root?(path) do
+    File.dir?(path) and File.exists?(Path.join(path, "mix.exs"))
   end
 end

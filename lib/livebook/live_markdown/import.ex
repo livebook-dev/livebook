@@ -294,6 +294,9 @@ defmodule Livebook.LiveMarkdown.Import do
       {"persist_outputs", persist_outputs}, attrs ->
         Map.put(attrs, :persist_outputs, persist_outputs)
 
+      {"autosave_interval_s", autosave_interval_s}, attrs ->
+        Map.put(attrs, :autosave_interval_s, autosave_interval_s)
+
       _entry, attrs ->
         attrs
     end)

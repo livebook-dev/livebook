@@ -28,9 +28,12 @@ defmodule LivebookWeb.HomeLiveTest do
 
       path = Path.expand("../../../lib", __DIR__) <> "/"
 
-      assert view
-             |> element("form")
-             |> render_change(%{path: path}) =~ "livebook_web"
+      view
+      |> element("form")
+      |> render_change(%{path: path})
+
+      # Render the view separately to make sure it received the :set_file event
+      render(view) =~ "livebook_web"
     end
 
     test "allows importing when a notebook file is selected", %{conn: conn} do
@@ -40,7 +43,11 @@ defmodule LivebookWeb.HomeLiveTest do
 
       view
       |> element("form")
-      |> render_change(%{path: path})
+      |> render_change(%{path: Path.dirname(path) <> "/"})
+
+      view
+      |> element("button", "basic.livemd")
+      |> render_click()
 
       assert assert {:error, {:live_redirect, %{to: to}}} =
                       view
@@ -50,14 +57,13 @@ defmodule LivebookWeb.HomeLiveTest do
       assert to =~ "/sessions/"
     end
 
-    test "disables import when a directory is selected", %{conn: conn} do
+    @tag :tmp_dir
+    test "disables import when a directory is selected", %{conn: conn, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/")
-
-      path = File.cwd!()
 
       view
       |> element("form")
-      |> render_change(%{path: path})
+      |> render_change(%{path: tmp_dir <> "/"})
 
       assert view
              |> element(~s{button[phx-click="fork"][disabled]}, "Fork")
@@ -89,7 +95,11 @@ defmodule LivebookWeb.HomeLiveTest do
 
       view
       |> element("form")
-      |> render_change(%{path: path})
+      |> render_change(%{path: tmp_dir <> "/"})
+
+      view
+      |> element("button", "write_protected.livemd")
+      |> render_click()
 
       assert view
              |> element(~s{button[phx-click="open"][disabled]}, "Open")

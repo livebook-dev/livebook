@@ -5,7 +5,7 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
-  alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook}
+  alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
   def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
@@ -21,7 +21,8 @@ defmodule LivebookWeb.HomeLive do
     {:ok,
      assign(socket,
        current_user: current_user,
-       path: default_path(),
+       file: Livebook.Config.default_dir(),
+       file_info: %{exists: true, access: :read_write},
        session_summaries: session_summaries,
        notebook_infos: notebook_infos
      )}
@@ -33,6 +34,11 @@ defmodule LivebookWeb.HomeLive do
     <div class="flex flex-grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.break_item />
+        <SidebarHelpers.link_item
+          icon="settings-3-fill"
+          label="Settings"
+          path={Routes.settings_path(@socket, :page)}
+          active={false} />
         <SidebarHelpers.user_item current_user={@current_user} path={Routes.home_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
@@ -53,29 +59,27 @@ defmodule LivebookWeb.HomeLive do
           </div>
 
           <div class="h-80">
-            <%= live_component LivebookWeb.PathSelectComponent,
-                  id: "path_select",
-                  path: @path,
+            <%= live_component LivebookWeb.FileSelectComponent,
+                  id: "home-file-select",
+                  file: @file,
                   extnames: [LiveMarkdown.extension()],
-                  running_paths: paths(@session_summaries),
-                  phx_target: nil,
-                  phx_submit: nil do %>
+                  running_files: files(@session_summaries) do %>
               <div class="flex justify-end space-x-2">
                 <button class="button button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
-                  disabled={not path_forkable?(@path)}>
+                  disabled={not path_forkable?(@file, @file_info)}>
                   <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
                   <span>Fork</span>
                 </button>
-                <%= if path_running?(@path, @session_summaries) do %>
+                <%= if file_running?(@file, @session_summaries) do %>
                   <%= live_redirect "Join session",
-                        to: Routes.session_path(@socket, :page, session_id_by_path(@path, @session_summaries)),
+                        to: Routes.session_path(@socket, :page, session_id_by_file(@file, @session_summaries)),
                         class: "button button-blue" %>
                 <% else %>
-                  <span {open_button_tooltip_attrs(@path)}>
+                  <span {open_button_tooltip_attrs(@file, @file_info)}>
                     <button class="button button-blue"
                       phx-click="open"
-                      disabled={not path_openable?(@path, @session_summaries)}>
+                      disabled={not path_openable?(@file, @file_info, @session_summaries)}>
                       Open
                     </button>
                   </span>
@@ -140,8 +144,8 @@ defmodule LivebookWeb.HomeLive do
     """
   end
 
-  defp open_button_tooltip_attrs(path) do
-    if File.regular?(path) and not file_writable?(path) do
+  defp open_button_tooltip_attrs(file, file_info) do
+    if regular?(file, file_info) and not writable?(file_info) do
       [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"]
     else
       []
@@ -174,7 +178,7 @@ defmodule LivebookWeb.HomeLive do
                   to: Routes.session_path(@socket, :page, summary.session_id),
                   class: "font-semibold text-gray-800 hover:text-gray-900" %>
             <div class="text-gray-600 text-sm">
-              <%= summary.path || "No file" %>
+              <%= if summary.file, do: summary.file.path, else: "No file" %>
             </div>
           </div>
           <div class="relative" id={"session-#{summary.session_id}-menu"} phx-hook="Menu" data-element="menu">
@@ -220,36 +224,49 @@ defmodule LivebookWeb.HomeLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("set_path", %{"path" => path}, socket) do
-    {:noreply, assign(socket, path: path)}
-  end
-
   def handle_event("new", %{}, socket) do
     {:noreply, create_session(socket)}
   end
 
   def handle_event("fork", %{}, socket) do
-    path = socket.assigns.path
-    {notebook, messages} = import_notebook(path)
-    socket = put_import_flash_messages(socket, messages)
-    notebook = Notebook.forked(notebook)
-    images_dir = Session.images_dir_for_notebook(path)
+    file = socket.assigns.file
 
-    {:noreply,
-     create_session(socket,
-       notebook: notebook,
-       copy_images_from: images_dir,
-       origin_url: "file://" <> path
-     )}
+    socket =
+      case import_notebook(file) do
+        {:ok, {notebook, messages}} ->
+          notebook = Notebook.forked(notebook)
+          images_dir = Session.images_dir_for_notebook(file)
+
+          socket
+          |> put_import_flash_messages(messages)
+          |> create_session(
+            notebook: notebook,
+            copy_images_from: images_dir,
+            origin: {:file, file}
+          )
+
+        {:error, error} ->
+          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("open", %{}, socket) do
-    path = socket.assigns.path
-    {notebook, messages} = import_notebook(path)
-    socket = put_import_flash_messages(socket, messages)
+    file = socket.assigns.file
 
-    {:noreply,
-     create_session(socket, notebook: notebook, path: path, origin_url: "file://" <> path)}
+    socket =
+      case import_notebook(file) do
+        {:ok, {notebook, messages}} ->
+          socket
+          |> put_import_flash_messages(messages)
+          |> create_session(notebook: notebook, file: file, origin: {:file, file})
+
+        {:error, error} ->
+          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
@@ -257,22 +274,35 @@ defmodule LivebookWeb.HomeLive do
     notebook = Notebook.forked(data.notebook)
     %{images_dir: images_dir} = Session.get_summary(session_id)
 
-    origin_url =
-      if data.path do
-        "file://" <> data.path
+    origin =
+      if data.file do
+        {:file, data.file}
       else
-        data.origin_url
+        data.origin
       end
 
     {:noreply,
      create_session(socket,
        notebook: notebook,
        copy_images_from: images_dir,
-       origin_url: origin_url
+       origin: origin
      )}
   end
 
   @impl true
+  def handle_info({:set_file, file, info}, socket) do
+    file_info = %{
+      exists: info.exists,
+      access:
+        case FileSystem.File.access(file) do
+          {:ok, access} -> access
+          {:error, _} -> :none
+        end
+    }
+
+    {:noreply, assign(socket, file: file, file_info: file_info)}
+  end
+
   def handle_info({:session_created, id}, socket) do
     summary = Session.get_summary(id)
     session_summaries = sort_session_summaries([summary | socket.assigns.session_summaries])
@@ -300,43 +330,44 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp default_path(), do: Livebook.Config.root_path() <> "/"
-
   defp sort_session_summaries(session_summaries) do
     Enum.sort_by(session_summaries, & &1.notebook_name)
   end
 
-  defp paths(session_summaries) do
-    Enum.map(session_summaries, & &1.path)
+  defp files(session_summaries) do
+    Enum.map(session_summaries, & &1.file)
   end
 
-  defp path_forkable?(path) do
-    File.regular?(path)
+  defp path_forkable?(file, file_info) do
+    regular?(file, file_info)
   end
 
-  defp path_openable?(path, session_summaries) do
-    File.regular?(path) and not path_running?(path, session_summaries) and file_writable?(path)
+  defp path_openable?(file, file_info, session_summaries) do
+    regular?(file, file_info) and not file_running?(file, session_summaries) and
+      writable?(file_info)
   end
 
-  defp path_running?(path, session_summaries) do
-    running_paths = paths(session_summaries)
-    path in running_paths
+  defp regular?(file, file_info) do
+    file_info.exists and not FileSystem.File.dir?(file)
   end
 
-  defp file_writable?(path) do
-    case File.stat(path) do
-      {:ok, stat} -> stat.access in [:read_write, :write]
-      {:error, _} -> false
+  defp writable?(file_info) do
+    file_info.access in [:read_write, :write]
+  end
+
+  defp file_running?(file, session_summaries) do
+    running_files = files(session_summaries)
+    file in running_files
+  end
+
+  defp import_notebook(file) do
+    with {:ok, content} <- FileSystem.File.read(file) do
+      {:ok, LiveMarkdown.Import.notebook_from_markdown(content)}
     end
   end
 
-  defp import_notebook(path) do
-    content = File.read!(path)
-    LiveMarkdown.Import.notebook_from_markdown(content)
-  end
-
-  defp session_id_by_path(path, session_summaries) do
-    summary = Enum.find(session_summaries, &(&1.path == path))
+  defp session_id_by_file(file, session_summaries) do
+    summary = Enum.find(session_summaries, &(&1.file == file))
     summary.session_id
   end
 end

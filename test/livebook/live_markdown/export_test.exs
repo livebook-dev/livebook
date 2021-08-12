@@ -754,4 +754,22 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     assert expected_document == document
   end
+
+  test "persists :autosave_interval_s when other than default" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        autosave_interval_s: 10
+    }
+
+    expected_document = """
+    <!-- livebook:{"autosave_interval_s":10} -->
+
+    # My Notebook
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
 end

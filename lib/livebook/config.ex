@@ -1,6 +1,8 @@
 defmodule Livebook.Config do
   @moduledoc false
 
+  alias Livebook.FileSystem
+
   @type auth_mode() :: :token | :password | :disabled
 
   @doc """
@@ -33,11 +35,40 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Return the root path for persisting notebooks.
+  Returns the list of currently available file systems.
   """
-  @spec root_path() :: binary()
-  def root_path() do
-    Application.fetch_env!(:livebook, :root_path)
+  @spec file_systems() :: list(FileSystem.t())
+  def file_systems() do
+    Application.fetch_env!(:livebook, :file_systems)
+  end
+
+  @doc """
+  Appends a new file system to the configured ones.
+  """
+  @spec append_file_system(FileSystem.t()) :: list(FileSystem.t())
+  def append_file_system(file_system) do
+    file_systems = Enum.uniq(file_systems() ++ [file_system])
+    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
+    file_systems
+  end
+
+  @doc """
+  Removes the given file system from the configured ones.
+  """
+  @spec remove_file_system(FileSystem.t()) :: list(FileSystem.t())
+  def remove_file_system(file_system) do
+    file_systems = List.delete(file_systems(), file_system)
+    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
+    file_systems
+  end
+
+  @doc """
+  Returns the default directory.
+  """
+  @spec default_dir() :: FileSystem.File.t()
+  def default_dir() do
+    [file_system | _] = Livebook.Config.file_systems()
+    FileSystem.File.new(file_system)
   end
 
   ## Parsing

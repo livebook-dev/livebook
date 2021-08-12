@@ -3017,12 +3017,14 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :set_path" do
+  describe "apply_operation/2 given :set_file" do
     test "updates data with the given path" do
       data = Data.new()
-      operation = {:set_path, self(), "path"}
 
-      assert {:ok, %{path: "path"}, []} = Data.apply_operation(data, operation)
+      file = Livebook.FileSystem.File.local("/path/to/file.livemd")
+      operation = {:set_file, self(), file}
+
+      assert {:ok, %{file: ^file}, []} = Data.apply_operation(data, operation)
     end
   end
 

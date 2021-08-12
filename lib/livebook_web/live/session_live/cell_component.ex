@@ -237,7 +237,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <span class="tooltip top" aria-label="Cell settings">
       <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id), class: "icon-button" do %>
-        <.remix_icon icon="list-settings-line" class="text-xl" />
+        <.remix_icon icon="settings-3-line" class="text-xl" />
       <% end %>
     </span>
     """
