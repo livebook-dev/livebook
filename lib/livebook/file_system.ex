@@ -40,6 +40,9 @@ defprotocol Livebook.FileSystem do
 
   @doc """
   Returns a list of files located in the given directory.
+
+  When `recursive` is set to `true`, nested directories
+  are traversed and the final list includes all the paths.
   """
   @spec list(t(), path(), boolean()) :: {:ok, list(path())} | {:error, error()}
   def list(file_system, path, recursive)

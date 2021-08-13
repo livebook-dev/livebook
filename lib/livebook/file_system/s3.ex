@@ -333,7 +333,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       region: region_from_uri(file_system.bucket_url)
     }
 
-    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    now = NaiveDateTime.utc_now()
 
     headers = [{"Host", host} | headers]
 

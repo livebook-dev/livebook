@@ -16,6 +16,7 @@ defmodule Livebook.FileSystem.S3.Signature do
   request using the specified time.
   """
   def sign_v4(credentials, now, method, url, headers, body) do
+    now = NaiveDateTime.truncate(now, :second)
     long_date = NaiveDateTime.to_iso8601(now, :basic) <> "Z"
     short_date = Date.to_iso8601(now, :basic)
 
