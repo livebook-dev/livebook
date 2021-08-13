@@ -337,7 +337,7 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
-    file = FileSystem.File.new(socket.assigns.file.file_system) |> FileSystem.File.relative(path)
+    file = FileSystem.File.new(socket.assigns.file.file_system) |> FileSystem.File.resolve(path)
 
     info =
       socket.assigns.file_infos
@@ -544,7 +544,7 @@ defmodule LivebookWeb.FileSelectComponent do
   defp create_dir(_parent_dir, ""), do: {:error, :ignore}
 
   defp create_dir(parent_dir, name) do
-    new_dir = FileSystem.File.relative(parent_dir, name <> "/")
+    new_dir = FileSystem.File.resolve(parent_dir, name <> "/")
     FileSystem.File.create_dir(new_dir)
   end
 
@@ -557,7 +557,7 @@ defmodule LivebookWeb.FileSelectComponent do
   defp rename_file(file, name) do
     parent_dir = FileSystem.File.containing_dir(file)
     new_name = if FileSystem.File.dir?(file), do: name <> "/", else: name
-    new_file = FileSystem.File.relative(parent_dir, new_name)
+    new_file = FileSystem.File.resolve(parent_dir, new_name)
     FileSystem.File.rename(file, new_file)
   end
 end

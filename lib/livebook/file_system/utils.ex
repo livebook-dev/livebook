@@ -4,45 +4,28 @@ defmodule Livebook.FileSystem.Utils do
   alias Livebook.FileSystem
 
   @doc """
-  Asserts that the given path is absolute and expands it.
-
-  ## Options
-
-    * `:type` - if set to `:directory` or `:regular`, the
-      path type is also asserted against
+  Asserts that the given path is a directory.
   """
-  @spec normalize_path!(String.t(), keyword()) :: FileSystem.path()
-  def normalize_path!(path, opts \\ []) do
-    unless absolute_path?(path) do
-      raise ArgumentError, "expected an absolute path, got: #{inspect(path)}"
+  @spec assert_dir_path!(FileSystem.path()) :: :ok
+  def assert_dir_path!(path) do
+    unless dir_path?(path) do
+      raise ArgumentError, "expected a directory path, got: #{inspect(path)}"
     end
 
-    path = expand_path(path)
-
-    case opts[:type] do
-      nil ->
-        :ok
-
-      :directory ->
-        unless dir_path?(path) do
-          raise ArgumentError, "expected a directory path, got: #{inspect(path)}"
-        end
-
-      :regular ->
-        unless regular_path?(path) do
-          raise ArgumentError, "expected a regular file path, got: #{inspect(path)}"
-        end
-
-      other ->
-        raise ArgumentError,
-              "expected :type option to be either :direcotry, :regular or nil, got: #{inspect(other)}"
-    end
-
-    path
+    :ok
   end
 
-  defp absolute_path?("/" <> _), do: true
-  defp absolute_path?(_), do: false
+  @doc """
+  Asserts that the given path is a regular file path.
+  """
+  @spec assert_regular_path!(FileSystem.path()) :: :ok
+  def assert_regular_path!(path) do
+    unless regular_path?(path) do
+      raise ArgumentError, "expected a regular file path, got: #{inspect(path)}"
+    end
+
+    :ok
+  end
 
   @doc """
   Checks if the given path describes a directory.
@@ -74,35 +57,6 @@ defmodule Livebook.FileSystem.Utils do
   end
 
   @doc """
-  Expands the given path, optionally against the given
-  absolute path.
-
-  This works similarly to `Path.expand/2`, except it
-  takes trailing slashes into account.
-  """
-  @spec expand_path(String.t(), FileSystem.path() | nil) :: FileSystem.path()
-  def expand_path(path, relative_to \\ nil) do
-    if not absolute_path?(path) and relative_to == nil do
-      raise ArgumentError,
-            "expected an absolute path to expand the relative path against, but none was given"
-    end
-
-    relative_to = relative_to && normalize_path!(relative_to, type: :directory)
-
-    if path == "" do
-      relative_to
-    else
-      dir? = dir_path?(path) or Path.basename(path) in [".", ".."]
-
-      case {dir?, Path.expand(path, relative_to || "")} do
-        {_, "/"} -> "/"
-        {true, path} -> path <> "/"
-        {false, path} -> path
-      end
-    end
-  end
-
-  @doc """
   Converts the given path into dir path by appending a trailing
   slash if necessary.
   """
@@ -123,4 +77,31 @@ defmodule Livebook.FileSystem.Utils do
     message = error |> :file.format_error() |> List.to_string()
     {:error, message}
   end
+
+  @doc """
+  Implements `Livebook.FileSystem.resolve_path` assuming Unix-like
+  path conventions.
+
+  This function assumes absolute paths to have a leading "/"
+  and handles sequences such as "." and "..".
+  """
+  @spec resolve_unix_like_path(FileSystem.path(), String.t()) :: FileSystem.t()
+  def resolve_unix_like_path(dir_path, subject) do
+    subject =
+      if Path.basename(subject) in [".", ".."] do
+        FileSystem.Utils.ensure_dir_path(subject)
+      else
+        subject
+      end
+
+    absolute_path? = String.starts_with?(subject, "/")
+    path = if absolute_path?, do: subject, else: dir_path <> subject
+    path |> String.split("/") |> expand_parts([]) |> Enum.join("/")
+  end
+
+  defp expand_parts([], acc), do: Enum.reverse(acc)
+  defp expand_parts(["." | parts], acc), do: expand_parts(parts, acc)
+  defp expand_parts([".." | parts], [_parent] = acc), do: expand_parts(parts, acc)
+  defp expand_parts([".." | parts], [_parent | acc]), do: expand_parts(parts, acc)
+  defp expand_parts([part | parts], acc), do: expand_parts(parts, [part | acc])
 end

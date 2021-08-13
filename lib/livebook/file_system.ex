@@ -130,4 +130,17 @@ defprotocol Livebook.FileSystem do
   """
   @spec exists?(t(), path()) :: {:ok, boolean()} | {:error, error()}
   def exists?(file_system, path)
+
+  @doc """
+  Resolves `subject` against a valid directory path.
+
+  The `subject` may be either relative or absolute,
+  contain special sequences such as ".." and ".",
+  but the interpretation is left up to the file system.
+
+  In other words, this has the semantics of path join
+  followed by expand.
+  """
+  @spec resolve_path(t(), path(), String.t()) :: path()
+  def resolve_path(file_system, dir_path, subject)
 end

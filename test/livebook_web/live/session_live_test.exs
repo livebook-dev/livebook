@@ -464,8 +464,8 @@ defmodule LivebookWeb.SessionLiveTest do
     test "renders an error message when the relative notebook does not exist",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      index_file = FileSystem.File.relative(tmp_dir, "index.livemd")
-      notebook_file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
       Session.set_file(session_id, index_file)
       wait_for_session_update(session_id)
@@ -485,8 +485,8 @@ defmodule LivebookWeb.SessionLiveTest do
     test "opens a relative notebook if it exists",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      index_file = FileSystem.File.relative(tmp_dir, "index.livemd")
-      notebook_file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
       Session.set_file(session_id, index_file)
       wait_for_session_update(session_id)
@@ -508,8 +508,8 @@ defmodule LivebookWeb.SessionLiveTest do
     test "if the current session has no path, forks the relative notebook",
          %{conn: conn, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      index_file = FileSystem.File.relative(tmp_dir, "index.livemd")
-      notebook_file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
       {:ok, session_id} = SessionSupervisor.create_session(origin: {:file, index_file})
 
@@ -531,8 +531,8 @@ defmodule LivebookWeb.SessionLiveTest do
     test "if the notebook is already open, redirects to the session",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      index_file = FileSystem.File.relative(tmp_dir, "index.livemd")
-      notebook_file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
       Session.set_file(session_id, index_file)
       wait_for_session_update(session_id)
@@ -549,9 +549,9 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "handles nested paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      parent_file = FileSystem.File.relative(tmp_dir, "parent.livemd")
-      child_dir = FileSystem.File.relative(tmp_dir, "dir/")
-      child_file = FileSystem.File.relative(child_dir, "child.livemd")
+      parent_file = FileSystem.File.resolve(tmp_dir, "parent.livemd")
+      child_dir = FileSystem.File.resolve(tmp_dir, "dir/")
+      child_file = FileSystem.File.resolve(child_dir, "child.livemd")
 
       Session.set_file(session_id, parent_file)
       wait_for_session_update(session_id)
@@ -569,9 +569,9 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "handles parent paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      parent_file = FileSystem.File.relative(tmp_dir, "parent.livemd")
-      child_dir = FileSystem.File.relative(tmp_dir, "dir/")
-      child_file = FileSystem.File.relative(child_dir, "child.livemd")
+      parent_file = FileSystem.File.resolve(tmp_dir, "parent.livemd")
+      child_dir = FileSystem.File.resolve(tmp_dir, "dir/")
+      child_file = FileSystem.File.resolve(child_dir, "child.livemd")
 
       Session.set_file(session_id, child_file)
       wait_for_session_update(session_id)

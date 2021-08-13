@@ -36,7 +36,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def list(file_system, path, recursive) do
-    "/" <> dir_key = FileSystem.Utils.normalize_path!(path, type: :directory)
+    FileSystem.Utils.assert_dir_path!(path)
+    "/" <> dir_key = path
 
     delimiter = if recursive, do: nil, else: "/"
 
@@ -51,22 +52,24 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def read(file_system, path) do
-    "/" <> key = FileSystem.Utils.normalize_path!(path, type: :regular)
+    FileSystem.Utils.assert_regular_path!(path)
+    "/" <> key = path
     get_object(file_system, key)
   end
 
   def write(file_system, path, content) do
-    "/" <> key = FileSystem.Utils.normalize_path!(path, type: :regular)
+    FileSystem.Utils.assert_regular_path!(path)
+    "/" <> key = path
     put_object(file_system, key, content)
   end
 
-  def access(_file_system, path) do
-    FileSystem.Utils.normalize_path!(path)
+  def access(_file_system, _path) do
     {:ok, :read_write}
   end
 
   def create_dir(file_system, path) do
-    "/" <> key = FileSystem.Utils.normalize_path!(path, type: :directory)
+    FileSystem.Utils.assert_dir_path!(path)
+    "/" <> key = path
     # S3 has no concept of directories, but keys with trailing
     # slash are interpreted as such, so we create an empty
     # object for the given key
@@ -74,7 +77,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def remove(file_system, path) do
-    "/" <> key = FileSystem.Utils.normalize_path!(path)
+    "/" <> key = path
 
     if FileSystem.Utils.dir_path?(path) do
       with {:ok, %{keys: keys}} <- list_objects(file_system, prefix: key) do
@@ -90,9 +93,9 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def copy(file_system, source_path, destination_path) do
-    "/" <> source_key = source_path = FileSystem.Utils.normalize_path!(source_path)
-    "/" <> destination_key = destination_path = FileSystem.Utils.normalize_path!(destination_path)
     FileSystem.Utils.assert_same_type!(source_path, destination_path)
+    "/" <> source_key = source_path
+    "/" <> destination_key = destination_path
 
     if FileSystem.Utils.dir_path?(source_path) do
       with {:ok, %{bucket: bucket, keys: keys}} <- list_objects(file_system, prefix: source_key) do
@@ -123,9 +126,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def rename(file_system, source_path, destination_path) do
-    source_path = FileSystem.Utils.normalize_path!(source_path)
-    "/" <> destination_key = destination_path = FileSystem.Utils.normalize_path!(destination_path)
     FileSystem.Utils.assert_same_type!(source_path, destination_path)
+    "/" <> destination_key = destination_path
 
     with {:ok, destination_exists?} <- object_exists(file_system, destination_key) do
       if destination_exists? do
@@ -141,7 +143,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def etag_for(file_system, path) do
-    "/" <> key = FileSystem.Utils.normalize_path!(path, type: :regular)
+    FileSystem.Utils.assert_regular_path!(path)
+    "/" <> key = path
 
     with {:ok, %{etag: etag}} <- head_object(file_system, key) do
       {:ok, etag}
@@ -149,8 +152,12 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   def exists?(file_system, path) do
-    "/" <> key = FileSystem.Utils.normalize_path!(path)
+    "/" <> key = path
     object_exists(file_system, key)
+  end
+
+  def resolve_path(_file_system, dir_path, subject) do
+    FileSystem.Utils.resolve_unix_like_path(dir_path, subject)
   end
 
   # Requests

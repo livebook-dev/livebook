@@ -25,11 +25,19 @@ defmodule Livebook.FileSystem.File do
   """
   @spec new(FileSystem.t(), FileSystem.path() | nil) :: t()
   def new(file_system, path \\ nil) do
+    default_path = FileSystem.default_path(file_system)
+
     path =
       if path do
-        FileSystem.Utils.normalize_path!(path)
+        resolved_path = FileSystem.resolve_path(file_system, default_path, path)
+
+        unless path == resolved_path do
+          raise ArgumentError, "expected an expanded absolute path, got: #{inspect(path)}"
+        end
+
+        path
       else
-        FileSystem.default_path(file_system)
+        default_path
       end
 
     %__MODULE__{file_system: file_system, path: path}
@@ -45,16 +53,16 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
-  Returns a new file resulting from expanding `path`
+  Returns a new file resulting from resolving `subject`
   against `file`.
 
   An absolute path may be given, in which case it
   replaces the file path altogether.
   """
-  @spec relative(t(), String.t()) :: t()
-  def relative(file, path) do
+  @spec resolve(t(), String.t()) :: t()
+  def resolve(file, subject) do
     dir = if dir?(file), do: file, else: containing_dir(file)
-    path = FileSystem.Utils.expand_path(path, dir.path)
+    path = FileSystem.resolve_path(file.file_system, dir.path, subject)
     new(file.file_system, path)
   end
 
@@ -190,7 +198,7 @@ defmodule Livebook.FileSystem.File do
         |> Enum.reduce(:ok, fn child_file, result ->
           with :ok <- result do
             path_sufix = String.replace_leading(child_file.path, source.path, "")
-            child_destination = relative(destination, path_sufix)
+            child_destination = resolve(destination, path_sufix)
             copy_regular_file(child_file, child_destination)
           end
         end)

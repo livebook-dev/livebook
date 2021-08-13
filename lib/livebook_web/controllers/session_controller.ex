@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionController do
   def show_image(conn, %{"id" => id, "image" => image}) do
     if SessionSupervisor.session_exists?(id) do
       %{images_dir: images_dir} = Session.get_summary(id)
-      file = FileSystem.File.relative(images_dir, image)
+      file = FileSystem.File.resolve(images_dir, image)
       serve_static(conn, file)
     else
       send_resp(conn, 404, "Not found")

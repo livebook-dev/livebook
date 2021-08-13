@@ -484,4 +484,30 @@ defmodule Livebook.FileSystem.LocalTest do
       assert {:ok, true} = FileSystem.exists?(file_system, file_path)
     end
   end
+
+  describe "FileSystem.resolve_path/3" do
+    test "resolves relative paths" do
+      file_system = Local.new()
+
+      assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", "")
+      assert "/dir/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "file.txt")
+      assert "/dir/nested/" = FileSystem.resolve_path(file_system, "/dir/", "nested/")
+      assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", ".")
+      assert "/" = FileSystem.resolve_path(file_system, "/dir/", "..")
+
+      assert "/file.txt" =
+               FileSystem.resolve_path(file_system, "/dir/", "nested/../.././file.txt")
+    end
+
+    test "resolves absolute paths" do
+      file_system = Local.new()
+
+      assert "/" = FileSystem.resolve_path(file_system, "/dir/", "/")
+      assert "/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "/file.txt")
+      assert "/nested/" = FileSystem.resolve_path(file_system, "/dir/", "/nested/")
+
+      assert "/nested/file.txt" =
+               FileSystem.resolve_path(file_system, "/dir/", "/nested/other/../file.txt")
+    end
+  end
 end

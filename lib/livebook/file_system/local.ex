@@ -22,11 +22,11 @@ defmodule Livebook.FileSystem.Local do
   @spec new(keyword()) :: t()
   def new(opts \\ []) do
     default_path =
-      opts
-      |> Keyword.get_lazy(:default_path, fn ->
+      Keyword.get_lazy(opts, :default_path, fn ->
         File.cwd!() |> FileSystem.Utils.ensure_dir_path()
       end)
-      |> FileSystem.Utils.normalize_path!(type: :directory)
+
+    FileSystem.Utils.assert_dir_path!(default_path)
 
     %__MODULE__{default_path: default_path}
   end
@@ -40,7 +40,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def list(file_system, path, recursive) do
-    path = FileSystem.Utils.normalize_path!(path, type: :directory)
+    FileSystem.Utils.assert_dir_path!(path)
 
     case File.ls(path) do
       {:ok, filenames} ->
@@ -70,7 +70,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def read(_file_system, path) do
-    path = FileSystem.Utils.normalize_path!(path, type: :regular)
+    FileSystem.Utils.assert_regular_path!(path)
 
     case File.read(path) do
       {:ok, binary} -> {:ok, binary}
@@ -79,7 +79,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def write(_file_system, path, content) do
-    path = FileSystem.Utils.normalize_path!(path, type: :regular)
+    FileSystem.Utils.assert_regular_path!(path)
 
     dir = Path.dirname(path)
 
@@ -92,8 +92,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def access(_file_system, path) do
-    path = FileSystem.Utils.normalize_path!(path)
-
     case File.stat(path) do
       {:ok, stat} -> {:ok, stat.access}
       {:error, error} -> FileSystem.Utils.posix_error(error)
@@ -101,7 +99,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def create_dir(_file_system, path) do
-    path = FileSystem.Utils.normalize_path!(path, type: :directory)
+    FileSystem.Utils.assert_dir_path!(path)
 
     case File.mkdir_p(path) do
       :ok -> :ok
@@ -110,8 +108,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def remove(_file_system, path) do
-    path = FileSystem.Utils.normalize_path!(path)
-
     case File.rm_rf(path) do
       {:ok, _paths} -> :ok
       {:error, error} -> FileSystem.Utils.posix_error(error)
@@ -119,8 +115,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def copy(_file_system, source_path, destination_path) do
-    source_path = FileSystem.Utils.normalize_path!(source_path)
-    destination_path = FileSystem.Utils.normalize_path!(destination_path)
     FileSystem.Utils.assert_same_type!(source_path, destination_path)
 
     containing_dir = Path.dirname(destination_path)
@@ -138,8 +132,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def rename(_file_system, source_path, destination_path) do
-    source_path = FileSystem.Utils.normalize_path!(source_path)
-    destination_path = FileSystem.Utils.normalize_path!(destination_path)
     FileSystem.Utils.assert_same_type!(source_path, destination_path)
 
     if File.exists?(destination_path) do
@@ -158,8 +150,6 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def etag_for(_file_system, path) do
-    path = FileSystem.Utils.normalize_path!(path)
-
     case File.stat(path) do
       {:ok, stat} ->
         %{size: size, mtime: mtime} = stat
@@ -173,12 +163,23 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   def exists?(_file_system, path) do
-    path = FileSystem.Utils.normalize_path!(path)
-
     if FileSystem.Utils.dir_path?(path) do
       {:ok, File.dir?(path)}
     else
       {:ok, File.exists?(path)}
+    end
+  end
+
+  def resolve_path(_file_system, dir_path, ""), do: dir_path
+
+  def resolve_path(_file_system, dir_path, subject) do
+    dir? = FileSystem.Utils.dir_path?(subject) or Path.basename(subject) in [".", ".."]
+    expanded_path = Path.expand(subject, dir_path)
+
+    if dir? do
+      FileSystem.Utils.ensure_dir_path(expanded_path)
+    else
+      expanded_path
     end
   end
 end

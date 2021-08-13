@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns the image when it does exist", %{conn: conn} do
       {:ok, session_id} = SessionSupervisor.create_session()
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      :ok = FileSystem.File.relative(images_dir, "test.jpg") |> FileSystem.File.write("")
+      :ok = FileSystem.File.resolve(images_dir, "test.jpg") |> FileSystem.File.write("")
 
       conn = get(conn, Routes.session_path(conn, :show_image, session_id, "test.jpg"))
 

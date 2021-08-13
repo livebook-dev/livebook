@@ -9,21 +9,24 @@ defmodule Livebook.FileSystem.FileTest do
     test "raises an error when a relative path is given" do
       file_system = FileSystem.Local.new()
 
-      assert_raise ArgumentError, ~s{expected an absolute path, got: "file.txt"}, fn ->
+      assert_raise ArgumentError, ~s{expected an expanded absolute path, got: "file.txt"}, fn ->
         FileSystem.File.new(file_system, "file.txt")
       end
+    end
+
+    test "raises an error when a unexpanded path is given" do
+      file_system = FileSystem.Local.new()
+
+      assert_raise ArgumentError,
+                   ~s{expected an expanded absolute path, got: "/dir/nested/../file.txt"},
+                   fn ->
+                     FileSystem.File.new(file_system, "/dir/nested/../file.txt")
+                   end
     end
 
     test "uses default file system path if non is given" do
       file_system = FileSystem.Local.new(default_path: "/dir/")
       assert %FileSystem.File{path: "/dir/"} = FileSystem.File.new(file_system)
-    end
-
-    test "expands the given path" do
-      file_system = FileSystem.Local.new()
-
-      assert %FileSystem.File{path: "/dir/file.txt"} =
-               FileSystem.File.new(file_system, "/dir/nested/../file.txt")
     end
   end
 
@@ -33,7 +36,7 @@ defmodule Livebook.FileSystem.FileTest do
       file = FileSystem.File.new(file_system, "/dir/nested/file.txt")
 
       assert %FileSystem.File{file_system: ^file_system, path: "/other/file.txt"} =
-               FileSystem.File.relative(file, "/other/file.txt")
+               FileSystem.File.resolve(file, "/other/file.txt")
     end
 
     test "resolves a relative path against a regular file" do
@@ -41,7 +44,7 @@ defmodule Livebook.FileSystem.FileTest do
       file = FileSystem.File.new(file_system, "/dir/nested/file.txt")
 
       assert %FileSystem.File{file_system: ^file_system, path: "/dir/other/other_file.txt"} =
-               FileSystem.File.relative(file, "../other/other_file.txt")
+               FileSystem.File.resolve(file, "../other/other_file.txt")
     end
 
     test "resolves a relative path against a directory file" do
@@ -49,7 +52,7 @@ defmodule Livebook.FileSystem.FileTest do
       dir = FileSystem.File.new(file_system, "/dir/nested/")
 
       assert %FileSystem.File{file_system: ^file_system, path: "/dir/nested/file.txt"} =
-               FileSystem.File.relative(dir, "file.txt")
+               FileSystem.File.resolve(dir, "file.txt")
     end
 
     test "resolves a relative directory path" do
@@ -57,13 +60,13 @@ defmodule Livebook.FileSystem.FileTest do
       file = FileSystem.File.new(file_system, "/dir/nested/file.txt")
 
       assert %FileSystem.File{file_system: ^file_system, path: "/dir/other/"} =
-               FileSystem.File.relative(file, "../other/")
+               FileSystem.File.resolve(file, "../other/")
 
       assert %FileSystem.File{file_system: ^file_system, path: "/dir/nested/"} =
-               FileSystem.File.relative(file, ".")
+               FileSystem.File.resolve(file, ".")
 
       assert %FileSystem.File{file_system: ^file_system, path: "/dir/"} =
-               FileSystem.File.relative(file, "..")
+               FileSystem.File.resolve(file, "..")
     end
   end
 
@@ -149,9 +152,9 @@ defmodule Livebook.FileSystem.FileTest do
       assert {:ok, files} = FileSystem.File.list(dir)
 
       assert files |> Enum.sort() == [
-               FileSystem.File.relative(dir, "dir/"),
-               FileSystem.File.relative(dir, "file"),
-               FileSystem.File.relative(dir, "file.txt")
+               FileSystem.File.resolve(dir, "dir/"),
+               FileSystem.File.resolve(dir, "file"),
+               FileSystem.File.resolve(dir, "file.txt")
              ]
     end
 
@@ -173,12 +176,12 @@ defmodule Livebook.FileSystem.FileTest do
       assert {:ok, files} = FileSystem.File.list(dir, recursive: true)
 
       assert files |> Enum.sort() == [
-               FileSystem.File.relative(dir, "dir/"),
-               FileSystem.File.relative(dir, "dir/nested/"),
-               FileSystem.File.relative(dir, "dir/nested/double_nested/"),
-               FileSystem.File.relative(dir, "dir/nested/file.txt"),
-               FileSystem.File.relative(dir, "file"),
-               FileSystem.File.relative(dir, "file.txt")
+               FileSystem.File.resolve(dir, "dir/"),
+               FileSystem.File.resolve(dir, "dir/nested/"),
+               FileSystem.File.resolve(dir, "dir/nested/double_nested/"),
+               FileSystem.File.resolve(dir, "dir/nested/file.txt"),
+               FileSystem.File.resolve(dir, "file"),
+               FileSystem.File.resolve(dir, "file.txt")
              ]
     end
   end

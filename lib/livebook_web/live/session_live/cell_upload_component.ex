@@ -77,7 +77,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       upload_file = FileSystem.File.local(path)
       ext = Path.extname(entry.client_name)
       filename = name <> ext
-      destination_file = FileSystem.File.relative(images_dir, filename)
+      destination_file = FileSystem.File.resolve(images_dir, filename)
 
       with :ok <- FileSystem.File.copy(upload_file, destination_file) do
         {:ok, filename}

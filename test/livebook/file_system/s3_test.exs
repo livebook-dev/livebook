@@ -646,6 +646,32 @@ defmodule Livebook.FileSystem.S3Test do
     end
   end
 
+  describe "FileSystem.resolve_path/3" do
+    test "resolves relative paths" do
+      file_system = S3.new("https://example.com/mybucket/", "key", "secret")
+
+      assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", "")
+      assert "/dir/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "file.txt")
+      assert "/dir/nested/" = FileSystem.resolve_path(file_system, "/dir/", "nested/")
+      assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", ".")
+      assert "/" = FileSystem.resolve_path(file_system, "/dir/", "..")
+
+      assert "/file.txt" =
+               FileSystem.resolve_path(file_system, "/dir/", "nested/../.././file.txt")
+    end
+
+    test "resolves absolute paths" do
+      file_system = S3.new("https://example.com/mybucket/", "key", "secret")
+
+      assert "/" = FileSystem.resolve_path(file_system, "/dir/", "/")
+      assert "/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "/file.txt")
+      assert "/nested/" = FileSystem.resolve_path(file_system, "/dir/", "/nested/")
+
+      assert "/nested/file.txt" =
+               FileSystem.resolve_path(file_system, "/dir/", "/nested/other/../file.txt")
+    end
+  end
+
   # Helpers
 
   defp bucket_url(port), do: "http://localhost:#{port}/mybucket"

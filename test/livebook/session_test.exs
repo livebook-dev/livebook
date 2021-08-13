@@ -225,7 +225,7 @@ defmodule Livebook.SessionTest do
       pid = self()
 
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session_id, file)
 
       assert_receive {:operation, {:set_file, ^pid, ^file}}
@@ -235,7 +235,7 @@ defmodule Livebook.SessionTest do
     test "broadcasts an error if the path is already in use",
          %{session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       start_session(file: file)
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
@@ -250,17 +250,17 @@ defmodule Livebook.SessionTest do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       %{images_dir: images_dir} = Session.get_summary(session_id)
 
-      image_file = FileSystem.File.relative(images_dir, "test.jpg")
+      image_file = FileSystem.File.resolve(images_dir, "test.jpg")
       :ok = FileSystem.File.write(image_file, "")
 
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session_id, file)
 
       # Wait for the session to deal with the files
       Process.sleep(50)
 
       assert {:ok, true} =
-               FileSystem.File.exists?(FileSystem.File.relative(tmp_dir, "images/test.jpg"))
+               FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "images/test.jpg"))
 
       assert {:ok, false} = FileSystem.File.exists?(images_dir)
     end
@@ -269,11 +269,11 @@ defmodule Livebook.SessionTest do
     test "does not remove images from the previous dir if not temporary",
          %{session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session_id, file)
 
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      image_file = FileSystem.File.relative(images_dir, "test.jpg")
+      image_file = FileSystem.File.resolve(images_dir, "test.jpg")
       :ok = FileSystem.File.write(image_file, "")
 
       Session.set_file(session_id, nil)
@@ -286,7 +286,7 @@ defmodule Livebook.SessionTest do
       %{images_dir: new_images_dir} = Session.get_summary(session_id)
 
       assert {:ok, true} =
-               FileSystem.File.exists?(FileSystem.File.relative(new_images_dir, "test.jpg"))
+               FileSystem.File.exists?(FileSystem.File.resolve(new_images_dir, "test.jpg"))
     end
   end
 
@@ -295,7 +295,7 @@ defmodule Livebook.SessionTest do
     test "persists the notebook to the associated file and notifies subscribers",
          %{session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session_id, file)
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
@@ -313,7 +313,7 @@ defmodule Livebook.SessionTest do
     @tag :tmp_dir
     test "creates nonexistent directories", %{session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "nonexistent/dir/notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "nonexistent/dir/notebook.livemd")
       Session.set_file(session_id, file)
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
@@ -334,7 +334,7 @@ defmodule Livebook.SessionTest do
     test "saves the notebook and notifies subscribers once the session is closed",
          %{session_id: session_id, tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       Session.set_file(session_id, file)
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
@@ -370,7 +370,7 @@ defmodule Livebook.SessionTest do
     @tag :tmp_dir
     test "fails if the given path is already in use", %{tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
-      file = FileSystem.File.relative(tmp_dir, "notebook.livemd")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
       start_session(file: file)
 
       assert {:error, "the given file is already in use"} ==
@@ -381,7 +381,7 @@ defmodule Livebook.SessionTest do
     test "copies images when :copy_images_from option is specified", %{tmp_dir: tmp_dir} do
       tmp_dir = FileSystem.File.local(tmp_dir <> "/")
 
-      image_file = FileSystem.File.relative(tmp_dir, "image.jpg")
+      image_file = FileSystem.File.resolve(tmp_dir, "image.jpg")
       :ok = FileSystem.File.write(image_file, "")
 
       session_id = start_session(copy_images_from: tmp_dir)
@@ -389,7 +389,7 @@ defmodule Livebook.SessionTest do
       %{images_dir: images_dir} = Session.get_summary(session_id)
 
       assert {:ok, true} =
-               FileSystem.File.exists?(FileSystem.File.relative(images_dir, "image.jpg"))
+               FileSystem.File.exists?(FileSystem.File.resolve(images_dir, "image.jpg"))
     end
 
     test "saves images when :images option is specified" do
@@ -399,7 +399,7 @@ defmodule Livebook.SessionTest do
 
       %{images_dir: images_dir} = Session.get_summary(session_id)
 
-      assert FileSystem.File.relative(images_dir, "image.jpg") |> FileSystem.File.read() ==
+      assert FileSystem.File.resolve(images_dir, "image.jpg") |> FileSystem.File.read() ==
                {:ok, "binary content"}
     end
   end

@@ -819,7 +819,7 @@ defmodule LivebookWeb.SessionLive do
         origin =
           case resolution_location do
             {:url, url} -> {:url, Livebook.Utils.expand_url(url, relative_path)}
-            {:file, file} -> {:file, FileSystem.File.relative(file, relative_path)}
+            {:file, file} -> {:file, FileSystem.File.resolve(file, relative_path)}
           end
 
         case session_id_by_location(origin) do

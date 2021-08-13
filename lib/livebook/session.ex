@@ -703,7 +703,7 @@ defmodule Livebook.Session do
 
   defp images_dir_from_state(%{data: %{file: nil}, session_id: id}) do
     tmp_dir = session_tmp_dir(id)
-    FileSystem.File.relative(tmp_dir, "images/")
+    FileSystem.File.resolve(tmp_dir, "images/")
   end
 
   defp images_dir_from_state(%{data: %{file: file}}) do
@@ -717,7 +717,7 @@ defmodule Livebook.Session do
   def images_dir_for_notebook(file) do
     file
     |> FileSystem.File.containing_dir()
-    |> FileSystem.File.relative("images/")
+    |> FileSystem.File.resolve("images/")
   end
 
   defp session_tmp_dir(session_id) do
@@ -772,7 +772,7 @@ defmodule Livebook.Session do
 
     Enum.reduce(images, :ok, fn {filename, content}, result ->
       with :ok <- result do
-        file = FileSystem.File.relative(images_dir, filename)
+        file = FileSystem.File.resolve(images_dir, filename)
         FileSystem.File.write(file, content)
       end
     end)
