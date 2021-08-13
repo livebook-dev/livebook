@@ -83,13 +83,13 @@ defmodule Livebook.FileSystem.S3.Signature do
   defp canonical_headers(headers) do
     headers
     |> Enum.map(fn {name, value} ->
-      name = String.downcase(name) |> String.trim()
+      name = String.downcase(name, :ascii) |> String.trim()
       value = String.trim(value)
       {name, value}
     end)
     |> Enum.sort(fn {a, _}, {b, _} -> a <= b end)
     |> Enum.map(fn {name, value} -> [name, ":", value, "\n"] end)
-    |> Enum.join()
+    |> IO.iodata_to_binary()
   end
 
   # Process and merge request values into a canonical request for AWS signature
