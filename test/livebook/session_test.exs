@@ -1,7 +1,7 @@
 defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.{Session, Delta, Runtime, Utils, Notebook}
+  alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
 
   # Note: queueing evaluation in most of the tests below
   # requires the runtime to synchronously start first,
@@ -217,67 +217,76 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "set_path/1" do
+  describe "set_file/1" do
     @tag :tmp_dir
-    test "sends a path update operation to subscribers",
+    test "sends a file update operation to subscribers",
          %{session_id: session_id, tmp_dir: tmp_dir} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
       pid = self()
 
-      path = Path.join(tmp_dir, "notebook.livemd")
-      Session.set_path(session_id, path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session_id, file)
 
-      assert_receive {:operation, {:set_path, ^pid, ^path}}
+      assert_receive {:operation, {:set_file, ^pid, ^file}}
     end
 
     @tag :tmp_dir
     test "broadcasts an error if the path is already in use",
          %{session_id: session_id, tmp_dir: tmp_dir} do
-      path = Path.join(tmp_dir, "notebook.livemd")
-      start_session(path: path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      start_session(file: file)
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
-      Session.set_path(session_id, path)
+      Session.set_file(session_id, file)
 
-      assert_receive {:error, "failed to set new path because it is already in use"}
+      assert_receive {:error, "failed to set new file because it is already in use"}
     end
 
     @tag :tmp_dir
     test "moves images to the new directory", %{session_id: session_id, tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      File.mkdir_p!(images_dir)
-      images_dir |> Path.join("test.jpg") |> File.touch!()
 
-      path = Path.join(tmp_dir, "notebook.livemd")
-      Session.set_path(session_id, path)
+      image_file = FileSystem.File.resolve(images_dir, "test.jpg")
+      :ok = FileSystem.File.write(image_file, "")
+
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session_id, file)
 
       # Wait for the session to deal with the files
       Process.sleep(50)
 
-      assert File.exists?(Path.join([tmp_dir, "images", "test.jpg"]))
-      refute File.exists?(images_dir)
+      assert {:ok, true} =
+               FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "images/test.jpg"))
+
+      assert {:ok, false} = FileSystem.File.exists?(images_dir)
     end
 
     @tag :tmp_dir
     test "does not remove images from the previous dir if not temporary",
          %{session_id: session_id, tmp_dir: tmp_dir} do
-      path = Path.join(tmp_dir, "notebook.livemd")
-      Session.set_path(session_id, path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session_id, file)
 
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      File.mkdir_p!(images_dir)
-      images_dir |> Path.join("test.jpg") |> File.touch!()
+      image_file = FileSystem.File.resolve(images_dir, "test.jpg")
+      :ok = FileSystem.File.write(image_file, "")
 
-      Session.set_path(session_id, nil)
+      Session.set_file(session_id, nil)
 
       # Wait for the session to deal with the files
       Process.sleep(50)
 
-      assert File.exists?(Path.join(images_dir, "test.jpg"))
+      assert {:ok, true} = FileSystem.File.exists?(image_file)
 
       %{images_dir: new_images_dir} = Session.get_summary(session_id)
-      assert File.exists?(Path.join(new_images_dir, "test.jpg"))
+
+      assert {:ok, true} =
+               FileSystem.File.exists?(FileSystem.File.resolve(new_images_dir, "test.jpg"))
     end
   end
 
@@ -285,38 +294,38 @@ defmodule Livebook.SessionTest do
     @tag :tmp_dir
     test "persists the notebook to the associated file and notifies subscribers",
          %{session_id: session_id, tmp_dir: tmp_dir} do
-      path = Path.join(tmp_dir, "notebook.livemd")
-      Session.set_path(session_id, path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session_id, file)
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
-      refute File.exists?(path)
+      assert {:ok, false} = FileSystem.File.exists?(file)
 
       Session.save(session_id)
 
       assert_receive {:operation, {:mark_as_not_dirty, _}}
-      assert File.exists?(path)
-      assert File.read!(path) =~ "My notebook"
+      assert FileSystem.File.read(file) == {:ok, "# My notebook\n"}
     end
 
     @tag :tmp_dir
     test "creates nonexistent directories", %{session_id: session_id, tmp_dir: tmp_dir} do
-      path = Path.join(tmp_dir, "nonexistent/dir/notebook.livemd")
-      Session.set_path(session_id, path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "nonexistent/dir/notebook.livemd")
+      Session.set_file(session_id, file)
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
-      refute File.exists?(path)
+      assert {:ok, false} = FileSystem.File.exists?(file)
 
       Session.save(session_id)
 
       assert_receive {:operation, {:mark_as_not_dirty, _}}
-      assert File.exists?(path)
-      assert File.read!(path) =~ "My notebook"
+      assert FileSystem.File.read(file) == {:ok, "# My notebook\n"}
     end
   end
 
@@ -324,28 +333,28 @@ defmodule Livebook.SessionTest do
     @tag :tmp_dir
     test "saves the notebook and notifies subscribers once the session is closed",
          %{session_id: session_id, tmp_dir: tmp_dir} do
-      path = Path.join(tmp_dir, "notebook.livemd")
-      Session.set_path(session_id, path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      Session.set_file(session_id, file)
       # Perform a change, so the notebook is dirty
       Session.set_notebook_name(session_id, "My notebook")
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
 
-      refute File.exists?(path)
+      assert {:ok, false} = FileSystem.File.exists?(file)
 
       Process.flag(:trap_exit, true)
       Session.close(session_id)
 
       assert_receive :session_closed
-      assert File.exists?(path)
-      assert File.read!(path) =~ "My notebook"
+      assert FileSystem.File.read(file) == {:ok, "# My notebook\n"}
     end
 
     test "clears session temporary directory", %{session_id: session_id} do
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      File.mkdir_p!(images_dir)
+      :ok = FileSystem.File.create_dir(images_dir)
 
-      assert File.exists?(images_dir)
+      assert {:ok, true} = FileSystem.File.exists?(images_dir)
 
       Process.flag(:trap_exit, true)
       Session.close(session_id)
@@ -353,28 +362,34 @@ defmodule Livebook.SessionTest do
       # Wait for the session to deal with the files
       Process.sleep(50)
 
-      refute File.exists?(images_dir)
+      assert {:ok, false} = FileSystem.File.exists?(images_dir)
     end
   end
 
   describe "start_link/1" do
     @tag :tmp_dir
     test "fails if the given path is already in use", %{tmp_dir: tmp_dir} do
-      path = Path.join(tmp_dir, "notebook.livemd")
-      start_session(path: path)
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
+      start_session(file: file)
 
-      assert {:error, "the given path is already in use"} ==
-               Session.start_link(id: Utils.random_id(), path: path)
+      assert {:error, "the given file is already in use"} ==
+               Session.start_link(id: Utils.random_id(), file: file)
     end
 
     @tag :tmp_dir
     test "copies images when :copy_images_from option is specified", %{tmp_dir: tmp_dir} do
-      tmp_dir |> Path.join("image.jpg") |> File.touch!()
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+
+      image_file = FileSystem.File.resolve(tmp_dir, "image.jpg")
+      :ok = FileSystem.File.write(image_file, "")
 
       session_id = start_session(copy_images_from: tmp_dir)
 
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      assert File.exists?(Path.join(images_dir, "image.jpg"))
+
+      assert {:ok, true} =
+               FileSystem.File.exists?(FileSystem.File.resolve(images_dir, "image.jpg"))
     end
 
     test "saves images when :images option is specified" do
@@ -383,7 +398,9 @@ defmodule Livebook.SessionTest do
       session_id = start_session(images: images)
 
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      assert Path.join(images_dir, "image.jpg") |> File.read!() == "binary content"
+
+      assert FileSystem.File.resolve(images_dir, "image.jpg") |> FileSystem.File.read() ==
+               {:ok, "binary content"}
     end
   end
 

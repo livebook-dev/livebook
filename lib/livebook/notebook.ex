@@ -13,7 +13,7 @@ defmodule Livebook.Notebook do
   # A notebook is divided into a number of *sections*, each
   # containing a number of *cells*.
 
-  defstruct [:name, :version, :sections, :persist_outputs]
+  defstruct [:name, :version, :sections, :persist_outputs, :autosave_interval_s]
 
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Utils.Graph
@@ -23,7 +23,8 @@ defmodule Livebook.Notebook do
           name: String.t(),
           version: String.t(),
           sections: list(Section.t()),
-          persist_outputs: boolean()
+          persist_outputs: boolean(),
+          autosave_interval_s: non_neg_integer() | nil
         }
 
   @version "1.0"
@@ -37,7 +38,32 @@ defmodule Livebook.Notebook do
       name: "Untitled notebook",
       version: @version,
       sections: [],
-      persist_outputs: false
+      persist_outputs: default_persist_outputs(),
+      autosave_interval_s: default_autosave_interval_s()
+    }
+  end
+
+  @doc """
+  Returns the default value of `persist_outputs`.
+  """
+  @spec default_persist_outputs() :: boolean()
+  def default_persist_outputs(), do: false
+
+  @doc """
+  Returns the default value of `autosave_interval_s`.
+  """
+  @spec default_autosave_interval_s() :: non_neg_integer()
+  def default_autosave_interval_s(), do: 5
+
+  @doc """
+  Sets all persistence related properties to their default values.
+  """
+  @spec reset_persistence_options(t()) :: t()
+  def reset_persistence_options(notebook) do
+    %{
+      notebook
+      | persist_outputs: default_persist_outputs(),
+        autosave_interval_s: default_autosave_interval_s()
     }
   end
 

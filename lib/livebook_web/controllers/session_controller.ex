@@ -1,16 +1,15 @@
 defmodule LivebookWeb.SessionController do
   use LivebookWeb, :controller
 
-  alias Livebook.{SessionSupervisor, Session}
+  alias Livebook.{SessionSupervisor, Session, FileSystem}
 
   def show_image(conn, %{"id" => id, "image" => image}) do
-    with true <- SessionSupervisor.session_exists?(id),
-         %{images_dir: images_dir} <- Session.get_summary(id),
-         path <- Path.join(images_dir, image),
-         true <- File.exists?(path) do
-      serve_static(conn, path)
+    if SessionSupervisor.session_exists?(id) do
+      %{images_dir: images_dir} = Session.get_summary(id)
+      file = FileSystem.File.resolve(images_dir, image)
+      serve_static(conn, file)
     else
-      _ -> send_resp(conn, 404, "Not found")
+      send_resp(conn, 404, "Not found")
     end
   end
 
@@ -47,39 +46,43 @@ defmodule LivebookWeb.SessionController do
     send_resp(conn, 400, "Invalid format, supported formats: livemd, exs")
   end
 
-  defp serve_static(conn, path) do
-    case put_cache_header(conn, path) do
-      {:stale, conn} ->
-        filename = Path.basename(path)
-        content_type = MIME.from_path(filename)
-
-        conn
-        |> put_resp_header("content-type", content_type)
-        |> send_file(200, path)
-
-      {:fresh, conn} ->
-        send_resp(conn, 304, "")
-    end
-  end
-
-  defp put_cache_header(conn, path) do
-    etag = etag_for_path(path)
-
-    conn =
+  defp serve_static(conn, file) do
+    with {:ok, cache_state, conn} <- put_cache_header(conn, file),
+         {:ok, conn} <- serve_with_cache(conn, file, cache_state) do
       conn
-      |> put_resp_header("cache-control", "public")
-      |> put_resp_header("etag", etag)
-
-    if etag in get_req_header(conn, "if-none-match") do
-      {:fresh, conn}
     else
-      {:stale, conn}
+      {:error, message} -> send_resp(conn, 404, Livebook.Utils.upcase_first(message))
     end
   end
 
-  defp etag_for_path(path) do
-    %{size: size, mtime: mtime} = File.stat!(path)
-    hash = {size, mtime} |> :erlang.phash2() |> Integer.to_string(16)
-    <<?", hash::binary, ?">>
+  defp put_cache_header(conn, file) do
+    with {:ok, etag} <- FileSystem.File.etag_for(file) do
+      conn =
+        conn
+        |> put_resp_header("cache-control", "public")
+        |> put_resp_header("etag", etag)
+
+      if etag in get_req_header(conn, "if-none-match") do
+        {:ok, :fresh, conn}
+      else
+        {:ok, :stale, conn}
+      end
+    end
+  end
+
+  defp serve_with_cache(conn, file, :stale) do
+    filename = FileSystem.File.name(file)
+    content_type = MIME.from_path(filename)
+
+    with {:ok, content} <- FileSystem.File.read(file) do
+      conn
+      |> put_resp_header("content-type", content_type)
+      |> send_resp(200, content)
+      |> then(&{:ok, &1})
+    end
+  end
+
+  defp serve_with_cache(conn, _file, :fresh) do
+    {:ok, send_resp(conn, 304, "")}
   end
 end

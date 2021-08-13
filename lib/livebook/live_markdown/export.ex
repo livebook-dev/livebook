@@ -35,7 +35,11 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp notebook_metadata(notebook) do
-    put_unless_implicit(%{}, persist_outputs: notebook.persist_outputs)
+    put_unless_default(
+      %{},
+      Map.take(notebook, [:persist_outputs, :autosave_interval_s]),
+      Map.take(Notebook.new(), [:persist_outputs, :autosave_interval_s])
+    )
   end
 
   defp render_section(section, notebook, ctx) do
@@ -106,7 +110,10 @@ defmodule Livebook.LiveMarkdown.Export do
         name: cell.name,
         value: value
       }
-      |> put_unless_implicit(reactive: cell.reactive, props: cell.props)
+      |> put_unless_default(
+        Map.take(cell, [:reactive, :props]),
+        Map.take(Cell.Input.new(), [:reactive, :props])
+      )
       |> Jason.encode!()
 
     metadata = cell_metadata(cell)
@@ -116,7 +123,11 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp cell_metadata(%Cell.Elixir{} = cell) do
-    put_unless_implicit(%{}, disable_formatting: cell.disable_formatting)
+    put_unless_default(
+      %{},
+      Map.take(cell, [:disable_formatting]),
+      Map.take(Cell.Elixir.new(), [:disable_formatting])
+    )
   end
 
   defp cell_metadata(_cell), do: %{}
@@ -202,9 +213,9 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp put_unless_implicit(map, entries) do
+  defp put_unless_default(map, entries, defaults) do
     Enum.reduce(entries, map, fn {key, value}, map ->
-      if value in [false, %{}] do
+      if value == defaults[key] do
         map
       else
         Map.put(map, key, value)

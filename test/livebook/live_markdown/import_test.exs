@@ -569,4 +569,16 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       assert %Notebook{name: "My Notebook", persist_outputs: true} = notebook
     end
   end
+
+  test "imports notebook :autosave_interval_s attribute" do
+    markdown = """
+    <!-- livebook:{"autosave_interval_s":10} -->
+
+    # My Notebook
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
+  end
 end

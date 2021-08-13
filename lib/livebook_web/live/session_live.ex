@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [access_by_id: 1]
 
   alias LivebookWeb.SidebarHelpers
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, LiveMarkdown}
+  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Notebook.Cell
   alias Livebook.JSInterop
 
@@ -238,8 +238,9 @@ defmodule LivebookWeb.SessionLive do
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
         <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
               session_id: @session_id,
-              path: @data_view.path,
+              file: @data_view.file,
               dirty: @data_view.dirty,
+              autosave_interval_s: @data_view.autosave_interval_s,
               runtime: @data_view.runtime,
               global_evaluation_status: @data_view.global_evaluation_status %>
       </div>
@@ -263,13 +264,16 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :file_settings do %>
-      <%= live_modal LivebookWeb.SessionLive.PersistenceComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceLive,
             id: "persistence",
             modal_class: "w-full max-w-4xl",
             return_to: Routes.session_path(@socket, :page, @session_id),
-            session_id: @session_id,
-            path: @data_view.path,
-            persist_outputs: @data_view.persist_outputs %>
+            session: %{
+              "session_id" => @session_id,
+              "file" => @data_view.file,
+              "persist_outputs" => @data_view.persist_outputs,
+              "autosave_interval_s" => @data_view.autosave_interval_s
+            } %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -586,7 +590,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("save", %{}, socket) do
-    if socket.private.data.path do
+    if socket.private.data.file do
       Session.save(socket.assigns.session_id)
       {:noreply, socket}
     else
@@ -800,9 +804,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp handle_relative_notebook_path(socket, relative_path) do
-    resolution_url = location(socket.private.data)
+    resolution_location = location(socket.private.data)
 
-    case resolution_url do
+    case resolution_location do
       nil ->
         socket
         |> put_flash(
@@ -811,21 +815,31 @@ defmodule LivebookWeb.SessionLive do
         )
         |> redirect_to_self()
 
-      url ->
-        target_url = Livebook.Utils.expand_url(url, relative_path)
+      resolution_location ->
+        origin =
+          case resolution_location do
+            {:url, url} -> {:url, Livebook.Utils.expand_url(url, relative_path)}
+            {:file, file} -> {:file, FileSystem.File.resolve(file, relative_path)}
+          end
 
-        case session_id_by_url(target_url) do
+        case session_id_by_location(origin) do
           {:ok, session_id} ->
             push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
 
           {:error, :none} ->
-            open_notebook(socket, target_url)
+            open_notebook(socket, origin)
 
           {:error, :many} ->
+            origin_str =
+              case origin do
+                {:url, url} -> url
+                {:file, file} -> file.path
+              end
+
             socket
             |> put_flash(
               :error,
-              "Cannot navigate, because multiple sessions were found for #{target_url}"
+              "Cannot navigate, because multiple sessions were found for #{origin_str}"
             )
             |> redirect_to_self()
         end
@@ -833,24 +847,21 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp location(data)
-  defp location(%{path: path}) when is_binary(path), do: "file://" <> path
-  defp location(%{origin_url: origin_url}), do: origin_url
+  defp location(%{file: file}) when is_map(file), do: {:file, file}
+  defp location(%{origin: origin}), do: origin
 
-  defp open_notebook(socket, url) do
-    url
-    |> Livebook.ContentLoader.rewrite_url()
-    |> Livebook.ContentLoader.fetch_content()
-    |> case do
+  defp open_notebook(socket, origin) do
+    case load_content(origin) do
       {:ok, content} ->
         {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
 
         # If the current session has no path, fork the notebook
-        fork? = socket.private.data.path == nil
-        {path, notebook} = path_and_notebook(fork?, url, notebook)
+        fork? = socket.private.data.file == nil
+        {file, notebook} = file_and_notebook(fork?, origin, notebook)
 
         socket
         |> put_import_flash_messages(messages)
-        |> create_session(notebook: notebook, origin_url: url, path: path)
+        |> create_session(notebook: notebook, origin: origin, file: file)
 
       {:error, message} ->
         socket
@@ -859,26 +870,39 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp path_and_notebook(fork?, url, notebook)
-  defp path_and_notebook(false, "file://" <> path, notebook), do: {path, notebook}
-  defp path_and_notebook(true, "file://" <> _path, notebook), do: {nil, Notebook.forked(notebook)}
-  defp path_and_notebook(_fork?, _url, notebook), do: {nil, notebook}
+  defp load_content({:file, file}) do
+    case FileSystem.File.read(file) do
+      {:ok, content} -> {:ok, content}
+      {:error, message} -> {:error, "failed to read #{file.path}, reason: #{message}"}
+    end
+  end
 
-  defp session_id_by_url(url) do
+  defp load_content({:url, url}) do
+    url
+    |> Livebook.ContentLoader.rewrite_url()
+    |> Livebook.ContentLoader.fetch_content()
+  end
+
+  defp file_and_notebook(fork?, origin, notebook)
+  defp file_and_notebook(false, {:file, file}, notebook), do: {file, notebook}
+  defp file_and_notebook(true, {:file, _file}, notebook), do: {nil, Notebook.forked(notebook)}
+  defp file_and_notebook(_fork?, _origin, notebook), do: {nil, notebook}
+
+  defp session_id_by_location(location) do
     session_summaries = SessionSupervisor.get_session_summaries()
 
-    session_with_path =
+    session_with_file =
       Enum.find(session_summaries, fn summary ->
-        summary.path && "file://" <> summary.path == url
+        summary.file && {:file, summary.file} == location
       end)
 
-    # A session associated with the given path takes
-    # precedence over sessions originating from this path
-    if session_with_path do
-      {:ok, session_with_path.session_id}
+    # A session associated with the given file takes
+    # precedence over sessions originating from this file
+    if session_with_file do
+      {:ok, session_with_file.session_id}
     else
       session_summaries
-      |> Enum.filter(fn summary -> summary.origin_url == url end)
+      |> Enum.filter(fn summary -> summary.origin == location end)
       |> case do
         [summary] -> {:ok, summary.session_id}
         [] -> {:error, :none}
@@ -1075,8 +1099,9 @@ defmodule LivebookWeb.SessionLive do
   # have to traverse the whole template tree and no diff is sent to the client.
   defp data_to_view(data) do
     %{
-      path: data.path,
+      file: data.file,
       persist_outputs: data.notebook.persist_outputs,
+      autosave_interval_s: data.notebook.autosave_interval_s,
       dirty: data.dirty,
       runtime: data.runtime,
       global_evaluation_status: global_evaluation_status(data),

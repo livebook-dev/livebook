@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionControllerTest do
   use LivebookWeb.ConnCase, async: true
 
-  alias Livebook.{SessionSupervisor, Session, Notebook}
+  alias Livebook.{SessionSupervisor, Session, Notebook, FileSystem}
 
   describe "show_image" do
     test "returns not found when the given session does not exist", %{conn: conn} do
@@ -17,7 +17,7 @@ defmodule LivebookWeb.SessionControllerTest do
       conn = get(conn, Routes.session_path(conn, :show_image, session_id, "nonexistent.jpg"))
 
       assert conn.status == 404
-      assert conn.resp_body == "Not found"
+      assert conn.resp_body == "No such file or directory"
 
       SessionSupervisor.close_session(session_id)
     end
@@ -25,8 +25,7 @@ defmodule LivebookWeb.SessionControllerTest do
     test "returns the image when it does exist", %{conn: conn} do
       {:ok, session_id} = SessionSupervisor.create_session()
       %{images_dir: images_dir} = Session.get_summary(session_id)
-      File.mkdir_p!(images_dir)
-      images_dir |> Path.join("test.jpg") |> File.touch!()
+      :ok = FileSystem.File.resolve(images_dir, "test.jpg") |> FileSystem.File.write("")
 
       conn = get(conn, Routes.session_path(conn, :show_image, session_id, "test.jpg"))
 

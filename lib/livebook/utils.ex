@@ -157,6 +157,26 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Changes the first letter in the given string to lower case.
+
+  ## Examples
+
+      iex> Livebook.Utils.downcase_first("Sippin tea")
+      "sippin tea"
+
+      iex> Livebook.Utils.downcase_first("Short URL")
+      "short URL"
+
+      iex> Livebook.Utils.downcase_first("")
+      ""
+  """
+  @spec downcase_first(String.t()) :: String.t()
+  def downcase_first(string) do
+    {first, rest} = String.split_at(string, 1)
+    String.downcase(first) <> rest
+  end
+
+  @doc """
   Expands a relative path in terms of the given URL.
 
   ## Examples

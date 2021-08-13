@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{SessionSupervisor, Session, Delta, Runtime, Users}
+  alias Livebook.{SessionSupervisor, Session, Delta, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
@@ -204,11 +204,13 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  @tag :tmp_dir
   describe "persistence settings" do
+    @tag :tmp_dir
     test "saving to file shows the newly created file",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/file")
+
+      assert view = find_live_child(view, "persistence")
 
       path = Path.join(tmp_dir, "notebook.livemd")
 
@@ -229,12 +231,22 @@ defmodule LivebookWeb.SessionLiveTest do
              |> has_element?()
     end
 
-    test "changing output persistence updates data", %{conn: conn, session_id: session_id} do
+    @tag :tmp_dir
+    test "changing output persistence updates data",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/file")
+
+      assert view = find_live_child(view, "persistence")
+
+      path = Path.join(tmp_dir, "notebook.livemd")
 
       view
       |> element("button", "Save to file")
       |> render_click()
+
+      view
+      |> element(~s{form[phx-change="set_path"]})
+      |> render_change(%{path: path})
 
       view
       |> element(~s{form[phx-change="set_options"]})
@@ -459,10 +471,11 @@ defmodule LivebookWeb.SessionLiveTest do
     @tag :tmp_dir
     test "renders an error message when the relative notebook does not exist",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
-      index_path = Path.join(tmp_dir, "index.livemd")
-      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
-      Session.set_path(session_id, index_path)
+      Session.set_file(session_id, index_file)
       wait_for_session_update(session_id)
 
       session_path = "/sessions/#{session_id}"
@@ -473,19 +486,20 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = follow_redirect(result, conn)
 
       assert render(view) =~
-               "Cannot navigate, failed to read #{notebook_path}, reason: no such file or directory"
+               "Cannot navigate, failed to read #{notebook_file.path}, reason: no such file or directory"
     end
 
     @tag :tmp_dir
     test "opens a relative notebook if it exists",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
-      index_path = Path.join(tmp_dir, "index.livemd")
-      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
-      Session.set_path(session_id, index_path)
+      Session.set_file(session_id, index_file)
       wait_for_session_update(session_id)
 
-      File.write!(notebook_path, "# Sibling notebook")
+      :ok = FileSystem.File.write(notebook_file, "# Sibling notebook")
 
       assert {:error, {:live_redirect, %{to: new_session_path}}} =
                result = live(conn, "/sessions/#{session_id}/notebook.livemd")
@@ -495,18 +509,19 @@ defmodule LivebookWeb.SessionLiveTest do
 
       "/sessions/" <> session_id = new_session_path
       data = Session.get_data(session_id)
-      assert data.path == notebook_path
+      assert data.file == notebook_file
     end
 
     @tag :tmp_dir
     test "if the current session has no path, forks the relative notebook",
          %{conn: conn, tmp_dir: tmp_dir} do
-      index_path = Path.join(tmp_dir, "index.livemd")
-      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
-      {:ok, session_id} = SessionSupervisor.create_session(origin_url: "file://" <> index_path)
+      {:ok, session_id} = SessionSupervisor.create_session(origin: {:file, index_file})
 
-      File.write!(notebook_path, "# Sibling notebook")
+      :ok = FileSystem.File.write(notebook_file, "# Sibling notebook")
 
       assert {:error, {:live_redirect, %{to: new_session_path}}} =
                result = live(conn, "/sessions/#{session_id}/notebook.livemd")
@@ -516,20 +531,21 @@ defmodule LivebookWeb.SessionLiveTest do
 
       "/sessions/" <> session_id = new_session_path
       data = Session.get_data(session_id)
-      assert data.path == nil
-      assert data.origin_url == "file://" <> notebook_path
+      assert data.file == nil
+      assert data.origin == {:file, notebook_file}
     end
 
     @tag :tmp_dir
     test "if the notebook is already open, redirects to the session",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
-      index_path = Path.join(tmp_dir, "index.livemd")
-      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      index_file = FileSystem.File.resolve(tmp_dir, "index.livemd")
+      notebook_file = FileSystem.File.resolve(tmp_dir, "notebook.livemd")
 
-      Session.set_path(session_id, index_path)
+      Session.set_file(session_id, index_file)
       wait_for_session_update(session_id)
 
-      File.write!(notebook_path, "# Sibling notebook")
+      :ok = FileSystem.File.write(notebook_file, "# Sibling notebook")
 
       assert {:error, {:live_redirect, %{to: session_path}}} =
                live(conn, "/sessions/#{session_id}/notebook.livemd")
@@ -540,15 +556,15 @@ defmodule LivebookWeb.SessionLiveTest do
 
     @tag :tmp_dir
     test "handles nested paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
-      parent_path = Path.join(tmp_dir, "parent.livemd")
-      child_dir = Path.join(tmp_dir, "dir")
-      child_path = Path.join(child_dir, "child.livemd")
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      parent_file = FileSystem.File.resolve(tmp_dir, "parent.livemd")
+      child_dir = FileSystem.File.resolve(tmp_dir, "dir/")
+      child_file = FileSystem.File.resolve(child_dir, "child.livemd")
 
-      Session.set_path(session_id, parent_path)
+      Session.set_file(session_id, parent_file)
       wait_for_session_update(session_id)
 
-      File.mkdir!(child_dir)
-      File.write!(child_path, "# Child notebook")
+      :ok = FileSystem.File.write(child_file, "# Child notebook")
 
       {:ok, view, _} =
         conn
@@ -560,15 +576,15 @@ defmodule LivebookWeb.SessionLiveTest do
 
     @tag :tmp_dir
     test "handles parent paths", %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
-      parent_path = Path.join(tmp_dir, "parent.livemd")
-      child_dir = Path.join(tmp_dir, "dir")
-      child_path = Path.join(child_dir, "child.livemd")
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      parent_file = FileSystem.File.resolve(tmp_dir, "parent.livemd")
+      child_dir = FileSystem.File.resolve(tmp_dir, "dir/")
+      child_file = FileSystem.File.resolve(child_dir, "child.livemd")
 
-      File.mkdir!(child_dir)
-      Session.set_path(session_id, child_path)
+      Session.set_file(session_id, child_file)
       wait_for_session_update(session_id)
 
-      File.write!(parent_path, "# Parent notebook")
+      :ok = FileSystem.File.write(parent_file, "# Parent notebook")
 
       {:ok, view, _} =
         conn
@@ -588,7 +604,7 @@ defmodule LivebookWeb.SessionLiveTest do
       end)
 
       index_url = url(bypass.port) <> "/index.livemd"
-      {:ok, session_id} = SessionSupervisor.create_session(origin_url: index_url)
+      {:ok, session_id} = SessionSupervisor.create_session(origin: {:url, index_url})
 
       {:ok, view, _} =
         conn
@@ -607,7 +623,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       index_url = url(bypass.port) <> "/index.livemd"
 
-      {:ok, session_id} = SessionSupervisor.create_session(origin_url: index_url)
+      {:ok, session_id} = SessionSupervisor.create_session(origin: {:url, index_url})
 
       session_path = "/sessions/#{session_id}"
 
@@ -623,8 +639,8 @@ defmodule LivebookWeb.SessionLiveTest do
       index_url = "http://example.com/#{test}/index.livemd"
       notebook_url = "http://example.com/#{test}/notebook.livemd"
 
-      {:ok, index_session_id} = SessionSupervisor.create_session(origin_url: index_url)
-      {:ok, notebook_session_id} = SessionSupervisor.create_session(origin_url: notebook_url)
+      {:ok, index_session_id} = SessionSupervisor.create_session(origin: {:url, index_url})
+      {:ok, notebook_session_id} = SessionSupervisor.create_session(origin: {:url, notebook_url})
 
       notebook_session_path = "/sessions/#{notebook_session_id}"
 
@@ -637,9 +653,13 @@ defmodule LivebookWeb.SessionLiveTest do
       index_url = "http://example.com/#{test}/index.livemd"
       notebook_url = "http://example.com/#{test}/notebook.livemd"
 
-      {:ok, index_session_id} = SessionSupervisor.create_session(origin_url: index_url)
-      {:ok, _notebook_session_id1} = SessionSupervisor.create_session(origin_url: notebook_url)
-      {:ok, _notebook_session_id2} = SessionSupervisor.create_session(origin_url: notebook_url)
+      {:ok, index_session_id} = SessionSupervisor.create_session(origin: {:url, index_url})
+
+      {:ok, _notebook_session_id1} =
+        SessionSupervisor.create_session(origin: {:url, notebook_url})
+
+      {:ok, _notebook_session_id2} =
+        SessionSupervisor.create_session(origin: {:url, notebook_url})
 
       index_session_path = "/sessions/#{index_session_id}"
 

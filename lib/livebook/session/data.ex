@@ -16,8 +16,8 @@ defmodule Livebook.Session.Data do
 
   defstruct [
     :notebook,
-    :origin_url,
-    :path,
+    :origin,
+    :file,
     :dirty,
     :section_infos,
     :cell_infos,
@@ -27,15 +27,15 @@ defmodule Livebook.Session.Data do
     :users_map
   ]
 
-  alias Livebook.{Notebook, Delta, Runtime, JSInterop}
+  alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
   alias Livebook.Utils.Graph
 
   @type t :: %__MODULE__{
           notebook: Notebook.t(),
-          origin_url: String.t() | nil,
-          path: nil | String.t(),
+          origin: String.t() | nil,
+          file: FileSystem.File.t() | nil,
           dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
           cell_infos: %{Cell.id() => cell_info()},
@@ -121,7 +121,7 @@ defmodule Livebook.Session.Data do
           | {:queue_cell_evaluation, pid(), Cell.id()}
           | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
-          | {:add_cell_evaluation_response, pid(), Cell.id(), term()}
+          | {:add_cell_evaluation_response, pid(), Cell.id(), term(), metadata :: map()}
           | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_cell_id :: Cell.id()}
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
@@ -135,7 +135,8 @@ defmodule Livebook.Session.Data do
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
           | {:set_cell_attributes, pid(), Cell.id(), map()}
           | {:set_runtime, pid(), Runtime.t() | nil}
-          | {:set_path, pid(), String.t() | nil}
+          | {:set_file, pid(), FileSystem.File.t() | nil}
+          | {:set_autosave_interval, pid(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, pid()}
 
   @type action ::
@@ -152,8 +153,8 @@ defmodule Livebook.Session.Data do
   def new(notebook \\ Notebook.new()) do
     %__MODULE__{
       notebook: notebook,
-      origin_url: nil,
-      path: nil,
+      origin: nil,
+      file: nil,
       dirty: false,
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
@@ -560,10 +561,10 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_path, _client_pid, path}) do
+  def apply_operation(data, {:set_file, _client_pid, file}) do
     data
     |> with_actions()
-    |> set!(path: path)
+    |> set!(file: file)
     |> set_dirty()
     |> wrap_ok()
   end

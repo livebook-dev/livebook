@@ -1,11 +1,11 @@
 defmodule LivebookWeb.SessionLive.CellUploadComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Session
+  alias Livebook.{Session, FileSystem}
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, name: "")}
+    {:ok, assign(socket, name: "", error_message: nil)}
   end
 
   @impl true
@@ -18,6 +18,11 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       <%= if @uploads.cell_image.errors != [] do %>
         <div class="error-box">
           Invalid image file. The image must be either GIF, JPEG, or PNG and cannot exceed 5MB in size.
+        </div>
+      <% end %>
+      <%= if @error_message do %>
+        <div class="error-box">
+          <%= @error_message %>
         </div>
       <% end %>
       <%= for entry <- @uploads.cell_image.entries do %>
@@ -67,22 +72,28 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
 
   def handle_event("save", %{"name" => name}, socket) do
     %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
-    File.mkdir_p!(images_dir)
 
-    [filename] =
-      consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
-        ext = Path.extname(entry.client_name)
-        filename = name <> ext
-        dest = Path.join(images_dir, filename)
-        File.cp!(path, dest)
-        filename
-      end)
+    consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
+      upload_file = FileSystem.File.local(path)
+      ext = Path.extname(entry.client_name)
+      filename = name <> ext
+      destination_file = FileSystem.File.resolve(images_dir, filename)
 
-    src_path = "images/#{filename}"
+      with :ok <- FileSystem.File.copy(upload_file, destination_file) do
+        {:ok, filename}
+      end
+    end)
+    |> case do
+      [{:ok, filename}] ->
+        src_path = "images/#{filename}"
 
-    {:noreply,
-     socket
-     |> push_patch(to: socket.assigns.return_to)
-     |> push_event("cell_upload", %{cell_id: socket.assigns.cell.id, url: src_path})}
+        {:noreply,
+         socket
+         |> push_patch(to: socket.assigns.return_to)
+         |> push_event("cell_upload", %{cell_id: socket.assigns.cell.id, url: src_path})}
+
+      [{:error, message}] ->
+        {:noreply, assign(socket, error_message: message)}
+    end
   end
 end

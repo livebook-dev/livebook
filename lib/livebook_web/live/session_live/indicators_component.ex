@@ -5,14 +5,23 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col space-y-2 items-center" data-element="notebook-indicators">
-      <%= if @path do %>
+      <%= if @file do %>
         <%= if @dirty do %>
-          <span class="tooltip left" aria-label="Autosave pending">
-            <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-                  class: "icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50" do %>
-              <.remix_icon icon="save-line" class="text-xl text-blue-500" />
-            <% end %>
-          </span>
+          <%= if @autosave_interval_s do %>
+            <span class="tooltip left" aria-label="Autosave pending">
+              <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
+                    class: "icon-button icon-outlined-button border-blue-400 hover:bg-blue-50 focus:bg-blue-50" do %>
+                <.remix_icon icon="save-line" class="text-xl text-blue-500" />
+              <% end %>
+            </span>
+          <% else %>
+            <span class="tooltip left" aria-label="No autosave configured, make sure to save manually">
+              <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
+                    class: "icon-button icon-outlined-button border-yellow-200 hover:bg-red-50 focus:bg-red-50" do %>
+                <.remix_icon icon="save-line" class="text-xl text-yellow-300" />
+              <% end %>
+            </span>
+          <% end %>
         <% else %>
           <span class="tooltip left" aria-label="Notebook saved">
             <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),

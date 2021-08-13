@@ -6,8 +6,6 @@ config :livebook, LivebookWeb.Endpoint,
     Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE") ||
       Base.encode64(:crypto.strong_rand_bytes(48))
 
-config :livebook, :root_path, Livebook.Config.root_path!("LIVEBOOK_ROOT_PATH")
-
 if password = Livebook.Config.password!("LIVEBOOK_PASSWORD") do
   config :livebook, authentication_mode: :password, password: password
 else
@@ -32,3 +30,10 @@ config :livebook,
        :default_runtime,
        Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
          {Livebook.Runtime.ElixirStandalone, []}
+
+root_path =
+  Livebook.Config.root_path!("LIVEBOOK_ROOT_PATH")
+  |> Livebook.FileSystem.Utils.ensure_dir_path()
+
+local_file_system = Livebook.FileSystem.Local.new(default_path: root_path)
+config :livebook, :file_systems, [local_file_system]

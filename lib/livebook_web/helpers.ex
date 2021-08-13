@@ -10,18 +10,33 @@ defmodule LivebookWeb.Helpers do
   the URL when the modal is closed.
   """
   def live_modal(component, opts) do
+    {modal_opts, opts} = build_modal_opts(opts)
+    modal_opts = [{:render_spec, {:component, component, opts}} | modal_opts]
+    live_component(LivebookWeb.ModalComponent, modal_opts)
+  end
+
+  @doc """
+  Renders a live view inside the `Livebook.ModalComponent` component.
+
+  See `live_modal/2` for more details.
+  """
+  def live_modal(socket, live_view, opts) do
+    {modal_opts, opts} = build_modal_opts(opts)
+    modal_opts = [{:render_spec, {:live_view, socket, live_view, opts}} | modal_opts]
+    live_component(LivebookWeb.ModalComponent, modal_opts)
+  end
+
+  defp build_modal_opts(opts) do
     path = Keyword.fetch!(opts, :return_to)
-    modal_class = Keyword.get(opts, :modal_class)
+    {modal_class, opts} = Keyword.pop(opts, :modal_class)
 
     modal_opts = [
       id: "modal",
       return_to: path,
-      modal_class: modal_class,
-      component: component,
-      opts: opts
+      modal_class: modal_class
     ]
 
-    live_component(LivebookWeb.ModalComponent, modal_opts)
+    {modal_opts, opts}
   end
 
   @doc """
@@ -177,10 +192,11 @@ defmodule LivebookWeb.Helpers do
     assigns =
       assigns
       |> assign_new(:class, fn -> "" end)
-      |> assign(:attrs, assigns_to_attributes(assigns, [:active, :class]))
+      |> assign_new(:disabled, fn -> assigns.active end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:active, :class, :disabled]))
 
     ~H"""
-    <button class={"choice-button #{if(@active, do: "active")} #{@class}"} {@attrs}>
+    <button class={"choice-button #{if(@active, do: "active")} #{@class}"} disabled={@disabled} {@attrs}>
       <%= render_block(@inner_block) %>
     </button>
     """
@@ -204,6 +220,26 @@ defmodule LivebookWeb.Helpers do
         id={"#{@source_id}-highlight"}
         phx-hook="Highlight"
         data-language={@language}><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders text with a tiny label.
+
+  ## Examples
+
+      <.labeled_text label="Name" text="Sherlock Holmes" />
+  """
+  def labeled_text(assigns) do
+    ~H"""
+    <div class="flex flex-col space-y-1">
+      <span class="text-xs text-gray-500">
+        <%= @label %>
+      </span>
+      <span class="text-gray-800 text-sm font-semibold">
+        <%= @text %>
+      </span>
     </div>
     """
   end

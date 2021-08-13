@@ -69,6 +69,12 @@
     @apply rounded-full border-2;
   }
 
+  /* Links */
+
+  .link {
+    @apply font-medium underline text-gray-900 hover:no-underline;
+  }
+
   /* Form fields */
 
   .input {
@@ -185,8 +191,13 @@
   /* Toggleable menu */
 
   .menu {
-    @apply absolute right-0 z-30 rounded-lg bg-white flex flex-col py-2;
+    @apply absolute right-0 z-30 rounded-lg bg-white flex flex-col py-2 mt-1;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
+  }
+
+  .menu.left {
+    right: auto;
+    @apply left-0;
   }
 
   .menu__item {

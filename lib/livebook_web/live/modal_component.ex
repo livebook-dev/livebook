@@ -27,7 +27,12 @@ defmodule LivebookWeb.ModalComponent do
             <.remix_icon icon="close-line" class="text-2xl" />
           <% end %>
 
-          <%= live_component @component, @opts %>
+          <%=
+            case @render_spec do
+              {:component, component, opts} -> live_component(component, opts)
+              {:live_view, socket, live_view, opts} -> live_render(socket, live_view, opts)
+            end
+          %>
         </div>
       </div>
     </div>
