@@ -91,15 +91,28 @@ defmodule Livebook.FileSystem.Utils do
 
     subject =
       if Path.basename(subject) in [".", ".."] do
-        FileSystem.Utils.ensure_dir_path(subject)
+        ensure_dir_path(subject)
       else
         subject
       end
 
     absolute_path? = String.starts_with?(subject, "/")
     path = if absolute_path?, do: subject, else: dir_path <> subject
-    path |> String.split("/") |> expand_parts([]) |> Enum.join("/")
+
+    path
+    |> String.split("/")
+    |> remove_in_middle("")
+    |> expand_parts([])
+    |> Enum.join("/")
   end
+
+  defp remove_in_middle([], _elem), do: []
+  defp remove_in_middle([head], _elem), do: [head]
+  defp remove_in_middle([head | tail], elem), do: remove_in_middle(tail, elem, [head])
+
+  defp remove_in_middle([head], _elem, acc), do: Enum.reverse([head | acc])
+  defp remove_in_middle([elem | tail], elem, acc), do: remove_in_middle(tail, elem, acc)
+  defp remove_in_middle([head | tail], elem, acc), do: remove_in_middle(tail, elem, [head | acc])
 
   defp expand_parts([], acc), do: Enum.reverse(acc)
   defp expand_parts(["." | parts], acc), do: expand_parts(parts, acc)

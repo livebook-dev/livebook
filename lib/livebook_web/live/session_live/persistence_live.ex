@@ -1,4 +1,9 @@
 defmodule LivebookWeb.SessionLive.PersistenceLive do
+  # TODO: rewrite this live view as a component, once live_view
+  # has a unified way of sending events programatically from a child
+  # component to parent live view or component. Currently we send an
+  # event to self() from FileSelectComponent and use handle_info in
+  # the parent live view.
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, SessionSupervisor, LiveMarkdown, FileSystem}

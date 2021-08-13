@@ -507,7 +507,7 @@ defmodule Livebook.FileSystem.LocalTest do
       assert "/nested/" = FileSystem.resolve_path(file_system, "/dir/", "/nested/")
 
       assert "/nested/file.txt" =
-               FileSystem.resolve_path(file_system, "/dir/", "/nested/other/../file.txt")
+               FileSystem.resolve_path(file_system, "/dir/", "///nested///other/..///file.txt")
     end
   end
 end
