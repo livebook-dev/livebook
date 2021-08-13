@@ -204,8 +204,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  @tag :tmp_dir
   describe "persistence settings" do
+    @tag :tmp_dir
     test "saving to file shows the newly created file",
          %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/file")
@@ -231,14 +231,22 @@ defmodule LivebookWeb.SessionLiveTest do
              |> has_element?()
     end
 
-    test "changing output persistence updates data", %{conn: conn, session_id: session_id} do
+    @tag :tmp_dir
+    test "changing output persistence updates data",
+         %{conn: conn, session_id: session_id, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/sessions/#{session_id}/settings/file")
 
       assert view = find_live_child(view, "persistence")
 
+      path = Path.join(tmp_dir, "notebook.livemd")
+
       view
       |> element("button", "Save to file")
       |> render_click()
+
+      view
+      |> element(~s{form[phx-change="set_path"]})
+      |> render_change(%{path: path})
 
       view
       |> element(~s{form[phx-change="set_options"]})
