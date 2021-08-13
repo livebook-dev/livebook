@@ -87,6 +87,8 @@ defmodule Livebook.FileSystem.Utils do
   """
   @spec resolve_unix_like_path(FileSystem.path(), String.t()) :: FileSystem.t()
   def resolve_unix_like_path(dir_path, subject) do
+    assert_dir_path!(dir_path)
+
     subject =
       if Path.basename(subject) in [".", ".."] do
         FileSystem.Utils.ensure_dir_path(subject)

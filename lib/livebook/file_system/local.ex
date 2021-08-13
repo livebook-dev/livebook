@@ -170,16 +170,20 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
     end
   end
 
-  def resolve_path(_file_system, dir_path, ""), do: dir_path
-
   def resolve_path(_file_system, dir_path, subject) do
-    dir? = FileSystem.Utils.dir_path?(subject) or Path.basename(subject) in [".", ".."]
-    expanded_path = Path.expand(subject, dir_path)
+    FileSystem.Utils.assert_dir_path!(dir_path)
 
-    if dir? do
-      FileSystem.Utils.ensure_dir_path(expanded_path)
+    if subject == "" do
+      dir_path
     else
-      expanded_path
+      dir? = FileSystem.Utils.dir_path?(subject) or Path.basename(subject) in [".", ".."]
+      expanded_path = Path.expand(subject, dir_path)
+
+      if dir? do
+        FileSystem.Utils.ensure_dir_path(expanded_path)
+      else
+        expanded_path
+      end
     end
   end
 end
