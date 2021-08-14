@@ -1,45 +1,18 @@
-import marked from "marked";
 import morphdom from "morphdom";
-import DOMPurify from "dompurify";
-import katex from "katex";
+
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import remarkRehype from "remark-rehype";
+import rehypeRaw from "rehype-raw";
+import rehypeKatex from "rehype-katex";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeStringify from "rehype-stringify";
+
+import { visit } from "unist-util-visit";
+
 import { highlight } from "./live_editor/monaco";
-
-// Custom renderer overrides
-const renderer = new marked.Renderer();
-renderer.link = function (href, title, text) {
-  // Browser normalizes URLs with .. so we use a __parent__ modifier
-  // instead and handle it on the server
-  href = href
-    .split("/")
-    .map((part) => (part === ".." ? "__parent__" : part))
-    .join("/");
-
-  return marked.Renderer.prototype.link.call(this, href, title, text);
-};
-
-marked.setOptions({
-  renderer,
-  // Reuse Monaco highlighter for Markdown code blocks
-  highlight: (code, lang, callback) => {
-    highlight(code, lang)
-      .then((html) => callback(null, html))
-      .catch((error) => callback(error, null));
-  },
-});
-
-// Modify external links, so that they open in a new tab.
-// See https://github.com/cure53/DOMPurify/tree/main/demos#hook-to-open-all-links-in-a-new-window-link
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (node.tagName.toLowerCase() === "a") {
-    if (node.host !== window.location.host) {
-      node.setAttribute("target", "_blank");
-      node.setAttribute("rel", "noreferrer noopener");
-    } else {
-      node.setAttribute("data-phx-link", "redirect");
-      node.setAttribute("data-phx-link-state", "push");
-    }
-  }
-});
 
 /**
  * Renders markdown content in the given container.
@@ -62,58 +35,148 @@ class Markdown {
   __render() {
     this.__getHtml().then((html) => {
       // Wrap the HTML in another element, so that we
-      // can use morphdom's childrenOnly option.
+      // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
-
       morphdom(this.container, wrappedHtml, { childrenOnly: true });
     });
   }
 
   __getHtml() {
-    return new Promise((resolve, reject) => {
-      // Marked requires a trailing slash in the base URL
-      const opts = { baseUrl: this.baseUrl + "/" };
-
-      // Render math formulas using KaTeX.
-      // The resulting <span> tags will pass through
-      // marked.js and sanitization unchanged.
-      //
-      // We render math before anything else, because passing
-      // TeX through markdown renderer may have undesired
-      // effects like rendering \\ as \.
-      const contentWithRenderedMath = this.__renderMathInString(this.content);
-
-      marked(contentWithRenderedMath, opts, (error, html) => {
-        const sanitizedHtml = DOMPurify.sanitize(html);
-
-        if (sanitizedHtml) {
-          resolve(sanitizedHtml);
-        } else {
-          resolve(`
-            <div class="text-gray-300">
-              ${this.emptyText}
-            </div>
-          `);
-        }
-      });
-    });
-  }
-
-  // Replaces TeX formulas in string with rendered HTML using KaTeX.
-  __renderMathInString(string) {
-    return string.replace(
-      /(\${1,2})([\s\S]*?)\1/g,
-      (match, delimiter, math) => {
-        const displayMode = delimiter === "$$";
-
-        return katex.renderToString(math.trim(), {
-          displayMode,
-          throwOnError: false,
-          errorColor: "inherit",
-        });
-      }
+    return (
+      unified()
+        .use(remarkParse)
+        .use(remarkGfm)
+        .use(remarkMath)
+        .use(remarkSyntaxHiglight, { highlight })
+        .use(remarkExpandUrls, { baseUrl: this.baseUrl })
+        // We keep the HTML nodes, parse with rehype-raw and then sanitize
+        .use(remarkRehype, { allowDangerousHtml: true })
+        .use(rehypeRaw)
+        .use(rehypeKatex)
+        .use(rehypeSanitize, sanitizeSchema())
+        .use(rehypeExternalLinks)
+        .use(rehypeStringify)
+        .process(this.content)
+        .then((file) => String(file))
+        .catch((error) => {
+          console.error(`Failed to render markdown, reason: ${error.message}`);
+        })
+        .then((html) => {
+          if (html) {
+            return html;
+          } else {
+            return `
+              <div class="text-gray-300">
+                ${this.emptyText}
+              </div>
+            `;
+          }
+        })
     );
   }
 }
 
 export default Markdown;
+
+// Plugins
+
+function sanitizeSchema() {
+  // Allow class ane style attributes on span tags for
+  // syntax highlighting and KaTeX tags
+  return {
+    ...defaultSchema,
+    attributes: {
+      ...defaultSchema.attributes,
+      span: [...(defaultSchema.attributes.span || []), "className", "style"],
+    },
+  };
+}
+
+// Highlights code snippets with the given function (possibly asynchronous)
+function remarkSyntaxHiglight(options) {
+  return (ast) => {
+    const promises = [];
+
+    visit(ast, "code", (node) => {
+      if (node.lang) {
+        function updateNode(html) {
+          node.type = "html";
+          node.value = `<pre><code>${html}</code></pre>`;
+        }
+
+        const result = options.highlight(node.value, node.lang);
+
+        if (result && typeof result.then === "function") {
+          const promise = Promise.resolve(result).then(updateNode);
+          promises.push(promise);
+        } else {
+          updateNode(result);
+        }
+      }
+    });
+
+    return Promise.all(promises).then(() => null);
+  };
+}
+
+// Expands relative URLs against the given base url
+// and deals with ".." in URLs
+function remarkExpandUrls(options) {
+  return (ast) => {
+    if (options.baseUrl) {
+      visit(ast, "link", (node) => {
+        if (node.url && !isAbsoluteUrl(node.url)) {
+          node.url = urlAppend(options.baseUrl, node.url);
+        }
+      });
+
+      visit(ast, "image", (node) => {
+        if (node.url && !isAbsoluteUrl(node.url)) {
+          node.url = urlAppend(options.baseUrl, node.url);
+        }
+      });
+    }
+
+    // Browser normalizes URLs with ".." so we use a "__parent__"
+    // modifier instead and handle it on the server
+    visit(ast, "link", (node) => {
+      if (node.url) {
+        node.url = node.url
+          .split("/")
+          .map((part) => (part === ".." ? "__parent__" : part))
+          .join("/");
+      }
+    });
+  };
+}
+
+// Modifies external links, so that they open in a new tab
+function rehypeExternalLinks(options) {
+  return (ast) => {
+    visit(ast, "element", (node) => {
+      if (node.properties && node.properties.href) {
+        const url = node.properties.href;
+
+        if (isInternalUrl(url)) {
+          node.properties["data-phx-link"] = "redirect";
+          node.properties["data-phx-link-state"] = "push";
+        } else {
+          node.properties.target = "_blank";
+          node.properties.rel = "noreferrer noopener";
+        }
+      }
+    });
+  };
+}
+
+function isAbsoluteUrl(url) {
+  return url.startsWith("http") || url.startsWith("/");
+}
+
+function isInternalUrl(url) {
+  return url.startsWith("/") || url.startsWith(window.location.origin);
+}
+
+function urlAppend(url, relativePath) {
+  return url.replace(/\/$/, "") + "/" + relativePath;
+}
