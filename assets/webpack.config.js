@@ -1,5 +1,6 @@
 const path = require("path");
 const glob = require("glob");
+const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
@@ -44,6 +45,10 @@ module.exports = (env, options) => {
       ],
     },
     plugins: [
+      // Polyfill the global "process" variable required by "remark" internals
+      new webpack.ProvidePlugin({
+        process: "process/browser",
+      }),
       new MiniCssExtractPlugin({ filename: "../css/app.css" }),
       new MonacoWebpackPlugin({
         languages: ["markdown", "elixir"],
@@ -52,11 +57,13 @@ module.exports = (env, options) => {
     optimization: {
       minimizer: ["...", new CssMinimizerPlugin()],
     },
-    // The crypto-js package relies no the crypto module, but it has
-    // fine support in browsers, so we don't provide polyfills
     resolve: {
       fallback: {
+        // The crypto-js package relies no the crypto module, but it has
+        // fine support in browsers, so we don't provide polyfills
         crypto: false,
+        // Polyfill the assert module required by "remark" internals
+        assert: require.resolve("assert"),
       },
     },
   };
