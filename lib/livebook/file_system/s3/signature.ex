@@ -158,8 +158,7 @@ defmodule Livebook.FileSystem.S3.Signature do
   # Copied from https://github.com/ex-aws/ex_aws/blob/623478ed321ffc6c07fdd7236a2f0e03f1cbd517/lib/ex_aws/request/url.ex#L108
   defp uri_encode(url), do: URI.encode(url, &valid_path_char?/1)
 
-  # Space character
-  defp valid_path_char?(?\ ), do: false
+  defp valid_path_char?(?\s), do: false
   defp valid_path_char?(?/), do: true
 
   defp valid_path_char?(c) do
