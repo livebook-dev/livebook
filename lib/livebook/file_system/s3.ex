@@ -345,7 +345,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
         region_from_uri(file_system.bucket_url),
         "s3",
         now,
-        to_string(method),
+        Atom.to_string(method),
         url,
         headers,
         body || "",
