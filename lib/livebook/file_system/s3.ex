@@ -202,7 +202,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp get_object(file_system, key) do
-    case request(file_system, :get, "/" <> key) do
+    case request(file_system, :get, "/" <> encode_key(key)) do
       {:ok, 200, _headers, body} -> {:ok, body}
       {:ok, 404, _headers, _body} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
@@ -210,14 +210,14 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp put_object(file_system, key, content) do
-    case request(file_system, :put, "/" <> key, body: content) |> encode() do
+    case request(file_system, :put, "/" <> encode_key(key), body: content) |> encode() do
       {:ok, 200, _headers, _body} -> :ok
       other -> request_response_to_error(other)
     end
   end
 
   defp head_object(file_system, key) do
-    case request(file_system, :head, "/" <> key) do
+    case request(file_system, :head, "/" <> encode_key(key)) do
       {:ok, 200, headers, _body} ->
         {:ok, etag} = HTTP.fetch_header(headers, "etag")
         {:ok, %{etag: etag}}
@@ -231,11 +231,12 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp copy_object(file_system, bucket, source_key, destination_key) do
-    copy_source = bucket <> "/" <> source_key
+    copy_source = bucket <> "/" <> encode_key(source_key)
 
     headers = [{"x-amz-copy-source", copy_source}]
 
-    case request(file_system, :put, "/" <> destination_key, headers: headers) |> encode() do
+    case request(file_system, :put, "/" <> encode_key(destination_key), headers: headers)
+         |> encode() do
       {:ok, 200, _headers, _body} -> :ok
       {:ok, 404, _headers, _body} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
@@ -243,7 +244,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp delete_object(file_system, key) do
-    case request(file_system, :delete, "/" <> key) |> encode() do
+    case request(file_system, :delete, "/" <> encode_key(key)) |> encode() do
       {:ok, 204, _headers, _body} -> :ok
       {:ok, 404, _headers, _body} -> :ok
       other -> request_response_to_error(other)
@@ -287,6 +288,13 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     end
   end
 
+  defp encode_key(key) do
+    key
+    |> String.split("/")
+    |> Enum.map(fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
+    |> Enum.join("/")
+  end
+
   defp request_response_to_error(error)
 
   defp request_response_to_error({:ok, 403, _headers, %{"Error" => %{"Message" => message}}}) do
@@ -326,19 +334,23 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
     url = file_system.bucket_url <> path <> "?" <> URI.encode_query(query)
 
-    credentials = %{
-      service: "s3",
-      access_key_id: file_system.access_key_id,
-      secret_access_key: file_system.secret_access_key,
-      region: region_from_uri(file_system.bucket_url)
-    }
-
-    now = NaiveDateTime.utc_now()
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.to_erl()
 
     headers = [{"Host", host} | headers]
 
     headers =
-      Livebook.FileSystem.S3.Signature.sign_v4(credentials, now, method, url, headers, body || "")
+      :aws_signature.sign_v4(
+        file_system.access_key_id,
+        file_system.secret_access_key,
+        region_from_uri(file_system.bucket_url),
+        "s3",
+        now,
+        Atom.to_string(method),
+        url,
+        headers,
+        body || "",
+        uri_encode_path: false
+      )
 
     body = body && {"application/octet-stream", body}
     HTTP.request(method, url, headers: headers, body: body)
