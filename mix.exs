@@ -53,7 +53,8 @@ defmodule Livebook.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:bypass, "~> 2.1", only: :test},
-      {:castore, "~> 0.1.0"}
+      {:castore, "~> 0.1.0"},
+      {:aws_signature, "~> 0.1.0"}
     ]
   end
 
