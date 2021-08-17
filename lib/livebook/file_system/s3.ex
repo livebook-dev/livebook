@@ -202,7 +202,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp get_object(file_system, key) do
-    case request(file_system, :get, "/" <> escape_key(key)) do
+    case request(file_system, :get, "/" <> encode_key(key)) do
       {:ok, 200, _headers, body} -> {:ok, body}
       {:ok, 404, _headers, _body} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
@@ -210,14 +210,14 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp put_object(file_system, key, content) do
-    case request(file_system, :put, "/" <> escape_key(key), body: content) |> encode() do
+    case request(file_system, :put, "/" <> encode_key(key), body: content) |> encode() do
       {:ok, 200, _headers, _body} -> :ok
       other -> request_response_to_error(other)
     end
   end
 
   defp head_object(file_system, key) do
-    case request(file_system, :head, "/" <> escape_key(key)) do
+    case request(file_system, :head, "/" <> encode_key(key)) do
       {:ok, 200, headers, _body} ->
         {:ok, etag} = HTTP.fetch_header(headers, "etag")
         {:ok, %{etag: etag}}
@@ -231,11 +231,11 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp copy_object(file_system, bucket, source_key, destination_key) do
-    copy_source = bucket <> "/" <> escape_key(source_key)
+    copy_source = bucket <> "/" <> encode_key(source_key)
 
     headers = [{"x-amz-copy-source", copy_source}]
 
-    case request(file_system, :put, "/" <> escape_key(destination_key), headers: headers)
+    case request(file_system, :put, "/" <> encode_key(destination_key), headers: headers)
          |> encode() do
       {:ok, 200, _headers, _body} -> :ok
       {:ok, 404, _headers, _body} -> FileSystem.Utils.posix_error(:enoent)
@@ -244,7 +244,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp delete_object(file_system, key) do
-    case request(file_system, :delete, "/" <> escape_key(key)) |> encode() do
+    case request(file_system, :delete, "/" <> encode_key(key)) |> encode() do
       {:ok, 204, _headers, _body} -> :ok
       {:ok, 404, _headers, _body} -> :ok
       other -> request_response_to_error(other)
@@ -288,7 +288,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     end
   end
 
-  defp escape_key(key) do
+  defp encode_key(key) do
     key
     |> String.split("/")
     |> Enum.map(fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
