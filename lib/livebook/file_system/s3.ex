@@ -24,6 +24,26 @@ defmodule Livebook.FileSystem.S3 do
       secret_access_key: secret_access_key
     }
   end
+
+  @doc """
+  Parses file system from a configuration string.
+
+  The expected format is `"BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY"`.
+
+  ## Examples
+
+      Livebook.FileSystem.S3.from_config_string("https://s3.eu-central-1.amazonaws.com/mybucket myaccesskeyid mysecret")
+  """
+  @spec from_config_string(String.t()) :: {:ok, t()} | {:error, String.t()}
+  def from_config_string(string) do
+    case String.split(string) do
+      [bucket_url, access_key_id, secret_access_key] ->
+        {:ok, new(bucket_url, access_key_id, secret_access_key)}
+
+      args ->
+        {:error, "S3 filesystem configuration expects 3 arguments, but got #{length(args)}"}
+    end
+  end
 end
 
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do

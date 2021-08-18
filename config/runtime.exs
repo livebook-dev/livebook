@@ -36,4 +36,6 @@ root_path =
   |> Livebook.FileSystem.Utils.ensure_dir_path()
 
 local_file_system = Livebook.FileSystem.Local.new(default_path: root_path)
-config :livebook, :file_systems, [local_file_system]
+configured_file_systems = Livebook.Config.file_systems!("LIVEBOOK_FILE_SYSTEM_")
+
+config :livebook, :file_systems, [local_file_system | configured_file_systems]
