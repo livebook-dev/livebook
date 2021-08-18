@@ -1,6 +1,7 @@
 defmodule Livebook.EvaluatorTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
   alias Livebook.Evaluator
 
   setup do
@@ -278,6 +279,25 @@ defmodule Livebook.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, self(), "Process.get(:data)", :code_2)
       assert_receive {:evaluation_response, :code_2, {:ok, 1}, %{evaluation_time_ms: _time_ms}}
     end
+  end
+
+  test "does not log warnings when evaluator sends link-type messages",
+       %{evaluator: evaluator} do
+    capture_handle_info = fn msg ->
+      capture_log(fn ->
+        send(evaluator, msg)
+        :timer.sleep(100)
+      end)
+    end
+
+    assert "" = capture_handle_info.({make_ref(), :foo})
+
+    assert "" = capture_handle_info.({:DOWN, make_ref(), :process, self(), :normal})
+
+    log = capture_handle_info.(:not_linky_message)
+
+    assert log =~
+             "[error] Livebook.Evaluator #{inspect(evaluator)} received handle_info with unexpected message: :not_linky_message"
   end
 
   # Helpers

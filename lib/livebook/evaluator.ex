@@ -263,6 +263,20 @@ defmodule Livebook.Evaluator do
     {:reply, :ok, state}
   end
 
+  @impl true
+  def handle_info({ref, _result}, state) when is_reference(ref) do
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, ref, :process, pid, _}, state) when is_reference(ref) and is_pid(pid) do
+    {:noreply, state}
+  end
+
+  def handle_info(msg, state) do
+    Logger.error("Livebook.Evaluator #{inspect(self())} received handle_info with unexpected message: #{inspect(msg)}")
+    {:noreply, state}
+  end
+
   defp get_context(state, ref) do
     Map.get_lazy(state.contexts, ref, fn -> state.initial_context end)
   end
