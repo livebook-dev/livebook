@@ -77,7 +77,7 @@ You still have access to all the previous data:
 
 The important characteristic of a branching section is that
 it runs independently from other sections and as such is well
-suited for running long computations "in backgroud".
+suited for running long computations "in background".
 
 ```elixir
 Process.sleep(300_000)
