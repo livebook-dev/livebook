@@ -73,7 +73,7 @@ defmodule Livebook.Application do
     end
   end
 
-  # See https://github.com/elixir-nx/livebook/issues/302
+  # See https://github.com/livebook-dev/livebook/issues/302
   defp validate_hostname_resolution!() do
     unless Livebook.Config.longname() do
       hostname = Livebook.Utils.node_host() |> to_charlist()

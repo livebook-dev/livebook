@@ -1,4 +1,4 @@
-<h1><img src="https://github.com/elixir-nx/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
+<h1><img src="https://github.com/livebook-dev/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
 Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
@@ -24,7 +24,7 @@ We are actively working on Livebook and you can consult the issues tracker to se
 
 Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Usage" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
 
-![Screenshot](https://github.com/elixir-nx/livebook/raw/main/.github/imgs/welcome.png)
+![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
 From time to time, we also publish some videos for new Livebook releases:
 
@@ -72,7 +72,7 @@ To try out features from the main branch you can alternatively
 install the escript directly from GitHub like this:
 
 ```shell
-mix escript.install github elixir-nx/livebook
+mix escript.install github livebook-dev/livebook
 ```
 
 ### Docker
@@ -104,7 +104,7 @@ See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?pag
 You can run latest Livebook directly with Mix.
 
 ```shell
-git clone https://github.com/elixir-nx/livebook.git
+git clone https://github.com/livebook-dev/livebook.git
 cd livebook
 mix deps.get --only prod
 

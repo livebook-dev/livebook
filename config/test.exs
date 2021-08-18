@@ -18,7 +18,7 @@ config :livebook, :authentication_mode, :disabled
 config :livebook, :default_runtime, {Livebook.Runtime.Embedded, []}
 
 # Use longnames when running tests in CI, so that no host resolution is required,
-# see https://github.com/elixir-nx/livebook/pull/173#issuecomment-819468549
+# see https://github.com/livebook-dev/livebook/pull/173#issuecomment-819468549
 if System.get_env("CI") == "true" do
   config :livebook, :node, {:longnames, :"livebook@127.0.0.1"}
 end

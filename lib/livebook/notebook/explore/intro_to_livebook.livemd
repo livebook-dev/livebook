@@ -131,7 +131,7 @@ That's our quick intro to Livebook! Where to go next?
   [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
 
 * Finally, remember Livebook is an open source project, so feel free to
-  look into [the repository](https://github.com/elixir-nx/livebook)
+  look into [the repository](https://github.com/livebook-dev/livebook)
   to contribute, report bugs, suggest features or just skim over the
   codebase.
 
