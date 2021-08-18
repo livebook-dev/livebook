@@ -285,6 +285,29 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns environment variables configuration corresponding
+  to the given file systems.
+
+  The first (default) file system is ignored.
+  """
+  def file_systems_as_env(file_systems)
+
+  def file_systems_as_env([_ | additional_file_systems]) do
+    additional_file_systems
+    |> Enum.with_index(1)
+    |> Enum.map(fn {file_system, n} ->
+      config = file_system_to_config_string(file_system)
+      ["LIVEBOOK_FILE_SYSTEM_", Integer.to_string(n), "=", ?", config, ?"]
+    end)
+    |> Enum.intersperse(" ")
+    |> IO.iodata_to_binary()
+  end
+
+  defp file_system_to_config_string(%FileSystem.S3{} = file_system) do
+    ["s3 ", FileSystem.S3.to_config_string(file_system)]
+  end
+
+  @doc """
   Aborts booting due to a configuration error.
   """
   def abort!(message) do

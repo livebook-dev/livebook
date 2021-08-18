@@ -44,6 +44,14 @@ defmodule Livebook.FileSystem.S3 do
         {:error, "S3 filesystem configuration expects 3 arguments, but got #{length(args)}"}
     end
   end
+
+  @doc """
+  Formats the given file system into an equivalent configuration string.
+  """
+  @spec to_config_string(t()) :: String.t()
+  def to_config_string(file_system) do
+    "#{file_system.bucket_url} #{file_system.access_key_id} #{file_system.secret_access_key}"
+  end
 end
 
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
