@@ -14,8 +14,14 @@ defmodule LivebookWeb.SettingsLive do
     current_user = build_current_user(session, socket)
 
     file_systems = Livebook.Config.file_systems()
+    file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
 
-    {:ok, assign(socket, current_user: current_user, file_systems: file_systems)}
+    {:ok,
+     assign(socket,
+       current_user: current_user,
+       file_systems: file_systems,
+       file_systems_env: file_systems_env
+     )}
   end
 
   @impl true
@@ -44,9 +50,21 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- File systems configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold">
-              File systems
-            </h2>
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl text-gray-800 font-semibold">
+                File systems
+              </h2>
+              <span class="tooltip top" aria-label="Copy as environment variables">
+                <button class="icon-button"
+                  id={"file-systems-env-clipcopy"}
+                  phx-hook="ClipCopy"
+                  data-target-id={"file-systems-env-source"}
+                  disabled={@file_systems_env == ""}>
+                  <.remix_icon icon="clipboard-line" class="text-lg" />
+                </button>
+                <span class="hidden" id="file-systems-env-source"><%= @file_systems_env %></span>
+              </span>
+            </div>
             <%= live_component LivebookWeb.SettingsLive.FileSystemsComponent,
                   file_systems: @file_systems %>
           </div>
@@ -97,6 +115,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_info({:file_systems_updated, file_systems}, socket) do
-    {:noreply, assign(socket, :file_systems, file_systems)}
+    file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
+    {:noreply, assign(socket, file_systems: file_systems, file_systems_env: file_systems_env)}
   end
 end

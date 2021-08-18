@@ -61,6 +61,10 @@
     @apply bg-gray-100;
   }
 
+  .icon-button:disabled {
+    @apply cursor-default pointer-events-none text-gray-300;
+  }
+
   .icon-button i {
     line-height: 1;
   }
