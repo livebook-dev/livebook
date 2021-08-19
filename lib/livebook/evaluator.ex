@@ -10,14 +10,17 @@ defmodule Livebook.Evaluator do
   # It's important to store the binding in the same process
   # where the evaluation happens, as otherwise we would have to
   # send them between processes, effectively copying potentially large data.
-
-  use GenServer, restart: :temporary
+  #
+  # Note that this process is intentionally not a GenServer,
+  # because we during evaluation we may receive arbitrary
+  # messages and we don't want to consume them from the inbox,
+  # as GenServer does.
 
   require Logger
 
   alias Livebook.Evaluator
 
-  @type t :: GenServer.server()
+  @type t :: pid()
 
   @type state :: %{
           formatter: module(),
@@ -58,7 +61,10 @@ defmodule Livebook.Evaluator do
       used for transforming evaluation response before it's sent to the client
   """
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts)
+    case :proc_lib.start_link(__MODULE__, :init, [opts]) do
+      {:error, error} -> {:error, error}
+      pid -> {:ok, pid}
+    end
   end
 
   @doc """
@@ -80,7 +86,7 @@ defmodule Livebook.Evaluator do
   """
   @spec evaluate_code(t(), pid(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
-    GenServer.cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref, opts})
+    cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref, opts})
   end
 
   @doc """
@@ -96,7 +102,8 @@ defmodule Livebook.Evaluator do
           {:ok, context()} | {:error, :not_modified}
   def fetch_evaluation_context(evaluator, ref, opts \\ []) do
     cached_id = opts[:cached_id]
-    GenServer.call(evaluator, {:fetch_evaluation_context, ref, cached_id})
+
+    call(evaluator, {:fetch_evaluation_context, ref, cached_id})
   end
 
   @doc """
@@ -107,7 +114,7 @@ defmodule Livebook.Evaluator do
   """
   @spec initialize_from(t(), t(), ref()) :: :ok
   def initialize_from(evaluator, source_evaluator, source_evaluation_ref) do
-    GenServer.call(evaluator, {:initialize_from, source_evaluator, source_evaluation_ref})
+    call(evaluator, {:initialize_from, source_evaluator, source_evaluation_ref})
   end
 
   @doc """
@@ -116,7 +123,7 @@ defmodule Livebook.Evaluator do
   """
   @spec forget_evaluation(t(), ref()) :: :ok
   def forget_evaluation(evaluator, ref) do
-    GenServer.cast(evaluator, {:forget_evaluation, ref})
+    cast(evaluator, {:forget_evaluation, ref})
   end
 
   @doc """
@@ -134,12 +141,34 @@ defmodule Livebook.Evaluator do
           ref() | nil
         ) :: :ok
   def handle_intellisense(evaluator, send_to, ref, request, evaluation_ref \\ nil) do
-    GenServer.cast(evaluator, {:handle_intellisense, send_to, ref, request, evaluation_ref})
+    cast(evaluator, {:handle_intellisense, send_to, ref, request, evaluation_ref})
+  end
+
+  defp cast(pid, message) do
+    send(pid, {:__CAST__, message})
+    :ok
+  end
+
+  defp call(pid, message) do
+    call_ref = make_ref()
+    send(pid, {:__CALL__, self(), call_ref, message})
+
+    receive do
+      {:call_reply, ^call_ref, reply} -> reply
+    end
   end
 
   ## Callbacks
 
-  @impl true
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :worker,
+      restart: :temporary
+    }
+  end
+
   def init(opts) do
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
 
@@ -148,7 +177,12 @@ defmodule Livebook.Evaluator do
     # Use the dedicated IO device as the group leader,
     # so that it handles all :stdio operations.
     Process.group_leader(self(), io_proxy)
-    {:ok, initial_state(formatter, io_proxy)}
+
+    state = initial_state(formatter, io_proxy)
+
+    :proc_lib.init_ack(self())
+
+    loop(state)
   end
 
   defp initial_state(formatter, io_proxy) do
@@ -162,13 +196,25 @@ defmodule Livebook.Evaluator do
     }
   end
 
+  defp loop(state) do
+    receive do
+      {:__CALL__, pid, ref, message} ->
+        {:reply, reply, state} = handle_call(message, pid, state)
+        send(pid, {:call_reply, ref, reply})
+        loop(state)
+
+      {:__CAST__, message} ->
+        {:noreply, state} = handle_cast(message, state)
+        loop(state)
+    end
+  end
+
   defp initial_context() do
     env = :elixir.env_for_eval([])
     %{binding: [], env: env, id: random_id()}
   end
 
-  @impl true
-  def handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
+  defp handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
 
     context = get_context(state, prev_ref)
@@ -205,7 +251,7 @@ defmodule Livebook.Evaluator do
     {:noreply, state}
   end
 
-  def handle_cast({:forget_evaluation, ref}, state) do
+  defp handle_cast({:forget_evaluation, ref}, state) do
     state =
       state
       |> Map.update!(:contexts, &Map.delete(&1, ref))
@@ -214,7 +260,7 @@ defmodule Livebook.Evaluator do
     {:noreply, state}
   end
 
-  def handle_cast({:handle_intellisense, send_to, ref, request, evaluation_ref}, state) do
+  defp handle_cast({:handle_intellisense, send_to, ref, request, evaluation_ref}, state) do
     context = get_context(state, evaluation_ref)
 
     # Safely rescue from intellisense errors
@@ -230,8 +276,7 @@ defmodule Livebook.Evaluator do
     {:noreply, state}
   end
 
-  @impl true
-  def handle_call({:fetch_evaluation_context, ref, cached_id}, _from, state) do
+  defp handle_call({:fetch_evaluation_context, ref, cached_id}, _from, state) do
     context = get_context(state, ref)
 
     reply =
@@ -244,7 +289,7 @@ defmodule Livebook.Evaluator do
     {:reply, reply, state}
   end
 
-  def handle_call({:initialize_from, source_evaluator, source_evaluation_ref}, _from, state) do
+  defp handle_call({:initialize_from, source_evaluator, source_evaluation_ref}, _from, state) do
     state =
       case Evaluator.fetch_evaluation_context(
              source_evaluator,
