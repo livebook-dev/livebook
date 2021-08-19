@@ -4,7 +4,7 @@ defmodule Livebook.EvaluatorTest do
   alias Livebook.Evaluator
 
   setup do
-    evaluator = start_supervised!(Evaluator)
+    {:ok, _pid, evaluator} = Evaluator.start_link()
     %{evaluator: evaluator}
   end
 
@@ -253,7 +253,7 @@ defmodule Livebook.EvaluatorTest do
 
   describe "initialize_from/3" do
     setup do
-      parent_evaluator = start_supervised!(Evaluator, id: :parent_evaluator)
+      {:ok, _pid, parent_evaluator} = Evaluator.start_link(id: :parent_evaluator)
       %{parent_evaluator: parent_evaluator}
     end
 

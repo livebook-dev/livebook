@@ -20,7 +20,7 @@ defmodule Livebook.Evaluator do
 
   alias Livebook.Evaluator
 
-  @type t :: pid()
+  @type t :: %{pid: pid(), ref: reference()}
 
   @type state :: %{
           formatter: module(),
@@ -60,10 +60,11 @@ defmodule Livebook.Evaluator do
     * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
       used for transforming evaluation response before it's sent to the client
   """
+  @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
     case :proc_lib.start_link(__MODULE__, :init, [opts]) do
       {:error, error} -> {:error, error}
-      pid -> {:ok, pid}
+      evaluator -> {:ok, evaluator.pid, evaluator}
     end
   end
 
@@ -144,14 +145,14 @@ defmodule Livebook.Evaluator do
     cast(evaluator, {:handle_intellisense, send_to, ref, request, evaluation_ref})
   end
 
-  defp cast(pid, message) do
-    send(pid, {:__CAST__, message})
+  defp cast(evaluator, message) do
+    send(evaluator.pid, {:cast, evaluator.ref, message})
     :ok
   end
 
-  defp call(pid, message) do
+  defp call(evaluator, message) do
     call_ref = make_ref()
-    send(pid, {:__CALL__, self(), call_ref, message})
+    send(evaluator.pid, {:call, evaluator.ref, self(), call_ref, message})
 
     receive do
       {:call_reply, ^call_ref, reply} -> reply
@@ -178,15 +179,18 @@ defmodule Livebook.Evaluator do
     # so that it handles all :stdio operations.
     Process.group_leader(self(), io_proxy)
 
-    state = initial_state(formatter, io_proxy)
+    evaluator_ref = make_ref()
+    state = initial_state(evaluator_ref, formatter, io_proxy)
+    evaluator = %{pid: self(), ref: evaluator_ref}
 
-    :proc_lib.init_ack(self())
+    :proc_lib.init_ack(evaluator)
 
     loop(state)
   end
 
-  defp initial_state(formatter, io_proxy) do
+  defp initial_state(evaluator_ref, formatter, io_proxy) do
     %{
+      evaluator_ref: evaluator_ref,
       formatter: formatter,
       io_proxy: io_proxy,
       contexts: %{},
@@ -196,14 +200,14 @@ defmodule Livebook.Evaluator do
     }
   end
 
-  defp loop(state) do
+  defp loop(%{evaluator_ref: evaluator_ref} = state) do
     receive do
-      {:__CALL__, pid, ref, message} ->
+      {:call, ^evaluator_ref, pid, ref, message} ->
         {:reply, reply, state} = handle_call(message, pid, state)
         send(pid, {:call_reply, ref, reply})
         loop(state)
 
-      {:__CAST__, message} ->
+      {:cast, ^evaluator_ref, message} ->
         {:noreply, state} = handle_cast(message, state)
         loop(state)
     end
@@ -357,8 +361,8 @@ defmodule Livebook.Evaluator do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
 
-  defp copy_process_dictionary_from(pid) do
-    {:dictionary, dictionary} = Process.info(pid, :dictionary)
+  defp copy_process_dictionary_from(source_evaluator) do
+    {:dictionary, dictionary} = Process.info(source_evaluator.pid, :dictionary)
 
     for {key, value} <- dictionary, not internal_dictionary_key?(key) do
       Process.put(key, value)

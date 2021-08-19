@@ -26,9 +26,7 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
            supervisor,
            {Evaluator, [formatter: Evaluator.DefaultFormatter]}
          ) do
-      {:ok, pid} -> {:ok, pid}
-      {:ok, pid, _} -> {:ok, pid}
-      :ignore -> {:error, :ignore}
+      {:ok, _pid, evaluator} -> {:ok, evaluator}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -38,7 +36,7 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   """
   @spec terminate_evaluator(pid(), Evaluator.t()) :: :ok
   def terminate_evaluator(supervisor, evaluator) do
-    DynamicSupervisor.terminate_child(supervisor, evaluator)
+    DynamicSupervisor.terminate_child(supervisor, evaluator.pid)
     :ok
   end
 end
