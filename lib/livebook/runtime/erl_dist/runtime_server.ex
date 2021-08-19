@@ -142,8 +142,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   def handle_info({:DOWN, _, :process, pid, reason}, state) do
     state.evaluators
-    |> Enum.find(fn {_container_ref, evaluator_pid} ->
-      evaluator_pid == pid
+    |> Enum.find(fn {_container_ref, evaluator} ->
+      evaluator.pid == pid
     end)
     |> case do
       {container_ref, _} ->
@@ -235,7 +235,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       state
     else
       {:ok, evaluator} = ErlDist.EvaluatorSupervisor.start_evaluator(state.evaluator_supervisor)
-      Process.monitor(evaluator)
+      Process.monitor(evaluator.pid)
       %{state | evaluators: Map.put(state.evaluators, container_ref, evaluator)}
     end
   end
