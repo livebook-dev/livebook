@@ -155,7 +155,7 @@ defmodule Livebook.Evaluator do
     send(evaluator.pid, {:call, evaluator.ref, self(), call_ref, message})
 
     receive do
-      {:call_reply, ^call_ref, reply} -> reply
+      {^call_ref, reply} -> reply
     end
   end
 
@@ -204,7 +204,7 @@ defmodule Livebook.Evaluator do
     receive do
       {:call, ^evaluator_ref, pid, ref, message} ->
         {:reply, reply, state} = handle_call(message, pid, state)
-        send(pid, {:call_reply, ref, reply})
+        send(pid, {ref, reply})
         loop(state)
 
       {:cast, ^evaluator_ref, message} ->
