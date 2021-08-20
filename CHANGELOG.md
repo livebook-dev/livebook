@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Introduced file system abstraction and an S3 support ([#492](https://github.com/livebook-dev/livebook/pull/492))
 - Added support for configuring file systems using env variables ([#498](https://github.com/livebook-dev/livebook/pull/498))
+- Added a keyboard shortcut for triggering on-hover docs ([#508](https://github.com/livebook-dev/livebook/pull/508))
 
 ### Fixed
 
