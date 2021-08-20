@@ -12,6 +12,13 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         basic: true
       },
       %{
+        seq: ["ctrl", "i"],
+        seq_mac: ["⌘", "i"],
+        press_all: true,
+        desc: "Show identifier documentation",
+        basic: true
+      },
+      %{
         seq: ["ctrl", "shift", "i"],
         seq_mac: ["⇧", "⌥", "f"],
         seq_windows: ["shift", "alt", "f"],
