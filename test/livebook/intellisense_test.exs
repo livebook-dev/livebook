@@ -43,6 +43,7 @@ defmodule Livebook.IntellisenseTest do
       }
 
       assert length_item in Intellisense.get_completion_items("", binding, env)
+      assert length_item in Intellisense.get_completion_items("to_string(", binding, env)
       assert length_item in Intellisense.get_completion_items("Enum.map(list, ", binding, env)
     end
 
@@ -1076,6 +1077,15 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{contents: [match_op]} = Intellisense.get_details("x = 1", 3, binding, env)
       assert match_op =~ "Match operator."
+    end
+
+    test "handles local calls" do
+      {binding, env} = eval(do: nil)
+
+      assert %{contents: [to_string_fn]} =
+               Intellisense.get_details("to_string(1)", 3, binding, env)
+
+      assert to_string_fn =~ "Converts the argument to a string"
     end
   end
 end

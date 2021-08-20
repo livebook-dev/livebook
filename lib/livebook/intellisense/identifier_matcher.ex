@@ -47,7 +47,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   def completion_identifiers(hint, binding, env) do
     context = cursor_context(hint)
     ctx = %{binding: binding, env: env, matcher: @prefix_matcher}
-    context_to_matches(context, ctx)
+    context_to_matches(context, ctx, :completion)
   end
 
   @doc """
@@ -66,7 +66,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     case surround_context(line, {1, column}) do
       %{context: context, begin: {_, from}, end: {_, to}} ->
         ctx = %{binding: binding, env: env, matcher: @exact_matcher}
-        matches = context_to_matches(context, ctx)
+        matches = context_to_matches(context, ctx, :locate)
         %{matches: matches, range: %{from: from, to: to}}
 
       :none ->
@@ -77,7 +77,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # Takes a context returned from Code.Fragment.cursor_context
   # or Code.Fragment.surround_context and looks up matching
   # identifier items
-  defp context_to_matches(context, ctx) do
+  defp context_to_matches(context, ctx, type) do
     case context do
       {:alias, alias} ->
         match_alias(List.to_string(alias), ctx)
@@ -103,8 +103,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:local_arity, local} ->
         match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
 
-      {:local_call, _local} ->
-        match_default(ctx)
+      {:local_call, local} ->
+        case type do
+          :completion -> match_default(ctx)
+          :locate -> match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
+        end
 
       {:operator, operator} ->
         match_local_or_var(List.to_string(operator), ctx)
