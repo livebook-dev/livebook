@@ -72,7 +72,7 @@ defmodule Livebook.Runtime.ErlDist do
           else
             raise RuntimeError,
                   "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"
-          else
+          end
       end
     end
   end
