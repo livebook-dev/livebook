@@ -57,7 +57,19 @@ defmodule Livebook.Runtime.ErlDist do
   defp load_required_modules(node) do
     for module <- @required_modules do
       {_module, binary, filename} = :code.get_object_code(module)
-      {:module, _} = :rpc.call(node, :code, :load_binary, [module, filename, binary])
+
+      case :rpc.call(node, :code, :load_binary, [module, filename, binary]) do
+        {:module, _} ->
+          :ok
+
+        {:error, :badfile} ->
+          raise RuntimeError,
+                "failed to load #{inspect(module)} module into the remote node, this is most likely due to version mismach between the local and remote ERTS"
+
+        {:error, reason} ->
+          raise RuntimeError,
+                "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"
+      end
     end
   end
 
