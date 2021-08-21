@@ -62,13 +62,17 @@ defmodule Livebook.Runtime.ErlDist do
         {:module, _} ->
           :ok
 
-        {:error, :badfile} ->
-          raise RuntimeError,
-                "failed to load #{inspect(module)} module into the remote node, this is most likely due to version mismach between the local and remote ERTS"
-
         {:error, reason} ->
-          raise RuntimeError,
-                "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"
+          local_otp = :erlang.system_info(:otp_release)
+          remote_otp = :rpc.call(node, :erlang, :system_info, [:otp_release])
+
+          if local_otp == remote_otp do
+            raise RuntimeError,
+                  "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"
+          else
+            raise RuntimeError,
+                  "failed to load #{inspect(module)} module into the remote node due to Erlang/OTP version mismatch, local #{local_otp} != remote #{remote_otp}"
+          end
       end
     end
   end
