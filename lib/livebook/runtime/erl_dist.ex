@@ -66,7 +66,7 @@ defmodule Livebook.Runtime.ErlDist do
           local_otp = :erlang.system_info(:otp_release)
           remote_otp = :rpc.call(node, :erlang, :system_info, [:otp_release])
 
-          if is_list(remote_otp) and local_otp != remote_otp do
+          if local_otp != remote_otp do
             raise RuntimeError,
                   "failed to load #{inspect(module)} module into the remote node, potentially due to Erlang/OTP version mismatch, reason: #{inspect(reason)} (local #{local_otp} != remote #{remote_otp})"
           else
