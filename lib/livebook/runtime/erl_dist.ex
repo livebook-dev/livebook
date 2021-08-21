@@ -68,7 +68,7 @@ defmodule Livebook.Runtime.ErlDist do
 
           if is_list(remote_otp) and local_otp != remote_otp do
             raise RuntimeError,
-                  "failed to load #{inspect(module)} module into the remote node, potentially due to Erlang/OTP version mismatch, reason: #{inspect(reason)} (local #{local_otp} != remote #{remote_otp})
+                  "failed to load #{inspect(module)} module into the remote node, potentially due to Erlang/OTP version mismatch, reason: #{inspect(reason)} (local #{local_otp} != remote #{remote_otp})"
           else
             raise RuntimeError,
                   "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"
