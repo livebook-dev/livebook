@@ -122,13 +122,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_module_attribute(List.to_string(attribute), ctx)
 
       {:sigil, []} ->
-        []
+        match_sigil("", ctx) ++ match_local("~", ctx)
+
+      {:sigil, sigil} ->
+        match_sigil(List.to_string(sigil), ctx)
 
       {:struct, struct} ->
         match_struct(List.to_string(struct), ctx)
 
       # :none
-      # {:sigil, [...]}
       _ ->
         []
     end
@@ -235,6 +237,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         name = Atom.to_string(key),
         ctx.matcher.(name, hint),
         do: {:map_field, name, value}
+  end
+
+  defp match_sigil(hint, ctx) do
+    for {:function, module, "sigil_" <> sigil_name, arity, doc_content, signatures, spec} <-
+          match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
+        ctx.matcher.(sigil_name, hint),
+        do: {:function, module, "~" <> sigil_name, arity, doc_content, signatures, spec}
   end
 
   defp match_erlang_module(hint, ctx) do

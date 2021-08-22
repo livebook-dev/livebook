@@ -298,6 +298,45 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items("System.ve", binding, env)
     end
 
+    test "Elixir sigil completion" do
+      {binding, env} = eval(do: nil)
+
+      regex_item = %{
+        label: "~r/2",
+        kind: :function,
+        detail: "Kernel.sigil_r(term, modifiers)",
+        documentation: "Handles the sigil `~r` for regular expressions.",
+        insert_text: "~r"
+      }
+
+      assert regex_item in Intellisense.get_completion_items("~", binding, env)
+
+      assert [^regex_item] = Intellisense.get_completion_items("~r", binding, env)
+    end
+
+    test "Elixir sigil-like operators" do
+      {binding, env} =
+        eval do
+          import Bitwise
+        end
+
+      bitwise_not_item = %{
+        label: "~~~/1",
+        kind: :function,
+        detail: "~~~expr",
+        documentation: """
+        Bitwise NOT unary operator.
+
+        ```
+        @spec ~~~integer() :: integer()
+        ```\
+        """,
+        insert_text: "~~~"
+      }
+
+      assert bitwise_not_item in Intellisense.get_completion_items("~", binding, env)
+    end
+
     @tag :erl_docs
     test "Erlang function completion" do
       {binding, env} = eval(do: nil)
