@@ -244,6 +244,43 @@ defmodule Livebook.IntellisenseTest do
       assert [] = Intellisense.get_completion_items("x.Foo.get_by", binding, env)
     end
 
+    test "Elixir private module no completion" do
+      {binding, env} = eval(do: nil)
+
+      assert [] =
+               Intellisense.get_completion_items(
+                 "Livebook.TestModules.Hidd",
+                 binding,
+                 env
+               )
+    end
+
+    test "Elixir private module members completion" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 detail: "Livebook.TestModules.Hidden.hidden()",
+                 documentation: "This is a private API",
+                 insert_text: "hidden",
+                 kind: :function,
+                 label: "hidden/0"
+               },
+               %{
+                 detail: "Livebook.TestModules.Hidden.visible()",
+                 documentation: "No documentation available",
+                 insert_text: "visible",
+                 kind: :function,
+                 label: "visible/0"
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "Livebook.TestModules.Hidden.",
+                 binding,
+                 env
+               )
+    end
+
     test "Elixir root submodule completion" do
       {binding, env} = eval(do: nil)
 

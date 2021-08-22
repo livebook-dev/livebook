@@ -26,7 +26,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   @type name :: String.t()
   @type value :: term()
-  @type doc_content :: {format :: String.t(), content :: String.t()} | nil
+  @type doc_content :: {format :: String.t(), content :: String.t()} | :hidden | nil
   @type signature :: String.t()
   @type spec :: tuple() | nil
 
@@ -425,6 +425,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
         {format, docstring}
 
+      {:docs_v1, _, _, _, :hidden, _, _} ->
+        :hidden
+
       _ ->
         nil
     end
@@ -449,6 +452,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp doc_signatures(_), do: []
 
   defp doc_content({_, _, _, %{"en" => docstr}, _}, format), do: {format, docstr}
+  defp doc_content({_, _, _, :hidden, _}, _format), do: :hidden
   defp doc_content(_doc, _format), do: nil
 
   defp exports(mod) do

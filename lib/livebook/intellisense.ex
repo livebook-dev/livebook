@@ -66,9 +66,13 @@ defmodule Livebook.Intellisense do
           list(Livebook.Runtime.completion_item())
   def get_completion_items(hint, binding, env) do
     IdentifierMatcher.completion_identifiers(hint, binding, env)
+    |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.sort_by(&completion_item_priority/1)
   end
+
+  defp include_in_completion?({:module, _module, _name, :hidden}), do: false
+  defp include_in_completion?(_), do: true
 
   defp format_completion_item({:variable, name, value}),
     do: %{
@@ -315,6 +319,10 @@ defmodule Livebook.Intellisense do
 
   defp format_doc_content(nil, _variant) do
     "No documentation available"
+  end
+
+  defp format_doc_content(:hidden, _variant) do
+    "This is a private API"
   end
 
   defp format_doc_content({"text/markdown", markdown}, :short) do
