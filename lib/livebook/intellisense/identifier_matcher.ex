@@ -19,7 +19,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @type identifier_item ::
           {:variable, name(), value()}
           | {:map_field, name(), value()}
-          | {:module, name(), doc_content()}
+          | {:module, module(), name(), doc_content()}
           | {:function, module(), name(), arity(), doc_content(), list(signature()), spec()}
           | {:type, module(), name(), arity(), doc_content()}
           | {:module_attribute, name(), doc_content()}
@@ -80,7 +80,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp context_to_matches(context, ctx, type) do
     case context do
       {:alias, alias} ->
-        match_alias(List.to_string(alias), ctx)
+        match_alias(List.to_string(alias), ctx, false)
 
       {:unquoted_atom, unquoted_atom} ->
         match_erlang_module(List.to_string(unquoted_atom), ctx)
@@ -121,7 +121,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:module_attribute, attribute} ->
         match_module_attribute(List.to_string(attribute), ctx)
 
+      {:sigil, []} ->
+        []
+
+      {:struct, struct} ->
+        match_struct(List.to_string(struct), ctx)
+
       # :none
+      # {:sigil, [...]}
       _ ->
         []
     end
@@ -130,7 +137,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp match_dot(path, hint, ctx) do
     case expand_dot_path(path, ctx) do
       {:ok, mod} when is_atom(mod) and hint == "" ->
-        match_module_member(mod, hint, ctx) ++ match_module(mod, hint, ctx)
+        match_module_member(mod, hint, ctx) ++ match_module(mod, hint, false, ctx)
 
       {:ok, mod} when is_atom(mod) ->
         match_module_member(mod, hint, ctx)
@@ -170,15 +177,26 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     match_local_or_var("", ctx)
   end
 
-  defp match_alias(hint, ctx) do
+  defp match_alias(hint, ctx, nested?) do
     case split_at_last_occurrence(hint, ".") do
-      {hint, ""} ->
-        match_elixir_root_module(hint, ctx) ++ match_env_alias(hint, ctx)
+      :error ->
+        match_elixir_root_module(hint, nested?, ctx) ++ match_env_alias(hint, ctx)
 
-      {alias, hint} ->
+      {:ok, alias, hint} ->
         mod = expand_alias(alias, ctx)
-        match_module(mod, hint, ctx)
+        match_module(mod, hint, nested?, ctx)
     end
+  end
+
+  defp match_struct(hint, ctx) do
+    for {:module, module, name, doc_content} <- match_alias(hint, ctx, true),
+        has_struct?(module),
+        do: {:module, module, name, doc_content}
+  end
+
+  defp has_struct?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1) and
+      not function_exported?(mod, :exception, 1)
   end
 
   defp match_module_member(mod, hint, ctx) do
@@ -223,7 +241,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
-        do: {:module, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, get_module_doc_content(mod)}
   end
 
   # Converts alias string to module atom with regard to the given env
@@ -241,15 +259,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {alias, mod} <- ctx.env.aliases,
         [name] = Module.split(alias),
         ctx.matcher.(name, hint),
-        do: {:module, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, get_module_doc_content(mod)}
   end
 
-  defp match_module(base_mod, hint, ctx) do
+  defp match_module(base_mod, hint, nested?, ctx) do
     # Note: we specifically don't want further completion
     # if `base_mod` is an Erlang module.
 
     if base_mod == Elixir or elixir_module?(base_mod) do
-      match_elixir_module(base_mod, hint, ctx)
+      match_elixir_module(base_mod, hint, nested?, ctx)
     else
       []
     end
@@ -259,19 +277,19 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     mod |> Atom.to_string() |> String.starts_with?("Elixir.")
   end
 
-  defp match_elixir_root_module(hint, ctx) do
-    items = match_elixir_module(Elixir, hint, ctx)
+  defp match_elixir_root_module(hint, nested?, ctx) do
+    items = match_elixir_module(Elixir, hint, nested?, ctx)
 
     # `Elixir` is not a existing module name, but `Elixir.Enum` is,
     # so if the user types `Eli` the completion should include `Elixir`.
     if ctx.matcher.("Elixir", hint) do
-      [{:module, "Elixir", nil} | items]
+      [{:module, Elixir, "Elixir", nil} | items]
     else
       items
     end
   end
 
-  defp match_elixir_module(base_mod, hint, ctx) do
+  defp match_elixir_module(base_mod, hint, nested?, ctx) do
     # Note: `base_mod` may be `Elixir`, even though it's not a valid module
 
     match_prefix = "#{base_mod}.#{hint}"
@@ -280,15 +298,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for mod <- get_matching_modules(match_prefix, ctx),
         parts = Module.split(mod),
         length(parts) >= depth,
-        name = Enum.at(parts, depth - 1),
+        {parent_mod_parts, name_parts} = Enum.split(parts, depth - 1),
+        name_parts = if(nested?, do: name_parts, else: [hd(name_parts)]),
+        name = Enum.join(name_parts, "."),
         # Note: module can be defined dynamically and its name
         # may not be a valid alias (e.g. :"Elixir.My.module").
         # That's why we explicitly check if the name part makes
-        # for a alias piece.
+        # for a valid alias piece.
         valid_alias_piece?("." <> name),
-        mod = parts |> Enum.take(depth) |> Module.concat(),
+        mod = Module.concat(parent_mod_parts ++ name_parts),
         uniq: true,
-        do: {:module, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, get_module_doc_content(mod)}
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -466,12 +486,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp split_at_last_occurrence(string, pattern) do
     case :binary.matches(string, pattern) do
       [] ->
-        {string, ""}
+        :error
 
       parts ->
         {start, _} = List.last(parts)
         size = byte_size(string)
-        {binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
     end
   end
 

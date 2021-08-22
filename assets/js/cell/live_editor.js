@@ -377,6 +377,10 @@ function parseItemKind(kind) {
       return monaco.languages.CompletionItemKind.Function;
     case "module":
       return monaco.languages.CompletionItemKind.Module;
+    case "struct":
+      return monaco.languages.CompletionItemKind.Struct;
+    case "interface":
+      return monaco.languages.CompletionItemKind.Interface;
     case "type":
       return monaco.languages.CompletionItemKind.Class;
     case "variable":

@@ -138,8 +138,8 @@ defmodule Livebook.IntellisenseTest do
                },
                %{
                  label: "Enumerable",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "protocol",
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
@@ -148,12 +148,34 @@ defmodule Livebook.IntellisenseTest do
       assert [
                %{
                  label: "Enumerable",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "protocol",
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
              ] = Intellisense.get_completion_items("Enumera", binding, env)
+
+      assert [
+               %{
+                 label: "RuntimeError",
+                 kind: :struct,
+                 detail: "exception",
+                 documentation: "No documentation available",
+                 insert_text: "RuntimeError"
+               }
+             ] = Intellisense.get_completion_items("RuntimeE", binding, env)
+    end
+
+    test "Elixir struct completion lists nested options" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               label: "File.Stat",
+               kind: :struct,
+               detail: "struct",
+               documentation: "A struct that holds file information.",
+               insert_text: "File.Stat"
+             } in Intellisense.get_completion_items("%Fi", binding, env)
     end
 
     test "Elixir type completion" do
@@ -187,14 +209,14 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items(":file.nam", binding, env)
     end
 
-    test "Elixir completion with self" do
+    test "Elixir module completion with self" do
       {binding, env} = eval(do: nil)
 
       assert [
                %{
                  label: "Enumerable",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "protocol",
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
@@ -228,8 +250,8 @@ defmodule Livebook.IntellisenseTest do
       assert [
                %{
                  label: "Access",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "behaviour",
                  documentation: "Key-based access to data structures.",
                  insert_text: "Access"
                }
