@@ -3,6 +3,7 @@ import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
+import { replacedSuffixLength } from "../highlight/text_utils";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -242,7 +243,24 @@ class LiveEditor {
         hint: lineUntilCursor,
       })
         .then((response) => {
-          const suggestions = completionItemsToSuggestions(response.items);
+          const suggestions = completionItemsToSuggestions(response.items).map(
+            (suggestion) => {
+              const replaceLength = replacedSuffixLength(
+                lineUntilCursor,
+                suggestion.insertText
+              );
+
+              const range = new monaco.Range(
+                position.lineNumber,
+                position.column - replaceLength,
+                position.lineNumber,
+                position.column
+              );
+
+              return { ...suggestion, range };
+            }
+          );
+
           return { suggestions };
         })
         .catch(() => null);
@@ -377,6 +395,10 @@ function parseItemKind(kind) {
       return monaco.languages.CompletionItemKind.Function;
     case "module":
       return monaco.languages.CompletionItemKind.Module;
+    case "struct":
+      return monaco.languages.CompletionItemKind.Struct;
+    case "interface":
+      return monaco.languages.CompletionItemKind.Interface;
     case "type":
       return monaco.languages.CompletionItemKind.Class;
     case "variable":

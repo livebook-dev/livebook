@@ -19,14 +19,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @type identifier_item ::
           {:variable, name(), value()}
           | {:map_field, name(), value()}
-          | {:module, name(), doc_content()}
+          | {:module, module(), name(), doc_content()}
           | {:function, module(), name(), arity(), doc_content(), list(signature()), spec()}
           | {:type, module(), name(), arity(), doc_content()}
           | {:module_attribute, name(), doc_content()}
 
   @type name :: String.t()
   @type value :: term()
-  @type doc_content :: {format :: String.t(), content :: String.t()} | nil
+  @type doc_content :: {format :: String.t(), content :: String.t()} | :hidden | nil
   @type signature :: String.t()
   @type spec :: tuple() | nil
 
@@ -80,7 +80,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp context_to_matches(context, ctx, type) do
     case context do
       {:alias, alias} ->
-        match_alias(List.to_string(alias), ctx)
+        match_alias(List.to_string(alias), ctx, false)
 
       {:unquoted_atom, unquoted_atom} ->
         match_erlang_module(List.to_string(unquoted_atom), ctx)
@@ -121,6 +121,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:module_attribute, attribute} ->
         match_module_attribute(List.to_string(attribute), ctx)
 
+      {:sigil, []} ->
+        match_sigil("", ctx) ++ match_local("~", ctx)
+
+      {:sigil, sigil} ->
+        match_sigil(List.to_string(sigil), ctx)
+
+      {:struct, struct} ->
+        match_struct(List.to_string(struct), ctx)
+
       # :none
       _ ->
         []
@@ -130,7 +139,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp match_dot(path, hint, ctx) do
     case expand_dot_path(path, ctx) do
       {:ok, mod} when is_atom(mod) and hint == "" ->
-        match_module_member(mod, hint, ctx) ++ match_module(mod, hint, ctx)
+        match_module_member(mod, hint, ctx) ++ match_module(mod, hint, false, ctx)
 
       {:ok, mod} when is_atom(mod) ->
         match_module_member(mod, hint, ctx)
@@ -170,15 +179,26 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     match_local_or_var("", ctx)
   end
 
-  defp match_alias(hint, ctx) do
+  defp match_alias(hint, ctx, nested?) do
     case split_at_last_occurrence(hint, ".") do
-      {hint, ""} ->
-        match_elixir_root_module(hint, ctx) ++ match_env_alias(hint, ctx)
+      :error ->
+        match_elixir_root_module(hint, nested?, ctx) ++ match_env_alias(hint, ctx)
 
-      {alias, hint} ->
+      {:ok, alias, hint} ->
         mod = expand_alias(alias, ctx)
-        match_module(mod, hint, ctx)
+        match_module(mod, hint, nested?, ctx)
     end
+  end
+
+  defp match_struct(hint, ctx) do
+    for {:module, module, name, doc_content} <- match_alias(hint, ctx, true),
+        has_struct?(module),
+        do: {:module, module, name, doc_content}
+  end
+
+  defp has_struct?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1) and
+      not function_exported?(mod, :exception, 1)
   end
 
   defp match_module_member(mod, hint, ctx) do
@@ -219,11 +239,18 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         do: {:map_field, name, value}
   end
 
+  defp match_sigil(hint, ctx) do
+    for {:function, module, "sigil_" <> sigil_name, arity, doc_content, signatures, spec} <-
+          match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
+        ctx.matcher.(sigil_name, hint),
+        do: {:function, module, "~" <> sigil_name, arity, doc_content, signatures, spec}
+  end
+
   defp match_erlang_module(hint, ctx) do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
-        do: {:module, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, get_module_doc_content(mod)}
   end
 
   # Converts alias string to module atom with regard to the given env
@@ -241,15 +268,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {alias, mod} <- ctx.env.aliases,
         [name] = Module.split(alias),
         ctx.matcher.(name, hint),
-        do: {:module, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, get_module_doc_content(mod)}
   end
 
-  defp match_module(base_mod, hint, ctx) do
+  defp match_module(base_mod, hint, nested?, ctx) do
     # Note: we specifically don't want further completion
     # if `base_mod` is an Erlang module.
 
     if base_mod == Elixir or elixir_module?(base_mod) do
-      match_elixir_module(base_mod, hint, ctx)
+      match_elixir_module(base_mod, hint, nested?, ctx)
     else
       []
     end
@@ -259,19 +286,19 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     mod |> Atom.to_string() |> String.starts_with?("Elixir.")
   end
 
-  defp match_elixir_root_module(hint, ctx) do
-    items = match_elixir_module(Elixir, hint, ctx)
+  defp match_elixir_root_module(hint, nested?, ctx) do
+    items = match_elixir_module(Elixir, hint, nested?, ctx)
 
     # `Elixir` is not a existing module name, but `Elixir.Enum` is,
     # so if the user types `Eli` the completion should include `Elixir`.
     if ctx.matcher.("Elixir", hint) do
-      [{:module, "Elixir", nil} | items]
+      [{:module, Elixir, "Elixir", nil} | items]
     else
       items
     end
   end
 
-  defp match_elixir_module(base_mod, hint, ctx) do
+  defp match_elixir_module(base_mod, hint, nested?, ctx) do
     # Note: `base_mod` may be `Elixir`, even though it's not a valid module
 
     match_prefix = "#{base_mod}.#{hint}"
@@ -280,15 +307,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for mod <- get_matching_modules(match_prefix, ctx),
         parts = Module.split(mod),
         length(parts) >= depth,
-        name = Enum.at(parts, depth - 1),
+        {parent_mod_parts, name_parts} = Enum.split(parts, depth - 1),
+        name_parts = if(nested?, do: name_parts, else: [hd(name_parts)]),
+        name = Enum.join(name_parts, "."),
         # Note: module can be defined dynamically and its name
         # may not be a valid alias (e.g. :"Elixir.My.module").
         # That's why we explicitly check if the name part makes
-        # for a alias piece.
+        # for a valid alias piece.
         valid_alias_piece?("." <> name),
-        mod = parts |> Enum.take(depth) |> Module.concat(),
+        mod = Module.concat(parent_mod_parts ++ name_parts),
         uniq: true,
-        do: {:module, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, get_module_doc_content(mod)}
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -396,6 +425,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
         {format, docstring}
 
+      {:docs_v1, _, _, _, :hidden, _, _} ->
+        :hidden
+
       _ ->
         nil
     end
@@ -420,6 +452,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp doc_signatures(_), do: []
 
   defp doc_content({_, _, _, %{"en" => docstr}, _}, format), do: {format, docstr}
+  defp doc_content({_, _, _, :hidden, _}, _format), do: :hidden
   defp doc_content(_doc, _format), do: nil
 
   defp exports(mod) do
@@ -466,12 +499,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp split_at_last_occurrence(string, pattern) do
     case :binary.matches(string, pattern) do
       [] ->
-        {string, ""}
+        :error
 
       parts ->
         {start, _} = List.last(parts)
         size = byte_size(string)
-        {binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
     end
   end
 
@@ -561,33 +594,37 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     * `{:local_call, charlist}` - the context is a local (import or local)
       call, such as `hello_world(` and `hello_world `
 
-    * `{:module_attribute, charlist}` - the context is a module attribute, such
-      as `@hello_wor`
+    * `{:module_attribute, charlist}` - the context is a module attribute,
+      such as `@hello_wor`
 
-    * `{:operator, charlist}` (since v1.13.0) - the context is an operator,
-      such as `+` or `==`. Note textual operators, such as `when` do not
-      appear as operators but rather as `:local_or_var`. `@` is never an
-      `:operator` and always a `:module_attribute`
+    * `{:operator, charlist}` - the context is an operator, such as `+` or
+      `==`. Note textual operators, such as `when` do not appear as operators
+      but rather as `:local_or_var`. `@` is never an `:operator` and always a
+      `:module_attribute`
 
-    * `{:operator_arity, charlist}` (since v1.13.0)  - the context is an
-      operator arity, which is an operator followed by /, such as `+/`,
-      `not/` or `when/`
+    * `{:operator_arity, charlist}` - the context is an operator arity, which
+      is an operator followed by /, such as `+/`, `not/` or `when/`
 
-    * `{:operator_call, charlist}` (since v1.13.0)  - the context is an
-      operator call, which is an operator followed by space, such as
-      `left + `, `not ` or `x when `
+    * `{:operator_call, charlist}` - the context is an operator call, which is
+      an operator followed by space, such as `left + `, `not ` or `x when `
 
     * `:none` - no context possible
+
+    * `{:sigil, charlist}` - the context is a sigil. It may be either the beginning
+      of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
+      `~>` and `~>>`
+
+    * `{:struct, charlist}` - the context is a struct, such as `%`, `%UR` or `%URI`
 
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
 
   ## Limitations
 
-    * The current algorithm only considers the last line of the input
-    * Context does not yet track strings and sigils
-    * Arguments of functions calls are not currently recognized
-
+  The current algorithm only considers the last line of the input. This means
+  it will also show suggestions inside strings, heredocs, etc, which is
+  intentional as it helps with doctests, references, and more. Other functions
+  may be added in the future that consider the tree-structure of the code.
   """
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
@@ -604,6 +641,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           | {:operator_arity, charlist}
           | {:operator_call, charlist}
           | :none
+          | {:sigil, charlist}
+          | {:struct, charlist}
           | {:unquoted_atom, charlist}
         when inside_dot:
                {:alias, charlist}
@@ -653,11 +692,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @non_starter_punctuation ')]}"\'.$'
   @space '\t\s'
   @trailing_identifier '?!'
+  @tilde_op_prefix '<=~'
 
   @non_identifier @trailing_identifier ++
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
 
   @textual_operators ~w(when not and or in)c
+  @incomplete_operators ~w(^^ ~~ ~)c
 
   defp codepoint_cursor_context(reverse, _opts) do
     {stripped, spaces} = strip_spaces(reverse, 0)
@@ -665,6 +706,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     case stripped do
       # It is empty
       [] -> {:expr, 0}
+      # Structs
+      [?%, ?:, ?: | _] -> {{:struct, ''}, 1}
+      [?%, ?: | _] -> {{:unquoted_atom, '%'}, 2}
+      [?% | _] -> {{:struct, ''}, 1}
       # Token/AST only operators
       [?>, ?= | rest] when rest == [] or hd(rest) != ?: -> {:expr, 0}
       [?>, ?- | rest] when rest == [] or hd(rest) != ?: -> {:expr, 0}
@@ -728,6 +773,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {:module_attribute, acc, count} ->
         {{:module_attribute, acc}, count}
 
+      {:sigil, acc, count} ->
+        {{:sigil, acc}, count}
+
       {:unquoted_atom, acc, count} ->
         {{:unquoted_atom, acc}, count}
 
@@ -735,6 +783,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         case strip_spaces(rest, count) do
           {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
             nested_alias(rest, count + 1, acc)
+
+          {'%' ++ _, count} ->
+            {{:struct, acc}, count + 1}
 
           _ ->
             {{:alias, acc}, count}
@@ -773,6 +824,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       :none when acc == [] -> {:module_attribute, '', count}
       _ -> :none
     end
+  end
+
+  defp rest_identifier([?~ | rest], count, [letter])
+       when (letter in ?A..?Z or letter in ?a..?z) and
+              (rest == [] or hd(rest) not in @tilde_op_prefix) do
+    {:sigil, [letter], count + 1}
   end
 
   defp rest_identifier([?: | rest], count, acc) when rest == [] or hd(rest) != ?: do
@@ -816,6 +873,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) do
+      {{:struct, prev}, count} -> {{:struct, prev ++ '.' ++ acc}, count}
       {{:alias, prev}, count} -> {{:alias, prev ++ '.' ++ acc}, count}
       _ -> {:none, 0}
     end
@@ -830,6 +888,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {{:alias, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:dot, _, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:module_attribute, _} = prev, count} -> {{:dot, prev, acc}, count}
+      {{:struct, acc}, count} -> {{:struct, acc ++ '.'}, count}
       {_, _} -> {:none, 0}
     end
   end
@@ -838,7 +897,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     operator(rest, count + 1, [h | acc], call_op?)
   end
 
-  defp operator(rest, count, acc, call_op?) when acc in ~w(^^ ~~ ~)c do
+  defp operator(rest, count, acc, call_op?) when acc in @incomplete_operators do
     {rest, dot_count} = strip_spaces(rest, count)
 
     cond do
@@ -848,9 +907,19 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
         dot(tl(rest), dot_count + 1, acc)
 
+      acc == '~' ->
+        {{:sigil, ''}, count}
+
       true ->
         {{:operator, acc}, count}
     end
+  end
+
+  # If we are opening a sigil, ignore the operator.
+  defp operator([letter, ?~ | rest], _count, [op], _call_op?)
+       when op in '<|/' and (letter in ?A..?Z or letter in ?a..?z) and
+              (rest == [] or hd(rest) not in @tilde_op_prefix) do
+    {:none, 0}
   end
 
   defp operator(rest, count, acc, _call_op?) do
@@ -912,11 +981,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   The returned map contains the column the expression starts and the
   first column after the expression ends.
 
-  This function builds on top of `cursor_context/2`. Therefore
-  it also provides a best-effort detection and may not be accurate
-  under all circumstances. See the "Return values" section for more
-  information on the available contexts as well as the "Limitations"
-  section.
+  Similar to `cursor_context/2`, this function also provides a best-effort
+  detection and may not be accurate under all circumstances. See the
+  "Return values" and "Limitations" section under `cursor_context/2` for
+  more information.
 
   ## Examples
 
@@ -925,19 +993,22 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   ## Differences to `cursor_context/2`
 
-  In contrast to `cursor_context/2`, `surround_context/3` does not
-  return `dot_call`/`dot_arity` nor `operator_call`/`operator_arity`
-  contexts because they should behave the same as `dot` and `operator`
-  respectively in complete expressions.
+  Because `surround_context/3` deals with complete code, it has some
+  difference to `cursor_context/2`:
 
-  On the other hand, it does make a distinction between `local_call`/
-  `local_arity` to `local_or_var`, since the latter can be a local or
-  variable.
+    * `dot_call`/`dot_arity` and `operator_call`/`operator_arity`
+      are collapsed into `dot` and `operator` contexts respectively
+      as they are not meaningful distinction between them
 
-  Also note that `@` when not followed by any identifier is returned
-  as `{:operator, '@'}`, while it is a `{:module_attribute, ''}` in
-  `cursor_context/3`. Once again, this happens because `surround_context/3`
-  assumes the expression is complete, while `cursor_context/2` does not.
+    * On the other hand, this function still makes a distinction between
+      `local_call`/`local_arity` and `local_or_var`, since the latter can
+      be a local or variable
+
+    * `@` when not followed by any identifier is returned as `{:operator, '@'}`
+      (in contrast to `{:module_attribute, ''}` in `cursor_context/2`
+
+    * This function never returns empty sigils `{:sigil, ''}` or empty structs
+      `{:struct, ''}` as context
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
@@ -992,6 +1063,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
+          {{:struct, acc}, offset} ->
+            build_surround({:struct, acc}, reversed, line, offset)
+
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
@@ -1016,6 +1090,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           {{:module_attribute, acc}, offset} ->
             build_surround({:module_attribute, acc}, reversed, line, offset)
 
+          {{:sigil, acc}, offset} ->
+            build_surround({:sigil, acc}, reversed, line, offset)
+
           {{:unquoted_atom, acc}, offset} ->
             build_surround({:unquoted_atom, acc}, reversed, line, offset)
 
@@ -1030,6 +1107,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
+          {{:struct, acc}, offset} ->
+            build_surround({:struct, acc}, reversed, line, offset)
+
           _ ->
             :none
         end
@@ -1041,12 +1121,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       {[], _rest} ->
         :none
 
-      {reversed_post, _rest} ->
+      {reversed_post, rest} ->
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
-          {{:operator, acc}, offset} ->
+          {{:operator, acc}, offset} when acc not in @incomplete_operators ->
             build_surround({:operator, acc}, reversed, line, offset)
+
+          {{:sigil, ''}, offset} when hd(rest) in ?A..?Z or hd(rest) in ?a..?z ->
+            build_surround({:sigil, [hd(rest)]}, [hd(rest) | reversed], line, offset + 1)
 
           {{:dot, _, [_ | _]} = dot, offset} ->
             build_surround(dot, reversed, line, offset)
@@ -1106,7 +1189,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     {[?: | reversed_pre], post}
   end
 
-  # Dot handling
+  defp adjust_position(reversed_pre, [?% | post]) do
+    adjust_position([?% | reversed_pre], post)
+  end
+
+  # Dot/struct handling
   defp adjust_position(reversed_pre, post) do
     case move_spaces(post, reversed_pre) do
       # If we are between spaces and a dot, move past the dot
@@ -1120,6 +1207,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           {[?. | rest], _} when rest == [] or hd(rest) not in '.:' ->
             {post, reversed_pre} = move_spaces(post, reversed_pre)
             {reversed_pre, post}
+
+          # If there is a % to our left, make sure to move to the first character
+          {[?% | _], _} ->
+            case move_spaces(post, reversed_pre) do
+              {[h | _] = post, reversed_pre} when h in ?A..?Z ->
+                {reversed_pre, post}
+
+              _ ->
+                {reversed_pre, post}
+            end
 
           _ ->
             {reversed_pre, post}

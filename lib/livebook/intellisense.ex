@@ -66,9 +66,13 @@ defmodule Livebook.Intellisense do
           list(Livebook.Runtime.completion_item())
   def get_completion_items(hint, binding, env) do
     IdentifierMatcher.completion_identifiers(hint, binding, env)
+    |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.sort_by(&completion_item_priority/1)
   end
+
+  defp include_in_completion?({:module, _module, _name, :hidden}), do: false
+  defp include_in_completion?(_), do: true
 
   defp format_completion_item({:variable, name, value}),
     do: %{
@@ -88,14 +92,28 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
-  defp format_completion_item({:module, name, doc_content}),
-    do: %{
+  defp format_completion_item({:module, module, name, doc_content}) do
+    subtype = get_module_subtype(module)
+
+    kind =
+      case subtype do
+        :protocol -> :interface
+        :exception -> :struct
+        :struct -> :struct
+        :behaviour -> :interface
+        _ -> :module
+      end
+
+    detail = Atom.to_string(subtype || :module)
+
+    %{
       label: name,
-      kind: :module,
-      detail: "module",
+      kind: kind,
+      detail: detail,
       documentation: format_doc_content(doc_content, :short),
       insert_text: String.trim_leading(name, ":")
     }
+  end
 
   defp format_completion_item({:function, module, name, arity, doc_content, signatures, spec}),
     do: %{
@@ -132,7 +150,7 @@ defmodule Livebook.Intellisense do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
 
-  @ordered_kinds [:field, :variable, :module, :function, :type]
+  @ordered_kinds [:field, :variable, :module, :struct, :interface, :function, :type]
 
   defp completion_item_kind_priority(kind) when kind in @ordered_kinds do
     Enum.find_index(@ordered_kinds, &(&1 == kind))
@@ -172,7 +190,7 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item({:module, name, doc_content}) do
+  defp format_details_item({:module, _module, name, doc_content}) do
     join_with_divider([
       code(name),
       format_doc_content(doc_content, :all)
@@ -199,6 +217,33 @@ defmodule Livebook.Intellisense do
       code("@" <> name),
       format_doc_content(doc_content, :all)
     ])
+  end
+
+  defp get_module_subtype(module) do
+    cond do
+      module_has_function?(module, :__protocol__, 1) ->
+        :protocol
+
+      module_has_function?(module, :__impl__, 1) ->
+        :implementation
+
+      module_has_function?(module, :__struct__, 0) ->
+        if module_has_function?(module, :exception, 1) do
+          :exception
+        else
+          :struct
+        end
+
+      module_has_function?(module, :behaviour_info, 1) ->
+        :behaviour
+
+      true ->
+        nil
+    end
+  end
+
+  defp module_has_function?(module, func, arity) do
+    Code.ensure_loaded?(module) and function_exported?(module, func, arity)
   end
 
   # Formatting helpers
@@ -274,6 +319,10 @@ defmodule Livebook.Intellisense do
 
   defp format_doc_content(nil, _variant) do
     "No documentation available"
+  end
+
+  defp format_doc_content(:hidden, _variant) do
+    "This is a private API"
   end
 
   defp format_doc_content({"text/markdown", markdown}, :short) do

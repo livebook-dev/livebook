@@ -138,8 +138,8 @@ defmodule Livebook.IntellisenseTest do
                },
                %{
                  label: "Enumerable",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "protocol",
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
@@ -148,12 +148,34 @@ defmodule Livebook.IntellisenseTest do
       assert [
                %{
                  label: "Enumerable",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "protocol",
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
              ] = Intellisense.get_completion_items("Enumera", binding, env)
+
+      assert [
+               %{
+                 label: "RuntimeError",
+                 kind: :struct,
+                 detail: "exception",
+                 documentation: "No documentation available",
+                 insert_text: "RuntimeError"
+               }
+             ] = Intellisense.get_completion_items("RuntimeE", binding, env)
+    end
+
+    test "Elixir struct completion lists nested options" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               label: "File.Stat",
+               kind: :struct,
+               detail: "struct",
+               documentation: "A struct that holds file information.",
+               insert_text: "File.Stat"
+             } in Intellisense.get_completion_items("%Fi", binding, env)
     end
 
     test "Elixir type completion" do
@@ -187,14 +209,14 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items(":file.nam", binding, env)
     end
 
-    test "Elixir completion with self" do
+    test "Elixir module completion with self" do
       {binding, env} = eval(do: nil)
 
       assert [
                %{
                  label: "Enumerable",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "protocol",
                  documentation: "Enumerable protocol used by `Enum` and `Stream` modules.",
                  insert_text: "Enumerable"
                }
@@ -222,14 +244,51 @@ defmodule Livebook.IntellisenseTest do
       assert [] = Intellisense.get_completion_items("x.Foo.get_by", binding, env)
     end
 
+    test "Elixir private module no completion" do
+      {binding, env} = eval(do: nil)
+
+      assert [] =
+               Intellisense.get_completion_items(
+                 "Livebook.TestModules.Hidd",
+                 binding,
+                 env
+               )
+    end
+
+    test "Elixir private module members completion" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 detail: "Livebook.TestModules.Hidden.hidden()",
+                 documentation: "This is a private API",
+                 insert_text: "hidden",
+                 kind: :function,
+                 label: "hidden/0"
+               },
+               %{
+                 detail: "Livebook.TestModules.Hidden.visible()",
+                 documentation: "No documentation available",
+                 insert_text: "visible",
+                 kind: :function,
+                 label: "visible/0"
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "Livebook.TestModules.Hidden.",
+                 binding,
+                 env
+               )
+    end
+
     test "Elixir root submodule completion" do
       {binding, env} = eval(do: nil)
 
       assert [
                %{
                  label: "Access",
-                 kind: :module,
-                 detail: "module",
+                 kind: :interface,
+                 detail: "behaviour",
                  documentation: "Key-based access to data structures.",
                  insert_text: "Access"
                }
@@ -274,6 +333,45 @@ defmodule Livebook.IntellisenseTest do
                  insert_text: "version"
                }
              ] = Intellisense.get_completion_items("System.ve", binding, env)
+    end
+
+    test "Elixir sigil completion" do
+      {binding, env} = eval(do: nil)
+
+      regex_item = %{
+        label: "~r/2",
+        kind: :function,
+        detail: "Kernel.sigil_r(term, modifiers)",
+        documentation: "Handles the sigil `~r` for regular expressions.",
+        insert_text: "~r"
+      }
+
+      assert regex_item in Intellisense.get_completion_items("~", binding, env)
+
+      assert [^regex_item] = Intellisense.get_completion_items("~r", binding, env)
+    end
+
+    test "Elixir sigil-like operators" do
+      {binding, env} =
+        eval do
+          import Bitwise
+        end
+
+      bitwise_not_item = %{
+        label: "~~~/1",
+        kind: :function,
+        detail: "~~~expr",
+        documentation: """
+        Bitwise NOT unary operator.
+
+        ```
+        @spec ~~~integer() :: integer()
+        ```\
+        """,
+        insert_text: "~~~"
+      }
+
+      assert bitwise_not_item in Intellisense.get_completion_items("~", binding, env)
     end
 
     @tag :erl_docs

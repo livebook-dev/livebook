@@ -69,7 +69,8 @@ defprotocol Livebook.Runtime do
           insert_text: String.t()
         }
 
-  @type completion_item_kind :: :function | :module | :type | :variable | :field
+  @type completion_item_kind ::
+          :function | :module | :struct | :interface | :type | :variable | :field
 
   @typedoc """
   Looks up more details about an identifier found in `column` in `line`.

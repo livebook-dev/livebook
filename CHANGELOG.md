@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added support for configuring file systems using env variables ([#498](https://github.com/livebook-dev/livebook/pull/498))
 - Added a keyboard shortcut for triggering on-hover docs ([#508](https://github.com/livebook-dev/livebook/pull/508))
 
+### Changed
+
+- Improved intellisense to handle structs and sigils ([#513](https://github.com/livebook-dev/livebook/pull/513))
+
 ### Fixed
 
 - Improved Markdown and math integration by migrating to remark ([#495](https://github.com/livebook-dev/livebook/pull/495))
