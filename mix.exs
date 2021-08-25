@@ -43,7 +43,7 @@ defmodule Livebook.MixProject do
   #   2. we don't want users to potentially get a new dependency
   #      when installing from git or as an escript
   #
-  # Therefore, to update any dependency, you must explicitly call:
+  # Therefore, to update any dependency, you must call before:
   #
   #     mix deps.unlock foo bar baz
   #
