@@ -4,17 +4,17 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
 
-  * Persistence: notebooks can be persisted to disk through the `.livemd` format, which is a subset of Markdown with [KaTex](https://katex.org/) for mathematical formulas. This means your notebooks can be saved, easily shared, and play well with version control.
+  * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with annotations and [KaTex](https://katex.org/) for mathematical formulas. This means your notebooks can be saved, easily shared, and play well with version control.
 
-  * Interactive widgets via [Kino](https://github.com/elixir-nx/kino): you can manipulate [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, and more.
+  * Interactive widgets via [Kino](https://github.com/elixir-nx/kino): manipulate [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, and more.
 
   * Rich code editor through [Monaco](https://microsoft.github.io/monaco-editor/): with support for autocompletion, inline documentation, code formatting, etc.
 
-  * Explicit dependencies: if your notebook has dependencies, they are explicitly listed and installed with the help of the `Mix.install/2` command in Elixir v1.12+.
-
-  * Sequential evaluation: code cells run in a specific order, guaranteeing future users of the same Livebook see the same output. If you re-execute a previous cell, following cells are marked as stale to make it clear they depend on outdated notebook state.
+  * Reproducible: Livebook ensures your code runs in a predictable order, all the way down to package management. It also tracks your notebook state, annotating which parts are stale.
 
   * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
+
+  * Persistence: persist your notebooks to disk or any S3-compatible cloud storage.
 
   * Collaboration: multiple users can work on the same notebook at once. It works out-of-the-box either in single-node or multi-node deployments - without a need for additional tooling.
 
