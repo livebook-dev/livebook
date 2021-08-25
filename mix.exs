@@ -77,11 +77,9 @@ defmodule Livebook.MixProject do
          end)
 
   defp with_lock(deps) do
-    lock = @lock
-
     for dep <- deps do
       name = elem(dep, 0)
-      put_elem(dep, 1, lock[name] || elem(dep, 1))
+      put_elem(dep, 1, @lock[name] || elem(dep, 1))
     end
   end
 
