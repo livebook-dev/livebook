@@ -106,7 +106,7 @@ defmodule Livebook.LiveMarkdown.Export do
     json =
       %{
         livebook_object: :cell_input,
-        type: cell.type,
+        type: Cell.Input.type_to_string(cell.type),
         name: cell.name,
         value: value
       }

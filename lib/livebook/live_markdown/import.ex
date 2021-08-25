@@ -286,37 +286,13 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp parse_input_type(string) do
-    case string do
-      "text" ->
-        {:ok, :text}
+    case Notebook.Cell.Input.type_from_string(string) do
+      {:ok, type} ->
+        {:ok, type}
 
-      "url" ->
-        {:ok, :url}
-
-      "number" ->
-        {:ok, :number}
-
-      "password" ->
-        {:ok, :password}
-
-      "textarea" ->
-        {:ok, :textarea}
-
-      "color" ->
-        {:ok, :color}
-
-      "range" ->
-        {:ok, :range}
-
-      "select" ->
-        {:ok, :select}
-
-      "checkbox" ->
-        {:ok, :checkbox}
-
-      other ->
+      :error ->
         {:error,
-         "unrecognised input type #{inspect(other)}, if it's a valid type it means your Livebook version doesn't support it"}
+         "unrecognised input type #{inspect(string)}, if it's a valid type it means your Livebook version doesn't support it"}
     end
   end
 
