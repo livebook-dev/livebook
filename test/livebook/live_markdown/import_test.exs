@@ -581,4 +581,20 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
+
+  test "skips invalid input type and returns a message" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    <!-- livebook:{"livebook_object":"cell_input","type":"input_from_the_future"} -->
+    """
+
+    {_notebook, messages} = Import.notebook_from_markdown(markdown)
+
+    assert [
+             ~s{unrecognised input type "input_from_the_future", if it's a valid type it means your Livebook version doesn't support it}
+           ] == messages
+  end
 end
