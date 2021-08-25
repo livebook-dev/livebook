@@ -20,6 +20,7 @@ defmodule Livebook.Notebook.Cell.Input do
           props: props()
         }
 
+  # Make sure to keep this in sync with `type_from_string/1`
   @type type ::
           :text | :url | :number | :password | :textarea | :color | :range | :select | :checkbox
 
@@ -113,5 +114,32 @@ defmodule Livebook.Notebook.Cell.Input do
   @spec reactive_update?(t(), t()) :: boolean()
   def reactive_update?(cell, prev_cell) do
     cell.reactive and cell.value != prev_cell.value and validate(cell) == :ok
+  end
+
+  @doc """
+  Parses input type from string.
+  """
+  @spec type_from_string(String.t()) :: {:ok, type()} | :error
+  def type_from_string(string) do
+    case string do
+      "text" -> {:ok, :text}
+      "url" -> {:ok, :url}
+      "number" -> {:ok, :number}
+      "password" -> {:ok, :password}
+      "textarea" -> {:ok, :textarea}
+      "color" -> {:ok, :color}
+      "range" -> {:ok, :range}
+      "select" -> {:ok, :select}
+      "checkbox" -> {:ok, :checkbox}
+      _other -> :error
+    end
+  end
+
+  @doc """
+  Converts inpu type to string.
+  """
+  @spec type_to_string(type()) :: String.t()
+  def type_to_string(type) do
+    Atom.to_string(type)
   end
 end
