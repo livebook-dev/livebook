@@ -20,6 +20,7 @@ defmodule Livebook.Notebook.Cell.Input do
           props: props()
         }
 
+  # Make sure to keep this in sync with `type_from_string/1`
   @type type ::
           :text | :url | :number | :password | :textarea | :color | :range | :select | :checkbox
 
