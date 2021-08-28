@@ -1,5 +1,11 @@
 <h1><img src="https://github.com/livebook-dev/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
+<p>
+ <a href="https://hex.pm/packages/livebook">
+   <img alt="Hex.pm" src="https://img.shields.io/hexpm/v/livebook">
+ </a>
+</p>
+
 Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
   * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
