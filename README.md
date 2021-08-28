@@ -90,7 +90,7 @@ docker run -p 8080:8080 --pull always livebook/livebook
 # you can mount a local directory into the container.
 # Make sure to specify the user with "-u $(id -u):$(id -g)"
 # so that the created files have proper permissions
-docker run -p 8080:8080 --pull always -u $(id -u):$(id -g) -v <LOCAL_DIR>:/data livebook/livebook
+docker run -p 8080:8080 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
 
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
