@@ -88,6 +88,7 @@ function sanitizeSchema() {
     attributes: {
       ...defaultSchema.attributes,
       span: [...(defaultSchema.attributes.span || []), "className", "style"],
+      i: [...(defaultSchema.attributes.i || []), "className"],
     },
   };
 }
