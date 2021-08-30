@@ -10,28 +10,28 @@ to smoothly integrate to typed, multidimensional data implemented on other
 platforms (called tensors). This support extends to the compilers and
 libraries that support those tensors. Nx has three primary capabilities:
 
-* In Nx, tensors backed by other platforms hold typed data in multiple, 
+* In Nx, tensors backed by other platforms hold typed data in multiple,
   named dimensions.
-* Numerical definitions, known as `defn`, support custom code with 
+* Numerical definitions, known as `defn`, support custom code with
   tensor-aware operators and functions.
-* [Automatic differentiation](https://arxiv.org/abs/1502.05767), also known as 
-  autograd or autodiff, supports common computational scenarios 
+* [Automatic differentiation](https://arxiv.org/abs/1502.05767), also known as
+  autograd or autodiff, supports common computational scenarios
   such as machine learning, simulations, curve fitting, and probabilistic models.
 
-Here's more about each of those capabilities. Nx [tensors]() can hold 
-unsigned integers (u8, u16, u32, u64), 
-signed integers (s8, s16, s32, s64), 
-floats (f32, f64) and brain floats (bf16). 
-Tensors support backends implemented outside of Elixir, including Google's 
+Here's more about each of those capabilities. Nx [tensors]() can hold
+unsigned integers (u8, u16, u32, u64),
+signed integers (s8, s16, s32, s64),
+floats (f32, f64) and brain floats (bf16).
+Tensors support backends implemented outside of Elixir, including Google's
 Excelerated Linear Algebra (XLA) and LibTorch.
 
-Numerical definitions have compiler support to allow just-in-time compilation 
-that support specialized processors to speed up numeric computation including 
+Numerical definitions have compiler support to allow just-in-time compilation
+that support specialized processors to speed up numeric computation including
 TPUs and GPUs.
 
 If you want to know Nx, get to know tensors first. This rapid overview will touch
 on the major libraries. Then, future notebooks will take a deep dive into working
-with tensors in detail, autograd, and backends. Then, you can dive into specific 
+with tensors in detail, autograd, and backends. Then, you can dive into specific
 problem spaces like Axon, the machine learning library.
 
 ## Nx and tensors
@@ -51,7 +51,7 @@ $$
 
 <!-- livebook:{"break_markdown":true} -->
 
-In Elixir, you would express a similar data structure using 
+In Elixir, you would express a similar data structure using
 a list of lists, like this:
 
 ```elixir
@@ -61,28 +61,28 @@ a list of lists, like this:
 ]
 ```
 
-This data structure works fine within many functional programming 
+This data structure works fine within many functional programming
 algorithms, but breaks down with deep nesting and random access.
 
-On top of that, Elixir numeric types lack optimization for many numerical 
+On top of that, Elixir numeric types lack optimization for many numerical
 applications. They work fine when programs
-need hundreds or even thousands of calculations. They tend to break 
+need hundreds or even thousands of calculations. They tend to break
 down with traditional STEM applications when a typical problem
 needs millions of calculations.
 
-In Nx, you'll express multi-dimensional data using typed tensors. Simply put, 
+In Nx, you'll express multi-dimensional data using typed tensors. Simply put,
 a tensor is a multi-dimensional array with a predetermined shape and
 type. To interact with them, Nx relies on tensor-aware operators rather
 than `Enum.map/2` and `Enum.reduce/3`.
 
-In this section, you'll look at some of the various tools for 
+In this section, you'll look at some of the various tools for
 creating and interacting with tensors.
 
 <!-- livebook:{"break_markdown":true} -->
 
-To get started, you'll first need to include the Nx dependency. 
-In Livebook, we can simply use Mix install. At the time of this writing, 
-there's no Hex package for Nx, which means you need to use a git 
+To get started, you'll first need to include the Nx dependency.
+In Livebook, we can simply use Mix install. At the time of this writing,
+there's no Hex package for Nx, which means you need to use a git
 dependency, like this:
 
 ```elixir
@@ -112,14 +112,14 @@ Now, everything is set up, so we're ready to create some tensors.
 
 <!-- livebook:{"break_markdown":true} -->
 
-Start out by getting a feel for Nx through its documentation. 
+Start out by getting a feel for Nx through its documentation.
 Do so through the IEx helpers, like this:
 
 ```elixir
 h(Nx)
 ```
 
-Immediately, you can see that tensors are at the center of the 
+Immediately, you can see that tensors are at the center of the
 API. The main API for creating tensors is `Nx.tensor/2`:
 
 ```elixir
@@ -141,7 +141,7 @@ You have a new tensor. Create your own tensor using tuples instead of lists:
 # ...your code here...
 ```
 
-If you study the result carefully, you can see 
+If you study the result carefully, you can see
 all of the four major components of a tensor:
 
 <!-- livebook:{"break_markdown":true} -->
@@ -185,23 +185,23 @@ Now,
 
 <!-- livebook:{"break_markdown":true} -->
 
-You can get information about this most recent term with 
+You can get information about this most recent term with
 the IEx helper `i`, like this:
 
 ```elixir
 i(tensor)
 ```
 
-The tensor is a struct that supports the usual `Info` and `Inspect` 
+The tensor is a struct that supports the usual `Info` and `Inspect`
 protocols. The struct has keys, but you should treat the `Tensor`
 as an _opaque data type_ (meaning you should access the contents and
 shape of a tensor using the tensor's API instead of the struct).
 
 Primarily, a tensor is a struct, and the
 functions to access it go through a specific backend. We'll get to
-the backend details in a moment. For now, use the IEx `h` helper 
-to get more documentation about tensors. You can also open an Elixir 
-cell, type Nx.tensor, and hover your cursor over the word `tensor` 
+the backend details in a moment. For now, use the IEx `h` helper
+to get more documentation about tensors. You can also open an Elixir
+cell, type Nx.tensor, and hover your cursor over the word `tensor`
 to see the help about that function.
 
 <!-- livebook:{"break_markdown":true} -->
@@ -225,14 +225,14 @@ The new tensor has the same type, but a new shape.
 
 <!-- livebook:{"break_markdown":true} -->
 
-Now, reshape the tensor to contain three dimensions with 
+Now, reshape the tensor to contain three dimensions with
 one batch, one row, and four columns.
 
 ```elixir
 # ...your code here...
 ```
 
-You can create a tensor with named dimensions, a type, a shape, 
+You can create a tensor with named dimensions, a type, a shape,
 and your target data. A dimension is called an _axis_, and axes
 can have names. You can specify the tensor type and dimension names
 with options, like this:
@@ -250,14 +250,14 @@ Now that you know how to create tensors, it's time to do something with them.
 
 ## Tensor aware functions
 
-In the last section, you created a `s64[2][2]` tensor. In this section, 
+In the last section, you created a `s64[2][2]` tensor. In this section,
 you'll use Nx functions to work with it. Here's the value of `tensor`:
 
 ```elixir
 tensor
 ```
 
-You can use `IEx.exports/1` or code completion to find 
+You can use `IEx.exports/1` or code completion to find
 some functions in the `Nx` module that operate on tensors:
 
 ```elixir
@@ -265,7 +265,7 @@ exports(Nx)
 ```
 
 You might recognize that many of those functions have names that
-suggest that they would work on primitive values, called scalars. 
+suggest that they would work on primitive values, called scalars.
 Indeed, a tensor can be a scalar:
 
 ```elixir
@@ -278,24 +278,24 @@ Take the cosine:
 Nx.cos(pi)
 ```
 
-That function took the cosine of `pi`. You're not limited to calling 
-those functions on scalars, though. You can call them on a whole tensor, 
+That function took the cosine of `pi`. You're not limited to calling
+those functions on scalars, though. You can call them on a whole tensor,
 like this:
 
 ```elixir
 Nx.cos(tensor)
 ```
 
-Or, you can call a function that aggregates the contents 
-of a tensor. For example, to get a sum of the numbers 
+Or, you can call a function that aggregates the contents
+of a tensor. For example, to get a sum of the numbers
 in `tensor`, you'd do this:
 
 ```elixir
 Nx.sum(tensor)
 ```
 
-That's `1 + 2 + 3 + 4`, and Nx went to multiple dimensions to get that sum. 
-What if you wanted to get the sum of values along the `x` axis? 
+That's `1 + 2 + 3 + 4`, and Nx went to multiple dimensions to get that sum.
+What if you wanted to get the sum of values along the `x` axis?
 You'd do this:
 
 ```elixir
@@ -319,25 +319,25 @@ Now,
 ```
 
 Sometimes, you'll want to combine two tensors together with an
-operator. Let's say you wanted to add two tensors together. 
+operator. Let's say you wanted to add two tensors together.
 Mathematically, you'd express that idea like this:
 
 <!-- livebook:{"break_markdown":true} -->
 
 $$
 \begin{bmatrix}
-  5 & 6 \\ 
+  5 & 6 \\
   7 & 8
 \end{bmatrix}
 
 -
 \begin{bmatrix}
-  1 & 2 \\ 
+  1 & 2 \\
   3 & 4
 \end{bmatrix}
 
 \begin{bmatrix}
-  4 & 4 \\ 
+  4 & 4 \\
   4 & 4
 \end{bmatrix}
 $$
@@ -345,8 +345,8 @@ $$
 <!-- livebook:{"break_markdown":true} -->
 
 To solve this problem, add each integer on the left with the
-corresponding integer on the right. In Nx, this operation 
-is called tensor-aware addition. Let's use the `+` function 
+corresponding integer on the right. In Nx, this operation
+is called tensor-aware addition. Let's use the `+` function
 to solve the problem:
 
 ```elixir
@@ -358,15 +358,15 @@ We get a `{2, 2}` shaped tensor full of fours, exactly as we expected.
 
 <!-- livebook:{"break_markdown":true} -->
 
-We can use tensor-aware operators via the `Nx.Defn.Kernel` functions, 
+We can use tensor-aware operators via the `Nx.Defn.Kernel` functions,
 but the code is tedious and unsatisfying, especially as functions grow
-in complexity and length. Fortunately, Nx provides a better way. 
+in complexity and length. Fortunately, Nx provides a better way.
 Next, we'll dive into numerical definitions using `defn`.
 
 ## Numerical definitions (defn)
 
-The `defn` macro simplifies the expression of mathematical formulas 
-containing tensors. Numerical definitions have two primary benefits 
+The `defn` macro simplifies the expression of mathematical formulas
+containing tensors. Numerical definitions have two primary benefits
 over classic Elixir functions.
 
 * They are _tensor-aware_. Nx replaces operators like `Kernel.-`
@@ -379,7 +379,7 @@ over classic Elixir functions.
 
 <!-- livebook:{"break_markdown":true} -->
 
-You don't have to do anything special to get access to 
+You don't have to do anything special to get access to
 get tensor awareness beyond importing `Defn` and writing
 your code within a `defn` block. Similarly, to get access
 to a compiled backend, you only need to specify a backend
@@ -387,8 +387,8 @@ to a compiled backend, you only need to specify a backend
 
 <!-- livebook:{"break_markdown":true} -->
 
-To use Nx in a Mix project or a notebook, you need to include 
-the `:nx` dependency and import the `Nx.Defn` module. The 
+To use Nx in a Mix project or a notebook, you need to include
+the `:nx` dependency and import the `Nx.Defn` module. The
 dependency is already included, so import `Defn` in an Elixir
 cell, like this:
 
@@ -396,15 +396,15 @@ cell, like this:
 import Nx.Defn
 ```
 
-Just as the Elixir language supports `def`, `defmacro`, and `defp`, 
+Just as the Elixir language supports `def`, `defmacro`, and `defp`,
 Nx supports `defn`. There are a few restrictions. It allows only
 numerical arguments in the form of primitives or tensors as arguments
-or return values, and has a limited subset of the language within 
+or return values, and has a limited subset of the language within
 the `defn` block.
 
 <!-- livebook:{"break_markdown":true} -->
 
-Numerical definitions compensate you with huge benefits, though. 
+Numerical definitions compensate you with huge benefits, though.
 A `defn` uses tensor aware operators and types. You'll also get
 support for backends and JIT compilation to support high performance
 processors such as Google's XLA and LibTorch (the core behind PyTorch).
@@ -418,10 +418,10 @@ defmodule TensorMath do
 end
 ```
 
-Now, it's your turn. Add a `defn` to `TensorMath` 
-that accepts two tensors representing the lengths of sides of a 
-right triangle and uses the pythagorean theorem to return the 
-[length of the hypotenuse](https://www.mathsisfun.com/pythagoras.html). 
+Now, it's your turn. Add a `defn` to `TensorMath`
+that accepts two tensors representing the lengths of sides of a
+right triangle and uses the pythagorean theorem to return the
+[length of the hypotenuse](https://www.mathsisfun.com/pythagoras.html).
 Add your function directly to the previous Elixir cell.
 
 <!-- livebook:{"break_markdown":true} -->
@@ -430,7 +430,7 @@ Add your function directly to the previous Elixir cell.
 
 <!-- livebook:{"break_markdown":true} -->
 
-That bit of code does nothing but wrap the `-` operator. It's tensor 
+That bit of code does nothing but wrap the `-` operator. It's tensor
 aware. If you've not seen matrix algebra before, you might be surprised.
 You can use it to do several different mathematical calculations. The most
 obvious is to subtract two matrices, like this:
@@ -439,15 +439,15 @@ obvious is to subtract two matrices, like this:
 TensorMath.subtract(tensor2, tensor)
 ```
 
-In this program, `Nx.Defn.Kernel.-/2` replaces `Kernel.-/2`, so 
-we predictably get the value of `Nx.Defn.Kernel.-(tensor2, tensor)`. 
+In this program, `Nx.Defn.Kernel.-/2` replaces `Kernel.-/2`, so
+we predictably get the value of `Nx.Defn.Kernel.-(tensor2, tensor)`.
 You can also process this equation:
 
 <!-- livebook:{"break_markdown":true} -->
 
 $$
 \begin{bmatrix}
-  1 & 2 \\ 
+  1 & 2 \\
   3 & 4
 \end{bmatrix}
 
@@ -455,7 +455,7 @@ $$
 1
 
 \begin{bmatrix}
-  0 & 1 \\ 
+  0 & 1 \\
   2 & 3
 \end{bmatrix}
 $$
@@ -466,26 +466,26 @@ Mathematically, it's the same as this:
 
 $$
 \begin{bmatrix}
-  1 & 2 \\ 
+  1 & 2 \\
   3 & 4
 \end{bmatrix}
 
 -
 \begin{bmatrix}
-  1 & 1 \\ 
+  1 & 1 \\
   1 & 1
 \end{bmatrix}
 
 \begin{bmatrix}
-  0 & 1 \\ 
+  0 & 1 \\
   2 & 3
 \end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
 
-`defn` takes care of this rewrite implicitly 
-through a broadcast. Nx will do this under the 
+`defn` takes care of this rewrite implicitly
+through a broadcast. Nx will do this under the
 hood, like this:
 
 ```elixir
@@ -493,7 +493,7 @@ Nx.broadcast(1, {2, 2})
 ```
 
 This broadcast takes the scalar `1` and translates it
-to a compatible shape by copying it. Of course, this 
+to a compatible shape by copying it. Of course, this
 all happens automatically:
 
 ```elixir
@@ -512,7 +512,7 @@ Or subtract a row or column. Mathematically, it would look like this:
 
 $$
 \begin{bmatrix}
-  1 & 2 \\ 
+  1 & 2 \\
   3 & 4
 \end{bmatrix}
 
@@ -522,7 +522,7 @@ $$
 \end{bmatrix}
 
 \begin{bmatrix}
-  0 & 0 \\ 
+  0 & 0 \\
   2 & 2
 \end{bmatrix}
 $$
@@ -535,7 +535,7 @@ which is the same as this:
 
 $$
 \begin{bmatrix}
-  1 & 2 \\ 
+  1 & 2 \\
   3 & 4
 \end{bmatrix}
 
@@ -546,14 +546,14 @@ $$
 \end{bmatrix}
 
 \begin{bmatrix}
-  0 & 0 \\ 
+  0 & 0 \\
   2 & 2
 \end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
 
-This rewrite happens in Nx too, also through a broadcast. We want to 
+This rewrite happens in Nx too, also through a broadcast. We want to
 broadcast the tensor `[1, 2]` to match the `{2, 2}` shape, like this:
 
 ```elixir
@@ -567,8 +567,8 @@ implicitly, as before:
 TensorMath.subtract(tensor, Nx.tensor([1, 2]))
 ```
 
-In the notebooks to come, we'll walk through the `Nx.broadcast/2` 
-function that resolves two distinct shapes into compatible tensors. 
+In the notebooks to come, we'll walk through the `Nx.broadcast/2`
+function that resolves two distinct shapes into compatible tensors.
 For now, know that Nx uses `broadcast` to repeat like rows or scalars
 until shapes match. Read more about it here:
 
@@ -577,29 +577,29 @@ h(Nx.broadcast())
 ```
 
 You now know how to build custom tensor-aware code.
-The next step is to make the code efficient on specialized CPUs 
+The next step is to make the code efficient on specialized CPUs
 using the backend of your choice.
 
 ## Backend compiler support
 
-Now, it's time to address the backend compiler support. 
+Now, it's time to address the backend compiler support.
 `defn` functions are backed by highly specialized compilers.
-These compilers have two primary purposes. They provide 
-a mechanism for external compiler tools like Google's 
+These compilers have two primary purposes. They provide
+a mechanism for external compiler tools like Google's
 excelerated linear algebra (XLA), and they
-provide an intermediate AST structure convenient for 
-processing gradients, a capability critical to numerical 
+provide an intermediate AST structure convenient for
+processing gradients, a capability critical to numerical
 applications like machine learning.
 
 <!-- livebook:{"break_markdown":true} -->
 
 Under the hood, numerical definitions are translated to Elixir
-AST at compile time, but code execution doesn't stop there. 
+AST at compile time, but code execution doesn't stop there.
 When a `defn` is executed, the AST is transformed to an
-executable BEAM implementation. When executed, that 
-implementation builds an intermediate form called a `defn` 
-AST that is then delegated to a third-party just-in-time 
-compiler, called a JIT. This is what the compilation and 
+executable BEAM implementation. When executed, that
+implementation builds an intermediate form called a `defn`
+AST that is then delegated to a third-party just-in-time
+compiler, called a JIT. This is what the compilation and
 execution flow looks like:
 
 <!-- livebook:{"break_markdown":true} -->
@@ -617,7 +617,7 @@ defn function ->
 You can specify backends in several ways. To do so, you'll
 first need to include the backend dependency. In a `mix`
 project, you'll add a dependency. If you want to try these
-examples, you'll need to add the `exla` dependency, as this 
+examples, you'll need to add the `exla` dependency, as this
 noteboook does in the `Tensor` section.
 
 <!-- livebook:{"break_markdown":true} -->
@@ -637,33 +637,33 @@ defmodule VerboseMath do
 end
 ```
 
-This code creates a module with a `defn` block, and will compile to 
+This code creates a module with a `defn` block, and will compile to
 the `XLA` backend. You'll see the expression when you evaluate it:
 
 ```elixir
 VerboseMath.multiply(Nx.tensor([1, 2]), 3)
 ```
 
-Now, you can see the intermediate form. Notice you didn't see the 
+Now, you can see the intermediate form. Notice you didn't see the
 compiled form until the code was evaluated the first time. The first
 part of the result is the expression. It has two parameters,  `a` and
-`b`. These two bindings are the inbound arguments of the function, 
-but instead of referring to them as `x` and `y`, the expression 
-arbitrarily labels these with `a` and `b`. They are bound to 
-a `s64[2]` tensor and a `s64` scalar. The result is a third binding 
+`b`. These two bindings are the inbound arguments of the function,
+but instead of referring to them as `x` and `y`, the expression
+arbitrarily labels these with `a` and `b`. They are bound to
+a `s64[2]` tensor and a `s64` scalar. The result is a third binding
 called `c`.
 
-This intermediate AST is what Nx hands off to a compiler. It also 
+This intermediate AST is what Nx hands off to a compiler. It also
 forms the foundations of autograd.
 
 ## Automatic differentiation (autograd)
 
-An important mathematical property for a function is the 
+An important mathematical property for a function is the
 rate of change, or the gradient. These gradients are critical
-for solving systems of equations and building probablistic 
-models. In advanced math, derivatives, or differential equations, 
-are used to take gradients. Nx can compute these derivatives 
-automatically through a feature called automatic differentiation, 
+for solving systems of equations and building probablistic
+models. In advanced math, derivatives, or differential equations,
+are used to take gradients. Nx can compute these derivatives
+automatically through a feature called automatic differentiation,
 or autograd.
 
 Here's how it works.
@@ -672,10 +672,10 @@ Here's how it works.
 h(Nx.Defn.grad())
 ```
 
-We'll build a module with a few functions, 
+We'll build a module with a few functions,
 and then create another function to create the gradients of those
-functions. The function `grad/1` takes a function, and returns 
-a function returning the gradient. We have two functions: `poly/1` 
+functions. The function `grad/1` takes a function, and returns
+a function returning the gradient. We have two functions: `poly/1`
 is a simple numerical definitin, and `poly_slope_at/1` returns
 its gradient:
 
@@ -707,7 +707,7 @@ defmodule Funs do
 end
 ```
 
-Notice the second `defn`. It uses `grad/1` to take its 
+Notice the second `defn`. It uses `grad/1` to take its
 derivative using autograd. It uses the intermediate `defn` AST
 and mathematical composition to compute the derivative. You can
 see it at work here:
@@ -716,14 +716,14 @@ see it at work here:
 Funs.poly_slope_at(2)
 ```
 
-Nice. If you plug the number 2 into the function $$ 6x + 2 $$ 
-you get 14! Said another way, if you look at the graph at 
-exactly 2, the rate of increase is 14 units of `poly(x)` 
+Nice. If you plug the number 2 into the function $$ 6x + 2 $$
+you get 14! Said another way, if you look at the graph at
+exactly 2, the rate of increase is 14 units of `poly(x)`
 for every unit of `x`, precisely at `x`.
 
 <!-- livebook:{"break_markdown":true} -->
 
-Nx also has helpers to get gradients corresponding to a number of inputs. 
+Nx also has helpers to get gradients corresponding to a number of inputs.
 These come into play when solving systems of equations.
 
 <!-- livebook:{"break_markdown":true} -->
@@ -734,9 +734,9 @@ Now, you try. Find a function computing the gradient of a `sin` wave.
 # your code here
 ```
 
-In the notebooks to follow, we'll use these techniques to 
-create many different types of tensors with Nx primitive 
+In the notebooks to follow, we'll use these techniques to
+create many different types of tensors with Nx primitive
 functions. Then, we'll dive into the basics of slicing
 and broadcasting to give you a feel for working with
-data. Finally, we'll roll up these techniques in a linear 
+data. Finally, we'll roll up these techniques in a linear
 regression.
