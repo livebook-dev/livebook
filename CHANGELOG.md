@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Improved intellisense to handle structs and sigils ([#513](https://github.com/livebook-dev/livebook/pull/513))
+- Create new notebooks with an already focused code cell ([#527](https://github.com/livebook-dev/livebook/pull/527))
 
 ### Fixed
 
