@@ -5,6 +5,7 @@ import {
   selectElementContent,
   smoothlyScrollToElement,
 } from "../lib/utils";
+import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "../cell/live_editor/monaco";
@@ -17,6 +18,11 @@ import monaco from "../cell/live_editor/monaco";
  * of cells being added/removed from the DOM. We do however need
  * to communicate between this global hook and cells and for
  * that we use a simple local pubsub that the hooks subscribe to.
+ *
+ * Configuration:
+ *
+ *   * `data-autofocus-cell-id` - id of the cell that gets initial
+ *     focus once the notebook is loaded
  *
  * ## Shortcuts
  *
@@ -51,6 +57,7 @@ import monaco from "../cell/live_editor/monaco";
  */
 const Session = {
   mounted() {
+    this.props = getProps(this);
     this.state = {
       focusedCellId: null,
       focusedSectionId: null,
@@ -117,7 +124,7 @@ const Session = {
     window.addEventListener(
       "phx:page-loading-stop",
       () => {
-        focusCellFromUrl(this);
+        initializeFocus(this);
       },
       { once: true }
     );
@@ -204,6 +211,16 @@ const Session = {
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
   },
 };
+
+function getProps(hook) {
+  return {
+    autofocusCellId: getAttributeOrDefault(
+      hook.el,
+      "data-autofocus-cell-id",
+      null
+    ),
+  };
+}
 
 /**
  * Data of a specific LV client.
@@ -481,24 +498,30 @@ function handleCellIndicatorsClick(hook, event) {
 }
 
 /**
- * Focuses cell based on the given URL.
+ * Focuses cell or any other element based on the current
+ * URL and hook attributes.
  */
-function focusCellFromUrl(hook) {
+function initializeFocus(hook) {
   const hash = window.location.hash;
 
-  if (hash.startsWith("#cell-")) {
-    const cellId = hash.replace(/^#cell-/, "");
-    if (getCellById(cellId)) {
-      setFocusedCell(hook, cellId);
+  if (hash) {
+    if (hash.startsWith("#cell-")) {
+      const cellId = hash.replace(/^#cell-/, "");
+      if (getCellById(cellId)) {
+        setFocusedCell(hook, cellId);
+      }
+    } else {
+      // Explicitly scroll to the target element
+      // after the loading finishes
+      const htmlId = hash.replace(/^#/, "");
+      const element = document.getElementById(htmlId);
+      if (element) {
+        element.scrollIntoView();
+      }
     }
-  } else {
-    // Explicitly scroll to the target element
-    // after the loading finishes
-    const htmlId = hash.replace(/^#/, "");
-    const element = document.getElementById(htmlId);
-    if (element) {
-      element.scrollIntoView();
-    }
+  } else if (hook.props.autofocusCellId) {
+    setFocusedCell(hook, hook.props.autofocusCellId, false);
+    setInsertMode(hook, true);
   }
 }
 

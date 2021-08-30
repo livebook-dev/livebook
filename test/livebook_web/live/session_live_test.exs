@@ -8,7 +8,7 @@ defmodule LivebookWeb.SessionLiveTest do
   alias Livebook.Users.User
 
   setup do
-    {:ok, session_id} = SessionSupervisor.create_session()
+    {:ok, session_id} = SessionSupervisor.create_session(notebook: Livebook.Notebook.new())
     %{session_id: session_id}
   end
 
@@ -54,7 +54,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       cell_id = insert_text_cell(session_id, section_id, :markdown)
 
-      assert render(view) =~ cell_id
+      assert render(view) =~ "cell-" <> cell_id
     end
 
     test "un-renders a deleted cell", %{conn: conn, session_id: session_id} do
@@ -66,7 +66,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.delete_cell(session_id, cell_id)
       wait_for_session_update(session_id)
 
-      refute render(view) =~ cell_id
+      refute render(view) =~ "cell-" <> cell_id
     end
   end
 

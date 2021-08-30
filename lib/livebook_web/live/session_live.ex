@@ -38,7 +38,8 @@ defmodule LivebookWeb.SessionLive do
          session_pid: session_pid,
          current_user: current_user,
          self: self(),
-         data_view: data_to_view(data)
+         data_view: data_to_view(data),
+         autofocus_cell_id: autofocus_cell_id(data.notebook)
        )
        |> assign_private(data: data)
        |> allow_upload(:cell_image,
@@ -74,7 +75,8 @@ defmodule LivebookWeb.SessionLive do
     <div class="flex flex-grow h-full"
       id="session"
       data-element="session"
-      phx-hook="Session">
+      phx-hook="Session"
+      data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.button_item
@@ -952,7 +954,11 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:delete_section, _client_pid, section_id}) do
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:delete_section, _client_pid, section_id, _delete_cells}
+       ) do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
@@ -1091,6 +1097,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp process_intellisense_response(response, _request), do: response
+
+  defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
+  defp autofocus_cell_id(_notebook), do: nil
 
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
