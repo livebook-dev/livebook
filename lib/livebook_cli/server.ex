@@ -62,7 +62,7 @@ defmodule LivebookCLI.Server do
         open_from_options(base_url, opts)
 
       :taken ->
-        IO.puts(
+        print_error(
           "Another application is already running on port #{port}." <>
             " Either ensure this port is free or specify a different port using the --port option"
         )
