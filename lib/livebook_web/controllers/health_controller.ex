@@ -4,12 +4,9 @@ defmodule LivebookWeb.HealthController do
   def index(conn, _params) do
     version = Application.spec(:livebook, :vsn) |> List.to_string()
 
-    json =
-      Jason.encode!(%{
-        "application" => "livebook",
-        "version" => version
-      })
-
-    send_resp(conn, 200, json)
+    json(conn, %{
+      "application" => "livebook",
+      "version" => version
+    })
   end
 end
