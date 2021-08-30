@@ -33,6 +33,7 @@ defmodule LivebookCLI.Server do
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
       --open               Open browser window pointing to the application
+      --open-new           Open browser window pointing to a new notebook
       -p, --port           The port to start the web application on, defaults to 8080
       --root-path          The root path to use for file selection
       --sname              Set a short name for the app distributed node
@@ -56,6 +57,14 @@ defmodule LivebookCLI.Server do
       :ok ->
         if opts[:open] do
           browser_open(LivebookWeb.Endpoint.access_url())
+        end
+
+        if opts[:open_new] do
+          LivebookWeb.Endpoint.access_url()
+          |> URI.parse()
+          |> Map.update!(:path, &((&1 || "/") <> "explore/notebooks/new"))
+          |> URI.to_string()
+          |> browser_open()
         end
 
         Process.sleep(:infinity)
@@ -92,6 +101,7 @@ defmodule LivebookCLI.Server do
     ip: :string,
     name: :string,
     open: :boolean,
+    open_new: :boolean,
     port: :integer,
     root_path: :string,
     sname: :string,
