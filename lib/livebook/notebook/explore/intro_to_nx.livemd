@@ -5,10 +5,10 @@
 Elixir's primary numerical datatypes and structures are not optimized
 for numerical programming. Nx is a library built to bridge that gap.
 
-[Elixir's Nx](https://github.com/elixir-nx/nx) is a numerical computing library
-to smoothly integrate to typed, multidimensional data implemented (called tensors) 
-on other platforms. This support extends to the the compilers and libraries 
-that support those tensors. Nx has three primary capabilities:
+[Elixir Nx](https://github.com/elixir-nx/nx) is a numerical computing library
+to smoothly integrate to typed, multidimensional data implemented on other
+platforms (called tensors). This support extends to the compilers and
+libraries that support those tensors. Nx has three primary capabilities:
 
 * In Nx, tensors backed by other platforms hold typed data in multiple, 
   named dimensions.
@@ -23,7 +23,7 @@ unsigned integers (u8, u16, u32, u64),
 signed integers (s8, s16, s32, s64), 
 floats (f32, f64) and brain floats (bf16). 
 Tensors support backends implemented outside of Elixir, including Google's 
-Excelerated Linear Algebra (XLA) and PyTorch.
+Excelerated Linear Algebra (XLA) and LibTorch.
 
 Numerical definitions have compiler support to allow just-in-time compilation 
 that support specialized processors to speed up numeric computation including 
@@ -34,7 +34,7 @@ on the major libraries. Then, future notebooks will take a deep dive into workin
 with tensors in detail, autograd, and backends. Then, you can dive into specific 
 problem spaces like Axon, the machine learning library.
 
-## Nx andTensors
+## Nx and tensors
 
 Systems of equations are a central theme in numerical computing.
 These equations are often expressed and solved with multidimensional
@@ -43,15 +43,15 @@ arrays. For example, this is a two dimensional array:
 <!-- livebook:{"break_markdown":true} -->
 
 $$
-   \left[ {\begin{array}{cc}
-   1 & 2 \\
-   3 & 4 \\
-  \end{array} } \right]
+\begin{bmatrix}
+  1 & 2 \\
+  3 & 4
+\end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
 
-In Elixir, you would express the similar data structure using 
+In Elixir, you would express a similar data structure using 
 a list of lists, like this:
 
 ```elixir
@@ -64,25 +64,25 @@ a list of lists, like this:
 This data structure works fine within many functional programming 
 algorithms, but breaks down with deep nesting and random access.
 
-Elixir numeric types too lack optimization for many numerical 
+On top of that, Elixir numeric types lack optimization for many numerical 
 applications. They work fine when programs
 need hundreds or even thousands of calculations. They tend to break 
 down with traditional STEM applications when a typical problem
 needs millions of calculations.
 
-In Nx, you'll express dimensional data using typed tensors. Simply put, 
+In Nx, you'll express multi-dimensional data using typed tensors. Simply put, 
 a tensor is a multi-dimensional array with a predetermined shape and
-type. Nx relies on tensor-aware operators rather than `Enum.map/2` and 
-`Enum.reduce/3` to interact with them.
+type. To interact with them, Nx relies on tensor-aware operators rather
+than `Enum.map/2` and `Enum.reduce/3`.
 
 In this section, you'll look at some of the various tools for 
 creating and interacting with tensors.
 
 <!-- livebook:{"break_markdown":true} -->
 
-To get started, you'll need to first include the Nx dependency. 
-In a LiveBook, simply do a Mix install. At the time of this writing, 
-there's no Hex package for Nx. That means you need to use a git 
+To get started, you'll first need to include the Nx dependency. 
+In Livebook, we can simply use Mix install. At the time of this writing, 
+there's no Hex package for Nx, which means you need to use a git 
 dependency, like this:
 
 ```elixir
@@ -98,17 +98,17 @@ And import `Nx`:
 import Nx
 ```
 
-The IEx helpers will assist exploration oof some of the core Tensor concepts.
+The IEx helpers will assist our exploration of the core tensor concepts.
 
 ```elixir
 import IEx.Helpers
 ```
 
-Now, IEx helpers are available, so we're ready to create some tensors.
+Now, everything is set up, so we're ready to create some tensors.
 
 <!-- livebook:{"break_markdown":true} -->
 
-### Creating Tensors
+### Creating tensors
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -126,8 +126,7 @@ API. The main API for creating tensors is `Nx.tensor/2`:
 h(Nx.tensor())
 ```
 
-Use it to create tensors from raw Elixir data structures 
-like lists or tuples, like this:
+We use it to create tensors from raw Elixir lists of numbers, like this:
 
 ```elixir
 tensor =
@@ -160,7 +159,7 @@ You can get any cell of the tensor:
 tensor[0][1]
 ```
 
-Now, get the first row of the tensor:
+Now, try getting the first row of the tensor:
 
 ```elixir
 # ...your code here...
@@ -196,7 +195,7 @@ i(tensor)
 The tensor is a struct that supports the usual `Info` and `Inspect` 
 protocols. The struct has keys, but you should treat the `Tensor`
 as an _opaque data type_ (meaning you should access the contents and
-shape of a tensor using the tensor's APi instead of the struct).
+shape of a tensor using the tensor's API instead of the struct).
 
 Primarily, a tensor is a struct, and the
 functions to access it go through a specific backend. We'll get to
@@ -213,12 +212,14 @@ You can get the shape of the tensor with `Nx.shape/1`:
 Nx.shape(tensor)
 ```
 
-You can also create a new tensor with a new shape using 
-`Nx.reshape/2`. (This operation is surprisingly efficient):
+You can also create a new tensor with a new shape using  `Nx.reshape/2`:
 
 ```elixir
 Nx.reshape(tensor, {1, 4}, names: [:batches, :values])
 ```
+
+This operation reuses all of the tensor data and simply
+changes the metadata, so it has no notable cost.
 
 The new tensor has the same type, but a new shape.
 
@@ -233,9 +234,8 @@ one batch, one row, and four columns.
 
 You can create a tensor with named dimensions, a type, a shape, 
 and your target data. A dimension is called an _axis_, and axes
-have names. You can dictate the tensor type and dimension names
-with options. You'll dictate the data and shape through the 
-data you pass in, like this:
+can have names. You can specify the tensor type and dimension names
+with options, like this:
 
 ```elixir
 Nx.tensor([[1, 2, 3]], names: [:rows, :cols], type: {:u, 8})
@@ -248,7 +248,7 @@ the values `[1, 2, 3]`, and two axes named `rows` and `cols`.
 
 Now that you know how to create tensors, it's time to do something with them.
 
-## Tensor Aware Functions
+## Tensor aware functions
 
 In the last section, you created a `s64[2][2]` tensor. In this section, 
 you'll use Nx functions to work with it. Here's the value of `tensor`:
@@ -287,7 +287,7 @@ Nx.cos(tensor)
 ```
 
 Or, you can call a function that aggregates the contents 
-of a tensor. For example, to get a sum of the integers 
+of a tensor. For example, to get a sum of the numbers 
 in `tensor`, you'd do this:
 
 ```elixir
@@ -325,32 +325,21 @@ Mathematically, you'd express that idea like this:
 <!-- livebook:{"break_markdown":true} -->
 
 $$
-   \left[ {\begin{array}{cc}
-
-```
- 5 & 6 \\ 
- 7 & 8 \\
-\end{array}}\right] 
-```
+\begin{bmatrix}
+  5 & 6 \\ 
+  7 & 8
+\end{bmatrix}
 
 -
-   \left[ {\begin{array}{cc}
+\begin{bmatrix}
+  1 & 2 \\ 
+  3 & 4
+\end{bmatrix}
 
-```
- 1 & 2 \\ 
- 3 & 4 \\
-```
-
-\end{array} } \right] 
-  =
-  \left[ {\begin{array}{cc}
-
-```
-4 & 4 \\ 
-4 & 4 \\
-```
-
-\end{array} } \right]
+\begin{bmatrix}
+  4 & 4 \\ 
+  4 & 4
+\end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
@@ -374,30 +363,27 @@ but the code is tedious and unsatisfying, especially as functions grow
 in complexity and length. Fortunately, Nx provides a better way. 
 Next, we'll dive into numerical definitions using `defn`.
 
-## Numerical Definitions (defn)
+## Numerical definitions (defn)
 
 The `defn` macro simplifies the expression of mathematical formulas 
 containing tensors. Numerical definitions have two primary benefits 
 over classic Elixir functions.
 
-<!-- livebook:{"break_markdown":true} -->
-
 * They are _tensor-aware_. Nx replaces operators like `Kernel.-`
   with the `Defn` counterparts, so the formulas you express
   can use tensors out of the box.
 
-<!-- livebook:{"break_markdown":true} -->
-
-* `defn` definitinos support external backends through 
-  just-in-time (JIT) compiler support.
+* `defn` definitions allow for building computation graph of all the
+  individual operations and using a just-in-time (JIT) compiler to emit
+  highly specialized native code for the desired computation unit.
 
 <!-- livebook:{"break_markdown":true} -->
 
 You don't have to do anything special to get access to 
 get tensor awareness beyond importing `Defn` and writing
 your code within a `defn` block. Similarly, to get access
-to a compiled backend, you need only specify a backend. 
-(More later.)
+to a compiled backend, you only need to specify a backend
+(more on this later).
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -421,8 +407,8 @@ the `defn` block.
 Numerical definitions compensate you with huge benefits, though. 
 A `defn` uses tensor aware operators and types. You'll also get
 support for backends and JIT compilation to support high performance
-processors such as Google's XLA and Python's PyTorch. Here's an example
-of a `defn` function:
+processors such as Google's XLA and LibTorch (the core behind PyTorch).
+Here's an example numerical definition:
 
 ```elixir
 defmodule TensorMath do
@@ -440,14 +426,14 @@ Add your function directly to the previous Elixir cell.
 
 <!-- livebook:{"break_markdown":true} -->
 
-### Using Tensor Aware Operators
+### Using tensor aware operators
 
 <!-- livebook:{"break_markdown":true} -->
 
 That bit of code does nothing but wrap the `-` operator. It's tensor 
 aware. If you've not seen matrix algebra before, you might be surprised.
 You can use it to do several different mathematical calculations. The most
-obvious is to subtract two like matrices, like this:
+obvious is to subtract two matrices, like this:
 
 ```elixir
 TensorMath.subtract(tensor2, tensor)
@@ -460,16 +446,18 @@ You can also process this equation:
 <!-- livebook:{"break_markdown":true} -->
 
 $$
-\left[ 
-  {\begin{array}{cc} 1 & 2 \\ 3 & 4 \\ \end{array}} 
-\right] - 1 = 
-  \left[
+\begin{bmatrix}
+  1 & 2 \\ 
+  3 & 4
+\end{bmatrix}
 
-```
-{\begin{array}{cc} 0 & 1 \\ 2 & 3 \\ \end{array}} 
-```
+-
+1
 
-\right]
+\begin{bmatrix}
+  0 & 1 \\ 
+  2 & 3
+\end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
@@ -477,27 +465,21 @@ $$
 Mathematically, it's the same as this:
 
 $$
-   \left[ {
- \begin{array}{cc}
-1 & 2 \\
-3 & 4 \\
-\end{array} 
-} \right] 
-  -
-  \left[ {
- \begin{array}{cc}
-1 & 1 \\
-1 & 1 \\
-\end{array} 
-} \right] 
-  = 
-  \left[ {
- \begin{array}{cc}
-0 & 1 \\
-2 & 3 \\
-\end{array} 
-} \right]
+\begin{bmatrix}
+  1 & 2 \\ 
+  3 & 4
+\end{bmatrix}
 
+-
+\begin{bmatrix}
+  1 & 1 \\ 
+  1 & 1
+\end{bmatrix}
+
+\begin{bmatrix}
+  0 & 1 \\ 
+  2 & 3
+\end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
@@ -529,26 +511,20 @@ Or subtract a row or column. Mathematically, it would look like this:
 <!-- livebook:{"break_markdown":true} -->
 
 $$
-   \left[ {
- \begin{array}{cc}
-1 & 2 \\
-3 & 4 \\
-\end{array} 
-} \right] 
-  -
-  \left[ {
- \begin{array}{cc}
-1 & 2 \\
-\end{array} 
-} \right] 
-  = 
-  \left[ {
- \begin{array}{cc}
-0 & 0 \\
-2 & 2 \\
-\end{array} 
-} \right]
+\begin{bmatrix}
+  1 & 2 \\ 
+  3 & 4
+\end{bmatrix}
 
+-
+\begin{bmatrix}
+  1 & 2
+\end{bmatrix}
+
+\begin{bmatrix}
+  0 & 0 \\ 
+  2 & 2
+\end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
@@ -558,27 +534,21 @@ which is the same as this:
 <!-- livebook:{"break_markdown":true} -->
 
 $$
-   \left[ {
- \begin{array}{cc}
-1 & 2 \\
-3 & 4 \\
-\end{array} 
-} \right] 
-  -
-  \left[ {
- \begin{array}{cc}
-1 & 2 \\
-1 & 2 \\
-\end{array} 
-} \right] 
-  = 
-  \left[ {
- \begin{array}{cc}
-0 & 0 \\
-2 & 2 \\
-\end{array} 
-} \right]
+\begin{bmatrix}
+  1 & 2 \\ 
+  3 & 4
+\end{bmatrix}
 
+-
+\begin{bmatrix}
+  1 & 2 \\
+  1 & 2
+\end{bmatrix}
+
+\begin{bmatrix}
+  0 & 0 \\ 
+  2 & 2
+\end{bmatrix}
 $$
 
 <!-- livebook:{"break_markdown":true} -->
@@ -610,7 +580,7 @@ You now know how to build custom tensor-aware code.
 The next step is to make the code efficient on specialized CPUs 
 using the backend of your choice.
 
-## Backend Compiler Support
+## Backend compiler support
 
 Now, it's time to address the backend compiler support. 
 `defn` functions are backed by highly specialized compilers.
@@ -634,11 +604,13 @@ execution flow looks like:
 
 <!-- livebook:{"break_markdown":true} -->
 
-defn function -> <br/>
-&nbsp;&nbsp;   Elixir AST -> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp; BEAM file -> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; defn AST -> <br/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; target TPU or GPU code
+```
+defn function ->
+  Elixir AST ->
+    BEAM file ->
+      defn AST ->
+        target TPU or GPU code
+```
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -655,8 +627,9 @@ the expression, so when we invoke it we'll see the defn AST:
 
 ```elixir
 defmodule VerboseMath do
-  @default_defn_compiler EXLA
   import Nx.Defn
+
+  @default_defn_compiler EXLA
 
   defn multiply(x, y) do
     inspect_expr(x * y)
@@ -683,7 +656,7 @@ called `c`.
 This intermediate AST is what Nx hands off to a compiler. It also 
 forms the foundations of autograd.
 
-## Automatic Differentiation (Autograd)
+## Automatic differentiation (autograd)
 
 An important mathematical property for a function is the 
 rate of change, or the gradient. These gradients are critical
@@ -693,18 +666,16 @@ are used to take gradients. Nx can compute these derivatives
 automatically through a feature called automatic differentiation, 
 or autograd.
 
-<!-- livebook:{"break_markdown":true} -->
-
 Here's how it works.
 
 ```elixir
 h(Nx.Defn.grad())
 ```
 
-Here's how it works. We'll build a module with a few functions, 
+We'll build a module with a few functions, 
 and then create another function to create the gradients of those
 functions. The function `grad/1` takes a function, and returns 
-a function returning the gradient. We have two functions. `poly/1` 
+a function returning the gradient. We have two functions: `poly/1` 
 is a simple numerical definitin, and `poly_slope_at/1` returns
 its gradient:
 
