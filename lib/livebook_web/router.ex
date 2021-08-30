@@ -52,6 +52,12 @@ defmodule LivebookWeb.Router do
       home_app: {"Livebook", :livebook}
   end
 
+  scope "/", LivebookWeb do
+    pipe_through :browser
+
+    get "/health", HealthController, :index
+  end
+
   scope "/authenticate", LivebookWeb do
     pipe_through :browser
 

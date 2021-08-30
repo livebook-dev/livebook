@@ -53,24 +53,29 @@ defmodule LivebookCLI.Server do
     config_entries = opts_to_config(opts, [])
     put_config_entries(config_entries)
 
-    case start_server() do
-      :ok ->
-        if opts[:open] do
-          browser_open(LivebookWeb.Endpoint.access_url())
+    port = Application.get_env(:livebook, LivebookWeb.Endpoint)[:http][:port]
+    base_url = "http://localhost:#{port}"
+
+    case check_endpoint_availability(base_url) do
+      :livebook_running ->
+        IO.puts("Livebook already running on #{base_url}")
+        open_from_options(base_url, opts)
+
+      :taken ->
+        print_error(
+          "Another application is already running on port #{port}." <>
+            " Either ensure this port is free or specify a different port using the --port option"
+        )
+
+      :available ->
+        case start_server() do
+          :ok ->
+            open_from_options(LivebookWeb.Endpoint.access_url(), opts)
+            Process.sleep(:infinity)
+
+          :error ->
+            print_error("Livebook failed to start")
         end
-
-        if opts[:open_new] do
-          LivebookWeb.Endpoint.access_url()
-          |> URI.parse()
-          |> Map.update!(:path, &((&1 || "/") <> "explore/notebooks/new"))
-          |> URI.to_string()
-          |> browser_open()
-        end
-
-        Process.sleep(:infinity)
-
-      :error ->
-        IO.ANSI.format([:red, "Livebook failed to start"]) |> IO.puts()
     end
   end
 
@@ -86,12 +91,44 @@ defmodule LivebookCLI.Server do
     |> Application.put_all_env(persistent: true)
   end
 
+  defp check_endpoint_availability(base_url) do
+    Application.ensure_all_started(:inets)
+
+    health_url = append_path(base_url, "health")
+
+    case Livebook.Utils.HTTP.request(:get, health_url) do
+      {:ok, status, _headers, body} ->
+        with 200 <- status,
+             {:ok, body} <- Jason.decode(body),
+             %{"application" => "livebook"} <- body do
+          :livebook_running
+        else
+          _ -> :taken
+        end
+
+      {:error, _error} ->
+        :available
+    end
+  end
+
   defp start_server() do
     # We configure the endpoint with `server: true`,
     # so it's gonna start listening
     case Application.ensure_all_started(:livebook) do
       {:ok, _} -> :ok
       {:error, _} -> :error
+    end
+  end
+
+  defp open_from_options(base_url, opts) do
+    if opts[:open] do
+      browser_open(base_url)
+    end
+
+    if opts[:open_new] do
+      base_url
+      |> append_path("explore/notebooks/new")
+      |> browser_open()
     end
   end
 
@@ -183,5 +220,16 @@ defmodule LivebookCLI.Server do
       end
 
     System.cmd(cmd, args)
+  end
+
+  defp append_path(url, path) do
+    url
+    |> URI.parse()
+    |> Map.update!(:path, &((&1 || "/") <> path))
+    |> URI.to_string()
+  end
+
+  defp print_error(message) do
+    IO.ANSI.format([:red, message]) |> IO.puts()
   end
 end
