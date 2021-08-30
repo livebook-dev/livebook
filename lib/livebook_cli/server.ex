@@ -62,7 +62,7 @@ defmodule LivebookCLI.Server do
         if opts[:open_new] do
           LivebookWeb.Endpoint.access_url()
           |> URI.parse()
-          |> Map.update!(:path, &(&1 <> "explore/notebooks/new"))
+          |> Map.update!(:path, &((&1 || "/") <> "explore/notebooks/new"))
           |> URI.to_string()
           |> browser_open()
         end
