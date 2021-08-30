@@ -63,6 +63,12 @@ defmodule LivebookWeb.SessionControllerTest do
 
       assert conn.resp_body == """
              # Untitled notebook
+
+             ## Section
+
+             ```elixir
+
+             ```
              """
 
       SessionSupervisor.close_session(session_id)
@@ -124,6 +130,8 @@ defmodule LivebookWeb.SessionControllerTest do
 
       assert conn.resp_body == """
              # Title: Untitled notebook
+
+             # ── Section ──
              """
 
       SessionSupervisor.close_session(session_id)

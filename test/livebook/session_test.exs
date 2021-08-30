@@ -307,7 +307,7 @@ defmodule Livebook.SessionTest do
       Session.save(session_id)
 
       assert_receive {:operation, {:mark_as_not_dirty, _}}
-      assert FileSystem.File.read(file) == {:ok, "# My notebook\n"}
+      assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
 
     @tag :tmp_dir
@@ -325,7 +325,7 @@ defmodule Livebook.SessionTest do
       Session.save(session_id)
 
       assert_receive {:operation, {:mark_as_not_dirty, _}}
-      assert FileSystem.File.read(file) == {:ok, "# My notebook\n"}
+      assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
   end
 
@@ -347,7 +347,7 @@ defmodule Livebook.SessionTest do
       Session.close(session_id)
 
       assert_receive :session_closed
-      assert FileSystem.File.read(file) == {:ok, "# My notebook\n"}
+      assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)
     end
 
     test "clears session temporary directory", %{session_id: session_id} do

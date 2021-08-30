@@ -398,11 +398,11 @@ defmodule Livebook.Session do
   end
 
   defp init_data(opts) do
-    notebook = opts[:notebook]
+    notebook = Keyword.get_lazy(opts, :notebook, &default_notebook/0)
     file = opts[:file]
     origin = opts[:origin]
 
-    data = if(notebook, do: Data.new(notebook), else: Data.new())
+    data = Data.new(notebook)
     data = %{data | origin: origin}
 
     if file do
@@ -416,6 +416,10 @@ defmodule Livebook.Session do
     else
       {:ok, data}
     end
+  end
+
+  defp default_notebook() do
+    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:elixir)]}]}
   end
 
   defp schedule_autosave(state) do
