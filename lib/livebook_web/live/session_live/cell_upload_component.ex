@@ -75,6 +75,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
 
     consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
       # Ensure the path is normalized (see https://github.com/elixir-plug/plug/issues/1047)
+      # TODO: remove once we update to a Plug version with the issue resolved
       path = Path.expand(path)
       upload_file = FileSystem.File.local(path)
       ext = Path.extname(entry.client_name)
