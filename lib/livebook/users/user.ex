@@ -41,7 +41,8 @@ defmodule Livebook.Users.User do
   is returned, where `user` is partially updated by using
   only the valid attributes.
   """
-  @spec change(t(), %{binary() => any()}) :: {:ok, t()} | {:error, list(String.t()), t()}
+  @spec change(t(), %{binary() => any()}) ::
+          {:ok, t()} | {:error, list({atom(), String.t()}), t()}
   def change(user, attrs \\ %{}) do
     {user, []}
     |> change_name(attrs)

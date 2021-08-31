@@ -1106,7 +1106,8 @@ defmodule Livebook.Session.Data do
 
     # Note: the session LV drops cell's source once it's no longer needed
     new_source =
-      cell.source && JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
+      Map.get(cell, :source) &&
+        JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))

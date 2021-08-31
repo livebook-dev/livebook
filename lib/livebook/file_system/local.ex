@@ -110,7 +110,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   def remove(_file_system, path) do
     case File.rm_rf(path) do
       {:ok, _paths} -> :ok
-      {:error, error} -> FileSystem.Utils.posix_error(error)
+      {:error, error, _paths} -> FileSystem.Utils.posix_error(error)
     end
   end
 
