@@ -74,6 +74,8 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
     %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
 
     consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
+      # Ensure the path is normalized (see https://github.com/elixir-plug/plug/issues/1047)
+      path = Path.expand(path)
       upload_file = FileSystem.File.local(path)
       ext = Path.extname(entry.client_name)
       filename = name <> ext
