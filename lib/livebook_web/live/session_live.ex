@@ -107,7 +107,7 @@ defmodule LivebookWeb.SessionLive do
           current_user={@current_user}
           path={Routes.session_path(@socket, :user, @session_id)} />
       </SidebarHelpers.sidebar>
-      <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
+      <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">
           <div class="flex-grow flex flex-col">
