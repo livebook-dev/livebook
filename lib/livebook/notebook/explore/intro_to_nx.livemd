@@ -51,7 +51,7 @@ $$
 
 <!-- livebook:{"break_markdown":true} -->
 
-In Elixir, we express a similar data structure using
+Elixir programmers typically express a similar data structure using
 a list of lists, like this:
 
 ```elixir
@@ -136,7 +136,7 @@ and `Nx.from_binary/2`:
 # ...your code here...
 ```
 
-In the result, we can see all of the four major components of a tensor:
+The result shows all of the four major components of a tensor:
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -571,14 +571,14 @@ You now know how to build custom tensor-aware code.
 The next step is to make the code efficient on specialized CPUs
 using the backend of your choice.
 
-## Backends and compiler support
+## Backend compiler support
 
-Now, it's time to address the concepts of backends and 
-compiler support. `defn` functions are backed by highly 
-specialized compilers with two primary purposes. They provide
-a mechanism for external compiler tools like Google's
-accelerated linear algebra (XLA), and they
-provide an intermediate AST structure convenient for
+Now, it's time to address the concepts of backends
+and compiler support. `defn` functions are backed
+by highly specialized compilers. These compilers have
+two primary purposes. They provide a mechanism for external
+compiler tools like Google's accelerated linearalgebra (XLA),
+and they provide an intermediate AST structure convenient for
 processing gradients, a capability critical to numerical
 applications like machine learning.
 
