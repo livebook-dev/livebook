@@ -196,4 +196,45 @@ defmodule Livebook.Utils do
     end)
     |> URI.to_string()
   end
+
+  @doc ~S"""
+  Wraps the given line into lines that fit in `width` characters.
+
+  Words longer than `width` are not broken apart.
+
+  ## Examples
+
+      iex> Livebook.Utils.wrap_line("cat on the roof", 7)
+      "cat on\nthe\nroof"
+
+      iex> Livebook.Utils.wrap_line("cat in the cup", 7)
+      "cat in\nthe cup"
+
+      iex> Livebook.Utils.wrap_line("cat in the cup", 2)
+      "cat\nin\nthe\ncup"
+  """
+  @spec wrap_line(String.t(), pos_integer()) :: String.t()
+  def wrap_line(line, width) do
+    line
+    |> String.split()
+    |> Enum.reduce({[[]], 0}, fn part, {[group | groups], group_size} ->
+      size = String.length(part)
+
+      cond do
+        group == [] ->
+          {[[part] | groups], size}
+
+        group_size + 1 + size <= width ->
+          {[[part, " " | group] | groups], group_size + 1 + size}
+
+        true ->
+          {[[part], group | groups], size}
+      end
+    end)
+    |> elem(0)
+    |> Enum.map(&Enum.reverse/1)
+    |> Enum.reverse()
+    |> Enum.intersperse("\n")
+    |> IO.iodata_to_binary()
+  end
 end
