@@ -73,14 +73,21 @@ instance, otherwise the command below will fail.
 
 ```elixir
 Mix.install([
-  {:jason, "~> 1.2"}
+  {:kino, "~> 0.3.0"}
 ])
 ```
 
+[Kino](https://github.com/elixir-nx/kino) is a library that
+allows you to control parts of Livebook directly from the Elixir
+code. Let's use it to print a data table:
+
 ```elixir
-%{elixir: "is awesome"}
-|> Jason.encode!()
-|> IO.puts()
+data = [
+  %{id: 1, name: "Elixir", website: "https://elixir-lang.org"},
+  %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
+]
+
+Kino.DataTable.new(data)
 ```
 
 It is a good idea to specify versions of the installed packages,
