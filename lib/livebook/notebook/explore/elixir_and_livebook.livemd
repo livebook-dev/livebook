@@ -90,6 +90,8 @@ data = [
 Kino.DataTable.new(data)
 ```
 
+*See [Interactions with Kino](/explore/notebooks/intro-to-kino) to learn more.*
+
 It is a good idea to specify versions of the installed packages,
 so that the notebook is easily reproducible later on. The install
 command goes beyond simply installing dependencies, it also caches
