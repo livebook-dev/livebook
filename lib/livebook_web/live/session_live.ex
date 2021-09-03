@@ -122,8 +122,8 @@ defmodule LivebookWeb.SessionLive do
                   <span><%= section_item.name %></span>
                   <%= if section_item.parent do %>
                     <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                        consequently we show the tooltip at the bottom wrapped to a fixed number of characters %>
-                    <span class="tooltip bottom" aria-label={parent_branch_tooltip(section_item.parent.name)}>
+                        consequently we show the tooltip wrapped to a fixed number of characters %>
+                    <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
                       <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
                     </span>
                   <% end %>
@@ -343,9 +343,13 @@ defmodule LivebookWeb.SessionLive do
   defp settings_component_for(%Cell.Input{}),
     do: LivebookWeb.SessionLive.InputCellSettingsComponent
 
-  defp parent_branch_tooltip(parent_name) do
+  defp branching_tooltip_attrs(name, parent_name) do
+    direction = if String.length(name) >= 16, do: "left", else: "right"
+
     wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
-    "Branches from\n#{wrapped_name}"
+    label = "Branches from\n#{wrapped_name}"
+
+    [class: "tooltip #{direction}", "aria-label": label]
   end
 
   @impl true
