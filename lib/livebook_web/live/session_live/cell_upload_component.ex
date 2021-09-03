@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.CellUploadComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.{Session, FileSystem}
+  alias Livebook.FileSystem
 
   @impl true
   def mount(socket) do
@@ -71,7 +71,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
   end
 
   def handle_event("save", %{"name" => name}, socket) do
-    %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
+    %{images_dir: images_dir} = socket.assigns.session
 
     consume_uploaded_entries(socket, :cell_image, fn %{path: path}, entry ->
       # Ensure the path is normalized (see https://github.com/elixir-plug/plug/issues/1047)

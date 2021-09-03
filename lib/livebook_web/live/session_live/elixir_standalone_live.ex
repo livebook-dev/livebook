@@ -4,13 +4,12 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
   alias Livebook.{Session, Runtime}
 
   @impl true
-  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
+  def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
     end
 
-    {:ok,
-     assign(socket, session_id: session_id, current_runtime: current_runtime, error_message: nil)}
+    {:ok, assign(socket, session: session, current_runtime: current_runtime, error_message: nil)}
   end
 
   @impl true
@@ -41,7 +40,7 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
   def handle_event("init", _params, socket) do
     case Runtime.ElixirStandalone.init() do
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session_id, runtime)
+        Session.connect_runtime(socket.assigns.session.pid, runtime)
         {:noreply, assign(socket, error_message: nil)}
 
       {:error, message} ->

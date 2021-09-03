@@ -1,25 +1,28 @@
 defmodule LivebookWeb.SessionController do
   use LivebookWeb, :controller
 
-  alias Livebook.{SessionSupervisor, Session, FileSystem}
+  alias Livebook.{Sessions, Session, FileSystem}
 
   def show_image(conn, %{"id" => id, "image" => image}) do
-    if SessionSupervisor.session_exists?(id) do
-      %{images_dir: images_dir} = Session.get_summary(id)
-      file = FileSystem.File.resolve(images_dir, image)
-      serve_static(conn, file)
-    else
-      send_resp(conn, 404, "Not found")
+    case Sessions.fetch_session(id) do
+      {:ok, session} ->
+        file = FileSystem.File.resolve(session.images_dir, image)
+        serve_static(conn, file)
+
+      :error ->
+        send_resp(conn, 404, "Not found")
     end
   end
 
   def download_source(conn, %{"id" => id, "format" => format}) do
-    if SessionSupervisor.session_exists?(id) do
-      notebook = Session.get_notebook(id)
+    case Sessions.fetch_session(id) do
+      {:ok, session} ->
+        notebook = Session.get_notebook(session.pid)
 
-      send_notebook_source(conn, notebook, format)
-    else
-      send_resp(conn, 404, "Not found")
+        send_notebook_source(conn, notebook, format)
+
+      :error ->
+        send_resp(conn, 404, "Not found")
     end
   end
 

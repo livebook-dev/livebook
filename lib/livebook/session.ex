@@ -43,6 +43,11 @@ defmodule Livebook.Session do
   # for a single specific evaluation context we make sure to copy
   # as little memory as necessary.
 
+  # The struct holds the basic session information that we track
+  # and pass around. The notebook and evaluation state is kept
+  # within the process state.
+  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir]
+
   use GenServer, restart: :temporary
 
   alias Livebook.Session.{Data, FileGuard}
@@ -50,21 +55,21 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
+  @type t :: %__MODULE__{
+          id: id(),
+          pid: pid(),
+          origin: {:file, FileSystem.File.t()} | {:url, String.t()} | nil,
+          notebook_name: String.t(),
+          file: FileSystem.File.t() | nil,
+          images_dir: FileSystem.File.t()
+        }
+
   @type state :: %{
           session_id: id(),
           data: Data.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil
-        }
-
-  @type summary :: %{
-          session_id: id(),
-          pid: pid(),
-          notebook_name: String.t(),
-          file: FileSystem.File.t() | nil,
-          images_dir: FileSystem.File.t(),
-          origin: {:file, FileSystem.File.t()} | {:url, String.t()} | nil
         }
 
   @typedoc """
@@ -75,12 +80,11 @@ defmodule Livebook.Session do
   ## API
 
   @doc """
-  Starts the server process and registers it globally using the `:global` module,
-  so that it's identifiable by the given id.
+  Starts a session server process.
 
   ## Options
 
-    * `:id` (**required**) - a unique identifier to register the session under
+    * `:id` (**required**) - a unique session identifier
 
     * `:notebook` - the initial `Notebook` structure (e.g. imported from a file)
 
@@ -94,22 +98,17 @@ defmodule Livebook.Session do
     * `:images` - a map from image name to its binary content, an alternative
       to `:copy_images_from` when the images are in memory
   """
-  @spec start_link(keyword()) :: GenServer.on_start()
+  @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
-    id = Keyword.fetch!(opts, :id)
-    GenServer.start_link(__MODULE__, opts, name: name(id))
-  end
-
-  defp name(session_id) do
-    {:global, {:session, session_id}}
+    GenServer.start_link(__MODULE__, opts)
   end
 
   @doc """
-  Returns session pid given its id.
+  Fetches session information from the session server.
   """
-  @spec get_pid(id()) :: pid() | nil
-  def get_pid(session_id) do
-    GenServer.whereis(name(session_id))
+  @spec get_by_pid(pid()) :: Session.t()
+  def get_by_pid(pid) do
+    GenServer.call(pid, :describe_self)
   end
 
   @doc """
@@ -121,162 +120,153 @@ defmodule Livebook.Session do
   keep in sync with the server by subscribing to the `sessions:id` topic
   and receiving operations to apply.
   """
-  @spec register_client(id(), pid(), User.t()) :: Data.t()
-  def register_client(session_id, client_pid, user) do
-    GenServer.call(name(session_id), {:register_client, client_pid, user})
+  @spec register_client(pid(), pid(), User.t()) :: Data.t()
+  def register_client(pid, client_pid, user) do
+    GenServer.call(pid, {:register_client, client_pid, user})
   end
 
   @doc """
   Returns data of the given session.
   """
-  @spec get_data(id()) :: Data.t()
-  def get_data(session_id) do
-    GenServer.call(name(session_id), :get_data)
-  end
-
-  @doc """
-  Returns basic information about the given session.
-  """
-  @spec get_summary(id()) :: summary()
-  def get_summary(session_id) do
-    GenServer.call(name(session_id), :get_summary)
+  @spec get_data(pid()) :: Data.t()
+  def get_data(pid) do
+    GenServer.call(pid, :get_data)
   end
 
   @doc """
   Returns the current notebook structure.
   """
-  @spec get_notebook(id()) :: Notebook.t()
-  def get_notebook(session_id) do
-    GenServer.call(name(session_id), :get_notebook)
+  @spec get_notebook(pid()) :: Notebook.t()
+  def get_notebook(pid) do
+    GenServer.call(pid, :get_notebook)
   end
 
   @doc """
   Asynchronously sends notebook attributes update to the server.
   """
-  @spec set_notebook_attributes(id(), map()) :: :ok
-  def set_notebook_attributes(session_id, attrs) do
-    GenServer.cast(name(session_id), {:set_notebook_attributes, self(), attrs})
+  @spec set_notebook_attributes(pid(), map()) :: :ok
+  def set_notebook_attributes(pid, attrs) do
+    GenServer.cast(pid, {:set_notebook_attributes, self(), attrs})
   end
 
   @doc """
   Asynchronously sends section insertion request to the server.
   """
-  @spec insert_section(id(), non_neg_integer()) :: :ok
-  def insert_section(session_id, index) do
-    GenServer.cast(name(session_id), {:insert_section, self(), index})
+  @spec insert_section(pid(), non_neg_integer()) :: :ok
+  def insert_section(pid, index) do
+    GenServer.cast(pid, {:insert_section, self(), index})
   end
 
   @doc """
   Asynchronously sends section insertion request to the server.
   """
-  @spec insert_section_into(id(), Section.id(), non_neg_integer()) :: :ok
-  def insert_section_into(session_id, section_id, index) do
-    GenServer.cast(name(session_id), {:insert_section_into, self(), section_id, index})
+  @spec insert_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
+  def insert_section_into(pid, section_id, index) do
+    GenServer.cast(pid, {:insert_section_into, self(), section_id, index})
   end
 
   @doc """
   Asynchronously sends parent update request to the server.
   """
-  @spec set_section_parent(id(), Section.id(), Section.id()) :: :ok
-  def set_section_parent(session_id, section_id, parent_id) do
-    GenServer.cast(name(session_id), {:set_section_parent, self(), section_id, parent_id})
+  @spec set_section_parent(pid(), Section.id(), Section.id()) :: :ok
+  def set_section_parent(pid, section_id, parent_id) do
+    GenServer.cast(pid, {:set_section_parent, self(), section_id, parent_id})
   end
 
   @doc """
   Asynchronously sends parent update request to the server.
   """
-  @spec unset_section_parent(id(), Section.id()) :: :ok
-  def unset_section_parent(session_id, section_id) do
-    GenServer.cast(name(session_id), {:unset_section_parent, self(), section_id})
+  @spec unset_section_parent(pid(), Section.id()) :: :ok
+  def unset_section_parent(pid, section_id) do
+    GenServer.cast(pid, {:unset_section_parent, self(), section_id})
   end
 
   @doc """
   Asynchronously sends cell insertion request to the server.
   """
-  @spec insert_cell(id(), Section.id(), non_neg_integer(), Cell.type()) ::
-          :ok
-  def insert_cell(session_id, section_id, index, type) do
-    GenServer.cast(name(session_id), {:insert_cell, self(), section_id, index, type})
+  @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type()) :: :ok
+  def insert_cell(pid, section_id, index, type) do
+    GenServer.cast(pid, {:insert_cell, self(), section_id, index, type})
   end
 
   @doc """
   Asynchronously sends section deletion request to the server.
   """
-  @spec delete_section(id(), Section.id(), boolean()) :: :ok
-  def delete_section(session_id, section_id, delete_cells) do
-    GenServer.cast(name(session_id), {:delete_section, self(), section_id, delete_cells})
+  @spec delete_section(pid(), Section.id(), boolean()) :: :ok
+  def delete_section(pid, section_id, delete_cells) do
+    GenServer.cast(pid, {:delete_section, self(), section_id, delete_cells})
   end
 
   @doc """
   Asynchronously sends cell deletion request to the server.
   """
-  @spec delete_cell(id(), Cell.id()) :: :ok
-  def delete_cell(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:delete_cell, self(), cell_id})
+  @spec delete_cell(pid(), Cell.id()) :: :ok
+  def delete_cell(pid, cell_id) do
+    GenServer.cast(pid, {:delete_cell, self(), cell_id})
   end
 
   @doc """
   Asynchronously sends cell restoration request to the server.
   """
-  @spec restore_cell(id(), Cell.id()) :: :ok
-  def restore_cell(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:restore_cell, self(), cell_id})
+  @spec restore_cell(pid(), Cell.id()) :: :ok
+  def restore_cell(pid, cell_id) do
+    GenServer.cast(pid, {:restore_cell, self(), cell_id})
   end
 
   @doc """
   Asynchronously sends cell move request to the server.
   """
-  @spec move_cell(id(), Cell.id(), integer()) :: :ok
-  def move_cell(session_id, cell_id, offset) do
-    GenServer.cast(name(session_id), {:move_cell, self(), cell_id, offset})
+  @spec move_cell(pid(), Cell.id(), integer()) :: :ok
+  def move_cell(pid, cell_id, offset) do
+    GenServer.cast(pid, {:move_cell, self(), cell_id, offset})
   end
 
   @doc """
   Asynchronously sends section move request to the server.
   """
-  @spec move_section(id(), Section.id(), integer()) :: :ok
-  def move_section(session_id, section_id, offset) do
-    GenServer.cast(name(session_id), {:move_section, self(), section_id, offset})
+  @spec move_section(pid(), Section.id(), integer()) :: :ok
+  def move_section(pid, section_id, offset) do
+    GenServer.cast(pid, {:move_section, self(), section_id, offset})
   end
 
   @doc """
   Asynchronously sends cell evaluation request to the server.
   """
-  @spec queue_cell_evaluation(id(), Cell.id()) :: :ok
-  def queue_cell_evaluation(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:queue_cell_evaluation, self(), cell_id})
+  @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
+  def queue_cell_evaluation(pid, cell_id) do
+    GenServer.cast(pid, {:queue_cell_evaluation, self(), cell_id})
   end
 
   @doc """
   Asynchronously sends cell evaluation cancellation request to the server.
   """
-  @spec cancel_cell_evaluation(id(), Cell.id()) :: :ok
-  def cancel_cell_evaluation(session_id, cell_id) do
-    GenServer.cast(name(session_id), {:cancel_cell_evaluation, self(), cell_id})
+  @spec cancel_cell_evaluation(pid(), Cell.id()) :: :ok
+  def cancel_cell_evaluation(pid, cell_id) do
+    GenServer.cast(pid, {:cancel_cell_evaluation, self(), cell_id})
   end
 
   @doc """
   Asynchronously sends notebook name update request to the server.
   """
-  @spec set_notebook_name(id(), String.t()) :: :ok
-  def set_notebook_name(session_id, name) do
-    GenServer.cast(name(session_id), {:set_notebook_name, self(), name})
+  @spec set_notebook_name(pid(), String.t()) :: :ok
+  def set_notebook_name(pid, name) do
+    GenServer.cast(pid, {:set_notebook_name, self(), name})
   end
 
   @doc """
   Asynchronously sends section name update request to the server.
   """
-  @spec set_section_name(id(), Section.id(), String.t()) :: :ok
-  def set_section_name(session_id, section_id, name) do
-    GenServer.cast(name(session_id), {:set_section_name, self(), section_id, name})
+  @spec set_section_name(pid(), Section.id(), String.t()) :: :ok
+  def set_section_name(pid, section_id, name) do
+    GenServer.cast(pid, {:set_section_name, self(), section_id, name})
   end
 
   @doc """
   Asynchronously sends a cell delta to apply to the server.
   """
-  @spec apply_cell_delta(id(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
-  def apply_cell_delta(session_id, cell_id, delta, revision) do
-    GenServer.cast(name(session_id), {:apply_cell_delta, self(), cell_id, delta, revision})
+  @spec apply_cell_delta(pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
+  def apply_cell_delta(pid, cell_id, delta, revision) do
+    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, delta, revision})
   end
 
   @doc """
@@ -284,17 +274,17 @@ defmodule Livebook.Session do
 
   This helps to remove old deltas that are no longer necessary.
   """
-  @spec report_cell_revision(id(), Cell.id(), Data.cell_revision()) :: :ok
-  def report_cell_revision(session_id, cell_id, revision) do
-    GenServer.cast(name(session_id), {:report_cell_revision, self(), cell_id, revision})
+  @spec report_cell_revision(pid(), Cell.id(), Data.cell_revision()) :: :ok
+  def report_cell_revision(pid, cell_id, revision) do
+    GenServer.cast(pid, {:report_cell_revision, self(), cell_id, revision})
   end
 
   @doc """
   Asynchronously sends a cell attributes update to the server.
   """
-  @spec set_cell_attributes(id(), Cell.id(), map()) :: :ok
-  def set_cell_attributes(session_id, cell_id, attrs) do
-    GenServer.cast(name(session_id), {:set_cell_attributes, self(), cell_id, attrs})
+  @spec set_cell_attributes(pid(), Cell.id(), map()) :: :ok
+  def set_cell_attributes(pid, cell_id, attrs) do
+    GenServer.cast(pid, {:set_cell_attributes, self(), cell_id, attrs})
   end
 
   @doc """
@@ -303,9 +293,9 @@ defmodule Livebook.Session do
   Note that this results in initializing the corresponding remote node
   with modules and processes required for evaluation.
   """
-  @spec connect_runtime(id(), Runtime.t()) :: :ok
-  def connect_runtime(session_id, runtime) do
-    GenServer.cast(name(session_id), {:connect_runtime, self(), runtime})
+  @spec connect_runtime(pid(), Runtime.t()) :: :ok
+  def connect_runtime(pid, runtime) do
+    GenServer.cast(pid, {:connect_runtime, self(), runtime})
   end
 
   @doc """
@@ -313,17 +303,17 @@ defmodule Livebook.Session do
 
   Note that this results in clearing the evaluation state.
   """
-  @spec disconnect_runtime(id()) :: :ok
-  def disconnect_runtime(session_id) do
-    GenServer.cast(name(session_id), {:disconnect_runtime, self()})
+  @spec disconnect_runtime(pid()) :: :ok
+  def disconnect_runtime(pid) do
+    GenServer.cast(pid, {:disconnect_runtime, self()})
   end
 
   @doc """
   Asynchronously sends file location update request to the server.
   """
-  @spec set_file(id(), FileSystem.File.t() | nil) :: :ok
-  def set_file(session_id, file) do
-    GenServer.cast(name(session_id), {:set_file, self(), file})
+  @spec set_file(pid(), FileSystem.File.t() | nil) :: :ok
+  def set_file(pid, file) do
+    GenServer.cast(pid, {:set_file, self(), file})
   end
 
   @doc """
@@ -334,17 +324,17 @@ defmodule Livebook.Session do
 
   Note that notebooks are automatically persisted every @autosave_interval milliseconds.
   """
-  @spec save(id()) :: :ok
-  def save(session_id) do
-    GenServer.cast(name(session_id), :save)
+  @spec save(pid()) :: :ok
+  def save(pid) do
+    GenServer.cast(pid, :save)
   end
 
   @doc """
   Synchronous version of `save/1`.
   """
-  @spec save_sync(id()) :: :ok
-  def save_sync(session_id) do
-    GenServer.call(name(session_id), :save_sync)
+  @spec save_sync(pid()) :: :ok
+  def save_sync(pid) do
+    GenServer.call(pid, :save_sync)
   end
 
   @doc """
@@ -353,9 +343,9 @@ defmodule Livebook.Session do
   This results in saving the file and broadcasting
   a :closed message to the session topic.
   """
-  @spec close(id()) :: :ok
-  def close(session_id) do
-    GenServer.cast(name(session_id), :close)
+  @spec close(pid()) :: :ok
+  def close(pid) do
+    GenServer.cast(pid, :close)
   end
 
   ## Callbacks
@@ -432,6 +422,10 @@ defmodule Livebook.Session do
   end
 
   @impl true
+  def handle_call(:describe_self, _from, state) do
+    {:reply, self_from_state(state), state}
+  end
+
   def handle_call({:register_client, client_pid, user}, _from, state) do
     Process.monitor(client_pid)
 
@@ -442,10 +436,6 @@ defmodule Livebook.Session do
 
   def handle_call(:get_data, _from, state) do
     {:reply, state.data, state}
-  end
-
-  def handle_call(:get_summary, _from, state) do
-    {:reply, summary_from_state(state), state}
   end
 
   def handle_call(:get_notebook, _from, state) do
@@ -694,14 +684,14 @@ defmodule Livebook.Session do
 
   # ---
 
-  defp summary_from_state(state) do
-    %{
-      session_id: state.session_id,
+  defp self_from_state(state) do
+    %__MODULE__{
+      id: state.session_id,
       pid: self(),
+      origin: state.data.origin,
       notebook_name: state.data.notebook.name,
       file: state.data.file,
-      images_dir: images_dir_from_state(state),
-      origin: state.data.origin
+      images_dir: images_dir_from_state(state)
     }
   end
 
@@ -807,6 +797,11 @@ defmodule Livebook.Session do
     end
   end
 
+  defp after_operation(state, _prev_state, {:set_notebook_name, _pid, _name}) do
+    notify_update(state)
+    state
+  end
+
   defp after_operation(state, prev_state, {:set_file, _pid, _file}) do
     prev_images_dir = images_dir_from_state(prev_state)
 
@@ -822,6 +817,8 @@ defmodule Livebook.Session do
       {:error, message} ->
         broadcast_error(state.session_id, "failed to copy images - #{message}")
     end
+
+    notify_update(state)
 
     state
   end
@@ -946,6 +943,12 @@ defmodule Livebook.Session do
 
   defp broadcast_message(session_id, message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
+  end
+
+  defp notify_update(state) do
+    session = self_from_state(state)
+    Livebook.Sessions.update_session(session)
+    broadcast_message(state.session_id, {:session_updated, session})
   end
 
   defp maybe_save_notebook_async(state) do

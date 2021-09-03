@@ -6,21 +6,21 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   # the parent live view.
   use LivebookWeb, :live_view
 
-  alias Livebook.{Session, SessionSupervisor, LiveMarkdown, FileSystem}
+  alias Livebook.{Sessions, Session, LiveMarkdown, FileSystem}
 
   @impl true
   def mount(
         _params,
         %{
-          "session_id" => session_id,
+          "session" => session,
           "file" => file,
           "persist_outputs" => persist_outputs,
           "autosave_interval_s" => autosave_interval_s
         },
         socket
       ) do
-    session_summaries = SessionSupervisor.get_session_summaries()
-    running_files = Enum.map(session_summaries, & &1.file)
+    sessions = Sessions.list_sessions()
+    running_files = Enum.map(sessions, & &1.file)
 
     attrs = %{
       file: file,
@@ -30,7 +30,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
     {:ok,
      assign(socket,
-       session_id: session_id,
+       session: session,
        running_files: running_files,
        attrs: attrs,
        new_attrs: attrs
@@ -152,20 +152,20 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     autosave_interval_s = assigns.new_attrs.autosave_interval_s
 
     if file != assigns.attrs.file do
-      Session.set_file(assigns.session_id, file)
+      Session.set_file(assigns.session.pid, file)
     end
 
     if autosave_interval_s != assigns.attrs.autosave_interval_s do
-      Session.set_notebook_attributes(assigns.session_id, %{
+      Session.set_notebook_attributes(assigns.session.pid, %{
         autosave_interval_s: autosave_interval_s
       })
     end
 
-    Session.set_notebook_attributes(assigns.session_id, %{
+    Session.set_notebook_attributes(assigns.session.pid, %{
       persist_outputs: assigns.new_attrs.persist_outputs
     })
 
-    Session.save_sync(assigns.session_id)
+    Session.save_sync(assigns.session.pid)
 
     running_files =
       if file do
