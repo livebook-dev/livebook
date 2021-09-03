@@ -77,8 +77,9 @@ Mix.install([
 ])
 ```
 
-Kino is a library that allows you to control parts of Livebook directly
-from the Elixir code. Let's use it to print a data table:
+[Kino](https://github.com/elixir-nx/kino) is a library that
+allows you to control parts of Livebook directly from the Elixir
+code. Let's use it to print a data table:
 
 ```elixir
 data = [
