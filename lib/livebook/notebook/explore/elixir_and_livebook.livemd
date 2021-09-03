@@ -90,6 +90,9 @@ data = [
 Kino.DataTable.new(data)
 ```
 
+See the [Interactions with Kino](/explore/notebooks/intro-to-kino) notebook
+to learn all the ways you can interact with Livebook from Kino.
+
 It is a good idea to specify versions of the installed packages,
 so that the notebook is easily reproducible later on. The install
 command goes beyond simply installing dependencies, it also caches
