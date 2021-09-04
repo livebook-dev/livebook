@@ -123,7 +123,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
   end
 
   def handle_event("restore", %{"cell_id" => cell_id}, socket) do
-    Livebook.Session.restore_cell(socket.assigns.session_id, cell_id)
+    Livebook.Session.restore_cell(socket.assigns.session.pid, cell_id)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 

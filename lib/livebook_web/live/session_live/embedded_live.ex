@@ -4,8 +4,8 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
   alias Livebook.{Session, Runtime}
 
   @impl true
-  def mount(_params, %{"session_id" => session_id}, socket) do
-    {:ok, assign(socket, session_id: session_id)}
+  def mount(_params, %{"session" => session}, socket) do
+    {:ok, assign(socket, session: session)}
   end
 
   @impl true
@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
   @impl true
   def handle_event("init", _params, socket) do
     {:ok, runtime} = Runtime.Embedded.init()
-    Session.connect_runtime(socket.assigns.session_id, runtime)
+    Session.connect_runtime(socket.assigns.session.pid, runtime)
     {:noreply, socket}
   end
 end

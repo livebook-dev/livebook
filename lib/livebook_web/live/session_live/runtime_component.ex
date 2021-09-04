@@ -88,7 +88,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         <div>
           <%= live_render @socket, live_view_for_type(@type),
                 id: "runtime-config-#{@type}",
-                session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
+                session: %{"session" => @session, "current_runtime" => @runtime} %>
         </div>
       </div>
     </div>
@@ -116,7 +116,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   end
 
   def handle_event("disconnect", _params, socket) do
-    Session.disconnect_runtime(socket.assigns.session_id)
+    Session.disconnect_runtime(socket.assigns.session.pid)
 
     {:noreply, socket}
   end

@@ -5,17 +5,17 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
-  alias Livebook.{SessionSupervisor, Session, LiveMarkdown, Notebook, FileSystem}
+  alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
   def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
       Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
     current_user = build_current_user(session, socket)
-    session_summaries = sort_session_summaries(SessionSupervisor.get_session_summaries())
+    sessions = sort_sessions(Sessions.list_sessions())
     notebook_infos = Notebook.Explore.notebook_infos() |> Enum.take(3)
 
     {:ok,
@@ -23,7 +23,7 @@ defmodule LivebookWeb.HomeLive do
        current_user: current_user,
        file: Livebook.Config.default_dir(),
        file_info: %{exists: true, access: :read_write},
-       session_summaries: session_summaries,
+       sessions: sessions,
        notebook_infos: notebook_infos
      )}
   end
@@ -63,7 +63,7 @@ defmodule LivebookWeb.HomeLive do
                   id: "home-file-select",
                   file: @file,
                   extnames: [LiveMarkdown.extension()],
-                  running_files: files(@session_summaries) do %>
+                  running_files: files(@sessions) do %>
               <div class="flex justify-end space-x-2">
                 <button class="button button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
@@ -71,15 +71,15 @@ defmodule LivebookWeb.HomeLive do
                   <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
                   <span>Fork</span>
                 </button>
-                <%= if file_running?(@file, @session_summaries) do %>
+                <%= if file_running?(@file, @sessions) do %>
                   <%= live_redirect "Join session",
-                        to: Routes.session_path(@socket, :page, session_id_by_file(@file, @session_summaries)),
+                        to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
                         class: "button button-blue" %>
                 <% else %>
                   <span {open_button_tooltip_attrs(@file, @file_info)}>
                     <button class="button button-blue"
                       phx-click="open"
-                      disabled={not path_openable?(@file, @file_info, @session_summaries)}>
+                      disabled={not path_openable?(@file, @file_info, @sessions)}>
                       Open
                     </button>
                   </span>
@@ -112,7 +112,7 @@ defmodule LivebookWeb.HomeLive do
             <h2 class="mb-4 text-xl font-semibold text-gray-800">
               Running sessions
             </h2>
-            <.sessions_list session_summaries={@session_summaries} socket={@socket} />
+            <.sessions_list sessions={@sessions} socket={@socket} />
           </div>
         </div>
       </div>
@@ -131,7 +131,7 @@ defmodule LivebookWeb.HomeLive do
             id: "close-session",
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
-            session_summary: @session_summary %>
+            session: @session %>
     <% end %>
 
     <%= if @live_action == :import do %>
@@ -152,7 +152,7 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp sessions_list(%{session_summaries: []} = assigns) do
+  defp sessions_list(%{sessions: []} = assigns) do
     ~H"""
     <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
       <div>
@@ -170,35 +170,35 @@ defmodule LivebookWeb.HomeLive do
   defp sessions_list(assigns) do
     ~H"""
     <div class="flex flex-col space-y-4">
-      <%= for summary <- @session_summaries do %>
+      <%= for session <- @sessions do %>
         <div class="p-5 flex items-center border border-gray-200 rounded-lg"
-          data-test-session-id={summary.session_id}>
+          data-test-session-id={session.id}>
           <div class="flex-grow flex flex-col space-y-1">
-            <%= live_redirect summary.notebook_name,
-                  to: Routes.session_path(@socket, :page, summary.session_id),
+            <%= live_redirect session.notebook_name,
+                  to: Routes.session_path(@socket, :page, session.id),
                   class: "font-semibold text-gray-800 hover:text-gray-900" %>
             <div class="text-gray-600 text-sm">
-              <%= if summary.file, do: summary.file.path, else: "No file" %>
+              <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
           </div>
-          <div class="relative" id={"session-#{summary.session_id}-menu"} phx-hook="Menu" data-element="menu">
+          <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
             <button class="icon-button" data-toggle>
               <.remix_icon icon="more-2-fill" class="text-xl" />
             </button>
             <div class="menu" data-content>
               <button class="menu__item text-gray-500"
                 phx-click="fork_session"
-                phx-value-id={summary.session_id}>
+                phx-value-id={session.id}>
                 <.remix_icon icon="git-branch-line" />
                 <span class="font-medium">Fork</span>
               </button>
               <a class="menu__item text-gray-500"
-                href={live_dashboard_process_path(@socket, summary.pid)}
+                href={live_dashboard_process_path(@socket, session.pid)}
                 target="_blank">
                 <.remix_icon icon="dashboard-2-line" />
                 <span class="font-medium">See on Dashboard</span>
               </a>
-              <%= live_patch to: Routes.home_path(@socket, :close_session, summary.session_id),
+              <%= live_patch to: Routes.home_path(@socket, :close_session, session.id),
                     class: "menu__item text-red-600" do %>
                 <.remix_icon icon="close-circle-line" />
                 <span class="font-medium">Close</span>
@@ -213,8 +213,8 @@ defmodule LivebookWeb.HomeLive do
 
   @impl true
   def handle_params(%{"session_id" => session_id}, _url, socket) do
-    session_summary = Enum.find(socket.assigns.session_summaries, &(&1.session_id == session_id))
-    {:noreply, assign(socket, session_summary: session_summary)}
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    {:noreply, assign(socket, session: session)}
   end
 
   def handle_params(%{"tab" => tab}, _url, socket) do
@@ -270,9 +270,10 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
-    data = Session.get_data(session_id)
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    %{images_dir: images_dir} = session
+    data = Session.get_data(session.pid)
     notebook = Notebook.forked(data.notebook)
-    %{images_dir: images_dir} = Session.get_summary(session_id)
 
     origin =
       if data.file do
@@ -303,15 +304,27 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, file: file, file_info: file_info)}
   end
 
-  def handle_info({:session_created, id}, socket) do
-    summary = Session.get_summary(id)
-    session_summaries = sort_session_summaries([summary | socket.assigns.session_summaries])
-    {:noreply, assign(socket, session_summaries: session_summaries)}
+  def handle_info({:session_created, session}, socket) do
+    if session in socket.assigns.sessions do
+      {:noreply, socket}
+    else
+      sessions = sort_sessions([session | socket.assigns.sessions])
+      {:noreply, assign(socket, sessions: sessions)}
+    end
   end
 
-  def handle_info({:session_closed, id}, socket) do
-    session_summaries = Enum.reject(socket.assigns.session_summaries, &(&1.session_id == id))
-    {:noreply, assign(socket, session_summaries: session_summaries)}
+  def handle_info({:session_updated, session}, socket) do
+    sessions =
+      Enum.map(socket.assigns.sessions, fn other ->
+        if other.id == session.id, do: session, else: other
+      end)
+
+    {:noreply, assign(socket, sessions: sessions)}
+  end
+
+  def handle_info({:session_closed, session}, socket) do
+    sessions = Enum.reject(socket.assigns.sessions, &(&1.id == session.id))
+    {:noreply, assign(socket, sessions: sessions)}
   end
 
   def handle_info({:import_content, content, session_opts}, socket) do
@@ -330,20 +343,20 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp sort_session_summaries(session_summaries) do
-    Enum.sort_by(session_summaries, & &1.notebook_name)
+  defp sort_sessions(sessions) do
+    Enum.sort_by(sessions, & &1.notebook_name)
   end
 
-  defp files(session_summaries) do
-    Enum.map(session_summaries, & &1.file)
+  defp files(sessions) do
+    Enum.map(sessions, & &1.file)
   end
 
   defp path_forkable?(file, file_info) do
     regular?(file, file_info)
   end
 
-  defp path_openable?(file, file_info, session_summaries) do
-    regular?(file, file_info) and not file_running?(file, session_summaries) and
+  defp path_openable?(file, file_info, sessions) do
+    regular?(file, file_info) and not file_running?(file, sessions) and
       writable?(file_info)
   end
 
@@ -355,8 +368,8 @@ defmodule LivebookWeb.HomeLive do
     file_info.access in [:read_write, :write]
   end
 
-  defp file_running?(file, session_summaries) do
-    running_files = files(session_summaries)
+  defp file_running?(file, sessions) do
+    running_files = files(sessions)
     file in running_files
   end
 
@@ -366,8 +379,8 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp session_id_by_file(file, session_summaries) do
-    summary = Enum.find(session_summaries, &(&1.file == file))
-    summary.session_id
+  defp session_id_by_file(file, sessions) do
+    session = Enum.find(sessions, &(&1.file == file))
+    session.id
   end
 end

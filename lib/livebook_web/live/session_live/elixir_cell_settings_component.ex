@@ -44,7 +44,7 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
   def handle_event("save", %{"disable_formatting" => disable_formatting}, socket) do
     disable_formatting = disable_formatting == "true"
 
-    Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, %{
+    Session.set_cell_attributes(socket.assigns.session.pid, socket.assigns.cell.id, %{
       disable_formatting: disable_formatting
     })
 
