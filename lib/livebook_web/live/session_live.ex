@@ -13,7 +13,7 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = web_session, socket) do
     # We use the tracked sessions to locate the session pid, but then
-    # we the session process exclusively for getting all the information
+    # we talk to the session process exclusively for getting all the information
     case Sessions.fetch_session(session_id) do
       {:ok, %{pid: session_pid}} ->
         current_user = build_current_user(web_session, socket)
