@@ -123,7 +123,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "updates UI whenever a session is added or deleted", %{conn: conn} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
 
       {:ok, view, _} = live(conn, "/")
 
@@ -189,7 +189,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
   describe "notebook import" do
     test "allows importing notebook directly from content", %{conn: conn} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
 
       {:ok, view, _} = live(conn, "/home/import/content")
 

@@ -89,7 +89,12 @@ defmodule Livebook.Tracker do
       end
 
     for message <- messages do
-      Phoenix.PubSub.direct_broadcast!(state.node_name, state.pubsub_server, "sessions", message)
+      Phoenix.PubSub.direct_broadcast!(
+        state.node_name,
+        state.pubsub_server,
+        "tracker_sessions",
+        message
+      )
     end
   end
 end

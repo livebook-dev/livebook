@@ -12,20 +12,24 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = web_session, socket) do
+    # We use the tracked sessions to locate the session pid, but then
+    # we the session process exclusively for getting all the information
     case Sessions.fetch_session(session_id) do
-      {:ok, session} ->
+      {:ok, %{pid: session_pid}} ->
         current_user = build_current_user(web_session, socket)
 
         data =
           if connected?(socket) do
-            data = Session.register_client(session.pid, self(), current_user)
-            Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+            data = Session.register_client(session_pid, self(), current_user)
+            Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
             Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
 
             data
           else
-            Session.get_data(session.pid)
+            Session.get_data(session_pid)
           end
+
+        session = Session.get_by_pid(session_pid)
 
         platform = platform_from_socket(socket)
 

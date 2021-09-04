@@ -10,7 +10,7 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
       Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
@@ -305,8 +305,12 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_info({:session_created, session}, socket) do
-    sessions = sort_sessions([session | socket.assigns.sessions])
-    {:noreply, assign(socket, sessions: sessions)}
+    if session in socket.assigns.sessions do
+      {:noreply, socket}
+    else
+      sessions = sort_sessions([session | socket.assigns.sessions])
+      {:noreply, assign(socket, sessions: sessions)}
+    end
   end
 
   def handle_info({:session_updated, session}, socket) do

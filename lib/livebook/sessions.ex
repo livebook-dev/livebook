@@ -15,7 +15,7 @@ defmodule Livebook.Sessions do
 
   Makes the session globally visible within the session tracker.
 
-  `{:session_created, session}` gets broadcasted under the "sessions" topic.
+  `{:session_created, session}` gets broadcasted under the "tracker_sessions" topic.
   """
   @spec create_session(keyword()) :: {:ok, Session.t()} | {:error, any()}
   def create_session(opts \\ []) do
@@ -74,7 +74,7 @@ defmodule Livebook.Sessions do
   @doc """
   Updates the given session info across the cluster.
 
-  `{:session_updated, session}` gets broadcasted under the "sessions" topic.
+  `{:session_updated, session}` gets broadcasted under the "tracker_sessions" topic.
   """
   @spec update_session(Session.t()) :: :ok | {:error, any()}
   def update_session(session) do
