@@ -28,17 +28,34 @@ COPY README.md README.md
 RUN mix do compile, release
 
 # Stage 2
+# We build rust binaries.
+# Rust is required for `explorer` and `polars`, possibly other NIFs.
+FROM rust:1.54-alpine3.13 AS rust
+
+# Stage 3
 # Prepares the runtime environment and copies over the relase.
 # We use the same base image, because we need Erlang, Elixir and Mix
 # during runtime to spawn the Livebook standalone runtimes.
 # Consequently the release doesn't include ERTS as we have it anyway.
 FROM hexpm/elixir:1.12.0-erlang-24.0-alpine-3.13.3
 
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH \
+    # Without this line we get "does not support these crate types" error
+    RUSTFLAGS='-C target-feature=-crt-static'
+
 RUN apk add --no-cache \
     # Runtime dependencies
     openssl ncurses-libs \
     # In case someone uses `Mix.install/2` and point to a git repo
-    git
+    git \
+    # It is required to compile some Rust crates:
+    gcc musl-dev
+
+# Copy Rust compiler, `cargo`, etc:
+COPY --from=rust /usr/local/rustup /usr/local/rustup
+COPY --from=rust /usr/local/cargo /usr/local/cargo
 
 # Run in the /data directory by default, makes for
 # a good place for the user to mount local volume
@@ -47,7 +64,8 @@ WORKDIR /data
 ENV HOME=/home/livebook
 # Make sure someone running the container with `--user`
 # has permissions to the home dir (for `Mix.install/2` cache)
-RUN mkdir $HOME && chmod 777 $HOME
+RUN mkdir $HOME && chmod 777 $HOME && \
+    chmod -R a+w $RUSTUP_HOME $CARGO_HOME
 
 # Install hex and rebar for `Mix.install/2` and Mix runtime
 RUN mix local.hex --force && \
