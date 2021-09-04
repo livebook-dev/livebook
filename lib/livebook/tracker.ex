@@ -76,22 +76,20 @@ defmodule Livebook.Tracker do
   end
 
   defp handle_topic_diff(@sessions_topic, {joins, leaves}, state) do
-    Enum.group_by(
-      Enum.map(leaves, &Tuple.append(&1, :leave)) ++ Enum.map(joins, &Tuple.append(&1, :join)),
-      &elem(&1, 0)
-    )
-    |> Enum.map(fn
-      {id, [{id, %{session: session}, :leave}]} ->
-        {:session_closed, session}
+    joins = Map.new(joins)
+    leaves = Map.new(leaves)
 
-      {id, [{id, %{session: session}, :join}]} ->
-        {:session_created, session}
+    messages =
+      for id <- Enum.uniq(Map.keys(joins) ++ Map.keys(leaves)) do
+        case {joins[id], leaves[id]} do
+          {%{session: session}, nil} -> {:session_created, session}
+          {nil, %{session: session}} -> {:session_closed, session}
+          {%{session: session}, %{}} -> {:session_updated, session}
+        end
+      end
 
-      {id, [{id, _meta, :leave}, {id, %{session: session}, :join}]} ->
-        {:session_updated, session}
-    end)
-    |> Enum.each(fn message ->
+    for message <- messages do
       Phoenix.PubSub.direct_broadcast!(state.node_name, state.pubsub_server, "sessions", message)
-    end)
+    end
   end
 end

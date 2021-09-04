@@ -51,7 +51,7 @@ defmodule Livebook.Utils do
   # Note: the result is always 16 bytes long
   defp node_hash(node) do
     content = Atom.to_string(node)
-    :crypto.hash(:md5, content)
+    :erlang.md5(content)
   end
 
   @doc """
