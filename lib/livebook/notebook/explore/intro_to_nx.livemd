@@ -379,7 +379,7 @@ compilers to highly optimize our code (more on this later).
 
 To use Nx in a Mix project or a notebook, we need to include
 the `:nx` dependency and import the `Nx.Defn` module. The
-dependency is already included, so import `Defn` in an Elixir
+dependency is already included, so import it in an Elixir
 cell, like this:
 
 ```elixir
