@@ -371,10 +371,9 @@ over classic Elixir functions.
 <!-- livebook:{"break_markdown":true} -->
 
 We don't have to do anything special to get access to
-get tensor awareness beyond importing `Defn` and writing
-Our code within a `defn` block. Similarly, to get access
-to a compiled backend, we only need to specify a backend
-(more on this later).
+get tensor awareness beyond importing `Nx.Defn` and writing
+our code within a `defn` block. Similarly, we can use custom
+compilers to highly optimize our code (more on this later).
 
 <!-- livebook:{"break_markdown":true} -->
 
