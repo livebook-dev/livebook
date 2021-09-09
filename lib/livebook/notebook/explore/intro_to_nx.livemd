@@ -1,6 +1,6 @@
 # Introduction to Nx
 
-## Elixir Nx
+## Numerical Elixir
 
 Elixir's primary numerical datatypes and structures are not optimized
 for numerical programming. Nx is a library built to bridge that gap.
@@ -10,8 +10,7 @@ to smoothly integrate to typed, multidimensional data implemented on other
 platforms (called tensors). This support extends to the compilers and
 libraries that support those tensors. Nx has three primary capabilities:
 
-* In Nx, tensors backed by other platforms hold typed data in multiple,
-  named dimensions.
+* In Nx, tensors hold typed data in multiple, named dimensions.
 * Numerical definitions, known as `defn`, support custom code with
   tensor-aware operators and functions.
 * [Automatic differentiation](https://arxiv.org/abs/1502.05767), also known as
@@ -21,7 +20,7 @@ libraries that support those tensors. Nx has three primary capabilities:
 Here's more about each of those capabilities. Nx [tensors]() can hold
 unsigned integers (u8, u16, u32, u64),
 signed integers (s8, s16, s32, s64),
-floats (f32, f64) and brain floats (bf16).
+floats (f32, f64), and brain floats (bf16).
 Tensors support backends implemented outside of Elixir, including Google's
 Accelerated Linear Algebra (XLA) and LibTorch.
 
@@ -186,8 +185,8 @@ the IEx helper `i`, like this:
 i(tensor)
 ```
 
-The tensor is a struct that supports the usual `Info` and `Inspect`
-protocols. The struct has keys, but we typically treat the `Tensor`
+The tensor is a struct that supports the usual `Inspect` protocol.
+The struct has keys, but we typically treat the `Nx.Tensor`
 as an _opaque data type_ (meaning we typically access the contents and
 shape of a tensor using the tensor's API instead of the struct).
 
@@ -338,19 +337,19 @@ $$
 
 To solve this problem, add each integer on the left with the
 corresponding integer on the right. In Nx, this operation
-is called tensor-aware addition. Let's use the `+` function
+is called tensor-aware addition. Let's use the `Nx.subtract/2` function
 to solve the problem:
 
 ```elixir
 tensor2 = Nx.tensor([[5, 6], [7, 8]])
-Nx.Defn.Kernel.-(tensor2, tensor)
+Nx.subtract(tensor2, tensor)
 ```
 
 We get a `{2, 2}` shaped tensor full of fours, exactly as we expected.
 
 <!-- livebook:{"break_markdown":true} -->
 
-We can use tensor-aware operators via the `Nx.Defn.Kernel` functions,
+We can use tensor-aware operators via various `Nx` functions,
 but the code is tedious and unsatisfying, especially as functions grow
 in complexity and length. Fortunately, Nx provides a better way.
 Next, we'll dive into numerical definitions using `defn`.
@@ -362,8 +361,9 @@ containing tensors. Numerical definitions have two primary benefits
 over classic Elixir functions.
 
 * They are _tensor-aware_. Nx replaces operators like `Kernel.-`
-  with the `Defn` counterparts, so the formulas we express
-  can use tensors out of the box.
+  with the `Defn` counterparts &mdash; which in turn use `Nx` functions
+  optimized for tensors &mdash; so the formulas we express can use 
+  tensors out of the box.
 
 * `defn` definitions allow for building computation graph of all the
   individual operations and using a just-in-time (JIT) compiler to emit
@@ -372,16 +372,15 @@ over classic Elixir functions.
 <!-- livebook:{"break_markdown":true} -->
 
 We don't have to do anything special to get access to
-get tensor awareness beyond importing `Defn` and writing
-Our code within a `defn` block. Similarly, to get access
-to a compiled backend, we only need to specify a backend
-(more on this later).
+get tensor awareness beyond importing `Nx.Defn` and writing
+our code within a `defn` block. Similarly, we can use custom
+compilers to highly optimize our code (more on this later).
 
 <!-- livebook:{"break_markdown":true} -->
 
 To use Nx in a Mix project or a notebook, we need to include
 the `:nx` dependency and import the `Nx.Defn` module. The
-dependency is already included, so import `Defn` in an Elixir
+dependency is already included, so import it in an Elixir
 cell, like this:
 
 ```elixir
@@ -440,11 +439,8 @@ $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix}
-
--
-1
-
+\end{bmatrix} 
+\- 1 =
 \begin{bmatrix}
   0 & 1 \\
   2 & 3
@@ -459,14 +455,11 @@ $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix}
-
--
+\end{bmatrix} -
 \begin{bmatrix}
   1 & 1 \\
   1 & 1
-\end{bmatrix}
-
+\end{bmatrix} = 
 \begin{bmatrix}
   0 & 1 \\
   2 & 3
