@@ -390,16 +390,20 @@ import Nx.Defn
 Just as the Elixir language supports `def`, `defmacro`, and `defp`,
 Nx supports `defn`. There are a few restrictions. It allows only
 numerical arguments in the form of primitives or tensors as arguments
-or return values, and has a limited subset of the language within
+or return values, and has a subset of the language within
 the `defn` block.
 
 <!-- livebook:{"break_markdown":true} -->
 
-Numerical definitions compensate us with huge benefits, though.
-A `defn` uses tensor aware operators and types. We also get
-support for backends and JIT compilation to support high performance
-processors such as Google's XLA and LibTorch (the core behind PyTorch).
-Here's an example numerical definition:
+The subset of Elixir allowed within `defn` is quite broad, though. We can
+use macros, pipes, withs, and even conditionals, so we're not giving up
+much when you're declaring mathematical functions.
+
+Additionally, despite these small concessions, `defn` provides huge benefits.
+Code in a `defn` block uses tensor aware operators and types, so the math
+beneath your functions has a better chance to shine through. Numerical
+definitions can also run on accelerated numerical processors like GPUs and
+TPUs. Here's an example numerical definition:
 
 ```elixir
 defmodule TensorMath do
