@@ -346,14 +346,11 @@ $$
 \begin{bmatrix}
   5 & 6 \\
   7 & 8
-\end{bmatrix}
-
--
+\end{bmatrix} -
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix}
-
+\end{bmatrix} =
 \begin{bmatrix}
   4 & 4 \\
   4 & 4
@@ -497,8 +494,7 @@ $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix}
-\- 1 =
+\end{bmatrix} - 1 =
 \begin{bmatrix}
   0 & 1 \\
   2 & 3
