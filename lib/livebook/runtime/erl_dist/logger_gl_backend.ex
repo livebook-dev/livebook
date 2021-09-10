@@ -105,16 +105,6 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
     info[:dictionary][:"$initial_call"] == {Livebook.Evaluator.IOProxy, :init, 1}
   end
 
-  defp async_io(name, output) when is_atom(name) do
-    case Process.whereis(name) do
-      device when is_pid(device) ->
-        async_io(device, output)
-
-      nil ->
-        raise "no device registered with the name #{inspect(name)}"
-    end
-  end
-
   defp async_io(device, output) when is_pid(device) do
     send(device, {:io_request, self(), make_ref(), {:put_chars, :unicode, output}})
   end

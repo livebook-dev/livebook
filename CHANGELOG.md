@@ -11,10 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Introduced file system abstraction and an S3 support ([#492](https://github.com/livebook-dev/livebook/pull/492))
 - Added support for configuring file systems using env variables ([#498](https://github.com/livebook-dev/livebook/pull/498))
 - Added a keyboard shortcut for triggering on-hover docs ([#508](https://github.com/livebook-dev/livebook/pull/508))
+- Added `--open-new` CLI flag to `livebook server` ([#529](https://github.com/livebook-dev/livebook/pull/529))
 
 ### Changed
 
 - Improved intellisense to handle structs and sigils ([#513](https://github.com/livebook-dev/livebook/pull/513))
+- Create new notebooks with an already focused code cell ([#527](https://github.com/livebook-dev/livebook/pull/527))
 
 ### Fixed
 

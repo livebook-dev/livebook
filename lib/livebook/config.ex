@@ -310,6 +310,7 @@ defmodule Livebook.Config do
   @doc """
   Aborts booting due to a configuration error.
   """
+  @spec abort!(String.t()) :: no_return()
   def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)

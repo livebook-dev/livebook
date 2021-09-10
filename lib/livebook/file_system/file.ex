@@ -160,7 +160,7 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Creates the given directory unless it already exists.
   """
-  @spec create_dir(t()) :: {:ok, FileSystem.access()} | {:error, FileSystem.error()}
+  @spec create_dir(t()) :: :ok | {:error, FileSystem.error()}
   def create_dir(file) do
     FileSystem.create_dir(file.file_system, file.path)
   end

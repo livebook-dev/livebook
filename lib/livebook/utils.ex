@@ -6,7 +6,7 @@ defmodule Livebook.Utils do
   @doc """
   Generates a random binary id.
   """
-  @spec random_id() :: binary()
+  @spec random_id() :: id()
   def random_id() do
     :crypto.strong_rand_bytes(20) |> Base.encode32(case: :lower)
   end
@@ -14,7 +14,7 @@ defmodule Livebook.Utils do
   @doc """
   Generates a random short binary id.
   """
-  @spec random_short_id() :: binary()
+  @spec random_short_id() :: id()
   def random_short_id() do
     :crypto.strong_rand_bytes(5) |> Base.encode32(case: :lower)
   end
@@ -25,6 +25,50 @@ defmodule Livebook.Utils do
   @spec random_cookie() :: atom()
   def random_cookie() do
     :crypto.strong_rand_bytes(42) |> Base.url_encode64() |> String.to_atom()
+  end
+
+  @doc """
+  Generates a random binary id that includes node information.
+
+  ## Format
+
+  The id is formed from the following binary parts:
+
+    * 16B - hashed node name
+    * 9B - random bytes
+
+  The binary is base32 encoded.
+  """
+  @spec random_node_aware_id() :: id()
+  def random_node_aware_id() do
+    node_part = node_hash(node())
+    random_part = :crypto.strong_rand_bytes(9)
+    binary = <<node_part::binary, random_part::binary>>
+    # 16B + 9B = 25B is suitable for base32 encoding without padding
+    Base.encode32(binary, case: :lower)
+  end
+
+  # Note: the result is always 16 bytes long
+  defp node_hash(node) do
+    content = Atom.to_string(node)
+    :erlang.md5(content)
+  end
+
+  @doc """
+  Extracts node name from the given node aware id.
+
+  The node in question must be connected, otherwise it won't be found.
+  """
+  @spec node_from_node_aware_id(id()) :: {:ok, node()} | :error
+  def node_from_node_aware_id(id) do
+    binary = Base.decode32!(id, case: :lower)
+    <<node_part::binary-size(16), _random_part::binary-size(9)>> = binary
+
+    known_nodes = [node() | Node.list()]
+
+    Enum.find_value(known_nodes, :error, fn node ->
+      node_hash(node) == node_part && {:ok, node}
+    end)
   end
 
   @doc """
@@ -195,5 +239,46 @@ defmodule Livebook.Utils do
       path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
     end)
     |> URI.to_string()
+  end
+
+  @doc ~S"""
+  Wraps the given line into lines that fit in `width` characters.
+
+  Words longer than `width` are not broken apart.
+
+  ## Examples
+
+      iex> Livebook.Utils.wrap_line("cat on the roof", 7)
+      "cat on\nthe\nroof"
+
+      iex> Livebook.Utils.wrap_line("cat in the cup", 7)
+      "cat in\nthe cup"
+
+      iex> Livebook.Utils.wrap_line("cat in the cup", 2)
+      "cat\nin\nthe\ncup"
+  """
+  @spec wrap_line(String.t(), pos_integer()) :: String.t()
+  def wrap_line(line, width) do
+    line
+    |> String.split()
+    |> Enum.reduce({[[]], 0}, fn part, {[group | groups], group_size} ->
+      size = String.length(part)
+
+      cond do
+        group == [] ->
+          {[[part] | groups], size}
+
+        group_size + 1 + size <= width ->
+          {[[part, " " | group] | groups], group_size + 1 + size}
+
+        true ->
+          {[[part], group | groups], size}
+      end
+    end)
+    |> elem(0)
+    |> Enum.map(&Enum.reverse/1)
+    |> Enum.reverse()
+    |> Enum.intersperse("\n")
+    |> IO.iodata_to_binary()
   end
 end

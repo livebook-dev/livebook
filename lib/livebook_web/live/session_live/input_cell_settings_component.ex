@@ -136,7 +136,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
         attrs
       end
 
-    Session.set_cell_attributes(socket.assigns.session_id, socket.assigns.cell.id, attrs)
+    Session.set_cell_attributes(socket.assigns.session.pid, socket.assigns.cell.id, attrs)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 

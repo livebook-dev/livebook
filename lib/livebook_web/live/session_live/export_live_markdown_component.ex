@@ -48,7 +48,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
             </span>
             <span class="tooltip left" aria-label="Download source">
               <a class="icon-button"
-                href={Routes.session_path(@socket, :download_source, @session_id, "livemd", include_outputs: @include_outputs)}>
+                href={Routes.session_path(@socket, :download_source, @session.id, "livemd", include_outputs: @include_outputs)}>
                 <.remix_icon icon="download-2-line" class="text-lg" />
               </a>
             </span>

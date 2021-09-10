@@ -41,7 +41,7 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
             </span>
             <span class="tooltip left" aria-label="Download source">
               <a class="icon-button"
-                href={Routes.session_path(@socket, :download_source, @session_id, "exs")}>
+                href={Routes.session_path(@socket, :download_source, @session.id, "exs")}>
                 <.remix_icon icon="download-2-line" class="text-lg" />
               </a>
             </span>

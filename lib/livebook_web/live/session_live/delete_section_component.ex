@@ -39,7 +39,7 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
     delete_cells? = delete_cells == "true"
 
     Livebook.Session.delete_section(
-      socket.assigns.session_id,
+      socket.assigns.session.pid,
       socket.assigns.section.id,
       delete_cells?
     )

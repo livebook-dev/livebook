@@ -6,14 +6,14 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   @type status :: :initial | :initializing | :finished
 
   @impl true
-  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
+  def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
     end
 
     {:ok,
      assign(socket,
-       session_id: session_id,
+       session: session,
        status: :initial,
        current_runtime: current_runtime,
        file: initial_file(current_runtime),
@@ -84,7 +84,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         {:noreply, add_output(socket, output)}
 
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session_id, runtime)
+        Session.connect_runtime(socket.assigns.session.pid, runtime)
         {:noreply, socket |> assign(status: :finished) |> add_output("Connected successfully")}
 
       {:error, error} ->

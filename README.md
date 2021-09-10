@@ -1,5 +1,7 @@
 <h1><img src="https://github.com/livebook-dev/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
+ [![Hex.pm](https://img.shields.io/hexpm/v/livebook)](https://hex.pm/packages/livebook)
+
 Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
   * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
@@ -37,7 +39,10 @@ From time to time, we also publish some videos for new Livebook releases:
 We provide several distinct methods of running Livebook,
 pick the one that best fits your use case.
 
-You will need [Elixir v1.12](https://elixir-lang.org/install.html) or later.
+### Running locally
+
+You can run Livebook on your own machine. You will need
+[Elixir v1.12](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, and `ssl`. Those applications come with
 most Erlang distributions but certain package managers may split
@@ -48,7 +53,7 @@ be installed as follows:
 sudo apt install erlang-inets erlang-os-mon erlang-runtime-tools erlang-ssl
 ```
 
-### Escript
+#### Escript
 
 Running Livebook using Escript makes for a very convenient option
 for local usage and provides easy configuration via CLI options.
@@ -75,7 +80,7 @@ install the escript directly from GitHub like this:
 mix escript.install github livebook-dev/livebook
 ```
 
-### Docker
+#### Docker
 
 Running Livebook using Docker is a great option for cloud deployments
 and also for local usage in case you don't have Elixir installed.
@@ -88,7 +93,7 @@ docker run -p 8080:8080 --pull always livebook/livebook
 # you can mount a local directory into the container.
 # Make sure to specify the user with "-u $(id -u):$(id -g)"
 # so that the created files have proper permissions
-docker run -p 8080:8080 --pull always -u $(id -u):$(id -g) -v <LOCAL_DIR>:/data livebook/livebook
+docker run -p 8080:8080 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
 
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
@@ -99,7 +104,7 @@ To try out features from the main branch you can alternatively
 use the `livebook/livebook:edge` image.
 See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
 
-### Mix
+#### Mix
 
 You can run latest Livebook directly with Mix.
 
@@ -176,6 +181,12 @@ mix phx.server
 MIX_ENV=prod mix escript.build
 ./livebook server
 ```
+
+## Sponsors
+
+Livebook development is sponsored by:
+
+<a href="https://fly.io"><img src="https://fly.io/public/images/brand/logo.svg" width="320" /></a>
 
 ## License
 

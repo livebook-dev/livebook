@@ -13,7 +13,7 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
       else
         # Note: we need to load the notebook, because the local data
         # has cell contents stripped out
-        notebook = Session.get_notebook(socket.assigns.session_id)
+        notebook = Session.get_notebook(socket.assigns.session.pid)
         assign(socket, :notebook, notebook)
       end
 
@@ -32,13 +32,13 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
           Here you can preview and directly export the notebook source.
         </p>
         <div class="tabs">
-          <%= live_patch to: Routes.session_path(@socket, :export, @session_id, "livemd"),
+          <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
                 class: "tab #{if(@tab == "livemd", do: "active")}" do %>
             <span class="font-medium">
               Live Markdown
             </span>
           <% end %>
-          <%= live_patch to: Routes.session_path(@socket, :export, @session_id, "exs"),
+          <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "exs"),
                 class: "tab #{if(@tab == "exs", do: "active")}" do %>
             <span class="font-medium">
               Elixir Script
@@ -46,11 +46,11 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
           <% end %>
         </div>
         <div>
-        <%= live_component component_for_tab(@tab),
-              id: "export-notebook-#{@tab}",
-              session_id: @session_id,
-              notebook: @notebook %>
-      </div>
+          <%= live_component component_for_tab(@tab),
+                id: "export-notebook-#{@tab}",
+                session: @session,
+                notebook: @notebook %>
+        </div>
       </div>
     </div>
     """
