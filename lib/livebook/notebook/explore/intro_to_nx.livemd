@@ -86,7 +86,6 @@ dependency, like this:
 
 ```elixir
 Mix.install([
-  {:exla, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "exla"},
   {:nx, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "nx", override: true}
 ])
 ```
@@ -435,11 +434,30 @@ TPUs. Here's an example numerical definition:
 
 ```elixir
 defmodule TensorMath do
+  import Nx.Defn
+
   defn subtract(a, b) do
     a - b
   end
 end
 ```
+
+This module has a numerical definition that will be compiled.
+If we wanted to specify a compiler for this module, we could add
+a module attribute before the `defn` clause. For example, to
+compile using EXLA, you'd add the `mix` dependency for
+EXLA and do this:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+@defn_compiler EXLA
+defn subtract(a, b) do
+  a - b
+end
+```
+
+<!-- livebook:{"break_markdown":true} -->
 
 Now, it's your turn. Add a `defn` to `TensorMath`
 that accepts two tensors representing the lengths of sides of a
@@ -627,81 +645,9 @@ You now know how to build custom tensor-aware code.
 The next step is to make the code efficient on specialized CPUs
 using the backend of your choice.
 
-## Backend compiler support
-
-Now, it's time to address the concepts of backends
-and compiler support. `defn` functions are backed
-by highly specialized compilers. These compilers have
-two primary purposes. They provide a mechanism for external
-compiler tools like Google's accelerated linearalgebra (XLA),
-and they provide an intermediate AST structure convenient for
-processing gradients, a capability critical to numerical
-applications like machine learning.
-
 <!-- livebook:{"break_markdown":true} -->
 
-Under the hood, numerical definitions are translated to Elixir
-AST at compile time, but code execution doesn't stop there.
-When a `defn` is executed, the AST is transformed to an
-executable BEAM implementation. When executed, that
-implementation builds an intermediate form called a `defn`
-AST that is then delegated to a third-party just-in-time
-compiler, called a JIT. This is what the compilation and
-execution flow looks like:
-
-<!-- livebook:{"break_markdown":true} -->
-
-```
-defn function ->
-  Elixir AST ->
-    BEAM file ->
-      defn AST ->
-        target TPU or GPU code
-```
-
-<!-- livebook:{"break_markdown":true} -->
-
-You can specify backends in several ways. To do so, you'll
-first need to include the backend dependency. In a `mix`
-project, you'll add a dependency. If you want to try these
-examples, you'll need to add the `exla` dependency, as this
-noteboook does in the `Tensor` section.
-
-<!-- livebook:{"break_markdown":true} -->
-
-You can specify a `defn` compiler using a module attribute. We'll inspect
-the expression, so when we invoke it we'll see the defn AST:
-
-```elixir
-defmodule VerboseMath do
-  import Nx.Defn
-
-  @default_defn_compiler EXLA
-
-  defn multiply(x, y) do
-    inspect_expr(x * y)
-  end
-end
-```
-
-This code creates a module with a `defn` block, and will compile to
-the `XLA` backend. You'll see the expression when you evaluate it:
-
-```elixir
-VerboseMath.multiply(Nx.tensor([1, 2]), 3)
-```
-
-Now, you can see the intermediate form. Notice you didn't see the
-compiled form until the code was evaluated the first time. The first
-part of the result is the expression. It has two parameters,  `a` and
-`b`. These two bindings are the inbound arguments of the function,
-but instead of referring to them as `x` and `y`, the expression
-arbitrarily labels these with `a` and `b`. They are bound to
-a `s64[2]` tensor and a `s64` scalar. The result is a third binding
-called `c`.
-
-This intermediate AST is what Nx hands off to a compiler. It also
-forms the foundations of autograd.
+The last major feature we'll cover is called auto-differentiation, or autograd.
 
 ## Automatic differentiation (autograd)
 
