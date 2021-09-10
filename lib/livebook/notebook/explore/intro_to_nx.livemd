@@ -108,15 +108,19 @@ Now, everything is set up, so we're ready to create some tensors.
 Start out by getting a feel for Nx through its documentation.
 Do so through the IEx helpers, like this:
 
+<!-- livebook:{"disable_formatting":true} -->
+
 ```elixir
-h(Nx)
+h Nx
 ```
 
 Immediately, you can see that tensors are at the center of the
 API. The main API for creating tensors is `Nx.tensor/2`:
 
+<!-- livebook:{"disable_formatting":true} -->
+
 ```elixir
-h(Nx.tensor())
+h Nx.tensor
 ```
 
 We use it to create tensors from raw Elixir lists of numbers, like this:
@@ -181,8 +185,10 @@ Now,
 We can get information about this most recent term with
 the IEx helper `i`, like this:
 
+<!-- livebook:{"disable_formatting":true} -->
+
 ```elixir
-i(tensor)
+i tensor
 ```
 
 The tensor is a struct that supports the usual `Inspect` protocol.
@@ -253,8 +259,10 @@ tensor
 We can use `IEx.exports/1` or code completion to find
 some functions in the `Nx` module that operate on tensors:
 
+<!-- livebook:{"disable_formatting":true} -->
+
 ```elixir
-exports(Nx)
+exports Nx
 ```
 
 You might recognize that many of those functions have names that
@@ -656,8 +664,10 @@ or autograd.
 
 Here's how it works.
 
+<!-- livebook:{"disable_formatting":true} -->
+
 ```elixir
-h(Nx.Defn.grad())
+h Nx.Defn.grad
 ```
 
 We'll build a module with a few functions,
