@@ -132,21 +132,41 @@ tensor =
   |> Nx.tensor(names: [:y, :x])
 ```
 
-We have a new tensor. Create your own tensor using a binary
-and `Nx.from_binary/2`:
-
-```elixir
-# ...your code here...
-```
-
-The result shows all of the four major components of a tensor:
-
-<!-- livebook:{"break_markdown":true} -->
+The result shows all of the major fields that make up a tensor:
 
 * The data, presented as the list of lists `[[1, 2], [3, 4]]`.
 * The type of the tensor, a signed integer 64 bits long, with the type `s64`.
 * The shape of the tensor, going left to right, with the outside dimensions listed first.
 * The names of each dimension.
+
+<!-- livebook:{"break_markdown":true} -->
+
+We can easily convert it to a binary:
+
+```elixir
+binary = Nx.to_binary(tensor)
+```
+
+The binary has the individual bytes that make up the tensor, so you
+can see the integers `1..4` interspersed among the zeros that make
+up the tensor. If all of our data only uses positive numbers from
+`0..255`, we could save space with a different type:
+
+```elixir
+Nx.tensor([[1, 2], [3, 4]], type: {:u, 8}) |> Nx.to_binary()
+```
+
+We can also use binaries to work with data that might not be
+expressed in lists:
+
+```elixir
+Nx.from_binary(<<0, 1, 2>>, {:u, 8})
+```
+
+This function comes in handy when working with published datasets
+because they must often be processed. Elixir binaries make quick work
+of dealing with numerical data structured for platforms other than
+Elixir.
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -279,7 +299,7 @@ Take the cosine:
 Nx.cos(pi)
 ```
 
-That function took the cosine of `pi`.  We can also call them 
+That function took the cosine of `pi`.  We can also call them
 on a whole tensor, like this:
 
 ```elixir
@@ -370,7 +390,7 @@ over classic Elixir functions.
 
 * They are _tensor-aware_. Nx replaces operators like `Kernel.-`
   with the `Defn` counterparts &mdash; which in turn use `Nx` functions
-  optimized for tensors &mdash; so the formulas we express can use 
+  optimized for tensors &mdash; so the formulas we express can use
   tensors out of the box.
 
 * `defn` definitions allow for building computation graph of all the
@@ -433,7 +453,7 @@ Add your function directly to the previous Elixir cell.
 
 <!-- livebook:{"break_markdown":true} -->
 
-That bit of code does nothing but wrap the `-` operator. It's tensor aware. 
+That bit of code does nothing but wrap the `-` operator. It's tensor aware.
 We can use it to do several different mathematical calculations. The most
 obvious is to subtract two matrices with like shapes, like this:
 
@@ -443,7 +463,15 @@ TensorMath.subtract(tensor2, tensor)
 
 In this program, `Nx.Defn.Kernel.-/2` replaces `Kernel.-/2`, so
 we predictably get the value of `Nx.Defn.Kernel.-(tensor2, tensor)`.
-You can also process this equation:
+Sometimes, you might want to process functions where the dimensions
+don't match. To solve this problem, Nx takes advantage of
+a concept called _broadcasting_.
+
+## Broadcasts
+
+Often, the dimensions of tensors in an operator don't match.
+For example, you might want to subtract a `1` from every
+element of a `{2, 2}` tensor, like this:
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -451,7 +479,7 @@ $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix} 
+\end{bmatrix}
 \- 1 =
 \begin{bmatrix}
   0 & 1 \\
@@ -471,7 +499,7 @@ $$
 \begin{bmatrix}
   1 & 1 \\
   1 & 1
-\end{bmatrix} = 
+\end{bmatrix} =
 \begin{bmatrix}
   0 & 1 \\
   2 & 3
@@ -480,23 +508,33 @@ $$
 
 <!-- livebook:{"break_markdown":true} -->
 
-`defn` takes care of this rewrite implicitly
-through a broadcast. Nx will do this under the
-hood, like this:
+That means we need a way to convert `1` to a `{2, 2}` tensor.
+`Nx.broadcast/2` solves that problem. This function takes
+a tensor or a scalar and a shape.
 
 ```elixir
 Nx.broadcast(1, {2, 2})
 ```
 
 This broadcast takes the scalar `1` and translates it
-to a compatible shape by copying it. Of course, this
-all happens automatically:
+to a compatible shape by copying it.  Sometimes, it's easier
+to provide a tensor as the second argument, and let `broadcast/2`
+extract it's shape:
+
+```elixir
+Nx.broadcast(1, tensor)
+```
+
+The code broadcasts `1` to the shape of `tensor`. In many operators
+and functions, the broadcast happens automatically:
 
 ```elixir
 TensorMath.subtract(tensor, 1)
 ```
 
-Or, you could subtract a tensor from a scalar:
+This result is possible because Nx broadcasts _both tensors_
+in `subtract/2` to compatible shapes. That means you can provide
+scalar values as either arugment:
 
 ```elixir
 TensorMath.subtract(10, tensor)
@@ -510,13 +548,10 @@ $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix}
-
--
+\end{bmatrix} -
 \begin{bmatrix}
   1 & 2
-\end{bmatrix}
-
+\end{bmatrix} =
 \begin{bmatrix}
   0 & 0 \\
   2 & 2
@@ -533,14 +568,11 @@ $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
-\end{bmatrix}
-
--
+\end{bmatrix} -
 \begin{bmatrix}
   1 & 2 \\
   1 & 2
-\end{bmatrix}
-
+\end{bmatrix} =
 \begin{bmatrix}
   0 & 0 \\
   2 & 2
@@ -563,14 +595,33 @@ implicitly, as before:
 TensorMath.subtract(tensor, Nx.tensor([1, 2]))
 ```
 
-In the notebooks to come, we'll walk through the `Nx.broadcast/2`
-function that resolves two distinct shapes into compatible tensors.
-For now, know that Nx uses `broadcast` to repeat like rows or scalars
-until shapes match. Read more about it here:
+The broadcast worked as advertised, copying the `[1, 2]` row
+enough times to fill a `{2, 2}` tensor.  A tensor with a
+dimension of `1` will broadcast to fill the tensor:
+
+```elixir
+[[1], [2]] |> Nx.tensor() |> Nx.broadcast({1, 2, 2})
+```
+
+```elixir
+[[[1, 2, 3]]]
+|> Nx.tensor()
+|> Nx.broadcast({4, 2, 3})
+```
+
+Both of these examples copy parts of the tensor enough
+times to fill out the broadcast shape. You can check out the
+[Nx broadcasting documentation](https://github.com/elixir-nx/nx/blob/main/nx/lib/nx.ex#L47)
+for more details, or get `help` for the broadcast function:
 
 ```elixir
 h(Nx.broadcast())
 ```
+
+Much of the time, you won't have to broadcast yourself. Many of
+the functions and operators Nx supports will do so automatically.
+
+<!-- livebook:{"break_markdown":true} -->
 
 You now know how to build custom tensor-aware code.
 The next step is to make the code efficient on specialized CPUs
@@ -732,9 +783,5 @@ Now, you try. Find a function computing the gradient of a `sin` wave.
 # your code here
 ```
 
-In the notebooks to follow, we'll use these techniques to
-create many different types of tensors with Nx primitive
-functions. Then, we'll dive into the basics of slicing
-and broadcasting to give you a feel for working with
-data. Finally, we'll roll up these techniques in a linear
-regression.
+In the notebooks that follow, we'll roll up these techniques
+to do a linear regression.
