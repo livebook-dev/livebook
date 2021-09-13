@@ -372,114 +372,7 @@ Nx.subtract(tensor2, tensor)
 ```
 
 We get a `{2, 2}` shaped tensor full of fours, exactly as we expected.
-
-<!-- livebook:{"break_markdown":true} -->
-
-We can use tensor-aware operators via various `Nx` functions,
-however, our code would be more expressive if we could use
-their equivalent mathematical operations. Fortunately, Nx provides
-a better way. Next, we'll dive into numerical definitions using `defn`.
-
-## Numerical definitions (defn)
-
-The `defn` macro simplifies the expression of mathematical formulas
-containing tensors. Numerical definitions have two primary benefits
-over classic Elixir functions.
-
-* They are _tensor-aware_. Nx replaces operators like `Kernel.-/2`
-  with the `Defn` counterparts &mdash; which in turn use `Nx` functions
-  optimized for tensors &mdash; so the formulas we express can use
-  tensors out of the box.
-
-* `defn` definitions allow for building computation graph of all the
-  individual operations and using a just-in-time (JIT) compiler to emit
-  highly specialized native code for the desired computation unit.
-
-<!-- livebook:{"break_markdown":true} -->
-
-We don't have to do anything special to get access to
-get tensor awareness beyond importing `Nx.Defn` and writing
-our code within a `defn` block. Similarly, we can use custom
-compilers to highly optimize our code (more on this later).
-
-<!-- livebook:{"break_markdown":true} -->
-
-To use Nx in a Mix project or a notebook, we need to include
-the `:nx` dependency and import the `Nx.Defn` module. The
-dependency is already included, so import it in an Elixir
-cell, like this:
-
-```elixir
-import Nx.Defn
-```
-
-Just as the Elixir language supports `def`, `defmacro`, and `defp`,
-Nx supports `defn`. There are a few restrictions. It allows only
-numerical arguments in the form of primitives or tensors as arguments
-or return values, and has a subset of the language within
-the `defn` block.
-
-<!-- livebook:{"break_markdown":true} -->
-
-The subset of Elixir allowed within `defn` is quite broad, though. We can
-use macros, pipes, and even conditionals, so we're not giving up
-much when you're declaring mathematical functions.
-
-Additionally, despite these small concessions, `defn` provides huge benefits.
-Code in a `defn` block uses tensor aware operators and types, so the math
-beneath your functions has a better chance to shine through. Numerical
-definitions can also run on accelerated numerical processors like GPUs and
-TPUs. Here's an example numerical definition:
-
-```elixir
-defmodule TensorMath do
-  import Nx.Defn
-
-  defn subtract(a, b) do
-    a - b
-  end
-end
-```
-
-This module has a numerical definition that will be compiled.
-If we wanted to specify a compiler for this module, we could add
-a module attribute before the `defn` clause. For example, to
-compile using EXLA, you'd add the `mix` dependency for
-EXLA and do this:
-
-<!-- livebook:{"force_markdown":true} -->
-
-```elixir
-@defn_compiler EXLA
-defn subtract(a, b) do
-  a - b
-end
-```
-
-<!-- livebook:{"break_markdown":true} -->
-
-Now, it's your turn. Add a `defn` to `TensorMath`
-that accepts two tensors representing the lengths of sides of a
-right triangle and uses the pythagorean theorem to return the
-[length of the hypotenuse](https://www.mathsisfun.com/pythagoras.html).
-Add your function directly to the previous Elixir cell.
-
-<!-- livebook:{"break_markdown":true} -->
-
-### Using tensor aware operators
-
-<!-- livebook:{"break_markdown":true} -->
-
-That bit of code does nothing but wrap the `-` operator. It's tensor aware.
-We can use it to do several different mathematical calculations. The most
-obvious is to subtract two matrices with like shapes, like this:
-
-```elixir
-TensorMath.subtract(tensor2, tensor)
-```
-
-In this program, `Nx.Defn.Kernel.-/2` replaces `Kernel.-/2`, so
-we predictably get the value of `Nx.Defn.Kernel.-(tensor2, tensor)`.
+When calling `Nx.subtract/2`, both operands had the same shape.
 Sometimes, you might want to process functions where the dimensions
 don't match. To solve this problem, Nx takes advantage of
 a concept called _broadcasting_.
@@ -535,7 +428,7 @@ Nx.broadcast(1, {2, 2})
 This broadcast takes the scalar `1` and translates it
 to a compatible shape by copying it.  Sometimes, it's easier
 to provide a tensor as the second argument, and let `broadcast/2`
-extract it's shape:
+extract its shape:
 
 ```elixir
 Nx.broadcast(1, tensor)
@@ -545,7 +438,7 @@ The code broadcasts `1` to the shape of `tensor`. In many operators
 and functions, the broadcast happens automatically:
 
 ```elixir
-TensorMath.subtract(tensor, 1)
+Nx.subtract(tensor, 1)
 ```
 
 This result is possible because Nx broadcasts _both tensors_
@@ -553,7 +446,7 @@ in `subtract/2` to compatible shapes. That means you can provide
 scalar values as either arugment:
 
 ```elixir
-TensorMath.subtract(10, tensor)
+Nx.subtract(10, tensor)
 ```
 
 Or subtract a row or column. Mathematically, it would look like this:
@@ -604,11 +497,11 @@ broadcast the tensor `[1, 2]` to match the `{2, 2}` shape, like this:
 Nx.broadcast(Nx.tensor([1, 2]), {2, 2})
 ```
 
-The `-` operator in `Nx` takes care of that broadcast
+The `subtract` function in `Nx` takes care of that broadcast
 implicitly, as before:
 
 ```elixir
-TensorMath.subtract(tensor, Nx.tensor([1, 2]))
+Nx.subtract(tensor, Nx.tensor([1, 2]))
 ```
 
 The broadcast worked as advertised, copying the `[1, 2]` row
@@ -627,11 +520,12 @@ dimension of `1` will broadcast to fill the tensor:
 
 Both of these examples copy parts of the tensor enough
 times to fill out the broadcast shape. You can check out the
-[Nx broadcasting documentation](https://github.com/elixir-nx/nx/blob/main/nx/lib/nx.ex#L47)
-for more details, or get `help` for the broadcast function:
+Nx broadcasting documentation for more details:
+
+<!-- livebook:{"disable_formatting":true} -->
 
 ```elixir
-h(Nx.broadcast())
+h Nx.broadcast
 ```
 
 Much of the time, you won't have to broadcast yourself. Many of
@@ -639,11 +533,92 @@ the functions and operators Nx supports will do so automatically.
 
 <!-- livebook:{"break_markdown":true} -->
 
-You now know how to build custom tensor-aware code.
-The next step is to make the code efficient on specialized CPUs
-using the backend of your choice.
+We can use tensor-aware operators via various `Nx` functions and
+many of them implicitly broadcast tensors.
+
+Throughout this section, we have been invoking `Nx.subtract/2` and
+our code would be more expressive if we could use its equivalent
+mathematical operator. Fortunately, Nx provides a way. Next, we'll
+dive into numerical definitions using `defn`.
+
+## Numerical definitions (defn)
+
+The `defn` macro simplifies the expression of mathematical formulas
+containing tensors. Numerical definitions have two primary benefits
+over classic Elixir functions.
+
+* They are _tensor-aware_. Nx replaces operators like `Kernel.-/2`
+  with the `Defn` counterparts &mdash; which in turn use `Nx` functions
+  optimized for tensors &mdash; so the formulas we express can use
+  tensors out of the box.
+
+* `defn` definitions allow for building computation graph of all the
+  individual operations and using a just-in-time (JIT) compiler to emit
+  highly specialized native code for the desired computation unit.
 
 <!-- livebook:{"break_markdown":true} -->
+
+We don't have to do anything special to get access to
+get tensor awareness beyond importing `Nx.Defn` and writing
+our code within a `defn` block.
+
+To use Nx in a Mix project or a notebook, we need to include
+the `:nx` dependency and import the `Nx.Defn` module. The
+dependency is already included, so import it in an Elixir
+cell, like this:
+
+```elixir
+import Nx.Defn
+```
+
+Just as the Elixir language supports `def`, `defmacro`, and `defp`,
+Nx supports `defn`. There are a few restrictions. It allows only
+numerical arguments in the form of primitives or tensors as arguments
+or return values, and has a subset of the language within
+the `defn` block.
+
+The subset of Elixir allowed within `defn` is quite broad, though. We can
+use macros, pipes, and even conditionals, so we're not giving up
+much when you're declaring mathematical functions.
+
+Additionally, despite these small concessions, `defn` provides huge benefits.
+Code in a `defn` block uses tensor aware operators and types, so the math
+beneath your functions has a better chance to shine through. Numerical
+definitions can also run on accelerated numerical processors like GPUs and
+TPUs. Here's an example numerical definition:
+
+```elixir
+defmodule TensorMath do
+  import Nx.Defn
+
+  defn subtract(a, b) do
+    a - b
+  end
+end
+```
+
+This module has a numerical definition that will be compiled.
+If we wanted to specify a compiler for this module, we could add
+a module attribute before the `defn` clause. One of such compilers
+is [the EXLA compiler](https://github.com/elixir-nx/nx/tree/main/exla).
+You'd add the `mix` dependency for EXLA and do this:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+@defn_compiler EXLA
+defn subtract(a, b) do
+  a - b
+end
+```
+
+<!-- livebook:{"break_markdown":true} -->
+
+Now, it's your turn. Add a `defn` to `TensorMath`
+that accepts two tensors representing the lengths of sides of a
+right triangle and uses the pythagorean theorem to return the
+[length of the hypotenuse](https://www.mathsisfun.com/pythagoras.html).
+Add your function directly to the previous Elixir cell.
 
 The last major feature we'll cover is called auto-differentiation, or autograd.
 
