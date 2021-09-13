@@ -689,12 +689,8 @@ you get 14! Said another way, if you look at the graph at
 exactly 2, the rate of increase is 14 units of `poly(x)`
 for every unit of `x`, precisely at `x`.
 
-<!-- livebook:{"break_markdown":true} -->
-
 Nx also has helpers to get gradients corresponding to a number of inputs.
 These come into play when solving systems of equations.
-
-<!-- livebook:{"break_markdown":true} -->
 
 Now, you try. Find a function computing the gradient of a `sin` wave.
 
