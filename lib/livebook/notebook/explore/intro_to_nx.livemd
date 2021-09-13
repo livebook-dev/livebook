@@ -146,8 +146,9 @@ We can easily convert it to a binary:
 binary = Nx.to_binary(tensor)
 ```
 
-The binary has the individual bytes that make up the tensor, so you
-can see the integers `1..4` interspersed among the zeros that make
+A tensor of type s64 uses four bytes for each integer. The binary
+shows the individual bytes that make up the tensor, so you can see
+the integers `1..4` interspersed among the zeros that make
 up the tensor. If all of our data only uses positive numbers from
 `0..255`, we could save space with a different type:
 
@@ -155,8 +156,8 @@ up the tensor. If all of our data only uses positive numbers from
 Nx.tensor([[1, 2], [3, 4]], type: {:u, 8}) |> Nx.to_binary()
 ```
 
-We can also use binaries to work with data that might not be
-expressed in lists:
+If you have already have binary, you can directly convert it to a tensor
+by passing the binary and the type:
 
 ```elixir
 Nx.from_binary(<<0, 1, 2>>, {:u, 8})
@@ -337,8 +338,8 @@ Now,
 ```
 
 Sometimes, we need to combine two tensors together with an
-operator. Let's say we wanted to add two tensors together.
-Mathematically, the expression looks like this:
+operator. Let's say we wanted to subtract one tensor from
+another. Mathematically, the expression looks like this:
 
 <!-- livebook:{"break_markdown":true} -->
 
@@ -360,9 +361,10 @@ $$
 <!-- livebook:{"break_markdown":true} -->
 
 To solve this problem, add each integer on the left with the
-corresponding integer on the right. In Nx, this operation
-is called tensor-aware addition. Let's use the `Nx.subtract/2` function
-to solve the problem:
+corresponding integer on the right. Unfortunately, we cannot
+use Elixir's built-in subtraction operator as it is not tensor-aware.
+Luckily, we can use the `Nx.subtract/2` function to solve the
+problem:
 
 ```elixir
 tensor2 = Nx.tensor([[5, 6], [7, 8]])
@@ -374,9 +376,9 @@ We get a `{2, 2}` shaped tensor full of fours, exactly as we expected.
 <!-- livebook:{"break_markdown":true} -->
 
 We can use tensor-aware operators via various `Nx` functions,
-but the code is tedious and unsatisfying, especially as functions grow
-in complexity and length. Fortunately, Nx provides a better way.
-Next, we'll dive into numerical definitions using `defn`.
+however, our code would be more expressive if we could use
+their equivalent mathematical operations. Fortunately, Nx provides
+a better way. Next, we'll dive into numerical definitions using `defn`.
 
 ## Numerical definitions (defn)
 
@@ -384,7 +386,7 @@ The `defn` macro simplifies the expression of mathematical formulas
 containing tensors. Numerical definitions have two primary benefits
 over classic Elixir functions.
 
-* They are _tensor-aware_. Nx replaces operators like `Kernel.-`
+* They are _tensor-aware_. Nx replaces operators like `Kernel.-/2`
   with the `Defn` counterparts &mdash; which in turn use `Nx` functions
   optimized for tensors &mdash; so the formulas we express can use
   tensors out of the box.
@@ -420,7 +422,7 @@ the `defn` block.
 <!-- livebook:{"break_markdown":true} -->
 
 The subset of Elixir allowed within `defn` is quite broad, though. We can
-use macros, pipes, withs, and even conditionals, so we're not giving up
+use macros, pipes, and even conditionals, so we're not giving up
 much when you're declaring mathematical functions.
 
 Additionally, despite these small concessions, `defn` provides huge benefits.
