@@ -1,5 +1,7 @@
 ## Environment
 
+<!-- Note: you can also find versions at the /dashboard route of your Livebook. -->
+
 * Elixir & Erlang/OTP versions (elixir --version): 
 * Operating system: 
 * How have you started Livebook (mix phx.server, livebook CLI, Docker, etc): 
