@@ -1,6 +1,6 @@
 ## Environment
 
-Note you can also find versions at the /dashboard route of your Livebook.
+<!-- Note: you can also find versions at the /dashboard route of your Livebook. -->
 
 * Elixir & Erlang/OTP versions (elixir --version): 
 * Operating system: 
