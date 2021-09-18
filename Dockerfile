@@ -1,8 +1,13 @@
 # Stage 1
 # Builds the Livebook release
-FROM hexpm/elixir:1.12.0-erlang-24.0-alpine-3.13.3 AS build
+FROM hexpm/elixir:1.12.3-erlang-24.0.6-debian-buster-20210902-slim AS build
 
-RUN apk add --no-cache build-base git
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install --no-install-recommends -y \
+        build-essential git && \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -32,13 +37,17 @@ RUN mix do compile, release
 # We use the same base image, because we need Erlang, Elixir and Mix
 # during runtime to spawn the Livebook standalone runtimes.
 # Consequently the release doesn't include ERTS as we have it anyway.
-FROM hexpm/elixir:1.12.0-erlang-24.0-alpine-3.13.3
+FROM hexpm/elixir:1.12.3-erlang-24.0.6-debian-buster-20210902-slim
 
-RUN apk add --no-cache \
-    # Runtime dependencies
-    openssl ncurses-libs \
-    # In case someone uses `Mix.install/2` and point to a git repo
-    git
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install --no-install-recommends -y \
+        # Runtime dependencies
+        build-essential ca-certificates libncurses5-dev \
+        # In case someone uses `Mix.install/2` and point to a git repo
+        git && \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Run in the /data directory by default, makes for
 # a good place for the user to mount local volume
