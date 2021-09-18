@@ -10,7 +10,7 @@ defmodule LivebookWeb.PageHelpers do
 
   ## Examples
 
-      <.user_avatar user={@user} class="h-20 w-20" text_class="text-3xl" />
+      <.title text="Explore" socket={@socket} />
   """
   def title(assigns) do
     ~H"""
