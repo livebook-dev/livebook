@@ -117,13 +117,23 @@ mix deps.get --only prod
 MIX_ENV=prod mix phx.server
 ```
 
-### Security considerations
+### Embedded devices
 
-Livebook is built to document and execute code. Anyone with access to a Livebook instance will be able to access any file and execute any code in the machine Livebook is running.
+If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
+check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
+with [Nerves](https://www.nerves-project.org/).
 
-For this reason, Livebook only binds to the 127.0.0.1, allowing access to happen only within the current machine. When running Livebook in the production environment - the recommended environment - we also generate a token on initialization and we only allow access to the Livebook if said token is supplied as part of the URL.
+## Security considerations
 
-### Environment variables
+Livebook is built to document and execute code. Anyone with access to a Livebook instance
+will be able to access any file and execute any code in the machine Livebook is running.
+
+For this reason, Livebook only binds to the 127.0.0.1, allowing access to happen only within
+the current machine. When running Livebook in the production environment - the recommended
+environment - we also generate a token on initialization and we only allow access to the
+Livebook if said token is supplied as part of the URL.
+
+## Environment variables
 <!-- Environment variables -->
 
 The following environment variables configure Livebook:
