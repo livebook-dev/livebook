@@ -1154,6 +1154,7 @@ defmodule Livebook.IntellisenseTest do
       assert content =~ "## Examples"
     end
 
+    @tag :erl_docs
     test "returns full Erlang docs" do
       {binding, env} = eval(do: nil)
 

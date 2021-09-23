@@ -1000,15 +1000,7 @@ defmodule Livebook.Session do
   """
   @spec find_prev_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
   def find_prev_locator(notebook, cell, section) do
-    default =
-      case section.parent_id do
-        nil ->
-          {container_ref_for_section(section), nil}
-
-        parent_id ->
-          {:ok, parent} = Notebook.fetch_section(notebook, parent_id)
-          {container_ref_for_section(parent), nil}
-      end
+    default = {container_ref_for_section(section), nil}
 
     notebook
     |> Notebook.parent_cells_with_section(cell.id)
