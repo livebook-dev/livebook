@@ -2,6 +2,7 @@ defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
+  alias Livebook.Notebook.{Section, Cell}
 
   # Note: queueing evaluation in most of the tests below
   # requires the runtime to synchronously start first,
@@ -546,6 +547,70 @@ defmodule Livebook.SessionTest do
                      @evaluation_wait_timeout
 
       assert text_output =~ "no matching Livebook input found"
+    end
+  end
+
+  describe "find_prev_locator/3" do
+    test "given cell in main flow returns previous Elixir cell" do
+      cell1 = %{Cell.new(:elixir) | id: "c1"}
+      cell2 = %{Cell.new(:markdown) | id: "c2"}
+      section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
+
+      cell3 = %{Cell.new(:elixir) | id: "c3"}
+      section2 = %{Section.new() | id: "s2", cells: [cell3]}
+
+      notebook = %{Notebook.new() | sections: [section1, section2]}
+
+      assert {:main_flow, "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+    end
+
+    test "given cell in branching section returns previous Elixir cell in that section" do
+      section1 = %{Section.new() | id: "s1"}
+
+      cell1 = %{Cell.new(:elixir) | id: "c1"}
+      cell2 = %{Cell.new(:markdown) | id: "c2"}
+      cell3 = %{Cell.new(:elixir) | id: "c3"}
+
+      section2 = %{
+        Section.new()
+        | id: "s2",
+          parent_id: "s1",
+          cells: [cell1, cell2, cell3]
+      }
+
+      notebook = %{Notebook.new() | sections: [section1, section2]}
+
+      assert {"s2", "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+    end
+
+    test "given cell in main flow returns nil if there is no previous cell" do
+      cell1 = %{Cell.new(:markdown) | id: "c1"}
+      section1 = %{Section.new() | id: "s1", cells: [cell1]}
+
+      cell2 = %{Cell.new(:elixir) | id: "c2"}
+      section2 = %{Section.new() | id: "s2", cells: [cell2]}
+
+      notebook = %{Notebook.new() | sections: [section1, section2]}
+
+      assert {:main_flow, nil} = Session.find_prev_locator(notebook, cell2, section2)
+    end
+
+    test "given cell in branching section returns nil in that section if there is no previous cell" do
+      cell1 = %{Cell.new(:markdown) | id: "c1"}
+      section1 = %{Section.new() | id: "s1", cells: [cell1]}
+
+      cell2 = %{Cell.new(:elixir) | id: "c2"}
+
+      section2 = %{
+        Section.new()
+        | id: "s2",
+          parent_id: "s1",
+          cells: [cell2]
+      }
+
+      notebook = %{Notebook.new() | sections: [section1, section2]}
+
+      assert {"s2", nil} = Session.find_prev_locator(notebook, cell2, section2)
     end
   end
 
