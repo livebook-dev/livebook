@@ -79,7 +79,7 @@ defmodule Livebook.Notebook.Explore do
 
   defnotebook(:intro_to_nx,
     description:
-      "Enter numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
+      "Enter Numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
     image_url: "/images/nx.png"
   )
 
@@ -125,8 +125,8 @@ defmodule Livebook.Notebook.Explore do
       @elixir_and_livebook,
       @intro_to_vega_lite,
       @intro_to_kino,
-      @vm_introspection
-      # @intro_to_nx, @intro_to_axon,
+      @intro_to_nx,
+      @vm_introspection#, @intro_to_axon
     ]
   end
 
