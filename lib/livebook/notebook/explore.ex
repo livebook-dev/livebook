@@ -126,7 +126,8 @@ defmodule Livebook.Notebook.Explore do
       @intro_to_vega_lite,
       @intro_to_kino,
       @intro_to_nx,
-      @vm_introspection#, @intro_to_axon
+      @vm_introspection
+      # , @intro_to_axon
     ]
   end
 
