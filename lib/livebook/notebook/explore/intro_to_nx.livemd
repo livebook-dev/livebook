@@ -39,16 +39,12 @@ Systems of equations are a central theme in numerical computing.
 These equations are often expressed and solved with multidimensional
 arrays. For example, this is a two dimensional array:
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
 \begin{bmatrix}
   1 & 2 \\
   3 & 4
 \end{bmatrix}
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 Elixir programmers typically express a similar data structure using
 a list of lists, like this:
@@ -77,8 +73,6 @@ than `Enum.map/2` and `Enum.reduce/3`.
 In this section, we'll look at some of the various tools for
 creating and interacting with tensors.
 
-<!-- livebook:{"break_markdown":true} -->
-
 To get started, we'll first need to include the Nx dependency.
 In Livebook, we can simply use Mix install. At the time of this writing,
 there's no Hex package for Nx, so we'll use a git
@@ -101,8 +95,6 @@ Now, everything is set up, so we're ready to create some tensors.
 <!-- livebook:{"break_markdown":true} -->
 
 ### Creating tensors
-
-<!-- livebook:{"break_markdown":true} -->
 
 Start out by getting a feel for Nx through its documentation.
 Do so through the IEx helpers, like this:
@@ -138,8 +130,6 @@ The result shows all of the major fields that make up a tensor:
 * The shape of the tensor, going left to right, with the outside dimensions listed first.
 * The names of each dimension.
 
-<!-- livebook:{"break_markdown":true} -->
-
 We can easily convert it to a binary:
 
 ```elixir
@@ -167,8 +157,6 @@ This function comes in handy when working with published datasets
 because they must often be processed. Elixir binaries make quick work
 of dealing with numerical data structured for platforms other than
 Elixir.
-
-<!-- livebook:{"break_markdown":true} -->
 
 We can get any cell of the tensor:
 
@@ -200,8 +188,6 @@ Now,
 * return a `{2, 2}` tensor containing the first two columns
   of the first two rows
 
-<!-- livebook:{"break_markdown":true} -->
-
 We can get information about this most recent term with
 the IEx helper `i`, like this:
 
@@ -223,8 +209,6 @@ to get more documentation about tensors. We could also open an Elixir
 cell, type Nx.tensor, and hover the cursor over the word `tensor`
 to see the help about that function.
 
-<!-- livebook:{"break_markdown":true} -->
-
 We can get the shape of the tensor with `Nx.shape/1`:
 
 ```elixir
@@ -241,8 +225,6 @@ This operation reuses all of the tensor data and simply
 changes the metadata, so it has no notable cost.
 
 The new tensor has the same type, but a new shape.
-
-<!-- livebook:{"break_markdown":true} -->
 
 Now, reshape the tensor to contain three dimensions with
 one batch, one row, and four columns.
@@ -262,8 +244,6 @@ Nx.tensor([[1, 2, 3]], names: [:rows, :cols], type: {:u, 8})
 
 We created a tensor of the shape `{1, 3}`, with the type `u8`,
 the values `[1, 2, 3]`, and two axes named `rows` and `cols`.
-
-<!-- livebook:{"break_markdown":true} -->
 
 Now we know how to create tensors, so it's time to do something with them.
 
@@ -324,8 +304,6 @@ Nx.sum(tensor, axes: [:x])
 Nx sums the values across the `x` dimension: `1 + 2` in the first row
 and `3 + 4` in the second row.
 
-<!-- livebook:{"break_markdown":true} -->
-
 Now,
 
 * create a `{2, 2, 2}` tensor
@@ -341,8 +319,6 @@ Sometimes, we need to combine two tensors together with an
 operator. Let's say we wanted to subtract one tensor from
 another. Mathematically, the expression looks like this:
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
 \begin{bmatrix}
   5 & 6 \\
@@ -357,8 +333,6 @@ $$
   4 & 4
 \end{bmatrix}
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 To solve this problem, add each integer on the left with the
 corresponding integer on the right. Unfortunately, we cannot
@@ -383,8 +357,6 @@ Often, the dimensions of tensors in an operator don't match.
 For example, you might want to subtract a `1` from every
 element of a `{2, 2}` tensor, like this:
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
 \begin{bmatrix}
   1 & 2 \\
@@ -395,8 +367,6 @@ $$
   2 & 3
 \end{bmatrix}
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 Mathematically, it's the same as this:
 
@@ -414,8 +384,6 @@ $$
   2 & 3
 \end{bmatrix}
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 That means we need a way to convert `1` to a `{2, 2}` tensor.
 `Nx.broadcast/2` solves that problem. This function takes
@@ -451,8 +419,6 @@ Nx.subtract(10, tensor)
 
 Or subtract a row or column. Mathematically, it would look like this:
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
 \begin{bmatrix}
   1 & 2 \\
@@ -466,13 +432,9 @@ $$
   2 & 2
 \end{bmatrix}
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 which is the same as this:
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
 \begin{bmatrix}
   1 & 2 \\
@@ -487,8 +449,6 @@ $$
   2 & 2
 \end{bmatrix}
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 This rewrite happens in Nx too, also through a broadcast. We want to
 broadcast the tensor `[1, 2]` to match the `{2, 2}` shape, like this:
@@ -531,8 +491,6 @@ h Nx.broadcast
 Much of the time, you won't have to broadcast yourself. Many of
 the functions and operators Nx supports will do so automatically.
 
-<!-- livebook:{"break_markdown":true} -->
-
 We can use tensor-aware operators via various `Nx` functions and
 many of them implicitly broadcast tensors.
 
@@ -555,8 +513,6 @@ over classic Elixir functions.
 * `defn` definitions allow for building computation graph of all the
   individual operations and using a just-in-time (JIT) compiler to emit
   highly specialized native code for the desired computation unit.
-
-<!-- livebook:{"break_markdown":true} -->
 
 We don't have to do anything special to get access to
 get tensor awareness beyond importing `Nx.Defn` and writing
@@ -612,8 +568,6 @@ defn subtract(a, b) do
 end
 ```
 
-<!-- livebook:{"break_markdown":true} -->
-
 Now, it's your turn. Add a `defn` to `TensorMath`
 that accepts two tensors representing the lengths of sides of a
 right triangle and uses the pythagorean theorem to return the
@@ -647,19 +601,13 @@ a function returning the gradient. We have two functions: `poly/1`
 is a simple numerical definitin, and `poly_slope_at/1` returns
 its gradient:
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
   poly: f(x) = 3x^2 + 2x + 1 \\
 $$
 
-<!-- livebook:{"break_markdown":true} -->
-
 $$
   polySlopeAt: g(x) = 6x + 2
 $$
-
-<!-- livebook:{"break_markdown":true} -->
 
 Here's the Elixir equivalent of those functions:
 
