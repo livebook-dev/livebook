@@ -1,19 +1,5 @@
-defmodule Livebook.Utils.ANSI.Modifier do
-  @moduledoc false
-
-  defmacro defmodifier(modifier, code, terminator \\ "m") do
-    quote bind_quoted: [modifier: modifier, code: code, terminator: terminator] do
-      defp ansi_prefix_to_modifier(unquote("[#{code}#{terminator}") <> rest) do
-        {:ok, unquote(modifier), rest}
-      end
-    end
-  end
-end
-
 defmodule Livebook.Utils.ANSI do
   @moduledoc false
-
-  import Livebook.Utils.ANSI.Modifier
 
   @type modifier ::
           {:font_weight, :bold | :light}
@@ -54,12 +40,12 @@ defmodule Livebook.Utils.ANSI do
     {tail_parts, _} =
       Enum.map_reduce(ansi_prefixed_strings, %{}, fn string, modifiers ->
         {modifiers, rest} =
-          case ansi_prefix_to_modifier(string) do
-            {:ok, modifier, rest} ->
-              modifiers = add_modifier(modifiers, modifier)
+          case ansi_prefix_to_modifiers(string) do
+            {:ok, new_modifiers, rest} ->
+              modifiers = Enum.reduce(new_modifiers, modifiers, &apply_modifier(&2, &1))
               {modifiers, rest}
 
-            {:error, _rest} ->
+            :error ->
               {modifiers, "\e" <> string}
           end
 
@@ -83,83 +69,137 @@ defmodule Livebook.Utils.ANSI do
     merge_adjacent_parts(parts, [part | acc])
   end
 
-  # Below goes a number of `ansi_prefix_to_modifier` function definitions,
-  # that take a string like "[32msomething" (starting with ANSI code without the leading "\e")
-  # and parse the prefix into the corresponding modifier.
-  # The function returns either {:ok, modifier, rest} or {:error, rest}
+  defp ansi_prefix_to_modifiers("[1A" <> rest), do: {:ok, [:ignored], rest}
+  defp ansi_prefix_to_modifiers("[1B" <> rest), do: {:ok, [:ignored], rest}
+  defp ansi_prefix_to_modifiers("[1C" <> rest), do: {:ok, [:ignored], rest}
+  defp ansi_prefix_to_modifiers("[1D" <> rest), do: {:ok, [:ignored], rest}
+  defp ansi_prefix_to_modifiers("[2J" <> rest), do: {:ok, [:ignored], rest}
+  defp ansi_prefix_to_modifiers("[2K" <> rest), do: {:ok, [:ignored], rest}
+  defp ansi_prefix_to_modifiers("[H" <> rest), do: {:ok, [:ignored], rest}
 
-  defmodifier(:reset, 0)
+  # "\e(B" is RFC1468's switch to ASCII character set and can be ignored. This
+  # can appear even when JIS character sets aren't in use
+  defp ansi_prefix_to_modifiers("(B" <> rest), do: {:ok, [:ignored], rest}
 
-  # When the code is missing (i.e., "\e[m"), it is 0 for reset.
-  defmodifier(:reset, "")
+  defp ansi_prefix_to_modifiers("[" <> rest) do
+    with [args_string, rest] <- String.split(rest, "m", parts: 2),
+         {:ok, args} <- parse_ansi_args(args_string),
+         {:ok, modifiers} <- ansi_args_to_modifiers(args, []) do
+      {:ok, modifiers, rest}
+    else
+      _ -> :error
+    end
+  end
+
+  defp ansi_prefix_to_modifiers(_string), do: :error
+
+  defp parse_ansi_args(args_string) do
+    args_string
+    |> String.split(";")
+    |> Enum.reduce_while([], fn arg, parsed ->
+      case parse_ansi_arg(arg) do
+        {:ok, n} -> {:cont, [n | parsed]}
+        :error -> {:halt, :error}
+      end
+    end)
+    |> case do
+      :error -> :error
+      parsed -> {:ok, Enum.reverse(parsed)}
+    end
+  end
+
+  defp parse_ansi_arg(""), do: {:ok, 0}
+
+  defp parse_ansi_arg(string) do
+    case Integer.parse(string) do
+      {n, ""} -> {:ok, n}
+      _ -> :error
+    end
+  end
+
+  defp ansi_args_to_modifiers([], acc), do: {:ok, Enum.reverse(acc)}
+
+  defp ansi_args_to_modifiers(args, acc) do
+    case ansi_args_to_modifier(args) do
+      {:ok, modifier, args} -> ansi_args_to_modifiers(args, [modifier | acc])
+      :error -> :error
+    end
+  end
 
   @colors [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
 
-  for {color, index} <- Enum.with_index(@colors) do
-    defmodifier({:foreground_color, color}, 30 + index)
-    defmodifier({:background_color, color}, 40 + index)
-    defmodifier({:foreground_color, :"light_#{color}"}, 90 + index)
-    defmodifier({:background_color, :"light_#{color}"}, 100 + index)
-  end
+  defp ansi_args_to_modifier(args) do
+    case args do
+      [0 | args] ->
+        {:ok, :reset, args}
 
-  defmodifier({:foreground_color, :reset}, 39)
-  defmodifier({:background_color, :reset}, 49)
+      [1 | args] ->
+        {:ok, {:font_weight, :bold}, args}
 
-  defmodifier({:font_weight, :bold}, 1)
-  defmodifier({:font_weight, :light}, 2)
-  defmodifier({:font_style, :italic}, 3)
-  defmodifier({:text_decoration, :underline}, 4)
-  defmodifier({:text_decoration, :line_through}, 9)
-  defmodifier({:font_weight, :reset}, 22)
-  defmodifier({:font_style, :reset}, 23)
-  defmodifier({:text_decoration, :reset}, 24)
-  defmodifier({:text_decoration, :overline}, 53)
-  defmodifier({:text_decoration, :reset}, 55)
+      [2 | args] ->
+        {:ok, {:font_weight, :light}, args}
 
-  defp ansi_prefix_to_modifier("[38;5;" <> string) do
-    with {:ok, color, rest} <- bit8_prefix_to_color(string) do
-      {:ok, {:foreground_color, color}, rest}
-    end
-  end
+      [3 | args] ->
+        {:ok, {:font_style, :italic}, args}
 
-  defp ansi_prefix_to_modifier("[48;5;" <> string) do
-    with {:ok, color, rest} <- bit8_prefix_to_color(string) do
-      {:ok, {:background_color, color}, rest}
-    end
-  end
+      [4 | args] ->
+        {:ok, {:text_decoration, :underline}, args}
 
-  # "\e(B" is RFC1468's switch to ASCII character set and can be ignored. This
-  # can appear even when JIS character sets aren't in use.
-  defp ansi_prefix_to_modifier("(B" <> rest) do
-    {:ok, :ignored, rest}
-  end
+      [9 | args] ->
+        {:ok, {:text_decoration, :line_through}, args}
 
-  defp bit8_prefix_to_color(string) do
-    case Integer.parse(string) do
-      {n, "m" <> rest} when n in 0..255 ->
-        color = color_from_code(n)
-        {:ok, color, rest}
+      [22 | args] ->
+        {:ok, {:font_weight, :reset}, args}
+
+      [23 | args] ->
+        {:ok, {:font_style, :reset}, args}
+
+      [24 | args] ->
+        {:ok, {:text_decoration, :reset}, args}
+
+      [n | args] when n in 30..37 ->
+        color = Enum.at(@colors, n - 30)
+        {:ok, {:foreground_color, color}, args}
+
+      [38, 5, bit8 | args] when bit8 in 0..255 ->
+        color = color_from_code(bit8)
+        {:ok, {:foreground_color, color}, args}
+
+      [39 | args] ->
+        {:ok, {:foreground_color, :reset}, args}
+
+      [n | args] when n in 40..47 ->
+        color = Enum.at(@colors, n - 40)
+        {:ok, {:background_color, color}, args}
+
+      [48, 5, bit8 | args] when bit8 in 0..255 ->
+        color = color_from_code(bit8)
+        {:ok, {:background_color, color}, args}
+
+      [49 | args] ->
+        {:ok, {:background_color, :reset}, args}
+
+      [53 | args] ->
+        {:ok, {:text_decoration, :overline}, args}
+
+      [55 | args] ->
+        {:ok, {:text_decoration, :reset}, args}
+
+      [n | args] when n in 90..97 ->
+        color = Enum.at(@colors, n - 90)
+        {:ok, {:foreground_color, :"light_#{color}"}, args}
+
+      [n | args] when n in 100..107 ->
+        color = Enum.at(@colors, n - 100)
+        {:ok, {:background_color, :"light_#{color}"}, args}
+
+      [n | args] when n <= 107 ->
+        {:ok, :ignored, args}
 
       _ ->
-        {:error, string}
+        :error
     end
   end
-
-  ignored_codes = [5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 25, 27, 51, 52, 54]
-
-  for code <- ignored_codes do
-    defmodifier(:ignored, code)
-  end
-
-  defmodifier(:ignored, 1, "A")
-  defmodifier(:ignored, 1, "B")
-  defmodifier(:ignored, 1, "C")
-  defmodifier(:ignored, 1, "D")
-  defmodifier(:ignored, 2, "J")
-  defmodifier(:ignored, 2, "K")
-  defmodifier(:ignored, "", "H")
-
-  defp ansi_prefix_to_modifier(string), do: {:error, string}
 
   defp color_from_code(code) when code in 0..7 do
     Enum.at(@colors, code)
@@ -184,8 +224,8 @@ defmodule Livebook.Utils.ANSI do
     {:grayscale24, level}
   end
 
-  defp add_modifier(modifiers, :ignored), do: modifiers
-  defp add_modifier(_modifiers, :reset), do: %{}
-  defp add_modifier(modifiers, {key, :reset}), do: Map.delete(modifiers, key)
-  defp add_modifier(modifiers, {key, value}), do: Map.put(modifiers, key, value)
+  defp apply_modifier(modifiers, :ignored), do: modifiers
+  defp apply_modifier(_modifiers, :reset), do: %{}
+  defp apply_modifier(modifiers, {key, :reset}), do: Map.delete(modifiers, key)
+  defp apply_modifier(modifiers, {key, value}), do: Map.put(modifiers, key, value)
 end
