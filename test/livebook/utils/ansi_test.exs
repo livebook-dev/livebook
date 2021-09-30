@@ -57,12 +57,24 @@ defmodule Livebook.Utils.ANSITest do
       assert ANSI.parse_ansi_string("\e[H\e[1Acat") == [{[], "cat"}]
     end
 
-    test "returns the whole string if on ANSI code detected" do
+    test "returns the whole string if no ANSI code is detected" do
       assert ANSI.parse_ansi_string("\e[300mcat") == [{[], "\e[300mcat"}]
+      assert ANSI.parse_ansi_string("\ehmmcat") == [{[], "\ehmmcat"}]
     end
 
     test "ignores RFC 1468 switch to ASCII" do
       assert ANSI.parse_ansi_string("\e(Bcat") == [{[], "cat"}]
+    end
+
+    test "supports multiple codes separated by semicolon" do
+      assert ANSI.parse_ansi_string("\e[0;34mcat") == [{[foreground_color: :blue], "cat"}]
+
+      assert ANSI.parse_ansi_string("\e[34;41mcat\e[0m") ==
+               [{[background_color: :red, foreground_color: :blue], "cat"}]
+
+      # 8-bit rgb color followed by background color
+      assert ANSI.parse_ansi_string("\e[38;5;67;41mcat\e[0m") ==
+               [{[background_color: :red, foreground_color: {:rgb6, 1, 2, 3}], "cat"}]
     end
   end
 end
