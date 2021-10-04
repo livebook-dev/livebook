@@ -9,7 +9,6 @@ defmodule LivebookWeb.Router do
     plug :put_root_layout, {LivebookWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug LivebookWeb.ConfiguredPlug
   end
 
   pipeline :auth do

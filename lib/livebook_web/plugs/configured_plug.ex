@@ -6,12 +6,13 @@ defmodule LivebookWeb.ConfiguredPlug do
   @behaviour Plug
 
   @impl true
-  def init(_opts) do
-    plugs = Application.get_env(:livebook, :plugs, [])
-    %{plugs: plugs}
-  end
+  def init(opts), do: opts
 
   @impl true
-  def call(conn, %{plugs: []}), do: conn
-  def call(conn, %{plugs: plugs}), do: Plug.run(conn, plugs)
+  def call(conn, _opts) do
+    case Application.get_env(:livebook, :plugs, []) do
+      [] -> conn
+      plugs -> Plug.run(conn, plugs)
+    end
+  end
 end

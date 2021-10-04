@@ -30,8 +30,7 @@ config :livebook, :default_runtime, {Livebook.Runtime.ElixirStandalone, []}
 #
 #    [{plug_module :: module(), opts :: keyword()}]
 #
-# The plugs are run at the end of the browser pipeline
-# and have access to the session
+# The plugs are called directly before the Livebook router.
 config :livebook, :plugs, []
 
 # Import environment specific config. This must remain at the bottom
