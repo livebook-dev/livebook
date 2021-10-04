@@ -71,6 +71,10 @@ defmodule LivebookWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
+  # Run custom plugs from the app configuration
+  plug LivebookWeb.ConfiguredPlug
+
   plug LivebookWeb.Router
 
   def access_url() do
