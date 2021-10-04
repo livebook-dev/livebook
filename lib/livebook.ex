@@ -12,7 +12,7 @@ defmodule Livebook do
   to your `config/runtime.exs` to trigger Livebook's config/runtime.exs
   configuration:
 
-      config :livebook, Livebook.config_runtime()
+      Livebook.config_runtime()
 
   """
   def config_runtime do
