@@ -24,7 +24,8 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
+      env: Application.get_all_env(:livebook)
     ]
   end
 
