@@ -10,7 +10,7 @@ defmodule LivebookWeb.ConfiguredPlug do
 
   @impl true
   def call(conn, _opts) do
-    case Application.get_env(:livebook, :plugs, []) do
+    case Application.fetch_env!(:livebook, :plugs) do
       [] -> conn
       plugs -> Plug.run(conn, plugs)
     end
