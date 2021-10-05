@@ -38,10 +38,11 @@ defmodule Livebook.Runtime.StandaloneInit do
       "--erl",
       # Minimize schedulers busy wait threshold,
       # so that they go to sleep immediately after evaluation.
+      # Increase the default stack for dirty io threads (cuda requires it).
       # Enable ANSI escape codes as we handle them with HTML.
       # Disable stdin, so that the system process never tries to read
       # any input from the terminal.
-      "+sbwt none +sbwtdcpu none +sbwtdio none -elixir ansi_enabled true -noinput",
+      "+sbwt none +sbwtdcpu none +sbwtdio none +sssdio 128 -elixir ansi_enabled true -noinput",
       # Make the node hidden, so it doesn't automatically join the cluster
       "--hidden",
       # Use the cookie in Livebook
