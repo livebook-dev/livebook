@@ -21,7 +21,7 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
           file system. Many storage services offer an S3-compatible API, so
           you can use those as well. One such service is
           <a class="link" href="https://www.storj.io" rel="noreferrer noopener">Storj</a>
-          and they offer a lof of free storage.
+          and they offer free storage.
         </p>
         <p class="text-gray-700">
           Note that any other user of your Livebook could theoretically extract
