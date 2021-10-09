@@ -391,5 +391,4 @@ defmodule LivebookWeb.HomeLive do
   def format_creation_date(created_at) do
     time_ago_in_words(created_at)
   end
-
 end
