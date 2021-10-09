@@ -3,6 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
+  import Livebook.Utils.Time, only: [time_ago_in_words: 1]
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
