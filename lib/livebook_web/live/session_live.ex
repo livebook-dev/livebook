@@ -146,8 +146,8 @@ defmodule LivebookWeb.SessionLive do
             <h3 class="font-semibold text-gray-800 text-lg flex-lg">
               Users
             </h3>
-            <span class="relative bg-gray-100 p-2 pl-3 pr-3 rounded-lg text-sm">
-              <span class={"bg-green-600 relative inline-flex rounded-full h-3 w-3"}></span>
+            <span class="flex items-center space-x-2 bg-gray-200 p-2 rounded-lg text-sm">
+              <span class="bg-green-600 inline-flex rounded-full h-3 w-3"></span>
               <%= length(@data_view.clients) %> connected
             </span>
           </div>
