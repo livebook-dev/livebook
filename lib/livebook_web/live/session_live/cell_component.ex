@@ -302,7 +302,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  # The whole page has to load and then hooks are mounded.
+  # The whole page has to load and then hooks are mounted.
   # There may be a tiny delay before the markdown is rendered
   # or editors are mounted, so show neat placeholders immediately.
 
