@@ -98,6 +98,9 @@ defmodule Livebook.Session do
 
     * `:images` - a map from image name to its binary content, an alternative
       to `:copy_images_from` when the images are in memory
+
+    * `:created_at` - a datetime struct which indicates when the session was created
+
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do

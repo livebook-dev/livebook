@@ -614,6 +614,10 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  test "session has created_at attribute when it is created", %{session: session} do
+    assert Map.has_key?(session, :created_at)
+  end
+
   defp start_session(opts \\ []) do
     session_id = Utils.random_id()
     {:ok, pid} = Session.start_link(Keyword.merge([id: session_id], opts))
