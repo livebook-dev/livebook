@@ -181,7 +181,7 @@ defmodule LivebookWeb.HomeLive do
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
             <div class="text-gray-600 text-sm">
-              <%= "Created at" %>: <%= display_creation_date(session.created_at) %>
+              <%= "Created at" %>: <%= format_creation_date(session.created_at) %>
             </div>
           </div>
           <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
@@ -387,7 +387,7 @@ defmodule LivebookWeb.HomeLive do
     session.id
   end
 
-  def display_creation_date(created_at) do
+  def format_creation_date(created_at) do
     Calendar.strftime(created_at, "%y-%m-%d %I:%M %p")
   end
 
