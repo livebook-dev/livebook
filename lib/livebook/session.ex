@@ -46,7 +46,7 @@ defmodule Livebook.Session do
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir]
+  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at]
 
   use GenServer, restart: :temporary
 
@@ -61,7 +61,8 @@ defmodule Livebook.Session do
           origin: {:file, FileSystem.File.t()} | {:url, String.t()} | nil,
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
-          images_dir: FileSystem.File.t()
+          images_dir: FileSystem.File.t(),
+          created_at: DateTime.t()
         }
 
   @type state :: %{
@@ -691,7 +692,8 @@ defmodule Livebook.Session do
       origin: state.data.origin,
       notebook_name: state.data.notebook.name,
       file: state.data.file,
-      images_dir: images_dir_from_state(state)
+      images_dir: images_dir_from_state(state),
+      created_at: DateTime.now!("Etc/UTC")
     }
   end
 

@@ -180,6 +180,9 @@ defmodule LivebookWeb.HomeLive do
             <div class="text-gray-600 text-sm">
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
+            <div class="text-gray-600 text-sm">
+              <%= "Created at" %>: <%= display_creation_date(session.created_at) %>
+            </div>
           </div>
           <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
             <button class="icon-button" data-toggle>
@@ -383,4 +386,9 @@ defmodule LivebookWeb.HomeLive do
     session = Enum.find(sessions, &(&1.file == file))
     session.id
   end
+
+  def display_creation_date(created_at) do
+    Calendar.strftime(created_at, "%y-%m-%d %I:%M %p")
+  end
+
 end
