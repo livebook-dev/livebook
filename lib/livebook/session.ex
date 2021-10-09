@@ -62,7 +62,7 @@ defmodule Livebook.Session do
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
-          created_at: DateTime.t()
+          created_at: NaiveDateTime.t()
         }
 
   @type state :: %{
@@ -99,7 +99,7 @@ defmodule Livebook.Session do
     * `:images` - a map from image name to its binary content, an alternative
       to `:copy_images_from` when the images are in memory
 
-    * `:created_at` - a datetime struct which indicates when the session was created
+    * `:created_at` - a NaiveDateTime struct which indicates when the session was created
 
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
@@ -696,7 +696,7 @@ defmodule Livebook.Session do
       notebook_name: state.data.notebook.name,
       file: state.data.file,
       images_dir: images_dir_from_state(state),
-      created_at: DateTime.now!("Etc/UTC")
+      created_at: DateTime.now!("Etc/UTC") |> DateTime.to_naive()
     }
   end
 

@@ -3,6 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
+  import Livebook.Utils.Time, only: [time_ago_in_words: 1]
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
@@ -181,7 +182,7 @@ defmodule LivebookWeb.HomeLive do
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
             <div class="text-gray-600 text-sm">
-              <%= "Created at" %>: <%= format_creation_date(session.created_at) %>
+              Created before <%= format_creation_date(session.created_at) %>
             </div>
           </div>
           <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
@@ -388,7 +389,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def format_creation_date(created_at) do
-    Calendar.strftime(created_at, "%y-%m-%d %I:%M %p")
+    time_ago_in_words(created_at)
   end
 
 end
