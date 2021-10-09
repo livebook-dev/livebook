@@ -4,10 +4,10 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   alias Livebook.{Session, Runtime, Utils}
 
   @impl true
-  def mount(_params, %{"session_id" => session_id, "current_runtime" => current_runtime}, socket) do
+  def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
     {:ok,
      assign(socket,
-       session_id: session_id,
+       session: session,
        error_message: nil,
        data: initial_data(current_runtime)
      )}
@@ -75,7 +75,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
 
     case Runtime.Attached.init(node, cookie) do
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session_id, runtime)
+        Session.connect_runtime(socket.assigns.session.pid, runtime)
         {:noreply, assign(socket, data: data, error_message: nil)}
 
       {:error, error} ->

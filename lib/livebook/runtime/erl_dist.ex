@@ -25,7 +25,7 @@ defmodule Livebook.Runtime.ErlDist do
     Livebook.Evaluator.IOProxy,
     Livebook.Evaluator.DefaultFormatter,
     Livebook.Intellisense,
-    Livebook.Intellisense.Completion,
+    Livebook.Intellisense.IdentifierMatcher,
     Livebook.Runtime.ErlDist,
     Livebook.Runtime.ErlDist.NodeManager,
     Livebook.Runtime.ErlDist.RuntimeServer,
@@ -57,7 +57,23 @@ defmodule Livebook.Runtime.ErlDist do
   defp load_required_modules(node) do
     for module <- @required_modules do
       {_module, binary, filename} = :code.get_object_code(module)
-      {:module, _} = :rpc.call(node, :code, :load_binary, [module, filename, binary])
+
+      case :rpc.call(node, :code, :load_binary, [module, filename, binary]) do
+        {:module, _} ->
+          :ok
+
+        {:error, reason} ->
+          local_otp = :erlang.system_info(:otp_release)
+          remote_otp = :rpc.call(node, :erlang, :system_info, [:otp_release])
+
+          if local_otp != remote_otp do
+            raise RuntimeError,
+                  "failed to load #{inspect(module)} module into the remote node, potentially due to Erlang/OTP version mismatch, reason: #{inspect(reason)} (local #{local_otp} != remote #{remote_otp})"
+          else
+            raise RuntimeError,
+                  "failed to load #{inspect(module)} module into the remote node, reason: #{inspect(reason)}"
+          end
+      end
     end
   end
 

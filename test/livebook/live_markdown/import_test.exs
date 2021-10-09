@@ -7,15 +7,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
   test "acceptance" do
     markdown = """
-    <!-- livebook:{"author":"Sherlock Holmes"} -->
-
     # My Notebook
 
-    <!-- livebook:{"created_at":"2021-02-15"} -->
-
     ## Section 1
-
-    <!-- livebook:{"updated_at":"2021-02-15"} -->
 
     Make sure to install:
 
@@ -23,7 +17,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     * Elixir
     * PostgreSQL
 
-    <!-- livebook:{"readonly":true} -->
+    $x_{i} + y_{i}$
+
+    <!-- livebook:{"disable_formatting": true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -56,30 +52,28 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     assert %Notebook{
              name: "My Notebook",
-             metadata: %{"author" => "Sherlock Holmes"},
              sections: [
                %Notebook.Section{
                  name: "Section 1",
-                 metadata: %{"created_at" => "2021-02-15"},
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{"updated_at" => "2021-02-15"},
                      source: """
                      Make sure to install:
 
                      * Erlang
                      * Elixir
-                     * PostgreSQL\
+                     * PostgreSQL
+
+                     $x_{i} + y_{i}$\
                      """
                    },
                    %Cell.Elixir{
-                     metadata: %{"readonly" => true},
+                     disable_formatting: true,
                      source: """
                      Enum.to_list(1..10)\
                      """
                    },
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      This is it for this section.\
                      """
@@ -89,23 +83,19 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  id: section2_id,
                  name: "Section 2",
-                 metadata: %{},
                  cells: [
                    %Cell.Input{
-                     metadata: %{},
                      type: :text,
                      name: "length",
                      value: "100",
                      reactive: true
                    },
                    %Cell.Elixir{
-                     metadata: %{},
                      source: """
                      IO.gets("length: ")\
                      """
                    },
                    %Cell.Input{
-                     metadata: %{},
                      type: :range,
                      name: "length",
                      value: "100",
@@ -115,11 +105,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                },
                %Notebook.Section{
                  name: "Section 3",
-                 metadata: %{},
                  parent_id: section2_id,
                  cells: [
                    %Cell.Elixir{
-                     metadata: %{},
                      source: """
                      Process.info()\
                      """
@@ -136,9 +124,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 1
 
-    Line 1.\s\s
-    Line 2.
-
     |State|Abbrev|Capital|
     | --: | :-: | --- |
     | Texas | TX | Austin |
@@ -152,14 +137,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              sections: [
                %Notebook.Section{
                  name: "Section 1",
-                 metadata: %{},
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
-                     Line 1.\\
-                     Line 2.
-
                      | State | Abbrev | Capital |
                      | ----: | :----: | ------- |
                      | Texas | TX     | Austin  |
@@ -213,7 +193,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Probably section 1",
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      ### Heading
 
@@ -226,7 +205,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Probably section 2",
                  cells: [
                    %Cell.Markdown{
-                     metadata: %{},
                      source: """
                      **Tiny heading**\
                      """
@@ -330,7 +308,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     assert %Notebook{
              name: "My Notebook",
-             metadata: %{"author" => "Sherlock Holmes"},
              sections: [
                %Notebook.Section{
                  name: "Section",
@@ -501,5 +478,123 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                }
              ]
            } = notebook
+  end
+
+  test "imports markdown content into separate cells when a break annotation is encountered" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+
+    <!-- livebook:{"break_markdown":true} -->
+
+    Cell 2
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Markdown{
+                     source: """
+                     Cell 1\
+                     """
+                   },
+                   %Cell.Markdown{
+                     source: """
+                     Cell 2\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
+  describe "outputs" do
+    test "imports output snippets as cell textual outputs" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```output
+      hey
+      ```
+
+      ```output
+      :ok
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Elixir{
+                       source: """
+                       IO.puts("hey")\
+                       """,
+                       outputs: [{:text, ":ok"}, {:text, "hey"}]
+                     }
+                   ]
+                 }
+               ]
+             } = notebook
+    end
+
+    test "imports notebook :persist_outputs attribute" do
+      markdown = """
+      <!-- livebook:{"persist_outputs":true} -->
+
+      # My Notebook
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{name: "My Notebook", persist_outputs: true} = notebook
+    end
+  end
+
+  test "imports notebook :autosave_interval_s attribute" do
+    markdown = """
+    <!-- livebook:{"autosave_interval_s":10} -->
+
+    # My Notebook
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
+  end
+
+  test "skips invalid input type and returns a message" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    <!-- livebook:{"livebook_object":"cell_input","type":"input_from_the_future"} -->
+    """
+
+    {_notebook, messages} = Import.notebook_from_markdown(markdown)
+
+    assert [
+             ~s{unrecognised input type "input_from_the_future", if it's a valid type it means your Livebook version doesn't support it}
+           ] == messages
   end
 end

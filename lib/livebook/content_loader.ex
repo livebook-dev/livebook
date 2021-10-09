@@ -1,6 +1,8 @@
 defmodule Livebook.ContentLoader do
   @moduledoc false
 
+  alias Livebook.Utils.HTTP
+
   @doc """
   Rewrite known URLs, so that they point to plain text file rather than HTML.
 
@@ -55,28 +57,13 @@ defmodule Livebook.ContentLoader do
 
   @doc """
   Loads binary content from the given URl and validates if its plain text.
-
-  Supports local file:// URLs and remote http(s):// URLs.
   """
   @spec fetch_content(String.t()) :: {:ok, String.t()} | {:error, String.t()}
-  def fetch_content(url)
-
-  def fetch_content("file://" <> path) do
-    case File.read(path) do
-      {:ok, content} ->
-        {:ok, content}
-
-      {:error, error} ->
-        message = :file.format_error(error)
-        {:error, "failed to read #{path}, reason: #{message}"}
-    end
-  end
-
   def fetch_content(url) do
-    case :httpc.request(:get, {url, []}, http_opts(), body_format: :binary) do
-      {:ok, {{_, 200, _}, headers, body}} ->
+    case HTTP.request(:get, url) do
+      {:ok, 200, headers, body} ->
         valid_content? =
-          case fetch_content_type(headers) do
+          case HTTP.fetch_content_type(headers) do
             {:ok, content_type} -> content_type in ["text/plain", "text/markdown"]
             :error -> false
           end
@@ -90,41 +77,5 @@ defmodule Livebook.ContentLoader do
       _ ->
         {:error, "failed to download notebook from the given URL"}
     end
-  end
-
-  defp fetch_content_type(headers) do
-    case Enum.find(headers, fn {key, _} -> key == 'content-type' end) do
-      {_, value} ->
-        {:ok,
-         value
-         |> List.to_string()
-         |> String.split(";")
-         |> hd()}
-
-      _ ->
-        :error
-    end
-  end
-
-  crt_file = CAStore.file_path()
-  crt = File.read!(crt_file)
-  pems = :public_key.pem_decode(crt)
-  ders = Enum.map(pems, fn {:Certificate, der, _} -> der end)
-
-  # Note: we need to load the certificates at compilation time,
-  # as we don't have access to package files in Escript.
-  @cacerts ders
-
-  defp http_opts() do
-    [
-      # Use secure options, see https://gist.github.com/jonatanklosko/5e20ca84127f6b31bbe3906498e1a1d7
-      ssl: [
-        verify: :verify_peer,
-        cacerts: @cacerts,
-        customize_hostname_check: [
-          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
-        ]
-      ]
-    ]
   end
 end

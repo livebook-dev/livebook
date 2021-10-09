@@ -40,7 +40,37 @@ defmodule Livebook.JSInterop do
     apply_to_code_units(ops, Enum.slice(code_units, n..-1))
   end
 
-  # ---
+  @doc """
+  Returns a column number in the Elixir string corresponding to
+  the given column interpreted in terms of UTF-16 code units.
+  """
+  @spec js_column_to_elixir(pos_integer(), String.t()) :: pos_integer()
+  def js_column_to_elixir(column, line) do
+    line
+    |> string_to_utf16_code_units()
+    |> Enum.take(column - 1)
+    |> utf16_code_units_to_string()
+    |> String.length()
+    |> Kernel.+(1)
+  end
+
+  @doc """
+  Returns a column represented in terms of UTF-16 code units
+  corresponding to the given column number in Elixir string.
+  """
+  @spec elixir_column_to_js(pos_integer(), String.t()) :: pos_integer()
+  def elixir_column_to_js(column, line) do
+    line
+    |> string_take(column - 1)
+    |> string_to_utf16_code_units()
+    |> length()
+    |> Kernel.+(1)
+  end
+
+  defp string_take(_string, 0), do: ""
+  defp string_take(string, n) when n > 0, do: String.slice(string, 0..(n - 1))
+
+  # UTF-16 helpers
 
   defp string_to_utf16_code_units(string) do
     string

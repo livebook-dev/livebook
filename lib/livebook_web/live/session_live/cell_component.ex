@@ -179,6 +179,17 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp cell_input(%{cell_view: %{input_type: :checkbox}} = assigns) do
+    ~H"""
+    <div class="mt-1">
+      <.switch_checkbox
+        data-element="input"
+        name="value"
+        checked={@cell_view.value == "true"} />
+    </div>
+    """
+  end
+
   defp cell_input(assigns) do
     ~H"""
     <input type={html_input_type(@cell_view.input_type)}
@@ -226,7 +237,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <span class="tooltip top" aria-label="Cell settings">
       <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id), class: "icon-button" do %>
-        <.remix_icon icon="list-settings-line" class="text-xl" />
+        <.remix_icon icon="settings-3-line" class="text-xl" />
       <% end %>
     </span>
     """

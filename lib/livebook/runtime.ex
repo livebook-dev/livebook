@@ -69,12 +69,13 @@ defprotocol Livebook.Runtime do
           insert_text: String.t()
         }
 
-  @type completion_item_kind :: :function | :module | :type | :variable | :field
+  @type completion_item_kind ::
+          :function | :module | :struct | :interface | :type | :variable | :field
 
   @typedoc """
-  Looks up more details about an identifier found at `index` in `line`.
+  Looks up more details about an identifier found in `column` in `line`.
   """
-  @type details_request :: {:details, line :: String.t(), index :: non_neg_integer()}
+  @type details_request :: {:details, line :: String.t(), column :: pos_integer()}
 
   @type details_response :: %{
           range: %{
@@ -184,7 +185,7 @@ defprotocol Livebook.Runtime do
   the text editor.
 
   The response is sent to the `send_to` process as
-  `{:intellisense_response, ref, response}`.
+  `{:intellisense_response, ref, request, response}`.
 
   The given `locator` idenfities an evaluation that may be used
   as context when resolving the request (if relevant).

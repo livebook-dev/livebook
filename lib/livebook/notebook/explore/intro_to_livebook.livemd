@@ -77,7 +77,7 @@ You still have access to all the previous data:
 
 The important characteristic of a branching section is that
 it runs independently from other sections and as such is well
-suited for running long computations "in backgroud".
+suited for running long computations "in background".
 
 ```elixir
 Process.sleep(300_000)
@@ -131,7 +131,7 @@ That's our quick intro to Livebook! Where to go next?
   [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
 
 * Finally, remember Livebook is an open source project, so feel free to
-  look into [the repository](https://github.com/elixir-nx/livebook)
+  look into [the repository](https://github.com/livebook-dev/livebook)
   to contribute, report bugs, suggest features or just skim over the
   codebase.
 

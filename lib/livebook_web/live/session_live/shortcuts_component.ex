@@ -12,6 +12,13 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         basic: true
       },
       %{
+        seq: ["ctrl", "i"],
+        seq_mac: ["⌘", "i"],
+        press_all: true,
+        desc: "Show identifier documentation",
+        basic: true
+      },
+      %{
         seq: ["ctrl", "shift", "i"],
         seq_mac: ["⇧", "⌥", "f"],
         seq_windows: ["shift", "alt", "f"],
@@ -226,8 +233,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   end
 
   @impl true
-  def handle_event("settings", params, socket) do
-    basic? = Map.has_key?(params, "basic")
+  def handle_event("settings", %{"basic" => basic}, socket) do
+    basic? = basic == "true"
     {:noreply, assign(socket, :basic, basic?)}
   end
 end

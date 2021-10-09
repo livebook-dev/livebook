@@ -1,7 +1,7 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @version "0.2.2"
+  @version "0.3.0-dev"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   def project do
@@ -12,10 +12,9 @@ defmodule Livebook.MixProject do
       name: "Livebook",
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps(),
+      deps: with_lock(deps()),
       escript: escript(),
       releases: releases(),
       package: package()
@@ -25,32 +24,63 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
+      env: Application.get_all_env(:livebook)
     ]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
+  # Although we use requirements here, the with_lock() function
+  # below ensures we only use the locked versions. This is important
+  # for two reasons:
+  #
+  #   1. because we bundle assets from phoenix, phoenix_live_view,
+  #      and phoenix_html, we want to make sure we have those exact
+  #      versions
+  #
+  #   2. we don't want users to potentially get a new dependency
+  #      when installing from git or as an escript
+  #
+  # Therefore, to update any dependency, you must call before:
+  #
+  #     mix deps.unlock foo bar baz
+  #
   defp deps do
     [
-      {:phoenix, "1.6.0-dev", github: "phoenixframework/phoenix", override: true},
-      # We point LV to an exact version, because we install
-      # the npm package from there to bundle all the assets,
-      # so the Elixir-side version must match
-      {:phoenix_live_view, "0.16.0-dev", github: "phoenixframework/phoenix_live_view"},
-      {:phoenix_live_dashboard, "0.5.0-dev", github: "phoenixframework/phoenix_live_dashboard"},
-      {:floki, ">= 0.27.0", only: :test},
-      {:phoenix_html, "3.0.0-dev", github: "phoenixframework/phoenix_html", override: true},
-      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:phoenix, "~> 1.5"},
+      {:phoenix_html, "~> 3.0"},
+      {:phoenix_live_view, "~> 0.16.0"},
+      {:phoenix_live_dashboard, "~> 0.5.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
-      {:bypass, "~> 2.1", only: :test},
-      {:castore, "~> 0.1.0"}
+      {:castore, "~> 0.1.0"},
+      {:aws_signature, "~> 0.1.0"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:floki, ">= 0.27.0", only: :test},
+      {:bypass, "~> 2.1", only: :test}
     ]
+  end
+
+  @lock (with {:ok, contents} <- File.read("mix.lock"),
+              {:ok, quoted} <- Code.string_to_quoted(contents, warn_on_unnecessary_quotes: false),
+              {%{} = lock, _binding} <- Code.eval_quoted(quoted, []) do
+           for {dep, hex} when elem(hex, 0) == :hex <- lock,
+               do: {dep, elem(hex, 2)},
+               into: %{}
+         else
+           _ -> %{}
+         end)
+
+  defp with_lock(deps) do
+    for dep <- deps do
+      name = elem(dep, 0)
+      put_elem(dep, 1, @lock[name] || elem(dep, 1))
+    end
   end
 
   defp aliases do
@@ -86,9 +116,9 @@ defmodule Livebook.MixProject do
     [
       licenses: ["Apache-2.0"],
       links: %{
-        "GitHub" => "https://github.com/elixir-nx/livebook"
+        "GitHub" => "https://github.com/livebook-dev/livebook"
       },
-      files: ~w(lib priv config mix.exs README.md LICENSE CHANGELOG.md)
+      files: ~w(lib priv config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
     ]
   end
 end

@@ -27,9 +27,18 @@ defmodule Livebook.LiveMarkdown do
   #        using Markdown, in such case the JSON contains a "livebook_object" field
   #
   #      * a metadata that may appear anywhere and applies to the element
-  #        it directly precedes, for instance `<!-- livebook:{"force_markdown":true} -->`
-  #        forces the next Markdown block to be treated as part of Markdown cell
-  #        (even if it's Elixir code block)
+  #        it directly precedes, recognised metadatas are:
+  #
+  #        - `{"force_markdown":true}` - an annotation forcing the next Markdown
+  #          block to be treated as part of Markdown cell (relevant for Elixir code
+  #          blocks, which otherwise are interpreted as Elixir cells)
+  #
+  #        - `{"break_markdown":true}` - an annotation splitting the markdown content
+  #          into separate Markdown cells
+  #
+  #        - section metadata, recognised keys `branch_parent_index`
+  #
+  #        - cell metadata, recognised keys: `disable_formatting`
   #
   # ## Example
   #

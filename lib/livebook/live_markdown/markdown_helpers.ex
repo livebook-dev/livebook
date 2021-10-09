@@ -2,12 +2,31 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   @moduledoc false
 
   @doc """
+  Wraps `EarmarkParser.as_ast/2`.
+  """
+  @spec markdown_to_ast(String.t()) :: {:ok | :error, EarmarkParser.ast(), list()}
+  def markdown_to_ast(markdown) do
+    EarmarkParser.as_ast(markdown)
+  end
+
+  @doc """
+  Wraps `EarmarkParser.as_ast/2`.
+
+  Markdown blocks are parsed into the AST, while inline
+  content is kept as is.
+  """
+  @spec markdown_to_block_ast(String.t()) :: {:ok | :error, EarmarkParser.ast(), list()}
+  def markdown_to_block_ast(markdown) do
+    EarmarkParser.as_ast(markdown, parse_inline: false)
+  end
+
+  @doc """
   Reformats the given markdown document.
   """
   @spec reformat(String.t()) :: String.t()
   def reformat(markdown) do
     markdown
-    |> EarmarkParser.as_ast()
+    |> markdown_to_block_ast()
     |> elem(1)
     |> markdown_from_ast()
   end
@@ -26,6 +45,20 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
 
   def text_from_ast(ast) when is_binary(ast), do: ast
   def text_from_ast({_, _, ast, _}), do: text_from_ast(ast)
+
+  @doc """
+  Determines suitable Markdown fence delimiter for the
+  given code.
+  """
+  @spec code_block_delimiter(String.t()) :: String.t()
+  def code_block_delimiter(code) do
+    max_streak =
+      Regex.scan(~r/`{3,}/, code)
+      |> Enum.map(fn [string] -> byte_size(string) end)
+      |> Enum.max(&>=/2, fn -> 2 end)
+
+    String.duplicate("`", max_streak + 1)
+  end
 
   @doc """
   Renders Markdown string from the given `EarmarkParser` AST.
@@ -161,38 +194,38 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   @void_elements ~W(area base br col command embed hr img input keygen link meta param source track wbr)
 
   defp render_html(tag, attrs, []) when tag in @void_elements do
-    "<#{tag} #{attrs_to_string(attrs)} />"
+    ["<", tag, attrs_to_string(attrs), " />"]
   end
 
   defp render_html(tag, attrs, lines) do
-    inner = Enum.join(lines, "\n")
-    "<#{tag} #{attrs_to_string(attrs)}>\n#{inner}\n</#{tag}>"
+    inner = Enum.intersperse(lines, "\n")
+    ["<", tag, attrs_to_string(attrs), ">\n", inner, "\n</", tag, ">"]
   end
 
   defp render_emphasis(content) do
     inner = markdown_from_ast(content)
-    "*#{inner}*"
+    ["*", inner, "*"]
   end
 
   defp render_strong(content) do
     inner = markdown_from_ast(content)
-    "**#{inner}**"
+    ["**", inner, "**"]
   end
 
   defp render_strikethrough(content) do
     inner = markdown_from_ast(content)
-    "~~#{inner}~~"
+    ["~~", inner, "~~"]
   end
 
   defp render_code_inline(content) do
     inner = markdown_from_ast(content)
-    "`#{inner}`"
+    ["`", inner, "`"]
   end
 
   defp render_link(content, attrs) do
-    caption = markdown_from_ast(content)
+    caption = build_md([], content)
     href = get_attr(attrs, "href", "")
-    "[#{caption}](#{href})"
+    ["[", caption, "](", href, ")"]
   end
 
   defp render_image(attrs) do
@@ -201,15 +234,15 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
     title = get_attr(attrs, "title", "")
 
     if title == "" do
-      "![#{alt}](#{src})"
+      ["![", alt, "](", src, ")"]
     else
-      ~s/![#{alt}](#{src} "#{title}")/
+      ["![", alt, "](", src, ~s/ "/, title, ~s/")/]
     end
   end
 
   defp render_comment([line]) do
     line = String.trim(line)
-    "<!-- #{line} -->"
+    ["<!-- ", line, " -->"]
   end
 
   defp render_comment(lines) do
@@ -220,7 +253,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
       |> Enum.drop_while(&blank?/1)
       |> Enum.reverse()
 
-    Enum.join(["<!--" | lines] ++ ["-->"], "\n")
+    ["<!--\n", Enum.intersperse(lines, "\n"), "\n-->"]
   end
 
   defp render_ruler(attrs) do
@@ -238,13 +271,14 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   defp render_paragraph(content), do: markdown_from_ast(content)
 
   defp render_heading(n, content) do
-    title = markdown_from_ast(content)
-    String.duplicate("#", n) <> " " <> title
+    title = build_md([], content)
+    [String.duplicate("#", n), " ", title]
   end
 
   defp render_code_block(content, attrs) do
+    delimiter = code_block_delimiter(content)
     language = get_attr(attrs, "class", "")
-    "```#{language}\n#{content}\n```"
+    [delimiter, language, "\n", content, "\n", delimiter]
   end
 
   defp render_blockquote(content) do
@@ -252,8 +286,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
 
     inner
     |> String.split("\n")
-    |> Enum.map(&("> " <> &1))
-    |> Enum.join("\n")
+    |> Enum.map_intersperse("\n", &["> ", &1])
   end
 
   defp render_table([{"thead", _, [head_row], %{}}, {"tbody", _, body_rows, %{}}]) do
@@ -275,7 +308,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   defp cell_grid_from_rows(rows) do
     Enum.map(rows, fn {"tr", _, columns, %{}} ->
       Enum.map(columns, fn {tag, _, content, %{}} when tag in ["th", "td"] ->
-        markdown_from_ast(content)
+        build_md([], content)
       end)
     end)
   end
@@ -308,7 +341,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
     |> Enum.map(&Tuple.to_list/1)
     |> Enum.map(fn cells ->
       cells
-      |> Enum.map(&String.length/1)
+      |> Enum.map(&IO.iodata_length/1)
       |> Enum.max()
     end)
   end
@@ -317,16 +350,18 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
     cells
     |> Enum.zip(widths)
     |> Enum.map(fn {cell, width} ->
-      String.pad_trailing(cell, width, " ")
+      length = IO.iodata_length(cell)
+      missing = max(width - length, 0)
+      [cell, String.duplicate(" ", missing)]
     end)
   end
 
   defp cell_grid_to_md_table(cell_grid) do
     cell_grid
     |> Enum.map(fn cells ->
-      "| " <> Enum.join(cells, " | ") <> " |"
+      ["| ", Enum.intersperse(cells, " | "), " |"]
     end)
-    |> Enum.join("\n")
+    |> Enum.intersperse("\n")
   end
 
   defp render_unordered_list(content) do
@@ -349,17 +384,17 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
     |> Enum.map(fn {inner, index} ->
       [first_line | lines] = String.split(inner, "\n")
 
-      first_line = marker_fun.(index) <> first_line
+      first_line = [marker_fun.(index), first_line]
 
       lines =
         Enum.map(lines, fn
           "" -> ""
-          line -> indent <> line
+          line -> [indent, line]
         end)
 
-      Enum.join([first_line | lines], "\n")
+      Enum.intersperse([first_line | lines], "\n")
     end)
-    |> Enum.join(item_separator)
+    |> Enum.intersperse(item_separator)
   end
 
   defp spaced_list_items?([{"li", _, [{"p", _, _content, %{}} | _], %{}} | _items]), do: true
@@ -375,9 +410,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   end
 
   defp attrs_to_string(attrs) do
-    attrs
-    |> Enum.map(fn {key, value} -> ~s/#{key}="#{value}"/ end)
-    |> Enum.join(" ")
+    Enum.map(attrs, fn {key, value} -> ~s/ #{key}="#{value}"/ end)
   end
 
   defp blank?(string), do: String.trim(string) == ""

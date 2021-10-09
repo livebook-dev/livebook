@@ -234,7 +234,10 @@ function handleInsertModeChanged(hook, insertMode) {
     if (input) {
       if (hook.state.insertMode) {
         input.focus();
-        input.selectionStart = input.selectionEnd = input.value.length;
+        // selectionStart is only supported on text based input
+        if (input.selectionStart !== null) {
+          input.selectionStart = input.selectionEnd = input.value.length;
+        }
       } else {
         input.blur();
       }

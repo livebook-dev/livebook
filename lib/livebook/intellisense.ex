@@ -7,7 +7,7 @@ defmodule Livebook.Intellisense do
   # In a way, this provides the very basic features of a
   # language server that Livebook uses.
 
-  alias Livebook.Intellisense.Completion
+  alias Livebook.Intellisense.IdentifierMatcher
 
   # Configures width used for inspect and specs formatting.
   @line_length 30
@@ -31,8 +31,8 @@ defmodule Livebook.Intellisense do
     %{items: items}
   end
 
-  def handle_request({:details, line, index}, binding, env) do
-    get_details(line, index, binding, env)
+  def handle_request({:details, line, column}, binding, env) do
+    get_details(line, column, binding, env)
   end
 
   def handle_request({:format, code}, _binding, _env) do
@@ -65,10 +65,14 @@ defmodule Livebook.Intellisense do
   @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t()) ::
           list(Livebook.Runtime.completion_item())
   def get_completion_items(hint, binding, env) do
-    Completion.get_completion_items(hint, binding, env)
+    IdentifierMatcher.completion_identifiers(hint, binding, env)
+    |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.sort_by(&completion_item_priority/1)
   end
+
+  defp include_in_completion?({:module, _module, _name, :hidden}), do: false
+  defp include_in_completion?(_), do: true
 
   defp format_completion_item({:variable, name, value}),
     do: %{
@@ -88,14 +92,28 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
-  defp format_completion_item({:module, name, doc_content}),
-    do: %{
+  defp format_completion_item({:module, module, name, doc_content}) do
+    subtype = get_module_subtype(module)
+
+    kind =
+      case subtype do
+        :protocol -> :interface
+        :exception -> :struct
+        :struct -> :struct
+        :behaviour -> :interface
+        _ -> :module
+      end
+
+    detail = Atom.to_string(subtype || :module)
+
+    %{
       label: name,
-      kind: :module,
-      detail: "module",
+      kind: kind,
+      detail: detail,
       documentation: format_doc_content(doc_content, :short),
       insert_text: String.trim_leading(name, ":")
     }
+  end
 
   defp format_completion_item({:function, module, name, arity, doc_content, signatures, spec}),
     do: %{
@@ -132,72 +150,30 @@ defmodule Livebook.Intellisense do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
 
-  @ordered_kinds [:field, :variable, :module, :function, :type]
+  @ordered_kinds [:field, :variable, :module, :struct, :interface, :function, :type]
 
   defp completion_item_kind_priority(kind) when kind in @ordered_kinds do
     Enum.find_index(@ordered_kinds, &(&1 == kind))
   end
 
   @doc """
-  Returns detailed information about identifier being
-  at `index` in `line`.
+  Returns detailed information about an identifier located
+  in `column` in `line`.
   """
-  @spec get_details(String.t(), non_neg_integer(), Code.binding(), Macro.Env.t()) ::
+  @spec get_details(String.t(), pos_integer(), Code.binding(), Macro.Env.t()) ::
           Livebook.Runtime.details() | nil
-  def get_details(line, index, binding, env) do
-    {from, to} = subject_range(line, index)
+  def get_details(line, column, binding, env) do
+    case IdentifierMatcher.locate_identifier(line, column, binding, env) do
+      %{matches: []} ->
+        nil
 
-    if from < to do
-      subject = binary_part(line, from, to - from)
+      %{matches: matches, range: range} ->
+        contents =
+          matches
+          |> Enum.map(&format_details_item/1)
+          |> Enum.uniq()
 
-      Completion.get_completion_items(subject, binding, env, exact: true)
-      |> Enum.map(&format_details_item/1)
-      |> Enum.uniq()
-      |> case do
-        [] -> nil
-        contents -> %{range: %{from: from, to: to}, contents: contents}
-      end
-    else
-      nil
-    end
-  end
-
-  # Reference: https://github.com/elixir-lang/elixir/blob/d1223e11fda880d5646f6385b33684d1b2ec0b9c/lib/elixir/lib/code.ex#L341-L345
-  @operators '\\<>+-*/:=|&~^@%'
-  @non_closing_punctuation '.,([{;'
-  @closing_punctuation ')]}'
-  @space '\t\s'
-  @closing_identifier '?!'
-  @punctuation @non_closing_punctuation ++ @closing_punctuation
-
-  defp subject_range(line, index) do
-    {left, right} = String.split_at(line, index)
-
-    left =
-      left
-      |> String.to_charlist()
-      |> Enum.reverse()
-      |> consume_until(@space ++ @operators ++ (@punctuation -- '.') ++ @closing_identifier, ':@')
-      |> List.to_string()
-
-    right =
-      right
-      |> String.to_charlist()
-      |> consume_until(@space ++ @operators ++ @punctuation, @closing_identifier)
-      |> List.to_string()
-
-    {index - byte_size(left), index + byte_size(right)}
-  end
-
-  defp consume_until(acc \\ [], chars, stop, stop_include)
-
-  defp consume_until(acc, [], _, _), do: Enum.reverse(acc)
-
-  defp consume_until(acc, [char | chars], stop, stop_include) do
-    cond do
-      char in stop_include -> consume_until([char | acc], [], stop, stop_include)
-      char in stop -> consume_until(acc, [], stop, stop_include)
-      true -> consume_until([char | acc], chars, stop, stop_include)
+        %{range: range, contents: contents}
     end
   end
 
@@ -214,7 +190,7 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item({:module, name, doc_content}) do
+  defp format_details_item({:module, _module, name, doc_content}) do
     join_with_divider([
       code(name),
       format_doc_content(doc_content, :all)
@@ -241,6 +217,33 @@ defmodule Livebook.Intellisense do
       code("@" <> name),
       format_doc_content(doc_content, :all)
     ])
+  end
+
+  defp get_module_subtype(module) do
+    cond do
+      module_has_function?(module, :__protocol__, 1) ->
+        :protocol
+
+      module_has_function?(module, :__impl__, 1) ->
+        :implementation
+
+      module_has_function?(module, :__struct__, 0) ->
+        if module_has_function?(module, :exception, 1) do
+          :exception
+        else
+          :struct
+        end
+
+      module_has_function?(module, :behaviour_info, 1) ->
+        :behaviour
+
+      true ->
+        nil
+    end
+  end
+
+  defp module_has_function?(module, func, arity) do
+    Code.ensure_loaded?(module) and function_exported?(module, func, arity)
   end
 
   # Formatting helpers
@@ -316,6 +319,10 @@ defmodule Livebook.Intellisense do
 
   defp format_doc_content(nil, _variant) do
     "No documentation available"
+  end
+
+  defp format_doc_content(:hidden, _variant) do
+    "This is a private API"
   end
 
   defp format_doc_content({"text/markdown", markdown}, :short) do
@@ -470,8 +477,7 @@ defmodule Livebook.Intellisense do
 
     inner
     |> String.split("\n")
-    |> Enum.map(&("> " <> &1))
-    |> Enum.join("\n")
+    |> Enum.map_intersperse("\n", &["> ", &1])
   end
 
   defp render_unordered_list(content) do

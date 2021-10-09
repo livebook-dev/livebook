@@ -35,11 +35,11 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
   end
 
   @impl true
-  def handle_event("delete", params, socket) do
-    delete_cells? = Map.has_key?(params, "delete_cells")
+  def handle_event("delete", %{"delete_cells" => delete_cells}, socket) do
+    delete_cells? = delete_cells == "true"
 
     Livebook.Session.delete_section(
-      socket.assigns.session_id,
+      socket.assigns.session.pid,
       socket.assigns.section.id,
       delete_cells?
     )

@@ -1,8 +1,9 @@
-import monaco from "./live_editor/monaco";
+import monaco, { addKeybinding } from "./live_editor/monaco";
 import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
+import { replacedSuffixLength } from "../highlight/text_utils";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -193,6 +194,18 @@ class LiveEditor {
       const contentHeight = this.editor.getContentHeight();
       this.container.style.height = `${contentHeight}px`;
     });
+
+    // Replace built-in keybindings
+    // Note that generally we want to stick to defaults, so that we match
+    // VS Code, but some keybindings are overly awkward, in which case we
+    // add our own
+
+    // By default this is a sequence of: Ctrl + K Ctrl + I
+    addKeybinding(
+      this.editor,
+      "editor.action.showHover",
+      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I
+    );
   }
 
   /**
@@ -230,7 +243,24 @@ class LiveEditor {
         hint: lineUntilCursor,
       })
         .then((response) => {
-          const suggestions = completionItemsToSuggestions(response.items);
+          const suggestions = completionItemsToSuggestions(response.items).map(
+            (suggestion) => {
+              const replaceLength = replacedSuffixLength(
+                lineUntilCursor,
+                suggestion.insertText
+              );
+
+              const range = new monaco.Range(
+                position.lineNumber,
+                position.column - replaceLength,
+                position.lineNumber,
+                position.column
+              );
+
+              return { ...suggestion, range };
+            }
+          );
+
           return { suggestions };
         })
         .catch(() => null);
@@ -238,9 +268,9 @@ class LiveEditor {
 
     this.editor.getModel().__getHover = (model, position) => {
       const line = model.getLineContent(position.lineNumber);
-      const index = position.column - 1;
+      const column = position.column;
 
-      return this.__asyncIntellisenseRequest("details", { line, index })
+      return this.__asyncIntellisenseRequest("details", { line, column })
         .then((response) => {
           const contents = response.contents.map((content) => ({
             value: content,
@@ -249,9 +279,9 @@ class LiveEditor {
 
           const range = new monaco.Range(
             position.lineNumber,
-            response.range.from + 1,
+            response.range.from,
             position.lineNumber,
-            response.range.to + 1
+            response.range.to
           );
 
           return { contents, range };
@@ -365,6 +395,10 @@ function parseItemKind(kind) {
       return monaco.languages.CompletionItemKind.Function;
     case "module":
       return monaco.languages.CompletionItemKind.Module;
+    case "struct":
+      return monaco.languages.CompletionItemKind.Struct;
+    case "interface":
+      return monaco.languages.CompletionItemKind.Interface;
     case "type":
       return monaco.languages.CompletionItemKind.Class;
     case "variable":

@@ -1,4 +1,5 @@
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
+import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/commands";
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
 import theme from "./theme";
 
@@ -79,4 +80,24 @@ export function highlight(code, language) {
     // `colorize` always adds additional newline, so we remove it
     return result.replace(/<br\/>$/, "");
   });
+}
+
+/**
+ * Updates keybinding for the given editor command.
+ *
+ * This uses an internal API, since there is no clean support
+ * for customizing keybindings.
+ * See https://github.com/microsoft/monaco-editor/issues/102#issuecomment-822981429
+ */
+export function addKeybinding(editor, id, newKeybinding) {
+  const { handler, when } = CommandsRegistry.getCommand(id) ?? {};
+
+  if (handler) {
+    editor._standaloneKeybindingService.addDynamicKeybinding(
+      id,
+      newKeybinding,
+      handler,
+      when
+    );
+  }
 }

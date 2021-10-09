@@ -6,13 +6,22 @@ defmodule LivebookWeb.SessionHelpers do
   Creates a new session, redirects on success,
   puts an error flash message on failure.
 
-  Accepts the same options as `Livebook.SessionSupervisor.create_session/1`.
+  Accepts the same options as `Livebook.Sessions.create_session/1`.
   """
   @spec create_session(Phoenix.LiveView.Socket.t(), keyword()) :: Phoenix.LiveView.Socket.t()
   def create_session(socket, opts \\ []) do
-    case Livebook.SessionSupervisor.create_session(opts) do
-      {:ok, id} ->
-        push_redirect(socket, to: Routes.session_path(socket, :page, id))
+    # Revert persistence options to default values if there is
+    # no file attached to the new session
+    opts =
+      if opts[:notebook] != nil and opts[:file] == nil do
+        Keyword.update!(opts, :notebook, &Livebook.Notebook.reset_persistence_options/1)
+      else
+        opts
+      end
+
+    case Livebook.Sessions.create_session(opts) do
+      {:ok, session} ->
+        push_redirect(socket, to: Routes.session_path(socket, :page, session.id))
 
       {:error, reason} ->
         put_flash(socket, :error, "Failed to create session: #{reason}")

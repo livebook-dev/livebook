@@ -9,6 +9,16 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "other emphasis" do
+      markdown = "The Game, _Mrs Hudson_, is on!"
+      assert markdown == reformat(markdown)
+    end
+
+    test "nested emphasis" do
+      markdown = "The *Game, _Mrs Hudson_, is* on!"
+      assert markdown == reformat(markdown)
+    end
+
     test "bold" do
       markdown = "The Game, **Mrs Hudson**, is on!"
       assert markdown == reformat(markdown)
@@ -24,13 +34,47 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "inline code with a line break" do
+      markdown = "The Game, `Mrs\nHudson`, is on!"
+      assert markdown == reformat(markdown)
+    end
+
+    test "inline code with extra spaces" do
+      markdown = "The Game, `Mrs Huds  on`, is on!"
+      assert markdown == reformat(markdown)
+    end
+
     test "combined" do
       markdown = "The Game, ~~***`Mrs Hudson`***~~, is on!"
       assert markdown == reformat(markdown)
     end
 
+    test "inline math" do
+      markdown = "The Game, $x_{i} + y_{i}$, is on!"
+
+      assert markdown == reformat(markdown)
+    end
+
     test "link" do
       markdown = "The Game, [Mrs Hudson](https://youtu.be/M-KqaO1oH2E), is on!"
+      assert markdown == reformat(markdown)
+    end
+
+    test "link with IAL" do
+      markdown = "[link](url){: .classy}"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "link followed by escaped IAL" do
+      markdown = "[link](url)\\{: .classy}"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "autolink" do
+      markdown = "<https://elixir-lang.com>"
+
       assert markdown == reformat(markdown)
     end
 
@@ -46,6 +90,11 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
 
     test "img tag with additional attributes is kept as a tag" do
       markdown = ~s{<img src="https://example.com" alt="Mrs Hudson" width="300" />}
+      assert markdown == reformat(markdown)
+    end
+
+    test "line break" do
+      markdown = "Line 1.\\\nLine 2."
       assert markdown == reformat(markdown)
     end
 
@@ -103,6 +152,32 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       ```elixir
       Enum.to_list(1..10)
       ```\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "code block with fences inside it" do
+      markdown = """
+      ````elixir
+      before
+
+      ```
+      _inside_
+      ```
+
+      after
+      ````\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "display math" do
+      markdown = """
+      $$
+      R_{ij}^{kl} = R_{ij} - \Gamma^k_{kl}
+      $$\
       """
 
       assert markdown == reformat(markdown)
@@ -243,12 +318,36 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
       assert markdown == reformat(markdown)
     end
 
+    test "surprise ordered list" do
+      markdown = "1986\\. What a great season."
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "escaped Markdown" do
+      markdown = "not a \\[link\\]()"
+
+      assert markdown == reformat(markdown)
+    end
+
     test "raw html" do
       markdown = """
       <div class="box" aria-label="box">
         Some content
       </div>\
       """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "raw html at the beginning of a line" do
+      markdown = "line\n\n<hr />"
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "raw html not at the beginning of a line" do
+      markdown = "line\n  <hr />"
 
       assert markdown == reformat(markdown)
     end
@@ -274,7 +373,9 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
     # By reformatting we can assert correct rendering
     # by comparing against the original content.
     defp reformat(markdown) do
-      {:ok, ast, []} = EarmarkParser.as_ast(markdown)
+      # Note: we don't parse inline content, so some of the tests
+      # above are not stricly necessary, but we keep them for completeness.
+      {:ok, ast, []} = MarkdownHelpers.markdown_to_block_ast(markdown)
       MarkdownHelpers.markdown_from_ast(ast)
     end
   end

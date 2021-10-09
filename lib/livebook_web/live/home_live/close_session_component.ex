@@ -1,8 +1,6 @@
 defmodule LivebookWeb.HomeLive.CloseSessionComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.SessionSupervisor
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -12,7 +10,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
       </h3>
       <p class="text-gray-700">
         Are you sure you want to close this section -
-        <span class="font-semibold">“<%= @session_summary.notebook_name %>”</span>?
+        <span class="font-semibold">“<%= @session.notebook_name %>”</span>?
         This won't delete any persisted files.
       </p>
       <div class="mt-8 flex justify-end space-x-2">
@@ -28,7 +26,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
 
   @impl true
   def handle_event("close", %{}, socket) do
-    SessionSupervisor.close_session(socket.assigns.session_summary.session_id)
+    Livebook.Session.close(socket.assigns.session.pid)
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 end

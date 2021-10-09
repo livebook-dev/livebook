@@ -1,5 +1,6 @@
 import { getAttributeOrThrow } from "../lib/attribute";
 import { highlight } from "../cell/live_editor/monaco";
+import { findChildOrThrow } from "../lib/utils";
 
 /**
  * A hook used to highlight source code in the root element.
@@ -7,18 +8,45 @@ import { highlight } from "../cell/live_editor/monaco";
  * Configuration:
  *
  *   * `data-language` - language of the source code
+ *
+ * The element should have two children:
+ *
+ *   * one annotated with `data-source` attribute, it should contain
+ *     the source code to be highlighted
+ *
+ *   * one annotated with `data-target` where the highlighted code
+ *     is rendered
  */
 const Highlight = {
   mounted() {
     this.props = getProps(this);
+    this.state = {
+      sourceElement: null,
+      originalElement: null,
+    };
 
-    highlightIn(this.el, this.props.language);
+    this.state.sourceElement = findChildOrThrow(this.el, "[data-source]");
+    this.state.targetElement = findChildOrThrow(this.el, "[data-target]");
+
+    highlightInto(
+      this.state.targetElement,
+      this.state.sourceElement,
+      this.props.language
+    ).then(() => {
+      this.el.setAttribute("data-highlighted", "true");
+    });
   },
 
   updated() {
     this.props = getProps(this);
 
-    highlightIn(this.el, this.props.language);
+    highlightInto(
+      this.state.targetElement,
+      this.state.sourceElement,
+      this.props.language
+    ).then(() => {
+      this.el.setAttribute("data-highlighted", "true");
+    });
   },
 };
 
@@ -28,11 +56,11 @@ function getProps(hook) {
   };
 }
 
-function highlightIn(element, language) {
-  const code = element.innerText;
+function highlightInto(targetElement, sourceElement, language) {
+  const code = sourceElement.innerText;
 
-  highlight(code, language).then((html) => {
-    element.innerHTML = html;
+  return highlight(code, language).then((html) => {
+    targetElement.innerHTML = html;
   });
 }
 

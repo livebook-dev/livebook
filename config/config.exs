@@ -26,6 +26,13 @@ config :livebook, :authentication_mode, :token
 # configured arguments.
 config :livebook, :default_runtime, {Livebook.Runtime.ElixirStandalone, []}
 
+# A list of custom plugs in the following format:
+#
+#    [{plug_module :: module(), opts :: keyword()}]
+#
+# The plugs are called directly before the Livebook router.
+config :livebook, :plugs, []
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

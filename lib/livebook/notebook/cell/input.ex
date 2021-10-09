@@ -6,14 +6,13 @@ defmodule Livebook.Notebook.Cell.Input do
   # It consists of an input that the user may fill
   # and then read during code evaluation.
 
-  defstruct [:id, :metadata, :type, :name, :value, :reactive, :props]
+  defstruct [:id, :type, :name, :value, :reactive, :props]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
 
   @type t :: %__MODULE__{
           id: Cell.id(),
-          metadata: Cell.metadata(),
           type: type(),
           name: String.t(),
           value: String.t(),
@@ -21,7 +20,9 @@ defmodule Livebook.Notebook.Cell.Input do
           props: props()
         }
 
-  @type type :: :text | :url | :number | :password | :textarea | :color | :range | :select
+  # Make sure to keep this in sync with `type_from_string/1`
+  @type type ::
+          :text | :url | :number | :password | :textarea | :color | :range | :select | :checkbox
 
   @typedoc """
   Additional properties adjusting the given input type.
@@ -35,7 +36,6 @@ defmodule Livebook.Notebook.Cell.Input do
   def new() do
     %__MODULE__{
       id: Utils.random_id(),
-      metadata: %{},
       type: :text,
       name: "input",
       value: "",
@@ -114,5 +114,32 @@ defmodule Livebook.Notebook.Cell.Input do
   @spec reactive_update?(t(), t()) :: boolean()
   def reactive_update?(cell, prev_cell) do
     cell.reactive and cell.value != prev_cell.value and validate(cell) == :ok
+  end
+
+  @doc """
+  Parses input type from string.
+  """
+  @spec type_from_string(String.t()) :: {:ok, type()} | :error
+  def type_from_string(string) do
+    case string do
+      "text" -> {:ok, :text}
+      "url" -> {:ok, :url}
+      "number" -> {:ok, :number}
+      "password" -> {:ok, :password}
+      "textarea" -> {:ok, :textarea}
+      "color" -> {:ok, :color}
+      "range" -> {:ok, :range}
+      "select" -> {:ok, :select}
+      "checkbox" -> {:ok, :checkbox}
+      _other -> :error
+    end
+  end
+
+  @doc """
+  Converts inpu type to string.
+  """
+  @spec type_to_string(type()) :: String.t()
+  def type_to_string(type) do
+    Atom.to_string(type)
   end
 end

@@ -5,26 +5,59 @@ defmodule Livebook.LiveMarkdown.Export do
 
   @doc """
   Converts the given notebook into a Markdown document.
+
+  ## Options
+
+    * `:include_outputs` - whether to render cell outputs.
+      Only textual outputs are included. Defaults to the
+      value of `:persist_outputs` notebook attribute.
   """
-  @spec notebook_to_markdown(Notebook.t()) :: String.t()
-  def notebook_to_markdown(notebook) do
-    iodata = render_notebook(notebook)
+  @spec notebook_to_markdown(Notebook.t(), keyword()) :: String.t()
+  def notebook_to_markdown(notebook, opts \\ []) do
+    ctx = %{
+      include_outputs?: Keyword.get(opts, :include_outputs, notebook.persist_outputs)
+    }
+
+    iodata = render_notebook(notebook, ctx)
     # Add trailing newline
     IO.iodata_to_binary([iodata, "\n"])
   end
 
-  defp render_notebook(notebook) do
-    name = "# #{notebook.name}"
-    sections = Enum.map(notebook.sections, &render_section(&1, notebook))
+  defp render_notebook(notebook, ctx) do
+    name = ["# ", notebook.name]
+    sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
+
+    metadata = notebook_metadata(notebook)
 
     [name | sections]
     |> Enum.intersperse("\n\n")
-    |> prepend_metadata(notebook.metadata)
+    |> prepend_metadata(metadata)
   end
 
-  defp render_section(section, notebook) do
-    name = "## #{section.name}"
-    cells = Enum.map(section.cells, &render_cell/1)
+  defp notebook_metadata(notebook) do
+    put_unless_default(
+      %{},
+      Map.take(notebook, [:persist_outputs, :autosave_interval_s]),
+      Map.take(Notebook.new(), [:persist_outputs, :autosave_interval_s])
+    )
+  end
+
+  defp render_section(section, notebook, ctx) do
+    name = ["## ", section.name]
+
+    {cells, _} =
+      Enum.map_reduce(section.cells, nil, fn cell, prev_cell ->
+        separator =
+          if is_struct(cell, Cell.Markdown) and is_struct(prev_cell, Cell.Markdown) do
+            [~s/<!-- livebook:{"break_markdown":true} -->\n\n/]
+          else
+            []
+          end
+
+        rendered = separator ++ [render_cell(cell, ctx)]
+        {rendered, cell}
+      end)
+
     metadata = section_metadata(section, notebook)
 
     [name | cells]
@@ -32,51 +65,97 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(metadata)
   end
 
-  defp section_metadata(%{parent_id: nil} = section, _notebook) do
-    section.metadata
+  defp section_metadata(%{parent_id: nil} = _section, _notebook) do
+    %{}
   end
 
   defp section_metadata(section, notebook) do
     parent_idx = Notebook.section_index(notebook, section.parent_id)
-    Map.put(section.metadata, "branch_parent_index", parent_idx)
+    %{"branch_parent_index" => parent_idx}
   end
 
-  defp render_cell(%Cell.Markdown{} = cell) do
+  defp render_cell(%Cell.Markdown{} = cell, _ctx) do
+    metadata = cell_metadata(cell)
+
     cell.source
     |> format_markdown_source()
-    |> prepend_metadata(cell.metadata)
+    |> prepend_metadata(metadata)
   end
 
-  defp render_cell(%Cell.Elixir{} = cell) do
+  defp render_cell(%Cell.Elixir{} = cell, ctx) do
+    delimiter = MarkdownHelpers.code_block_delimiter(cell.source)
     code = get_elixir_cell_code(cell)
-    delimiter = code_block_delimiter(code)
+    outputs = if ctx.include_outputs?, do: render_outputs(cell), else: []
 
-    """
-    #{delimiter}elixir
-    #{code}
-    #{delimiter}\
-    """
-    |> prepend_metadata(cell.metadata)
+    metadata = cell_metadata(cell)
+
+    cell =
+      [delimiter, "elixir\n", code, "\n", delimiter]
+      |> prepend_metadata(metadata)
+
+    if outputs == [] do
+      cell
+    else
+      [cell, "\n\n", outputs]
+    end
   end
 
-  defp render_cell(%Cell.Input{} = cell) do
+  defp render_cell(%Cell.Input{} = cell, _ctx) do
     value = if cell.type == :password, do: "", else: cell.value
 
     json =
       %{
         livebook_object: :cell_input,
-        type: cell.type,
+        type: Cell.Input.type_to_string(cell.type),
         name: cell.name,
         value: value
       }
-      |> put_unless_implicit(reactive: cell.reactive, props: cell.props)
+      |> put_unless_default(
+        Map.take(cell, [:reactive, :props]),
+        Map.take(Cell.Input.new(), [:reactive, :props])
+      )
       |> Jason.encode!()
 
+    metadata = cell_metadata(cell)
+
     "<!-- livebook:#{json} -->"
-    |> prepend_metadata(cell.metadata)
+    |> prepend_metadata(metadata)
   end
 
-  defp get_elixir_cell_code(%{source: source, metadata: %{"disable_formatting" => true}}),
+  defp cell_metadata(%Cell.Elixir{} = cell) do
+    put_unless_default(
+      %{},
+      Map.take(cell, [:disable_formatting]),
+      Map.take(Cell.Elixir.new(), [:disable_formatting])
+    )
+  end
+
+  defp cell_metadata(_cell), do: %{}
+
+  defp render_outputs(cell) do
+    cell.outputs
+    |> Enum.reverse()
+    |> Enum.map(&render_output/1)
+    |> Enum.reject(&(&1 == :ignored))
+    |> Enum.intersperse("\n\n")
+  end
+
+  defp render_output(text) when is_binary(text) do
+    text = String.replace_suffix(text, "\n", "")
+    delimiter = MarkdownHelpers.code_block_delimiter(text)
+    text = strip_ansi(text)
+    [delimiter, "output\n", text, "\n", delimiter]
+  end
+
+  defp render_output({:text, text}) do
+    delimiter = MarkdownHelpers.code_block_delimiter(text)
+    text = strip_ansi(text)
+    [delimiter, "output\n", text, "\n", delimiter]
+  end
+
+  defp render_output(_output), do: :ignored
+
+  defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
     do: source
 
   defp get_elixir_cell_code(%{source: source}), do: format_code(source)
@@ -95,7 +174,7 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp format_markdown_source(markdown) do
     markdown
-    |> EarmarkParser.as_ast()
+    |> MarkdownHelpers.markdown_to_block_ast()
     |> elem(1)
     |> rewrite_ast()
     |> MarkdownHelpers.markdown_from_ast()
@@ -128,30 +207,25 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp format_code(code) do
     try do
-      code
-      |> Code.format_string!()
-      |> IO.iodata_to_binary()
+      Code.format_string!(code)
     rescue
       _ -> code
     end
   end
 
-  defp code_block_delimiter(code) do
-    max_streak =
-      Regex.scan(~r/`{3,}/, code)
-      |> Enum.map(fn [string] -> byte_size(string) end)
-      |> Enum.max(&>=/2, fn -> 2 end)
-
-    String.duplicate("`", max_streak + 1)
-  end
-
-  defp put_unless_implicit(map, entries) do
+  defp put_unless_default(map, entries, defaults) do
     Enum.reduce(entries, map, fn {key, value}, map ->
-      if value in [false, %{}] do
+      if value == defaults[key] do
         map
       else
         Map.put(map, key, value)
       end
     end)
+  end
+
+  defp strip_ansi(string) do
+    string
+    |> Livebook.Utils.ANSI.parse_ansi_string()
+    |> Enum.map(fn {_modifiers, string} -> string end)
   end
 end

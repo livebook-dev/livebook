@@ -16,8 +16,8 @@ defmodule Livebook.Session.Data do
 
   defstruct [
     :notebook,
-    :origin_url,
-    :path,
+    :origin,
+    :file,
     :dirty,
     :section_infos,
     :cell_infos,
@@ -27,15 +27,15 @@ defmodule Livebook.Session.Data do
     :users_map
   ]
 
-  alias Livebook.{Notebook, Delta, Runtime, JSInterop}
+  alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
   alias Livebook.Utils.Graph
 
   @type t :: %__MODULE__{
           notebook: Notebook.t(),
-          origin_url: String.t() | nil,
-          path: nil | String.t(),
+          origin: String.t() | nil,
+          file: FileSystem.File.t() | nil,
           dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
           cell_infos: %{Cell.id() => cell_info()},
@@ -107,7 +107,8 @@ defmodule Livebook.Session.Data do
   # and is passed for informative purposes only.
 
   @type operation ::
-          {:insert_section, pid(), index(), Section.id()}
+          {:set_notebook_attributes, pid(), map()}
+          | {:insert_section, pid(), index(), Section.id()}
           | {:insert_section_into, pid(), Section.id(), index(), Section.id()}
           | {:set_section_parent, pid(), Section.id(), parent_id :: Section.id()}
           | {:unset_section_parent, pid(), Section.id()}
@@ -120,7 +121,7 @@ defmodule Livebook.Session.Data do
           | {:queue_cell_evaluation, pid(), Cell.id()}
           | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
-          | {:add_cell_evaluation_response, pid(), Cell.id(), term()}
+          | {:add_cell_evaluation_response, pid(), Cell.id(), term(), metadata :: map()}
           | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_cell_id :: Cell.id()}
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
@@ -134,7 +135,8 @@ defmodule Livebook.Session.Data do
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
           | {:set_cell_attributes, pid(), Cell.id(), map()}
           | {:set_runtime, pid(), Runtime.t() | nil}
-          | {:set_path, pid(), String.t() | nil}
+          | {:set_file, pid(), FileSystem.File.t() | nil}
+          | {:set_autosave_interval, pid(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, pid()}
 
   @type action ::
@@ -151,8 +153,8 @@ defmodule Livebook.Session.Data do
   def new(notebook \\ Notebook.new()) do
     %__MODULE__{
       notebook: notebook,
-      origin_url: nil,
-      path: nil,
+      origin: nil,
+      file: nil,
       dirty: false,
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
@@ -201,6 +203,18 @@ defmodule Livebook.Session.Data do
   """
   @spec apply_operation(t(), operation()) :: {:ok, t(), list(action())} | :error
   def apply_operation(data, operation)
+
+  def apply_operation(data, {:set_notebook_attributes, _client_pid, attrs}) do
+    with true <- valid_attrs_for?(data.notebook, attrs) do
+      data
+      |> with_actions()
+      |> set_notebook_attributes(attrs)
+      |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
 
   def apply_operation(data, {:insert_section, _client_pid, index, id}) do
     section = %{Section.new() | id: id}
@@ -375,6 +389,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> add_cell_evaluation_output(cell, output)
+      |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
       _ -> :error
@@ -391,6 +406,7 @@ defmodule Livebook.Session.Data do
       |> compute_snapshots_and_validity()
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
+      |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
       _ -> :error
@@ -521,7 +537,7 @@ defmodule Livebook.Session.Data do
 
   def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
-         true <- Enum.all?(attrs, fn {key, _} -> Map.has_key?(cell, key) end) do
+         true <- valid_attrs_for?(cell, attrs) do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
@@ -545,10 +561,10 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_path, _client_pid, path}) do
+  def apply_operation(data, {:set_file, _client_pid, file}) do
     data
     |> with_actions()
-    |> set!(path: path)
+    |> set!(file: file)
     |> set_dirty()
     |> wrap_ok()
   end
@@ -565,6 +581,11 @@ defmodule Livebook.Session.Data do
   defp with_actions(data, actions \\ []), do: {data, actions}
 
   defp wrap_ok({data, actions}), do: {:ok, data, actions}
+
+  defp set_notebook_attributes({data, _} = data_actions, attrs) do
+    data_actions
+    |> set!(notebook: Map.merge(data.notebook, attrs))
+  end
 
   defp insert_section({data, _} = data_actions, index, section) do
     data_actions
@@ -1085,7 +1106,8 @@ defmodule Livebook.Session.Data do
 
     # Note: the session LV drops cell's source once it's no longer needed
     new_source =
-      cell.source && JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
+      Map.get(cell, :source) &&
+        JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
@@ -1257,6 +1279,16 @@ defmodule Livebook.Session.Data do
 
   defp set_dirty(data_actions, dirty \\ true) do
     set!(data_actions, dirty: dirty)
+  end
+
+  defp mark_dirty_if_persisting_outputs({%{notebook: %{persist_outputs: true}}, _} = data_actions) do
+    set_dirty(data_actions)
+  end
+
+  defp mark_dirty_if_persisting_outputs(data_actions), do: data_actions
+
+  defp valid_attrs_for?(struct, attrs) do
+    Enum.all?(attrs, fn {key, _} -> Map.has_key?(struct, key) end)
   end
 
   @doc """

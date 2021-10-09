@@ -4,7 +4,7 @@ defmodule LivebookWeb.ExploreLive do
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
+  alias LivebookWeb.{SidebarHelpers, ExploreHelpers, PageHelpers}
   alias Livebook.Notebook.Explore
 
   @impl true
@@ -32,20 +32,17 @@ defmodule LivebookWeb.ExploreLive do
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.break_item />
+        <SidebarHelpers.link_item
+          icon="settings-3-fill"
+          label="Settings"
+          path={Routes.settings_path(@socket, :page)}
+          active={false} />
         <SidebarHelpers.user_item current_user={@current_user} path={Routes.explore_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
           <div>
-            <div class="relative">
-              <%= live_patch to: Routes.home_path(@socket, :page),
-                    class: "hidden md:block absolute top-[50%] left-[-12px] transform -translate-y-1/2 -translate-x-full" do %>
-                <.remix_icon icon="arrow-left-line" class="text-2xl align-middle" />
-              <% end %>
-              <h1 class="text-3xl text-gray-800 font-semibold">
-                Explore
-              </h1>
-            </div>
+            <PageHelpers.title text="Explore" socket={@socket} />
             <p class="mt-4 text-gray-700">
               Check out a number of examples showcasing various parts of the Elixir ecosystem.
               Click on any notebook you like and start playing around with it!

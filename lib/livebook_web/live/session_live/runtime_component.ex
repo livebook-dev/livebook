@@ -41,22 +41,8 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         </p>
         <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
           <%= if @runtime do %>
-            <div class="flex flex-col space-y-1">
-              <span class="text-xs text-gray-500">
-                Type
-              </span>
-              <span class="text-gray-800 text-sm font-semibold">
-                <%= runtime_type_label(@runtime) %>
-              </span>
-            </div>
-            <div class="flex flex-col space-y-1">
-              <span class="text-xs text-gray-500">
-                Node name
-              </span>
-              <span class="text-gray-800 text-sm font-semibold">
-                <%= @runtime.node %>
-              </span>
-            </div>
+            <.labeled_text label="Type" text={runtime_type_label(@runtime)} />
+            <.labeled_text label="Node name" text={@runtime.node} />
             <button class="button button-outlined-red"
               type="button"
               phx-click="disconnect"
@@ -102,7 +88,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
         <div>
           <%= live_render @socket, live_view_for_type(@type),
                 id: "runtime-config-#{@type}",
-                session: %{"session_id" => @session_id, "current_runtime" => @runtime} %>
+                session: %{"session" => @session, "current_runtime" => @runtime} %>
         </div>
       </div>
     </div>
@@ -130,7 +116,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   end
 
   def handle_event("disconnect", _params, socket) do
-    Session.disconnect_runtime(socket.assigns.session_id)
+    Session.disconnect_runtime(socket.assigns.session.pid)
 
     {:noreply, socket}
   end

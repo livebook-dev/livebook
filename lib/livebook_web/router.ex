@@ -24,6 +24,11 @@ defmodule LivebookWeb.Router do
     live "/home/import/:tab", HomeLive, :import
     live "/home/sessions/:session_id/close", HomeLive, :close_session
 
+    live "/settings", SettingsLive, :page
+    live "/settings/user-profile", SettingsLive, :user
+    live "/settings/add-file-system", SettingsLive, :add_file_system
+    live "/settings/detach-file-system/:file_system_index", SettingsLive, :detach_file_system
+
     live "/explore", ExploreLive, :page
     live "/explore/user-profile", ExploreLive, :user
     live "/explore/notebooks/:slug", ExploreLive, :notebook
@@ -34,8 +39,8 @@ defmodule LivebookWeb.Router do
     live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
     live "/sessions/:id/settings/file", SessionLive, :file_settings
     live "/sessions/:id/bin", SessionLive, :bin
-    live "/sessions/:id/export", SessionLive, :export
-    get "/sessions/:id/export/download", SessionController, :download_source
+    get "/sessions/:id/export/download/:format", SessionController, :download_source
+    live "/sessions/:id/export/:tab", SessionLive, :export
     live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
     live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
     live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
@@ -45,6 +50,12 @@ defmodule LivebookWeb.Router do
     live_dashboard "/dashboard",
       metrics: LivebookWeb.Telemetry,
       home_app: {"Livebook", :livebook}
+  end
+
+  scope "/", LivebookWeb do
+    pipe_through :browser
+
+    get "/health", HealthController, :index
   end
 
   scope "/authenticate", LivebookWeb do

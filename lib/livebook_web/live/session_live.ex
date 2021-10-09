@@ -6,47 +6,52 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [access_by_id: 1]
 
   alias LivebookWeb.SidebarHelpers
-  alias Livebook.{SessionSupervisor, Session, Delta, Notebook, Runtime, LiveMarkdown}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, FileSystem}
   alias Livebook.Notebook.Cell
+  alias Livebook.JSInterop
 
   @impl true
-  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = session, socket) do
-    if SessionSupervisor.session_exists?(session_id) do
-      current_user = build_current_user(session, socket)
+  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = web_session, socket) do
+    # We use the tracked sessions to locate the session pid, but then
+    # we talk to the session process exclusively for getting all the information
+    case Sessions.fetch_session(session_id) do
+      {:ok, %{pid: session_pid}} ->
+        current_user = build_current_user(web_session, socket)
 
-      data =
-        if connected?(socket) do
-          data = Session.register_client(session_id, self(), current_user)
-          Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
-          Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
+        data =
+          if connected?(socket) do
+            data = Session.register_client(session_pid, self(), current_user)
+            Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+            Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
 
-          data
-        else
-          Session.get_data(session_id)
-        end
+            data
+          else
+            Session.get_data(session_pid)
+          end
 
-      session_pid = Session.get_pid(session_id)
+        session = Session.get_by_pid(session_pid)
 
-      platform = platform_from_socket(socket)
+        platform = platform_from_socket(socket)
 
-      {:ok,
-       socket
-       |> assign(
-         platform: platform,
-         session_id: session_id,
-         session_pid: session_pid,
-         current_user: current_user,
-         self: self(),
-         data_view: data_to_view(data)
-       )
-       |> assign_private(data: data)
-       |> allow_upload(:cell_image,
-         accept: ~w(.jpg .jpeg .png .gif),
-         max_entries: 1,
-         max_file_size: 5_000_000
-       )}
-    else
-      {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
+        {:ok,
+         socket
+         |> assign(
+           session: session,
+           platform: platform,
+           current_user: current_user,
+           self: self(),
+           data_view: data_to_view(data),
+           autofocus_cell_id: autofocus_cell_id(data.notebook)
+         )
+         |> assign_private(data: data)
+         |> allow_upload(:cell_image,
+           accept: ~w(.jpg .jpeg .png .gif),
+           max_entries: 1,
+           max_file_size: 5_000_000
+         )}
+
+      :error ->
+        {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
   end
 
@@ -73,7 +78,8 @@ defmodule LivebookWeb.SessionLive do
     <div class="flex flex-grow h-full"
       id="session"
       data-element="session"
-      phx-hook="Session">
+      phx-hook="Session"
+      data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.button_item
@@ -87,24 +93,24 @@ defmodule LivebookWeb.SessionLive do
         <SidebarHelpers.link_item
           icon="cpu-line"
           label="Runtime settings (sr)"
-          path={Routes.session_path(@socket, :runtime_settings, @session_id)}
+          path={Routes.session_path(@socket, :runtime_settings, @session.id)}
           active={@live_action == :runtime_settings} />
         <SidebarHelpers.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
-          path={Routes.session_path(@socket, :bin, @session_id)}
+          path={Routes.session_path(@socket, :bin, @session.id)}
           active={@live_action == :bin} />
         <SidebarHelpers.break_item />
         <SidebarHelpers.link_item
           icon="keyboard-box-fill"
           label="Keyboard shortcuts (?)"
-          path={Routes.session_path(@socket, :shortcuts, @session_id)}
+          path={Routes.session_path(@socket, :shortcuts, @session.id)}
           active={@live_action == :shortcuts} />
         <SidebarHelpers.user_item
           current_user={@current_user}
-          path={Routes.session_path(@socket, :user, @session_id)} />
+          path={Routes.session_path(@socket, :user, @session.id)} />
       </SidebarHelpers.sidebar>
-      <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
+      <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">
           <div class="flex-grow flex flex-col">
@@ -118,7 +124,9 @@ defmodule LivebookWeb.SessionLive do
                   data-section-id={section_item.id}>
                   <span><%= section_item.name %></span>
                   <%= if section_item.parent do %>
-                    <span class="tooltip right" aria-label={"Branches from\n”#{section_item.parent.name}”"}>
+                    <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                        consequently we show the tooltip wrapped to a fixed number of characters %>
+                    <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
                       <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
                     </span>
                   <% end %>
@@ -196,17 +204,17 @@ defmodule LivebookWeb.SessionLive do
                   <span class="font-medium">Fork</span>
                 </button>
                 <a class="menu__item text-gray-500"
-                  href={live_dashboard_process_path(@socket, @session_pid)}
+                  href={live_dashboard_process_path(@socket, @session.pid)}
                   target="_blank">
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <%= live_patch to: Routes.session_path(@socket, :export, @session_id),
+                <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
                       class: "menu__item text-gray-500" do %>
                   <.remix_icon icon="download-2-line" />
                   <span class="font-medium">Export</span>
                 <% end %>
-                <%= live_patch to: Routes.home_path(@socket, :close_session, @session_id),
+                <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu__item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
                   <span class="font-medium">Close</span>
@@ -227,7 +235,7 @@ defmodule LivebookWeb.SessionLive do
               <%= live_component LivebookWeb.SessionLive.SectionComponent,
                     id: section_view.id,
                     index: index,
-                    session_id: @session_id,
+                    session_id: @session.id,
                     section_view: section_view %>
             <% end %>
             <div style="height: 80vh"></div>
@@ -236,9 +244,10 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
         <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
-              session_id: @session_id,
-              path: @data_view.path,
+              session_id: @session.id,
+              file: @data_view.file,
               dirty: @data_view.dirty,
+              autosave_interval_s: @data_view.autosave_interval_s,
               runtime: @data_view.runtime,
               global_evaluation_status: @data_view.global_evaluation_status %>
       </div>
@@ -249,26 +258,29 @@ defmodule LivebookWeb.SessionLive do
             id: "user",
             modal_class: "w-full max-w-sm",
             user: @current_user,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
 
     <%= if @live_action == :runtime_settings do %>
       <%= live_modal LivebookWeb.SessionLive.RuntimeComponent,
             id: "runtime-settings",
             modal_class: "w-full max-w-4xl",
-            return_to: Routes.session_path(@socket, :page, @session_id),
-            session_id: @session_id,
+            return_to: Routes.session_path(@socket, :page, @session.id),
+            session: @session,
             runtime: @data_view.runtime %>
     <% end %>
 
     <%= if @live_action == :file_settings do %>
-      <%= live_modal LivebookWeb.SessionLive.PersistenceComponent,
+      <%= live_modal @socket, LivebookWeb.SessionLive.PersistenceLive,
             id: "persistence",
             modal_class: "w-full max-w-4xl",
-            return_to: Routes.session_path(@socket, :page, @session_id),
-            session_id: @session_id,
-            current_path: @data_view.path,
-            path: @data_view.path %>
+            return_to: Routes.session_path(@socket, :page, @session.id),
+            session: %{
+              "session" => @session,
+              "file" => @data_view.file,
+              "persist_outputs" => @data_view.persist_outputs,
+              "autosave_interval_s" => @data_view.autosave_interval_s
+            } %>
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
@@ -276,53 +288,54 @@ defmodule LivebookWeb.SessionLive do
             id: "shortcuts",
             modal_class: "w-full max-w-6xl",
             platform: @platform,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
 
     <%= if @live_action == :cell_settings do %>
       <%= live_modal settings_component_for(@cell),
             id: "cell-settings",
             modal_class: "w-full max-w-xl",
-            session_id: @session_id,
+            session: @session,
             cell: @cell,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
 
     <%= if @live_action == :cell_upload do %>
       <%= live_modal LivebookWeb.SessionLive.CellUploadComponent,
             id: "cell-upload",
             modal_class: "w-full max-w-xl",
-            session_id: @session_id,
+            session: @session,
             cell: @cell,
             uploads: @uploads,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
 
     <%= if @live_action == :delete_section do %>
       <%= live_modal LivebookWeb.SessionLive.DeleteSectionComponent,
             id: "delete-section",
             modal_class: "w-full max-w-xl",
-            session_id: @session_id,
+            session: @session,
             section: @section,
             is_first: @section.id == @first_section_id,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
 
     <%= if @live_action == :bin do %>
       <%= live_modal LivebookWeb.SessionLive.BinComponent,
             id: "bin",
             modal_class: "w-full max-w-4xl",
-            session_id: @session_id,
+            session: @session,
             bin_entries: @data_view.bin_entries,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
 
     <%= if @live_action == :export do %>
       <%= live_modal LivebookWeb.SessionLive.ExportComponent,
             id: "export",
             modal_class: "w-full max-w-4xl",
-            session_id: @session_id,
-            return_to: Routes.session_path(@socket, :page, @session_id) %>
+            session: @session,
+            tab: @tab,
+            return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
     """
   end
@@ -332,6 +345,15 @@ defmodule LivebookWeb.SessionLive do
 
   defp settings_component_for(%Cell.Input{}),
     do: LivebookWeb.SessionLive.InputCellSettingsComponent
+
+  defp branching_tooltip_attrs(name, parent_name) do
+    direction = if String.length(name) >= 16, do: "left", else: "right"
+
+    wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
+    label = "Branches from\n#{wrapped_name}"
+
+    [class: "tooltip #{direction}", "aria-label": label]
+  end
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
@@ -358,6 +380,10 @@ defmodule LivebookWeb.SessionLive do
 
     path = Path.join(path_parts)
     {:noreply, handle_relative_path(socket, path)}
+  end
+
+  def handle_params(%{"tab" => tab}, _url, socket) do
+    {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
@@ -404,14 +430,14 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("append_section", %{}, socket) do
     idx = length(socket.private.data.notebook.sections)
-    Session.insert_section(socket.assigns.session_id, idx)
+    Session.insert_section(socket.assigns.session.pid, idx)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_section_into", %{"section_id" => section_id, "index" => index}, socket) do
     index = ensure_integer(index) |> max(0)
-    Session.insert_section_into(socket.assigns.session_id, section_id, index)
+    Session.insert_section_into(socket.assigns.session.pid, section_id, index)
 
     {:noreply, socket}
   end
@@ -421,13 +447,13 @@ defmodule LivebookWeb.SessionLive do
         %{"section_id" => section_id, "parent_id" => parent_id},
         socket
       ) do
-    Session.set_section_parent(socket.assigns.session_id, section_id, parent_id)
+    Session.set_section_parent(socket.assigns.session.pid, section_id, parent_id)
 
     {:noreply, socket}
   end
 
   def handle_event("unset_section_parent", %{"section_id" => section_id}, socket) do
-    Session.unset_section_parent(socket.assigns.session_id, section_id)
+    Session.unset_section_parent(socket.assigns.session.pid, section_id)
 
     {:noreply, socket}
   end
@@ -439,7 +465,7 @@ defmodule LivebookWeb.SessionLive do
       ) do
     index = ensure_integer(index) |> max(0)
     type = String.to_atom(type)
-    Session.insert_cell(socket.assigns.session_id, section_id, index, type)
+    Session.insert_cell(socket.assigns.session.pid, section_id, index, type)
 
     {:noreply, socket}
   end
@@ -459,21 +485,21 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    Session.delete_cell(socket.assigns.session_id, cell_id)
+    Session.delete_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("set_notebook_name", %{"name" => name}, socket) do
     name = normalize_name(name)
-    Session.set_notebook_name(socket.assigns.session_id, name)
+    Session.set_notebook_name(socket.assigns.session.pid, name)
 
     {:noreply, socket}
   end
 
   def handle_event("set_section_name", %{"section_id" => section_id, "name" => name}, socket) do
     name = normalize_name(name)
-    Session.set_section_name(socket.assigns.session_id, section_id, name)
+    Session.set_section_name(socket.assigns.session.pid, section_id, name)
 
     {:noreply, socket}
   end
@@ -484,7 +510,7 @@ defmodule LivebookWeb.SessionLive do
         socket
       ) do
     delta = Delta.from_compressed(delta)
-    Session.apply_cell_delta(socket.assigns.session_id, cell_id, delta, revision)
+    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, delta, revision)
 
     {:noreply, socket}
   end
@@ -494,7 +520,7 @@ defmodule LivebookWeb.SessionLive do
         %{"cell_id" => cell_id, "revision" => revision},
         socket
       ) do
-    Session.report_cell_revision(socket.assigns.session_id, cell_id, revision)
+    Session.report_cell_revision(socket.assigns.session.pid, cell_id, revision)
 
     {:noreply, socket}
   end
@@ -504,34 +530,34 @@ defmodule LivebookWeb.SessionLive do
     # to more closely imitate an actual shell
     value = String.replace(value, "\r\n", "\n")
 
-    Session.set_cell_attributes(socket.assigns.session_id, cell_id, %{value: value})
+    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{value: value})
 
     {:noreply, socket}
   end
 
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
-    Session.move_cell(socket.assigns.session_id, cell_id, offset)
+    Session.move_cell(socket.assigns.session.pid, cell_id, offset)
 
     {:noreply, socket}
   end
 
   def handle_event("move_section", %{"section_id" => section_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
-    Session.move_section(socket.assigns.session_id, section_id, offset)
+    Session.move_section(socket.assigns.session.pid, section_id, offset)
 
     {:noreply, socket}
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    Session.queue_cell_evaluation(socket.assigns.session_id, cell_id)
+    Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
     {:noreply, socket}
   end
 
   def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
     with {:ok, section} <- Notebook.fetch_section(socket.private.data.notebook, section_id) do
       for cell <- section.cells, is_struct(cell, Cell.Elixir) do
-        Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+        Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
       end
     end
 
@@ -543,7 +569,7 @@ defmodule LivebookWeb.SessionLive do
 
     for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
         data.cell_infos[cell.id].validity_status != :evaluated do
-      Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+      Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
     end
 
     {:noreply, socket}
@@ -554,7 +580,7 @@ defmodule LivebookWeb.SessionLive do
            Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
       for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id),
           is_struct(cell, Cell.Elixir) do
-        Session.queue_cell_evaluation(socket.assigns.session_id, cell.id)
+        Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
       end
     end
 
@@ -566,7 +592,7 @@ defmodule LivebookWeb.SessionLive do
 
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       for {bound_cell, _} <- Session.Data.bound_cells_with_section(data, cell.id) do
-        Session.queue_cell_evaluation(socket.assigns.session_id, bound_cell.id)
+        Session.queue_cell_evaluation(socket.assigns.session.pid, bound_cell.id)
       end
     end
 
@@ -574,38 +600,38 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    Session.cancel_cell_evaluation(socket.assigns.session_id, cell_id)
+    Session.cancel_cell_evaluation(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("save", %{}, socket) do
-    if socket.private.data.path do
-      Session.save(socket.assigns.session_id)
+    if socket.private.data.file do
+      Session.save(socket.assigns.session.pid)
       {:noreply, socket}
     else
       {:noreply,
        push_patch(socket,
-         to: Routes.session_path(socket, :file_settings, socket.assigns.session_id)
+         to: Routes.session_path(socket, :file_settings, socket.assigns.session.id)
        )}
     end
   end
 
   def handle_event("show_shortcuts", %{}, socket) do
     {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session_id))}
+     push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session.id))}
   end
 
   def handle_event("show_runtime_settings", %{}, socket) do
     {:noreply,
      push_patch(socket,
-       to: Routes.session_path(socket, :runtime_settings, socket.assigns.session_id)
+       to: Routes.session_path(socket, :runtime_settings, socket.assigns.session.id)
      )}
   end
 
   def handle_event("show_bin", %{}, socket) do
     {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session_id))}
+     push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session.id))}
   end
 
   def handle_event("restart_runtime", %{}, socket) do
@@ -613,7 +639,7 @@ defmodule LivebookWeb.SessionLive do
       if runtime = socket.private.data.runtime do
         case Runtime.duplicate(runtime) do
           {:ok, new_runtime} ->
-            Session.connect_runtime(socket.assigns.session_id, new_runtime)
+            Session.connect_runtime(socket.assigns.session.pid, new_runtime)
             socket
 
           {:error, message} ->
@@ -632,8 +658,9 @@ defmodule LivebookWeb.SessionLive do
         %{"type" => "completion", "hint" => hint} ->
           {:completion, hint}
 
-        %{"type" => "details", "line" => line, "index" => index} ->
-          {:details, line, index}
+        %{"type" => "details", "line" => line, "column" => column} ->
+          column = JSInterop.js_column_to_elixir(column, line)
+          {:details, line, column}
 
         %{"type" => "format", "code" => code} ->
           {:format, code}
@@ -670,10 +697,10 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("fork_session", %{}, socket) do
+    %{pid: pid, images_dir: images_dir} = socket.assigns.session
     # Fetch the data, as we don't keep cells' source in the state
-    data = Session.get_data(socket.assigns.session_id)
+    data = Session.get_data(pid)
     notebook = Notebook.forked(data.notebook)
-    %{images_dir: images_dir} = Session.get_summary(socket.assigns.session_id)
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
   end
 
@@ -681,7 +708,7 @@ defmodule LivebookWeb.SessionLive do
     Phoenix.PubSub.broadcast_from(
       Livebook.PubSub,
       self(),
-      "sessions:#{socket.assigns.session_id}",
+      "sessions:#{socket.assigns.session.id}",
       {:location_report, self(), report}
     )
 
@@ -750,6 +777,10 @@ defmodule LivebookWeb.SessionLive do
      |> assign(data_view: data_to_view(data))}
   end
 
+  def handle_info({:session_updated, session}, socket) do
+    {:noreply, assign(socket, :session, session)}
+  end
+
   def handle_info(:session_closed, socket) do
     {:noreply,
      socket
@@ -757,7 +788,8 @@ defmodule LivebookWeb.SessionLive do
      |> push_redirect(to: Routes.home_path(socket, :page))}
   end
 
-  def handle_info({:intellisense_response, ref, response}, socket) do
+  def handle_info({:intellisense_response, ref, request, response}, socket) do
+    response = process_intellisense_response(response, request)
     payload = %{"ref" => inspect(ref), "response" => response}
     {:noreply, push_event(socket, "intellisense_response", payload)}
   end
@@ -792,9 +824,9 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp handle_relative_notebook_path(socket, relative_path) do
-    resolution_url = location(socket.private.data)
+    resolution_location = location(socket.private.data)
 
-    case resolution_url do
+    case resolution_location do
       nil ->
         socket
         |> put_flash(
@@ -803,21 +835,31 @@ defmodule LivebookWeb.SessionLive do
         )
         |> redirect_to_self()
 
-      url ->
-        target_url = Livebook.Utils.expand_url(url, relative_path)
+      resolution_location ->
+        origin =
+          case resolution_location do
+            {:url, url} -> {:url, Livebook.Utils.expand_url(url, relative_path)}
+            {:file, file} -> {:file, FileSystem.File.resolve(file, relative_path)}
+          end
 
-        case session_id_by_url(target_url) do
+        case session_id_by_location(origin) do
           {:ok, session_id} ->
             push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
 
           {:error, :none} ->
-            open_notebook(socket, target_url)
+            open_notebook(socket, origin)
 
           {:error, :many} ->
+            origin_str =
+              case origin do
+                {:url, url} -> url
+                {:file, file} -> file.path
+              end
+
             socket
             |> put_flash(
               :error,
-              "Cannot navigate, because multiple sessions were found for #{target_url}"
+              "Cannot navigate, because multiple sessions were found for #{origin_str}"
             )
             |> redirect_to_self()
         end
@@ -825,24 +867,21 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp location(data)
-  defp location(%{path: path}) when is_binary(path), do: "file://" <> path
-  defp location(%{origin_url: origin_url}), do: origin_url
+  defp location(%{file: file}) when is_map(file), do: {:file, file}
+  defp location(%{origin: origin}), do: origin
 
-  defp open_notebook(socket, url) do
-    url
-    |> Livebook.ContentLoader.rewrite_url()
-    |> Livebook.ContentLoader.fetch_content()
-    |> case do
+  defp open_notebook(socket, origin) do
+    case load_content(origin) do
       {:ok, content} ->
         {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
 
         # If the current session has no path, fork the notebook
-        fork? = socket.private.data.path == nil
-        {path, notebook} = path_and_notebook(fork?, url, notebook)
+        fork? = socket.private.data.file == nil
+        {file, notebook} = file_and_notebook(fork?, origin, notebook)
 
         socket
         |> put_import_flash_messages(messages)
-        |> create_session(notebook: notebook, origin_url: url, path: path)
+        |> create_session(notebook: notebook, origin: origin, file: file)
 
       {:error, message} ->
         socket
@@ -851,28 +890,41 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp path_and_notebook(fork?, url, notebook)
-  defp path_and_notebook(false, "file://" <> path, notebook), do: {path, notebook}
-  defp path_and_notebook(true, "file://" <> _path, notebook), do: {nil, Notebook.forked(notebook)}
-  defp path_and_notebook(_fork?, _url, notebook), do: {nil, notebook}
+  defp load_content({:file, file}) do
+    case FileSystem.File.read(file) do
+      {:ok, content} -> {:ok, content}
+      {:error, message} -> {:error, "failed to read #{file.path}, reason: #{message}"}
+    end
+  end
 
-  defp session_id_by_url(url) do
-    session_summaries = SessionSupervisor.get_session_summaries()
+  defp load_content({:url, url}) do
+    url
+    |> Livebook.ContentLoader.rewrite_url()
+    |> Livebook.ContentLoader.fetch_content()
+  end
 
-    session_with_path =
-      Enum.find(session_summaries, fn summary ->
-        summary.path && "file://" <> summary.path == url
+  defp file_and_notebook(fork?, origin, notebook)
+  defp file_and_notebook(false, {:file, file}, notebook), do: {file, notebook}
+  defp file_and_notebook(true, {:file, _file}, notebook), do: {nil, Notebook.forked(notebook)}
+  defp file_and_notebook(_fork?, _origin, notebook), do: {nil, notebook}
+
+  defp session_id_by_location(location) do
+    sessions = Sessions.list_sessions()
+
+    session_with_file =
+      Enum.find(sessions, fn session ->
+        session.file && {:file, session.file} == location
       end)
 
-    # A session associated with the given path takes
-    # precedence over sessions originating from this path
-    if session_with_path do
-      {:ok, session_with_path.session_id}
+    # A session associated with the given file takes
+    # precedence over sessions originating from this file
+    if session_with_file do
+      {:ok, session_with_file.id}
     else
-      session_summaries
-      |> Enum.filter(fn summary -> summary.origin_url == url end)
+      sessions
+      |> Enum.filter(fn session -> session.origin == location end)
       |> case do
-        [summary] -> {:ok, summary.session_id}
+        [session] -> {:ok, session.id}
         [] -> {:error, :none}
         _ -> {:error, :many}
       end
@@ -880,7 +932,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp redirect_to_self(socket) do
-    push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session_id))
+    push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session.id))
   end
 
   defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
@@ -920,7 +972,11 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:delete_section, _client_pid, section_id}) do
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:delete_section, _client_pid, section_id, _delete_cells}
+       ) do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
@@ -929,7 +985,7 @@ defmodule LivebookWeb.SessionLive do
       case type do
         :input ->
           push_patch(socket,
-            to: Routes.session_path(socket, :cell_settings, socket.assigns.session_id, cell_id)
+            to: Routes.session_path(socket, :cell_settings, socket.assigns.session.id, cell_id)
           )
 
         _ ->
@@ -1030,7 +1086,7 @@ defmodule LivebookWeb.SessionLive do
   defp insert_cell_next_to(socket, cell_id, type, idx_offset: idx_offset) do
     {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     index = Enum.find_index(section.cells, &(&1 == cell))
-    Session.insert_cell(socket.assigns.session_id, section.id, index + idx_offset, type)
+    Session.insert_cell(socket.assigns.session.pid, section.id, index + idx_offset, type)
   end
 
   defp ensure_integer(n) when is_integer(n), do: n
@@ -1045,6 +1101,24 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
+  defp process_intellisense_response(
+         %{range: %{from: from, to: to}} = response,
+         {:details, line, _column}
+       ) do
+    %{
+      response
+      | range: %{
+          from: JSInterop.elixir_column_to_js(from, line),
+          to: JSInterop.elixir_column_to_js(to, line)
+        }
+    }
+  end
+
+  defp process_intellisense_response(response, _request), do: response
+
+  defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
+  defp autofocus_cell_id(_notebook), do: nil
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -1052,7 +1126,9 @@ defmodule LivebookWeb.SessionLive do
   # have to traverse the whole template tree and no diff is sent to the client.
   defp data_to_view(data) do
     %{
-      path: data.path,
+      file: data.file,
+      persist_outputs: data.notebook.persist_outputs,
+      autosave_interval_s: data.notebook.autosave_interval_s,
       dirty: data.dirty,
       runtime: data.runtime,
       global_evaluation_status: global_evaluation_status(data),
@@ -1181,7 +1257,9 @@ defmodule LivebookWeb.SessionLive do
         data_view
 
       {:apply_cell_delta, _pid, cell_id, _delta, _revision} ->
-        update_cell_view(data_view, data, cell_id)
+        data_view
+        |> update_cell_view(data, cell_id)
+        |> update_dirty_status(data)
 
       _ ->
         data_to_view(data)
@@ -1197,5 +1275,11 @@ defmodule LivebookWeb.SessionLive do
       [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
       cell_view
     )
+  end
+
+  # Changes that affect only a single cell are still likely to
+  # have impact on dirtyness, so we need to always mirror it
+  defp update_dirty_status(data_view, data) do
+    put_in(data_view.dirty, data.dirty)
   end
 end
