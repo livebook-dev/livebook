@@ -142,7 +142,7 @@ defmodule LivebookWeb.SessionLive do
         </div>
         <div data-element="clients-list">
           <div class="flex-grow flex flex-col">
-          <div class="flex space-x-4 items-center pb-4 mb-6 justify-between">
+          <div class="flex space-x-4 items-center justify-between">
             <h3 class="font-semibold text-gray-800 text-lg flex-lg">
               Users
             </h3>
