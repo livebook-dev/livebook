@@ -618,6 +618,14 @@ defmodule Livebook.SessionTest do
     assert Map.has_key?(session, :created_at)
   end
 
+  test "session created_at attribute is a date time", %{session: session} do
+    assert %DateTime{} = session.created_at
+  end
+
+  test "session created_at is before now", %{session: session} do
+    assert session.created_at < DateTime.utc_now()
+  end
+
   defp start_session(opts \\ []) do
     session_id = Utils.random_id()
     {:ok, pid} = Session.start_link(Keyword.merge([id: session_id], opts))
