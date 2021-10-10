@@ -1149,7 +1149,8 @@ defmodule LivebookWeb.SessionLive do
         |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
       section_views: section_views(data.notebook.sections, data),
-      bin_entries: data.bin_entries
+      bin_entries: data.bin_entries,
+      created_at: DateTime.now!("Etc/UTC")
     }
   end
 
