@@ -142,12 +142,15 @@ defmodule LivebookWeb.SessionLive do
         </div>
         <div data-element="clients-list">
           <div class="flex-grow flex flex-col">
-            <h3 class="font-semibold text-gray-800 text-lg">
-              Users
-            </h3>
-            <h4 class="font text-gray-500 text-sm my-1">
-              <%= length(@data_view.clients) %> connected
-            </h4>
+            <div class="flex space-x-4 items-center justify-between">
+              <h3 class="font-semibold text-gray-800 text-lg flex-lg">
+                Users
+              </h3>
+              <span class="flex items-center space-x-2 bg-gray-200 p-2 rounded-lg text-sm">
+                <span class="bg-green-600 inline-flex rounded-full h-3 w-3"></span>
+                <span><%= length(@data_view.clients) %> connected</span>
+              </span>
+            </div>
             <div class="mt-4 flex flex-col space-y-4">
               <%= for {client_pid, user} <- @data_view.clients do %>
                 <div class="flex items-center justify-between space-x-2"
