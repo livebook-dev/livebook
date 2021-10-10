@@ -347,7 +347,7 @@ defmodule LivebookWeb.HomeLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp sort_sessions(sessions) do
-    Enum.sort_by(sessions, & &1.notebook_name)
+    Enum.sort_by(sessions, & &1.created_at, {:desc, DateTime})
   end
 
   defp files(sessions) do

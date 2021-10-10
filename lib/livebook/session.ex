@@ -68,6 +68,7 @@ defmodule Livebook.Session do
   @type state :: %{
           session_id: id(),
           data: Data.t(),
+          created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil
@@ -379,6 +380,7 @@ defmodule Livebook.Session do
       state = %{
         session_id: id,
         data: data,
+        created_at: DateTime.utc_now(),
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
         save_task_pid: nil
@@ -693,7 +695,7 @@ defmodule Livebook.Session do
       notebook_name: state.data.notebook.name,
       file: state.data.file,
       images_dir: images_dir_from_state(state),
-      created_at: DateTime.utc_now()
+      created_at: state.created_at
     }
   end
 
