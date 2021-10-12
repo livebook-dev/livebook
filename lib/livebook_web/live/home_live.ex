@@ -180,6 +180,9 @@ defmodule LivebookWeb.HomeLive do
             <div class="text-gray-600 text-sm">
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
+            <div class="text-gray-600 text-sm">
+              Created <%= format_creation_date(session.created_at) %>
+            </div>
           </div>
           <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
             <button class="icon-button" data-toggle>
@@ -344,7 +347,7 @@ defmodule LivebookWeb.HomeLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp sort_sessions(sessions) do
-    Enum.sort_by(sessions, & &1.notebook_name)
+    Enum.sort_by(sessions, & &1.created_at, {:desc, DateTime})
   end
 
   defp files(sessions) do
@@ -382,5 +385,10 @@ defmodule LivebookWeb.HomeLive do
   defp session_id_by_file(file, sessions) do
     session = Enum.find(sessions, &(&1.file == file))
     session.id
+  end
+
+  def format_creation_date(created_at) do
+    time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
+    time_words <> " ago"
   end
 end
