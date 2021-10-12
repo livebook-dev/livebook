@@ -1076,9 +1076,7 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "evaluation_cancel:#{cell_id}", %{})
   end
 
-  defp after_operation(socket, _prev_socket, operation) do
-    socket
-  end
+  defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
