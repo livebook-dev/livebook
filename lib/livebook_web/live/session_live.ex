@@ -1051,7 +1051,33 @@ defmodule LivebookWeb.SessionLive do
     })
   end
 
-  defp after_operation(socket, _prev_socket, _operation), do: socket
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_pid, cell_id, {:text, _output}, _evaluation_time}
+       ) do
+    push_event(socket, "evaluation_finished:#{cell_id}", %{})
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_pid, cell_id, {:error, _reason, _}, _evaluation_time}
+       ) do
+    push_event(socket, "evaluation_error:#{cell_id}", %{})
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:cancel_cell_evaluation, _client_pid, cell_id}
+       ) do
+    push_event(socket, "evaluation_cancel:#{cell_id}", %{})
+  end
+
+  defp after_operation(socket, _prev_socket, operation) do
+    socket
+  end
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))

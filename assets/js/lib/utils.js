@@ -104,6 +104,18 @@ export function throttle(fn, windowMs) {
   };
 }
 
+export function changeFavicon(name) {
+  if (name) {
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.getElementsByTagName("head")[0].appendChild(link);
+    }
+    link.href = `/${name}.ico`;
+  }
+}
+
 export function findChildOrThrow(element, selector) {
   const child = element.querySelector(selector);
 
