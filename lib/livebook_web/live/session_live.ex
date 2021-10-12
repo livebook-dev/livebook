@@ -1062,7 +1062,8 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:add_cell_evaluation_response, _client_pid, cell_id, {:error, _reason, _}, _evaluation_time}
+         {:add_cell_evaluation_response, _client_pid, cell_id, {:error, _reason, _},
+          _evaluation_time}
        ) do
     push_event(socket, "evaluation_error:#{cell_id}", %{})
   end
