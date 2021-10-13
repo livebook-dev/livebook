@@ -43,6 +43,8 @@ const theme = {
     "editorSuggestWidget.selectedBackground": "#2c313a",
     "input.background": "#1b1d23",
     "input.border": "#181a1f",
+    "editorBracketMatch.border": "#282c34",
+    "editorBracketMatch.background": "#3e4451",
   },
 };
 
