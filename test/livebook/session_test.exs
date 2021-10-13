@@ -4,12 +4,6 @@ defmodule Livebook.SessionTest do
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
   alias Livebook.Notebook.{Section, Cell}
 
-  # Note: queueing evaluation in most of the tests below
-  # requires the runtime to synchronously start first,
-  # so we use a longer timeout just to make sure the tests
-  # pass reliably
-  @evaluation_wait_timeout 3_000
-
   setup do
     session = start_session()
     %{session: session}
@@ -96,13 +90,11 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation, {:queue_cell_evaluation, ^pid, ^cell_id}},
-                     @evaluation_wait_timeout
+      assert_receive {:operation, {:queue_cell_evaluation, ^pid, ^cell_id}}
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, _,
-                       %{evaluation_time_ms: _time_ms}}},
-                     @evaluation_wait_timeout
+                       %{evaluation_time_ms: _time_ms}}}
     end
   end
 
@@ -116,8 +108,7 @@ defmodule Livebook.SessionTest do
 
       Session.cancel_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation, {:cancel_cell_evaluation, ^pid, ^cell_id}},
-                     @evaluation_wait_timeout
+      assert_receive {:operation, {:cancel_cell_evaluation, ^pid, ^cell_id}}
     end
   end
 
@@ -250,7 +241,7 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, file)
 
       # Wait for the session to deal with the files
-      Process.sleep(50)
+      Process.sleep(100)
 
       assert {:ok, true} =
                FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "images/test.jpg"))
@@ -272,7 +263,7 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, nil)
 
       # Wait for the session to deal with the files
-      Process.sleep(50)
+      Process.sleep(200)
 
       assert {:ok, true} = FileSystem.File.exists?(image_file)
 
@@ -411,8 +402,7 @@ defmodule Livebook.SessionTest do
     # Give it a bit more time as this involves starting a system process.
     assert_receive {:operation,
                     {:add_cell_evaluation_response, _, ^cell_id, _,
-                     %{evaluation_time_ms: _time_ms}}},
-                   @evaluation_wait_timeout
+                     %{evaluation_time_ms: _time_ms}}}
   end
 
   test "if the runtime node goes down, notifies the subscribers" do
@@ -473,8 +463,7 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
-                       %{evaluation_time_ms: _time_ms}}},
-                     @evaluation_wait_timeout
+                       %{evaluation_time_ms: _time_ms}}}
 
       assert text_output =~ "Jake Peralta"
     end
@@ -504,7 +493,7 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
                        %{evaluation_time_ms: _time_ms}}},
-                     @evaluation_wait_timeout
+                     2_000
 
       assert text_output =~ "no matching Livebook input found"
     end
@@ -536,7 +525,7 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
                        %{evaluation_time_ms: _time_ms}}},
-                     @evaluation_wait_timeout
+                     2_000
 
       assert text_output =~ "no matching Livebook input found"
     end
@@ -615,7 +604,7 @@ defmodule Livebook.SessionTest do
   end
 
   test "session created_at is before now", %{session: session} do
-    assert session.created_at < DateTime.utc_now()
+    assert DateTime.compare(session.created_at, DateTime.utc_now()) == :lt
   end
 
   defp start_session(opts \\ []) do
