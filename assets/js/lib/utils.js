@@ -104,16 +104,16 @@ export function throttle(fn, windowMs) {
   };
 }
 
-export function changeFavicon(name) {
-  if (name) {
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.getElementsByTagName("head")[0].appendChild(link);
-    }
-    link.href = `/favicon-${name}.ico`;
+export function setFavicon(name) {
+  let link = document.querySelector(`[rel="icon"]`);
+
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
   }
+
+  link.href = `/${name}.svg`;
 }
 
 export function findChildOrThrow(element, selector) {

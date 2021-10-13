@@ -4,7 +4,7 @@ import {
   clamp,
   selectElementContent,
   smoothlyScrollToElement,
-  changeFavicon,
+  setFavicon,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
@@ -205,8 +205,17 @@ const Session = {
   },
 
   updated() {
+    const prevProps = this.props;
     this.props = getProps(this);
-    changeFavicon(this.props.globalEvaluationStatus);
+
+    if (
+      this.props.globalEvaluationStatus !== prevProps.globalEvaluationStatus
+    ) {
+      const favicon = faviconForEvaluationStatus(
+        this.props.globalEvaluationStatus
+      );
+      setFavicon(favicon);
+    }
   },
 
   destroyed() {
@@ -231,6 +240,12 @@ function getProps(hook) {
       null
     ),
   };
+}
+
+function faviconForEvaluationStatus(evaluationStatus) {
+  if (evaluationStatus === "evaluating") return "favicon-evaluating";
+  if (evaluationStatus === "stale") return "favicon-stale";
+  return "favicon";
 }
 
 /**
