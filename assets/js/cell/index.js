@@ -2,11 +2,7 @@ import { getAttributeOrThrow } from "../lib/attribute";
 import LiveEditor from "./live_editor";
 import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
-import {
-  md5Base64,
-  smoothlyScrollToElement,
-  changeFavicon,
-} from "../lib/utils";
+import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
 
 /**
@@ -75,22 +71,9 @@ const Cell = {
           this.handleEvent(
             `evaluation_started:${this.props.cellId}`,
             ({ evaluation_digest }) => {
-              changeFavicon("favicon-running");
               this.state.evaluationDigest = evaluation_digest;
               updateChangeIndicator();
             }
-          );
-
-          this.handleEvent(`evaluation_error:${this.props.cellId}`, () =>
-            changeFavicon("favicon-error")
-          );
-
-          this.handleEvent(`evaluation_cancel:${this.props.cellId}`, () =>
-            changeFavicon("favicon-cancel")
-          );
-
-          this.handleEvent(`evaluation_finished:${this.props.cellId}`, () =>
-            changeFavicon("favicon-finished")
           );
 
           this.state.liveEditor.onChange((newSource) => {

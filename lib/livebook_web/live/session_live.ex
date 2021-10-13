@@ -79,6 +79,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session"
+      data-global-evaluation-status={elem(@data_view.global_evaluation_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
@@ -1049,31 +1050,6 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "evaluation_started:#{cell_id}", %{
       evaluation_digest: encode_digest(evaluation_digest)
     })
-  end
-
-  defp after_operation(
-         socket,
-         _prev_socket,
-         {:add_cell_evaluation_response, _client_pid, cell_id, {:text, _output}, _evaluation_time}
-       ) do
-    push_event(socket, "evaluation_finished:#{cell_id}", %{})
-  end
-
-  defp after_operation(
-         socket,
-         _prev_socket,
-         {:add_cell_evaluation_response, _client_pid, cell_id, {:error, _reason, _},
-          _evaluation_time}
-       ) do
-    push_event(socket, "evaluation_error:#{cell_id}", %{})
-  end
-
-  defp after_operation(
-         socket,
-         _prev_socket,
-         {:cancel_cell_evaluation, _client_pid, cell_id}
-       ) do
-    push_event(socket, "evaluation_cancel:#{cell_id}", %{})
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket

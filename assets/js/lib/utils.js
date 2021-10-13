@@ -112,7 +112,7 @@ export function changeFavicon(name) {
       link.rel = "icon";
       document.getElementsByTagName("head")[0].appendChild(link);
     }
-    link.href = `/${name}.ico`;
+    link.href = `/favicon-${name}.ico`;
   }
 }
 

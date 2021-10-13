@@ -4,6 +4,7 @@ import {
   clamp,
   selectElementContent,
   smoothlyScrollToElement,
+  changeFavicon,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
@@ -203,6 +204,11 @@ const Session = {
     );
   },
 
+  updated() {
+    this.props = getProps(this);
+    changeFavicon(this.props.globalEvaluationStatus);
+  },
+
   destroyed() {
     this._unsubscribeFromSessionEvents();
 
@@ -217,6 +223,11 @@ function getProps(hook) {
     autofocusCellId: getAttributeOrDefault(
       hook.el,
       "data-autofocus-cell-id",
+      null
+    ),
+    globalEvaluationStatus: getAttributeOrDefault(
+      hook.el,
+      "data-global-evaluation-status",
       null
     ),
   };
