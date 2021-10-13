@@ -87,7 +87,8 @@ defmodule Livebook.SessionTest do
   end
 
   describe "queue_cell_evaluation/2" do
-    test "sends a queue evaluation operation to subscribers", %{session: session} do
+    test "triggers evaluation and sends update operation once it finishes",
+         %{session: session} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
@@ -97,15 +98,6 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation, {:queue_cell_evaluation, ^pid, ^cell_id}},
                      @evaluation_wait_timeout
-    end
-
-    test "triggers evaluation and sends update operation once it finishes",
-         %{session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
-
-      {_section_id, cell_id} = insert_section_and_cell(session.pid)
-
-      Session.queue_cell_evaluation(session.pid, cell_id)
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, _,

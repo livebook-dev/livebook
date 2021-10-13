@@ -166,7 +166,7 @@ defmodule Livebook.EvaluatorTest do
                       %{evaluation_time_ms: _time_ms}}
 
       ref = Process.monitor(widget_pid1)
-      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}, 1_000
 
       assert Process.alive?(widget_pid2)
     end
