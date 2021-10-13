@@ -24,7 +24,7 @@ defmodule Livebook.Utils do
   """
   @spec random_cookie() :: atom()
   def random_cookie() do
-    :crypto.strong_rand_bytes(42) |> Base.url_encode64() |> String.to_atom()
+    :crypto.strong_rand_bytes(35) |> Base.encode32(case: :lower) |> String.to_atom()
   end
 
   @doc """

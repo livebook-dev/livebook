@@ -34,6 +34,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       In most cases we enforce a single manager per node
       and identify it by a name, but this can be opted-out
       from by using this option. Defaults to `false`.
+
+    * `:auto_termination` - whether to terminate the manager
+      when the last runtime server terminates. Defaults to `true`.
   """
   def start(opts \\ []) do
     {opts, gen_opts} = split_opts(opts)
@@ -74,6 +77,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   @impl true
   def init(opts) do
     unload_modules_on_termination = Keyword.get(opts, :unload_modules_on_termination, true)
+    auto_termination = Keyword.get(opts, :auto_termination, true)
 
     ## Initialize the node
 
@@ -97,6 +101,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     {:ok,
      %{
        unload_modules_on_termination: unload_modules_on_termination,
+       auto_termination: auto_termination,
        server_supevisor: server_supevisor,
        runtime_servers: [],
        initial_ignore_module_conflict: initial_ignore_module_conflict,
@@ -124,7 +129,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     if pid in state.runtime_servers do
       case update_in(state.runtime_servers, &List.delete(&1, pid)) do
-        %{runtime_servers: []} = state -> {:stop, :normal, state}
+        %{runtime_servers: [], auto_termination: true} = state -> {:stop, :normal, state}
         state -> {:noreply, state}
       end
     else
