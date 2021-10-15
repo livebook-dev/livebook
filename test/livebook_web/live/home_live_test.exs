@@ -208,7 +208,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
-  describe "gateway" do
+  describe "live api" do
     test "allows importing notebook from url parameter", %{conn: conn} do
       bypass = Bypass.open()
 
