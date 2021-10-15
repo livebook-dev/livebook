@@ -139,7 +139,8 @@ defmodule LivebookWeb.HomeLive do
             id: "import",
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
-            tab: @tab %>
+            tab: @tab,
+            import_opts: @import_opts %>
     <% end %>
     """
   end
@@ -220,15 +221,12 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session: session)}
   end
 
-  def handle_params(%{"tab" => tab}, _url, socket) do
-    {:noreply, assign(socket, tab: tab)}
+  def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do
+    import_opts = [url: params["url"]]
+    {:noreply, assign(socket, tab: tab, import_opts: import_opts)}
   end
 
-  def handle_params(
-        %{"import_url" => url},
-        _url,
-        %{assigns: %{live_action: :live_api_import_url}} = socket
-      ) do
+  def handle_params(%{"url" => url}, _url, %{assigns: %{live_action: :public_import}} = socket) do
     url
     |> Livebook.ContentLoader.rewrite_url()
     |> Livebook.ContentLoader.fetch_content()
@@ -237,11 +235,8 @@ defmodule LivebookWeb.HomeLive do
         socket = import_content(socket, content, origin: {:url, url})
         {:noreply, socket}
 
-      {:error, message} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, Livebook.Utils.upcase_first(message))
-         |> push_patch(to: Routes.home_path(socket, :page))}
+      {:error, _message} ->
+        {:noreply, push_patch(socket, to: Routes.home_path(socket, :import, "url", url: url))}
     end
   end
 

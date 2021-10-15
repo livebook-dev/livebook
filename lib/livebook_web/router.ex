@@ -24,9 +24,6 @@ defmodule LivebookWeb.Router do
     live "/home/import/:tab", HomeLive, :import
     live "/home/sessions/:session_id/close", HomeLive, :close_session
 
-    # A public path that people may be directed to
-    live "/live-api/import-url/:import_url", HomeLive, :live_api_import_url
-
     live "/settings", SettingsLive, :page
     live "/settings/user-profile", SettingsLive, :user
     live "/settings/add-file-system", SettingsLive, :add_file_system
@@ -53,6 +50,13 @@ defmodule LivebookWeb.Router do
     live_dashboard "/dashboard",
       metrics: LivebookWeb.Telemetry,
       home_app: {"Livebook", :livebook}
+  end
+
+  # Public URLs that people may be directed to
+  scope "/p/", LivebookWeb do
+    pipe_through [:browser, :auth]
+
+    live "/import", HomeLive, :public_import
   end
 
   scope "/", LivebookWeb do

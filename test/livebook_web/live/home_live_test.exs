@@ -221,7 +221,7 @@ defmodule LivebookWeb.HomeLiveTest do
       notebook_url = "http://localhost:#{bypass.port}/notebook"
 
       assert {:error, {:live_redirect, %{to: to}}} =
-               live(conn, "/live-api/import-url/#{URI.encode_www_form(notebook_url)}")
+               live(conn, "/p/import?url=#{URI.encode_www_form(notebook_url)}")
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
