@@ -224,6 +224,27 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, tab: tab)}
   end
 
+  def handle_params(
+        %{"import_url" => url},
+        _url,
+        %{assigns: %{live_action: :live_api_import_url}} = socket
+      ) do
+    url
+    |> Livebook.ContentLoader.rewrite_url()
+    |> Livebook.ContentLoader.fetch_content()
+    |> case do
+      {:ok, content} ->
+        socket = import_content(socket, content, origin: {:url, url})
+        {:noreply, socket}
+
+      {:error, message} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, Livebook.Utils.upcase_first(message))
+         |> push_patch(to: Routes.home_path(socket, :page))}
+    end
+  end
+
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
@@ -331,10 +352,8 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_info({:import_content, content, session_opts}, socket) do
-    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
-    socket = put_import_flash_messages(socket, messages)
-    session_opts = Keyword.merge(session_opts, notebook: notebook)
-    {:noreply, create_session(socket, session_opts)}
+    socket = import_content(socket, content, session_opts)
+    {:noreply, socket}
   end
 
   def handle_info(
@@ -390,5 +409,12 @@ defmodule LivebookWeb.HomeLive do
   def format_creation_date(created_at) do
     time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
     time_words <> " ago"
+  end
+
+  defp import_content(socket, content, session_opts) do
+    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+    socket = put_import_flash_messages(socket, messages)
+    session_opts = Keyword.merge(session_opts, notebook: notebook)
+    create_session(socket, session_opts)
   end
 end

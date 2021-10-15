@@ -208,6 +208,26 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
+  describe "gateway" do
+    test "allows importing notebook from url parameter", %{conn: conn} do
+      bypass = Bypass.open()
+
+      Bypass.expect_once(bypass, "GET", "/notebook", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "# My notebook")
+      end)
+
+      notebook_url = "http://localhost:#{bypass.port}/notebook"
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               live(conn, "/live-api/import-url/#{URI.encode_www_form(notebook_url)}")
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "My notebook"
+    end
+  end
+
   # Helpers
 
   defp test_notebook_path(name) do
