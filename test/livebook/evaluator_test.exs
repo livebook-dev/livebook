@@ -109,7 +109,7 @@ defmodule Livebook.EvaluatorTest do
         assert_receive {:evaluation_response, :code_1,
                         {:error, _kind, _error, ^expected_stacktrace},
                         %{evaluation_time_ms: _time_ms}},
-                       1_000
+                       2_000
       end)
     end
 
@@ -160,12 +160,13 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1},
                       %{evaluation_time_ms: _time_ms}}
 
+      ref = Process.monitor(widget_pid1)
+
       Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
 
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2},
                       %{evaluation_time_ms: _time_ms}}
 
-      ref = Process.monitor(widget_pid1)
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
 
       assert Process.alive?(widget_pid2)
@@ -212,9 +213,9 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1},
                       %{evaluation_time_ms: _time_ms}}
 
+      ref = Process.monitor(widget_pid1)
       Evaluator.forget_evaluation(evaluator, :code_1)
 
-      ref = Process.monitor(widget_pid1)
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
     end
   end
@@ -225,7 +226,7 @@ defmodule Livebook.EvaluatorTest do
       Evaluator.handle_intellisense(evaluator, self(), :ref, request)
 
       assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "version/0"}]}},
-                     1_000
+                     2_000
     end
 
     test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
@@ -241,13 +242,13 @@ defmodule Livebook.EvaluatorTest do
       Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
 
       assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}},
-                     1_000
+                     2_000
 
       request = {:completion, "ANSI.brigh"}
       Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
 
       assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}},
-                     1_000
+                     2_000
     end
   end
 

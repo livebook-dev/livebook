@@ -139,7 +139,8 @@ defmodule LivebookWeb.HomeLive do
             id: "import",
             modal_class: "w-full max-w-xl",
             return_to: Routes.home_path(@socket, :page),
-            tab: @tab %>
+            tab: @tab,
+            import_opts: @import_opts %>
     <% end %>
     """
   end
@@ -220,8 +221,23 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session: session)}
   end
 
-  def handle_params(%{"tab" => tab}, _url, socket) do
-    {:noreply, assign(socket, tab: tab)}
+  def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do
+    import_opts = [url: params["url"]]
+    {:noreply, assign(socket, tab: tab, import_opts: import_opts)}
+  end
+
+  def handle_params(%{"url" => url}, _url, %{assigns: %{live_action: :public_import}} = socket) do
+    url
+    |> Livebook.ContentLoader.rewrite_url()
+    |> Livebook.ContentLoader.fetch_content()
+    |> case do
+      {:ok, content} ->
+        socket = import_content(socket, content, origin: {:url, url})
+        {:noreply, socket}
+
+      {:error, _message} ->
+        {:noreply, push_patch(socket, to: Routes.home_path(socket, :import, "url", url: url))}
+    end
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
@@ -331,10 +347,8 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_info({:import_content, content, session_opts}, socket) do
-    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
-    socket = put_import_flash_messages(socket, messages)
-    session_opts = Keyword.merge(session_opts, notebook: notebook)
-    {:noreply, create_session(socket, session_opts)}
+    socket = import_content(socket, content, session_opts)
+    {:noreply, socket}
   end
 
   def handle_info(
@@ -390,5 +404,12 @@ defmodule LivebookWeb.HomeLive do
   def format_creation_date(created_at) do
     time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
     time_words <> " ago"
+  end
+
+  defp import_content(socket, content, session_opts) do
+    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+    socket = put_import_flash_messages(socket, messages)
+    session_opts = Keyword.merge(session_opts, notebook: notebook)
+    create_session(socket, session_opts)
   end
 end

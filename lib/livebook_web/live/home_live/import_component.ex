@@ -27,7 +27,7 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
         </div>
       </div>
       <div>
-        <%= live_component component_for_tab(@tab), id: "import-#{@tab}" %>
+        <%= live_component component_for_tab(@tab), [{:id, "import-#{@tab}"} | @import_opts] %>
       </div>
     </div>
     """
