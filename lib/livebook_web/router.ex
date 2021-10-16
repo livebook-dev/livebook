@@ -53,7 +53,7 @@ defmodule LivebookWeb.Router do
   end
 
   # Public URLs that people may be directed to
-  scope "/p/", LivebookWeb do
+  scope "/", LivebookWeb do
     pipe_through [:browser, :auth]
 
     live "/import", HomeLive, :public_import
