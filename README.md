@@ -59,7 +59,7 @@ Running Livebook using Escript makes for a very convenient option
 for local usage and provides easy configuration via CLI options.
 
 ```shell
-mix escript.install hex livebook 0.2.3
+mix escript.install hex livebook
 
 # Start the Livebook server
 livebook server
