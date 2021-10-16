@@ -4,6 +4,7 @@ import {
   clamp,
   selectElementContent,
   smoothlyScrollToElement,
+  setFavicon,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
@@ -203,6 +204,20 @@ const Session = {
     );
   },
 
+  updated() {
+    const prevProps = this.props;
+    this.props = getProps(this);
+
+    if (
+      this.props.globalEvaluationStatus !== prevProps.globalEvaluationStatus
+    ) {
+      const favicon = faviconForEvaluationStatus(
+        this.props.globalEvaluationStatus
+      );
+      setFavicon(favicon);
+    }
+  },
+
   destroyed() {
     this._unsubscribeFromSessionEvents();
 
@@ -219,7 +234,18 @@ function getProps(hook) {
       "data-autofocus-cell-id",
       null
     ),
+    globalEvaluationStatus: getAttributeOrDefault(
+      hook.el,
+      "data-global-evaluation-status",
+      null
+    ),
   };
+}
+
+function faviconForEvaluationStatus(evaluationStatus) {
+  if (evaluationStatus === "evaluating") return "favicon-evaluating";
+  if (evaluationStatus === "stale") return "favicon-stale";
+  return "favicon";
 }
 
 /**

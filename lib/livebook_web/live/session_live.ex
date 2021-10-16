@@ -79,6 +79,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session"
+      data-global-evaluation-status={elem(@data_view.global_evaluation_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />

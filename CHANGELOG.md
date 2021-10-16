@@ -13,12 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added a keyboard shortcut for triggering on-hover docs ([#508](https://github.com/livebook-dev/livebook/pull/508))
 - Added `--open-new` CLI flag to `livebook server` ([#529](https://github.com/livebook-dev/livebook/pull/529))
 - Nx introductory notebook ([#528](https://github.com/livebook-dev/livebook/pull/528))
+- Display creation date of a session in home ([#593](https://github.com/livebook-dev/livebook/pull/593))
+- Dynamic favicon reflecting session state ([#594](https://github.com/livebook-dev/livebook/pull/594))
 
 ### Changed
 
 - Improved intellisense to handle structs and sigils ([#513](https://github.com/livebook-dev/livebook/pull/513))
 - Create new notebooks with an already focused code cell ([#527](https://github.com/livebook-dev/livebook/pull/527))
 - Switched base Docker image from alpine to debian-slim ([#552](https://github.com/livebook-dev/livebook/pull/552))
+- Update matching brackets style ([#595](https://github.com/livebook-dev/livebook/pull/595))
 
 ### Fixed
 

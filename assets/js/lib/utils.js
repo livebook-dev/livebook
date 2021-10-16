@@ -104,6 +104,18 @@ export function throttle(fn, windowMs) {
   };
 }
 
+export function setFavicon(name) {
+  let link = document.querySelector(`[rel="icon"]`);
+
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+  }
+
+  link.href = `/${name}.svg`;
+}
+
 export function findChildOrThrow(element, selector) {
   const child = element.querySelector(selector);
 
