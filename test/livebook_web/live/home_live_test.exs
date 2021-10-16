@@ -208,6 +208,44 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
+  describe "public import endpoint" do
+    test "imports notebook from the given url and redirects to the new session", %{conn: conn} do
+      bypass = Bypass.open()
+
+      Bypass.expect_once(bypass, "GET", "/notebook", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "# My notebook")
+      end)
+
+      notebook_url = "http://localhost:#{bypass.port}/notebook"
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               live(conn, "/import?url=#{URI.encode_www_form(notebook_url)}")
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "My notebook"
+    end
+
+    test "redirects to the import form on error", %{conn: conn} do
+      bypass = Bypass.open()
+
+      Bypass.expect(bypass, "GET", "/notebook", fn conn ->
+        Plug.Conn.resp(conn, 500, "Error")
+      end)
+
+      notebook_url = "http://localhost:#{bypass.port}/notebook"
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               live(conn, "/import?url=#{URI.encode_www_form(notebook_url)}")
+
+      assert to == "/home/import/url?url=#{URI.encode_www_form(notebook_url)}"
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ notebook_url
+    end
+  end
+
   # Helpers
 
   defp test_notebook_path(name) do

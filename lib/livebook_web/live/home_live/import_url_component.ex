@@ -9,6 +9,15 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   end
 
   @impl true
+  def update(assigns, socket) do
+    if url = assigns[:url] do
+      {:ok, do_import(socket, url)}
+    else
+      {:ok, socket}
+    end
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
@@ -45,16 +54,20 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   end
 
   def handle_event("import", %{"data" => %{"url" => url}}, socket) do
+    {:noreply, do_import(socket, url)}
+  end
+
+  defp do_import(socket, url) do
     url
     |> ContentLoader.rewrite_url()
     |> ContentLoader.fetch_content()
     |> case do
       {:ok, content} ->
         send(self(), {:import_content, content, [origin: {:url, url}]})
-        {:noreply, socket}
+        socket
 
       {:error, message} ->
-        {:noreply, assign(socket, error_message: Utils.upcase_first(message))}
+        assign(socket, url: url, error_message: Utils.upcase_first(message))
     end
   end
 end
