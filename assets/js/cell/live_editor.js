@@ -152,7 +152,9 @@ class LiveEditor {
       },
       overviewRulerLanes: 0,
       scrollBeyondLastLine: false,
-      renderIndentGuides: false,
+      guides: {
+        indentation: false,
+      },
       occurrencesHighlight: false,
       renderLineHighlight: "none",
       theme: "custom",
