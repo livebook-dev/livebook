@@ -70,6 +70,10 @@ const Session = {
       followedClientPid: null,
     };
 
+    // Set initial favicon based on the current status
+
+    setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
+
     // Load initial data
 
     this.pushEvent("session_init", {}, ({ clients }) => {
@@ -211,10 +215,7 @@ const Session = {
     if (
       this.props.globalEvaluationStatus !== prevProps.globalEvaluationStatus
     ) {
-      const favicon = faviconForEvaluationStatus(
-        this.props.globalEvaluationStatus
-      );
-      setFavicon(favicon);
+      setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
     }
   },
 
@@ -224,6 +225,8 @@ const Session = {
     document.removeEventListener("keydown", this.handleDocumentKeyDown);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
+
+    setFavicon("favicon");
   },
 };
 
