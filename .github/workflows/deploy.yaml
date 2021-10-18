@@ -38,6 +38,8 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+      - name: Clean generated assets
+        run: rm -rf static/{js,css}
       - name: Install npm dependencies
         run: npm ci --prefix assets
       - name: Build assets
@@ -46,7 +48,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update assets
-          file_pattern: priv/static
+          file_pattern: static
   docker:
     # The assets job may push new commit, so we wait for it
     needs: assets

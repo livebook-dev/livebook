@@ -20,7 +20,7 @@ module.exports = (env, options) => {
       filename: "[name].js",
       path: path.resolve(
         __dirname,
-        devMode ? "../tmp/static_dev/js" : "../priv/static/js"
+        devMode ? "../tmp/static_dev/js" : "../static/js"
       ),
       publicPath: "/js/",
     },
