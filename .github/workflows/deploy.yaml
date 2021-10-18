@@ -46,7 +46,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update assets
-          file_pattern: priv/static
+          file_pattern: static
   docker:
     # The assets job may push new commit, so we wait for it
     needs: assets

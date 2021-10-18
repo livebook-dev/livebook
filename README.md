@@ -1,4 +1,4 @@
-<h1><img src="https://github.com/livebook-dev/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
+<h1><img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
  [![Hex.pm](https://img.shields.io/hexpm/v/livebook)](https://hex.pm/packages/livebook)
 
