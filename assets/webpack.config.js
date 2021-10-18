@@ -40,14 +40,14 @@ module.exports = (env, options) => {
         },
         {
           test: /\.(ttf|woff|woff2|eot|svg)$/,
-          use: ["file-loader"],
+          type: "asset/resource",
         },
       ],
     },
     plugins: [
       // Polyfill the global "process" variable required by "remark" internals
       new webpack.ProvidePlugin({
-        process: "process/browser",
+        process: "process/browser.js",
       }),
       new MiniCssExtractPlugin({ filename: "../css/app.css" }),
       new MonacoWebpackPlugin({
