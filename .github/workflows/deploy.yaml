@@ -38,6 +38,8 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+      - name: Clean generated assets
+        run: rm -rf static/{js,css}
       - name: Install npm dependencies
         run: npm ci --prefix assets
       - name: Build assets
