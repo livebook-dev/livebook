@@ -579,18 +579,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("queue_child_cells_evaluation", %{"cell_id" => cell_id}, socket) do
-    with {:ok, cell, _section} <-
-           Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id) do
-      for {cell, _} <- Notebook.child_cells_with_section(socket.private.data.notebook, cell.id),
-          is_struct(cell, Cell.Elixir) do
-        Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
-      end
-    end
-
-    {:noreply, socket}
-  end
-
   def handle_event("queue_bound_cells_evaluation", %{"cell_id" => cell_id}, socket) do
     data = socket.private.data
 
