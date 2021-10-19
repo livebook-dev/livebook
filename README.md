@@ -39,6 +39,10 @@ From time to time, we also publish some videos for new Livebook releases:
 We provide several distinct methods of running Livebook,
 pick the one that best fits your use case.
 
+### Running on the cloud
+
+  * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
+
 ### Running locally
 
 You can run Livebook on your own machine. You will need
