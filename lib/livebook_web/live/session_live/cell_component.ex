@@ -336,7 +336,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{evaluation_status: :queued}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-gray-500" animated_circle_class="bg-gray-400">
+    <.status_indicator circle_class="bg-gray-400" animated_circle_class="bg-gray-300">
       Queued
     </.status_indicator>
     """
@@ -363,7 +363,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{validity_status: :aborted}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-red-400">
+    <.status_indicator circle_class="bg-gray-500">
       Aborted
     </.status_indicator>
     """
