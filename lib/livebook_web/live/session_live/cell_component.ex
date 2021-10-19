@@ -419,12 +419,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
       <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
-          <%= render_output(output, %{id: "cell-#{@cell_view.id}-evaluation#{@cell_view.number_of_evaluations}-output#{index}", socket: @socket}) %>
+          <%= render_output(output, %{
+                id: "cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-output#{index}",
+                socket: @socket
+              }) %>
         </div>
       <% end %>
     </div>
     """
   end
+
+  defp evaluation_number(:evaluating, number_of_evaluations), do: number_of_evaluations + 1
+  defp evaluation_number(_evaluation_status, number_of_evaluations), do: number_of_evaluations
 
   defp render_output(text, %{id: id}) when is_binary(text) do
     # Captured output usually has a trailing newline that we can ignore,
