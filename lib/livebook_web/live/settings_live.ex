@@ -20,7 +20,8 @@ defmodule LivebookWeb.SettingsLive do
      assign(socket,
        current_user: current_user,
        file_systems: file_systems,
-       file_systems_env: file_systems_env
+       file_systems_env: file_systems_env,
+       reevaulate_automatically: true
      )}
   end
 
@@ -68,6 +69,14 @@ defmodule LivebookWeb.SettingsLive do
             <%= live_component LivebookWeb.SettingsLive.FileSystemsComponent,
                   file_systems: @file_systems %>
           </div>
+          <div class="flex flex-col space-y-4">
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl text-gray-800 font-semibold">
+                General
+              </h2>
+            </div>
+          </div>
+            <%= live_component LivebookWeb.SettingsLive.RuntimeSettingsComponent, id: :someid, reevaulate_automatically: @reevaulate_automatically %>
         </div>
       </div>
     </div>
@@ -117,5 +126,10 @@ defmodule LivebookWeb.SettingsLive do
   def handle_info({:file_systems_updated, file_systems}, socket) do
     file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
     {:noreply, assign(socket, file_systems: file_systems, file_systems_env: file_systems_env)}
+  end
+
+  @impl true
+  def handle_event("trigger", _, socket) do
+    {:noreply, assign(socket, reevaulate_automatically: !socket.assigns.reevaulate_automatically )}
   end
 end
