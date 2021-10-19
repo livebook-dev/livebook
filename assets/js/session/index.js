@@ -335,8 +335,6 @@ function handleDocumentKeyDown(hook, event) {
       queueAllCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "s"])) {
       queueFocusedSectionEvaluation(hook);
-    } else if (keyBuffer.tryMatch(["e", "j"])) {
-      queueChildCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["s", "s"])) {
       toggleSectionsList(hook);
     } else if (keyBuffer.tryMatch(["s", "u"])) {
@@ -636,14 +634,6 @@ function queueFocusedSectionEvaluation(hook) {
   if (hook.state.focusedSectionId) {
     hook.pushEvent("queue_section_cells_evaluation", {
       section_id: hook.state.focusedSectionId,
-    });
-  }
-}
-
-function queueChildCellsEvaluation(hook) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("queue_child_cells_evaluation", {
-      cell_id: hook.state.focusedCellId,
     });
   }
 }

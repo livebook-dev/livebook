@@ -96,7 +96,6 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["e", "e"], desc: "Evaluate cell"},
       %{seq: ["e", "s"], desc: "Evaluate section"},
       %{seq: ["e", "a"], desc: "Evaluate all stale/new cells", basic: true},
-      %{seq: ["e", "j"], desc: "Evaluate cells below"},
       %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
       %{seq: ["s", "s"], desc: "Toggle sections panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
