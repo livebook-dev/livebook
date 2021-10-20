@@ -56,6 +56,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
+        <%= if Livebook.Config.evaluates_automatically?() do %>
+          <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+            phx-click="navigate_to_settings"
+            phx-value-cell_id={@cell_view.id}>
+            <.remix_icon icon="check-line" class="text-xl" />
+            <span class="text-sm font-medium">
+              Automatically reevaluates
+            </span>
+          </button>
+        <% else %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="queue_cell_evaluation"
             phx-value-cell_id={@cell_view.id}>
@@ -64,6 +74,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               <%= if(@cell_view.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
             </span>
           </button>
+        <% end %>
         <% else %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="cancel_cell_evaluation"

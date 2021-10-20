@@ -732,6 +732,11 @@ defmodule LivebookWeb.SessionLive do
     {:reply, %{code: formatted}, socket}
   end
 
+  def handle_event("navigate_to_settings", _, socket) do
+    {:noreply, push_redirect(socket, to: "/settings")}
+  end
+
+
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.private.data, operation) do
@@ -811,6 +816,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
 
   defp handle_relative_path(socket, path) do
     cond do
