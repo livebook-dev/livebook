@@ -88,7 +88,7 @@ defmodule Livebook.Application do
           invalid_hostname!("your hostname \"#{hostname}\" does not resolve to an IP address")
 
         {:ok, hostent(h_addrtype: :inet, h_addr_list: addresses)} ->
-          if {127, 0, 0, 1} not in addresses and {192, 168, 0, 1} not in addresses do
+          if {127, 0, 0, 1} not in addresses do
             invalid_hostname!("your hostname \"#{hostname}\" does not resolve to 127.0.0.1")
           end
 
