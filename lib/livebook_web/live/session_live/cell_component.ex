@@ -56,7 +56,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
-        <%= if Livebook.Config.evaluates_automatically?() do %>
+        <%= if Livebook.Config.evaluates_automatically?() && @cell_view.validity_status == :evaluated do %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="navigate_to_settings"
             phx-value-cell_id={@cell_view.id}>
