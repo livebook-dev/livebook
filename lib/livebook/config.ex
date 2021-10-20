@@ -47,7 +47,11 @@ defmodule Livebook.Config do
   """
   @spec evaluates_automatically?() :: boolean()
   def evaluates_automatically?() do
-    Application.fetch_env!(:livebook, :automatic_evaluation)
+    with {:ok, value} <- Application.fetch_env(:livebook, :automatic_evaluation) do
+      value
+    else
+      :error -> false
+    end
   end
 
   @doc """
