@@ -48,6 +48,10 @@
   list-style-type: square;
 }
 
+.markdown .task-list-item {
+  list-style-type: none;
+}
+
 .markdown ul > li,
 .markdown ol > li {
   @apply my-1;
