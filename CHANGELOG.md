@@ -28,8 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Improved Markdown and math integration by migrating to remark ([#495](https://github.com/livebook-dev/livebook/pull/495))
 - Improved the evaluator process to not consume user-submitted messages from inbox ([#502](https://github.com/livebook-dev/livebook/pull/502))
 - Improved sections panel UI to better handle numerous sections or long section names ([#534](https://github.com/livebook-dev/livebook/pull/534) and [#537](https://github.com/livebook-dev/livebook/pull/537))
-- Fixed branching section evaluation when the parent section is empty ([#560](https://github.com/livebook-dev/livebook/pull/560)
-- Fixed ANSI support to handle multi-code escape sequences ([#569](https://github.com/livebook-dev/livebook/pull/569)
+- Fixed branching section evaluation when the parent section is empty ([#560](https://github.com/livebook-dev/livebook/pull/560))
+- Fixed ANSI support to handle multi-code escape sequences ([#569](https://github.com/livebook-dev/livebook/pull/569))
 
 ## [v0.2.3](https://github.com/livebook-dev/livebook/tree/v0.2.3) (2021-08-12)
 
