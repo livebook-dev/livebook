@@ -75,25 +75,41 @@ defmodule Livebook.Application do
     end
   end
 
+  import Record
+  defrecordp :hostent, Record.extract(:hostent, from_lib: "kernel/include/inet.hrl")
+
   # See https://github.com/livebook-dev/livebook/issues/302
   defp validate_hostname_resolution!() do
     unless Livebook.Config.longname() do
       hostname = Livebook.Utils.node_host() |> to_charlist()
 
-      if :inet.gethostbyname(hostname) == {:error, :nxdomain} do
-        Livebook.Config.abort!("""
-        your hostname "#{hostname}" does not resolve to any IP address, which indicates something wrong in your OS configuration.
+      case :inet.gethostbyname(hostname) do
+        {:error, :nxdomain} ->
+          invalid_hostname!("your hostname \"#{hostname}\" does not resolve to an IP address")
 
-        Make sure your computer's name resolves locally or start Livebook using a long distribution name. If you are using Livebook's CLI, you can:
+        {:ok, hostent(h_addrtype: :inet, h_addr_list: addresses)} ->
+          if {127, 0, 0, 1} not in addresses do
+            invalid_hostname!("your hostname \"#{hostname}\" does not resolve to 127.0.0.1")
+          end
 
-            livebook server --name livebook@127.0.0.1
-
-        If you are running it from source, do instead:
-
-            MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
-        """)
+        _ ->
+          :ok
       end
     end
+  end
+
+  defp invalid_hostname!(prelude) do
+    Livebook.Config.abort!("""
+    #{prelude}, which indicates something wrong in your OS configuration.
+
+    Make sure your computer's name resolves locally or start Livebook using a long distribution name. If you are using Livebook's CLI, you can:
+
+        livebook server --name livebook@127.0.0.1
+
+    If you are running it from source, do instead:
+
+        MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+    """)
   end
 
   defp set_cookie() do
