@@ -63,7 +63,7 @@ defmodule LivebookWeb.ExploreLive do
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">
-              <img src={@lead_notebook_info.image_url} height="120" width="120" alt="livebook" />
+              <img src={@lead_notebook_info.cover_url} height="120" width="120" alt="livebook" />
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
