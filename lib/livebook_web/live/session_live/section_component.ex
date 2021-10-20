@@ -68,9 +68,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </span>
-            <span class="tooltip top" aria-label={if @section_view.has_children?, do: "Cannot delete this section because\nother sections branch from it", else: "Delete"}>
-              <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
-                    class: "icon-button #{if @section_view.has_children?, do: "disabled"}" do %>
+          <span class="tooltip top" aria-label={if @section_view.has_children?, do: "Cannot delete this section because\nother sections branch from it", else: "Delete"}>
+            <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
+                  class: "icon-button #{if @section_view.has_children?, do: "disabled"}" do %>
               <.remix_icon icon="delete-bin-6-line" class="text-xl" />
             <% end %>
           </span>
