@@ -15,13 +15,14 @@ defmodule LivebookWeb.SettingsLive do
 
     file_systems = Livebook.Config.file_systems()
     file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
+    evaluates_automatically? = Livebook.Config.evaluates_automatically?()
 
     {:ok,
      assign(socket,
        current_user: current_user,
        file_systems: file_systems,
        file_systems_env: file_systems_env,
-       reevaulate_automatically: true
+       evaluates_automatically?: evaluates_automatically?
      )}
   end
 
@@ -76,7 +77,7 @@ defmodule LivebookWeb.SettingsLive do
               </h2>
             </div>
           </div>
-            <%= live_component LivebookWeb.SettingsLive.RuntimeSettingsComponent, id: :someid, reevaulate_automatically: @reevaulate_automatically %>
+            <%= live_component LivebookWeb.SettingsLive.RuntimeSettingsComponent, id: :someid, evaluates_automatically?: @evaluates_automatically? %>
         </div>
       </div>
     </div>
@@ -129,7 +130,8 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   @impl true
-  def handle_event("trigger", _, socket) do
-    {:noreply, assign(socket, reevaulate_automatically: !socket.assigns.reevaulate_automatically )}
+  def handle_event("trigger_automatic_evaluation", _, socket) do
+    evaluates_automatically? = Livebook.Config.set_automatic_evaluation(!socket.assigns.evaluates_automatically? )
+    {:noreply, assign(socket, evaluates_automatically?: evaluates_automatically? )}
   end
 end

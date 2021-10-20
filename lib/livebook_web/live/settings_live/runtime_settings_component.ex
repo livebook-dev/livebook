@@ -27,27 +27,19 @@ defmodule LivebookWeb.SettingsLive.RuntimeSettingsComponent do
     {:ok, socket}
   end
 
-  # @impl true
-  # def update(assigns, socket) do
-  # {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
-
-  # socket =
-  # socket
-  # |> assign(assigns)
-  # |> update_file_infos(force_reload?)
-
-  # {:ok, socket}
-  # end
-
   @impl true
   def render(assigns) do
     ~H"""
     <div class="h-full flex flex-col">
       <div class="flex space-x-3 items-center mb-4">
-      <div >
-        Reevaluate automatically
-      <.toggle_display status={@reevaulate_automatically} />
+      <div>
+        Evaluate Automatically:
       </div>
+
+      <div>
+        <.toggle_display status={@evaluates_automatically?} />
+      </div>
+
       </div>
     </div>
     """
@@ -66,13 +58,12 @@ defmodule LivebookWeb.SettingsLive.RuntimeSettingsComponent do
 
     ~H"""
          <div
-            phx-click="trigger"
+            phx-click="trigger_automatic_evaluation"
             class={container_class}
           >
-            <div
-        class={toggle_class}
-            ></div>
+            <div class={toggle_class} />
           </div>
     """
   end
+
 end

@@ -55,6 +55,7 @@ defmodule Livebook do
     configured_file_systems = Livebook.Config.file_systems!("LIVEBOOK_FILE_SYSTEM_")
 
     config :livebook, :file_systems, [local_file_system | configured_file_systems]
+    config :livebook, automatic_evaluation: false
   end
 
   @doc """

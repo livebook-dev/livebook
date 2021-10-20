@@ -43,6 +43,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the list of currently available file systems.
+  """
+  @spec evaluates_automatically?() :: boolean()
+  def evaluates_automatically?() do
+    Application.fetch_env!(:livebook, :automatic_evaluation)
+  end
+
+  @doc """
   Appends a new file system to the configured ones.
   """
   @spec append_file_system(FileSystem.t()) :: list(FileSystem.t())
@@ -60,6 +68,15 @@ defmodule Livebook.Config do
     file_systems = List.delete(file_systems(), file_system)
     Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
     file_systems
+  end
+
+  @doc """
+  Sets the option for automatic code evaluation
+  """
+  @spec set_automatic_evaluation(evaluates_automatically? :: boolean()) :: boolean()
+  def set_automatic_evaluation(evaluates_automatically?) do
+    Application.put_env(:livebook, :automatic_evaluation, evaluates_automatically?, persistent: true)
+    evaluates_automatically?
   end
 
   @doc """
