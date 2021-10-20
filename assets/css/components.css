@@ -61,7 +61,7 @@
     @apply bg-gray-100;
   }
 
-  .icon-button:disabled {
+  .icon-button.disabled {
     @apply cursor-default pointer-events-none text-gray-300;
   }
 
