@@ -240,9 +240,6 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {_path, flash} = assert_redirect(view)
 
-      assert flash["info"] =~
-               "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
-
       assert flash["warning"] =~
                "We found problems while importing the file and tried to autofix them:\n- Downgrading all headings, because 3 instances of heading 1 were found"
     end

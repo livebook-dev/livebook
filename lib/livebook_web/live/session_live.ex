@@ -872,7 +872,7 @@ defmodule LivebookWeb.SessionLive do
         {file, notebook} = file_and_notebook(fork?, origin, notebook)
 
         socket
-        |> put_import_flash_messages(messages)
+        |> put_import_warnings(messages)
         |> create_session(notebook: notebook, origin: origin, file: file)
 
       {:error, message} ->
