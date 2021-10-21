@@ -36,7 +36,7 @@ defmodule LivebookWeb.SessionHelpers do
           Phoenix.LiveView.Socket.t()
   def put_import_flash_messages(socket, messages)
 
-  def put_import_flash_messages(socket, []), do: socket |> put_import_info_flash()
+  def put_import_flash_messages(socket, []), do: socket
 
   def put_import_flash_messages(socket, messages) do
     list =
@@ -50,10 +50,19 @@ defmodule LivebookWeb.SessionHelpers do
       ])
 
     put_flash(socket, :warning, flash)
-    |> put_import_info_flash()
   end
 
-  defp put_import_info_flash(socket),
+  @doc """
+  Puts a new info flash for the recently imported notebook
+  with the following message:
+
+  "You have imported a notebook, but no code has been evaluated yet.
+  You can read the notebook and evaluate code as needed."
+  """
+  @spec put_import_info_flash(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def put_import_info_flash(socket)
+
+  def put_import_info_flash(socket),
     do:
       put_flash(
         socket,

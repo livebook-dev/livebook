@@ -408,7 +408,11 @@ defmodule LivebookWeb.HomeLive do
 
   defp import_content(socket, content, session_opts) do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
-    socket = put_import_flash_messages(socket, messages)
+
+    socket =
+      put_import_flash_messages(socket, messages)
+      |> put_import_info_flash()
+
     session_opts = Keyword.merge(session_opts, notebook: notebook)
     create_session(socket, session_opts)
   end
