@@ -410,7 +410,7 @@ defmodule LivebookWeb.HomeLive do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
 
     socket =
-      socket 
+      socket
       |> put_import_warnings(messages)
       |> put_flash(
         :info,
