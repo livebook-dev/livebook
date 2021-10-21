@@ -88,8 +88,12 @@ defmodule Livebook.Application do
           invalid_hostname!("your hostname \"#{hostname}\" does not resolve to an IP address")
 
         {:ok, hostent(h_addrtype: :inet, h_addr_list: addresses)} ->
-          if {127, 0, 0, 1} not in addresses do
-            invalid_hostname!("your hostname \"#{hostname}\" does not resolve to 127.0.0.1")
+          any_loopback? = Enum.any?(addresses, &match?({127, _, _, _}, &1))
+
+          unless any_loopback? do
+            invalid_hostname!(
+              "your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8)"
+            )
           end
 
         _ ->
