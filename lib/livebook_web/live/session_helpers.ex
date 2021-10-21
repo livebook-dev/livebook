@@ -30,7 +30,7 @@ defmodule LivebookWeb.SessionHelpers do
 
   @doc """
   Formats the given list of notebook import messages and puts
-  into the info flash.
+  into the warning flash.
   """
   @spec put_import_flash_messages(Phoenix.LiveView.Socket.t(), list(String.t())) ::
           Phoenix.LiveView.Socket.t()
@@ -49,7 +49,8 @@ defmodule LivebookWeb.SessionHelpers do
         "We found problems while importing the file and tried to autofix them:\n" | list
       ])
 
-    put_flash(socket, :info, flash)
+    put_flash(socket, :warning, flash)
+    |> put_import_info_flash()
   end
 
   defp put_import_info_flash(socket),
