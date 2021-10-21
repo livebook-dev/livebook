@@ -58,6 +58,6 @@ defmodule LivebookWeb.SessionHelpers do
       put_flash(
         socket,
         :info,
-        "You have imported a notebook, but no code has been evaluated yet.\nYou can read the notebook and evaluate code as needed."
+        "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
       )
 end
