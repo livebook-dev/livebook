@@ -410,7 +410,8 @@ defmodule LivebookWeb.HomeLive do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
 
     socket =
-      put_import_warnings(socket, messages)
+      socket 
+      |> put_import_warnings(messages)
       |> put_flash(
         :info,
         "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
