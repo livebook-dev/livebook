@@ -14,11 +14,13 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Reproducible: Livebook ensures your code runs in a predictable order, all the way down to package management. It also tracks your notebook state, annotating which parts are stale.
 
-  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
-
   * Persistence: persist your notebooks to disk or any S3-compatible cloud storage.
 
   * Collaboration: multiple users can work on the same notebook at once. It works out-of-the-box either in single-node or multi-node deployments - without a need for additional tooling.
+
+  * Decentralized: Livebook is open-source and you can run it anywhere. The ["Run in Livebook" badges](https://livebook.dev/badge) makes it easy to import any Livebook into your preferred Livebook instance.
+
+  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to introspect and document existing projects too.
 
 We are actively working on Livebook and you can consult the issues tracker to see some of the features we are exploring. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring some of our features.
 
