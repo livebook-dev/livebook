@@ -9,6 +9,15 @@
       </div>
     <% end %>
 
+    <%= if live_flash(@flash, :warning) do %>
+      <div class="flex items-center space-x-2 rounded-lg px-4 py-2 bg-yellow-100 text-yellow-600 hover:opacity-75 cursor-pointer" role="alert"
+        phx-click="lv:clear-flash"
+        phx-value-key="warning">
+        <.remix_icon icon="error-warning-line" class="text-2xl" />
+        <span class="whitespace-pre-wrap"><%= live_flash(@flash, :warning) %></span>
+      </div>
+    <% end %>
+
     <%= if live_flash(@flash, :error) do %>
       <div class="flex items-center space-x-2 rounded-lg px-4 py-2 bg-red-100 text-red-400 hover:opacity-75 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
