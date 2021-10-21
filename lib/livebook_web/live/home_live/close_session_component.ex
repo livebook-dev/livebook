@@ -12,11 +12,9 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
         Are you sure you want to close this section -
         <span class="font-semibold">“<%= @session.notebook_name %>”</span>?
         <br/>
-        <%= if is_nil(assigns.session.file) do %>
-          The notebook is not persisted and all content will be lost.
-        <% else %>
-          This won't delete any persisted files.
-        <% end %>
+        <%= if @session.file,
+              do: "This won't delete any persisted files.",
+              else: "The notebook is not persisted and all content will be lost." %>
       </p>
       <div class="mt-8 flex justify-end space-x-2">
         <button class="button button-red" phx-click="close" phx-target={@myself}>
