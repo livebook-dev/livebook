@@ -79,7 +79,10 @@ defmodule Livebook.Config do
   """
   @spec set_automatic_evaluation(evaluates_automatically? :: boolean()) :: boolean()
   def set_automatic_evaluation(evaluates_automatically?) do
-    Application.put_env(:livebook, :automatic_evaluation, evaluates_automatically?, persistent: true)
+    Application.put_env(:livebook, :automatic_evaluation, evaluates_automatically?,
+      persistent: true
+    )
+
     evaluates_automatically?
   end
 

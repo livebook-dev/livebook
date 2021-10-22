@@ -738,7 +738,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_redirect(socket, to: "/settings")}
   end
 
-
   @impl true
   def handle_info({:operation, operation}, socket) do
     case Session.Data.apply_operation(socket.private.data, operation) do
@@ -818,13 +817,16 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info(:automatic_evaluation, socket) do
-
     # evaluate automatically the cells that are already evaluated in case the setting
     # of automatic evaluation is active.
     if Livebook.Config.evaluates_automatically?() do
-      Enum.flat_map(socket.assigns.data_view.section_views, fn section_view -> section_view.cell_views end) 
+      Enum.flat_map(socket.assigns.data_view.section_views, fn section_view ->
+        section_view.cell_views
+      end)
       |> Enum.filter(fn cell_view -> cell_view.validity_status == :evaluated end)
-      |> Enum.each(fn cell_view -> Session.queue_cell_evaluation(socket.assigns.session.pid, cell_view.id) end)
+      |> Enum.each(fn cell_view ->
+        Session.queue_cell_evaluation(socket.assigns.session.pid, cell_view.id)
+      end)
 
       Process.send_after(self(), :automatic_evaluation, 5000)
     end
@@ -833,7 +835,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
-
 
   def abc(socket, cell_id) do
     {:noreply, push_event(socket, "queue_cell_evaluation", %{cell_id: cell_id})}

@@ -3,24 +3,10 @@ defmodule LivebookWeb.SettingsLive.RuntimeSettingsComponent do
 
   # The component expects:
   #
-  #   * `file` - the currently entered file
+  #   * `evaluates_automatically?` - the option that indicates if automatic evaluation of cell is active.
   #
-  #   * `running_files` - the list of notebook files that are already
-  #     linked to running sessions
-  #
-  #   * `extnames` - a list of file extensions that should be shown
-  #
-  #   * `submit_event` - the process event sent on form submission,
-  #     use `nil` for no action
-  #
-  # The parent live view receives a `{:set_file, file, %{exists: boolean()}}`
-  # message whenever the file changes.
-  #
-  # Optionally inner block may be passed (e.g. with action buttons)
-  # and it's rendered next to the text input.
-  #
-  # To force the component to refetch the displayed files you can
-  # `send_update` with `force_reload: true` to the component.
+  # The parent live view receives a `:trigger_automatic_evaluation`
+  # message whenever the user toggles the automatic evaluation option.
 
   @impl true
   def mount(socket) do
@@ -37,7 +23,7 @@ defmodule LivebookWeb.SettingsLive.RuntimeSettingsComponent do
       </div>
 
       <div>
-        <.toggle_display status={@evaluates_automatically?} />
+        <.toggle_display automatic_evaluation_is_on={@evaluates_automatically?} />
       </div>
 
       </div>
@@ -45,10 +31,9 @@ defmodule LivebookWeb.SettingsLive.RuntimeSettingsComponent do
     """
   end
 
-
   defp toggle_display(assigns) do
     {container_class, toggle_class} =
-      if assigns.status,
+      if assigns.automatic_evaluation_is_on,
         do:
           {"w-14 h-7 flex items-center bg-blue-700 rounded-full mx-3 px-1",
            "bg-white w-5 h-5 rounded-full shadow-md transform translate-x-7"},
@@ -65,5 +50,4 @@ defmodule LivebookWeb.SettingsLive.RuntimeSettingsComponent do
           </div>
     """
   end
-
 end

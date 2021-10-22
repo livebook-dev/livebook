@@ -77,7 +77,10 @@ defmodule LivebookWeb.SettingsLive do
               </h2>
             </div>
           </div>
-            <%= live_component LivebookWeb.SettingsLive.RuntimeSettingsComponent, id: :someid, evaluates_automatically?: @evaluates_automatically? %>
+          <%= live_component LivebookWeb.SettingsLive.RuntimeSettingsComponent, 
+            id: "runtime_settings", 
+            evaluates_automatically?: @evaluates_automatically? 
+          %>
         </div>
       </div>
     </div>
@@ -131,7 +134,9 @@ defmodule LivebookWeb.SettingsLive do
 
   @impl true
   def handle_event("trigger_automatic_evaluation", _, socket) do
-    evaluates_automatically? = Livebook.Config.set_automatic_evaluation(!socket.assigns.evaluates_automatically? )
-    {:noreply, assign(socket, evaluates_automatically?: evaluates_automatically? )}
+    evaluates_automatically? =
+      Livebook.Config.set_automatic_evaluation(!socket.assigns.evaluates_automatically?)
+
+    {:noreply, assign(socket, evaluates_automatically?: evaluates_automatically?)}
   end
 end
