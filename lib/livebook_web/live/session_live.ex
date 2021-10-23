@@ -810,6 +810,11 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "location_report", report)}
   end
 
+  def handle_info({:queue_stale_component, %{"cell_view" => cell_view}}, socket) do
+    Session.queue_cell_evaluation(socket.assigns.session.pid, cell_view.id)
+    {:noreply, socket}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path) do
@@ -1223,7 +1228,8 @@ defmodule LivebookWeb.SessionLive do
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
-      number_of_evaluations: info.number_of_evaluations
+      number_of_evaluations: info.number_of_evaluations,
+      evaluate_automatically?: cell.evaluate_automatically?
     }
   end
 
