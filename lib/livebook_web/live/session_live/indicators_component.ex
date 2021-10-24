@@ -52,12 +52,6 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         </span>
       <% end %>
 
-      <span class="tooltip left" aria-label="Go back to the top of this page">
-        <a href="#notebook-name" class="border-gray-200 icon-button icon-outlined-button hover:bg-gray-100 focus:bg-gray-100">
-          <.remix_icon icon="arrow-up-line" class="text-xl text-gray-400" />
-        </a>
-      </span>
-
       <%# Note: this indicator is shown/hidden using CSS based on the current mode %>
       <span class="tooltip left" aria-label="Insert mode" data-element="insert-mode-indicator">
         <span class="text-sm font-medium text-gray-400 cursor-default">
