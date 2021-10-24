@@ -126,7 +126,7 @@ function remarkExpandUrls(options) {
   return (ast) => {
     if (options.baseUrl) {
       visit(ast, "link", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url) && !node.url.match(/^\#/)) {
+        if (node.url && !isAbsoluteUrl(node.url) && !isPageAnchor(node.url)) {
           node.url = urlAppend(options.baseUrl, node.url);
         }
       });
@@ -172,6 +172,10 @@ function rehypeExternalLinks(options) {
 
 function isAbsoluteUrl(url) {
   return url.startsWith("http") || url.startsWith("/");
+}
+
+function isPageAnchor(url) {
+  return url.startsWith("#")
 }
 
 function isInternalUrl(url) {
