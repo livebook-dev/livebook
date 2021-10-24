@@ -126,7 +126,7 @@ function remarkExpandUrls(options) {
   return (ast) => {
     if (options.baseUrl) {
       visit(ast, "link", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url)) {
+        if (node.url && !isAbsoluteUrl(node.url) && !node.url.match(/^\#/)) {
           node.url = urlAppend(options.baseUrl, node.url);
         }
       });
@@ -161,7 +161,7 @@ function rehypeExternalLinks(options) {
         if (isInternalUrl(url)) {
           node.properties["data-phx-link"] = "redirect";
           node.properties["data-phx-link-state"] = "push";
-        } else {
+        } else if (!url.match(/^\#/)) {
           node.properties.target = "_blank";
           node.properties.rel = "noreferrer noopener";
         }
