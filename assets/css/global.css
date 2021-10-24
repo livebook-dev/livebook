@@ -4,6 +4,12 @@ button:focus {
   outline: none;
 }
 
+html,
+body,
+[data-element="notebook"] {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
