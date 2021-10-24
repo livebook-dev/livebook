@@ -161,7 +161,7 @@ function rehypeExternalLinks(options) {
         if (isInternalUrl(url)) {
           node.properties["data-phx-link"] = "redirect";
           node.properties["data-phx-link-state"] = "push";
-        } else if (!url.match(/^\#/)) {
+        } else if (isAbsoluteUrl(url)) {
           node.properties.target = "_blank";
           node.properties.rel = "noreferrer noopener";
         }
@@ -175,7 +175,7 @@ function isAbsoluteUrl(url) {
 }
 
 function isPageAnchor(url) {
-  return url.startsWith("#")
+  return url.startsWith("#");
 }
 
 function isInternalUrl(url) {
