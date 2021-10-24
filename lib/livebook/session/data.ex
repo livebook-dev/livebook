@@ -1315,6 +1315,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    |> maybe_queue_reevaluating_cells()
   end
 
   defp compute_snapshots({data, _} = data_actions) do
@@ -1417,6 +1418,32 @@ defmodule Livebook.Session.Data do
 
         %{info | validity_status: validity_status}
       end)
+    end)
+  end
+
+  defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
+    stale_cell_ids =
+      for {cell_id, cell} <- data.cell_infos do
+        if cell.validity_status == :stale do
+          cell_id
+        end
+      end
+      |> Enum.reject(&is_nil/1)
+      |> MapSet.new()
+
+    stale_cells =
+      Notebook.elixir_cells_with_section(data.notebook)
+      |> Enum.flat_map(fn {_, %{cells: cells} = section} ->
+        Enum.map(cells, fn cell -> {cell, section} end)
+      end)
+      |> Enum.filter(fn {cell, _} ->
+        MapSet.member?(stale_cell_ids, cell.id) && cell.reevaluate_automatically
+      end)
+
+    data_actions
+    |> reduce(stale_cells, fn data_actions, {stale_cell, section} ->
+      data_actions
+      |> queue_cell_evaluation(stale_cell, section)
     end)
   end
 end

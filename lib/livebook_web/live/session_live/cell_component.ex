@@ -1,22 +1,6 @@
 defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
-  def update(assigns, socket) do
-    if should_enqueue_stale_component?(assigns.cell_view) do
-      send(self(), {:queue_stale_component, %{"cell_view" => assigns.cell_view}})
-    end
-
-    {
-      :ok,
-      socket
-      |> assign(
-        cell_view: assigns.cell_view,
-        id: assigns.id,
-        session_id: assigns.session_id
-      )
-    }
-  end
-
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
@@ -517,18 +501,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_evaluation_text(%{evaluate_automatically?: true}), do: "Evaluates Automatically"
+  defp render_evaluation_text(%{reevaluate_automatically: true, validity_status: :stale}),
+    do: "Evaluates Automatically"
 
   defp render_evaluation_text(%{validity_status: :evaluated}), do: "Reevaluate"
   defp render_evaluation_text(_), do: "Evaluate"
-
-  defp should_enqueue_stale_component?(%{
-         evaluate_automatically?: true,
-         validity_status: :stale,
-         evaluation_status: :ready,
-         empty?: false
-       }),
-       do: true
-
-  defp should_enqueue_stale_component?(_), do: false
 end

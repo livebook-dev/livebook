@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
       socket
       |> assign(assigns)
       |> assign_new(:disable_formatting, fn -> cell.disable_formatting end)
-      |> assign_new(:evaluate_automatically?, fn -> cell.evaluate_automatically? end)
+      |> assign_new(:reevaluate_automatically, fn -> cell.reevaluate_automatically end)
 
     {:ok, socket}
   end
@@ -32,9 +32,9 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
         </div>
         <div class="w-full flex-col space-y-6 mt-4">
           <.switch_checkbox
-            name="evaluate_automatically"
-            label="Evaluate automatically"
-            checked={@evaluate_automatically?} />
+            name="reevaluate_automatically"
+            label="Reevaluate automatically"
+            checked={@reevaluate_automatically} />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
@@ -52,16 +52,16 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
         "save",
         %{
           "disable_formatting" => disable_formatting,
-          "evaluate_automatically" => evaluate_automatically
+          "reevaluate_automatically" => reevaluate_automatically
         },
         socket
       ) do
     disable_formatting = disable_formatting == "true"
-    evaluate_automatically? = evaluate_automatically == "true"
+    reevaluate_automatically = reevaluate_automatically == "true"
 
     Session.set_cell_attributes(socket.assigns.session.pid, socket.assigns.cell.id, %{
       disable_formatting: disable_formatting,
-      evaluate_automatically?: evaluate_automatically?
+      reevaluate_automatically: reevaluate_automatically
     })
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
