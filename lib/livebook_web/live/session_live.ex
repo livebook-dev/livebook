@@ -114,13 +114,13 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">
-          <div class="flex-grow flex flex-col">
-            <h3 class="font-semibold text-gray-800 text-lg">
+          <div class="flex flex-col flex-grow">
+            <h3 class="text-lg font-semibold text-gray-800">
               Sections
             </h3>
-            <div class="mt-4 flex flex-col space-y-4">
+            <div class="flex flex-col mt-4 space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
-                <button class="text-left hover:text-gray-900 text-gray-500 flex items-center space-x-1"
+                <button class="flex items-center space-x-1 text-left text-gray-500 hover:text-gray-900"
                   data-element="sections-list-item"
                   data-section-id={section_item.id}>
                   <span><%= section_item.name %></span>
@@ -128,13 +128,13 @@ defmodule LivebookWeb.SessionLive do
                     <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
                         consequently we show the tooltip wrapped to a fixed number of characters %>
                     <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                      <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
+                      <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
                     </span>
                   <% end %>
                 </button>
               <% end %>
             </div>
-            <button class="mt-8 p-8 py-1 text-gray-500 text-sm font-medium rounded-xl border border-gray-400 border-dashed hover:bg-gray-100 inline-flex items-center justify-center space-x-2"
+            <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
               phx-click="append_section">
               <.remix_icon icon="add-line" class="text-lg align-center" />
               <span>New section</span>
@@ -142,26 +142,26 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
         <div data-element="clients-list">
-          <div class="flex-grow flex flex-col">
-            <div class="flex space-x-4 items-center justify-between">
-              <h3 class="font-semibold text-gray-800 text-lg flex-lg">
+          <div class="flex flex-col flex-grow">
+            <div class="flex items-center justify-between space-x-4">
+              <h3 class="text-lg font-semibold text-gray-800 flex-lg">
                 Users
               </h3>
-              <span class="flex items-center space-x-2 bg-gray-200 p-2 rounded-lg text-sm">
-                <span class="bg-green-600 inline-flex rounded-full h-3 w-3"></span>
+              <span class="flex items-center p-2 space-x-2 text-sm bg-gray-200 rounded-lg">
+                <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
                 <span><%= length(@data_view.clients) %> connected</span>
               </span>
             </div>
-            <div class="mt-4 flex flex-col space-y-4">
+            <div class="flex flex-col mt-4 space-y-4">
               <%= for {client_pid, user} <- @data_view.clients do %>
                 <div class="flex items-center justify-between space-x-2"
                   id={"clients-list-item-#{inspect(client_pid)}"}
                   data-element="clients-list-item"
                   data-client-pid={inspect(client_pid)}>
-                  <button class="flex space-x-2 items-center text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
+                  <button class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
                     disabled={client_pid == @self}
                     data-element="client-link">
-                    <.user_avatar user={user} class="h-7 w-7 flex-shrink-0" text_class="text-xs" />
+                    <.user_avatar user={user} class="flex-shrink-0 h-7 w-7" text_class="text-xs" />
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>
@@ -186,10 +186,10 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
       </div>
-      <div class="flex-grow overflow-y-auto" data-element="notebook">
-        <div class="py-7 px-16 max-w-screen-lg w-full mx-auto">
-          <div class="flex space-x-4 items-center pb-4 mb-6 border-b border-gray-200">
-            <h1 class="flex-grow text-gray-800 font-semibold text-3xl p-1 -ml-1 rounded-lg border border-transparent hover:border-blue-200 focus:border-blue-300"
+      <div class="flex-grow overflow-y-auto scroll-smooth" data-element="notebook">
+        <div class="w-full max-w-screen-lg px-16 mx-auto py-7">
+          <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200">
+            <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable
@@ -202,12 +202,12 @@ defmodule LivebookWeb.SessionLive do
                 <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
               <div class="menu" data-content>
-                <button class="menu__item text-gray-500"
+                <button class="text-gray-500 menu__item"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
-                <a class="menu__item text-gray-500"
+                <a class="text-gray-500 menu__item"
                   href={live_dashboard_process_path(@socket, @session.pid)}
                   target="_blank">
                   <.remix_icon icon="dashboard-2-line" />

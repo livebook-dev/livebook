@@ -22,4 +22,8 @@
   .flip-horizontally {
     transform: scaleY(-1);
   }
+
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
 }

@@ -126,7 +126,7 @@ function remarkExpandUrls(options) {
   return (ast) => {
     if (options.baseUrl) {
       visit(ast, "link", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url)) {
+        if (node.url && !isAbsoluteUrl(node.url) && !isPageAnchor(node.url)) {
           node.url = urlAppend(options.baseUrl, node.url);
         }
       });
@@ -161,7 +161,7 @@ function rehypeExternalLinks(options) {
         if (isInternalUrl(url)) {
           node.properties["data-phx-link"] = "redirect";
           node.properties["data-phx-link-state"] = "push";
-        } else {
+        } else if (isAbsoluteUrl(url)) {
           node.properties.target = "_blank";
           node.properties.rel = "noreferrer noopener";
         }
@@ -172,6 +172,10 @@ function rehypeExternalLinks(options) {
 
 function isAbsoluteUrl(url) {
   return url.startsWith("http") || url.startsWith("/");
+}
+
+function isPageAnchor(url) {
+  return url.startsWith("#");
 }
 
 function isInternalUrl(url) {
