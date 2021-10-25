@@ -125,8 +125,8 @@ defmodule Livebook.LiveMarkdown.Export do
   defp cell_metadata(%Cell.Elixir{} = cell) do
     put_unless_default(
       %{},
-      Map.take(cell, [:disable_formatting]),
-      Map.take(Cell.Elixir.new(), [:disable_formatting])
+      Map.take(cell, [:disable_formatting, :reevaluate_automatically]),
+      Map.take(Cell.Elixir.new(), [:disable_formatting, :reevaluate_automatically])
     )
   end
 

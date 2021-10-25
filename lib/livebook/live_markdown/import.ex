@@ -334,6 +334,8 @@ defmodule Livebook.LiveMarkdown.Import do
     Enum.reduce(metadata, %{}, fn
       {"disable_formatting", disable_formatting}, attrs ->
         Map.put(attrs, :disable_formatting, disable_formatting)
+      {"reevaluate_automatically", reevaluate_automatically}, attrs ->
+        Map.put(attrs, :reevaluate_automatically, reevaluate_automatically)
 
       _entry, attrs ->
         attrs
