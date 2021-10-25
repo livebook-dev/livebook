@@ -168,6 +168,10 @@ defmodule Livebook.Intellisense.SignatureMatcher do
     find_cursor_call(right, {nil, :pipe})
   end
 
+  defp find_cursor_call({:@, _, [{attr, _, [arg]}]}, _acc) when is_atom(attr) do
+    find_cursor_call(arg, {nil, :none})
+  end
+
   defp find_cursor_call({left, _, right} = node, {_, pipe_info} = acc) when is_list(right) do
     if is_atom(left) and
          (Macro.operator?(left, length(right)) or

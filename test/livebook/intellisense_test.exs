@@ -1464,5 +1464,26 @@ defmodule Livebook.IntellisenseTest do
                ]
              } = Intellisense.get_signature_items("Enum.concat([1, 2], ", binding, env)
     end
+
+    test "does not return any signatures for module attributes" do
+      {binding, env} = eval(do: nil)
+
+      assert nil == Intellisense.get_signature_items("@length(", binding, env)
+    end
+
+    test "does not returns signatures for calls in attribute value" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   arguments: ["list"],
+                   documentation: _length_doc,
+                   signature: "length(list)"
+                 }
+               ]
+             } = Intellisense.get_signature_items("@attr length(", binding, env)
+    end
   end
 end
