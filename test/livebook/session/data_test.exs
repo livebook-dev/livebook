@@ -2838,13 +2838,13 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
 
-      attrs = %{disable_formatting: true}
+      attrs = %{disable_formatting: true, reevaluate_automatically: true}
       operation = {:set_cell_attributes, self(), "c1", attrs}
 
       assert {:ok,
               %{
                 notebook: %{
-                  sections: [%{cells: [%{disable_formatting: true}]}]
+                  sections: [%{cells: [%{disable_formatting: true, reevaluate_automatically: true}]}]
                 }
               }, _} = Data.apply_operation(data, operation)
     end
@@ -2942,6 +2942,28 @@ defmodule Livebook.Session.DataTest do
                     evaluation_queue: ["c2"]
                   }
                 }
+              }, _} = Data.apply_operation(data, operation)
+    end
+
+    test "given 1 input with reevaluate_automatically setting on, addding a new cell enqueues the first" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_cell_attributes, self(), "c1", %{reevaluate_automatically: true}},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+        ])
+
+      operation = {:insert_cell, self(), "s1", 0, :elixir, "c2"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{evaluation_status: :queued},
+                  "c2" => %{evaluation_status: :ready}
+                },
               }, _} = Data.apply_operation(data, operation)
     end
   end
