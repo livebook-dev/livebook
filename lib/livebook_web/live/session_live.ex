@@ -229,7 +229,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="flex flex-col w-full space-y-16">
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
-                <button class="button button-small"
+                <button class="button-base button-small"
                   phx-click="append_section">
                   + Section
                 </button>
@@ -653,6 +653,9 @@ defmodule LivebookWeb.SessionLive do
         %{"type" => "details", "line" => line, "column" => column} ->
           column = JSInterop.js_column_to_elixir(column, line)
           {:details, line, column}
+
+        %{"type" => "signature", "hint" => hint} ->
+          {:signature, hint}
 
         %{"type" => "format", "code" => code} ->
           {:format, code}

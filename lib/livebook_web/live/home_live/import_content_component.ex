@@ -23,7 +23,7 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
               autofocus: true,
               spellcheck: "false",
               rows: 5 %>
-        <button class="mt-5 button button-blue" type="submit" disabled={@content == ""}>
+        <button class="mt-5 button-base button-blue" type="submit" disabled={@content == ""}>
           Import
         </button>
       </.form>

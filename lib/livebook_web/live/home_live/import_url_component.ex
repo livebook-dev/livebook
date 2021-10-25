@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
               placeholder: "Notebook URL",
               autofocus: true,
               spellcheck: "false" %>
-        <button class="mt-5 button button-blue"
+        <button class="mt-5 button-base button-blue"
           type="submit"
           disabled={not Utils.valid_url?(@url)}>
           Import

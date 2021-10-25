@@ -96,7 +96,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
             <% end %>
             <%= if length(@matching_entries) > @limit do %>
               <div class="flex justify-center">
-                <button class="button button-outlined-gray" phx-click="more" phx-target={@myself}>
+                <button class="button-base button-outlined-gray" phx-click="more" phx-target={@myself}>
                   Older
                 </button>
               </div>

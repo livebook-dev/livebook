@@ -194,7 +194,7 @@ defmodule LivebookWeb.FileSelectComponent do
   defp file_system_menu_button(assigns) do
     ~H"""
     <div class="relative" id="file-system-menu" phx-hook="Menu" data-element="menu">
-      <button type="button" class="button button-gray button-square-icon" data-toggle disabled={@file_system_select_disabled}>
+      <button type="button" class="button-base button-gray button-square-icon" data-toggle disabled={@file_system_select_disabled}>
         <.file_system_icon file_system={@file.file_system} />
       </button>
       <div class="menu left" data-content>

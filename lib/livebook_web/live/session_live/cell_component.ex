@@ -480,7 +480,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="flex flex-col space-y-4">
       <%= render_error_message_output(@formatted) %>
       <div>
-        <button class="button button-gray" phx-click="restart_runtime">
+        <button class="button-base button-gray" phx-click="restart_runtime">
           Restart runtime
         </button>
       </div>

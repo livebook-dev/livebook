@@ -43,7 +43,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           <%= if @runtime do %>
             <.labeled_text label="Type" text={runtime_type_label(@runtime)} />
             <.labeled_text label="Node name" text={@runtime.node} />
-            <button class="button button-outlined-red"
+            <button class="button-base button-outlined-red"
               type="button"
               phx-click="disconnect"
               phx-target={@myself}>

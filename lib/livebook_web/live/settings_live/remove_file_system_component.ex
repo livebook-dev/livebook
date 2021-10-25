@@ -14,11 +14,11 @@ defmodule LivebookWeb.SettingsLive.RemoveFileSystemComponent do
         they get closed.
       </p>
       <div class="mt-8 flex justify-end space-x-2">
-        <button class="button button-red" phx-click="detach" phx-target={@myself}>
+        <button class="button-base button-red" phx-click="detach" phx-target={@myself}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           Detach
         </button>
-        <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
+        <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
       </div>
     </div>
     """

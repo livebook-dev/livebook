@@ -58,6 +58,17 @@ monaco.languages.registerHoverProvider("elixir", {
   },
 });
 
+monaco.languages.registerSignatureHelpProvider("elixir", {
+  signatureHelpTriggerCharacters: ["(", ","],
+  provideSignatureHelp: (model, position, token, context) => {
+    if (model.__getSignatureHelp) {
+      return model.__getSignatureHelp(model, position);
+    } else {
+      return null;
+    }
+  },
+});
+
 monaco.languages.registerDocumentFormattingEditProvider("elixir", {
   provideDocumentFormattingEdits: (model, options, token) => {
     if (model.__getDocumentFormattingEdits) {

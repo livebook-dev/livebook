@@ -7,10 +7,10 @@ defmodule Livebook.Intellisense do
   # In a way, this provides the very basic features of a
   # language server that Livebook uses.
 
-  alias Livebook.Intellisense.IdentifierMatcher
+  alias Livebook.Intellisense.{IdentifierMatcher, SignatureMatcher, Docs}
 
   # Configures width used for inspect and specs formatting.
-  @line_length 30
+  @line_length 45
   @extended_line_length 80
 
   @doc """
@@ -35,6 +35,10 @@ defmodule Livebook.Intellisense do
     get_details(line, column, binding, env)
   end
 
+  def handle_request({:signature, hint}, binding, env) do
+    get_signature_items(hint, binding, env)
+  end
+
   def handle_request({:format, code}, _binding, _env) do
     case format_code(code) do
       {:ok, code} -> %{code: code}
@@ -57,6 +61,48 @@ defmodule Livebook.Intellisense do
     rescue
       _ -> :error
     end
+  end
+
+  @doc """
+  Returns information about signatures matching the given `hint`.
+  """
+  @spec get_signature_items(String.t(), Code.binding(), Macro.Env.t()) ::
+          Runtime.signature_response() | nil
+  def get_signature_items(hint, binding, env) do
+    case SignatureMatcher.get_matching_signatures(hint, binding, env) do
+      {:ok, [], _active_argument} ->
+        nil
+
+      {:ok, signature_infos, active_argument} ->
+        %{
+          active_argument: active_argument,
+          signature_items:
+            signature_infos
+            |> Enum.map(&format_signature_item/1)
+            |> Enum.uniq()
+        }
+
+      :error ->
+        nil
+    end
+  end
+
+  defp format_signature_item({name, signature, documentation, specs}),
+    do: %{
+      signature: signature,
+      arguments: arguments_from_signature(signature),
+      documentation:
+        join_with_divider([
+          format_documentation(documentation, :short),
+          format_specs(specs, name, @line_length) |> code()
+        ])
+    }
+
+  defp arguments_from_signature(signature) do
+    signature
+    |> Code.string_to_quoted!()
+    |> elem(2)
+    |> Enum.map(&Macro.to_string/1)
   end
 
   @doc """
@@ -92,8 +138,8 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
-  defp format_completion_item({:module, module, name, doc_content}) do
-    subtype = get_module_subtype(module)
+  defp format_completion_item({:module, module, name, documentation}) do
+    subtype = Docs.get_module_subtype(module)
 
     kind =
       case subtype do
@@ -110,39 +156,39 @@ defmodule Livebook.Intellisense do
       label: name,
       kind: kind,
       detail: detail,
-      documentation: format_doc_content(doc_content, :short),
+      documentation: format_documentation(documentation, :short),
       insert_text: String.trim_leading(name, ":")
     }
   end
 
-  defp format_completion_item({:function, module, name, arity, doc_content, signatures, spec}),
+  defp format_completion_item({:function, module, name, arity, documentation, signatures, specs}),
     do: %{
       label: "#{name}/#{arity}",
       kind: :function,
       detail: format_signatures(signatures, module),
       documentation:
         join_with_newlines([
-          format_doc_content(doc_content, :short),
-          format_spec(spec, @line_length) |> code()
+          format_documentation(documentation, :short),
+          format_specs(specs, name, @line_length) |> code()
         ]),
       insert_text: name
     }
 
-  defp format_completion_item({:type, _module, name, arity, doc_content}),
+  defp format_completion_item({:type, _module, name, arity, documentation}),
     do: %{
       label: "#{name}/#{arity}",
       kind: :type,
       detail: "typespec",
-      documentation: format_doc_content(doc_content, :short),
+      documentation: format_documentation(documentation, :short),
       insert_text: name
     }
 
-  defp format_completion_item({:module_attribute, name, doc_content}),
+  defp format_completion_item({:module_attribute, name, documentation}),
     do: %{
       label: name,
       kind: :variable,
       detail: "module attribute",
-      documentation: format_doc_content(doc_content, :short),
+      documentation: format_documentation(documentation, :short),
       insert_text: name
     }
 
@@ -161,7 +207,7 @@ defmodule Livebook.Intellisense do
   in `column` in `line`.
   """
   @spec get_details(String.t(), pos_integer(), Code.binding(), Macro.Env.t()) ::
-          Livebook.Runtime.details() | nil
+          Livebook.Runtime.details_response() | nil
   def get_details(line, column, binding, env) do
     case IdentifierMatcher.locate_identifier(line, column, binding, env) do
       %{matches: []} ->
@@ -190,60 +236,33 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item({:module, _module, name, doc_content}) do
+  defp format_details_item({:module, _module, name, documentation}) do
     join_with_divider([
       code(name),
-      format_doc_content(doc_content, :all)
+      format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item({:function, module, _name, _arity, doc_content, signatures, spec}) do
+  defp format_details_item({:function, module, name, _arity, documentation, signatures, specs}) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
-      format_spec(spec, @extended_line_length) |> code(),
-      format_doc_content(doc_content, :all)
+      format_specs(specs, name, @extended_line_length) |> code(),
+      format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item({:type, _module, name, _arity, doc_content}) do
+  defp format_details_item({:type, _module, name, _arity, documentation}) do
     join_with_divider([
       code(name),
-      format_doc_content(doc_content, :all)
+      format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item({:module_attribute, name, doc_content}) do
+  defp format_details_item({:module_attribute, name, documentation}) do
     join_with_divider([
       code("@" <> name),
-      format_doc_content(doc_content, :all)
+      format_documentation(documentation, :all)
     ])
-  end
-
-  defp get_module_subtype(module) do
-    cond do
-      module_has_function?(module, :__protocol__, 1) ->
-        :protocol
-
-      module_has_function?(module, :__impl__, 1) ->
-        :implementation
-
-      module_has_function?(module, :__struct__, 0) ->
-        if module_has_function?(module, :exception, 1) do
-          :exception
-        else
-          :struct
-        end
-
-      module_has_function?(module, :behaviour_info, 1) ->
-        :behaviour
-
-      true ->
-        nil
-    end
-  end
-
-  defp module_has_function?(module, func, arity) do
-    Code.ensure_loaded?(module) and function_exported?(module, func, arity)
   end
 
   # Formatting helpers
@@ -297,35 +316,43 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_spec(nil, _line_length), do: nil
+  defp format_specs([], _name, _line_length), do: nil
 
-  defp format_spec({{name, _arity}, spec_ast_list}, line_length) do
-    spec_lines =
-      Enum.map(spec_ast_list, fn spec_ast ->
-        spec =
-          Code.Typespec.spec_to_quoted(name, spec_ast)
-          |> Macro.to_string()
-          |> Code.format_string!(line_length: line_length)
-
-        ["@spec ", spec]
-      end)
-
-    spec_lines
-    |> Enum.intersperse("\n")
-    |> IO.iodata_to_binary()
+  defp format_specs(specs, name, line_length) when is_binary(name) do
+    # TODO: so for completion items we have strings, for suggestions atoms, cleanup
+    format_specs(specs, String.to_atom(name), line_length)
   end
 
-  defp format_doc_content(doc, variant)
+  defp format_specs(specs, name, line_length) do
+    spec_lines =
+      Enum.map(specs, fn spec ->
+        code = Code.Typespec.spec_to_quoted(name, spec) |> Macro.to_string()
+        ["@spec ", code]
+      end)
 
-  defp format_doc_content(nil, _variant) do
+    specs_code =
+      spec_lines
+      |> Enum.intersperse("\n")
+      |> IO.iodata_to_binary()
+
+    try do
+      Code.format_string!(specs_code, line_length: line_length)
+    rescue
+      _ -> specs_code
+    end
+  end
+
+  defp format_documentation(doc, variant)
+
+  defp format_documentation(nil, _variant) do
     "No documentation available"
   end
 
-  defp format_doc_content(:hidden, _variant) do
+  defp format_documentation(:hidden, _variant) do
     "This is a private API"
   end
 
-  defp format_doc_content({"text/markdown", markdown}, :short) do
+  defp format_documentation({"text/markdown", markdown}, :short) do
     # Extract just the first paragraph
     markdown
     |> String.split("\n\n")
@@ -333,7 +360,7 @@ defmodule Livebook.Intellisense do
     |> String.trim()
   end
 
-  defp format_doc_content({"application/erlang+html", erlang_html}, :short) do
+  defp format_documentation({"application/erlang+html", erlang_html}, :short) do
     # Extract just the first paragraph
     erlang_html
     |> Enum.find(&match?({:p, _, _}, &1))
@@ -343,15 +370,15 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_doc_content({"text/markdown", markdown}, :all) do
+  defp format_documentation({"text/markdown", markdown}, :all) do
     markdown
   end
 
-  defp format_doc_content({"application/erlang+html", erlang_html}, :all) do
+  defp format_documentation({"application/erlang+html", erlang_html}, :all) do
     erlang_html_to_md(erlang_html)
   end
 
-  defp format_doc_content({format, _content}, _variant) do
+  defp format_documentation({format, _content}, _variant) do
     raise "unknown documentation format #{inspect(format)}"
   end
 

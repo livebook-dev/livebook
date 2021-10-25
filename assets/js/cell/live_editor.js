@@ -3,7 +3,10 @@ import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
-import { replacedSuffixLength } from "../highlight/text_utils";
+import {
+  replacedSuffixLength,
+  functionCallCodeUntilCursor,
+} from "../lib/text_utils";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -164,6 +167,7 @@ class LiveEditor {
       quickSuggestions: false,
       tabCompletion: "on",
       suggestSelection: "first",
+      parameterHints: true,
     });
 
     this.editor.getModel().updateOptions({
@@ -291,6 +295,46 @@ class LiveEditor {
         .catch(() => null);
     };
 
+    const signatureCache = {
+      codeUntilLastStop: null,
+      response: null,
+    };
+
+    this.editor.getModel().__getSignatureHelp = (model, position) => {
+      // Use a heuristic to support multiline calls, without sending all the code
+      const codeUntilCursor = functionCallCodeUntilCursor(
+        model.getLinesContent(),
+        position.lineNumber - 1,
+        position.column
+      );
+
+      // Remove trailing characters that don't affect the signature
+      const codeUntilLastStop = codeUntilCursor.replace(/[^(),]*?$/, "");
+
+      // Cache subsequent requests for the same prefix, so that we don't
+      // make unnecessary requests
+      if (codeUntilLastStop === signatureCache.codeUntilLastStop) {
+        return {
+          value: signatureResponseToSignatureHelp(signatureCache.response),
+          dispose: () => {},
+        };
+      }
+
+      return this.__asyncIntellisenseRequest("signature", {
+        hint: codeUntilCursor,
+      })
+        .then((response) => {
+          signatureCache.response = response;
+          signatureCache.codeUntilLastStop = codeUntilLastStop;
+
+          return {
+            value: signatureResponseToSignatureHelp(response),
+            dispose: () => {},
+          };
+        })
+        .catch(() => null);
+    };
+
     this.editor.getModel().__getDocumentFormattingEdits = (model) => {
       const content = model.getValue();
 
@@ -414,6 +458,23 @@ function parseItemKind(kind) {
 
 function numberToSortableString(number, maxNumber) {
   return String(number).padStart(maxNumber, "0");
+}
+
+function signatureResponseToSignatureHelp(response) {
+  return {
+    activeSignature: 0,
+    activeParameter: response.active_argument,
+    signatures: response.signature_items.map((signature_item) => ({
+      label: signature_item.signature,
+      parameters: signature_item.arguments.map((argument) => ({
+        label: argument,
+      })),
+      documentation: signature_item.documentation && {
+        value: signature_item.documentation,
+        isTrusted: true,
+      },
+    })),
+  };
 }
 
 export default LiveEditor;

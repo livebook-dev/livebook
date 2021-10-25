@@ -43,7 +43,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
           <div>
             <label>
               <%= live_file_input @uploads.cell_image, class: "hidden" %>
-              <div class="cursor-pointer button button-gray button-square-icon">
+              <div class="cursor-pointer button-base button-gray button-square-icon">
                 <.remix_icon icon="folder-upload-line" />
               </div>
             </label>
@@ -53,8 +53,8 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
           </div>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
-          <button class="button button-blue"
+          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
+          <button class="button-base button-blue"
             type="submit"
             disabled={@uploads.cell_image.entries == [] or @name == ""}>
             Upload

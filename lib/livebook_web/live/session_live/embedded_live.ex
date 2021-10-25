@@ -25,7 +25,7 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
         you restart Livebook. Furthermore, code in one notebook
         may interfere with code from another notebook.
       </p>
-      <button class="button button-blue" phx-click="init">
+      <button class="button-base button-blue" phx-click="init">
         Connect
       </button>
     </div>

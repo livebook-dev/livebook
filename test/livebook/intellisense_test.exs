@@ -6,12 +6,12 @@ defmodule Livebook.IntellisenseTest.Utils do
   the given block of code in a fresh context.
   """
   defmacro eval(do: block) do
-    binding = []
-    env = :elixir.env_for_eval([])
-    {_, binding, env} = :elixir.eval_quoted(block, binding, env)
-
     quote do
-      {unquote(Macro.escape(binding)), unquote(Macro.escape(env))}
+      block = unquote(Macro.escape(block))
+      binding = []
+      env = :elixir.env_for_eval([])
+      {_, binding, env} = :elixir.eval_quoted(block, binding, env)
+      {binding, env}
     end
   end
 end
@@ -35,8 +35,7 @@ defmodule Livebook.IntellisenseTest do
         Returns the length of `list`.
 
         ```
-        @spec length(list()) ::
-          non_neg_integer()
+        @spec length(list()) :: non_neg_integer()
         ```\
         """,
         insert_text: "length"
@@ -111,6 +110,21 @@ defmodule Livebook.IntellisenseTest do
 
       assert lists_item in Intellisense.get_completion_items(":", binding, env)
       assert lists_item in Intellisense.get_completion_items("  :", binding, env)
+    end
+
+    @tag :erl_docs
+    test "Erlang module completion with 'in' operator in spec" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "open_port/2",
+                 kind: :function,
+                 detail: ":erlang.open_port/2",
+                 documentation: _open_port_doc,
+                 insert_text: "open_port"
+               }
+             ] = Intellisense.get_completion_items(":erlang.open_por", binding, env)
     end
 
     test "Elixir proxy" do
@@ -387,8 +401,8 @@ defmodule Livebook.IntellisenseTest do
 
                ```
                @spec gzip(data) :: compressed
-               when data: iodata(),
-                    compressed: binary()
+                     when data: iodata(),
+                          compressed: binary()
                ```\
                """,
                insert_text: "gzip"
@@ -467,8 +481,7 @@ defmodule Livebook.IntellisenseTest do
                  separator.
 
                  ```
-                 @spec join(t(), String.t()) ::
-                   String.t()
+                 @spec join(t(), String.t()) :: String.t()
                  ```\
                  """,
                  insert_text: "join"
@@ -482,8 +495,7 @@ defmodule Livebook.IntellisenseTest do
                  separator.
 
                  ```
-                 @spec join(t(), String.t()) ::
-                   String.t()
+                 @spec join(t(), String.t()) :: String.t()
                  ```\
                  """,
                  insert_text: "join"
@@ -766,10 +778,10 @@ defmodule Livebook.IntellisenseTest do
 
                  ```
                  @spec put_in(
-                   Access.t(),
-                   [term(), ...],
-                   term()
-                 ) :: Access.t()
+                         Access.t(),
+                         [term(), ...],
+                         term()
+                       ) :: Access.t()
                  ```\
                  """,
                  insert_text: "put_in"
@@ -1011,9 +1023,7 @@ defmodule Livebook.IntellisenseTest do
 
                ```
                @spec max(list) :: max
-               when list: [t, ...],
-                    max: t,
-                    t: term()
+                     when list: [t, ...], max: t, t: term()
                ```\
                """,
                insert_text: "max"
@@ -1185,6 +1195,274 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details("to_string(1)", 3, binding, env)
 
       assert to_string_fn =~ "Converts the argument to a string"
+    end
+  end
+
+  describe "get_signature_items/3" do
+    test "returns nil when outside call" do
+      {binding, env} = eval(do: nil)
+
+      assert nil == Intellisense.get_signature_items("length()", binding, env)
+    end
+
+    test "returns nil if there are no matches" do
+      {binding, env} = eval(do: nil)
+
+      assert nil == Intellisense.get_signature_items("Unknown.unknown(", binding, env)
+      assert nil == Intellisense.get_signature_items("Enum.concat(x, y,", binding, env)
+    end
+
+    test "supports remote function calls" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "map(enumerable, fun)",
+                   arguments: ["enumerable", "fun"],
+                   documentation: """
+                   Returns a list where each element is the result of invoking
+                   `fun` on each corresponding element of `enumerable`.
+
+                   ---
+
+                   ```
+                   @spec map(t(), (element() -> any())) ::
+                           list()
+                   ```\
+                   """
+                 }
+               ]
+             } = Intellisense.get_signature_items("Enum.map(", binding, env)
+    end
+
+    test "supports local function calls" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "length(list)",
+                   arguments: ["list"],
+                   documentation: """
+                   Returns the length of `list`.
+
+                   ---
+
+                   ```
+                   @spec length(list()) :: non_neg_integer()
+                   ```\
+                   """
+                 }
+               ]
+             } = Intellisense.get_signature_items("length(", binding, env)
+    end
+
+    test "supports manually imported functions and macros" do
+      {binding, env} =
+        eval do
+          import Enum
+          import Protocol
+        end
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "map(enumerable, fun)",
+                   arguments: ["enumerable", "fun"],
+                   documentation: _map_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items("map(", binding, env)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: ~S"derive(protocol, module, options \\ [])",
+                   arguments: ["protocol", "module", ~S"options \\ []"],
+                   documentation: _derive_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items("derive(", binding, env)
+    end
+
+    test "supports remote function calls on aliases" do
+      {binding, env} =
+        eval do
+          alias Enum, as: MyEnum
+        end
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "map(enumerable, fun)",
+                   arguments: ["enumerable", "fun"],
+                   documentation: _map_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items("MyEnum.map(", binding, env)
+    end
+
+    test "supports anonymous function calls" do
+      {binding, env} =
+        eval do
+          add = fn x, y -> x + y end
+        end
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "add.(arg1, arg2)",
+                   arguments: ["arg1", "arg2"],
+                   documentation: """
+                   No documentation available\
+                   """
+                 }
+               ]
+             } = Intellisense.get_signature_items("add.(", binding, env)
+    end
+
+    test "supports captured remote function calls" do
+      {binding, env} =
+        eval do
+          map = &Enum.map/2
+        end
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "map(enumerable, fun)",
+                   arguments: ["enumerable", "fun"],
+                   documentation: _map_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items("map.(", binding, env)
+    end
+
+    @tag :erl_docs
+    test "shows signature with arguments for erlang modules" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "map(fun, list1)",
+                   arguments: ["fun", "list1"],
+                   documentation: _map_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items(":lists.map(", binding, env)
+    end
+
+    test "returns call active argument" do
+      {binding, env} = eval(do: nil)
+
+      assert %{active_argument: 0, signature_items: [_item]} =
+               Intellisense.get_signature_items("Enum.map([1, ", binding, env)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items("Enum.map([1, 2], ", binding, env)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items("Enum.map([1, 2], fn", binding, env)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items(
+                 "Enum.map([1, 2], fn x -> x * x end",
+                 binding,
+                 env
+               )
+
+      assert %{active_argument: 2, signature_items: [_item]} =
+               Intellisense.get_signature_items("IO.ANSI.color(1, 2, 3", binding, env)
+    end
+
+    test "returns correct active argument when using pipe operator" do
+      {binding, env} = eval(do: nil)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items("[1, 2] |> Enum.map(", binding, env)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items("[1, 2] |> Enum.map(fn", binding, env)
+
+      assert %{active_argument: 1, signature_items: [_item]} =
+               Intellisense.get_signature_items(
+                 "[1, 2] |> Enum.map(fn x -> x * x end",
+                 binding,
+                 env
+               )
+
+      assert %{active_argument: 2, signature_items: [_item]} =
+               Intellisense.get_signature_items("1 |> IO.ANSI.color(2, 3", binding, env)
+    end
+
+    test "returns a single signature for fnuctions with default arguments" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: ~S"to_string(integer, base \\ 10)",
+                   arguments: ["integer", ~S"base \\ 10"],
+                   documentation: """
+                   Returns a binary which corresponds to the text representation
+                   of `integer` in the given `base`.
+
+                   ---
+
+                   ```
+                   @spec to_string(integer(), 2..36) ::
+                           String.t()
+                   ```\
+                   """
+                 }
+               ]
+             } = Intellisense.get_signature_items("Integer.to_string(", binding, env)
+    end
+
+    test "returns multiple signatures for function with multiple arities" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "concat(enumerables)",
+                   arguments: ["enumerables"],
+                   documentation: _concat_1_docs
+                 },
+                 %{
+                   signature: "concat(left, right)",
+                   arguments: ["left", "right"],
+                   documentation: _concat_2_docs
+                 }
+               ]
+             } = Intellisense.get_signature_items("Enum.concat(", binding, env)
+    end
+
+    test "returns only signatures where active argument is at valid position" do
+      {binding, env} = eval(do: nil)
+
+      assert %{
+               active_argument: 1,
+               signature_items: [
+                 %{
+                   signature: "concat(left, right)",
+                   arguments: ["left", "right"],
+                   documentation: _concat_1_docs
+                 }
+               ]
+             } = Intellisense.get_signature_items("Enum.concat([1, 2], ", binding, env)
     end
   end
 end

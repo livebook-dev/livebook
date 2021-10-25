@@ -1,7 +1,7 @@
 @layer components {
   /* Buttons */
 
-  .button {
+  .button-base {
     @apply px-5 py-2 rounded-lg border border-transparent font-medium text-sm;
   }
 

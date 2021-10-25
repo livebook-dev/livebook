@@ -97,7 +97,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
             </div>
           <% end %>
           <div>
-            <button class="button button-blue"
+            <button class="button-base button-blue"
               phx-click="save"
               disabled={disabled?(@new_attrs, @attrs, @running_files)}>
               Save

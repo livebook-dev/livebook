@@ -49,8 +49,8 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
             checked={@attrs.reactive} />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
-          <button class="button button-blue" type="submit" disabled={not @valid}>
+          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
+          <button class="button-base button-blue" type="submit" disabled={not @valid}>
             Save
           </button>
         </div>
@@ -91,7 +91,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
               name="attrs[props][options][]"
               value={option} />
             <button
-              class="button button-gray button-square-icon"
+              class="button-base button-gray button-square-icon"
               type="button"
               tabindex="-1"
               phx-target={@myself}
@@ -106,7 +106,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       </div>
       <div>
         <button
-          class="button button-outlined-gray"
+          class="button-base button-outlined-gray"
           type="button"
           phx-target={@myself}
           phx-click="select_options_action"
