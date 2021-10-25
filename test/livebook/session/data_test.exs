@@ -2844,7 +2844,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 notebook: %{
-                  sections: [%{cells: [%{disable_formatting: true, reevaluate_automatically: true}]}]
+                  sections: [
+                    %{cells: [%{disable_formatting: true, reevaluate_automatically: true}]}
+                  ]
                 }
               }, _} = Data.apply_operation(data, operation)
     end
@@ -2953,7 +2955,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_cell_attributes, self(), "c1", %{reevaluate_automatically: true}},
           {:queue_cell_evaluation, self(), "c1"},
-          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
       operation = {:insert_cell, self(), "s1", 0, :elixir, "c2"}
@@ -2963,7 +2965,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{evaluation_status: :queued},
                   "c2" => %{evaluation_status: :ready}
-                },
+                }
               }, _} = Data.apply_operation(data, operation)
     end
   end
