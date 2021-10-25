@@ -9,6 +9,20 @@
     <%= live_title_tag assigns[:page_title] || "Livebook" %>
     <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/css/app.css")}/>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/js/app.js")}></script>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(registration) {
+            // Registration was successful
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            // registration failed :(
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </head>
   <body class="scroll-smooth">
     <%= @inner_content %>
