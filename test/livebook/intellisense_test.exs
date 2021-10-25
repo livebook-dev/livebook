@@ -1465,6 +1465,12 @@ defmodule Livebook.IntellisenseTest do
              } = Intellisense.get_signature_items("Enum.concat([1, 2], ", binding, env)
     end
 
+    test "does not return any signatures when in do-end block" do
+      {binding, env} = eval(do: nil)
+
+      assert nil == Intellisense.get_signature_items("if true do ", binding, env)
+    end
+
     test "does not return any signatures for module attributes" do
       {binding, env} = eval(do: nil)
 
