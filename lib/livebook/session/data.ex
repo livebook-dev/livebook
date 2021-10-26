@@ -1315,7 +1315,10 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    # After updating validity there may be new stale cells, so we check
+    # if any of them is configured for automatic reevaluation
     |> maybe_queue_reevaluating_cells()
+    |> maybe_evaluate_queued()
   end
 
   defp compute_snapshots({data, _} = data_actions) do
@@ -1422,28 +1425,19 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
-    stale_cell_ids =
-      for {cell_id, cell} <- data.cell_infos do
-        if cell.validity_status == :stale do
-          cell_id
-        end
-      end
-      |> Enum.reject(&is_nil/1)
-      |> MapSet.new()
-
-    stale_cells =
-      Notebook.elixir_cells_with_section(data.notebook)
-      |> Enum.flat_map(fn {_, %{cells: cells} = section} ->
-        Enum.map(cells, fn cell -> {cell, section} end)
-      end)
-      |> Enum.filter(fn {cell, _} ->
-        MapSet.member?(stale_cell_ids, cell.id) && cell.reevaluate_automatically
+    cells_to_reeavaluete =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.filter(fn {cell, _section} ->
+        info = data.cell_infos[cell.id]
+        info.validity_status == :stale and cell.reevaluate_automatically
       end)
 
     data_actions
-    |> reduce(stale_cells, fn data_actions, {stale_cell, section} ->
+    |> reduce(cells_to_reeavaluete, fn data_actions, {cell, section} ->
       data_actions
-      |> queue_cell_evaluation(stale_cell, section)
+      |> queue_prerequisite_cells_evaluation(cell)
+      |> queue_cell_evaluation(cell, section)
     end)
   end
 end
