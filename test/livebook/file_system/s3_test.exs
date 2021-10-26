@@ -99,6 +99,25 @@ defmodule Livebook.FileSystem.S3Test do
       assert {:error, "no such file or directory"} = FileSystem.list(file_system, dir_path, false)
     end
 
+    test "does not return an error when the root directory is empty", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
+        assert %{"delimiter" => "/"} = conn.params
+
+        conn
+        |> Plug.Conn.put_resp_content_type("application/xml")
+        |> Plug.Conn.resp(200, """
+        <ListBucketResult>
+          <Name>mybucket</Name>
+        </ListBucketResult>
+        """)
+      end)
+
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      dir_path = "/"
+
+      assert {:ok, []} = FileSystem.list(file_system, dir_path, false)
+    end
+
     test "returns a list of absolute child object paths", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"delimiter" => "/"} = conn.params
