@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= if @cell_view.validity_status != :fresh and @cell_view.reevaluate_automatically do %>
             <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id),
                   class: "text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center" do %>
-              <.remix_icon icon="refresh-fill" class="text-xl" />
+              <.remix_icon icon="check-line" class="text-xl" />
               <span class="text-sm font-medium">
                 Reevaluates automatically
               </span>
