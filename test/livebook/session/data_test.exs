@@ -2127,6 +2127,29 @@ defmodule Livebook.Session.DataTest do
               }, _actions} = Data.apply_operation(data, operation)
     end
 
+    test "does not mark child automatically reevaluating cells for evaluation if they are fresh" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
+          # Evaluate all cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{evaluation_status: :ready, validity_status: :evaluated},
+                  "c2" => %{evaluation_status: :ready, validity_status: :fresh}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
     test "adds evaluation time to the response" do
       data =
         data_after_operations!([
