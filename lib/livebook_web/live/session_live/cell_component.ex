@@ -56,7 +56,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
-          <%= if @cell_view.reevaluate_automatically do %>
+          <%= if @cell_view.validity_status != :fresh and @cell_view.reevaluate_automatically do %>
             <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id),
                   class: "text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center" do %>
               <.remix_icon icon="refresh-fill" class="text-xl" />
