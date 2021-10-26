@@ -94,7 +94,7 @@ defmodule LivebookCLI.Server do
   defp check_endpoint_availability(base_url) do
     Application.ensure_all_started(:inets)
 
-    health_url = append_path(base_url, "health")
+    health_url = append_path(base_url, "/health")
 
     case Livebook.Utils.HTTP.request(:get, health_url) do
       {:ok, status, _headers, body} ->
@@ -127,7 +127,7 @@ defmodule LivebookCLI.Server do
 
     if opts[:open_new] do
       base_url
-      |> append_path("explore/notebooks/new")
+      |> append_path("/explore/notebooks/new")
       |> browser_open()
     end
   end
@@ -225,7 +225,8 @@ defmodule LivebookCLI.Server do
   defp append_path(url, path) do
     url
     |> URI.parse()
-    |> Map.update!(:path, &((&1 || "/") <> path))
+    # TODO: remove `&1 || ""` when we require Elixir 1.13
+    |> Map.update!(:path, &((&1 || "") <> path))
     |> URI.to_string()
   end
 
