@@ -1211,7 +1211,8 @@ defmodule LivebookWeb.SessionLive do
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
-      number_of_evaluations: info.number_of_evaluations
+      number_of_evaluations: info.number_of_evaluations,
+      reevaluate_automatically: cell.reevaluate_automatically
     }
   end
 

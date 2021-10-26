@@ -56,14 +56,24 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
         <%= if @cell_view.evaluation_status == :ready do %>
-          <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-            phx-click="queue_cell_evaluation"
-            phx-value-cell_id={@cell_view.id}>
-            <.remix_icon icon="play-circle-fill" class="text-xl" />
-            <span class="text-sm font-medium">
-              <%= if(@cell_view.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
-            </span>
-          </button>
+          <%= if @cell_view.validity_status != :fresh and @cell_view.reevaluate_automatically do %>
+            <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id),
+                  class: "text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center" do %>
+              <.remix_icon icon="check-line" class="text-xl" />
+              <span class="text-sm font-medium">
+                Reevaluates automatically
+              </span>
+            <% end %>
+          <% else %>
+            <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+              phx-click="queue_cell_evaluation"
+              phx-value-cell_id={@cell_view.id}>
+              <.remix_icon icon="play-circle-fill" class="text-xl" />
+              <span class="text-sm font-medium">
+                <%= if(@cell_view.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
+              </span>
+            </button>
+          <% end %>
         <% else %>
           <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
             phx-click="cancel_cell_evaluation"

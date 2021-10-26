@@ -1315,6 +1315,10 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    # After updating validity there may be new stale cells, so we check
+    # if any of them is configured for automatic reevaluation
+    |> maybe_queue_reevaluating_cells()
+    |> maybe_evaluate_queued()
   end
 
   defp compute_snapshots({data, _} = data_actions) do
@@ -1417,6 +1421,23 @@ defmodule Livebook.Session.Data do
 
         %{info | validity_status: validity_status}
       end)
+    end)
+  end
+
+  defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
+    cells_to_reeavaluete =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.filter(fn {cell, _section} ->
+        info = data.cell_infos[cell.id]
+        info.validity_status == :stale and cell.reevaluate_automatically
+      end)
+
+    data_actions
+    |> reduce(cells_to_reeavaluete, fn data_actions, {cell, section} ->
+      data_actions
+      |> queue_prerequisite_cells_evaluation(cell)
+      |> queue_cell_evaluation(cell, section)
     end)
   end
 end
