@@ -19,6 +19,10 @@
       0 0 10px -5px rgba(0, 0, 0, 0.04);
   }
 
+  .shadow-custom-1 {
+    box-shadow: 10px 5px 25px -8px rgba(0, 0, 0, 0.2);
+  }
+
   .flip-horizontally {
     transform: scaleY(-1);
   }
