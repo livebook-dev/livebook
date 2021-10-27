@@ -70,6 +70,10 @@ const Session = {
       followedClientPid: null,
     };
 
+    // Set initial favicon based on the current status
+
+    setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
+
     // Load initial data
 
     this.pushEvent("session_init", {}, ({ clients }) => {
@@ -211,10 +215,7 @@ const Session = {
     if (
       this.props.globalEvaluationStatus !== prevProps.globalEvaluationStatus
     ) {
-      const favicon = faviconForEvaluationStatus(
-        this.props.globalEvaluationStatus
-      );
-      setFavicon(favicon);
+      setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
     }
   },
 
@@ -224,6 +225,8 @@ const Session = {
     document.removeEventListener("keydown", this.handleDocumentKeyDown);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
+
+    setFavicon("favicon");
   },
 };
 
@@ -332,8 +335,6 @@ function handleDocumentKeyDown(hook, event) {
       queueAllCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "s"])) {
       queueFocusedSectionEvaluation(hook);
-    } else if (keyBuffer.tryMatch(["e", "j"])) {
-      queueChildCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["s", "s"])) {
       toggleSectionsList(hook);
     } else if (keyBuffer.tryMatch(["s", "u"])) {
@@ -633,14 +634,6 @@ function queueFocusedSectionEvaluation(hook) {
   if (hook.state.focusedSectionId) {
     hook.pushEvent("queue_section_cells_evaluation", {
       section_id: hook.state.focusedSectionId,
-    });
-  }
-}
-
-function queueChildCellsEvaluation(hook) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("queue_child_cells_evaluation", {
-      cell_id: hook.state.focusedCellId,
     });
   }
 }

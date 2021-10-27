@@ -257,7 +257,7 @@ defmodule LivebookWeb.HomeLive do
           images_dir = Session.images_dir_for_notebook(file)
 
           socket
-          |> put_import_flash_messages(messages)
+          |> put_import_warnings(messages)
           |> create_session(
             notebook: notebook,
             copy_images_from: images_dir,
@@ -278,7 +278,7 @@ defmodule LivebookWeb.HomeLive do
       case import_notebook(file) do
         {:ok, {notebook, messages}} ->
           socket
-          |> put_import_flash_messages(messages)
+          |> put_import_warnings(messages)
           |> create_session(notebook: notebook, file: file, origin: {:file, file})
 
         {:error, error} ->
@@ -408,7 +408,15 @@ defmodule LivebookWeb.HomeLive do
 
   defp import_content(socket, content, session_opts) do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
-    socket = put_import_flash_messages(socket, messages)
+
+    socket =
+      socket
+      |> put_import_warnings(messages)
+      |> put_flash(
+        :info,
+        "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
+      )
+
     session_opts = Keyword.merge(session_opts, notebook: notebook)
     create_session(socket, session_opts)
   end

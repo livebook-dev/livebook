@@ -645,6 +645,3 @@ Now, you try. Find a function computing the gradient of a `sin` wave.
 ```elixir
 # your code here
 ```
-
-In the notebooks that follow, we'll roll up these techniques
-to do a linear regression.

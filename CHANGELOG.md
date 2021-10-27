@@ -4,7 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased](https://github.com/livebook-dev/livebook)
+## [v0.3.1](https://github.com/livebook-dev/livebook/tree/v0.3.1) (2021-10-27)
+
+### Added
+
+- Introduced automatically reevaluating cells ([#637](https://github.com/livebook-dev/livebook/pull/637))
+
+### Changed
+
+- Changed color for aborted and queued cell status ([#620](https://github.com/livebook-dev/livebook/pull/620))
+- Improved Markdown rendering of task and nested lists ([#623](https://github.com/livebook-dev/livebook/pull/623) and [#623](https://github.com/livebook-dev/livebook/pull/631))
+
+### Fixed
+
+- Connecting to an empty S3 bucket ([#646](https://github.com/livebook-dev/livebook/pull/623) and [#623](https://github.com/livebook-dev/livebook/pull/646))
+- Importing notebooks served with `application/octet-stream` content type ([#650](https://github.com/livebook-dev/livebook/pull/623) and [#623](https://github.com/livebook-dev/livebook/pull/650))
+
+### Removed
+
+- Removed the keyboard shortcut for "Evaluate cells below" ([#621](https://github.com/livebook-dev/livebook/pull/621))
+- Removed reactive inputs in favour of automatically reevaluating cells ([#649](https://github.com/livebook-dev/livebook/pull/649))
+
+## [v0.3.0](https://github.com/livebook-dev/livebook/tree/v0.3.0) (2021-10-19)
 
 ### Added
 
@@ -28,8 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Improved Markdown and math integration by migrating to remark ([#495](https://github.com/livebook-dev/livebook/pull/495))
 - Improved the evaluator process to not consume user-submitted messages from inbox ([#502](https://github.com/livebook-dev/livebook/pull/502))
 - Improved sections panel UI to better handle numerous sections or long section names ([#534](https://github.com/livebook-dev/livebook/pull/534) and [#537](https://github.com/livebook-dev/livebook/pull/537))
-- Fixed branching section evaluation when the parent section is empty ([#560](https://github.com/livebook-dev/livebook/pull/560)
-- Fixed ANSI support to handle multi-code escape sequences ([#569](https://github.com/livebook-dev/livebook/pull/569)
+- Fixed branching section evaluation when the parent section is empty ([#560](https://github.com/livebook-dev/livebook/pull/560))
+- Fixed ANSI support to handle multi-code escape sequences ([#569](https://github.com/livebook-dev/livebook/pull/569))
 
 ## [v0.2.3](https://github.com/livebook-dev/livebook/tree/v0.2.3) (2021-08-12)
 

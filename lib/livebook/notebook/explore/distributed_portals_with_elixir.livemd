@@ -13,6 +13,8 @@ For a more structured introduction to the language, see [Elixir's
 Getting Started guide](https://elixir-lang.org/getting-started/introduction.html)
 and [the many learning resources available](https://elixir-lang.org/learning.html).
 
+<!-- livebook:{"break_markdown":true} -->
+
 ### The plan ahead
 
 The Portal game consists of a series of puzzles that must be
@@ -647,6 +649,8 @@ However, before we start, there is one big disclaimer:
 > resources available for Elixir, which will provide a more solid ground to
 > leverage the Erlang VM and its distributed features.
 
+<!-- livebook:{"break_markdown":true} -->
+
 ### Distribution 101
 
 When Livebook executes the code in a notebook, it starts a separate Elixir
@@ -693,6 +697,8 @@ Node.get_cookie()
 ```
 
 Now we have everything we need to connect across notebooks.
+
+<!-- livebook:{"break_markdown":true} -->
 
 ### Notebook connections
 
@@ -757,9 +763,9 @@ Portal code has been defined in this notebook but it is not available
 in the other notebook. If we were working on an actual Elixir project,
 this issue wouldn't exist, because we would start multiple nodes on top
 of the same codebase with the same modules, but we can't do so here.
-To work around this, you should simply copy the cell that define the
-`Portal.Door` module from this notebook into the other notebook and
-execute it. Now we should be able to shoot a door in the other node:
+To work around this, copy the cell that defines the `Portal.Door` module
+from this notebook into the other notebook and execute it. Now in the other
+node you should be able to start a door:
 
 <!-- livebook:{"force_markdown":true} -->
 
@@ -767,12 +773,14 @@ execute it. Now we should be able to shoot a door in the other node:
 Portal.Door.start_link(:blue)
 ```
 
+<!-- livebook:{"break_markdown":true} -->
+
 ### Cross-node references
 
 Now that we have spawned a door on the other notebook, we can directly read
-its content from this notebook. So far, we have been using an atom, such
-as `:blue`, to represent the doors, but we can also use the `{name, node}`
-notation to refer to a process in another node. Let's give it a try:
+its content from this notebook. So far, we have been using atoms to represent
+doors, such as `:blue`, but we can also use the `{name, node}` notation to refer
+to a process in another node. Let's give it a try:
 
 ```elixir
 blue = {:blue, other_node}

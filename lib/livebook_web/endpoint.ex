@@ -16,13 +16,13 @@ defmodule LivebookWeb.Endpoint do
     # The WebSocket connection is already protected from CSWSH by using CSRF token.
     websocket: [check_origin: false, connect_info: [:user_agent, session: @session_options]]
 
-  # We use Escript for distributing Livebook, so we don't
-  # have access to the files in priv/static at runtime in the prod environment.
-  # To overcome this we load contents of those files at compilation time,
-  # so that they become a part of the executable and can be served from memory.
+  # We use Escript for distributing Livebook, so we don't have access to the static
+  # files at runtime in the prod environment. To overcome this we load contents of
+  # those files at compilation time, so that they become a part of the executable
+  # and can be served from memory.
   defmodule AssetsMemoryProvider do
     use LivebookWeb.MemoryProvider,
-      from: :livebook,
+      from: Path.expand("../../static", __DIR__),
       gzip: true
   end
 
@@ -35,8 +35,8 @@ defmodule LivebookWeb.Endpoint do
 
   if code_reloading? do
     # In development we use assets from tmp/static_dev (rebuilt dynamically on every change).
-    # Note that this directory doesn't contain predefined files (e.g. images),
-    # so we also use `AssetsMemoryProvider` to serve those from priv/static.
+    # Note that this directory doesn't contain predefined files (e.g. images), so we also
+    # use `AssetsMemoryProvider` to serve those from static/.
     plug LivebookWeb.StaticPlug,
       at: "/",
       file_provider: AssetsFileSystemProvider,

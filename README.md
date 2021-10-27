@@ -1,4 +1,4 @@
-<h1><img src="https://github.com/livebook-dev/livebook/raw/main/priv/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
+<h1><img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
 
  [![Hex.pm](https://img.shields.io/hexpm/v/livebook)](https://hex.pm/packages/livebook)
 
@@ -14,11 +14,13 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Reproducible: Livebook ensures your code runs in a predictable order, all the way down to package management. It also tracks your notebook state, annotating which parts are stale.
 
-  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to provide live documentation for existing projects.
-
   * Persistence: persist your notebooks to disk or any S3-compatible cloud storage.
 
   * Collaboration: multiple users can work on the same notebook at once. It works out-of-the-box either in single-node or multi-node deployments - without a need for additional tooling.
+
+  * Decentralized: Livebook is open-source and you can run it anywhere. The ["Run in Livebook" badges](https://livebook.dev/badge) makes it easy to import any Livebook into your preferred Livebook instance.
+
+  * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to introspect and document existing projects too.
 
 We are actively working on Livebook and you can consult the issues tracker to see some of the features we are exploring. We also want to thank [Jupyter](https://jupyter.org/) and [Deepnote](https://deepnote.com/) for inspiring some of our features.
 
@@ -32,12 +34,16 @@ From time to time, we also publish some videos for new Livebook releases:
 
   * [Livebook's initial announcement by José Valim](https://www.youtube.com/watch?v=RKvqc-UEe34), also featuring [Nx](https://github.com/elixir-nx/nx) and [Axon](https://github.com/elixir-nx/axon)
 
-  * [New in Livebook v0.2 by José Valim](https://www.youtube.com/watch?v=MOTEgF-wIEI), exploring inputs, charts of mathemtical formulas, and live display of runtime metrics
+  * [New in Livebook v0.2 by José Valim](https://www.youtube.com/watch?v=MOTEgF-wIEI), exploring inputs, charts of mathematical formulas, and live display of runtime metrics
 
 ## Usage
 
 We provide several distinct methods of running Livebook,
 pick the one that best fits your use case.
+
+### Running on the cloud
+
+  * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
 
 ### Running locally
 
@@ -59,7 +65,7 @@ Running Livebook using Escript makes for a very convenient option
 for local usage and provides easy configuration via CLI options.
 
 ```shell
-mix escript.install hex livebook 0.2.3
+mix escript.install hex livebook
 
 # Start the Livebook server
 livebook server

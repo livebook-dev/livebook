@@ -61,7 +61,8 @@ defmodule Livebook.Session.Data do
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           number_of_evaluations: non_neg_integer(),
-          bound_to_input_ids: MapSet.t(Cell.id())
+          bound_to_input_ids: MapSet.t(Cell.id()),
+          bound_input_readings: input_reading()
         }
 
   @type cell_bin_entry :: %{
@@ -97,6 +98,8 @@ defmodule Livebook.Session.Data do
   #     its evaluation
   #
   @type snapshot :: {deps_snapshot :: term(), bound_inputs_snapshot :: term()}
+
+  @type input_reading :: {input_name :: String.t(), input_value :: String.t()}
 
   # Note that all operations carry the pid of whatever
   # process originated the operation. Some operations
@@ -417,7 +420,8 @@ defmodule Livebook.Session.Data do
     with {:ok, %Cell.Elixir{} = cell, _section} <-
            Notebook.fetch_cell_and_section(data.notebook, id),
          {:ok, %Cell.Input{} = input_cell, _section} <-
-           Notebook.fetch_cell_and_section(data.notebook, input_id) do
+           Notebook.fetch_cell_and_section(data.notebook, input_id),
+         false <- MapSet.member?(data.cell_infos[cell.id].bound_to_input_ids, input_cell.id) do
       data
       |> with_actions()
       |> bind_input(cell, input_cell)
@@ -541,11 +545,6 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
-      |> then(fn {data, _} = data_actions ->
-        {:ok, updated_cell, _} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
-        maybe_queue_bound_cells(data_actions, updated_cell, cell)
-      end)
-      |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
       |> set_dirty()
       |> wrap_ok()
@@ -821,7 +820,7 @@ defmodule Livebook.Session.Data do
     |> Enum.join("\n")
   end
 
-  defp finish_cell_evaluation({data, _} = data_actions, cell, section, metadata) do
+  defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions
     |> update_cell_info!(cell.id, fn info ->
       %{
@@ -829,9 +828,10 @@ defmodule Livebook.Session.Data do
         | evaluation_status: :ready,
           evaluation_time_ms: metadata.evaluation_time_ms,
           number_of_evaluations: info.number_of_evaluations + 1,
-          # After finished evaluation, take latest snapshot of bound inputs
+          # After finished evaluation, take the snapshot of read inputs
           evaluation_snapshot:
-            {elem(info.evaluation_snapshot, 0), bound_inputs_snapshot(data, cell)}
+            {elem(info.evaluation_snapshot, 0),
+             input_readings_snapshot(info.bound_input_readings)}
       }
     end)
     |> set_section_info!(section.id, evaluating_cell_id: nil)
@@ -928,7 +928,8 @@ defmodule Livebook.Session.Data do
               evaluation_status: :evaluating,
               evaluation_digest: nil,
               evaluation_snapshot: info.snapshot,
-              bound_to_input_ids: MapSet.new()
+              bound_to_input_ids: MapSet.new(),
+              bound_input_readings: []
           }
         end)
         |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
@@ -942,7 +943,11 @@ defmodule Livebook.Session.Data do
   defp bind_input(data_actions, cell, input_cell) do
     data_actions
     |> update_cell_info!(cell.id, fn info ->
-      %{info | bound_to_input_ids: MapSet.put(info.bound_to_input_ids, input_cell.id)}
+      %{
+        info
+        | bound_to_input_ids: MapSet.put(info.bound_to_input_ids, input_cell.id),
+          bound_input_readings: [{input_cell.name, input_cell.value} | info.bound_input_readings]
+      }
     end)
   end
 
@@ -1141,23 +1146,6 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
 
-  defp maybe_queue_bound_cells({data, _} = data_actions, %Cell.Input{} = cell, prev_cell) do
-    if Cell.Input.reactive_update?(cell, prev_cell) do
-      bound_cells = bound_cells_with_section(data, cell.id)
-
-      data_actions
-      |> reduce(bound_cells, fn data_actions, {bound_cell, section} ->
-        data_actions
-        |> queue_prerequisite_cells_evaluation(bound_cell)
-        |> queue_cell_evaluation(bound_cell, section)
-      end)
-    else
-      data_actions
-    end
-  end
-
-  defp maybe_queue_bound_cells(data_actions, _cell, _prev_cell), do: data_actions
-
   defp set_runtime(data_actions, prev_data, runtime) do
     {data, _} = data_actions = set!(data_actions, runtime: runtime)
 
@@ -1226,6 +1214,7 @@ defmodule Livebook.Session.Data do
       evaluation_time_ms: nil,
       number_of_evaluations: 0,
       bound_to_input_ids: MapSet.new(),
+      bound_input_readings: [],
       snapshot: {:initial, :initial},
       evaluation_snapshot: nil
     }
@@ -1315,6 +1304,10 @@ defmodule Livebook.Session.Data do
     data_actions
     |> compute_snapshots()
     |> update_validity()
+    # After updating validity there may be new stale cells, so we check
+    # if any of them is configured for automatic reevaluation
+    |> maybe_queue_reevaluating_cells()
+    |> maybe_evaluate_queued()
   end
 
   defp compute_snapshots({data, _} = data_actions) do
@@ -1388,18 +1381,20 @@ defmodule Livebook.Session.Data do
   defp bound_inputs_snapshot(data, cell) do
     %{bound_to_input_ids: bound_to_input_ids} = data.cell_infos[cell.id]
 
-    if Enum.empty?(bound_to_input_ids) do
-      :initial
-    else
-      for(
-        section <- data.notebook.sections,
-        cell <- section.cells,
-        is_struct(cell, Cell.Input),
-        cell.id in bound_to_input_ids,
-        do: {cell.name, cell.value}
-      )
-      |> :erlang.phash2()
-    end
+    for(
+      section <- data.notebook.sections,
+      cell <- section.cells,
+      is_struct(cell, Cell.Input),
+      cell.id in bound_to_input_ids,
+      do: {cell.name, cell.value}
+    )
+    |> input_readings_snapshot()
+  end
+
+  defp input_readings_snapshot([]), do: :initial
+
+  defp input_readings_snapshot(name_value_pairs) do
+    name_value_pairs |> Enum.sort() |> :erlang.phash2()
   end
 
   defp update_validity({data, _} = data_actions) do
@@ -1417,6 +1412,23 @@ defmodule Livebook.Session.Data do
 
         %{info | validity_status: validity_status}
       end)
+    end)
+  end
+
+  defp maybe_queue_reevaluating_cells({data, _} = data_actions) do
+    cells_to_reeavaluete =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.filter(fn {cell, _section} ->
+        info = data.cell_infos[cell.id]
+        info.validity_status == :stale and cell.reevaluate_automatically
+      end)
+
+    data_actions
+    |> reduce(cells_to_reeavaluete, fn data_actions, {cell, section} ->
+      data_actions
+      |> queue_prerequisite_cells_evaluation(cell)
+      |> queue_cell_evaluation(cell, section)
     end)
   end
 end

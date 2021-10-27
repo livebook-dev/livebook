@@ -1,7 +1,7 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @version "0.3.0-dev"
+  @version "0.3.1"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   def project do
@@ -59,7 +59,7 @@ defmodule Livebook.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 0.1.0"},
-      {:aws_signature, "~> 0.1.0"},
+      {:aws_signature, "~> 0.2.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test}
@@ -118,7 +118,7 @@ defmodule Livebook.MixProject do
       links: %{
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
-      files: ~w(lib priv config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
     ]
   end
 end

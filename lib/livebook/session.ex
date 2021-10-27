@@ -719,7 +719,8 @@ defmodule Livebook.Session do
   end
 
   defp session_tmp_dir(session_id) do
-    path = Path.join([System.tmp_dir!(), "livebook", "sessions", session_id]) <> "/"
+    tmp_dir = System.tmp_dir!() |> Path.expand()
+    path = Path.join([tmp_dir, "livebook", "sessions", session_id]) <> "/"
     FileSystem.File.local(path)
   end
 

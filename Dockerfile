@@ -25,7 +25,7 @@ RUN mix do deps.get, deps.compile
 
 # Compile and build the release
 COPY rel rel
-COPY priv priv
+COPY static static
 COPY lib lib
 # We need README.md during compilation
 # (look for @external_resource "README.md")

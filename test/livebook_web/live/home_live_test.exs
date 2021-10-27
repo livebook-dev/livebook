@@ -206,6 +206,43 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{id}")
       assert render(view) =~ "My notebook"
     end
+
+    test "should show info flash with information about the imported notebook", %{conn: conn} do
+      {:ok, view, _} = live(conn, "/home/import/content")
+
+      notebook_content = """
+      # My notebook
+      """
+
+      view
+      |> element("form", "Import")
+      |> render_submit(%{data: %{content: notebook_content}})
+
+      {_path, flash} = assert_redirect(view)
+
+      assert flash["info"] =~
+               "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
+    end
+
+    test "should show warning flash when the imported notebook have errors", %{conn: conn} do
+      {:ok, view, _} = live(conn, "/home/import/content")
+
+      # Notebook with 3 headers
+      notebook_content = """
+      # My notebook
+      # My notebook
+      # My notebook
+      """
+
+      view
+      |> element("form", "Import")
+      |> render_submit(%{data: %{content: notebook_content}})
+
+      {_path, flash} = assert_redirect(view)
+
+      assert flash["warning"] =~
+               "We found problems while importing the file and tried to autofix them:\n- Downgrading all headings, because 3 instances of heading 1 were found"
+    end
   end
 
   describe "public import endpoint" do

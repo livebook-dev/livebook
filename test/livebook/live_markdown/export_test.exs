@@ -28,6 +28,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                 %{
                   Notebook.Cell.new(:elixir)
                   | disable_formatting: true,
+                    reevaluate_automatically: true,
                     source: """
                     Enum.to_list(1..10)\
                     """
@@ -49,8 +50,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   Notebook.Cell.new(:input)
                   | type: :text,
                     name: "length",
-                    value: "100",
-                    reactive: true
+                    value: "100"
                 },
                 %{
                   Notebook.Cell.new(:elixir)
@@ -96,7 +96,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"disable_formatting":true} -->
+    <!-- livebook:{"disable_formatting":true,"reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -106,7 +106,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
 
     ```elixir
     IO.gets("length: ")

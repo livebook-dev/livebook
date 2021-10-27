@@ -48,9 +48,23 @@
   list-style-type: square;
 }
 
+.markdown .task-list-item {
+  list-style-type: none;
+}
+
+.markdown .task-list-item input[type="checkbox"] {
+  margin-left: -1.1rem;
+  vertical-align: middle;
+}
+
 .markdown ul > li,
 .markdown ol > li {
   @apply my-1;
+}
+
+.markdown li > ul,
+.markdown li > ol {
+  @apply my-0;
 }
 
 .markdown blockquote {

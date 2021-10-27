@@ -6,7 +6,7 @@ defmodule Livebook.Notebook.Cell.Elixir do
   # It consists of text content that the user can edit
   # and produces some output once evaluated.
 
-  defstruct [:id, :source, :outputs, :disable_formatting]
+  defstruct [:id, :source, :outputs, :disable_formatting, :reevaluate_automatically]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -15,7 +15,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
           id: Cell.id(),
           source: String.t(),
           outputs: list(output()),
-          disable_formatting: boolean()
+          disable_formatting: boolean(),
+          reevaluate_automatically: boolean()
         }
 
   @typedoc """
@@ -49,7 +50,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
       id: Utils.random_id(),
       source: "",
       outputs: [],
-      disable_formatting: false
+      disable_formatting: false,
+      reevaluate_automatically: false
     }
   end
 end
