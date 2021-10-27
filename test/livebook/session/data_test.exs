@@ -2150,6 +2150,33 @@ defmodule Livebook.Session.DataTest do
               }, _actions} = Data.apply_operation(data, operation)
     end
 
+    test "if bound input value changes during cell evaluation, the cell is marked as stale afterwards" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :input, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          # Make the Elixir cell evaluating
+          {:queue_cell_evaluation, self(), "c2"},
+          # Bind the input (effectively read the current value)
+          {:bind_input, self(), "c2", "c1"},
+          # Change the input value, while the cell is evaluating
+          {:set_cell_attributes, self(), "c1", %{value: "stuff"}}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{validity_status: :stale}
+                }
+              }, _} = Data.apply_operation(data, operation)
+    end
+
     test "adds evaluation time to the response" do
       data =
         data_after_operations!([
