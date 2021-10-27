@@ -13,7 +13,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
       |> assign(assigns)
       |> assign(:current_type, cell.type)
       |> assign_new(:attrs, fn ->
-        Map.take(cell, [:name, :type, :reactive, :props])
+        Map.take(cell, [:name, :type, :props])
       end)
       |> assign_new(:valid, fn -> true end)
 
@@ -43,10 +43,6 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
             <input type="text" class="input" name="attrs[name]" value={@attrs.name} autofocus />
           </div>
           <.extra_fields type={@attrs.type} props={@attrs.props} myself={@myself} />
-          <.switch_checkbox
-            name="attrs[reactive]"
-            label="Reactive (reevaluates dependent cells on change)"
-            checked={@attrs.reactive} />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
           <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
@@ -161,7 +157,6 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
   defp validate_attrs(data, prev_attrs) do
     name = data["name"]
     type = data["type"] |> String.to_existing_atom()
-    reactive = data["reactive"] == "true"
 
     {props_valid?, props} =
       if type == prev_attrs.type do
@@ -172,7 +167,7 @@ defmodule LivebookWeb.SessionLive.InputCellSettingsComponent do
 
     valid? = name != "" and props_valid?
 
-    {valid?, %{name: name, type: type, reactive: reactive, props: props}}
+    {valid?, %{name: name, type: type, props: props}}
   end
 
   defp validate_props(data, :range) do

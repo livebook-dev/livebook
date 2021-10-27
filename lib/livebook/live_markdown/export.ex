@@ -111,8 +111,8 @@ defmodule Livebook.LiveMarkdown.Export do
         value: value
       }
       |> put_unless_default(
-        Map.take(cell, [:reactive, :props]),
-        Map.take(Cell.Input.new(), [:reactive, :props])
+        Map.take(cell, [:props]),
+        Map.take(Cell.Input.new(), [:props])
       )
       |> Jason.encode!()
 

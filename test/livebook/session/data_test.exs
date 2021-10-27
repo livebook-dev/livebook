@@ -2933,7 +2933,6 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:set_cell_attributes, self(), "c1", %{reactive: false}},
           # Insert three evaluated cells and bind the second one to the input
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:insert_cell, self(), "s1", 2, :elixir, "c3"},
@@ -2957,69 +2956,6 @@ defmodule Livebook.Session.DataTest do
                   "c2" => %{validity_status: :evaluated},
                   "c3" => %{validity_status: :stale},
                   "c4" => %{validity_status: :stale}
-                }
-              }, _} = Data.apply_operation(data, operation)
-    end
-
-    test "given reactive input value change, triggers bound cells evaluation" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:set_cell_attributes, self(), "c1", %{reactive: true}},
-          # Insert three evaluated cells and bind the second and third one to the input
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cell_evaluation, self(), "c2"},
-          {:queue_cell_evaluation, self(), "c3"},
-          {:queue_cell_evaluation, self(), "c4"},
-          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
-          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
-          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta},
-          {:bind_input, self(), "c3", "c1"},
-          {:bind_input, self(), "c4", "c1"}
-        ])
-
-      attrs = %{value: "stuff"}
-      operation = {:set_cell_attributes, self(), "c1", attrs}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c2" => %{evaluation_status: :ready},
-                  "c3" => %{evaluation_status: :evaluating},
-                  "c4" => %{evaluation_status: :queued}
-                }
-              }, _} = Data.apply_operation(data, operation)
-    end
-
-    test "given reactive input value change, queues bound cell evaluation even if evaluating" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:set_cell_attributes, self(), "c1", %{reactive: true}},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cell_evaluation, self(), "c2"},
-          {:bind_input, self(), "c2", "c1"}
-        ])
-
-      attrs = %{value: "stuff"}
-      operation = {:set_cell_attributes, self(), "c1", attrs}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c2" => %{evaluation_status: :evaluating}
-                },
-                section_infos: %{
-                  "s1" => %{
-                    evaluating_cell_id: "c2",
-                    evaluation_queue: ["c2"]
-                  }
                 }
               }, _} = Data.apply_operation(data, operation)
     end
