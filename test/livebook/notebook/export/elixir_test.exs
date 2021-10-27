@@ -47,8 +47,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
                   Notebook.Cell.new(:input)
                   | type: :text,
                     name: "length",
-                    value: "100",
-                    reactive: true
+                    value: "100"
                 },
                 %{
                   Notebook.Cell.new(:elixir)

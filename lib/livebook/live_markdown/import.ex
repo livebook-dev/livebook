@@ -213,9 +213,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp build_notebook([{:cell, :input, data} | elems], cells, sections, messages) do
     case parse_input_attrs(data) do
-      {:ok, attrs} ->
+      {:ok, attrs, input_messages} ->
         cell = Notebook.Cell.new(:input) |> Map.merge(attrs)
-        build_notebook(elems, [cell | cells], sections, messages)
+        build_notebook(elems, [cell | cells], sections, messages ++ input_messages)
 
       {:error, message} ->
         build_notebook(elems, cells, sections, [message | messages])
@@ -273,15 +273,23 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp parse_input_attrs(data) do
     with {:ok, type} <- parse_input_type(data["type"]) do
+      warnings =
+        if data["reactive"] == true do
+          [
+            "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
+          ]
+        else
+          []
+        end
+
       {:ok,
        %{
          type: type,
          name: data["name"],
          value: data["value"],
          # Fields with implicit value
-         reactive: Map.get(data, "reactive", false),
          props: data |> Map.get("props", %{}) |> parse_input_props(type)
-       }}
+       }, warnings}
     end
   end
 

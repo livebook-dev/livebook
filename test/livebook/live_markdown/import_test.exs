@@ -29,7 +29,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
 
     ```elixir
     IO.gets("length: ")
@@ -88,8 +88,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    %Cell.Input{
                      type: :text,
                      name: "length",
-                     value: "100",
-                     reactive: true
+                     value: "100"
                    },
                    %Cell.Elixir{
                      source: """
@@ -596,6 +595,22 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     assert [
              ~s{unrecognised input type "input_from_the_future", if it's a valid type it means your Livebook version doesn't support it}
+           ] == messages
+  end
+
+  describe "backward compatibility" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+    """
+
+    {_notebook, messages} = Import.notebook_from_markdown(markdown)
+
+    assert [
+             "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
            ] == messages
   end
 end

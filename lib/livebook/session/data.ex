@@ -541,11 +541,6 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> set_cell_attributes(cell, attrs)
-      |> then(fn {data, _} = data_actions ->
-        {:ok, updated_cell, _} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
-        maybe_queue_bound_cells(data_actions, updated_cell, cell)
-      end)
-      |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
       |> set_dirty()
       |> wrap_ok()
@@ -1140,23 +1135,6 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
-
-  defp maybe_queue_bound_cells({data, _} = data_actions, %Cell.Input{} = cell, prev_cell) do
-    if Cell.Input.reactive_update?(cell, prev_cell) do
-      bound_cells = bound_cells_with_section(data, cell.id)
-
-      data_actions
-      |> reduce(bound_cells, fn data_actions, {bound_cell, section} ->
-        data_actions
-        |> queue_prerequisite_cells_evaluation(bound_cell)
-        |> queue_cell_evaluation(bound_cell, section)
-      end)
-    else
-      data_actions
-    end
-  end
-
-  defp maybe_queue_bound_cells(data_actions, _cell, _prev_cell), do: data_actions
 
   defp set_runtime(data_actions, prev_data, runtime) do
     {data, _} = data_actions = set!(data_actions, runtime: runtime)
