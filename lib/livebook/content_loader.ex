@@ -64,8 +64,11 @@ defmodule Livebook.ContentLoader do
       {:ok, 200, headers, body} ->
         valid_content? =
           case HTTP.fetch_content_type(headers) do
-            {:ok, content_type} -> content_type in ["text/plain", "text/markdown"]
-            :error -> false
+            {:ok, content_type} ->
+              content_type in ["text/plain", "text/markdown", "application/octet-stream"]
+
+            :error ->
+              false
           end
 
         if valid_content? do
