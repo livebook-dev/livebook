@@ -251,7 +251,7 @@ mutated the list. We can break a list apart or add new elements to the
 head, but the original list is never modified.
 
 That said, when we need to keep some sort of state, like the data
-transfering through a portal, we must use an abstraction that stores
+transferring through a portal, we must use an abstraction that stores
 this state for us. One such abstraction in Elixir is called an agent.
 Before we use agents, we need to briefly talk about anonymous functions.
 

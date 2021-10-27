@@ -118,7 +118,7 @@ defmodule Livebook.Notebook.Cell.Input do
   end
 
   @doc """
-  Converts inpu type to string.
+  Converts input type to string.
   """
   @spec type_to_string(type()) :: String.t()
   def type_to_string(type) do

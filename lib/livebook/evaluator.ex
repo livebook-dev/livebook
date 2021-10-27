@@ -108,7 +108,7 @@ defmodule Livebook.Evaluator do
   end
 
   @doc """
-  Fetches an evalutaion context from another `Evaluator` process
+  Fetches an evaluation context from another `Evaluator` process
   and configures it as the initial context for this evaluator.
 
   The process dictionary is also copied to match the given evaluator.
