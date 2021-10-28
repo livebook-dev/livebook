@@ -65,8 +65,9 @@ defmodule LivebookWeb.SettingsLive do
                 <span class="hidden" id="file-systems-env-source"><%= @file_systems_env %></span>
               </span>
             </div>
-            <%= live_component LivebookWeb.SettingsLive.FileSystemsComponent,
-                  file_systems: @file_systems %>
+            <LivebookWeb.SettingsLive.FileSystemsComponent.render
+              file_systems={@file_systems}
+              socket={@socket} />
           </div>
         </div>
       </div>

@@ -46,10 +46,10 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
           <% end %>
         </div>
         <div>
-          <%= live_component component_for_tab(@tab),
-                id: "export-notebook-#{@tab}",
-                session: @session,
-                notebook: @notebook %>
+          <.live_component module={component_for_tab(@tab)}
+              id={"export-notebook-#{@tab}"}
+              session={@session}
+              notebook={@notebook} />
         </div>
       </div>
     </div>

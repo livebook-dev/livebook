@@ -236,25 +236,26 @@ defmodule LivebookWeb.SessionLive do
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
-              <%= live_component LivebookWeb.SessionLive.SectionComponent,
-                    id: section_view.id,
-                    index: index,
-                    session_id: @session.id,
-                    runtime: @data_view.runtime,
-                    section_view: section_view %>
+              <.live_component module={LivebookWeb.SessionLive.SectionComponent}
+                  id={section_view.id}
+                  index={index}
+                  session_id={@session.id}
+                  runtime={@data_view.runtime}
+                  section_view={section_view} />
             <% end %>
             <div style="height: 80vh"></div>
           </div>
         </div>
       </div>
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
-        <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
-              session_id: @session.id,
-              file: @data_view.file,
-              dirty: @data_view.dirty,
-              autosave_interval_s: @data_view.autosave_interval_s,
-              runtime: @data_view.runtime,
-              global_evaluation_status: @data_view.global_evaluation_status %>
+        <LivebookWeb.SessionLive.IndicatorsComponent.render
+          socket={@socket}
+          session_id={@session.id}
+          file={@data_view.file}
+          dirty={@data_view.dirty}
+          autosave_interval_s={@data_view.autosave_interval_s}
+          runtime={@data_view.runtime}
+          global_evaluation_status={@data_view.global_evaluation_status} />
       </div>
     </div>
 

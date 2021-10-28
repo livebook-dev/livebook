@@ -59,11 +59,11 @@ defmodule LivebookWeb.HomeLive do
           </div>
 
           <div class="h-80">
-            <%= live_component LivebookWeb.FileSelectComponent,
-                  id: "home-file-select",
-                  file: @file,
-                  extnames: [LiveMarkdown.extension()],
-                  running_files: files(@sessions) do %>
+            <.live_component module={LivebookWeb.FileSelectComponent}
+                id="home-file-select"
+                file={@file}
+                extnames={[LiveMarkdown.extension()]}
+                running_files={files(@sessions)}>
               <div class="flex justify-end space-x-2">
                 <button class="button button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
@@ -85,7 +85,7 @@ defmodule LivebookWeb.HomeLive do
                   </span>
                 <% end %>
               </div>
-            <% end %>
+            </.live_component>
           </div>
 
           <div class="py-12">

@@ -82,12 +82,12 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
         </div>
         <%= if @new_attrs.file do %>
           <div class="h-full h-52">
-            <%= live_component LivebookWeb.FileSelectComponent,
-                  id: "persistence_file_select",
-                  file: @new_attrs.file,
-                  extnames: [LiveMarkdown.extension()],
-                  running_files: @running_files,
-                  submit_event: if(disabled?(@new_attrs, @attrs, @running_files), do: nil, else: :save) %>
+            <.live_component module={LivebookWeb.FileSelectComponent}
+                id="persistence_file_select"
+                file={@new_attrs.file}
+                extnames={[LiveMarkdown.extension()]}
+                running_files={@running_files}
+                submit_event={if(disabled?(@new_attrs, @attrs, @running_files), do: nil, else: :save)} />
           </div>
         <% end %>
         <div class="flex flex-col space-y-8">
