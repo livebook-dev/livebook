@@ -98,7 +98,7 @@ defmodule LivebookWeb.FileSelectComponent do
         </div>
         <%= if @inner_block do %>
           <div>
-            <%= render_block(@inner_block) %>
+            <%= render_slot(@inner_block) %>
           </div>
         <% end %>
       </div>

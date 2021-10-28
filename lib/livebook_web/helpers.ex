@@ -197,7 +197,7 @@ defmodule LivebookWeb.Helpers do
 
     ~H"""
     <button class={"choice-button #{if(@active, do: "active")} #{@class}"} disabled={@disabled} {@attrs}>
-      <%= render_block(@inner_block) %>
+      <%= render_slot(@inner_block) %>
     </button>
     """
   end
