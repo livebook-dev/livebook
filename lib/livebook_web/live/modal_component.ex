@@ -11,7 +11,6 @@ defmodule LivebookWeb.ModalComponent do
         <!-- Overlay -->
         <div class="absolute inset-0 bg-gray-500 opacity-75 z-0"
           aria-hidden="true"
-          phx-capture-click="close"
           phx-window-keydown="close"
           phx-key="escape"
           phx-target={@myself}
@@ -19,6 +18,8 @@ defmodule LivebookWeb.ModalComponent do
 
         <!-- Modal box -->
         <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@modal_class}"}
+          phx-click-away="close"
+          phx-target={@myself}
           role="dialog"
           aria-modal="true">
 
