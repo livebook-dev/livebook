@@ -199,4 +199,15 @@ defprotocol Livebook.Runtime do
   """
   @spec duplicate(Runtime.t()) :: {:ok, Runtime.t()} | {:error, String.t()}
   def duplicate(runtime)
+
+  @doc """
+  Returns true if the given runtime is self-contained.
+
+  A standalone runtime always starts fresh and frees all
+  resources when terminated. This may not be the case for
+  for runtimes that connect to an external running system
+  and use it for code evaluation.
+  """
+  @spec standalone?(Runtime.t()) :: boolean()
+  def standalone?(runtime)
 end

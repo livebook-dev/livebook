@@ -71,4 +71,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
       {:error, :unreachable} -> {:error, "node #{inspect(runtime.node)} is unreachable"}
     end
   end
+
+  def standalone?(_runtime), do: false
 end

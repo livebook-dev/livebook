@@ -2,12 +2,18 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, Runtime, Utils}
+  alias LivebookWeb.SessionLive.RuntimeHelpers
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+    end
+
     {:ok,
      assign(socket,
        session: session,
+       current_runtime: current_runtime,
        error_message: nil,
        data: initial_data(current_runtime)
      )}
@@ -22,6 +28,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           <%= @error_message %>
         </div>
       <% end %>
+      <RuntimeHelpers.default_runtime_note module={Runtime.Attached} />
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.
@@ -57,12 +64,18 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         <button class="mt-5 button button-blue"
           type="submit"
           disabled={not data_valid?(@data)}>
-          Connect
+          <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>
         </button>
       </.form>
     </div>
     """
   end
+
+  defp matching_runtime?(%Runtime.Attached{} = runtime, data) do
+    initial_data(runtime) == data
+  end
+
+  defp matching_runtime?(_runtime, _data), do: false
 
   @impl true
   def handle_event("validate", %{"data" => data}, socket) do
@@ -76,13 +89,20 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
     case Runtime.Attached.init(node, cookie) do
       {:ok, runtime} ->
         Session.connect_runtime(socket.assigns.session.pid, runtime)
-        {:noreply, assign(socket, data: data, error_message: nil)}
+        {:noreply, assign(socket, data: initial_data(runtime), error_message: nil)}
 
       {:error, error} ->
         message = runtime_error_to_message(error)
         {:noreply, assign(socket, data: data, error_message: message)}
     end
   end
+
+  @impl true
+  def handle_info({:operation, {:set_runtime, _pid, runtime}}, socket) do
+    {:noreply, assign(socket, current_runtime: runtime)}
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   defp initial_data(%Runtime.Attached{node: node, cookie: cookie}) do
     %{

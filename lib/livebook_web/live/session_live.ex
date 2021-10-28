@@ -240,6 +240,7 @@ defmodule LivebookWeb.SessionLive do
                     id: section_view.id,
                     index: index,
                     session_id: @session.id,
+                    runtime: @data_view.runtime,
                     section_view: section_view %>
             <% end %>
             <div style="height: 80vh"></div>

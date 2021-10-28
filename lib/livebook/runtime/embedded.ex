@@ -70,4 +70,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   def duplicate(_runtime) do
     Livebook.Runtime.Embedded.init()
   end
+
+  def standalone?(_runtime), do: false
 end

@@ -189,6 +189,10 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
+      view
+      |> element("button", "Elixir standalone")
+      |> render_click()
+
       [elixir_standalone_view] = live_children(view)
 
       elixir_standalone_view
