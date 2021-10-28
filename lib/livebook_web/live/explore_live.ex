@@ -1,25 +1,17 @@
 defmodule LivebookWeb.ExploreLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers, PageHelpers}
   alias Livebook.Notebook.Explore
 
   @impl true
-  def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
-    if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
-    end
-
-    current_user = build_current_user(session, socket)
-
+  def mount(_params, _session, socket) do
     [lead_notebook_info | notebook_infos] = Explore.notebook_infos()
 
     {:ok,
      assign(socket,
-       current_user: current_user,
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos
      )}
@@ -100,10 +92,5 @@ defmodule LivebookWeb.ExploreLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_info(
-        {:user_change, %{id: id} = user},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    {:noreply, assign(socket, :current_user, user)}
-  end
+  def handle_info(_message, socket), do: {:noreply, socket}
 end

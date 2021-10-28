@@ -16,7 +16,7 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
-  live_session :default do
+  live_session :default, on_mount: LivebookWeb.CurrentUserHook do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
