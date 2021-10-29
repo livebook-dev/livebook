@@ -248,11 +248,11 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends evaluation erase request to the server.
+  Asynchronously sends erase outputs request to the server.
   """
-  @spec erase_evaluation(pid()) :: :ok
-  def erase_evaluation(pid) do
-    GenServer.cast(pid, {:erase_evaluation, self()})
+  @spec erase_outputs(pid()) :: :ok
+  def erase_outputs(pid) do
+    GenServer.cast(pid, {:erase_outputs, self()})
   end
 
   @doc """
@@ -528,8 +528,8 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:erase_evaluation, client_pid}, state) do
-    operation = {:erase_evaluation, client_pid}
+  def handle_cast({:erase_outputs, client_pid}, state) do
+    operation = {:erase_outputs, client_pid}
     {:noreply, handle_operation(state, operation)}
   end
 

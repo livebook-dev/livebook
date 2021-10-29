@@ -219,9 +219,9 @@ defmodule LivebookWeb.SessionLive do
                   <span class="font-medium">See on Dashboard</span>
                 </a>
                 <button class="text-gray-500 menu__item"
-                  phx-click="erase_evaluation">
+                  phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
-                  <span class="font-medium">Erase evaluation</span>
+                  <span class="font-medium">Clear outputs</span>
                 </button>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu__item text-red-600" do %>
@@ -702,8 +702,8 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
   end
 
-  def handle_event("erase_evaluation", %{}, socket) do
-    Session.erase_evaluation(socket.assigns.session.pid)
+  def handle_event("erase_outputs", %{}, socket) do
+    Session.erase_outputs(socket.assigns.session.pid)
     {:noreply, socket}
   end
 

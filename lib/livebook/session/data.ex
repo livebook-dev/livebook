@@ -129,7 +129,7 @@ defmodule Livebook.Session.Data do
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
-          | {:erase_evaluation, pid()}
+          | {:erase_outputs, pid()}
           | {:set_notebook_name, pid(), String.t()}
           | {:set_section_name, pid(), Section.id(), String.t()}
           | {:client_join, pid(), User.t()}
@@ -460,10 +460,10 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:erase_evaluation, _client_pid}) do
+  def apply_operation(data, {:erase_outputs, _client_pid}) do
     data
     |> with_actions()
-    |> erase_evaluation()
+    |> erase_outputs()
     |> wrap_ok()
   end
 
@@ -1061,7 +1061,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp erase_evaluation({data, _} = data_actions) do
+  defp erase_outputs({data, _} = data_actions) do
     data_actions
     |> clear_all_evaluation()
     |> set!(
