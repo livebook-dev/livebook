@@ -30,6 +30,7 @@ defmodule Livebook.Application do
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
     with {:ok, _} = result <- Supervisor.start_link(children, opts) do
+      clear_env_vars()
       display_startup_info()
       result
     end
@@ -144,4 +145,14 @@ defmodule Livebook.Application do
       IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
+
+  defp clear_env_vars() do
+    for {var, _} <- System.get_env(), config_env_var?(var) do
+      System.delete_env(var)
+    end
+  end
+
+  defp config_env_var?("LIVEBOOK_" <> _), do: true
+  defp config_env_var?("RELEASE_" <> _), do: true
+  defp config_env_var?(_), do: false
 end
