@@ -129,6 +129,7 @@ defmodule Livebook.Session.Data do
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
+          | {:erase_outputs, pid()}
           | {:set_notebook_name, pid(), String.t()}
           | {:set_section_name, pid(), Section.id(), String.t()}
           | {:client_join, pid(), User.t()}
@@ -457,6 +458,13 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:erase_outputs, _client_pid}) do
+    data
+    |> with_actions()
+    |> erase_outputs()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:set_notebook_name, _client_pid, name}) do
@@ -1051,6 +1059,18 @@ defmodule Livebook.Session.Data do
         cell = Enum.find(section.cells, &(&1.id == evaluating_cell_id))
         cancel_cell_evaluation(data_actions, cell, section)
     end
+  end
+
+  defp erase_outputs({data, _} = data_actions) do
+    data_actions
+    |> clear_all_evaluation()
+    |> set!(
+      notebook:
+        Notebook.update_cells(data.notebook, fn
+          %Cell.Elixir{} = cell -> %{cell | outputs: []}
+          cell -> cell
+        end)
+    )
   end
 
   defp set_notebook_name({data, _} = data_actions, name) do

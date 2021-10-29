@@ -202,6 +202,16 @@ defmodule LivebookWeb.SessionLive do
                 <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
               <div class="menu" data-content>
+                <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
+                      class: "menu__item text-gray-500" do %>
+                  <.remix_icon icon="download-2-line" />
+                  <span class="font-medium">Export</span>
+                <% end %>
+                <button class="text-gray-500 menu__item"
+                  phx-click="erase_outputs">
+                  <.remix_icon icon="eraser-fill" />
+                  <span class="font-medium">Erase outputs</span>
+                </button>
                 <button class="text-gray-500 menu__item"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
@@ -213,11 +223,6 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                      class: "menu__item text-gray-500" do %>
-                  <.remix_icon icon="download-2-line" />
-                  <span class="font-medium">Export</span>
-                <% end %>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu__item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
@@ -695,6 +700,11 @@ defmodule LivebookWeb.SessionLive do
     data = Session.get_data(pid)
     notebook = Notebook.forked(data.notebook)
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+  end
+
+  def handle_event("erase_outputs", %{}, socket) do
+    Session.erase_outputs(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   def handle_event("location_report", report, socket) do
