@@ -218,6 +218,11 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
+                <button class="text-gray-500 menu__item"
+                  phx-click="reset_evaluation">
+                  <.remix_icon icon="eraser-fill" />
+                  <span class="font-medium">Reset evaluation</span>
+                </button>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu__item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
@@ -695,6 +700,11 @@ defmodule LivebookWeb.SessionLive do
     data = Session.get_data(pid)
     notebook = Notebook.forked(data.notebook)
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+  end
+
+  def handle_event("reset_evaluation", %{}, socket) do
+    Session.reset_evaluation(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   def handle_event("location_report", report, socket) do

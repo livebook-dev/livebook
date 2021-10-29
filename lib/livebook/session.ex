@@ -248,6 +248,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends evaluation reset request to the server.
+  """
+  @spec reset_evaluation(pid()) :: :ok
+  def reset_evaluation(pid) do
+    GenServer.cast(pid, {:reset_evaluation, self()})
+  end
+
+  @doc """
   Asynchronously sends notebook name update request to the server.
   """
   @spec set_notebook_name(pid(), String.t()) :: :ok
@@ -517,6 +525,11 @@ defmodule Livebook.Session do
 
   def handle_cast({:cancel_cell_evaluation, client_pid, cell_id}, state) do
     operation = {:cancel_cell_evaluation, client_pid, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:reset_evaluation, client_pid}, state) do
+    operation = {:reset_evaluation, client_pid}
     {:noreply, handle_operation(state, operation)}
   end
 
