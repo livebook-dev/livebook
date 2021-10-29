@@ -152,5 +152,7 @@ defmodule Livebook.Application do
     end
   end
 
-  defp config_env_var?(var), do: String.match?(var, ~r/^(LIVEBOOK|RELEASE)_/)
+  defp config_env_var?("LIVEBOOK_" <> _), do: true
+  defp config_env_var?("RELEASE_" <> _), do: true
+  defp config_env_var?(_), do: false
 end
