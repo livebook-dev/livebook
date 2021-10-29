@@ -208,6 +208,11 @@ defmodule LivebookWeb.SessionLive do
                   <span class="font-medium">Export</span>
                 <% end %>
                 <button class="text-gray-500 menu__item"
+                  phx-click="erase_outputs">
+                  <.remix_icon icon="eraser-fill" />
+                  <span class="font-medium">Clear outputs</span>
+                </button>
+                <button class="text-gray-500 menu__item"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
@@ -218,11 +223,6 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <button class="text-gray-500 menu__item"
-                  phx-click="erase_outputs">
-                  <.remix_icon icon="eraser-fill" />
-                  <span class="font-medium">Clear outputs</span>
-                </button>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu__item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
