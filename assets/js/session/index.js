@@ -409,7 +409,7 @@ function handleDocumentMouseDown(hook, event) {
   const insertMode = editableElementClicked(event, cell);
 
   if (cellId !== hook.state.focusedCellId) {
-    setFocusedCell(hook, cellId, !insertMode);
+    setFocusedCell(hook, cellId, false);
   }
 
   // Depending on whether the click targets editor disable/enable insert mode
