@@ -2515,7 +2515,7 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
-  describe "apply_operation/2 given :reset_evaluation" do
+  describe "apply_operation/2 given :erase_evaluation" do
     test "clears all sections evaluation and queues" do
       data =
         data_after_operations!([
@@ -2532,7 +2532,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cell_evaluation, self(), "c3"}
         ])
 
-      operation = {:reset_evaluation, self()}
+      operation = {:erase_evaluation, self()}
 
       assert {:ok,
               %{
@@ -2562,7 +2562,7 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
         ])
 
-      operation = {:reset_evaluation, self()}
+      operation = {:erase_evaluation, self()}
 
       assert {:ok,
               %{
