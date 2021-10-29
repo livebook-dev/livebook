@@ -72,6 +72,51 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
+  defp session_status(%{status: :evaluating} = assigns) do
+    ~H"""
+    <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
+    </.status_indicator>
+    """
+  end
+
+  defp session_status(%{status: :evaluated} = assigns) do
+    ~H"""
+    <.status_indicator circle_class="bg-green-400">
+    </.status_indicator>
+    """
+  end
+
+  defp session_status(%{status: :stale} = assigns) do
+    ~H"""
+    <.status_indicator circle_class="bg-yellow-200">
+    </.status_indicator>
+    """
+  end
+
+  defp session_status(assigns) do
+    ~H"""
+    <.status_indicator circle_class="bg-gray-400">
+    </.status_indicator>
+    """
+  end
+
+  defp status_indicator(assigns) do
+    assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
+
+    ~H"""
+    <div class="tooltip bottom distant-medium">
+      <div class="flex items-center space-x-1">
+        <span class="flex relative h-3 w-3">
+          <%= if @animated_circle_class do %>
+            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
+          <% end %>
+          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+        </span>
+      </div>
+    </div>
+    """
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -123,7 +168,10 @@ defmodule LivebookWeb.SessionLive do
                 <button class="flex items-center space-x-1 text-left text-gray-500 hover:text-gray-900"
                   data-element="sections-list-item"
                   data-section-id={section_item.id}>
+                  <span class="flex justify-between w-full">
                   <span><%= section_item.name %></span>
+                    <.session_status status={section_item.status} />
+                  </span>
                   <%= if section_item.parent do %>
                     <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
                         consequently we show the tooltip wrapped to a fixed number of characters %>
@@ -1128,10 +1176,13 @@ defmodule LivebookWeb.SessionLive do
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
+          {status, _} = get_status_cells(section.cells, data)
+
           %{
             id: section.id,
             name: section.name,
-            parent: parent_section_view(section.parent_id, data)
+            parent: parent_section_view(section.parent_id, data),
+            status: status
           }
         end,
       clients:
@@ -1144,12 +1195,7 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp global_evaluation_status(data) do
-    cells =
-      data.notebook
-      |> Notebook.elixir_cells_with_section()
-      |> Enum.map(fn {cell, _} -> cell end)
-
+  defp get_status_cells(cells, data) do
     cond do
       evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
         {:evaluating, evaluating.id}
@@ -1163,6 +1209,15 @@ defmodule LivebookWeb.SessionLive do
       true ->
         {:fresh, nil}
     end
+  end
+
+  defp global_evaluation_status(data) do
+    cells =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.map(fn {cell, _} -> cell end)
+
+    get_status_cells(cells, data)
   end
 
   defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
