@@ -224,23 +224,6 @@ defmodule LivebookWeb.FileSelectComponent do
     """
   end
 
-  defp file_system_icon(%{file_system: %FileSystem.Local{}} = assigns) do
-    ~H"""
-    <.remix_icon icon="hard-drive-2-line" />
-    """
-  end
-
-  defp file_system_icon(%{file_system: %FileSystem.S3{}} = assigns) do
-    ~H"""
-    <i class="not-italic">
-      <span class="text-[0.75em] font-semibold align-middle">S3</span>
-    </i>
-    """
-  end
-
-  defp file_system_label(%FileSystem.Local{}), do: "Local disk"
-  defp file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
-
   defp file(%{file_info: %{file: file}, renaming_file: file} = assigns) do
     ~H"""
     <div class="flex space-x-2 items-center p-2 rounded-lg">
