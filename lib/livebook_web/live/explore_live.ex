@@ -90,7 +90,4 @@ defmodule LivebookWeb.ExploreLive do
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_info(_message, socket), do: {:noreply, socket}
 end
