@@ -392,13 +392,14 @@ function handleDocumentMouseDown(hook, event) {
     return;
   }
 
-  // If click targets a clickable element that awaits mouse up, keep the focus as is
-  if (event.target.closest(`a, button`)) {
-    // If the pencil icon is clicked, enter insert mode
-    if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
-      setInsertMode(hook, true);
-    }
+  // If the pencil icon is clicked, enter insert mode
+  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
+    setInsertMode(hook, true);
+    return;
+  }
 
+  // If primary cell action is clicked, keep the focus as is
+  if (event.target.closest(`[data-element="actions"][data-primary]`)) {
     return;
   }
 
@@ -408,7 +409,7 @@ function handleDocumentMouseDown(hook, event) {
   const insertMode = editableElementClicked(event, cell);
 
   if (cellId !== hook.state.focusedCellId) {
-    setFocusedCell(hook, cellId, !insertMode);
+    setFocusedCell(hook, cellId, false);
   }
 
   // Depending on whether the click targets editor disable/enable insert mode
