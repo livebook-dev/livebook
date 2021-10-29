@@ -97,4 +97,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def duplicate(_runtime) do
     Livebook.Runtime.ElixirStandalone.init()
   end
+
+  def standalone?(_runtime), do: true
 end

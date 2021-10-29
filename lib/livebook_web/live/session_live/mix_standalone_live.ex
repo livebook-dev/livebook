@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, Runtime, Utils, FileSystem}
+  alias LivebookWeb.SessionLive.RuntimeHelpers
 
   @type status :: :initial | :initializing | :finished
 
@@ -26,6 +27,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
+      <RuntimeHelpers.default_runtime_note module={Runtime.MixStandalone} />
       <p class="text-gray-700">
         Start a new local node in the context of a Mix project.
         This way all your code and dependencies will be available

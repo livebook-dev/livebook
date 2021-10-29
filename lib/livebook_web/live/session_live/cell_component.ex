@@ -99,7 +99,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.outputs != [] do %>
         <div class="mt-2">
-          <.outputs cell_view={@cell_view} socket={@socket} />
+          <.outputs cell_view={@cell_view} runtime={@runtime} socket={@socket} />
         </div>
       <% end %>
     </.cell_body>
@@ -431,7 +431,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
           <%= render_output(output, %{
                 id: "cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-output#{index}",
-                socket: @socket
+                socket: @socket,
+                runtime: @runtime
               }) %>
         </div>
       <% end %>
@@ -483,17 +484,26 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     )
   end
 
-  defp render_output({:error, formatted, :runtime_restart_required}, %{}) do
-    assigns = %{formatted: formatted}
+  defp render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})
+       when runtime != nil do
+    assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""
     <div class="flex flex-col space-y-4">
       <%= render_error_message_output(@formatted) %>
-      <div>
-        <button class="button button-gray" phx-click="restart_runtime">
-          Restart runtime
-        </button>
-      </div>
+      <%= if @is_standalone do %>
+        <div>
+          <button class="button button-gray" phx-click="restart_runtime">
+            Restart runtime
+          </button>
+        </div>
+      <% else %>
+        <div class="text-red-600">
+          <span class="font-semibold">Note:</span>
+          This operation requires restarting the runtime, but we cannot
+          do it automatically for the current runtime
+        </div>
+      <% end %>
     </div>
     """
   end

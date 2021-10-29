@@ -96,6 +96,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             <%= live_component LivebookWeb.SessionLive.CellComponent,
                   id: cell_view.id,
                   session_id: @session_id,
+                  runtime: @runtime,
                   cell_view: cell_view %>
           <% end %>
 
