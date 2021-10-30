@@ -72,51 +72,6 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp session_status(%{status: :evaluating} = assigns) do
-    ~H"""
-    <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
-    </.status_indicator>
-    """
-  end
-
-  defp session_status(%{status: :evaluated} = assigns) do
-    ~H"""
-    <.status_indicator circle_class="bg-green-400">
-    </.status_indicator>
-    """
-  end
-
-  defp session_status(%{status: :stale} = assigns) do
-    ~H"""
-    <.status_indicator circle_class="bg-yellow-200">
-    </.status_indicator>
-    """
-  end
-
-  defp session_status(assigns) do
-    ~H"""
-    <.status_indicator circle_class="bg-gray-400">
-    </.status_indicator>
-    """
-  end
-
-  defp status_indicator(assigns) do
-    assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
-
-    ~H"""
-    <div class="tooltip bottom distant-medium">
-      <div class="flex items-center space-x-1">
-        <span class="flex relative h-3 w-3">
-          <%= if @animated_circle_class do %>
-            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
-          <% end %>
-          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
-        </span>
-      </div>
-    </div>
-    """
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -395,6 +350,39 @@ defmodule LivebookWeb.SessionLive do
             tab: @tab,
             return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
+    """
+  end
+
+  defp session_status(%{status: :evaluating} = assigns) do
+    ~H"""
+    <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
+    </.status_indicator>
+    """
+  end
+
+  defp session_status(%{status: :stale} = assigns) do
+    ~H"""
+    <.status_indicator circle_class="bg-yellow-200">
+    </.status_indicator>
+    """
+  end
+
+  defp session_status(assigns), do: ~H""
+
+  defp status_indicator(assigns) do
+    assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
+
+    ~H"""
+    <div class="tooltip bottom distant-medium">
+      <div class="flex items-center space-x-1">
+        <span class="flex relative h-3 w-3">
+          <%= if @animated_circle_class do %>
+            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
+          <% end %>
+          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+        </span>
+      </div>
+    </div>
     """
   end
 
@@ -1186,7 +1174,7 @@ defmodule LivebookWeb.SessionLive do
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
-          {status, _} = get_status_cells(section.cells, data)
+          {status, _} = cells_status(section.cells, data)
 
           %{
             id: section.id,
@@ -1205,7 +1193,7 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp get_status_cells(cells, data) do
+  defp cells_status(cells, data) do
     cond do
       evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
         {:evaluating, evaluating.id}
@@ -1227,7 +1215,7 @@ defmodule LivebookWeb.SessionLive do
       |> Notebook.elixir_cells_with_section()
       |> Enum.map(fn {cell, _} -> cell end)
 
-    get_status_cells(cells, data)
+    cells_status(cells, data)
   end
 
   defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
