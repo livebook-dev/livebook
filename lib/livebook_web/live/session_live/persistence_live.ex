@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 <span class="tooltip right" aria-label={file_system_label(@new_attrs.file.file_system)}>
                   <span class="flex items-center">
                     [<.file_system_icon file_system={@new_attrs.file.file_system} />]
-                    </span>
+                  </span>
                 </span>
                 <span class="text-gray-700 whitespace-no-wrap font-medium">
                   <%= @new_attrs.file.path %>
