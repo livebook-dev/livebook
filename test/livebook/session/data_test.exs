@@ -2515,6 +2515,73 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :erase_outputs" do
+    test "clears all sections evaluation and queues" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:erase_outputs, self()}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "removes elixir cell outputs" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :markdown, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:erase_outputs, self()}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      id: "s1",
+                      cells: [
+                        %{id: "c1", outputs: []},
+                        %{id: "c2"},
+                        %{id: "c3", outputs: []}
+                      ]
+                    }
+                  ]
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_notebook_name" do
     test "updates notebook name with the given string" do
       data = Data.new()

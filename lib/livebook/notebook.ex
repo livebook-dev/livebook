@@ -200,6 +200,18 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Updates all cells with the given function.
+  """
+  @spec update_cells(t(), (Cell.t() -> Cell.t())) :: t()
+  def update_cells(notebook, fun) do
+    update_in(
+      notebook,
+      [Access.key(:sections), Access.all(), Access.key(:cells), Access.all()],
+      fun
+    )
+  end
+
+  @doc """
   Updates section with the given function.
   """
   @spec update_section(t(), Section.id(), (Section.t() -> Section.t())) :: t()

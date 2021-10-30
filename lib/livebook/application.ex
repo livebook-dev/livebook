@@ -30,6 +30,7 @@ defmodule Livebook.Application do
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
     with {:ok, _} = result <- Supervisor.start_link(children, opts) do
+      clear_env_vars()
       display_startup_info()
       result
     end
@@ -87,8 +88,9 @@ defmodule Livebook.Application do
         {:error, :nxdomain} ->
           invalid_hostname!("your hostname \"#{hostname}\" does not resolve to an IP address")
 
-        {:ok, hostent(h_addrtype: :inet, h_addr_list: addresses)} ->
-          unless any_loopback?(addresses) or any_if?(addresses) do
+        # We only try the first address, so that's the one we validate.
+        {:ok, hostent(h_addrtype: :inet, h_addr_list: [address | _])} ->
+          unless inet_loopback?(address) or inet_if?(address) do
             invalid_hostname!(
               "your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8)"
             )
@@ -100,19 +102,14 @@ defmodule Livebook.Application do
     end
   end
 
-  defp any_loopback?(addresses) do
-    Enum.any?(addresses, &match?({127, _, _, _}, &1))
+  defp inet_loopback?(address) do
+    match?({127, _, _, _}, address)
   end
 
-  defp any_if?(addresses) do
+  defp inet_if?(address) do
     case :inet.getifaddrs() do
-      {:ok, addrs} ->
-        Enum.any?(addrs, fn {_name, flags} ->
-          Enum.any?(flags, fn {key, value} -> key == :addr and value in addresses end)
-        end)
-
-      _ ->
-        false
+      {:ok, addrs} -> Enum.any?(addrs, fn {_name, flags} -> {:addr, address} in flags end)
+      _ -> false
     end
   end
 
@@ -148,4 +145,14 @@ defmodule Livebook.Application do
       IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
     end
   end
+
+  defp clear_env_vars() do
+    for {var, _} <- System.get_env(), config_env_var?(var) do
+      System.delete_env(var)
+    end
+  end
+
+  defp config_env_var?("LIVEBOOK_" <> _), do: true
+  defp config_env_var?("RELEASE_" <> _), do: true
+  defp config_env_var?(_), do: false
 end
