@@ -33,7 +33,9 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
        session: session,
        running_files: running_files,
        attrs: attrs,
-       new_attrs: attrs
+       new_attrs: attrs,
+       draft_file: nil,
+       saved_file: nil
      )}
   end
 
@@ -42,67 +44,106 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
-        File
+        Save to file
       </h3>
       <div class="w-full flex-col space-y-8">
         <div class="flex">
-          <form phx-change="set_options" onsubmit="return false;" class="flex flex-col space-y-4">
-            <.switch_checkbox
-              name="persist_outputs"
-              label="Persist outputs"
-              checked={@new_attrs.persist_outputs} />
+          <form phx-change="set_options" onsubmit="return false;" class="flex flex-col space-y-4 items-start">
+            <div class="flex flex-col space-y-4">
+              <.switch_checkbox
+                name="persist_outputs"
+                label="Persist outputs"
+                checked={@new_attrs.persist_outputs} />
+              <div class="flex space-x-2 items-center">
+                <span class="text-gray-700 whitespace-nowrap">Autosave</span>
+                <.select
+                  name="autosave_interval_s"
+                  selected={@new_attrs.autosave_interval_s}
+                  options={[
+                    {5, "every 5 seconds"},
+                    {30, "every 30 seconds"},
+                    {60, "every minute"},
+                    {600, "every 10 minutes"},
+                    {nil, "never"}
+                  ]} />
+              </div>
+            </div>
             <div class="flex space-x-2 items-center">
-              <span class="text-gray-700 whitespace-nowrap">Autosave</span>
-               <.select
-                 name="autosave_interval_s"
-                 selected={@new_attrs.autosave_interval_s}
-                 options={[
-                   {5, "every 5 seconds"},
-                   {30, "every 30 seconds"},
-                   {60, "every minute"},
-                   {600, "every 10 minutes"},
-                   {nil, "never"}
-                 ]} />
+              <span class="text-gray-700 whitespace-nowrap">File:</span>
+              <%= if @new_attrs.file do %>
+                <span class="tooltip right" aria-label={file_system_label(@new_attrs.file.file_system)}>
+                  <span class="flex items-center">
+                    [<.file_system_icon file_system={@new_attrs.file.file_system} />]
+                  </span>
+                </span>
+                <span class="text-gray-700 whitespace-no-wrap font-medium">
+                  <%= @new_attrs.file.path %>
+                </span>
+                <button class="button button-gray button-small"
+                  phx-click="open_file_select">
+                  Change file
+                </button>
+                <button class="button button-gray button-small"
+                  phx-click="clear_file">
+                  Stop saving
+                </button>
+              <% else %>
+                <span class="text-gray-700 whitespace-no-wrap">
+                  no file selected
+                </span>
+                <button class="button button-gray button-small"
+                  phx-click="open_file_select">
+                  Choose a file
+                </button>
+              <% end %>
             </div>
           </form>
         </div>
-        <div class="flex space-x-4">
-          <.choice_button
-            active={@new_attrs.file != nil}
-            phx-click="set_persistence_type"
-            phx-value-type="file">
-            Save to file
-          </.choice_button>
-          <.choice_button
-            active={@new_attrs.file == nil}
-            phx-click="set_persistence_type"
-            phx-value-type="memory">
-            Memory only
-          </.choice_button>
-        </div>
-        <%= if @new_attrs.file do %>
-          <div class="h-full h-52">
-            <%= live_component LivebookWeb.FileSelectComponent,
-                  id: "persistence_file_select",
-                  file: @new_attrs.file,
-                  extnames: [LiveMarkdown.extension()],
-                  running_files: @running_files,
-                  submit_event: if(disabled?(@new_attrs, @attrs, @running_files), do: nil, else: :save) %>
+        <%= if @draft_file do %>
+          <div class="flex flex-col">
+            <div class="h-full h-52">
+              <%= live_component LivebookWeb.FileSelectComponent,
+                    id: "persistence_file_select",
+                    file: @draft_file,
+                    extnames: [LiveMarkdown.extension()],
+                    running_files: @running_files,
+                    submit_event: :confirm_file do %>
+                <div class="flex justify-end space-x-2">
+                  <button class="button button-gray"
+                    phx-click="close_file_select"
+                    tabindex="-1">
+                    Cancel
+                  </button>
+                  <button class="button button-blue"
+                    phx-click="confirm_file"
+                    tabindex="-1">
+                    Choose
+                  </button>
+                </div>
+              <% end %>
+            </div>
+            <div class="mt-6 text-gray-500 text-sm">
+              File: <%= normalize_file(@draft_file).path %>
+            </div>
           </div>
         <% end %>
-        <div class="flex flex-col space-y-8">
+        <div class="flex">
           <%= if @new_attrs.file do %>
-            <div class="text-gray-500 text-sm">
-              File: <%= normalize_file(@new_attrs.file).path %>
-            </div>
-          <% end %>
-          <div>
             <button class="button button-blue"
               phx-click="save"
-              disabled={disabled?(@new_attrs, @attrs, @running_files)}>
-              Save
+              disabled={
+                not savable?(@new_attrs, @attrs, @running_files, @draft_file) or
+                  (same_attrs?(@new_attrs, @attrs) and @saved_file == @new_attrs.file)
+              }>
+              Save now
             </button>
-          </div>
+          <% else %>
+            <button class="button button-blue"
+              phx-click="save"
+              disabled={not savable?(@new_attrs, @attrs, @running_files, @draft_file) or same_attrs?(@new_attrs, @attrs)}>
+              Apply
+            </button>
+          <% end %>
         </div>
       </div>
     </div>
@@ -110,14 +151,21 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   end
 
   @impl true
-  def handle_event("set_persistence_type", %{"type" => type}, socket) do
-    file =
-      case type do
-        "file" -> socket.assigns.attrs.file || Livebook.Config.default_dir()
-        "memory" -> nil
-      end
+  def handle_event("open_file_select", %{}, socket) do
+    file = socket.assigns.new_attrs.file || Livebook.Config.default_dir()
+    {:noreply, assign(socket, draft_file: file)}
+  end
 
-    {:noreply, put_new_file(socket, file)}
+  def handle_event("close_file_select", %{}, socket) do
+    {:noreply, assign(socket, draft_file: nil)}
+  end
+
+  def handle_event("confirm_file", %{}, socket) do
+    handle_confirm_file(socket)
+  end
+
+  def handle_event("clear_file", %{}, socket) do
+    {:noreply, socket |> put_new_file(nil) |> assign(draft_file: nil)}
   end
 
   def handle_event(
@@ -134,57 +182,50 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
      |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
   end
 
-  def handle_event("save", %{}, socket) do
-    handle_save(socket)
+  def handle_event("save", %{}, %{assigns: assigns} = socket) do
+    %{new_attrs: new_attrs, attrs: attrs} = assigns
+    new_attrs = Map.update!(new_attrs, :file, &normalize_file/1)
+    diff = map_diff(new_attrs, attrs)
+
+    if Map.has_key?(diff, :file) do
+      Session.set_file(assigns.session.pid, diff.file)
+    end
+
+    notebook_attrs_diff = Map.take(diff, [:autosave_interval_s, :persist_outputs])
+
+    if notebook_attrs_diff != %{} do
+      Session.set_notebook_attributes(assigns.session.pid, notebook_attrs_diff)
+    end
+
+    if new_attrs.file do
+      Session.save_sync(assigns.session.pid)
+    end
+
+    running_files =
+      [new_attrs.file | assigns.running_files]
+      |> List.delete(attrs.file)
+      |> Enum.reject(&is_nil/1)
+
+    {:noreply,
+     assign(socket,
+       running_files: running_files,
+       attrs: assigns.new_attrs,
+       saved_file: new_attrs.file
+     )}
   end
 
   @impl true
   def handle_info({:set_file, file, _file_info}, socket) do
-    {:noreply, put_new_file(socket, file)}
+    {:noreply, assign(socket, draft_file: file)}
   end
 
-  def handle_info(:save, socket) do
-    handle_save(socket)
+  def handle_info(:confirm_file, socket) do
+    handle_confirm_file(socket)
   end
 
-  defp handle_save(%{assigns: assigns} = socket) do
-    file = normalize_file(assigns.new_attrs.file)
-    autosave_interval_s = assigns.new_attrs.autosave_interval_s
-
-    if file != assigns.attrs.file do
-      Session.set_file(assigns.session.pid, file)
-    end
-
-    if autosave_interval_s != assigns.attrs.autosave_interval_s do
-      Session.set_notebook_attributes(assigns.session.pid, %{
-        autosave_interval_s: autosave_interval_s
-      })
-    end
-
-    Session.set_notebook_attributes(assigns.session.pid, %{
-      persist_outputs: assigns.new_attrs.persist_outputs
-    })
-
-    Session.save_sync(assigns.session.pid)
-
-    running_files =
-      if file do
-        [file | assigns.running_files]
-      else
-        List.delete(assigns.running_files, file)
-      end
-
-    if file do
-      # After saving the file reload the directory contents,
-      # so that the new file gets shown.
-      send_update(LivebookWeb.FileSelectComponent,
-        id: "persistence_file_select",
-        running_files: running_files,
-        force_reload: true
-      )
-    end
-
-    {:noreply, assign(socket, running_files: running_files, attrs: assigns.new_attrs)}
+  defp handle_confirm_file(socket) do
+    file = normalize_file(socket.assigns.draft_file)
+    {:noreply, socket |> put_new_file(file) |> assign(draft_file: nil)}
   end
 
   defp parse_optional_integer(string) do
@@ -242,18 +283,24 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     end)
   end
 
-  defp disabled?(new_attrs, attrs, running_files) do
-    if normalize_file(new_attrs.file) == attrs.file do
-      new_attrs.persist_outputs == attrs.persist_outputs and
-        new_attrs.autosave_interval_s == attrs.autosave_interval_s
-    else
-      not file_savable?(normalize_file(new_attrs.file), running_files)
-    end
+  defp savable?(new_attrs, attrs, running_files, draft_file) do
+    new_attrs = Map.update!(new_attrs, :file, &normalize_file/1)
+    valid_file? = new_attrs.file == attrs.file or file_savable?(new_attrs.file, running_files)
+    valid_file? and draft_file == nil
+  end
+
+  defp same_attrs?(new_attrs, attrs) do
+    new_attrs = Map.update!(new_attrs, :file, &normalize_file/1)
+    new_attrs == attrs
   end
 
   defp file_savable?(nil, _running_files), do: true
 
   defp file_savable?(file, running_files) do
     not FileSystem.File.dir?(file) and file not in running_files
+  end
+
+  defp map_diff(left, right) do
+    Map.new(Map.to_list(left) -- Map.to_list(right))
   end
 end
