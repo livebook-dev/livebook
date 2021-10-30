@@ -231,7 +231,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_click()
 
       view
-      |> element(~s{button}, "Apply")
+      |> element(~s{button}, "Save now")
       |> render_click()
 
       view
@@ -269,7 +269,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{persist_outputs: "true"})
 
       view
-      |> element(~s{button}, "Apply")
+      |> element(~s{button}, "Save now")
       |> render_click()
 
       assert %{notebook: %{persist_outputs: true}} = Session.get_data(session.pid)

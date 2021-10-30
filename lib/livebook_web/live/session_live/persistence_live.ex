@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
        attrs: attrs,
        new_attrs: attrs,
        draft_file: nil,
-       saved: false
+       saved_file: nil
      )}
   end
 
@@ -128,16 +128,19 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
           </div>
         <% end %>
         <div class="flex">
-          <%= if same_attrs?(@new_attrs, @attrs) do %>
+          <%= if @new_attrs.file do %>
             <button class="button button-blue"
               phx-click="save"
-              disabled={@saved or @attrs.file == nil or @draft_file != nil}>
+              disabled={
+                not savable?(@new_attrs, @attrs, @running_files, @draft_file) or
+                  (same_attrs?(@new_attrs, @attrs) and @saved_file == @new_attrs.file)
+              }>
               Save now
             </button>
           <% else %>
             <button class="button button-blue"
-              phx-click="apply_and_save"
-              disabled={not valid_attrs?(@new_attrs, @attrs, @running_files) or @draft_file != nil}>
+              phx-click="save"
+              disabled={not savable?(@new_attrs, @attrs, @running_files, @draft_file) or same_attrs?(@new_attrs, @attrs)}>
               Apply
             </button>
           <% end %>
@@ -179,7 +182,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
      |> put_new_attr(:autosave_interval_s, autosave_interval_s)}
   end
 
-  def handle_event("apply_and_save", %{}, %{assigns: assigns} = socket) do
+  def handle_event("save", %{}, %{assigns: assigns} = socket) do
     %{new_attrs: new_attrs, attrs: attrs} = assigns
     new_attrs = Map.update!(new_attrs, :file, &normalize_file/1)
     diff = map_diff(new_attrs, attrs)
@@ -194,7 +197,9 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       Session.set_notebook_attributes(assigns.session.pid, notebook_attrs_diff)
     end
 
-    Session.save_sync(assigns.session.pid)
+    if new_attrs.file do
+      Session.save_sync(assigns.session.pid)
+    end
 
     running_files =
       [new_attrs.file | assigns.running_files]
@@ -205,13 +210,8 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
      assign(socket,
        running_files: running_files,
        attrs: assigns.new_attrs,
-       saved: true
+       saved_file: new_attrs.file
      )}
-  end
-
-  def handle_event("save", %{}, socket) do
-    Session.save_sync(socket.assigns.session.pid)
-    {:noreply, assign(socket, saved: true)}
   end
 
   @impl true
@@ -283,14 +283,15 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     end)
   end
 
+  defp savable?(new_attrs, attrs, running_files, draft_file) do
+    new_attrs = Map.update!(new_attrs, :file, &normalize_file/1)
+    valid_file? = new_attrs.file == attrs.file or file_savable?(new_attrs.file, running_files)
+    valid_file? and draft_file == nil
+  end
+
   defp same_attrs?(new_attrs, attrs) do
     new_attrs = Map.update!(new_attrs, :file, &normalize_file/1)
     new_attrs == attrs
-  end
-
-  defp valid_attrs?(new_attrs, attrs, running_files) do
-    new_file = normalize_file(new_attrs.file)
-    new_file == attrs.file or file_savable?(new_file, running_files)
   end
 
   defp file_savable?(nil, _running_files), do: true
