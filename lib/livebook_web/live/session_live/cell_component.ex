@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   @impl true
   def handle_event("toggle_password_visibility", _params, socket) do
     toggle_visibility = fn cell_view ->
-      update_in(cell_view, [:props, :visible], & !&1)
+      update_in(cell_view, [:props, :visible], &(!&1))
     end
 
     {:noreply, update(socket, :cell_view, toggle_visibility)}
