@@ -1,6 +1,7 @@
 defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
@@ -15,7 +16,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell(%{cell_view: %{type: :markdown}} = assigns) do
+  @impl true
+  def handle_event("toggle_password_visibility", _params, socket) do
+    toggle_visibility = fn cell_view ->
+      update_in(cell_view, [:props, :visible], & !&1)
+    end
+
+    {:noreply, update(socket, :cell_view, toggle_visibility)}
+  end
+
+  defp render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
@@ -51,7 +61,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell(%{cell_view: %{type: :elixir}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :elixir}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
@@ -106,7 +116,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell(%{cell_view: %{type: :input}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :input}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
@@ -125,7 +135,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= @cell_view.name %>
         </div>
 
-        <.cell_input cell_view={@cell_view} />
+        <.cell_input cell_view={@cell_view} target={@myself} />
 
         <%= if @cell_view.error do %>
           <div class="input-error">
@@ -196,6 +206,27 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-element="input"
         name="value"
         checked={@cell_view.value == "true"} />
+    </div>
+    """
+  end
+
+  defp cell_input(%{cell_view: %{input_type: :password}} = assigns) do
+    ~H"""
+    <div class="flex input w-min items-center">
+      <input type={if(@cell_view.props[:visible], do: "text", else: "password")}
+        data-element="input"
+        class={"w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
+        name="value"
+        value={@cell_view.value}
+        phx-debounce="300"
+        spellcheck="false"
+        autocomplete="off"
+        tabindex="-1" />
+        <span aria-label="toggle-password-visibility">
+          <button type="button" class="p-1 icon-button" name="visibility" phx-click="toggle_password_visibility" phx-target={@target}>
+            <.remix_icon icon={"#{if(@cell_view.props[:visible], do: "eye-off-line", else: "eye-line")}"} class="text-xl" />
+          </button>
+        </span>
     </div>
     """
   end
