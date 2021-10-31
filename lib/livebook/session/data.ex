@@ -857,7 +857,7 @@ defmodule Livebook.Session.Data do
     Enum.any?(data.section_infos, fn {_section_id, info} -> info.evaluation_queue != [] end)
   end
 
-  # Don't tigger evaluation if we don't have a runtime started yet
+  # Don't trigger evaluation if we don't have a runtime started yet
   defp maybe_evaluate_queued({%{runtime: nil}, _} = data_actions), do: data_actions
 
   defp maybe_evaluate_queued({data, _} = data_actions) do

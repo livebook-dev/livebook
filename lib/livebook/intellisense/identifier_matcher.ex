@@ -8,7 +8,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # This functionality is a basic building block to be
   # used for code completion and information extraction.
   #
-  # The implementation is based primarly on `IEx.Autocomplete`.
+  # The implementation is based primarily on `IEx.Autocomplete`.
   # It also takes insights from `ElixirSense.Providers.Suggestion.Complete`,
   # which is a very extensive implementation used in the
   # Elixir Language Server.
@@ -962,7 +962,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   `do` would always be a keyword.
 
   The `position` contains both the `line` and `column`, both starting
-  with the index of 1. The column must preceed the surrounding expression.
+  with the index of 1. The column must precede the surrounding expression.
   For example, the expression `foo`, will return something for the columns
   1, 2, and 3, but not 4:
 

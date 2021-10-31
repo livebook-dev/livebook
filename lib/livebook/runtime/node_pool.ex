@@ -35,7 +35,7 @@ defmodule Livebook.Runtime.NodePool do
   end
 
   @doc """
-  Retuns a node name.
+  Returns a node name.
 
   Generates a new name if pool is empty, or takes one from pool.
   """

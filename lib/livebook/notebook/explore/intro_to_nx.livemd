@@ -411,7 +411,7 @@ Nx.subtract(tensor, 1)
 
 This result is possible because Nx broadcasts _both tensors_
 in `subtract/2` to compatible shapes. That means you can provide
-scalar values as either arugment:
+scalar values as either argument:
 
 ```elixir
 Nx.subtract(10, tensor)
@@ -580,7 +580,7 @@ The last major feature we'll cover is called auto-differentiation, or autograd.
 
 An important mathematical property for a function is the
 rate of change, or the gradient. These gradients are critical
-for solving systems of equations and building probablistic
+for solving systems of equations and building probabilistic
 models. In advanced math, derivatives, or differential equations,
 are used to take gradients. Nx can compute these derivatives
 automatically through a feature called automatic differentiation,

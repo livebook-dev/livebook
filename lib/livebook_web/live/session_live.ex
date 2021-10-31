@@ -1283,7 +1283,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   # Changes that affect only a single cell are still likely to
-  # have impact on dirtyness, so we need to always mirror it
+  # have impact on dirtiness, so we need to always mirror it
   defp update_dirty_status(data_view, data) do
     put_in(data_view.dirty, data.dirty)
   end
