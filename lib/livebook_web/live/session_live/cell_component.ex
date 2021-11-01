@@ -246,7 +246,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
-        <%= render_block(@inner_block) %>
+        <%= render_slot(@inner_block) %>
       </div>
     </div>
     """
@@ -416,7 +416,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
         <div class="flex text-xs text-gray-400">
-          <%= render_block(@inner_block) %>
+          <%= render_slot(@inner_block) %>
           <%= if @change_indicator do %>
             <span data-element="change-indicator">*</span>
           <% end %>

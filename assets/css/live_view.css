@@ -15,10 +15,10 @@ iframe[hidden] {
   transition: opacity 1s ease-out;
 }
 
-.phx-disconnected {
+.phx-loading {
   cursor: wait;
 }
 
-.phx-disconnected * {
+.phx-loading * {
   pointer-events: none;
 }

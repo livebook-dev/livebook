@@ -41,13 +41,13 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
       </p>
       <%= if @status == :initial do %>
         <div class="h-full h-52">
-          <%= live_component LivebookWeb.FileSelectComponent,
-                id: "mix-project-dir",
-                file: @file,
-                extnames: [],
-                running_files: [],
-                submit_event: if(disabled?(@file.path), do: nil, else: :init),
-                file_system_select_disabled: true %>
+          <.live_component module={LivebookWeb.FileSelectComponent}
+              id="mix-project-dir"
+              file={@file}
+              extnames={[]}
+              running_files={[]}
+              submit_event={if(disabled?(@file.path), do: nil, else: :init)}
+              file_system_select_disabled={true} />
         </div>
         <button class="button button-blue" phx-click="init" disabled={disabled?(@file.path)}>
           <%= if(matching_runtime?(@current_runtime, @file.path), do: "Reconnect", else: "Connect") %>

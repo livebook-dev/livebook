@@ -1,26 +1,22 @@
 defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
-  def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
+  def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
-    current_user = build_current_user(session, socket)
     sessions = sort_sessions(Sessions.list_sessions())
     notebook_infos = Notebook.Explore.notebook_infos() |> Enum.take(3)
 
     {:ok,
      assign(socket,
-       current_user: current_user,
        file: Livebook.Config.default_dir(),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
@@ -59,11 +55,11 @@ defmodule LivebookWeb.HomeLive do
           </div>
 
           <div class="h-80">
-            <%= live_component LivebookWeb.FileSelectComponent,
-                  id: "home-file-select",
-                  file: @file,
-                  extnames: [LiveMarkdown.extension()],
-                  running_files: files(@sessions) do %>
+            <.live_component module={LivebookWeb.FileSelectComponent}
+                id="home-file-select"
+                file={@file}
+                extnames={[LiveMarkdown.extension()]}
+                running_files={files(@sessions)}>
               <div class="flex justify-end space-x-2">
                 <button class="button button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
@@ -85,7 +81,7 @@ defmodule LivebookWeb.HomeLive do
                   </span>
                 <% end %>
               </div>
-            <% end %>
+            </.live_component>
           </div>
 
           <div class="py-12">
@@ -349,13 +345,6 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:import_content, content, session_opts}, socket) do
     socket = import_content(socket, content, session_opts)
     {:noreply, socket}
-  end
-
-  def handle_info(
-        {:user_change, %{id: id} = user},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    {:noreply, assign(socket, :current_user, user)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

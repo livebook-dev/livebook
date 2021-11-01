@@ -93,24 +93,24 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       <div class="container">
         <div class="flex flex-col space-y-1">
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
-            <%= live_component LivebookWeb.SessionLive.InsertButtonsComponent,
-                  id: "#{@section_view.id}:#{index}",
-                  persistent: false,
-                  section_id: @section_view.id,
-                  insert_cell_index: index %>
+            <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
+                id={"#{@section_view.id}:#{index}"}
+                persistent={false}
+                section_id={@section_view.id}
+                insert_cell_index={index} />
 
-            <%= live_component LivebookWeb.SessionLive.CellComponent,
-                  id: cell_view.id,
-                  session_id: @session_id,
-                  runtime: @runtime,
-                  cell_view: cell_view %>
+            <.live_component module={LivebookWeb.SessionLive.CellComponent}
+                id={cell_view.id}
+                session_id={@session_id}
+                runtime={@runtime}
+                cell_view={cell_view} />
           <% end %>
 
-          <%= live_component LivebookWeb.SessionLive.InsertButtonsComponent,
-                id: "#{@section_view.id}:last",
-                persistent: @section_view.cell_views == [],
-                section_id: @section_view.id,
-                insert_cell_index: length(@section_view.cell_views) %>
+          <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
+              id={"#{@section_view.id}:last"}
+              persistent={@section_view.cell_views == []}
+              section_id={@section_view.id}
+              insert_cell_index={length(@section_view.cell_views)} />
         </div>
       </div>
     </div>

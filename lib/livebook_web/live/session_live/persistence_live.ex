@@ -102,12 +102,12 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
         <%= if @draft_file do %>
           <div class="flex flex-col">
             <div class="h-full h-52">
-              <%= live_component LivebookWeb.FileSelectComponent,
-                    id: "persistence_file_select",
-                    file: @draft_file,
-                    extnames: [LiveMarkdown.extension()],
-                    running_files: @running_files,
-                    submit_event: :confirm_file do %>
+              <.live_component module={LivebookWeb.FileSelectComponent}
+                id="persistence_file_select"
+                file={@draft_file}
+                extnames={[LiveMarkdown.extension()]}
+                running_files={@running_files}
+                submit_event={:confirm_file}>
                 <div class="flex justify-end space-x-2">
                   <button class="button button-gray"
                     phx-click="close_file_select"
@@ -120,7 +120,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                     Choose
                   </button>
                 </div>
-              <% end %>
+              </.live_component>
             </div>
             <div class="mt-6 text-gray-500 text-sm">
               File: <%= normalize_file(@draft_file).path %>

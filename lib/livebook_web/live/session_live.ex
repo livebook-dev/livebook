@@ -11,18 +11,15 @@ defmodule LivebookWeb.SessionLive do
   alias Livebook.JSInterop
 
   @impl true
-  def mount(%{"id" => session_id}, %{"current_user_id" => current_user_id} = web_session, socket) do
+  def mount(%{"id" => session_id}, _session, socket) do
     # We use the tracked sessions to locate the session pid, but then
     # we talk to the session process exclusively for getting all the information
     case Sessions.fetch_session(session_id) do
       {:ok, %{pid: session_pid}} ->
-        current_user = build_current_user(web_session, socket)
-
         data =
           if connected?(socket) do
-            data = Session.register_client(session_pid, self(), current_user)
+            data = Session.register_client(session_pid, self(), socket.assigns.current_user)
             Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
-            Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
 
             data
           else
@@ -38,7 +35,6 @@ defmodule LivebookWeb.SessionLive do
          |> assign(
            session: session,
            platform: platform,
-           current_user: current_user,
            self: self(),
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook)
@@ -247,25 +243,26 @@ defmodule LivebookWeb.SessionLive do
               </div>
             <% end %>
             <%= for {section_view, index} <- Enum.with_index(@data_view.section_views) do %>
-              <%= live_component LivebookWeb.SessionLive.SectionComponent,
-                    id: section_view.id,
-                    index: index,
-                    session_id: @session.id,
-                    runtime: @data_view.runtime,
-                    section_view: section_view %>
+              <.live_component module={LivebookWeb.SessionLive.SectionComponent}
+                  id={section_view.id}
+                  index={index}
+                  session_id={@session.id}
+                  runtime={@data_view.runtime}
+                  section_view={section_view} />
             <% end %>
             <div style="height: 80vh"></div>
           </div>
         </div>
       </div>
       <div class="fixed bottom-[0.4rem] right-[1.5rem]">
-        <%= live_component LivebookWeb.SessionLive.IndicatorsComponent,
-              session_id: @session.id,
-              file: @data_view.file,
-              dirty: @data_view.dirty,
-              autosave_interval_s: @data_view.autosave_interval_s,
-              runtime: @data_view.runtime,
-              global_status: @data_view.global_status %>
+        <LivebookWeb.SessionLive.IndicatorsComponent.render
+          socket={@socket}
+          session_id={@session.id}
+          file={@data_view.file}
+          dirty={@data_view.dirty}
+          autosave_interval_s={@data_view.autosave_interval_s}
+          runtime={@data_view.runtime}
+          global_status={@data_view.global_status} />
       </div>
     </div>
 
@@ -836,13 +833,6 @@ defmodule LivebookWeb.SessionLive do
     response = process_intellisense_response(response, request)
     payload = %{"ref" => inspect(ref), "response" => response}
     {:noreply, push_event(socket, "intellisense_response", payload)}
-  end
-
-  def handle_info(
-        {:user_change, %{id: id} = user},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    {:noreply, assign(socket, :current_user, user)}
   end
 
   def handle_info({:location_report, client_pid, report}, socket) do

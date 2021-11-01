@@ -199,7 +199,7 @@ defmodule LivebookWeb.Helpers do
 
     ~H"""
     <button class={"choice-button #{if(@active, do: "active")} #{@class}"} disabled={@disabled} {@attrs}>
-      <%= render_block(@inner_block) %>
+      <%= render_slot(@inner_block) %>
     </button>
     """
   end
@@ -263,7 +263,7 @@ defmodule LivebookWeb.Helpers do
     ~H"""
     <div id={"password-toggle-#{@id}"} class="relative inline w-min" phx-hook="PasswordToggle">
       <!-- render password input -->
-      <%= render_block(@inner_block) %>
+      <%= render_slot(@inner_block) %>
       <button
         class="bg-gray-50 p-1 icon-button absolute inset-y-0 right-1"
         type="button"
