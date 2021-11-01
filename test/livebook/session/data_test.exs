@@ -20,15 +20,34 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "called with a notebook, sets default cell and section infos" do
-      cell = Notebook.Cell.new(:elixir)
-      section = %{Notebook.Section.new() | cells: [cell]}
-      notebook = %{Notebook.new() | sections: [section]}
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Notebook.Section.new()
+              | id: "s1",
+                cells: [%{Notebook.Cell.new(:elixir) | id: "c1"}]
+            }
+          ]
+      }
 
-      cell_id = cell.id
-      section_id = section.id
+      assert %{cell_infos: %{"c1" => %{}}, section_infos: %{"s1" => %{}}} = Data.new(notebook)
+    end
 
-      assert %{cell_infos: %{^cell_id => %{}}, section_infos: %{^section_id => %{}}} =
-               Data.new(notebook)
+    test "called with a notebook, computes cell snapshots" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Notebook.Section.new()
+              | id: "s1",
+                cells: [%{Notebook.Cell.new(:elixir) | id: "c1"}]
+            }
+          ]
+      }
+
+      assert %{cell_infos: %{"c1" => %{snapshot: snapshot}}} = Data.new(notebook)
+      assert snapshot != {nil, nil}
     end
   end
 
