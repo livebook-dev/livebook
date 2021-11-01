@@ -72,7 +72,7 @@ const Session = {
 
     // Set initial favicon based on the current status
 
-    setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
+    setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
 
     // Load initial data
 
@@ -104,6 +104,7 @@ const Session = {
 
     getSectionsList().addEventListener("click", (event) => {
       handleSectionsListClick(this, event);
+      handleCellIndicatorsClick(this, event);
     });
 
     getClientsList().addEventListener("click", (event) => {
@@ -212,10 +213,8 @@ const Session = {
     const prevProps = this.props;
     this.props = getProps(this);
 
-    if (
-      this.props.globalEvaluationStatus !== prevProps.globalEvaluationStatus
-    ) {
-      setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
+    if (this.props.globalStatus !== prevProps.globalStatus) {
+      setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
     }
   },
 
@@ -237,11 +236,7 @@ function getProps(hook) {
       "data-autofocus-cell-id",
       null
     ),
-    globalEvaluationStatus: getAttributeOrDefault(
-      hook.el,
-      "data-global-evaluation-status",
-      null
-    ),
+    globalStatus: getAttributeOrDefault(hook.el, "data-global-status", null),
   };
 }
 

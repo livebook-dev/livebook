@@ -23,6 +23,13 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
             From clipboard
           </span>
         <% end %>
+        <%= live_patch to: Routes.home_path(@socket, :import, "file_upload"),
+              class: "tab #{if(@tab == "file_upload", do: "active")}" do %>
+          <.remix_icon icon="file-upload-line" class="align-middle" />
+          <span class="font-medium">
+            File upload
+          </span>
+        <% end %>
         <div class="flex-grow tab">
         </div>
       </div>
@@ -35,4 +42,5 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
 
   defp component_for_tab("url"), do: LivebookWeb.HomeLive.ImportUrlComponent
   defp component_for_tab("content"), do: LivebookWeb.HomeLive.ImportContentComponent
+  defp component_for_tab("file_upload"), do: LivebookWeb.HomeLive.ImportFileUploadComponent
 end
