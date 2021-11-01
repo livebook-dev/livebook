@@ -16,15 +16,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  @impl true
-  def handle_event("toggle_password_visibility", _params, socket) do
-    toggle_visibility = fn cell_view ->
-      update_in(cell_view, [:props, :visible], &(!&1))
-    end
-
-    {:noreply, update(socket, :cell_view, toggle_visibility)}
-  end
-
   defp render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
@@ -212,8 +203,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_input(%{cell_view: %{input_type: :password}} = assigns) do
     ~H"""
-    <div class="flex input w-min items-center">
-      <input type={if(@cell_view.props[:visible], do: "text", else: "password")}
+    <%= live_component LivebookWeb.WithPasswordToggleComponent, id: @cell_view.id do %>
+      <input type="password"
         data-element="input"
         class={"w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
         name="value"
@@ -222,12 +213,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         spellcheck="false"
         autocomplete="off"
         tabindex="-1" />
-        <span aria-label="toggle-password-visibility">
-          <button type="button" class="p-1 icon-button" name="visibility" phx-click="toggle_password_visibility" phx-target={@target}>
-            <.remix_icon icon={"#{if(@cell_view.props[:visible], do: "eye-off-line", else: "eye-line")}"} class="text-xl" />
-          </button>
-        </span>
-    </div>
+    <% end  %>
     """
   end
 
