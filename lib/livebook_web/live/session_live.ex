@@ -195,6 +195,7 @@ defmodule LivebookWeb.SessionLive do
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200">
             <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300"
+              aria-description="notebook title"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable

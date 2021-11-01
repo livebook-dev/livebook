@@ -23,8 +23,8 @@ defmodule LivebookWeb.SidebarHelpers do
   def logo_item(assigns) do
     ~H"""
     <span>
-      <%= live_patch to: Routes.home_path(@socket, :page) do %>
-        <img src="/images/logo.png" height="40" width="40" alt="livebook" />
+      <%= live_patch to: Routes.home_path(@socket, :page), aria_label: "go to homepage" do %>
+        <img src="/images/logo.png" height="40" width="40" alt="" />
       <% end %>
     </span>
     """

@@ -7,6 +7,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       <div class="flex space-x-4 items-center" data-element="section-headline">
         <h2 class="flex-grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border
                    border-transparent hover:border-blue-200 focus:border-blue-300"
+          aria-description="section title"
           data-element="section-name"
           id={@section_view.html_id}
           contenteditable
