@@ -120,20 +120,22 @@ defmodule LivebookWeb.SessionLive do
             </h3>
             <div class="flex flex-col mt-4 space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
-                <button class="flex items-center space-x-1 text-left text-gray-500 hover:text-gray-900"
+                <button class="flex items-center text-gray-500 hover:text-gray-900"
                   data-element="sections-list-item"
                   data-section-id={section_item.id}>
-                  <span class="flex justify-between w-full">
-                  <span><%= section_item.name %></span>
+                  <span class="flex items-center space-x-1">
+                    <span><%= section_item.name %></span>
+                    <%= if section_item.parent do %>
+                      <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                          consequently we show the tooltip wrapped to a fixed number of characters %>
+                      <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
+                        <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                      </span>
+                    <% end %>
+                  </span>
+                  <span class="flex-grow flex justify-end">
                     <.session_status status={section_item.status} />
                   </span>
-                  <%= if section_item.parent do %>
-                    <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                        consequently we show the tooltip wrapped to a fixed number of characters %>
-                    <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                      <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
-                    </span>
-                  <% end %>
                 </button>
               <% end %>
             </div>
@@ -373,15 +375,13 @@ defmodule LivebookWeb.SessionLive do
     assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
 
     ~H"""
-    <div class="tooltip bottom distant-medium">
-      <div class="flex items-center space-x-1">
-        <span class="flex relative h-3 w-3">
-          <%= if @animated_circle_class do %>
-            <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
-          <% end %>
-          <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
-        </span>
-      </div>
+    <div class="flex items-center space-x-1">
+      <span class="flex relative h-3 w-3">
+        <%= if @animated_circle_class do %>
+          <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
+        <% end %>
+        <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+      </span>
     </div>
     """
   end
