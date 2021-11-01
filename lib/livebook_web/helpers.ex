@@ -265,7 +265,7 @@ defmodule LivebookWeb.Helpers do
       <!-- render password input -->
       <%= render_block(@inner_block) %>
       <button
-        class="p-1 icon-button absolute inset-y-0 right-1"
+        class="bg-gray-50 p-1 icon-button absolute inset-y-0 right-1"
         type="button"
         aria-label="toggle password visibility"
         phx-change="ignore">
