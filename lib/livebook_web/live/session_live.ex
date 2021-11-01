@@ -403,7 +403,7 @@ defmodule LivebookWeb.SessionLive do
     wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
     label = "Branches from\n#{wrapped_name}"
 
-    [class: "tooltip #{direction}", "data-tooltip": label]
+    [class: "tooltip #{direction}", data_tooltip: label]
   end
 
   @impl true
