@@ -14,7 +14,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
     ~H"""
     <div class="flex-col space-y-5">
       <p class="text-gray-700">
-        You can drag and drop a file to this modal at any time to open it up as a notebook.
+        Drag and drop a <code>.livemd</code> file below to import it.
       </p>
       <form id="upload-file-form"
         phx-submit="save"
@@ -24,9 +24,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
         phx-hook="DragAndDrop"
         class="flex flex-col items-start"
       >
-        <div style="display: none">
-          <%= live_file_input @uploads.notebook %>
-        </div>
+        <%= live_file_input @uploads.notebook, class: "hidden" %>
         <div name="dropzone" class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48">
           <%= if @uploads.notebook.entries == [] do %>
             <span name="placeholder" class="font-medium text-gray-400">Drop your notebook here</span>
@@ -34,7 +32,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
             <%= for file <- @uploads.notebook.entries do %>
               <div class="flex items-center">
                 <span class="font-medium text-gray-400"><%= file.client_name %></span>
-                <button type="button" class="icon-button" phx-click="clear-file" phx-target={@myself} data-toggle tabindex="-1">
+                <button type="button" class="icon-button" phx-click="clear-file" phx-target={@myself} tabindex="-1">
                   <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
                 </button>
               </div>
