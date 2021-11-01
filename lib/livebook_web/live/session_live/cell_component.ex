@@ -1,6 +1,7 @@
 defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
@@ -15,7 +16,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell(%{cell_view: %{type: :markdown}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
@@ -51,7 +52,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell(%{cell_view: %{type: :elixir}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :elixir}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-between">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
@@ -106,7 +107,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  def render_cell(%{cell_view: %{type: :input}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :input}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
@@ -197,6 +198,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         name="value"
         checked={@cell_view.value == "true"} />
     </div>
+    """
+  end
+
+  defp cell_input(%{cell_view: %{input_type: :password}} = assigns) do
+    ~H"""
+    <.with_password_toggle id={@cell_view.id}>
+      <input type="password"
+        data-element="input"
+        class={"input w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
+        name="value"
+        value={@cell_view.value}
+        phx-debounce="300"
+        spellcheck="false"
+        autocomplete="off"
+        tabindex="-1" />
+    </.with_password_toggle>
     """
   end
 

@@ -246,6 +246,35 @@ defmodule LivebookWeb.Helpers do
     """
   end
 
+  @doc """
+  Renders a wrapper around password input
+  with an added visibility toggle button.
+
+  The toggle switches the input's type between `password`
+  and `text`.
+
+  ## Examples
+
+    <.with_password_toggle id="input-id">
+      <input type="password" ...>
+    </.with_password_toggle>
+  """
+  def with_password_toggle(assigns) do
+    ~H"""
+    <div id={"password-toggle-#{@id}"} class="relative inline w-min" phx-hook="PasswordToggle">
+      <!-- render password input -->
+      <%= render_block(@inner_block) %>
+      <button
+        class="bg-gray-50 p-1 icon-button absolute inset-y-0 right-1"
+        type="button"
+        aria-label="toggle password visibility"
+        phx-change="ignore">
+        <.remix_icon icon="eye-line" class="text-xl" />
+      </button>
+    </div>
+    """
+  end
+
   defdelegate ansi_string_to_html(string), to: LivebookWeb.Helpers.ANSI
   defdelegate ansi_string_to_html_lines(string), to: LivebookWeb.Helpers.ANSI
 
