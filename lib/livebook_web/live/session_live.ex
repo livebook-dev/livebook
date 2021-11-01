@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session"
-      data-global-evaluation-status={elem(@data_view.global_evaluation_status, 0)}
+      data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
@@ -120,18 +120,23 @@ defmodule LivebookWeb.SessionLive do
             </h3>
             <div class="flex flex-col mt-4 space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
-                <button class="flex items-center space-x-1 text-left text-gray-500 hover:text-gray-900"
-                  data-element="sections-list-item"
-                  data-section-id={section_item.id}>
-                  <span><%= section_item.name %></span>
-                  <%= if section_item.parent do %>
-                    <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                        consequently we show the tooltip wrapped to a fixed number of characters %>
-                    <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                      <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                <div class="flex items-center">
+                  <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900"
+                    data-element="sections-list-item"
+                    data-section-id={section_item.id}>
+                    <span class="flex items-center space-x-1">
+                      <span><%= section_item.name %></span>
+                      <%= if section_item.parent do %>
+                        <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                            consequently we show the tooltip wrapped to a fixed number of characters %>
+                        <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
+                          <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                        </span>
+                      <% end %>
                     </span>
-                  <% end %>
-                </button>
+                  </button>
+                  <.session_status status={elem(section_item.status, 0)} cell_id={elem(section_item.status, 1)} />
+                </div>
               <% end %>
             </div>
             <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
@@ -259,7 +264,7 @@ defmodule LivebookWeb.SessionLive do
               dirty: @data_view.dirty,
               autosave_interval_s: @data_view.autosave_interval_s,
               runtime: @data_view.runtime,
-              global_evaluation_status: @data_view.global_evaluation_status %>
+              global_status: @data_view.global_status %>
       </div>
     </div>
 
@@ -347,6 +352,41 @@ defmodule LivebookWeb.SessionLive do
             tab: @tab,
             return_to: Routes.session_path(@socket, :page, @session.id) %>
     <% end %>
+    """
+  end
+
+  defp session_status(%{status: :evaluating} = assigns) do
+    ~H"""
+    <button data-element="focus-cell-button" data-target={@cell_id}>
+      <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
+      </.status_indicator>
+    </button>
+    """
+  end
+
+  defp session_status(%{status: :stale} = assigns) do
+    ~H"""
+    <button data-element="focus-cell-button" data-target={@cell_id}>
+      <.status_indicator circle_class="bg-yellow-200">
+      </.status_indicator>
+    </button>
+    """
+  end
+
+  defp session_status(assigns), do: ~H""
+
+  defp status_indicator(assigns) do
+    assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
+
+    ~H"""
+    <div class="flex items-center space-x-1">
+      <span class="flex relative h-3 w-3">
+        <%= if @animated_circle_class do %>
+          <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
+        <% end %>
+        <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+      </span>
+    </div>
     """
   end
 
@@ -1134,14 +1174,15 @@ defmodule LivebookWeb.SessionLive do
       autosave_interval_s: data.notebook.autosave_interval_s,
       dirty: data.dirty,
       runtime: data.runtime,
-      global_evaluation_status: global_evaluation_status(data),
+      global_status: global_status(data),
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
           %{
             id: section.id,
             name: section.name,
-            parent: parent_section_view(section.parent_id, data)
+            parent: parent_section_view(section.parent_id, data),
+            status: cells_status(section.cells, data)
           }
         end,
       clients:
@@ -1154,12 +1195,7 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp global_evaluation_status(data) do
-    cells =
-      data.notebook
-      |> Notebook.elixir_cells_with_section()
-      |> Enum.map(fn {cell, _} -> cell end)
-
+  defp cells_status(cells, data) do
     cond do
       evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
         {:evaluating, evaluating.id}
@@ -1173,6 +1209,15 @@ defmodule LivebookWeb.SessionLive do
       true ->
         {:fresh, nil}
     end
+  end
+
+  defp global_status(data) do
+    cells =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.map(fn {cell, _} -> cell end)
+
+    cells_status(cells, data)
   end
 
   defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
