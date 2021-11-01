@@ -126,7 +126,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= @cell_view.name %>
         </div>
 
-        <.cell_input cell_view={@cell_view} target={@myself} />
+        <.cell_input cell_view={@cell_view} />
 
         <%= if @cell_view.error do %>
           <div class="input-error">
@@ -203,17 +203,17 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_input(%{cell_view: %{input_type: :password}} = assigns) do
     ~H"""
-    <%= live_component LivebookWeb.WithPasswordToggleComponent, id: @cell_view.id do %>
+    <.with_password_toggle id={@cell_view.id}>
       <input type="password"
         data-element="input"
-        class={"w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
+        class={"input w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
         name="value"
         value={@cell_view.value}
         phx-debounce="300"
         spellcheck="false"
         autocomplete="off"
         tabindex="-1" />
-    <% end  %>
+    </.with_password_toggle>
     """
   end
 

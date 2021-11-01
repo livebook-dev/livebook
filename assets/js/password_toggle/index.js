@@ -12,17 +12,17 @@ const PasswordToggle = {
     this.input = this.el.querySelector("input");
     this.iconButton = this.el.querySelector("i");
 
-    this.iconButton.onclick = () => {
+    this.iconButton.addEventListener("click", () => {
       this.visible = !this.visible;
-      this._updateState();
-    };
+      this._updateDOM();
+    });
   },
 
   updated() {
-    this._updateState();
+    this._updateDOM();
   },
 
-  _updateState() {
+  _updateDOM() {
     if (this.visible) {
       this.input.type = "text";
       this.iconButton.classList.remove(OBSCURED_ICON);
