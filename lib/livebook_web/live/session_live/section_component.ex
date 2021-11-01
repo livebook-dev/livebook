@@ -7,6 +7,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       <div class="flex space-x-4 items-center" data-element="section-headline">
         <h2 class="flex-grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border
                    border-transparent hover:border-blue-200 focus:border-blue-300"
+          aria-description="section title"
           data-element="section-name"
           id={@section_view.html_id}
           contenteditable
@@ -18,15 +19,17 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <%# ^ Note it's important there's no space between <h2> and </h2>
             because we want the content to exactly match section name. %>
         <div class="flex space-x-2 items-center" data-element="section-actions">
-          <span class="tooltip top" aria-label="Link">
-            <a href={"##{@section_view.html_id}"} class="icon-button">
+          <span class="tooltip top" data-tooltip="Link">
+            <a href={"##{@section_view.html_id}"} class="icon-button" aria-label="link to section">
               <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
           <%= if @section_view.valid_parents != [] and not @section_view.has_children? do %>
             <div class="relative" id={"section-#{@section_view.id}-branch-menu"} phx-hook="Menu" data-element="menu">
-              <span class="tooltip top" aria-label="Branch out from">
-                <button class="icon-button" data-toggle>
+              <span class="tooltip top" data-tooltip="Branch out from">
+                <button class="icon-button"
+                  aria-label="branch out from other section"
+                  data-toggle>
                   <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
                 </button>
               </span>
@@ -52,25 +55,28 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               </div>
             </div>
           <% end %>
-          <span class="tooltip top" aria-label="Move up">
+          <span class="tooltip top" data-tooltip="Move up">
             <button class="icon-button"
+              aria-label="move section up"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="-1">
               <.remix_icon icon="arrow-up-s-line" class="text-xl" />
             </button>
           </span>
-          <span class="tooltip top" aria-label="Move down">
+          <span class="tooltip top" data-tooltip="Move down">
             <button class="icon-button"
+              aria-label="move section down"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="1">
               <.remix_icon icon="arrow-down-s-line" class="text-xl" />
             </button>
           </span>
-          <span class="tooltip top" aria-label={if @section_view.has_children?, do: "Cannot delete this section because\nother sections branch from it", else: "Delete"}>
+          <span class="tooltip top" data-tooltip={if @section_view.has_children?, do: "Cannot delete this section because\nother sections branch from it", else: "Delete"}>
             <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
-                  class: "icon-button #{if @section_view.has_children?, do: "disabled"}" do %>
+                  class: "icon-button #{if @section_view.has_children?, do: "disabled"}",
+                  aria_label: "delete section" do %>
               <.remix_icon icon="delete-bin-6-line" class="text-xl" />
             <% end %>
           </span>
@@ -78,7 +84,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       </div>
       <%= if @section_view.parent do %>
         <h3 class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800">
-          <span class="tooltip bottom" aria-label={"This section branches out from the main flow\nand can be evaluated in parallel"}>
+          <span class="tooltip bottom" data-tooltip={"This section branches out from the main flow\nand can be evaluated in parallel"}>
             <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
           </span>
           <span class="leading-none">from ”<%= @section_view.parent.name %>”</span>

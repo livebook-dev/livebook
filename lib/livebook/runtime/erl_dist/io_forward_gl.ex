@@ -20,7 +20,7 @@ defmodule Livebook.Runtime.ErlDist.IOForwardGL do
 
   ## Options
 
-    * `:name` - the name to regsiter the process under. Optional.
+    * `:name` - the name to register the process under. Optional.
       If the name is already used, it will be unregistered before
       starting the process and registered back when the server
       terminates.

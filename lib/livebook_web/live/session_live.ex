@@ -75,7 +75,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session"
-      data-global-evaluation-status={elem(@data_view.global_evaluation_status, 0)}
+      data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
@@ -116,18 +116,23 @@ defmodule LivebookWeb.SessionLive do
             </h3>
             <div class="flex flex-col mt-4 space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
-                <button class="flex items-center space-x-1 text-left text-gray-500 hover:text-gray-900"
-                  data-element="sections-list-item"
-                  data-section-id={section_item.id}>
-                  <span><%= section_item.name %></span>
-                  <%= if section_item.parent do %>
-                    <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                        consequently we show the tooltip wrapped to a fixed number of characters %>
-                    <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                      <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                <div class="flex items-center">
+                  <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900"
+                    data-element="sections-list-item"
+                    data-section-id={section_item.id}>
+                    <span class="flex items-center space-x-1">
+                      <span><%= section_item.name %></span>
+                      <%= if section_item.parent do %>
+                        <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                            consequently we show the tooltip wrapped to a fixed number of characters %>
+                        <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
+                          <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                        </span>
+                      <% end %>
                     </span>
-                  <% end %>
-                </button>
+                  </button>
+                  <.session_status status={elem(section_item.status, 0)} cell_id={elem(section_item.status, 1)} />
+                </div>
               <% end %>
             </div>
             <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
@@ -161,17 +166,17 @@ defmodule LivebookWeb.SessionLive do
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>
-                    <span class="tooltip left" aria-label="Follow this user"
+                    <span class="tooltip left" data-tooltip="Follow this user"
                       data-element="client-follow-toggle"
                       data-meta="follow">
-                      <button class="icon-button">
+                      <button class="icon-button" aria-label="follow this user">
                         <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
                     </span>
-                    <span class="tooltip left" aria-label="Unfollow this user"
+                    <span class="tooltip left" data-tooltip="Unfollow this user"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
-                      <button class="icon-button">
+                      <button class="icon-button" aria-label="unfollow this user">
                         <.remix_icon icon="pushpin-fill" class="text-lg" />
                       </button>
                     </span>
@@ -186,6 +191,7 @@ defmodule LivebookWeb.SessionLive do
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200">
             <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300"
+              aria-description="notebook title"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable
@@ -198,6 +204,16 @@ defmodule LivebookWeb.SessionLive do
                 <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
               <div class="menu" data-content>
+                <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
+                      class: "menu__item text-gray-500" do %>
+                  <.remix_icon icon="download-2-line" />
+                  <span class="font-medium">Export</span>
+                <% end %>
+                <button class="text-gray-500 menu__item"
+                  phx-click="erase_outputs">
+                  <.remix_icon icon="eraser-fill" />
+                  <span class="font-medium">Erase outputs</span>
+                </button>
                 <button class="text-gray-500 menu__item"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
@@ -209,11 +225,6 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                      class: "menu__item text-gray-500" do %>
-                  <.remix_icon icon="download-2-line" />
-                  <span class="font-medium">Export</span>
-                <% end %>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu__item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
@@ -251,7 +262,7 @@ defmodule LivebookWeb.SessionLive do
           dirty={@data_view.dirty}
           autosave_interval_s={@data_view.autosave_interval_s}
           runtime={@data_view.runtime}
-          global_evaluation_status={@data_view.global_evaluation_status} />
+          global_status={@data_view.global_status} />
       </div>
     </div>
 
@@ -342,6 +353,41 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
+  defp session_status(%{status: :evaluating} = assigns) do
+    ~H"""
+    <button data-element="focus-cell-button" data-target={@cell_id}>
+      <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
+      </.status_indicator>
+    </button>
+    """
+  end
+
+  defp session_status(%{status: :stale} = assigns) do
+    ~H"""
+    <button data-element="focus-cell-button" data-target={@cell_id}>
+      <.status_indicator circle_class="bg-yellow-200">
+      </.status_indicator>
+    </button>
+    """
+  end
+
+  defp session_status(assigns), do: ~H""
+
+  defp status_indicator(assigns) do
+    assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
+
+    ~H"""
+    <div class="flex items-center space-x-1">
+      <span class="flex relative h-3 w-3">
+        <%= if @animated_circle_class do %>
+          <span class={"#{@animated_circle_class} animate-ping absolute inline-flex h-3 w-3 rounded-full opacity-75"}></span>
+        <% end %>
+        <span class={"#{@circle_class} relative inline-flex rounded-full h-3 w-3"}></span>
+      </span>
+    </div>
+    """
+  end
+
   defp settings_component_for(%Cell.Elixir{}),
     do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
 
@@ -354,7 +400,7 @@ defmodule LivebookWeb.SessionLive do
     wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
     label = "Branches from\n#{wrapped_name}"
 
-    [class: "tooltip #{direction}", "aria-label": label]
+    [class: "tooltip #{direction}", data_tooltip: label]
   end
 
   @impl true
@@ -692,6 +738,11 @@ defmodule LivebookWeb.SessionLive do
     data = Session.get_data(pid)
     notebook = Notebook.forked(data.notebook)
     {:noreply, create_session(socket, notebook: notebook, copy_images_from: images_dir)}
+  end
+
+  def handle_event("erase_outputs", %{}, socket) do
+    Session.erase_outputs(socket.assigns.session.pid)
+    {:noreply, socket}
   end
 
   def handle_event("location_report", report, socket) do
@@ -1114,14 +1165,15 @@ defmodule LivebookWeb.SessionLive do
       autosave_interval_s: data.notebook.autosave_interval_s,
       dirty: data.dirty,
       runtime: data.runtime,
-      global_evaluation_status: global_evaluation_status(data),
+      global_status: global_status(data),
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
           %{
             id: section.id,
             name: section.name,
-            parent: parent_section_view(section.parent_id, data)
+            parent: parent_section_view(section.parent_id, data),
+            status: cells_status(section.cells, data)
           }
         end,
       clients:
@@ -1134,12 +1186,7 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp global_evaluation_status(data) do
-    cells =
-      data.notebook
-      |> Notebook.elixir_cells_with_section()
-      |> Enum.map(fn {cell, _} -> cell end)
-
+  defp cells_status(cells, data) do
     cond do
       evaluating = Enum.find(cells, &evaluating?(&1, data)) ->
         {:evaluating, evaluating.id}
@@ -1153,6 +1200,15 @@ defmodule LivebookWeb.SessionLive do
       true ->
         {:fresh, nil}
     end
+  end
+
+  defp global_status(data) do
+    cells =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.map(fn {cell, _} -> cell end)
+
+    cells_status(cells, data)
   end
 
   defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
@@ -1263,7 +1319,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   # Changes that affect only a single cell are still likely to
-  # have impact on dirtyness, so we need to always mirror it
+  # have impact on dirtiness, so we need to always mirror it
   defp update_dirty_status(data_view, data) do
     put_in(data_view.dirty, data.dirty)
   end

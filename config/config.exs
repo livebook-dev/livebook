@@ -14,6 +14,11 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Add mime type to upload notebooks with `Phoenix.LiveView.Upload`
+config :mime, :types, %{
+  "text/plain" => ["livemd"]
+}
+
 # Sets the default authentication mode to token
 config :livebook, :authentication_mode, :token
 

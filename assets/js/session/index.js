@@ -72,7 +72,7 @@ const Session = {
 
     // Set initial favicon based on the current status
 
-    setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
+    setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
 
     // Load initial data
 
@@ -104,6 +104,7 @@ const Session = {
 
     getSectionsList().addEventListener("click", (event) => {
       handleSectionsListClick(this, event);
+      handleCellIndicatorsClick(this, event);
     });
 
     getClientsList().addEventListener("click", (event) => {
@@ -212,10 +213,8 @@ const Session = {
     const prevProps = this.props;
     this.props = getProps(this);
 
-    if (
-      this.props.globalEvaluationStatus !== prevProps.globalEvaluationStatus
-    ) {
-      setFavicon(faviconForEvaluationStatus(this.props.globalEvaluationStatus));
+    if (this.props.globalStatus !== prevProps.globalStatus) {
+      setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
     }
   },
 
@@ -237,11 +236,7 @@ function getProps(hook) {
       "data-autofocus-cell-id",
       null
     ),
-    globalEvaluationStatus: getAttributeOrDefault(
-      hook.el,
-      "data-global-evaluation-status",
-      null
-    ),
+    globalStatus: getAttributeOrDefault(hook.el, "data-global-status", null),
   };
 }
 
@@ -392,13 +387,14 @@ function handleDocumentMouseDown(hook, event) {
     return;
   }
 
-  // If click targets a clickable element that awaits mouse up, keep the focus as is
-  if (event.target.closest(`a, button`)) {
-    // If the pencil icon is clicked, enter insert mode
-    if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
-      setInsertMode(hook, true);
-    }
+  // If the pencil icon is clicked, enter insert mode
+  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
+    setInsertMode(hook, true);
+    return;
+  }
 
+  // If primary cell action is clicked, keep the focus as is
+  if (event.target.closest(`[data-element="actions"][data-primary]`)) {
     return;
   }
 
@@ -408,7 +404,7 @@ function handleDocumentMouseDown(hook, event) {
   const insertMode = editableElementClicked(event, cell);
 
   if (cellId !== hook.state.focusedCellId) {
-    setFocusedCell(hook, cellId, !insertMode);
+    setFocusedCell(hook, cellId, false);
   }
 
   // Depending on whether the click targets editor disable/enable insert mode
@@ -732,6 +728,9 @@ function setFocusedCell(hook, cellId, scroll = true) {
     hook.state.focusedSectionId = getSectionIdByCellId(
       hook.state.focusedCellId
     );
+    // Focus the primary cell content, this is important for screen readers
+    const cellBody = cell.querySelector(`[data-element="cell-body"]`);
+    cellBody.focus();
   } else {
     hook.state.focusedCellType = null;
     hook.state.focusedSectionId = null;

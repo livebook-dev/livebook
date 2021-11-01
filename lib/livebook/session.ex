@@ -248,6 +248,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends erase outputs request to the server.
+  """
+  @spec erase_outputs(pid()) :: :ok
+  def erase_outputs(pid) do
+    GenServer.cast(pid, {:erase_outputs, self()})
+  end
+
+  @doc """
   Asynchronously sends notebook name update request to the server.
   """
   @spec set_notebook_name(pid(), String.t()) :: :ok
@@ -517,6 +525,11 @@ defmodule Livebook.Session do
 
   def handle_cast({:cancel_cell_evaluation, client_pid, cell_id}, state) do
     operation = {:cancel_cell_evaluation, client_pid, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:erase_outputs, client_pid}, state) do
+    operation = {:erase_outputs, client_pid}
     {:noreply, handle_operation(state, operation)}
   end
 

@@ -129,6 +129,7 @@ defmodule Livebook.Session.Data do
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
+          | {:erase_outputs, pid()}
           | {:set_notebook_name, pid(), String.t()}
           | {:set_section_name, pid(), Section.id(), String.t()}
           | {:client_join, pid(), User.t()}
@@ -154,7 +155,7 @@ defmodule Livebook.Session.Data do
   """
   @spec new(Notebook.t()) :: t()
   def new(notebook \\ Notebook.new()) do
-    %__MODULE__{
+    data = %__MODULE__{
       notebook: notebook,
       origin: nil,
       file: nil,
@@ -166,6 +167,11 @@ defmodule Livebook.Session.Data do
       clients_map: %{},
       users_map: %{}
     }
+
+    data
+    |> with_actions()
+    |> compute_snapshots()
+    |> elem(0)
   end
 
   defp initial_section_infos(notebook) do
@@ -457,6 +463,13 @@ defmodule Livebook.Session.Data do
     else
       _ -> :error
     end
+  end
+
+  def apply_operation(data, {:erase_outputs, _client_pid}) do
+    data
+    |> with_actions()
+    |> erase_outputs()
+    |> wrap_ok()
   end
 
   def apply_operation(data, {:set_notebook_name, _client_pid, name}) do
@@ -849,7 +862,7 @@ defmodule Livebook.Session.Data do
     Enum.any?(data.section_infos, fn {_section_id, info} -> info.evaluation_queue != [] end)
   end
 
-  # Don't tigger evaluation if we don't have a runtime started yet
+  # Don't trigger evaluation if we don't have a runtime started yet
   defp maybe_evaluate_queued({%{runtime: nil}, _} = data_actions), do: data_actions
 
   defp maybe_evaluate_queued({data, _} = data_actions) do
@@ -1053,6 +1066,18 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  defp erase_outputs({data, _} = data_actions) do
+    data_actions
+    |> clear_all_evaluation()
+    |> set!(
+      notebook:
+        Notebook.update_cells(data.notebook, fn
+          %Cell.Elixir{} = cell -> %{cell | outputs: []}
+          cell -> cell
+        end)
+    )
+  end
+
   defp set_notebook_name({data, _} = data_actions, name) do
     data_actions
     |> set!(notebook: %{data.notebook | name: name})
@@ -1215,7 +1240,7 @@ defmodule Livebook.Session.Data do
       number_of_evaluations: 0,
       bound_to_input_ids: MapSet.new(),
       bound_input_readings: [],
-      snapshot: {:initial, :initial},
+      snapshot: {nil, nil},
       evaluation_snapshot: nil
     }
   end
@@ -1391,7 +1416,7 @@ defmodule Livebook.Session.Data do
     |> input_readings_snapshot()
   end
 
-  defp input_readings_snapshot([]), do: :initial
+  defp input_readings_snapshot([]), do: :empty
 
   defp input_readings_snapshot(name_value_pairs) do
     name_value_pairs |> Enum.sort() |> :erlang.phash2()

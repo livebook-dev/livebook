@@ -13,7 +13,7 @@
       <div class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-yellow-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer" role="alert"
         phx-click="lv:clear-flash"
         phx-value-key="warning">
-        <.remix_icon icon="error-warning-line" class="text-2xl text-yellow-400" />
+        <.remix_icon icon="alert-line" class="text-2xl text-yellow-400" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :warning) %></span>
       </div>
     <% end %>

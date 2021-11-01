@@ -134,7 +134,7 @@ end)
 ```
 
 Now go to [the dashboard](/dashboard) and check out the select
-in the upper right corner. If the connection was successfull, you
+in the upper right corner. If the connection was successful, you
 should be able to pick the desired node and see its details.
 
 ## Inspecting processes
@@ -178,7 +178,7 @@ we actually care about the resulting value of `Process.list/0`!
 
 We could still use `Node.spawn/2` to send us the results, which
 we would `receive`, but doing that over and over can be quite tedious.
-Fortunatelly, `:rpc.call/4` does essentially that - evaluates the given
+Fortunately, `:rpc.call/4` does essentially that - evaluates the given
 function on the remote node and returns its result.
 
 Now, let's gather more information about each process 🕵️

@@ -3,6 +3,8 @@ defmodule LivebookWeb.Helpers do
 
   alias LivebookWeb.Router.Helpers, as: Routes
 
+  alias Livebook.FileSystem
+
   @doc """
   Renders a component inside the `Livebook.ModalComponent` component.
 
@@ -108,7 +110,7 @@ defmodule LivebookWeb.Helpers do
       |> assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
 
     ~H"""
-    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
+    <i class={"ri-#{@icon} #{@class}"} aria-hidden="true" {@attrs}></i>
     """
   end
 
@@ -244,6 +246,62 @@ defmodule LivebookWeb.Helpers do
     """
   end
 
+  @doc """
+  Renders a wrapper around password input
+  with an added visibility toggle button.
+
+  The toggle switches the input's type between `password`
+  and `text`.
+
+  ## Examples
+
+    <.with_password_toggle id="input-id">
+      <input type="password" ...>
+    </.with_password_toggle>
+  """
+  def with_password_toggle(assigns) do
+    ~H"""
+    <div id={"password-toggle-#{@id}"} class="relative inline w-min" phx-hook="PasswordToggle">
+      <!-- render password input -->
+      <%= render_slot(@inner_block) %>
+      <button
+        class="bg-gray-50 p-1 icon-button absolute inset-y-0 right-1"
+        type="button"
+        aria-label="toggle password visibility"
+        phx-change="ignore">
+        <.remix_icon icon="eye-line" class="text-xl" />
+      </button>
+    </div>
+    """
+  end
+
   defdelegate ansi_string_to_html(string), to: LivebookWeb.Helpers.ANSI
   defdelegate ansi_string_to_html_lines(string), to: LivebookWeb.Helpers.ANSI
+
+  @doc """
+  Renders an icon representing the given file system.
+  """
+  def file_system_icon(assigns)
+
+  def file_system_icon(%{file_system: %FileSystem.Local{}} = assigns) do
+    ~H"""
+    <.remix_icon icon="hard-drive-2-line leading-none" />
+    """
+  end
+
+  def file_system_icon(%{file_system: %FileSystem.S3{}} = assigns) do
+    ~H"""
+    <i class="not-italic">
+      <span class="text-[0.75em] font-semibold align-middle">S3</span>
+    </i>
+    """
+  end
+
+  @doc """
+  Formats the given file system into a descriptive label.
+  """
+  def file_system_label(file_system)
+
+  def file_system_label(%FileSystem.Local{}), do: "Local disk"
+  def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
 end

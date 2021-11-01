@@ -210,7 +210,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "persistence settings" do
     @tag :tmp_dir
-    test "saving to file shows the newly created file",
+    test "saving to file shows the newly created file in file selector",
          %{conn: conn, session: session, tmp_dir: tmp_dir} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
 
@@ -219,7 +219,7 @@ defmodule LivebookWeb.SessionLiveTest do
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
-      |> element("button", "Save to file")
+      |> element("button", "Choose a file")
       |> render_click()
 
       view
@@ -227,7 +227,15 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{path: path})
 
       view
-      |> element(~s{button[phx-click="save"]}, "Save")
+      |> element(~s{button[phx-click="confirm_file"]}, "Choose")
+      |> render_click()
+
+      view
+      |> element(~s{button}, "Save now")
+      |> render_click()
+
+      view
+      |> element("button", "Change file")
       |> render_click()
 
       assert view
@@ -245,7 +253,7 @@ defmodule LivebookWeb.SessionLiveTest do
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
-      |> element("button", "Save to file")
+      |> element("button", "Choose a file")
       |> render_click()
 
       view
@@ -253,11 +261,15 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{path: path})
 
       view
+      |> element(~s{button[phx-click="confirm_file"]}, "Choose")
+      |> render_click()
+
+      view
       |> element(~s{form[phx-change="set_options"]})
       |> render_change(%{persist_outputs: "true"})
 
       view
-      |> element(~s{button[phx-click="save"]}, "Save")
+      |> element(~s{button}, "Save now")
       |> render_click()
 
       assert %{notebook: %{persist_outputs: true}} = Session.get_data(session.pid)

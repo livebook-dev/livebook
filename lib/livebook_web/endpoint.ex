@@ -31,7 +31,7 @@ defmodule LivebookWeb.Endpoint do
       from: "tmp/static_dev"
   end
 
-  # Serve static failes at "/"
+  # Serve static files at "/"
 
   if code_reloading? do
     # In development we use assets from tmp/static_dev (rebuilt dynamically on every change).
