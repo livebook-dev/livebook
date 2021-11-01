@@ -104,6 +104,7 @@ const Session = {
 
     getSectionsList().addEventListener("click", (event) => {
       handleSectionsListClick(this, event);
+      handleCellIndicatorsClick(this, event);
     });
 
     getClientsList().addEventListener("click", (event) => {

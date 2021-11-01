@@ -120,23 +120,23 @@ defmodule LivebookWeb.SessionLive do
             </h3>
             <div class="flex flex-col mt-4 space-y-4">
               <%= for section_item <- @data_view.sections_items do %>
-                <button class="flex items-center text-gray-500 hover:text-gray-900"
-                  data-element="sections-list-item"
-                  data-section-id={section_item.id}>
-                  <span class="flex items-center space-x-1">
-                    <span><%= section_item.name %></span>
-                    <%= if section_item.parent do %>
-                      <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                          consequently we show the tooltip wrapped to a fixed number of characters %>
-                      <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                        <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
-                      </span>
-                    <% end %>
-                  </span>
-                  <span class="flex-grow flex justify-end">
-                    <.session_status status={section_item.status} />
-                  </span>
-                </button>
+                <div class="flex items-center">
+                  <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900"
+                    data-element="sections-list-item"
+                    data-section-id={section_item.id}>
+                    <span class="flex items-center space-x-1">
+                      <span><%= section_item.name %></span>
+                      <%= if section_item.parent do %>
+                        <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                            consequently we show the tooltip wrapped to a fixed number of characters %>
+                        <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
+                          <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                        </span>
+                      <% end %>
+                    </span>
+                  </button>
+                  <.session_status status={section_item.status} />
+                </div>
               <% end %>
             </div>
             <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
@@ -355,17 +355,21 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp session_status(%{status: :evaluating} = assigns) do
+  defp session_status(%{status: {:evaluating, _}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
-    </.status_indicator>
+    <button data-element="focus-cell-button" data-target={elem(@status, 1)}>
+      <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
+      </.status_indicator>
+    </button>
     """
   end
 
-  defp session_status(%{status: :stale} = assigns) do
+  defp session_status(%{status: {:stale, _}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-yellow-200">
-    </.status_indicator>
+    <button data-element="focus-cell-button" data-target={elem(@status, 1)}>
+      <.status_indicator circle_class="bg-yellow-200">
+      </.status_indicator>
+    </button>
     """
   end
 
@@ -1174,13 +1178,11 @@ defmodule LivebookWeb.SessionLive do
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
-          {status, _} = cells_status(section.cells, data)
-
           %{
             id: section.id,
             name: section.name,
             parent: parent_section_view(section.parent_id, data),
-            status: status
+            status: cells_status(section.cells, data)
           }
         end,
       clients:
