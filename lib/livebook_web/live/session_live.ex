@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive do
       id="session"
       data-element="session"
       phx-hook="Session"
-      data-global-evaluation-status={elem(@data_view.global_evaluation_status, 0)}
+      data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
@@ -135,7 +135,7 @@ defmodule LivebookWeb.SessionLive do
                       <% end %>
                     </span>
                   </button>
-                  <.session_status status={section_item.status} />
+                  <.session_status status={elem(section_item.status, 0)} cell_id={elem(section_item.status, 1)} />
                 </div>
               <% end %>
             </div>
@@ -264,7 +264,7 @@ defmodule LivebookWeb.SessionLive do
               dirty: @data_view.dirty,
               autosave_interval_s: @data_view.autosave_interval_s,
               runtime: @data_view.runtime,
-              global_evaluation_status: @data_view.global_evaluation_status %>
+              global_status: @data_view.global_status %>
       </div>
     </div>
 
@@ -355,18 +355,18 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp session_status(%{status: {:evaluating, _}} = assigns) do
+  defp session_status(%{status: :evaluating} = assigns) do
     ~H"""
-    <button data-element="focus-cell-button" data-target={elem(@status, 1)}>
+    <button data-element="focus-cell-button" data-target={@cell_id}>
       <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
       </.status_indicator>
     </button>
     """
   end
 
-  defp session_status(%{status: {:stale, _}} = assigns) do
+  defp session_status(%{status: :stale} = assigns) do
     ~H"""
-    <button data-element="focus-cell-button" data-target={elem(@status, 1)}>
+    <button data-element="focus-cell-button" data-target={@cell_id}>
       <.status_indicator circle_class="bg-yellow-200">
       </.status_indicator>
     </button>
@@ -1174,7 +1174,7 @@ defmodule LivebookWeb.SessionLive do
       autosave_interval_s: data.notebook.autosave_interval_s,
       dirty: data.dirty,
       runtime: data.runtime,
-      global_evaluation_status: global_evaluation_status(data),
+      global_status: global_status(data),
       notebook_name: data.notebook.name,
       sections_items:
         for section <- data.notebook.sections do
@@ -1211,7 +1211,7 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp global_evaluation_status(data) do
+  defp global_status(data) do
     cells =
       data.notebook
       |> Notebook.elixir_cells_with_section()

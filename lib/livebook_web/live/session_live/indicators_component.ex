@@ -40,9 +40,9 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <% end %>
 
       <%= if @runtime do %>
-        <.global_evaluation_status
-          status={elem(@global_evaluation_status, 0)}
-          cell_id={elem(@global_evaluation_status, 1)} />
+        <.global_status
+          status={elem(@global_status, 0)}
+          cell_id={elem(@global_status, 1)} />
       <% else %>
         <span class="tooltip left" aria-label="Choose a runtime to run the notebook in">
           <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session_id),
@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp global_evaluation_status(%{status: :evaluating} = assigns) do
+  defp global_status(%{status: :evaluating} = assigns) do
     ~H"""
     <span class="tooltip left" aria-label="Go to evaluating cell">
       <button class="border-blue-400 icon-button icon-outlined-button hover:bg-blue-50 focus:bg-blue-50"
@@ -74,7 +74,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp global_evaluation_status(%{status: :evaluated} = assigns) do
+  defp global_status(%{status: :evaluated} = assigns) do
     ~H"""
     <span class="tooltip left" aria-label="Go to last evaluated cell">
       <button class="border-green-300 icon-button icon-outlined-button hover:bg-green-50 focus:bg-green-50"
@@ -86,7 +86,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp global_evaluation_status(%{status: :stale} = assigns) do
+  defp global_status(%{status: :stale} = assigns) do
     ~H"""
     <span class="tooltip left" aria-label="Go to first stale cell">
       <button class="border-yellow-200 icon-button icon-outlined-button hover:bg-yellow-50 focus:bg-yellow-50"
@@ -98,7 +98,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp global_evaluation_status(%{status: :fresh} = assigns) do
+  defp global_status(%{status: :fresh} = assigns) do
     ~H"""
     <span class="tooltip left" aria-label="Ready to evaluate">
       <button class="border-gray-200 cursor-default icon-button icon-outlined-button hover:bg-gray-100 focus:bg-gray-100">
