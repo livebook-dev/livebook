@@ -25,7 +25,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
         class="flex flex-col items-start"
       >
         <%= live_file_input @uploads.notebook, class: "hidden" %>
-        <div name="dropzone" class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48">
+        <div data-dropzone class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48">
           <%= if @uploads.notebook.entries == [] do %>
             <span name="placeholder" class="font-medium text-gray-400">Drop your notebook here</span>
           <% else %>

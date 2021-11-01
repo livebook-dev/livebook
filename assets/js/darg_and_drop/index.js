@@ -1,6 +1,6 @@
 const DragAndDrop = {
   mounted() {
-    const dropZone = this.el.querySelector("[name='dropzone']");
+    const dropZone = this.el.querySelector("[data-dropzone]");
 
     ["dragenter", "dragover"].forEach((eventName) => {
       dropZone.addEventListener(eventName, highlight, false);
