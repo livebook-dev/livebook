@@ -155,7 +155,7 @@ defmodule Livebook.Session.Data do
   """
   @spec new(Notebook.t()) :: t()
   def new(notebook \\ Notebook.new()) do
-    %__MODULE__{
+    data = %__MODULE__{
       notebook: notebook,
       origin: nil,
       file: nil,
@@ -167,6 +167,11 @@ defmodule Livebook.Session.Data do
       clients_map: %{},
       users_map: %{}
     }
+
+    data
+    |> with_actions()
+    |> compute_snapshots()
+    |> elem(0)
   end
 
   defp initial_section_infos(notebook) do
@@ -1235,7 +1240,7 @@ defmodule Livebook.Session.Data do
       number_of_evaluations: 0,
       bound_to_input_ids: MapSet.new(),
       bound_input_readings: [],
-      snapshot: {:initial, :initial},
+      snapshot: {nil, nil},
       evaluation_snapshot: nil
     }
   end
@@ -1411,7 +1416,7 @@ defmodule Livebook.Session.Data do
     |> input_readings_snapshot()
   end
 
-  defp input_readings_snapshot([]), do: :initial
+  defp input_readings_snapshot([]), do: :empty
 
   defp input_readings_snapshot(name_value_pairs) do
     name_value_pairs |> Enum.sort() |> :erlang.phash2()
