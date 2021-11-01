@@ -34,6 +34,7 @@ defmodule LivebookWeb.SidebarHelpers do
     ~H"""
     <span class="tooltip right distant" data-tooltip={@label}>
       <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+        aria-label={@label}
         data-element={@data_element}>
         <.remix_icon icon={@icon} />
       </button>
@@ -45,7 +46,8 @@ defmodule LivebookWeb.SidebarHelpers do
     ~H"""
     <span class="tooltip right distant" data-tooltip={@label}>
       <%= live_patch to: @path,
-            class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@active, do: "text-gray-50 bg-gray-700")}" do %>
+            class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@active, do: "text-gray-50 bg-gray-700")}",
+            aria_label: @label do %>
         <.remix_icon icon={@icon} class="text-2xl" />
       <% end %>
     </span>
@@ -61,7 +63,9 @@ defmodule LivebookWeb.SidebarHelpers do
   def user_item(assigns) do
     ~H"""
     <span class="tooltip right distant" data-tooltip="User profile">
-      <%= live_patch to: @path, class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center" do %>
+      <%= live_patch to: @path,
+            class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center",
+            aria_label: "user profile" do %>
         <.user_avatar user={@current_user} text_class="text-xs" />
       <% end %>
     </span>

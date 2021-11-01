@@ -72,6 +72,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   <div class="flex justify-end space-x-2">
                     <span class="tooltip left" data-tooltip="Copy source">
                       <button class="icon-button"
+                        aria-label="copy source"
                         id={"bin-cell-#{cell.id}-clipcopy"}
                         phx-hook="ClipCopy"
                         data-target-id={"bin-cell-#{cell.id}-source"}>
@@ -80,6 +81,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     </span>
                     <span class="tooltip left" data-tooltip="Restore">
                       <button class="icon-button"
+                        aria-label="restore"
                         phx-click="restore"
                         phx-value-cell_id={entry.cell.id}
                         phx-target={@myself}>

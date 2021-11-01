@@ -173,14 +173,14 @@ defmodule LivebookWeb.SessionLive do
                     <span class="tooltip left" data-tooltip="Follow this user"
                       data-element="client-follow-toggle"
                       data-meta="follow">
-                      <button class="icon-button">
+                      <button class="icon-button" aria-label="follow this user">
                         <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
                     </span>
                     <span class="tooltip left" data-tooltip="Unfollow this user"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
-                      <button class="icon-button">
+                      <button class="icon-button" aria-label="unfollow this user">
                         <.remix_icon icon="pushpin-fill" class="text-lg" />
                       </button>
                     </span>

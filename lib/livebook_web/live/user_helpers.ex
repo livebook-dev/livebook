@@ -17,7 +17,9 @@ defmodule LivebookWeb.UserHelpers do
       |> assign_new(:text_class, fn -> "" end)
 
     ~H"""
-    <div class={"#{@class} rounded-full flex items-center justify-center"} style={"background-color: #{@user.hex_color}"}>
+    <div class={"#{@class} rounded-full flex items-center justify-center"}
+      style={"background-color: #{@user.hex_color}"}
+      aria-hidden="true">
       <div class={"#{@text_class} text-gray-100 font-semibold"}>
         <%= avatar_text(@user.name) %>
       </div>

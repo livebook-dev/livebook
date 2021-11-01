@@ -19,14 +19,16 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             because we want the content to exactly match section name. %>
         <div class="flex space-x-2 items-center" data-element="section-actions">
           <span class="tooltip top" data-tooltip="Link">
-            <a href={"##{@section_view.html_id}"} class="icon-button">
+            <a href={"##{@section_view.html_id}"} class="icon-button" aria-label="link to section">
               <.remix_icon icon="link" class="text-xl" />
             </a>
           </span>
           <%= if @section_view.valid_parents != [] and not @section_view.has_children? do %>
             <div class="relative" id={"section-#{@section_view.id}-branch-menu"} phx-hook="Menu" data-element="menu">
               <span class="tooltip top" data-tooltip="Branch out from">
-                <button class="icon-button" data-toggle>
+                <button class="icon-button"
+                  aria-label="branch out from other section"
+                  data-toggle>
                   <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
                 </button>
               </span>
@@ -54,6 +56,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <% end %>
           <span class="tooltip top" data-tooltip="Move up">
             <button class="icon-button"
+              aria-label="move section up"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="-1">
@@ -62,6 +65,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           </span>
           <span class="tooltip top" data-tooltip="Move down">
             <button class="icon-button"
+              aria-label="move section down"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
               phx-value-offset="1">
@@ -70,7 +74,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           </span>
           <span class="tooltip top" data-tooltip={if @section_view.has_children?, do: "Cannot delete this section because\nother sections branch from it", else: "Delete"}>
             <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
-                  class: "icon-button #{if @section_view.has_children?, do: "disabled"}" do %>
+                  class: "icon-button #{if @section_view.has_children?, do: "disabled"}",
+                  aria_label: "delete section" do %>
               <.remix_icon icon="delete-bin-6-line" class="text-xl" />
             <% end %>
           </span>
