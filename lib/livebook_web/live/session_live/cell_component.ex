@@ -224,7 +224,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_body(assigns) do
     ~H"""
-    <div class="flex relative">
+    <!-- By setting tabindex="-1" we can programmatically focus this element  -->
+    <div class="flex relative" data-element="cell-body" tabindex="-1">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
