@@ -110,7 +110,7 @@ defmodule LivebookWeb.Helpers do
       |> assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
 
     ~H"""
-    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
+    <i class={"ri-#{@icon} #{@class}"} aria-hidden="true" {@attrs}></i>
     """
   end
 

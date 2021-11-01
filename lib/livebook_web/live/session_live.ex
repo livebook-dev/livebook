@@ -170,17 +170,17 @@ defmodule LivebookWeb.SessionLive do
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>
-                    <span class="tooltip left" aria-label="Follow this user"
+                    <span class="tooltip left" data-tooltip="Follow this user"
                       data-element="client-follow-toggle"
                       data-meta="follow">
-                      <button class="icon-button">
+                      <button class="icon-button" aria-label="follow this user">
                         <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
                     </span>
-                    <span class="tooltip left" aria-label="Unfollow this user"
+                    <span class="tooltip left" data-tooltip="Unfollow this user"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
-                      <button class="icon-button">
+                      <button class="icon-button" aria-label="unfollow this user">
                         <.remix_icon icon="pushpin-fill" class="text-lg" />
                       </button>
                     </span>
@@ -195,6 +195,7 @@ defmodule LivebookWeb.SessionLive do
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200">
             <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300"
+              aria-description="notebook title"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable
@@ -402,7 +403,7 @@ defmodule LivebookWeb.SessionLive do
     wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
     label = "Branches from\n#{wrapped_name}"
 
-    [class: "tooltip #{direction}", "aria-label": label]
+    [class: "tooltip #{direction}", data_tooltip: label]
   end
 
   @impl true

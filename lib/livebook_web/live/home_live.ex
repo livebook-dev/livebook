@@ -147,7 +147,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp open_button_tooltip_attrs(file, file_info) do
     if regular?(file, file_info) and not writable?(file_info) do
-      [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"]
+      [class: "tooltip top", data_tooltip: "This file is write-protected, please fork instead"]
     else
       []
     end

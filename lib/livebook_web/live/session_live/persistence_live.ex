@@ -71,7 +71,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
             <div class="flex space-x-2 items-center">
               <span class="text-gray-700 whitespace-nowrap">File:</span>
               <%= if @new_attrs.file do %>
-                <span class="tooltip right" aria-label={file_system_label(@new_attrs.file.file_system)}>
+                <span class="tooltip right" data-tooltip={file_system_label(@new_attrs.file.file_system)}>
                   <span class="flex items-center">
                     [<.file_system_icon file_system={@new_attrs.file.file_system} />]
                   </span>
