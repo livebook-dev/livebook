@@ -42,7 +42,7 @@ const hooks = {
   MarkdownRenderer,
   Highlight,
   ClipCopy,
-  DragAndDrop
+  DragAndDrop,
 };
 
 const csrfToken = document
