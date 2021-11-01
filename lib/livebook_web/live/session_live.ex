@@ -170,14 +170,14 @@ defmodule LivebookWeb.SessionLive do
                     <span><%= user.name || "Anonymous" %></span>
                   </button>
                   <%= if client_pid != @self do %>
-                    <span class="tooltip left" aria-label="Follow this user"
+                    <span class="tooltip left" data-tooltip="Follow this user"
                       data-element="client-follow-toggle"
                       data-meta="follow">
                       <button class="icon-button">
                         <.remix_icon icon="pushpin-line" class="text-lg" />
                       </button>
                     </span>
-                    <span class="tooltip left" aria-label="Unfollow this user"
+                    <span class="tooltip left" data-tooltip="Unfollow this user"
                       data-element="client-follow-toggle"
                       data-meta="unfollow">
                       <button class="icon-button">
@@ -402,7 +402,7 @@ defmodule LivebookWeb.SessionLive do
     wrapped_name = Livebook.Utils.wrap_line("”" <> parent_name <> "”", 16)
     label = "Branches from\n#{wrapped_name}"
 
-    [class: "tooltip #{direction}", "aria-label": label]
+    [class: "tooltip #{direction}", "data-tooltip": label]
   end
 
   @impl true

@@ -54,7 +54,7 @@ defmodule LivebookWeb.SettingsLive do
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
               </h2>
-              <span class="tooltip top" aria-label="Copy as environment variables">
+              <span class="tooltip top" data-tooltip="Copy as environment variables">
                 <button class="icon-button"
                   id={"file-systems-env-clipcopy"}
                   phx-hook="ClipCopy"

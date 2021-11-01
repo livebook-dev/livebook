@@ -51,7 +51,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
       <!-- Actions -->
       <div class="flex space-x-2">
         <%= if :refetch in @features do %>
-          <span class="tooltip left" aria-label="Refetch">
+          <span class="tooltip left" data-tooltip="Refetch">
             <button class="icon-button" phx-click="refetch">
               <.remix_icon icon="refresh-line" class="text-xl" />
             </button>

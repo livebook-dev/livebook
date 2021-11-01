@@ -31,7 +31,7 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
             .exs
           </span>
           <div class="flex justify-end space-x-2">
-            <span class="tooltip left" aria-label="Copy source">
+            <span class="tooltip left" data-tooltip="Copy source">
               <button class="icon-button"
                 id="export-notebook-source-clipcopy"
                 phx-hook="ClipCopy"
@@ -39,7 +39,7 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
                 <.remix_icon icon="clipboard-line" class="text-lg" />
               </button>
             </span>
-            <span class="tooltip left" aria-label="Download source">
+            <span class="tooltip left" data-tooltip="Download source">
               <a class="icon-button"
                 href={Routes.session_path(@socket, :download_source, @session.id, "exs")}>
                 <.remix_icon icon="download-2-line" class="text-lg" />

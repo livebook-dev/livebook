@@ -106,7 +106,7 @@ defmodule LivebookWeb.HomeLiveTest do
              |> has_element?()
 
       assert view
-             |> element(~s{[aria-label="This file is write-protected, please fork instead"]})
+             |> element(~s{[data-tooltip="This file is write-protected, please fork instead"]})
              |> has_element?()
     end
   end
