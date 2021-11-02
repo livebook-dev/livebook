@@ -50,7 +50,7 @@ config :livebook, :plugs, []
 #         # Required notebook path
 #         path: "/path/to/notebook.livemd",
 #         # Optional notebook identifier for URLs, as in /explore/notebooks/{slug}
-#         # By default the slug is inferred from file name, so there is no d to set it
+#         # By default the slug is inferred from file name, so there is no need to set it
 #         slug: "my-notebook"
 #         # Optional list of images
 #         image_paths: [
