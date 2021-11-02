@@ -2,6 +2,7 @@ defmodule LivebookWeb.ExploreLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.UserHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers, PageHelpers}
   alias Livebook.Notebook.Explore
@@ -70,11 +71,9 @@ defmodule LivebookWeb.ExploreLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal LivebookWeb.UserComponent,
-            id: "user",
-            modal_class: "w-full max-w-sm",
-            user: @current_user,
-            return_to: Routes.explore_path(@socket, :page) %>
+      <.current_user_modal
+        return_to={Routes.explore_path(@socket, :page)}
+        current_user={@current_user} />
     <% end %>
     """
   end

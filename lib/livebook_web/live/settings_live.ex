@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SettingsLive do
   use LivebookWeb, :live_view
 
+  import LivebookWeb.UserHelpers
+
   alias LivebookWeb.{SidebarHelpers, PageHelpers}
 
   @impl true
@@ -66,26 +68,26 @@ defmodule LivebookWeb.SettingsLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal LivebookWeb.UserComponent,
-            id: "user",
-            modal_class: "w-full max-w-sm",
-            user: @current_user,
-            return_to: Routes.settings_path(@socket, :page) %>
+      <.current_user_modal
+        return_to={Routes.settings_path(@socket, :page)}
+        current_user={@current_user} />
     <% end %>
 
     <%= if @live_action == :add_file_system do %>
-      <%= live_modal LivebookWeb.SettingsLive.AddFileSystemComponent,
-            id: "add-file-system",
-            modal_class: "w-full max-w-3xl",
-            return_to: Routes.settings_path(@socket, :page) %>
+      <.modal class="w-full max-w-3xl" return_to={Routes.settings_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.SettingsLive.AddFileSystemComponent}
+          id="add-file-system"
+          return_to={Routes.settings_path(@socket, :page)} />
+      </.modal>
     <% end %>
 
     <%= if @live_action == :detach_file_system do %>
-      <%= live_modal LivebookWeb.SettingsLive.RemoveFileSystemComponent,
-            id: "detach-file-system",
-            modal_class: "w-full max-w-xl",
-            file_system: @file_system,
-            return_to: Routes.settings_path(@socket, :page) %>
+      <.modal class="w-full max-w-xl" return_to={Routes.settings_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.SettingsLive.RemoveFileSystemComponent}
+          id="detach-file-system"
+          return_to={Routes.settings_path(@socket, :page)}
+          file_system={@file_system} />
+      </.modal>
     <% end %>
     """
   end

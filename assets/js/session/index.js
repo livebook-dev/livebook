@@ -393,8 +393,8 @@ function handleDocumentMouseDown(hook, event) {
     return;
   }
 
-  // If primary cell action is clicked, keep the focus as is
-  if (event.target.closest(`[data-element="actions"][data-primary]`)) {
+  // If a cell action is clicked, keep the focus as is
+  if (event.target.closest(`[data-element="actions"]`)) {
     return;
   }
 
