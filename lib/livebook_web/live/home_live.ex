@@ -13,7 +13,7 @@ defmodule LivebookWeb.HomeLive do
     end
 
     sessions = sort_sessions(Sessions.list_sessions())
-    notebook_infos = Notebook.Explore.notebook_infos() |> Enum.take(3)
+    notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
      assign(socket,

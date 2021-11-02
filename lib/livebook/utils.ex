@@ -281,4 +281,15 @@ defmodule Livebook.Utils do
     |> Enum.intersperse("\n")
     |> IO.iodata_to_binary()
   end
+
+  @doc """
+  Reads file contents and encodes it into a data URL.
+  """
+  @spec read_as_data_url!(Path.t()) :: binary()
+  def read_as_data_url!(path) do
+    content = File.read!(path)
+    mime = MIME.from_path(path)
+    data = Base.encode64(content)
+    "data:#{mime};base64,#{data}"
+  end
 end

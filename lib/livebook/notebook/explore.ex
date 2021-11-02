@@ -15,87 +15,138 @@ defmodule Livebook.Notebook.Explore do
           slug: String.t(),
           livemd: String.t(),
           title: String.t(),
-          description: String.t(),
-          cover_url: String.t(),
-          images: images()
+          images: images(),
+          details: details() | nil
         }
 
   @type images :: %{String.t() => binary()}
 
-  infos = [
-    %{
-      path: Path.join(__DIR__, "explore/intro_to_livebook.livemd"),
+  @type details :: %{
+          description: String.t(),
+          cover_url: String.t()
+        }
+
+  images_dir = Path.expand("explore/images", __DIR__)
+
+  welcome_config = %{
+    path: Path.join(__DIR__, "explore/intro_to_livebook.livemd"),
+    details: %{
       description: "Get to know Livebook, see how it works and explore its features.",
       cover_url: "/images/logo.png"
-    },
+    }
+  }
+
+  other_configs = [
     %{
       path: Path.join(__DIR__, "explore/distributed_portals_with_elixir.livemd"),
-      description:
-        "A fast-paced introduction to the Elixir language by building distributed data-transfer portals.",
-      cover_url: "/images/elixir-portal.jpeg",
-      image_names: ["portal-drop.jpeg", "portal-list.jpeg"]
+      image_paths: [
+        Path.join(images_dir, "portal-drop.jpeg"),
+        Path.join(images_dir, "portal-list.jpeg")
+      ],
+      details: %{
+        description:
+          "A fast-paced introduction to the Elixir language by building distributed data-transfer portals.",
+        cover_url: "/images/elixir-portal.jpeg"
+      }
     },
     %{
       path: Path.join(__DIR__, "explore/elixir_and_livebook.livemd"),
-      description: "Learn how to use some of Elixir and Livebook's unique features together.",
-      cover_url: "/images/elixir.png"
+      details: %{
+        description: "Learn how to use some of Elixir and Livebook's unique features together.",
+        cover_url: "/images/elixir.png"
+      }
     },
     %{
       path: Path.join(__DIR__, "explore/intro_to_vega_lite.livemd"),
-      description: "Learn how to quickly create numerous plots for your data.",
-      cover_url: "/images/vega_lite.png"
+      details: %{
+        description: "Learn how to quickly create numerous plots for your data.",
+        cover_url: "/images/vega_lite.png"
+      }
     },
     %{
       path: Path.join(__DIR__, "explore/intro_to_kino.livemd"),
-      description: "Display and control rich and interactive widgets in Livebook.",
-      cover_url: "/images/kino.png"
+      details: %{
+        description: "Display and control rich and interactive widgets in Livebook.",
+        cover_url: "/images/kino.png"
+      }
     },
     %{
       path: Path.join(__DIR__, "explore/intro_to_nx.livemd"),
-      description:
-        "Enter Numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
-      cover_url: "/images/nx.png"
+      details: %{
+        description:
+          "Enter Numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
+        cover_url: "/images/nx.png"
+      }
     },
     # %{
     #   path: Path.join(__DIR__, "explore/intro_to_axon.livemd"),
-    #   description: "Build Neural Networks in Elixir using a high-level, composable API.",
-    #   cover_url: "/images/axon.png"
+    #   details: %{
+    #     description: "Build Neural Networks in Elixir using a high-level, composable API.",
+    #     cover_url: "/images/axon.png"
+    #   }
     # },
     %{
       path: Path.join(__DIR__, "explore/vm_introspection.livemd"),
-      description: "Extract and visualize information about a remote running node.",
-      cover_url: "/images/vm_introspection.png"
+      details: %{
+        description: "Extract and visualize information about a remote running node.",
+        cover_url: "/images/vm_introspection.png"
+      }
     }
   ]
 
+  user_configs = Application.fetch_env!(:livebook, :explore_notebooks)
+
+  notebook_configs = [welcome_config] ++ user_configs ++ other_configs
+
   notebook_infos =
-    for info <- infos do
-      path = Map.fetch!(info, :path)
+    for config <- notebook_configs do
+      path =
+        config[:path] ||
+          raise "missing required :path attribute in notebook configuration: #{inspect(config)}"
+
       @external_resource path
 
       markdown = File.read!(path)
       # Parse the file to ensure no warnings and read the title.
       # However, in the info we keep just the file contents to save on memory.
-      {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(markdown)
+      {notebook, warnings} = Livebook.LiveMarkdown.Import.notebook_from_markdown(markdown)
+
+      if warnings != [] do
+        items = Enum.map(warnings, &("- " <> &1))
+        raise "found warnings while importing #{path}:\n\n" <> Enum.join(items, "\n")
+      end
 
       images =
-        info
-        |> Map.get(:image_names, [])
-        |> Map.new(fn image_name ->
-          path = Path.join([Path.dirname(path), "images", image_name])
-          content = File.read!(path)
+        config
+        |> Map.get(:image_paths, [])
+        |> Map.new(fn image_path ->
+          image_name = Path.basename(image_path)
+          content = File.read!(image_path)
           {image_name, content}
         end)
 
-      slug = info[:slug] || path |> Path.basename() |> Path.rootname() |> String.replace("_", "-")
+      slug =
+        config[:slug] || path |> Path.basename() |> Path.rootname() |> String.replace("_", "-")
 
       %{
         slug: slug,
         livemd: markdown,
         title: notebook.name,
-        description: Map.fetch!(info, :description),
-        cover_url: Map.fetch!(info, :cover_url),
-        images: images
+        images: images,
+        details:
+          if config_details = config[:details] do
+            description =
+              config_details[:description] ||
+                raise "missing required :description attribute in notebook details: #{inspect(config_details)}"
+
+            cover_url =
+              config_details[:cover_url] ||
+                (config_details[:cover_path] &&
+                   Livebook.Utils.read_as_data_url!(config_details.cover_path)) ||
+                raise "expected either :cover_path or :cover_url in notebooks details: #{inspect(config_details)}"
+
+            %{description: description, cover_url: cover_url}
+          end
       }
     end
 
@@ -104,6 +155,15 @@ defmodule Livebook.Notebook.Explore do
   """
   @spec notebook_infos() :: list(notebook_info())
   def notebook_infos(), do: unquote(Macro.escape(notebook_infos))
+
+  @doc """
+  Same as `notebook_infos/0`, but returns only notebooks that have
+  additional details.
+  """
+  @spec visible_notebook_infos() :: list(notebook_info())
+  def visible_notebook_infos() do
+    notebook_infos() |> Enum.filter(& &1.details)
+  end
 
   @doc """
   Finds explore notebook by slug and returns the parsed data structure.
