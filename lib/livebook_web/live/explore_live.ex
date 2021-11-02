@@ -8,7 +8,7 @@ defmodule LivebookWeb.ExploreLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    [lead_notebook_info | notebook_infos] = Explore.notebook_infos()
+    [lead_notebook_info | notebook_infos] = Explore.visible_notebook_infos()
 
     {:ok,
      assign(socket,
@@ -46,7 +46,7 @@ defmodule LivebookWeb.ExploreLive do
                 <%= @lead_notebook_info.title %>
               </h3>
               <p class="mt-2 text-sm text-gray-300">
-                <%= @lead_notebook_info.description %>
+                <%= @lead_notebook_info.details.description %>
               </p>
               <div class="mt-4">
                 <%= live_patch "Let's go",
@@ -55,7 +55,7 @@ defmodule LivebookWeb.ExploreLive do
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">
-              <img src={@lead_notebook_info.cover_url} height="120" width="120" alt="livebook" />
+              <img src={@lead_notebook_info.details.cover_url} height="120" width="120" alt="livebook" />
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
