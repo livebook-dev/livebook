@@ -24,10 +24,7 @@ defmodule LivebookWeb.Helpers do
       |> assign_new(:class, fn -> "" end)
 
     ~H"""
-    <!-- TODO add phx-remove={JS.transition("fade-out")}, however this
-         doesn't seem to work with child LV rendered inside after opening
-         the modal for the second time -->
-    <div class="fixed z-[10000] inset-0 fade-in">
+    <div class="fixed z-[10000] inset-0 fade-in" phx-remove={JS.transition("fade-out")}>
       <!-- Modal container -->
       <div class="h-screen flex items-center justify-center p-4">
         <!-- Overlay -->
