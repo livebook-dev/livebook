@@ -4,26 +4,25 @@ defmodule LivebookWeb.ModalComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="fixed z-[10000] inset-0">
-
+    <div class="fixed z-[10000] inset-0 fade-in"
+      phx-remove={JS.transition("fade-out")}>
       <!-- Modal container -->
       <div class="h-screen flex items-center justify-center p-4">
         <!-- Overlay -->
-        <div class="absolute inset-0 bg-gray-500 opacity-75 z-0"
-          aria-hidden="true"
-          phx-window-keydown="close"
-          phx-key="escape"
-          phx-target={@myself}
-          phx-page-loading></div>
+        <div class="absolute inset-0 bg-gray-500 opacity-75 z-0" aria-hidden="true"></div>
 
         <!-- Modal box -->
         <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@modal_class}"}
-          phx-click-away="close"
-          phx-target={@myself}
           role="dialog"
-          aria-modal="true">
+          aria-modal="true"
+          phx-window-keydown={click_modal_close()}
+          phx-click-away={click_modal_close()}
+          phx-key="escape">
 
-          <%= live_patch to: @return_to, class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center" do %>
+          <%= live_patch to: @return_to,
+                class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center",
+                aria_label: "close modal",
+                id: "close-modal-button" do %>
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
           <% end %>
@@ -40,8 +39,7 @@ defmodule LivebookWeb.ModalComponent do
     """
   end
 
-  @impl true
-  def handle_event("close", _params, socket) do
-    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+  defp click_modal_close(js \\ %JS{}) do
+    JS.dispatch(js, "click", to: "#close-modal-button")
   end
 end

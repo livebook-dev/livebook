@@ -30,4 +30,32 @@
   .scroll-smooth {
     scroll-behavior: smooth;
   }
+
+  /* Animations */
+
+  .fade-in {
+    animation: fade-in-frames 200ms;
+  }
+
+  .fade-out {
+    animation: fade-out-frames 200ms;
+  }
+
+  @keyframes fade-in-frames {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-out-frames {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 }

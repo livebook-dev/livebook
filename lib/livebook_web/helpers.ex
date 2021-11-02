@@ -33,7 +33,6 @@ defmodule LivebookWeb.Helpers do
     {modal_class, opts} = Keyword.pop(opts, :modal_class)
 
     modal_opts = [
-      id: "modal",
       return_to: path,
       modal_class: modal_class
     ]
