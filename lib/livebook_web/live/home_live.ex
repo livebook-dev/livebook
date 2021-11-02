@@ -2,6 +2,7 @@ defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.UserHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
@@ -115,28 +116,27 @@ defmodule LivebookWeb.HomeLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal LivebookWeb.UserComponent,
-            id: "user",
-            modal_class: "w-full max-w-sm",
-            user: @current_user,
-            return_to: Routes.home_path(@socket, :page) %>
+      <.current_user_modal
+        return_to={Routes.home_path(@socket, :page)}
+        current_user={@current_user} />
     <% end %>
 
     <%= if @live_action == :close_session do %>
-      <%= live_modal LivebookWeb.HomeLive.CloseSessionComponent,
-            id: "close-session",
-            modal_class: "w-full max-w-xl",
-            return_to: Routes.home_path(@socket, :page),
-            session: @session %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.CloseSessionComponent}
+          id="close-session"
+          return_to={Routes.home_path(@socket, :page)}
+          session={@session} />
+      </.modal>
     <% end %>
 
     <%= if @live_action == :import do %>
-      <%= live_modal LivebookWeb.HomeLive.ImportComponent,
-            id: "import",
-            modal_class: "w-full max-w-xl",
-            return_to: Routes.home_path(@socket, :page),
-            tab: @tab,
-            import_opts: @import_opts %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.ImportComponent}
+          id="import"
+          tab={@tab}
+          import_opts={@import_opts} />
+      </.modal>
     <% end %>
     """
   end

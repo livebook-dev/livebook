@@ -37,4 +37,22 @@ defmodule LivebookWeb.UserHelpers do
       initials -> List.first(initials) <> List.last(initials)
     end
   end
+
+  @doc """
+  Renders the current user edit form in a modal.
+
+  ## Examples
+
+      <.current_user_modal return_to={...} current_user={@current_user} />
+  """
+  def current_user_modal(assigns) do
+    ~H"""
+    <LivebookWeb.Helpers.modal class="w-full max-w-sm" return_to={@return_to}>
+      <.live_component module={LivebookWeb.UserComponent}
+        id="user"
+        return_to={@return_to}
+        user={@current_user} />
+    </LivebookWeb.Helpers.modal>
+    """
+  end
 end
