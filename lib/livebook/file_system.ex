@@ -29,6 +29,23 @@ defprotocol Livebook.FileSystem do
   @type access :: :read | :write | :read_write | :none
 
   @doc """
+  Returns a term uniquely identifying the resource used as a file
+  system.
+  """
+  @spec resource_identifier(t()) :: term()
+  def resource_identifier(file_ystem)
+
+  @doc """
+  Checks if the file system is a resource local to its node.
+
+  A regular file system is local, because it is accessible only
+  to the node its mounted on. On the other hand, external storage
+  is global, because it can be accessed from any node.
+  """
+  @spec local?(t()) :: boolean()
+  def local?(file_system)
+
+  @doc """
   Returns the default directory path.
 
   To some extent this is similar to current working directory

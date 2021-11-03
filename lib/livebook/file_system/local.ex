@@ -3,11 +3,12 @@ defmodule Livebook.FileSystem.Local do
 
   # File system backed by local disk.
 
-  defstruct [:default_path]
+  defstruct [:node, :default_path]
 
   alias Livebook.FileSystem
 
   @type t :: %__MODULE__{
+          node: node(),
           default_path: FileSystem.path()
         }
 
@@ -28,12 +29,20 @@ defmodule Livebook.FileSystem.Local do
 
     FileSystem.Utils.assert_dir_path!(default_path)
 
-    %__MODULE__{default_path: default_path}
+    %__MODULE__{node: node(), default_path: default_path}
   end
 end
 
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   alias Livebook.FileSystem
+
+  def resource_identifier(file_system) do
+    file_system.node
+  end
+
+  def local?(_file_system) do
+    true
+  end
 
   def default_path(file_system) do
     file_system.default_path
