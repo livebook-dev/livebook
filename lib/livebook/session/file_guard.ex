@@ -79,14 +79,11 @@ defmodule Livebook.Session.FileGuard do
 
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, state) do
-    state =
-      state.files
-      |> Enum.filter(fn {_file_id, {_file, _owner_pid, monitor_ref}} -> monitor_ref == ref end)
-      |> Enum.reduce(state, fn {file_id, {file, owner_pid, _monitor_ref}}, state ->
-        unlock_globally(file, file_id, owner_pid)
-        {_, state} = pop_in(state.files[file_id])
-        state
-      end)
+    {file_id, {file, owner_pid, ^ref}} =
+      Enum.find(state.files, &match?({_file_id, {_file, _owner_pid, ^ref}}, &1))
+
+    unlock_globally(file, file_id, owner_pid)
+    {_, state} = pop_in(state.files[file_id])
 
     {:noreply, state}
   end
