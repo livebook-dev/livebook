@@ -36,7 +36,6 @@ defmodule LivebookWeb.FileSelectComponent do
        submit_event: nil,
        # State
        current_dir: nil,
-       new_dir_name: nil,
        deleting_file: nil,
        renaming_file: nil,
        renamed_name: nil,
@@ -90,7 +89,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <.remix_icon icon="add-line" class="text-xl" />
           </button>
           <div class="menu" data-content>
-            <button class="menu__item text-gray-500" phx-click="new_dir" phx-target={@myself}>
+            <button class="menu__item text-gray-500" phx-click={js_show_new_dir_section()}>
               <.remix_icon icon="folder-add-fill" class="text-gray-400" />
               <span class="font-medium">New directory</span>
             </button>
@@ -134,32 +133,29 @@ defmodule LivebookWeb.FileSelectComponent do
         <% end %>
       </div>
       <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
-        <%= if @new_dir_name do %>
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
-            <div class="flex space-x-2 items-center p-2 rounded-lg">
-              <span class="block">
-                <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
-              </span>
-              <span class="flex font-medium text-gray-500">
-                <div
-                  phx-window-keydown="cancel_new_dir"
-                  phx-key="escape"
-                  phx-target={@myself}>
-                  <input
-                    type="text"
-                    value={@new_dir_name}
-                    autofocus
-                    spellcheck="false"
-                    autocomplete="off"
-                    phx-blur="cancel_new_dir"
-                    phx-window-keydown="create_dir"
-                    phx-key="enter"
-                    phx-target={@myself} />
-                </div>
-              </span>
-            </div>
+        <div class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+          id="new_dir_section">
+          <div class="flex space-x-2 items-center p-2 rounded-lg">
+            <span class="block">
+              <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
+            </span>
+            <span class="flex font-medium text-gray-500">
+              <div
+                phx-window-keydown={js_hide_new_dir_section()}
+                phx-key="escape"
+                phx-target={@myself}>
+                <input
+                  id="new_dir_input"
+                  type="text"
+                  spellcheck="false"
+                  autocomplete="off"
+                  phx-blur={js_hide_new_dir_section()}
+                  phx-window-keydown={JS.push("create_dir", target: @myself) |> js_hide_new_dir_section()}
+                  phx-key="enter" />
+              </div>
+            </span>
           </div>
-        <% end %>
+        </div>
 
         <%= if any_highlighted?(@file_infos) do %>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
@@ -308,6 +304,18 @@ defmodule LivebookWeb.FileSelectComponent do
     """
   end
 
+  defp js_show_new_dir_section(js \\ %JS{}) do
+    js
+    |> JS.show(to: "#new_dir_section")
+    |> JS.dispatch("lb:set_value", to: "#new_dir_input", detail: %{value: ""})
+    |> JS.dispatch("lb:focus", to: "#new_dir_input")
+  end
+
+  defp js_hide_new_dir_section(js \\ %JS{}) do
+    js
+    |> JS.hide(to: "#new_dir_section")
+  end
+
   @impl true
   def handle_event("set_file_system", %{"index" => index}, socket) do
     index = String.to_integer(index)
@@ -347,25 +355,15 @@ defmodule LivebookWeb.FileSelectComponent do
     {:noreply, put_error(socket, nil)}
   end
 
-  def handle_event("new_dir", %{}, socket) do
-    {:noreply, assign(socket, new_dir_name: "")}
-  end
-
-  def handle_event("cancel_new_dir", %{}, socket) do
-    {:noreply, assign(socket, new_dir_name: nil)}
-  end
-
   def handle_event("create_dir", %{"value" => name}, socket) do
     socket =
       case create_dir(socket.assigns.current_dir, name) do
         :ok ->
           socket
-          |> assign(new_dir_name: nil)
           |> update_file_infos(true)
 
         {:error, error} ->
           socket
-          |> assign(new_dir_name: name)
           |> put_error(error)
       end
 
