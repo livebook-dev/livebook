@@ -1,7 +1,15 @@
-import * as vega from "vega";
-import vegaEmbed from "vega-embed";
 import { getAttributeOrThrow } from "../lib/attribute";
 import { throttle } from "../lib/utils";
+
+/**
+ * Dynamically imports the vega-related modules.
+ */
+function importVega() {
+  return import(
+    /* webpackChunkName: "vega" */
+    "./vega"
+  );
+}
 
 // See https://github.com/vega/vega-lite/blob/b61b13c2cbd4ecde0448544aff6cdaea721fd22a/src/compile/data/assemble.ts#L228-L231
 const DEFAULT_DATASET_NAME = "source_0";
@@ -37,7 +45,10 @@ const VegaLite = {
         spec.data = { values: [] };
       }
 
-      this.state.viewPromise = vegaEmbed(this.state.container, spec, {})
+      this.state.viewPromise = importVega()
+        .then(({ vegaEmbed }) => {
+          return vegaEmbed(this.state.container, spec, {});
+        })
         .then((result) => result.view)
         .catch((error) => {
           const message = `Failed to render the given Vega-Lite specification, got the following error:\n\n    ${error.message}\n\nMake sure to check for typos.`;
@@ -57,10 +68,11 @@ const VegaLite = {
 
         this.state.viewPromise.then((view) => {
           const currentData = view.data(dataset);
-          const changeset = buildChangeset(currentData, data, window);
-          // Schedule resize after the run finishes
-          throttledResize(view);
-          view.change(dataset, changeset).run();
+          buildChangeset(currentData, data, window).then((changeset) => {
+            // Schedule resize after the run finishes
+            throttledResize(view);
+            view.change(dataset, changeset).run();
+          });
         });
       }
     );
@@ -84,17 +96,19 @@ function getProps(hook) {
 }
 
 function buildChangeset(currentData, newData, window) {
-  if (window === 0) {
-    return vega.changeset().remove(currentData);
-  } else if (window) {
-    const toInsert = newData.slice(-window);
-    const freeSpace = Math.max(window - toInsert.length, 0);
-    const toRemove = currentData.slice(0, -freeSpace);
+  return importVega().then(({ vega }) => {
+    if (window === 0) {
+      return vega.changeset().remove(currentData);
+    } else if (window) {
+      const toInsert = newData.slice(-window);
+      const freeSpace = Math.max(window - toInsert.length, 0);
+      const toRemove = currentData.slice(0, -freeSpace);
 
-    return vega.changeset().remove(toRemove).insert(toInsert);
-  } else {
-    return vega.changeset().insert(newData);
-  }
+      return vega.changeset().remove(toRemove).insert(toInsert);
+    } else {
+      return vega.changeset().insert(newData);
+    }
+  });
 }
 
 export default VegaLite;
