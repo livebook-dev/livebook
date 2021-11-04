@@ -356,9 +356,6 @@ defmodule Livebook.LiveMarkdown.Import do
       {"reevaluate_automatically", reevaluate_automatically}, attrs ->
         Map.put(attrs, :reevaluate_automatically, reevaluate_automatically)
 
-      {"output_is_vega", output_is_vega}, attrs ->
-        Map.put(attrs, :output_is_vega, output_is_vega)
-
       _entry, attrs ->
         attrs
     end)
