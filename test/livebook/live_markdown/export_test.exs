@@ -515,6 +515,56 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
+  test "exports leading notebook comments" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        persist_outputs: true,
+        leading_comments: [
+          ["vim: syntax=markdown"],
+          ["nowhitespace"],
+          ["  Multi", "  line"]
+        ],
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:markdown)
+                  | source: """
+                    Cell 1\
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    <!-- vim: syntax=markdown -->
+
+    <!-- nowhitespace -->
+
+    <!--
+      Multi
+      line
+    -->
+
+    <!-- livebook:{"persist_outputs":true} -->
+
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
+
   describe "outputs" do
     test "does not include outputs by default" do
       notebook = %{
