@@ -3,11 +3,16 @@ defmodule Livebook.FileSystem.Local do
 
   # File system backed by local disk.
 
-  defstruct [:default_path]
+  defstruct [:origin_pid, :default_path]
 
   alias Livebook.FileSystem
 
   @type t :: %__MODULE__{
+          # We cannot just store the node, because when the struct is
+          # built, we may not yet be in distributed mode. Instead, we
+          # keep the pid of whatever process created this file system
+          # and we call node/1 on it whenever needed
+          origin_pid: pid(),
           default_path: FileSystem.path()
         }
 
@@ -28,12 +33,20 @@ defmodule Livebook.FileSystem.Local do
 
     FileSystem.Utils.assert_dir_path!(default_path)
 
-    %__MODULE__{default_path: default_path}
+    %__MODULE__{origin_pid: self(), default_path: default_path}
   end
 end
 
 defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   alias Livebook.FileSystem
+
+  def resource_identifier(file_system) do
+    {:local_file_system, node(file_system.origin_pid)}
+  end
+
+  def type(_file_system) do
+    :local
+  end
 
   def default_path(file_system) do
     file_system.default_path
@@ -42,148 +55,178 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   def list(file_system, path, recursive) do
     FileSystem.Utils.assert_dir_path!(path)
 
-    case File.ls(path) do
-      {:ok, filenames} ->
-        paths =
-          Enum.map(filenames, fn name ->
-            path = Path.join(path, name)
-            if File.dir?(path), do: path <> "/", else: path
+    with :ok <- ensure_local(file_system) do
+      case File.ls(path) do
+        {:ok, filenames} ->
+          paths =
+            Enum.map(filenames, fn name ->
+              path = Path.join(path, name)
+              if File.dir?(path), do: path <> "/", else: path
+            end)
+
+          to_traverse =
+            if recursive do
+              Enum.filter(paths, &FileSystem.Utils.dir_path?/1)
+            else
+              []
+            end
+
+          Enum.reduce(to_traverse, {:ok, paths}, fn path, result ->
+            with {:ok, current_paths} <- result,
+                 {:ok, new_paths} <- list(file_system, path, recursive) do
+              {:ok, current_paths ++ new_paths}
+            end
           end)
 
-        to_traverse =
-          if recursive do
-            Enum.filter(paths, &FileSystem.Utils.dir_path?/1)
-          else
-            []
-          end
-
-        Enum.reduce(to_traverse, {:ok, paths}, fn path, result ->
-          with {:ok, current_paths} <- result,
-               {:ok, new_paths} <- list(file_system, path, recursive) do
-            {:ok, current_paths ++ new_paths}
-          end
-        end)
-
-      {:error, error} ->
-        FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def read(_file_system, path) do
-    FileSystem.Utils.assert_regular_path!(path)
-
-    case File.read(path) do
-      {:ok, binary} -> {:ok, binary}
-      {:error, error} -> FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def write(_file_system, path, content) do
-    FileSystem.Utils.assert_regular_path!(path)
-
-    dir = Path.dirname(path)
-
-    with :ok <- File.mkdir_p(dir),
-         :ok <- File.write(path, content) do
-      :ok
-    else
-      {:error, error} -> FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def access(_file_system, path) do
-    case File.stat(path) do
-      {:ok, stat} -> {:ok, stat.access}
-      {:error, error} -> FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def create_dir(_file_system, path) do
-    FileSystem.Utils.assert_dir_path!(path)
-
-    case File.mkdir_p(path) do
-      :ok -> :ok
-      {:error, error} -> FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def remove(_file_system, path) do
-    case File.rm_rf(path) do
-      {:ok, _paths} -> :ok
-      {:error, error, _paths} -> FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def copy(_file_system, source_path, destination_path) do
-    FileSystem.Utils.assert_same_type!(source_path, destination_path)
-
-    containing_dir = Path.dirname(destination_path)
-
-    case File.mkdir_p(containing_dir) do
-      :ok ->
-        case File.cp_r(source_path, destination_path) do
-          {:ok, _paths} -> :ok
-          {:error, error, _path} -> FileSystem.Utils.posix_error(error)
-        end
-
-      {:error, error} ->
-        FileSystem.Utils.posix_error(error)
-    end
-  end
-
-  def rename(_file_system, source_path, destination_path) do
-    FileSystem.Utils.assert_same_type!(source_path, destination_path)
-
-    if File.exists?(destination_path) do
-      FileSystem.Utils.posix_error(:eexist)
-    else
-      containing_dir = Path.dirname(destination_path)
-
-      with :ok <- File.mkdir_p(containing_dir),
-           :ok <- File.rename(source_path, destination_path) do
-        :ok
-      else
         {:error, error} ->
           FileSystem.Utils.posix_error(error)
       end
     end
   end
 
-  def etag_for(_file_system, path) do
-    case File.stat(path) do
-      {:ok, stat} ->
-        %{size: size, mtime: mtime} = stat
-        hash = {size, mtime} |> :erlang.phash2() |> Integer.to_string(16)
-        etag = <<?", hash::binary, ?">>
-        {:ok, etag}
+  def read(file_system, path) do
+    FileSystem.Utils.assert_regular_path!(path)
 
-      {:error, error} ->
-        FileSystem.Utils.posix_error(error)
+    with :ok <- ensure_local(file_system) do
+      case File.read(path) do
+        {:ok, binary} -> {:ok, binary}
+        {:error, error} -> FileSystem.Utils.posix_error(error)
+      end
     end
   end
 
-  def exists?(_file_system, path) do
-    if FileSystem.Utils.dir_path?(path) do
-      {:ok, File.dir?(path)}
-    else
-      {:ok, File.exists?(path)}
+  def write(file_system, path, content) do
+    FileSystem.Utils.assert_regular_path!(path)
+
+    dir = Path.dirname(path)
+
+    with :ok <- ensure_local(file_system) do
+      with :ok <- File.mkdir_p(dir),
+           :ok <- File.write(path, content) do
+        :ok
+      else
+        {:error, error} -> FileSystem.Utils.posix_error(error)
+      end
     end
   end
 
-  def resolve_path(_file_system, dir_path, subject) do
+  def access(file_system, path) do
+    with :ok <- ensure_local(file_system) do
+      case File.stat(path) do
+        {:ok, stat} -> {:ok, stat.access}
+        {:error, error} -> FileSystem.Utils.posix_error(error)
+      end
+    end
+  end
+
+  def create_dir(file_system, path) do
+    FileSystem.Utils.assert_dir_path!(path)
+
+    with :ok <- ensure_local(file_system) do
+      case File.mkdir_p(path) do
+        :ok -> :ok
+        {:error, error} -> FileSystem.Utils.posix_error(error)
+      end
+    end
+  end
+
+  def remove(file_system, path) do
+    with :ok <- ensure_local(file_system) do
+      case File.rm_rf(path) do
+        {:ok, _paths} -> :ok
+        {:error, error, _paths} -> FileSystem.Utils.posix_error(error)
+      end
+    end
+  end
+
+  def copy(file_system, source_path, destination_path) do
+    FileSystem.Utils.assert_same_type!(source_path, destination_path)
+
+    containing_dir = Path.dirname(destination_path)
+
+    with :ok <- ensure_local(file_system) do
+      case File.mkdir_p(containing_dir) do
+        :ok ->
+          case File.cp_r(source_path, destination_path) do
+            {:ok, _paths} -> :ok
+            {:error, error, _path} -> FileSystem.Utils.posix_error(error)
+          end
+
+        {:error, error} ->
+          FileSystem.Utils.posix_error(error)
+      end
+    end
+  end
+
+  def rename(file_system, source_path, destination_path) do
+    FileSystem.Utils.assert_same_type!(source_path, destination_path)
+
+    with :ok <- ensure_local(file_system) do
+      if File.exists?(destination_path) do
+        FileSystem.Utils.posix_error(:eexist)
+      else
+        containing_dir = Path.dirname(destination_path)
+
+        with :ok <- File.mkdir_p(containing_dir),
+             :ok <- File.rename(source_path, destination_path) do
+          :ok
+        else
+          {:error, error} ->
+            FileSystem.Utils.posix_error(error)
+        end
+      end
+    end
+  end
+
+  def etag_for(file_system, path) do
+    with :ok <- ensure_local(file_system) do
+      case File.stat(path) do
+        {:ok, stat} ->
+          %{size: size, mtime: mtime} = stat
+          hash = {size, mtime} |> :erlang.phash2() |> Integer.to_string(16)
+          etag = <<?", hash::binary, ?">>
+          {:ok, etag}
+
+        {:error, error} ->
+          FileSystem.Utils.posix_error(error)
+      end
+    end
+  end
+
+  def exists?(file_system, path) do
+    with :ok <- ensure_local(file_system) do
+      if FileSystem.Utils.dir_path?(path) do
+        {:ok, File.dir?(path)}
+      else
+        {:ok, File.exists?(path)}
+      end
+    end
+  end
+
+  def resolve_path(file_system, dir_path, subject) do
     FileSystem.Utils.assert_dir_path!(dir_path)
 
-    if subject == "" do
-      dir_path
-    else
-      dir? = FileSystem.Utils.dir_path?(subject) or Path.basename(subject) in [".", ".."]
-      expanded_path = Path.expand(subject, dir_path)
-
-      if dir? do
-        FileSystem.Utils.ensure_dir_path(expanded_path)
+    with :ok <- ensure_local(file_system) do
+      if subject == "" do
+        dir_path
       else
-        expanded_path
+        dir? = FileSystem.Utils.dir_path?(subject) or Path.basename(subject) in [".", ".."]
+        expanded_path = Path.expand(subject, dir_path)
+
+        if dir? do
+          FileSystem.Utils.ensure_dir_path(expanded_path)
+        else
+          expanded_path
+        end
       end
+    end
+  end
+
+  defp ensure_local(file_system) do
+    if node(file_system.origin_pid) == node() do
+      :ok
+    else
+      {:error, "this local file system belongs to a different host"}
     end
   end
 end
