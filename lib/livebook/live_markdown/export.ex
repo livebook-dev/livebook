@@ -153,9 +153,6 @@ defmodule Livebook.LiveMarkdown.Export do
     [delimiter, "output\n", text, "\n", delimiter]
   end
 
-  defp render_output({:vega_lite_static, spec}) when spec == %{},
-    do: :ignored
-
   defp render_output({:vega_lite_static, spec}) do
     ["```", "vega-lite\n", Jason.encode!(spec), "\n", "```"]
   end
