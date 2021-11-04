@@ -678,7 +678,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "includes non-empty vega_lite_static output" do
+    test "includes vega_lite_static output" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",

@@ -652,11 +652,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ## Section 1
 
     ```elixir
-    Vl.new(width: 500, height: 200)
-    |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
-    |> Vl.mark(:line)
-    |> Vl.encode_field(:x, "in", type: :quantitative)
-    |> Vl.encode_field(:y, "out", type: :quantitative)
+    :ok
     ```
 
     ```vega-lite
@@ -674,11 +670,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  cells: [
                    %Cell.Elixir{
                      source: """
-                     Vl.new(width: 500, height: 200)
-                     |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
-                     |> Vl.mark(:line)
-                     |> Vl.encode_field(:x, \"in\", type: :quantitative)
-                     |> Vl.encode_field(:y, \"out\", type: :quantitative)\
+                     :ok\
                      """,
                      outputs: []
                    }
