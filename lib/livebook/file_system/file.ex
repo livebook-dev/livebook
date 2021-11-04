@@ -62,7 +62,7 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
-  Checks if the given file is within a file system local to its host.
+  Checks if the given file is within a file system local to its node.
   """
   @spec local?(t()) :: term()
   def local?(file) do

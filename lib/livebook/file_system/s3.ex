@@ -60,7 +60,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   alias Livebook.FileSystem.S3.XML
 
   def resource_identifier(file_system) do
-    file_system.bucket_url
+    {:s3, file_system.bucket_url}
   end
 
   def local?(_file_system) do

@@ -510,12 +510,4 @@ defmodule Livebook.FileSystem.LocalTest do
                FileSystem.resolve_path(file_system, "/dir/", "///nested///other/..///file.txt")
     end
   end
-
-  test "file operations an error when the file system is on a different host" do
-    file_system = %{Local.new() | host_id: "definitely another host"}
-    dir_path = "/"
-
-    assert {:error, "this local file system belongs to a different host"} =
-             FileSystem.list(file_system, dir_path, false)
-  end
 end

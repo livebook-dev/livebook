@@ -3,12 +3,16 @@ defmodule Livebook.FileSystem.Local do
 
   # File system backed by local disk.
 
-  defstruct [:host_id, :default_path]
+  defstruct [:origin_pid, :default_path]
 
   alias Livebook.FileSystem
 
   @type t :: %__MODULE__{
-          host_id: term(),
+          # We cannot just store the node, because when the struct is
+          # built, we may not yet be in distributed mode. Instead, we
+          # keep the pid of whatever process created this file system
+          # and we call node/1 on it whenever needed
+          origin_pid: pid(),
           default_path: FileSystem.path()
         }
 
@@ -29,13 +33,7 @@ defmodule Livebook.FileSystem.Local do
 
     FileSystem.Utils.assert_dir_path!(default_path)
 
-    %__MODULE__{host_id: local_host_id(), default_path: default_path}
-  end
-
-  @doc false
-  def local_host_id() do
-    {:ok, hostname} = :inet.gethostname()
-    hostname
+    %__MODULE__{origin_pid: self(), default_path: default_path}
   end
 end
 
@@ -43,7 +41,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   alias Livebook.FileSystem
 
   def resource_identifier(file_system) do
-    file_system.host_id
+    {:local_file_system, node(file_system.origin_pid)}
   end
 
   def local?(_file_system) do
@@ -225,7 +223,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
   end
 
   defp ensure_local(file_system) do
-    if file_system.host_id == FileSystem.Local.local_host_id() do
+    if node(file_system.origin_pid) == node() do
       :ok
     else
       {:error, "this local file system belongs to a different host"}

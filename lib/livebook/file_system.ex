@@ -33,14 +33,14 @@ defprotocol Livebook.FileSystem do
   system.
   """
   @spec resource_identifier(t()) :: term()
-  def resource_identifier(file_ystem)
+  def resource_identifier(file_system)
 
   @doc """
-  Checks if the file system is a resource local to its host.
+  Checks if the file system is a resource local to its node.
 
   A regular file system is local, because it is accessible only
-  to the host its mounted on. On the other hand, external storage
-  is global, because it can be accessed from any host.
+  to the node its mounted on. On the other hand, external storage
+  is global, because it can be accessed from any node.
   """
   @spec local?(t()) :: boolean()
   def local?(file_system)
