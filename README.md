@@ -181,6 +181,24 @@ variables used by Elixir releases are also available](
 https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-environment-variables).
 The notables ones are `RELEASE_NODE` and `RELEASE_DISTRIBUTION`.
 
+## Rendering notebooks as Markdown on GitHub
+
+By default GitHub renders the `.livemd` notebooks as regular text files. Depending
+on your use case and the target audience, you may find it useful to render notebooks
+content as Markdown files instead. There is an option to override how a particular
+file gets rendered on GitHub, so all you need to do is add a magic comment in every
+such notebook:
+
+```
+<!-- vim: syntax=markdown -->
+
+# My notebook
+
+...
+```
+
+For more details see [the documentation](https://github.com/github/linguist/blob/master/docs/overrides.md#using-emacs-or-vim-modelines).
+
 ## Development
 
 Livebook is primarily a Phoenix web application and can be setup as such:

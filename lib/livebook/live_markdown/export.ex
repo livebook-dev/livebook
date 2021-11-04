@@ -24,14 +24,23 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_notebook(notebook, ctx) do
+    comments =
+      Enum.map(notebook.leading_comments, fn
+        [line] -> ["<!-- ", line, " -->"]
+        lines -> ["<!--\n", Enum.intersperse(lines, "\n"), "\n-->"]
+      end)
+
     name = ["# ", notebook.name]
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     metadata = notebook_metadata(notebook)
 
-    [name | sections]
-    |> Enum.intersperse("\n\n")
-    |> prepend_metadata(metadata)
+    notebook_with_metadata =
+      [name | sections]
+      |> Enum.intersperse("\n\n")
+      |> prepend_metadata(metadata)
+
+    Enum.intersperse(comments ++ [notebook_with_metadata], "\n\n")
   end
 
   defp notebook_metadata(notebook) do

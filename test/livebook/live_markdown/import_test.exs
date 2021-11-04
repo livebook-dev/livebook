@@ -517,6 +517,51 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
+  test "imports comments preceding the notebook title" do
+    markdown = """
+    <!-- vim: syntax=markdown -->
+
+    <!--nowhitespace-->
+
+    <!--
+      Multi
+      line
+    -->
+
+    <!-- livebook:{"persist_outputs":true} -->
+
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             persist_outputs: true,
+             leading_comments: [
+               ["vim: syntax=markdown"],
+               ["nowhitespace"],
+               ["  Multi", "  line"]
+             ],
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Markdown{
+                     source: """
+                     Cell 1\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
   describe "outputs" do
     test "imports output snippets as cell textual outputs" do
       markdown = """
@@ -697,18 +742,20 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   end
 
   describe "backward compatibility" do
-    markdown = """
-    # My Notebook
+    test "warns if the imported notebook includes a reactive input" do
+      markdown = """
+      # My Notebook
 
-    ## Section 1
+      ## Section 1
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
-    """
+      <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+      """
 
-    {_notebook, messages} = Import.notebook_from_markdown(markdown)
+      {_notebook, messages} = Import.notebook_from_markdown(markdown)
 
-    assert [
-             "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
-           ] == messages
+      assert [
+               "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
+             ] == messages
+    end
   end
 end

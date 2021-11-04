@@ -30,7 +30,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp rewrite_ast(ast) do
     {ast, messages1} = rewrite_multiple_primary_headings(ast)
     {ast, messages2} = move_primary_heading_top(ast)
-    ast = trim_comments(ast)
+    ast = normalize_comments(ast)
 
     {ast, messages1 ++ messages2}
   end
@@ -91,12 +91,12 @@ defmodule Livebook.LiveMarkdown.Import do
     {Enum.reverse(left_rev), Enum.reverse(right_rev)}
   end
 
-  # Trims one-line comments to allow nice pattern matching
-  # on Livebook-specific annotations with no regard to surrounding whitespace.
-  defp trim_comments(ast) do
+  # Normalizes comments to allow nice pattern matching on Livebook-specific
+  # annotations with no regard to surrounding whitespace.
+  defp normalize_comments(ast) do
     Enum.map(ast, fn
-      {:comment, attrs, [line], %{comment: true}} ->
-        {:comment, attrs, [String.trim(line)], %{comment: true}}
+      {:comment, attrs, lines, %{comment: true}} ->
+        {:comment, attrs, MarkdownHelpers.normalize_comment_lines(lines), %{comment: true}}
 
       ast_node ->
         ast_node
@@ -254,9 +254,15 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp build_notebook([{:notebook_name, content} | elems], [], sections, messages) do
     name = text_from_markdown(content)
-    {metadata, []} = grab_metadata(elems)
+    {metadata, elems} = grab_metadata(elems)
+    # If there are any non-metadata comments we keep them
+    {comments, []} = grab_leading_comments(elems)
     attrs = notebook_metadata_to_attrs(metadata)
-    notebook = %{Notebook.new() | name: name, sections: sections} |> Map.merge(attrs)
+
+    notebook =
+      %{Notebook.new() | name: name, sections: sections, leading_comments: comments}
+      |> Map.merge(attrs)
+
     {notebook, messages}
   end
 
@@ -279,6 +285,15 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp grab_metadata(elems), do: {%{}, elems}
+
+  defp grab_leading_comments([]), do: {[], []}
+
+  # Since these are not metadata comments they get wrapped in a markdown cell,
+  # so we unpack it
+  defp grab_leading_comments([{:cell, :markdown, md_ast}]) do
+    comments = for {:comment, _attrs, lines, %{comment: true}} <- Enum.reverse(md_ast), do: lines
+    {comments, []}
+  end
 
   defp parse_input_attrs(data) do
     with {:ok, type} <- parse_input_type(data["type"]) do

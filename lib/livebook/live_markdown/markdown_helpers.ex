@@ -61,6 +61,27 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
   end
 
   @doc """
+  Normalizes comments.
+
+  In single-line comments trims all the whitespace and in multi-line
+  comments removes trailing/leading blank newlines.
+  """
+  @spec normalize_comment_lines(list(String.t())) :: list(String.t())
+  def normalize_comment_lines(lines)
+
+  def normalize_comment_lines([line]) do
+    [String.trim(line)]
+  end
+
+  def normalize_comment_lines(lines) do
+    lines
+    |> Enum.drop_while(&blank?/1)
+    |> Enum.reverse()
+    |> Enum.drop_while(&blank?/1)
+    |> Enum.reverse()
+  end
+
+  @doc """
   Renders Markdown string from the given `EarmarkParser` AST.
   """
   @spec markdown_from_ast(EarmarkParser.ast()) :: String.t()
@@ -240,20 +261,11 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
     end
   end
 
-  defp render_comment([line]) do
-    line = String.trim(line)
-    ["<!-- ", line, " -->"]
-  end
-
   defp render_comment(lines) do
-    lines =
-      lines
-      |> Enum.drop_while(&blank?/1)
-      |> Enum.reverse()
-      |> Enum.drop_while(&blank?/1)
-      |> Enum.reverse()
-
-    ["<!--\n", Enum.intersperse(lines, "\n"), "\n-->"]
+    case normalize_comment_lines(lines) do
+      [line] -> ["<!-- ", line, " -->"]
+      lines -> ["<!--\n", Enum.intersperse(lines, "\n"), "\n-->"]
+    end
   end
 
   defp render_ruler(attrs) do
