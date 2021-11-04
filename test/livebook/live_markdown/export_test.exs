@@ -530,7 +530,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: ["hey"]
+                      outputs: [
+                        "hey",
+                        {:vega_lite_static,
+                         %{
+                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json"
+                         }}
+                      ]
                   }
                 ]
             }
@@ -651,42 +657,6 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [{:table_dynamic, self()}]
-                  }
-                ]
-            }
-          ]
-      }
-
-      expected_document = """
-      # My Notebook
-
-      ## Section 1
-
-      ```elixir
-      IO.puts("hey")
-      ```
-      """
-
-      document = Export.notebook_to_markdown(notebook, include_outputs: true)
-
-      assert expected_document == document
-    end
-
-    test "includes empty vega_lite_static output" do
-      notebook = %{
-        Notebook.new()
-        | name: "My Notebook",
-          sections: [
-            %{
-              Notebook.Section.new()
-              | name: "Section 1",
-                cells: [
-                  %{
-                    Notebook.Cell.new(:elixir)
-                    | source: """
-                      IO.puts("hey")\
-                      """,
-                      outputs: [{:vega_lite_static, %{}}]
                   }
                 ]
             }
