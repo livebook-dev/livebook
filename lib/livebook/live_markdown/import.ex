@@ -187,6 +187,16 @@ defmodule Livebook.LiveMarkdown.Import do
     take_outputs(ast, [output | outputs])
   end
 
+  defp take_outputs(
+         [{"pre", _, [{"code", [{"class", "vega_lite_static"}], [output], %{}}], %{}} | ast],
+         outputs
+       ) do
+    case Jason.decode(output) do
+      {:ok, data} -> take_outputs(ast, [{:vega_lite_static, data} | outputs])
+      _ -> take_outputs(ast, outputs)
+    end
+  end
+
   defp take_outputs(ast, outputs), do: {outputs, ast}
 
   # Builds a notebook from the list of elements obtained in the previous step.
@@ -198,7 +208,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections, messages) do
     {metadata, elems} = grab_metadata(elems)
     attrs = cell_metadata_to_attrs(:elixir, metadata)
-    outputs = Enum.map(outputs, &{:text, &1})
+    outputs = Enum.map(outputs, fn output -> if is_tuple(output), do: output, else: {:text, output} end )
     cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections, messages)
   end
@@ -345,6 +355,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
       {"reevaluate_automatically", reevaluate_automatically}, attrs ->
         Map.put(attrs, :reevaluate_automatically, reevaluate_automatically)
+
+      {"output_is_vega", output_is_vega}, attrs ->
+        Map.put(attrs, :output_is_vega, output_is_vega)
 
       _entry, attrs ->
         attrs

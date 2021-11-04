@@ -153,6 +153,10 @@ defmodule Livebook.LiveMarkdown.Export do
     [delimiter, "output\n", text, "\n", delimiter]
   end
 
+  defp render_output({:vega_lite_static, vegalite_data}) do
+    ["```", "vega_lite_static\n", Jason.encode!(vegalite_data), "\n", "```"]
+  end
+
   defp render_output(_output), do: :ignored
 
   defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
