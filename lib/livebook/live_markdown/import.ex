@@ -184,7 +184,17 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
-    take_outputs(ast, [output | outputs])
+    take_outputs(ast, [{:text, output} | outputs])
+  end
+
+  defp take_outputs(
+         [{"pre", _, [{"code", [{"class", "vega-lite"}], [output], %{}}], %{}} | ast],
+         outputs
+       ) do
+    case Jason.decode(output) do
+      {:ok, spec} -> take_outputs(ast, [{:vega_lite_static, spec} | outputs])
+      _ -> take_outputs(ast, outputs)
+    end
   end
 
   defp take_outputs(ast, outputs), do: {outputs, ast}
@@ -198,7 +208,6 @@ defmodule Livebook.LiveMarkdown.Import do
   defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections, messages) do
     {metadata, elems} = grab_metadata(elems)
     attrs = cell_metadata_to_attrs(:elixir, metadata)
-    outputs = Enum.map(outputs, &{:text, &1})
     cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections, messages)
   end

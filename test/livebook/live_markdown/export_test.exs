@@ -530,7 +530,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: ["hey"]
+                      outputs: [
+                        "hey",
+                        {:vega_lite_static,
+                         %{
+                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json"
+                         }}
+                      ]
                   }
                 ]
             }
@@ -650,7 +656,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{:vega_lite_static, %{}}, {:table_dynamic, self()}]
+                      outputs: [{:table_dynamic, self()}]
                   }
                 ]
             }
@@ -664,6 +670,75 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
       ```elixir
       IO.puts("hey")
+      ```
+      """
+
+      document = Export.notebook_to_markdown(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "includes vega_lite_static output" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:elixir)
+                    | source: """
+                      Vl.new(width: 500, height: 200)
+                      |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
+                      |> Vl.mark(:line)
+                      |> Vl.encode_field(:x, "in", type: :quantitative)
+                      |> Vl.encode_field(:y, "out", type: :quantitative)\
+                      """,
+                      outputs: [
+                        {:vega_lite_static,
+                         %{
+                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
+                           "data" => %{
+                             "values" => [
+                               %{"in" => 1, "out" => 1},
+                               %{"in" => 2, "out" => 2},
+                               %{"in" => 3, "out" => 3},
+                               %{"in" => 4, "out" => 4},
+                               %{"in" => 5, "out" => 5}
+                             ]
+                           },
+                           "encoding" => %{
+                             "x" => %{"field" => "in", "type" => "quantitative"},
+                             "y" => %{"field" => "out", "type" => "quantitative"}
+                           },
+                           "height" => 200,
+                           "mark" => "line",
+                           "width" => 500
+                         }}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      Vl.new(width: 500, height: 200)
+      |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
+      |> Vl.mark(:line)
+      |> Vl.encode_field(:x, "in", type: :quantitative)
+      |> Vl.encode_field(:y, "out", type: :quantitative)
+      ```
+
+      ```vega-lite
+      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","data":{"values":[{"in":1,"out":1},{"in":2,"out":2},{"in":3,"out":3},{"in":4,"out":4},{"in":5,"out":5}]},"encoding":{"x":{"field":"in","type":"quantitative"},"y":{"field":"out","type":"quantitative"}},"height":200,"mark":"line","width":500}
       ```
       """
 
