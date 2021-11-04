@@ -184,7 +184,7 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
-    take_outputs(ast, [output | outputs])
+    take_outputs(ast, [{:text, output} | outputs])
   end
 
   defp take_outputs(
@@ -208,7 +208,6 @@ defmodule Livebook.LiveMarkdown.Import do
   defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections, messages) do
     {metadata, elems} = grab_metadata(elems)
     attrs = cell_metadata_to_attrs(:elixir, metadata)
-    outputs = Enum.map(outputs, fn output -> if is_tuple(output), do: output, else: {:text, output} end )
     cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections, messages)
   end
