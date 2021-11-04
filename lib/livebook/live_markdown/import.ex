@@ -188,7 +188,7 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp take_outputs(
-         [{"pre", _, [{"code", [{"class", "vega_lite_static"}], [output], %{}}], %{}} | ast],
+         [{"pre", _, [{"code", [{"class", "vega-lite"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
     case Jason.decode(output) do

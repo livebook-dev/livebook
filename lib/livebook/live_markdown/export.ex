@@ -154,7 +154,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_output({:vega_lite_static, vegalite_data}) do
-    ["```", "vega_lite_static\n", Jason.encode!(vegalite_data), "\n", "```"]
+    ["```", "vega-lite\n", Jason.encode!(vegalite_data), "\n", "```"]
   end
 
   defp render_output(_output), do: :ignored
