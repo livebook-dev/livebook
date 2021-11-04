@@ -726,24 +726,28 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       |> Vl.encode_field(:x, "in", type: :quantitative)
                       |> Vl.encode_field(:y, "out", type: :quantitative)\
                       """,
-                      outputs: [{:vega_lite_static, %{
-                        "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
-                        "data" => %{
-                          "values" => [
-                            %{"in" => 1, "out" => 1},
-                            %{"in" => 2, "out" => 2},
-                            %{"in" => 3, "out" => 3},
-                            %{"in" => 4, "out" => 4},
-                            %{"in" => 5, "out" => 5}]
-                        },
-                        "encoding" => %{
-                          "x" => %{"field" => "in", "type" => "quantitative"},
-                          "y" => %{"field" => "out", "type" => "quantitative"}
-                        },
-                        "height" => 200,
-                        "mark" => "line",
-                        "width" => 500
-                      }}]
+                      outputs: [
+                        {:vega_lite_static,
+                         %{
+                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
+                           "data" => %{
+                             "values" => [
+                               %{"in" => 1, "out" => 1},
+                               %{"in" => 2, "out" => 2},
+                               %{"in" => 3, "out" => 3},
+                               %{"in" => 4, "out" => 4},
+                               %{"in" => 5, "out" => 5}
+                             ]
+                           },
+                           "encoding" => %{
+                             "x" => %{"field" => "in", "type" => "quantitative"},
+                             "y" => %{"field" => "out", "type" => "quantitative"}
+                           },
+                           "height" => 200,
+                           "mark" => "line",
+                           "width" => 500
+                         }}
+                      ]
                   }
                 ]
             }
