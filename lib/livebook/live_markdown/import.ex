@@ -192,7 +192,7 @@ defmodule Livebook.LiveMarkdown.Import do
          outputs
        ) do
     case Jason.decode(output) do
-      {:ok, data} -> take_outputs(ast, [{:vega_lite_static, data} | outputs])
+      {:ok, spec} -> take_outputs(ast, [{:vega_lite_static, spec} | outputs])
       _ -> take_outputs(ast, outputs)
     end
   end
