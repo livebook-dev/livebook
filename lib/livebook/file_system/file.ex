@@ -66,7 +66,7 @@ defmodule Livebook.FileSystem.File do
   """
   @spec local?(t()) :: term()
   def local?(file) do
-    FileSystem.local?(file.file_system)
+    FileSystem.type(file.file_system) == :local
   end
 
   @doc """

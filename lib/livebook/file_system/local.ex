@@ -44,8 +44,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
     {:local_file_system, node(file_system.origin_pid)}
   end
 
-  def local?(_file_system) do
-    true
+  def type(_file_system) do
+    :local
   end
 
   def default_path(file_system) do

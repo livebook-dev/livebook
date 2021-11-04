@@ -63,8 +63,8 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     {:s3, file_system.bucket_url}
   end
 
-  def local?(_file_system) do
-    false
+  def type(_file_system) do
+    :global
   end
 
   def default_path(_file_system) do
