@@ -117,7 +117,7 @@ defmodule Livebook.Intellisense do
     |> Enum.sort_by(&completion_item_priority/1)
   end
 
-  defp include_in_completion?({:module, _module, _name, :hidden}), do: false
+  defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
   defp include_in_completion?(_), do: true
 
   defp format_completion_item({:variable, name, value}),
@@ -138,7 +138,7 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
-  defp format_completion_item({:module, module, name, documentation}) do
+  defp format_completion_item({:module, module, display_name, documentation}) do
     subtype = Docs.get_module_subtype(module)
 
     kind =
@@ -153,26 +153,28 @@ defmodule Livebook.Intellisense do
     detail = Atom.to_string(subtype || :module)
 
     %{
-      label: name,
+      label: display_name,
       kind: kind,
       detail: detail,
       documentation: format_documentation(documentation, :short),
-      insert_text: String.trim_leading(name, ":")
+      insert_text: String.trim_leading(display_name, ":")
     }
   end
 
-  defp format_completion_item({:function, module, name, arity, documentation, signatures, specs}),
-    do: %{
-      label: "#{name}/#{arity}",
-      kind: :function,
-      detail: format_signatures(signatures, module),
-      documentation:
-        join_with_newlines([
-          format_documentation(documentation, :short),
-          format_specs(specs, name, @line_length) |> code()
-        ]),
-      insert_text: name
-    }
+  defp format_completion_item(
+         {:function, module, name, arity, display_name, documentation, signatures, specs}
+       ),
+       do: %{
+         label: "#{display_name}/#{arity}",
+         kind: :function,
+         detail: format_signatures(signatures, module),
+         documentation:
+           join_with_newlines([
+             format_documentation(documentation, :short),
+             format_specs(specs, name, @line_length) |> code()
+           ]),
+         insert_text: display_name
+       }
 
   defp format_completion_item({:type, _module, name, arity, documentation}),
     do: %{
@@ -236,14 +238,16 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item({:module, _module, name, documentation}) do
+  defp format_details_item({:module, _module, display_name, documentation}) do
     join_with_divider([
-      code(name),
+      code(display_name),
       format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item({:function, module, name, _arity, documentation, signatures, specs}) do
+  defp format_details_item(
+         {:function, module, name, _arity, _display_name, documentation, signatures, specs}
+       ) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       format_specs(specs, name, @extended_line_length) |> code(),
@@ -317,11 +321,6 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_specs([], _name, _line_length), do: nil
-
-  defp format_specs(specs, name, line_length) when is_binary(name) do
-    # TODO: so for completion items we have strings, for suggestions atoms, cleanup
-    format_specs(specs, String.to_atom(name), line_length)
-  end
 
   defp format_specs(specs, name, line_length) do
     spec_lines =

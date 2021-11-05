@@ -21,13 +21,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @type identifier_item ::
           {:variable, name(), value()}
           | {:map_field, name(), value()}
-          | {:module, module(), name(), Docs.documentation()}
-          | {:function, module(), name(), arity(), Docs.documentation(), list(Docs.signature()),
-             list(Docs.spec())}
+          | {:module, module(), display_name(), Docs.documentation()}
+          | {:function, module(), name(), arity(), display_name(), Docs.documentation(),
+             list(Docs.signature()), list(Docs.spec())}
           | {:type, module(), name(), arity(), Docs.documentation()}
           | {:module_attribute, name(), Docs.documentation()}
 
-  @type name :: String.t()
+  @type name :: atom()
+  @type display_name :: String.t()
   @type value :: term()
 
   @exact_matcher &Kernel.==/2
@@ -240,10 +241,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_sigil(hint, ctx) do
-    for {:function, module, "sigil_" <> sigil_name, arity, documentation, signatures, specs} <-
+    for {:function, module, name, arity, "sigil_" <> sigil_name, documentation, signatures, specs} <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
-        do: {:function, module, "~" <> sigil_name, arity, documentation, signatures, specs}
+        do: {:function, module, name, arity, "~" <> sigil_name, documentation, signatures, specs}
   end
 
   defp match_erlang_module(hint, ctx) do
@@ -391,7 +392,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
             doc_item.name == name && doc_item.arity == arity
           end)
 
-        {:function, mod, Atom.to_string(name), arity, doc_item && doc_item.documentation,
+        {:function, mod, name, arity, Atom.to_string(name), doc_item && doc_item.documentation,
          doc_item.signatures, doc_item.specs}
       end)
     else
