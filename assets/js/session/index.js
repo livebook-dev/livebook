@@ -730,7 +730,7 @@ function setFocusedCell(hook, cellId, scroll = true) {
     );
     // Focus the primary cell content, this is important for screen readers
     const cellBody = cell.querySelector(`[data-element="cell-body"]`);
-    cellBody.focus();
+    cellBody.focus({ preventScroll: true });
   } else {
     hook.state.focusedCellType = null;
     hook.state.focusedSectionId = null;
