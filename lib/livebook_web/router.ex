@@ -16,49 +16,56 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
-  scope "/", LivebookWeb do
+  live_session :default, on_mount: LivebookWeb.CurrentUserHook do
+    scope "/", LivebookWeb do
+      pipe_through [:browser, :auth]
+
+      live "/", HomeLive, :page
+      live "/home/user-profile", HomeLive, :user
+      live "/home/import/:tab", HomeLive, :import
+      live "/home/sessions/:session_id/close", HomeLive, :close_session
+
+      live "/settings", SettingsLive, :page
+      live "/settings/user-profile", SettingsLive, :user
+      live "/settings/add-file-system", SettingsLive, :add_file_system
+      live "/settings/detach-file-system/:file_system_index", SettingsLive, :detach_file_system
+
+      live "/explore", ExploreLive, :page
+      live "/explore/user-profile", ExploreLive, :user
+      live "/explore/notebooks/:slug", ExploreLive, :notebook
+
+      live "/sessions/:id", SessionLive, :page
+      live "/sessions/:id/user-profile", SessionLive, :user
+      live "/sessions/:id/shortcuts", SessionLive, :shortcuts
+      live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
+      live "/sessions/:id/settings/file", SessionLive, :file_settings
+      live "/sessions/:id/bin", SessionLive, :bin
+      get "/sessions/:id/export/download/:format", SessionController, :download_source
+      live "/sessions/:id/export/:tab", SessionLive, :export
+      live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
+      live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
+      live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
+      get "/sessions/:id/images/:image", SessionController, :show_image
+      live "/sessions/:id/*path_parts", SessionLive, :catch_all
+    end
+
+    # Public authenticated URLs that people may be directed to
+    scope "/", LivebookWeb do
+      pipe_through [:browser, :auth]
+
+      live "/import", HomeLive, :public_import
+    end
+  end
+
+  scope "/" do
     pipe_through [:browser, :auth]
-
-    live "/", HomeLive, :page
-    live "/home/user-profile", HomeLive, :user
-    live "/home/import/:tab", HomeLive, :import
-    live "/home/sessions/:session_id/close", HomeLive, :close_session
-
-    live "/settings", SettingsLive, :page
-    live "/settings/user-profile", SettingsLive, :user
-    live "/settings/add-file-system", SettingsLive, :add_file_system
-    live "/settings/detach-file-system/:file_system_index", SettingsLive, :detach_file_system
-
-    live "/explore", ExploreLive, :page
-    live "/explore/user-profile", ExploreLive, :user
-    live "/explore/notebooks/:slug", ExploreLive, :notebook
-
-    live "/sessions/:id", SessionLive, :page
-    live "/sessions/:id/user-profile", SessionLive, :user
-    live "/sessions/:id/shortcuts", SessionLive, :shortcuts
-    live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
-    live "/sessions/:id/settings/file", SessionLive, :file_settings
-    live "/sessions/:id/bin", SessionLive, :bin
-    get "/sessions/:id/export/download/:format", SessionController, :download_source
-    live "/sessions/:id/export/:tab", SessionLive, :export
-    live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
-    live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
-    live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
-    get "/sessions/:id/images/:image", SessionController, :show_image
-    live "/sessions/:id/*path_parts", SessionLive, :catch_all
 
     live_dashboard "/dashboard",
       metrics: LivebookWeb.Telemetry,
       home_app: {"Livebook", :livebook}
   end
 
-  # Public URLs that people may be directed to
-  scope "/", LivebookWeb do
-    pipe_through [:browser, :auth]
-
-    live "/import", HomeLive, :public_import
-  end
-
+  # Public URLs without authentication
   scope "/", LivebookWeb do
     pipe_through :browser
 

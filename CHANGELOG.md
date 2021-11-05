@@ -4,7 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [v0.3.0](https://github.com/livebook-dev/livebook/tree/v0.2.3) (2021-10-19)
+## [v0.3.1](https://github.com/livebook-dev/livebook/tree/v0.3.1) (2021-10-27)
+
+### Added
+
+- Introduced automatically reevaluating cells ([#637](https://github.com/livebook-dev/livebook/pull/637))
+
+### Changed
+
+- Changed color for aborted and queued cell status ([#620](https://github.com/livebook-dev/livebook/pull/620))
+- Improved Markdown rendering of task and nested lists ([#623](https://github.com/livebook-dev/livebook/pull/623) and [#623](https://github.com/livebook-dev/livebook/pull/631))
+
+### Fixed
+
+- Connecting to an empty S3 bucket ([#646](https://github.com/livebook-dev/livebook/pull/623) and [#623](https://github.com/livebook-dev/livebook/pull/646))
+- Importing notebooks served with `application/octet-stream` content type ([#650](https://github.com/livebook-dev/livebook/pull/623) and [#623](https://github.com/livebook-dev/livebook/pull/650))
+
+### Removed
+
+- Removed the keyboard shortcut for "Evaluate cells below" ([#621](https://github.com/livebook-dev/livebook/pull/621))
+- Removed reactive inputs in favour of automatically reevaluating cells ([#649](https://github.com/livebook-dev/livebook/pull/649))
+
+## [v0.3.0](https://github.com/livebook-dev/livebook/tree/v0.3.0) (2021-10-19)
 
 ### Added
 

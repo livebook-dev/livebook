@@ -13,7 +13,14 @@ defmodule Livebook.Notebook do
   # A notebook is divided into a number of *sections*, each
   # containing a number of *cells*.
 
-  defstruct [:name, :version, :sections, :persist_outputs, :autosave_interval_s]
+  defstruct [
+    :name,
+    :version,
+    :sections,
+    :leading_comments,
+    :persist_outputs,
+    :autosave_interval_s
+  ]
 
   alias Livebook.Notebook.{Section, Cell}
   alias Livebook.Utils.Graph
@@ -23,6 +30,7 @@ defmodule Livebook.Notebook do
           name: String.t(),
           version: String.t(),
           sections: list(Section.t()),
+          leading_comments: list(list(line :: String.t())),
           persist_outputs: boolean(),
           autosave_interval_s: non_neg_integer() | nil
         }
@@ -38,6 +46,7 @@ defmodule Livebook.Notebook do
       name: "Untitled notebook",
       version: @version,
       sections: [],
+      leading_comments: [],
       persist_outputs: default_persist_outputs(),
       autosave_interval_s: default_autosave_interval_s()
     }
@@ -195,6 +204,18 @@ defmodule Livebook.Notebook do
     update_in(
       notebook,
       [Access.key(:sections), Access.all(), Access.key(:cells), access_by_id(cell_id)],
+      fun
+    )
+  end
+
+  @doc """
+  Updates all cells with the given function.
+  """
+  @spec update_cells(t(), (Cell.t() -> Cell.t())) :: t()
+  def update_cells(notebook, fun) do
+    update_in(
+      notebook,
+      [Access.key(:sections), Access.all(), Access.key(:cells), Access.all()],
       fun
     )
   end

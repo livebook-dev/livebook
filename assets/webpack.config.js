@@ -56,6 +56,16 @@ module.exports = (env, options) => {
     ],
     optimization: {
       minimizer: ["...", new CssMinimizerPlugin()],
+      splitChunks: {
+        cacheGroups: {
+          // Chunk splitting is by default enabled for all async chunks,
+          // so for the dynamically loaded js/vega_lite/vega.js Webpack
+          // would produce one almost empty chunk and then a vendor chunk
+          // with "vega" and "vega-embed". We want to dynamically load all
+          // of it at once, so we disable the default vendors chunk
+          defaultVendors: false
+        }
+      }
     },
     resolve: {
       fallback: {

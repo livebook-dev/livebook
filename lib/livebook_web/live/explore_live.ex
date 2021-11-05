@@ -1,25 +1,18 @@
 defmodule LivebookWeb.ExploreLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.UserHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers, PageHelpers}
   alias Livebook.Notebook.Explore
 
   @impl true
-  def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
-    if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
-    end
-
-    current_user = build_current_user(session, socket)
-
-    [lead_notebook_info | notebook_infos] = Explore.notebook_infos()
+  def mount(_params, _session, socket) do
+    [lead_notebook_info | notebook_infos] = Explore.visible_notebook_infos()
 
     {:ok,
      assign(socket,
-       current_user: current_user,
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos
      )}
@@ -54,7 +47,7 @@ defmodule LivebookWeb.ExploreLive do
                 <%= @lead_notebook_info.title %>
               </h3>
               <p class="mt-2 text-sm text-gray-300">
-                <%= @lead_notebook_info.description %>
+                <%= @lead_notebook_info.details.description %>
               </p>
               <div class="mt-4">
                 <%= live_patch "Let's go",
@@ -63,7 +56,7 @@ defmodule LivebookWeb.ExploreLive do
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">
-              <img src={@lead_notebook_info.cover_url} height="120" width="120" alt="livebook" />
+              <img src={@lead_notebook_info.details.cover_url} height="120" width="120" alt="livebook" />
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -78,11 +71,9 @@ defmodule LivebookWeb.ExploreLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal LivebookWeb.UserComponent,
-            id: "user",
-            modal_class: "w-full max-w-sm",
-            user: @current_user,
-            return_to: Routes.explore_path(@socket, :page) %>
+      <.current_user_modal
+        return_to={Routes.explore_path(@socket, :page)}
+        current_user={@current_user} />
     <% end %>
     """
   end
@@ -98,12 +89,4 @@ defmodule LivebookWeb.ExploreLive do
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_info(
-        {:user_change, %{id: id} = user},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    {:noreply, assign(socket, :current_user, user)}
-  end
 end

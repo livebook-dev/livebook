@@ -53,6 +53,23 @@ defmodule Livebook.FileSystem.File do
   end
 
   @doc """
+  Returns a term uniquely identifying the file together
+  with its file system.
+  """
+  @spec resource_identifier(t()) :: term()
+  def resource_identifier(file) do
+    {FileSystem.resource_identifier(file.file_system), file.path}
+  end
+
+  @doc """
+  Checks if the given file is within a file system local to its node.
+  """
+  @spec local?(t()) :: term()
+  def local?(file) do
+    FileSystem.type(file.file_system) == :local
+  end
+
+  @doc """
   Returns a new file resulting from resolving `subject`
   against `file`.
 

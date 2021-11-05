@@ -6,7 +6,7 @@ defmodule Livebook.JSInterop do
   @doc """
   Returns the result of applying `delta` to `string`.
 
-  The delta operation lenghts (retain, delete) are treated
+  The delta operation lengths (retain, delete) are treated
   such that they match the JavaScript strings behavior.
 
   JavaScript uses UTF-16 encoding, in which every character is stored

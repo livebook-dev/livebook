@@ -29,6 +29,26 @@ defprotocol Livebook.FileSystem do
   @type access :: :read | :write | :read_write | :none
 
   @doc """
+  Returns a term uniquely identifying the resource used as a file
+  system.
+  """
+  @spec resource_identifier(t()) :: term()
+  def resource_identifier(file_system)
+
+  @doc """
+  Returns the file system type.
+
+  Based on the underlying resource, the type can be either:
+
+    * `:local` - if the resource is local to its node
+
+    * `:global` - if the resource is external and available
+      accessible from any node
+  """
+  @spec type(t()) :: :local | :global
+  def type(file_system)
+
+  @doc """
   Returns the default directory path.
 
   To some extent this is similar to current working directory

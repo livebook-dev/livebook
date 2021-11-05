@@ -2,6 +2,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, Runtime, Utils, FileSystem}
+  alias LivebookWeb.SessionLive.RuntimeHelpers
 
   @type status :: :initial | :initializing | :finished
 
@@ -26,6 +27,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
+      <RuntimeHelpers.default_runtime_note module={Runtime.MixStandalone} />
       <p class="text-gray-700">
         Start a new local node in the context of a Mix project.
         This way all your code and dependencies will be available
@@ -39,13 +41,13 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
       </p>
       <%= if @status == :initial do %>
         <div class="h-full h-52">
-          <%= live_component LivebookWeb.FileSelectComponent,
-                id: "mix-project-dir",
-                file: @file,
-                extnames: [],
-                running_files: [],
-                submit_event: if(disabled?(@file.path), do: nil, else: :init),
-                file_system_select_disabled: true %>
+          <.live_component module={LivebookWeb.FileSelectComponent}
+              id="mix-project-dir"
+              file={@file}
+              extnames={[]}
+              running_files={[]}
+              submit_event={if(disabled?(@file.path), do: nil, else: :init)}
+              file_system_select_disabled={true} />
         </div>
         <button class="button-base button-blue" phx-click="init" disabled={disabled?(@file.path)}>
           <%= if(matching_runtime?(@current_runtime, @file.path), do: "Reconnect", else: "Connect") %>

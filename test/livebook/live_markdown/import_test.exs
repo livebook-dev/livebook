@@ -19,7 +19,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"disable_formatting": true} -->
+    <!-- livebook:{"disable_formatting":true,"reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -29,7 +29,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
 
     ```elixir
     IO.gets("length: ")
@@ -69,6 +69,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    },
                    %Cell.Elixir{
                      disable_formatting: true,
+                     reevaluate_automatically: true,
                      source: """
                      Enum.to_list(1..10)\
                      """
@@ -87,8 +88,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                    %Cell.Input{
                      type: :text,
                      name: "length",
-                     value: "100",
-                     reactive: true
+                     value: "100"
                    },
                    %Cell.Elixir{
                      source: """
@@ -517,6 +517,51 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
+  test "imports comments preceding the notebook title" do
+    markdown = """
+    <!-- vim: syntax=markdown -->
+
+    <!--nowhitespace-->
+
+    <!--
+      Multi
+      line
+    -->
+
+    <!-- livebook:{"persist_outputs":true} -->
+
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             persist_outputs: true,
+             leading_comments: [
+               ["vim: syntax=markdown"],
+               ["nowhitespace"],
+               ["  Multi", "  line"]
+             ],
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Markdown{
+                     source: """
+                     Cell 1\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
   describe "outputs" do
     test "imports output snippets as cell textual outputs" do
       markdown = """
@@ -582,6 +627,104 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
 
+  test "imports notebook with valid vega-lite output" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    Vl.new(width: 500, height: 200)
+    |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
+    |> Vl.mark(:line)
+    |> Vl.encode_field(:x, "in", type: :quantitative)
+    |> Vl.encode_field(:y, "out", type: :quantitative)
+    ```
+
+    ```vega-lite
+    {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","data":{"values":[{"in":1,"out":1},{"in":2,"out":2},{"in":3,"out":3},{"in":4,"out":4},{"in":5,"out":5}]},"encoding":{"x":{"field":"in","type":"quantitative"},"y":{"field":"out","type":"quantitative"}},"height":200,"mark":"line","width":500}
+    ```
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Elixir{
+                     source: """
+                     Vl.new(width: 500, height: 200)
+                     |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
+                     |> Vl.mark(:line)
+                     |> Vl.encode_field(:x, \"in\", type: :quantitative)
+                     |> Vl.encode_field(:y, \"out\", type: :quantitative)\
+                     """,
+                     outputs: [
+                       vega_lite_static: %{
+                         "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
+                         "data" => %{
+                           "values" => [
+                             %{"in" => 1, "out" => 1},
+                             %{"in" => 2, "out" => 2},
+                             %{"in" => 3, "out" => 3},
+                             %{"in" => 4, "out" => 4},
+                             %{"in" => 5, "out" => 5}
+                           ]
+                         },
+                         "encoding" => %{
+                           "x" => %{"field" => "in", "type" => "quantitative"},
+                           "y" => %{"field" => "out", "type" => "quantitative"}
+                         },
+                         "height" => 200,
+                         "mark" => "line",
+                         "width" => 500
+                       }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
+  test "imports notebook with invalid vega-lite output" do
+    markdown = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    :ok
+    ```
+
+    ```vega-lite
+    not_a_json
+    ```
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Elixir{
+                     source: """
+                     :ok\
+                     """,
+                     outputs: []
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
   test "skips invalid input type and returns a message" do
     markdown = """
     # My Notebook
@@ -596,5 +739,23 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert [
              ~s{unrecognised input type "input_from_the_future", if it's a valid type it means your Livebook version doesn't support it}
            ] == messages
+  end
+
+  describe "backward compatibility" do
+    test "warns if the imported notebook includes a reactive input" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+      """
+
+      {_notebook, messages} = Import.notebook_from_markdown(markdown)
+
+      assert [
+               "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
+             ] == messages
+    end
   end
 end

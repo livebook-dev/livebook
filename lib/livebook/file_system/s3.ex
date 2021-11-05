@@ -59,6 +59,14 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   alias Livebook.Utils.HTTP
   alias Livebook.FileSystem.S3.XML
 
+  def resource_identifier(file_system) do
+    {:s3, file_system.bucket_url}
+  end
+
+  def type(_file_system) do
+    :global
+  end
+
   def default_path(_file_system) do
     "/"
   end
@@ -70,7 +78,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     delimiter = if recursive, do: nil, else: "/"
 
     with {:ok, %{keys: keys}} <- list_objects(file_system, prefix: dir_key, delimiter: delimiter) do
-      if keys == [] do
+      if keys == [] and dir_key != "" do
         FileSystem.Utils.posix_error(:enoent)
       else
         paths = keys |> List.delete(dir_key) |> Enum.map(&("/" <> &1))

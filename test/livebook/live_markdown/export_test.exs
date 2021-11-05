@@ -28,6 +28,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                 %{
                   Notebook.Cell.new(:elixir)
                   | disable_formatting: true,
+                    reevaluate_automatically: true,
                     source: """
                     Enum.to_list(1..10)\
                     """
@@ -49,8 +50,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   Notebook.Cell.new(:input)
                   | type: :text,
                     name: "length",
-                    value: "100",
-                    reactive: true
+                    value: "100"
                 },
                 %{
                   Notebook.Cell.new(:elixir)
@@ -96,7 +96,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     $x_{i} + y_{i}$
 
-    <!-- livebook:{"disable_formatting":true} -->
+    <!-- livebook:{"disable_formatting":true,"reevaluate_automatically":true} -->
 
     ```elixir
     Enum.to_list(1..10)
@@ -106,7 +106,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
+    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
 
     ```elixir
     IO.gets("length: ")
@@ -515,6 +515,56 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
+  test "exports leading notebook comments" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        persist_outputs: true,
+        leading_comments: [
+          ["vim: syntax=markdown"],
+          ["nowhitespace"],
+          ["  Multi", "  line"]
+        ],
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:markdown)
+                  | source: """
+                    Cell 1\
+                    """
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    <!-- vim: syntax=markdown -->
+
+    <!-- nowhitespace -->
+
+    <!--
+      Multi
+      line
+    -->
+
+    <!-- livebook:{"persist_outputs":true} -->
+
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+    """
+
+    document = Export.notebook_to_markdown(notebook)
+
+    assert expected_document == document
+  end
+
   describe "outputs" do
     test "does not include outputs by default" do
       notebook = %{
@@ -530,7 +580,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: ["hey"]
+                      outputs: [
+                        "hey",
+                        {:vega_lite_static,
+                         %{
+                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json"
+                         }}
+                      ]
                   }
                 ]
             }
@@ -650,7 +706,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{:vega_lite_static, %{}}, {:table_dynamic, self()}]
+                      outputs: [{:table_dynamic, self()}]
                   }
                 ]
             }
@@ -664,6 +720,75 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
       ```elixir
       IO.puts("hey")
+      ```
+      """
+
+      document = Export.notebook_to_markdown(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "includes vega_lite_static output" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:elixir)
+                    | source: """
+                      Vl.new(width: 500, height: 200)
+                      |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
+                      |> Vl.mark(:line)
+                      |> Vl.encode_field(:x, "in", type: :quantitative)
+                      |> Vl.encode_field(:y, "out", type: :quantitative)\
+                      """,
+                      outputs: [
+                        {:vega_lite_static,
+                         %{
+                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
+                           "data" => %{
+                             "values" => [
+                               %{"in" => 1, "out" => 1},
+                               %{"in" => 2, "out" => 2},
+                               %{"in" => 3, "out" => 3},
+                               %{"in" => 4, "out" => 4},
+                               %{"in" => 5, "out" => 5}
+                             ]
+                           },
+                           "encoding" => %{
+                             "x" => %{"field" => "in", "type" => "quantitative"},
+                             "y" => %{"field" => "out", "type" => "quantitative"}
+                           },
+                           "height" => 200,
+                           "mark" => "line",
+                           "width" => 500
+                         }}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      Vl.new(width: 500, height: 200)
+      |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
+      |> Vl.mark(:line)
+      |> Vl.encode_field(:x, "in", type: :quantitative)
+      |> Vl.encode_field(:y, "out", type: :quantitative)
+      ```
+
+      ```vega-lite
+      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","data":{"values":[{"in":1,"out":1},{"in":2,"out":2},{"in":3,"out":3},{"in":4,"out":4},{"in":5,"out":5}]},"encoding":{"x":{"field":"in","type":"quantitative"},"y":{"field":"out","type":"quantitative"}},"height":200,"mark":"line","width":500}
       ```
       """
 

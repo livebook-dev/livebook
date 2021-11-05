@@ -150,4 +150,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   def duplicate(runtime) do
     Livebook.Runtime.MixStandalone.init(runtime.project_path)
   end
+
+  def standalone?(_runtime), do: true
 end

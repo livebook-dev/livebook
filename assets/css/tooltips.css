@@ -3,7 +3,7 @@
 /*
 Example usage:
 
-  <span class="tooltip top" aria-label="Delete">
+  <span class="tooltip top" data-tooltip="Delete">
     ...
   </span>
 */
@@ -28,7 +28,7 @@ Example usage:
 /* Tooltip text */
 .tooltip:before {
   position: absolute;
-  content: attr(aria-label);
+  content: attr(data-tooltip);
   white-space: pre;
   text-align: center;
   display: block;

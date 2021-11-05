@@ -19,6 +19,8 @@ Mix.install([
 alias VegaLite, as: Vl
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Kino.VegaLite
 
 In the [Plotting with VegaLite](/explore/notebooks/intro-to-vega-lite) notebook we show
@@ -84,6 +86,8 @@ Kino.VegaLite.periodically(widget, 25, 0, fn i ->
 end)
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Kino.ETS
 
 You can use `Kino.ETS.new/1` to render ETS tables and easily
@@ -111,6 +115,8 @@ end
 
 Having the rows inserted, click on the "Refetch" icon in the table output
 above to see them.
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Kino.DataTable
 
@@ -149,6 +155,8 @@ Kino.DataTable.new(
 We can sort by the number of reductions to identify the
 most busy processes!
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Kino.Markdown
 
 Sometimes you may want to render arbitrary content as rich-text,
@@ -175,6 +183,8 @@ A regular Markdown file.
 """
 |> Kino.Markdown.new()
 ````
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Kino.render/1
 

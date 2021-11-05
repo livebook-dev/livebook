@@ -1,26 +1,23 @@
 defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
+  import LivebookWeb.UserHelpers
 
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
-  def mount(_params, %{"current_user_id" => current_user_id} = session, socket) do
+  def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
     end
 
-    current_user = build_current_user(session, socket)
     sessions = sort_sessions(Sessions.list_sessions())
-    notebook_infos = Notebook.Explore.notebook_infos() |> Enum.take(3)
+    notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
      assign(socket,
-       current_user: current_user,
        file: Livebook.Config.default_dir(),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
@@ -59,11 +56,11 @@ defmodule LivebookWeb.HomeLive do
           </div>
 
           <div class="h-80">
-            <%= live_component LivebookWeb.FileSelectComponent,
-                  id: "home-file-select",
-                  file: @file,
-                  extnames: [LiveMarkdown.extension()],
-                  running_files: files(@sessions) do %>
+            <.live_component module={LivebookWeb.FileSelectComponent}
+                id="home-file-select"
+                file={@file}
+                extnames={[LiveMarkdown.extension()]}
+                running_files={files(@sessions)}>
               <div class="flex justify-end space-x-2">
                 <button class="button-base button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
@@ -85,7 +82,7 @@ defmodule LivebookWeb.HomeLive do
                   </span>
                 <% end %>
               </div>
-            <% end %>
+            </.live_component>
           </div>
 
           <div class="py-12">
@@ -119,35 +116,34 @@ defmodule LivebookWeb.HomeLive do
     </div>
 
     <%= if @live_action == :user do %>
-      <%= live_modal LivebookWeb.UserComponent,
-            id: "user",
-            modal_class: "w-full max-w-sm",
-            user: @current_user,
-            return_to: Routes.home_path(@socket, :page) %>
+      <.current_user_modal
+        return_to={Routes.home_path(@socket, :page)}
+        current_user={@current_user} />
     <% end %>
 
     <%= if @live_action == :close_session do %>
-      <%= live_modal LivebookWeb.HomeLive.CloseSessionComponent,
-            id: "close-session",
-            modal_class: "w-full max-w-xl",
-            return_to: Routes.home_path(@socket, :page),
-            session: @session %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.CloseSessionComponent}
+          id="close-session"
+          return_to={Routes.home_path(@socket, :page)}
+          session={@session} />
+      </.modal>
     <% end %>
 
     <%= if @live_action == :import do %>
-      <%= live_modal LivebookWeb.HomeLive.ImportComponent,
-            id: "import",
-            modal_class: "w-full max-w-xl",
-            return_to: Routes.home_path(@socket, :page),
-            tab: @tab,
-            import_opts: @import_opts %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.ImportComponent}
+          id="import"
+          tab={@tab}
+          import_opts={@import_opts} />
+      </.modal>
     <% end %>
     """
   end
 
   defp open_button_tooltip_attrs(file, file_info) do
     if regular?(file, file_info) and not writable?(file_info) do
-      [class: "tooltip top", aria_label: "This file is write-protected, please fork instead"]
+      [class: "tooltip top", data_tooltip: "This file is write-protected, please fork instead"]
     else
       []
     end
@@ -257,7 +253,7 @@ defmodule LivebookWeb.HomeLive do
           images_dir = Session.images_dir_for_notebook(file)
 
           socket
-          |> put_import_flash_messages(messages)
+          |> put_import_warnings(messages)
           |> create_session(
             notebook: notebook,
             copy_images_from: images_dir,
@@ -278,7 +274,7 @@ defmodule LivebookWeb.HomeLive do
       case import_notebook(file) do
         {:ok, {notebook, messages}} ->
           socket
-          |> put_import_flash_messages(messages)
+          |> put_import_warnings(messages)
           |> create_session(notebook: notebook, file: file, origin: {:file, file})
 
         {:error, error} ->
@@ -351,13 +347,6 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, socket}
   end
 
-  def handle_info(
-        {:user_change, %{id: id} = user},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    {:noreply, assign(socket, :current_user, user)}
-  end
-
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp sort_sessions(sessions) do
@@ -408,7 +397,15 @@ defmodule LivebookWeb.HomeLive do
 
   defp import_content(socket, content, session_opts) do
     {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
-    socket = put_import_flash_messages(socket, messages)
+
+    socket =
+      socket
+      |> put_import_warnings(messages)
+      |> put_flash(
+        :info,
+        "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
+      )
+
     session_opts = Keyword.merge(session_opts, notebook: notebook)
     create_session(socket, session_opts)
   end

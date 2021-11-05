@@ -8,7 +8,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # This functionality is a basic building block to be
   # used for code completion and information extraction.
   #
-  # The implementation is based primarly on `IEx.Autocomplete`.
+  # The implementation is based primarily on `IEx.Autocomplete`.
   # It also takes insights from `ElixirSense.Providers.Suggestion.Complete`,
   # which is a very extensive implementation used in the
   # Elixir Language Server.

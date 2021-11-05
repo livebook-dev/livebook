@@ -20,15 +20,34 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "called with a notebook, sets default cell and section infos" do
-      cell = Notebook.Cell.new(:elixir)
-      section = %{Notebook.Section.new() | cells: [cell]}
-      notebook = %{Notebook.new() | sections: [section]}
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Notebook.Section.new()
+              | id: "s1",
+                cells: [%{Notebook.Cell.new(:elixir) | id: "c1"}]
+            }
+          ]
+      }
 
-      cell_id = cell.id
-      section_id = section.id
+      assert %{cell_infos: %{"c1" => %{}}, section_infos: %{"s1" => %{}}} = Data.new(notebook)
+    end
 
-      assert %{cell_infos: %{^cell_id => %{}}, section_infos: %{^section_id => %{}}} =
-               Data.new(notebook)
+    test "called with a notebook, computes cell snapshots" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Notebook.Section.new()
+              | id: "s1",
+                cells: [%{Notebook.Cell.new(:elixir) | id: "c1"}]
+            }
+          ]
+      }
+
+      assert %{cell_infos: %{"c1" => %{snapshot: snapshot}}} = Data.new(notebook)
+      assert snapshot != {nil, nil}
     end
   end
 
@@ -692,6 +711,29 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{"c2" => %{validity_status: :stale}}
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "marks child automatically reevaluating cells for evaluation" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
+          # Evaluate both cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:delete_cell, self(), "c1"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c2" => %{evaluation_status: :evaluating}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -2073,6 +2115,87 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
+    test "marks child automatically reevaluating cells for evaluation" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:set_cell_attributes, self(), "c3", %{reevaluate_automatically: true}},
+          # Evaluate all cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
+          # Queue the first cell again
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{evaluation_status: :evaluating},
+                  "c3" => %{evaluation_status: :queued}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "does not mark child automatically reevaluating cells for evaluation if they are fresh" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
+          # Evaluate all cells
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{evaluation_status: :ready, validity_status: :evaluated},
+                  "c2" => %{evaluation_status: :ready, validity_status: :fresh}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "if bound input value changes during cell evaluation, the cell is marked as stale afterwards" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :input, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          # Make the Elixir cell evaluating
+          {:queue_cell_evaluation, self(), "c2"},
+          # Bind the input (effectively read the current value)
+          {:bind_input, self(), "c2", "c1"},
+          # Change the input value, while the cell is evaluating
+          {:set_cell_attributes, self(), "c1", %{value: "stuff"}}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{validity_status: :stale}
+                }
+              }, _} = Data.apply_operation(data, operation)
+    end
+
     test "adds evaluation time to the response" do
       data =
         data_after_operations!([
@@ -2408,6 +2531,73 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{"c3" => %{evaluation_status: :ready}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
               }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :erase_outputs" do
+    test "clears all sections evaluation and queues" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"}
+        ])
+
+      operation = {:erase_outputs, self()}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
+                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                },
+                section_infos: %{
+                  "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
+                  "s2" => %{evaluating_cell_id: nil, evaluation_queue: []}
+                }
+              }, _actions} = Data.apply_operation(data, operation)
+    end
+
+    test "removes elixir cell outputs" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :markdown, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:erase_outputs, self()}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      id: "s1",
+                      cells: [
+                        %{id: "c1", outputs: []},
+                        %{id: "c2"},
+                        %{id: "c3", outputs: []}
+                      ]
+                    }
+                  ]
+                }
+              }, _actions} = Data.apply_operation(data, operation)
     end
   end
 
@@ -2838,13 +3028,15 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :elixir, "c1"}
         ])
 
-      attrs = %{disable_formatting: true}
+      attrs = %{disable_formatting: true, reevaluate_automatically: true}
       operation = {:set_cell_attributes, self(), "c1", attrs}
 
       assert {:ok,
               %{
                 notebook: %{
-                  sections: [%{cells: [%{disable_formatting: true}]}]
+                  sections: [
+                    %{cells: [%{disable_formatting: true, reevaluate_automatically: true}]}
+                  ]
                 }
               }, _} = Data.apply_operation(data, operation)
     end
@@ -2854,7 +3046,6 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:set_cell_attributes, self(), "c1", %{reactive: false}},
           # Insert three evaluated cells and bind the second one to the input
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:insert_cell, self(), "s1", 2, :elixir, "c3"},
@@ -2882,65 +3073,30 @@ defmodule Livebook.Session.DataTest do
               }, _} = Data.apply_operation(data, operation)
     end
 
-    test "given reactive input value change, triggers bound cells evaluation" do
+    test "setting reevaluate_automatically on stale cell marks it for evaluation" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:set_cell_attributes, self(), "c1", %{reactive: true}},
-          # Insert three evaluated cells and bind the second and third one to the input
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
+          # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
-          {:queue_cell_evaluation, self(), "c3"},
-          {:queue_cell_evaluation, self(), "c4"},
           {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
-          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
-          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta},
-          {:bind_input, self(), "c3", "c1"},
-          {:bind_input, self(), "c4", "c1"}
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
-      attrs = %{value: "stuff"}
-      operation = {:set_cell_attributes, self(), "c1", attrs}
+      attrs = %{reevaluate_automatically: true}
+      operation = {:set_cell_attributes, self(), "c2", attrs}
 
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{evaluation_status: :ready},
-                  "c3" => %{evaluation_status: :evaluating},
-                  "c4" => %{evaluation_status: :queued}
-                }
-              }, _} = Data.apply_operation(data, operation)
-    end
-
-    test "given reactive input value change, queues bound cell evaluation even if evaluating" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:set_cell_attributes, self(), "c1", %{reactive: true}},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cell_evaluation, self(), "c2"},
-          {:bind_input, self(), "c2", "c1"}
-        ])
-
-      attrs = %{value: "stuff"}
-      operation = {:set_cell_attributes, self(), "c1", attrs}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
+                  "c1" => %{evaluation_status: :ready},
                   "c2" => %{evaluation_status: :evaluating}
-                },
-                section_infos: %{
-                  "s1" => %{
-                    evaluating_cell_id: "c2",
-                    evaluation_queue: ["c2"]
-                  }
                 }
               }, _} = Data.apply_operation(data, operation)
     end

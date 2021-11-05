@@ -24,6 +24,8 @@ import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
 import ClipCopy from "./clip_copy";
+import DragAndDrop from "./darg_and_drop";
+import PasswordToggle from "./password_toggle";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
@@ -41,6 +43,8 @@ const hooks = {
   MarkdownRenderer,
   Highlight,
   ClipCopy,
+  DragAndDrop,
+  PasswordToggle,
 };
 
 const csrfToken = document
@@ -75,3 +79,13 @@ liveSocket.connect();
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;
+
+// Handling custom events dispatched with JS.dispatch/3
+
+window.addEventListener("lb:focus", (event) => {
+  event.target.focus();
+});
+
+window.addEventListener("lb:set_value", (event) => {
+  event.target.value = event.detail.value;
+});

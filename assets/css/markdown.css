@@ -62,6 +62,11 @@
   @apply my-1;
 }
 
+.markdown li > ul,
+.markdown li > ol {
+  @apply my-0;
+}
+
 .markdown blockquote {
   @apply border-l-4 border-gray-200 pl-4 py-2 my-4 text-gray-500;
 }

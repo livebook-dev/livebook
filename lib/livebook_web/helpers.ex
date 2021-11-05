@@ -1,42 +1,60 @@
 defmodule LivebookWeb.Helpers do
   use Phoenix.Component
 
+  alias Phoenix.LiveView.JS
+
   alias LivebookWeb.Router.Helpers, as: Routes
 
-  @doc """
-  Renders a component inside the `Livebook.ModalComponent` component.
-
-  The rendered modal receives a `:return_to` option to properly update
-  the URL when the modal is closed.
-  """
-  def live_modal(component, opts) do
-    {modal_opts, opts} = build_modal_opts(opts)
-    modal_opts = [{:render_spec, {:component, component, opts}} | modal_opts]
-    live_component(LivebookWeb.ModalComponent, modal_opts)
-  end
+  alias Livebook.FileSystem
 
   @doc """
-  Renders a live view inside the `Livebook.ModalComponent` component.
+  Wraps the given content in a modal dialog.
 
-  See `live_modal/2` for more details.
+  When closed, the modal redirects to the given `:return_to` URL.
+
+  ## Example
+
+      <.live_modal return_to={...}>
+        <.live_component module={MyComponent}  />
+      </.live_modal>
   """
-  def live_modal(socket, live_view, opts) do
-    {modal_opts, opts} = build_modal_opts(opts)
-    modal_opts = [{:render_spec, {:live_view, socket, live_view, opts}} | modal_opts]
-    live_component(LivebookWeb.ModalComponent, modal_opts)
+  def modal(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:class, fn -> "" end)
+
+    ~H"""
+    <div class="fixed z-[10000] inset-0 fade-in" phx-remove={JS.transition("fade-out")}>
+      <!-- Modal container -->
+      <div class="h-screen flex items-center justify-center p-4">
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-gray-500 opacity-75 z-0" aria-hidden="true"></div>
+
+        <!-- Modal box -->
+        <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@class}"}
+          role="dialog"
+          aria-modal="true"
+          phx-window-keydown={click_modal_close()}
+          phx-click-away={click_modal_close()}
+          phx-key="escape">
+
+          <%= live_patch to: @return_to,
+                class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center",
+                aria_label: "close modal",
+                id: "close-modal-button" do %>
+            <span class="text-sm">(esc)</span>
+            <.remix_icon icon="close-line" class="text-2xl" />
+          <% end %>
+
+          <%= render_slot(@inner_block) %>
+        </div>
+      </div>
+    </div>
+    """
   end
 
-  defp build_modal_opts(opts) do
-    path = Keyword.fetch!(opts, :return_to)
-    {modal_class, opts} = Keyword.pop(opts, :modal_class)
-
-    modal_opts = [
-      id: "modal",
-      return_to: path,
-      modal_class: modal_class
-    ]
-
-    {modal_opts, opts}
+  defp click_modal_close(js \\ %JS{}) do
+    JS.dispatch(js, "click", to: "#close-modal-button")
   end
 
   @doc """
@@ -108,7 +126,7 @@ defmodule LivebookWeb.Helpers do
       |> assign(:attrs, assigns_to_attributes(assigns, [:icon, :class]))
 
     ~H"""
-    <i class={"ri-#{@icon} #{@class}"} {@attrs}></i>
+    <i class={"ri-#{@icon} #{@class}"} aria-hidden="true" {@attrs}></i>
     """
   end
 
@@ -197,7 +215,7 @@ defmodule LivebookWeb.Helpers do
 
     ~H"""
     <button class={"choice-button #{if(@active, do: "active")} #{@class}"} disabled={@disabled} {@attrs}>
-      <%= render_block(@inner_block) %>
+      <%= render_slot(@inner_block) %>
     </button>
     """
   end
@@ -244,6 +262,62 @@ defmodule LivebookWeb.Helpers do
     """
   end
 
+  @doc """
+  Renders a wrapper around password input
+  with an added visibility toggle button.
+
+  The toggle switches the input's type between `password`
+  and `text`.
+
+  ## Examples
+
+    <.with_password_toggle id="input-id">
+      <input type="password" ...>
+    </.with_password_toggle>
+  """
+  def with_password_toggle(assigns) do
+    ~H"""
+    <div id={"password-toggle-#{@id}"} class="relative inline w-min" phx-hook="PasswordToggle">
+      <!-- render password input -->
+      <%= render_slot(@inner_block) %>
+      <button
+        class="bg-gray-50 p-1 icon-button absolute inset-y-0 right-1"
+        type="button"
+        aria-label="toggle password visibility"
+        phx-change="ignore">
+        <.remix_icon icon="eye-line" class="text-xl" />
+      </button>
+    </div>
+    """
+  end
+
   defdelegate ansi_string_to_html(string), to: LivebookWeb.Helpers.ANSI
   defdelegate ansi_string_to_html_lines(string), to: LivebookWeb.Helpers.ANSI
+
+  @doc """
+  Renders an icon representing the given file system.
+  """
+  def file_system_icon(assigns)
+
+  def file_system_icon(%{file_system: %FileSystem.Local{}} = assigns) do
+    ~H"""
+    <.remix_icon icon="hard-drive-2-line leading-none" />
+    """
+  end
+
+  def file_system_icon(%{file_system: %FileSystem.S3{}} = assigns) do
+    ~H"""
+    <i class="not-italic">
+      <span class="text-[0.75em] font-semibold align-middle">S3</span>
+    </i>
+    """
+  end
+
+  @doc """
+  Formats the given file system into a descriptive label.
+  """
+  def file_system_label(file_system)
+
+  def file_system_label(%FileSystem.Local{}), do: "Local disk"
+  def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
 end

@@ -6,7 +6,7 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
   #
   # The backend is based on `Logger.Backends.Console`,
   # but instead of logging to the console, it sends
-  # log output to the group leader of the soruce process,
+  # log output to the group leader of the source process,
   # provided the group leader is an instance of
   # `Livebook.Evaluator.IOProxy`.
   #

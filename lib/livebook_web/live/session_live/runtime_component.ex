@@ -16,7 +16,8 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
           if assigns.runtime do
             runtime_type(assigns.runtime)
           else
-            "elixir_standalone"
+            {runtime_module, _args} = Livebook.Config.default_runtime()
+            runtime_module |> struct() |> runtime_type()
           end
 
         Map.put(assigns, :type, type)

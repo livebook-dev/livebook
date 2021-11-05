@@ -24,14 +24,23 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_notebook(notebook, ctx) do
+    comments =
+      Enum.map(notebook.leading_comments, fn
+        [line] -> ["<!-- ", line, " -->"]
+        lines -> ["<!--\n", Enum.intersperse(lines, "\n"), "\n-->"]
+      end)
+
     name = ["# ", notebook.name]
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     metadata = notebook_metadata(notebook)
 
-    [name | sections]
-    |> Enum.intersperse("\n\n")
-    |> prepend_metadata(metadata)
+    notebook_with_metadata =
+      [name | sections]
+      |> Enum.intersperse("\n\n")
+      |> prepend_metadata(metadata)
+
+    Enum.intersperse(comments ++ [notebook_with_metadata], "\n\n")
   end
 
   defp notebook_metadata(notebook) do
@@ -111,8 +120,8 @@ defmodule Livebook.LiveMarkdown.Export do
         value: value
       }
       |> put_unless_default(
-        Map.take(cell, [:reactive, :props]),
-        Map.take(Cell.Input.new(), [:reactive, :props])
+        Map.take(cell, [:props]),
+        Map.take(Cell.Input.new(), [:props])
       )
       |> Jason.encode!()
 
@@ -125,8 +134,8 @@ defmodule Livebook.LiveMarkdown.Export do
   defp cell_metadata(%Cell.Elixir{} = cell) do
     put_unless_default(
       %{},
-      Map.take(cell, [:disable_formatting]),
-      Map.take(Cell.Elixir.new(), [:disable_formatting])
+      Map.take(cell, [:disable_formatting, :reevaluate_automatically]),
+      Map.take(Cell.Elixir.new(), [:disable_formatting, :reevaluate_automatically])
     )
   end
 
@@ -151,6 +160,10 @@ defmodule Livebook.LiveMarkdown.Export do
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
     [delimiter, "output\n", text, "\n", delimiter]
+  end
+
+  defp render_output({:vega_lite_static, spec}) do
+    ["```", "vega-lite\n", Jason.encode!(spec), "\n", "```"]
   end
 
   defp render_output(_output), do: :ignored

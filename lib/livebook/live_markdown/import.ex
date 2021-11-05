@@ -30,7 +30,7 @@ defmodule Livebook.LiveMarkdown.Import do
   defp rewrite_ast(ast) do
     {ast, messages1} = rewrite_multiple_primary_headings(ast)
     {ast, messages2} = move_primary_heading_top(ast)
-    ast = trim_comments(ast)
+    ast = normalize_comments(ast)
 
     {ast, messages1 ++ messages2}
   end
@@ -91,12 +91,12 @@ defmodule Livebook.LiveMarkdown.Import do
     {Enum.reverse(left_rev), Enum.reverse(right_rev)}
   end
 
-  # Trims one-line comments to allow nice pattern matching
-  # on Livebook-specific annotations with no regard to surrounding whitespace.
-  defp trim_comments(ast) do
+  # Normalizes comments to allow nice pattern matching on Livebook-specific
+  # annotations with no regard to surrounding whitespace.
+  defp normalize_comments(ast) do
     Enum.map(ast, fn
-      {:comment, attrs, [line], %{comment: true}} ->
-        {:comment, attrs, [String.trim(line)], %{comment: true}}
+      {:comment, attrs, lines, %{comment: true}} ->
+        {:comment, attrs, MarkdownHelpers.normalize_comment_lines(lines), %{comment: true}}
 
       ast_node ->
         ast_node
@@ -184,7 +184,17 @@ defmodule Livebook.LiveMarkdown.Import do
          [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
-    take_outputs(ast, [output | outputs])
+    take_outputs(ast, [{:text, output} | outputs])
+  end
+
+  defp take_outputs(
+         [{"pre", _, [{"code", [{"class", "vega-lite"}], [output], %{}}], %{}} | ast],
+         outputs
+       ) do
+    case Jason.decode(output) do
+      {:ok, spec} -> take_outputs(ast, [{:vega_lite_static, spec} | outputs])
+      _ -> take_outputs(ast, outputs)
+    end
   end
 
   defp take_outputs(ast, outputs), do: {outputs, ast}
@@ -198,7 +208,6 @@ defmodule Livebook.LiveMarkdown.Import do
   defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections, messages) do
     {metadata, elems} = grab_metadata(elems)
     attrs = cell_metadata_to_attrs(:elixir, metadata)
-    outputs = Enum.map(outputs, &{:text, &1})
     cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections, messages)
   end
@@ -213,9 +222,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp build_notebook([{:cell, :input, data} | elems], cells, sections, messages) do
     case parse_input_attrs(data) do
-      {:ok, attrs} ->
+      {:ok, attrs, input_messages} ->
         cell = Notebook.Cell.new(:input) |> Map.merge(attrs)
-        build_notebook(elems, [cell | cells], sections, messages)
+        build_notebook(elems, [cell | cells], sections, messages ++ input_messages)
 
       {:error, message} ->
         build_notebook(elems, cells, sections, [message | messages])
@@ -245,9 +254,15 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp build_notebook([{:notebook_name, content} | elems], [], sections, messages) do
     name = text_from_markdown(content)
-    {metadata, []} = grab_metadata(elems)
+    {metadata, elems} = grab_metadata(elems)
+    # If there are any non-metadata comments we keep them
+    {comments, []} = grab_leading_comments(elems)
     attrs = notebook_metadata_to_attrs(metadata)
-    notebook = %{Notebook.new() | name: name, sections: sections} |> Map.merge(attrs)
+
+    notebook =
+      %{Notebook.new() | name: name, sections: sections, leading_comments: comments}
+      |> Map.merge(attrs)
+
     {notebook, messages}
   end
 
@@ -271,17 +286,34 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp grab_metadata(elems), do: {%{}, elems}
 
+  defp grab_leading_comments([]), do: {[], []}
+
+  # Since these are not metadata comments they get wrapped in a markdown cell,
+  # so we unpack it
+  defp grab_leading_comments([{:cell, :markdown, md_ast}]) do
+    comments = for {:comment, _attrs, lines, %{comment: true}} <- Enum.reverse(md_ast), do: lines
+    {comments, []}
+  end
+
   defp parse_input_attrs(data) do
     with {:ok, type} <- parse_input_type(data["type"]) do
+      warnings =
+        if data["reactive"] == true do
+          [
+            "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
+          ]
+        else
+          []
+        end
+
       {:ok,
        %{
          type: type,
          name: data["name"],
          value: data["value"],
          # Fields with implicit value
-         reactive: Map.get(data, "reactive", false),
          props: data |> Map.get("props", %{}) |> parse_input_props(type)
-       }}
+       }, warnings}
     end
   end
 
@@ -334,6 +366,9 @@ defmodule Livebook.LiveMarkdown.Import do
     Enum.reduce(metadata, %{}, fn
       {"disable_formatting", disable_formatting}, attrs ->
         Map.put(attrs, :disable_formatting, disable_formatting)
+
+      {"reevaluate_automatically", reevaluate_automatically}, attrs ->
+        Map.put(attrs, :reevaluate_automatically, reevaluate_automatically)
 
       _entry, attrs ->
         attrs

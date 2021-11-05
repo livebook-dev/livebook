@@ -40,6 +40,8 @@ defmodule Livebook.LiveMarkdown do
   #
   #        - cell metadata, recognised keys: `disable_formatting`
   #
+  #   6. Any comments before the leading heading are kept.
+  #
   # ## Example
   #
   # Here's an example LiveMarkdown file:

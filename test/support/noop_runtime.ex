@@ -16,5 +16,6 @@ defmodule Livebook.Runtime.NoopRuntime do
     def drop_container(_, _), do: :ok
     def handle_intellisense(_, _, _, _, _), do: :ok
     def duplicate(_), do: {:ok, Livebook.Runtime.NoopRuntime.new()}
+    def standalone?(_runtime), do: false
   end
 end

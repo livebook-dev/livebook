@@ -6,7 +6,7 @@ defmodule Livebook.Notebook.Cell.Input do
   # It consists of an input that the user may fill
   # and then read during code evaluation.
 
-  defstruct [:id, :type, :name, :value, :reactive, :props]
+  defstruct [:id, :type, :name, :value, :props]
 
   alias Livebook.Utils
   alias Livebook.Notebook.Cell
@@ -16,7 +16,6 @@ defmodule Livebook.Notebook.Cell.Input do
           type: type(),
           name: String.t(),
           value: String.t(),
-          reactive: boolean(),
           props: props()
         }
 
@@ -39,7 +38,6 @@ defmodule Livebook.Notebook.Cell.Input do
       type: :text,
       name: "input",
       value: "",
-      reactive: false,
       props: %{}
     }
   end
@@ -101,22 +99,6 @@ defmodule Livebook.Notebook.Cell.Input do
   def default_props(_type), do: %{}
 
   @doc """
-  Checks if the input changed in terms of content.
-  """
-  @spec invalidated?(t(), t()) :: boolean()
-  def invalidated?(cell, prev_cell) do
-    cell.value != prev_cell.value or cell.name != prev_cell.name
-  end
-
-  @doc """
-  Checks if the input change should trigger reactive update.
-  """
-  @spec reactive_update?(t(), t()) :: boolean()
-  def reactive_update?(cell, prev_cell) do
-    cell.reactive and cell.value != prev_cell.value and validate(cell) == :ok
-  end
-
-  @doc """
   Parses input type from string.
   """
   @spec type_from_string(String.t()) :: {:ok, type()} | :error
@@ -136,7 +118,7 @@ defmodule Livebook.Notebook.Cell.Input do
   end
 
   @doc """
-  Converts inpu type to string.
+  Converts input type to string.
   """
   @spec type_to_string(type()) :: String.t()
   def type_to_string(type) do

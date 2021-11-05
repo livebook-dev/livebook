@@ -1,8 +1,6 @@
 defmodule LivebookWeb.UserHelpers do
   use Phoenix.Component
 
-  alias Livebook.Users.User
-
   @doc """
   Renders user avatar.
 
@@ -17,7 +15,9 @@ defmodule LivebookWeb.UserHelpers do
       |> assign_new(:text_class, fn -> "" end)
 
     ~H"""
-    <div class={"#{@class} rounded-full flex items-center justify-center"} style={"background-color: #{@user.hex_color}"}>
+    <div class={"#{@class} rounded-full flex items-center justify-center"}
+      style={"background-color: #{@user.hex_color}"}
+      aria-hidden="true">
       <div class={"#{@text_class} text-gray-100 font-semibold"}>
         <%= avatar_text(@user.name) %>
       </div>
@@ -39,22 +39,20 @@ defmodule LivebookWeb.UserHelpers do
   end
 
   @doc """
-  Builds `Livebook.Users.User` using information from
-  session and socket.
+  Renders the current user edit form in a modal.
 
-  Uses `user_data` from socket `connect_params` as initial
-  attributes if the socket is connected. Otherwise uses
-  `user_data` from session.
+  ## Examples
+
+      <.current_user_modal return_to={...} current_user={@current_user} />
   """
-  def build_current_user(session, socket) do
-    %{"current_user_id" => current_user_id} = session
-
-    connect_params = get_connect_params(socket) || %{}
-    user_data = connect_params["user_data"] || session["user_data"] || %{}
-
-    case User.change(%{User.new() | id: current_user_id}, user_data) do
-      {:ok, user} -> user
-      {:error, _errors, user} -> user
-    end
+  def current_user_modal(assigns) do
+    ~H"""
+    <LivebookWeb.Helpers.modal class="w-full max-w-sm" return_to={@return_to}>
+      <.live_component module={LivebookWeb.UserComponent}
+        id="user"
+        return_to={@return_to}
+        user={@current_user} />
+    </LivebookWeb.Helpers.modal>
+    """
   end
 end
