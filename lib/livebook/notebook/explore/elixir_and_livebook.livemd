@@ -171,6 +171,8 @@ data is valid or not:
 
 <!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
 
+<!-- livebook:{"reevaluate_automatically":true} -->
+
 ```elixir
 # Read the date input, which returns something like "2020-02-30\n"
 input = IO.gets("Date: ")
@@ -194,8 +196,16 @@ a newline. This is built-in on top of Erlang's IO protocol and built
 in a way that your notebooks can be exported to Elixir scripts and
 still work!
 
-Create your own inputs to learn more about the available input types
-and options.
+You may also have noticed something special about the code cell above.
+After you evaluate it for the first time, it says "Reevaluates automatically"
+instead of showing the "Reevaluate" button. This means the cell will
+automatically reevaluate whenever the input changes or whenever a
+previous cell is reevaluated. Give it a try! You can enable this
+behaviour by clicking the Cell Settings icon (<i class="ri-settings-3-line"></i>)
+after focusing a code cell.
+
+There are many other input types available, give them a try to learn
+more.
 
 ## Evaluation vs compilation
 
