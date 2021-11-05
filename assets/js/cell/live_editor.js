@@ -432,6 +432,12 @@ function parseItem(item) {
       isTrusted: true,
     },
     insertText: item.insert_text,
+    insertTextRules:
+      monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+    command: {
+      title: "Trigger Parameter Hint",
+      id: "editor.action.triggerParameterHints",
+    },
   };
 }
 

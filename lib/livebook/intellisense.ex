@@ -173,7 +173,14 @@ defmodule Livebook.Intellisense do
              format_documentation(documentation, :short),
              format_specs(specs, name, @line_length) |> code()
            ]),
-         insert_text: display_name
+         insert_text:
+           cond do
+             String.starts_with?(display_name, "~") -> display_name
+             Macro.operator?(name, arity) -> display_name
+             # A snippet with cursor in parentheses
+             arity == 0 -> "#{display_name}()"
+             true -> "#{display_name}($0)"
+           end
        }
 
   defp format_completion_item({:type, _module, name, arity, documentation}),

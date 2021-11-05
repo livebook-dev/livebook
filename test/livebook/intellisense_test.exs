@@ -38,7 +38,7 @@ defmodule Livebook.IntellisenseTest do
         @spec length(list()) :: non_neg_integer()
         ```\
         """,
-        insert_text: "length"
+        insert_text: "length($0)"
       }
 
       assert length_item in Intellisense.get_completion_items("", binding, env)
@@ -122,7 +122,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: ":erlang.open_port/2",
                  documentation: _open_port_doc,
-                 insert_text: "open_port"
+                 insert_text: "open_port($0)"
                }
              ] = Intellisense.get_completion_items(":erlang.open_por", binding, env)
     end
@@ -276,14 +276,14 @@ defmodule Livebook.IntellisenseTest do
                %{
                  detail: "Livebook.TestModules.Hidden.hidden()",
                  documentation: "This is a private API",
-                 insert_text: "hidden",
+                 insert_text: "hidden()",
                  kind: :function,
                  label: "hidden/0"
                },
                %{
                  detail: "Livebook.TestModules.Hidden.visible()",
                  documentation: "No documentation available",
-                 insert_text: "visible",
+                 insert_text: "visible()",
                  kind: :function,
                  label: "visible/0"
                }
@@ -344,7 +344,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec version() :: String.t()
                  ```\
                  """,
-                 insert_text: "version"
+                 insert_text: "version()"
                }
              ] = Intellisense.get_completion_items("System.ve", binding, env)
     end
@@ -405,7 +405,7 @@ defmodule Livebook.IntellisenseTest do
                           compressed: binary()
                ```\
                """,
-               insert_text: "gzip"
+               insert_text: "gzip($0)"
              } in Intellisense.get_completion_items(":zlib.gz", binding, env)
     end
 
@@ -424,7 +424,7 @@ defmodule Livebook.IntellisenseTest do
                @spec concat(t()) :: t()
                ```\
                """,
-               insert_text: "concat"
+               insert_text: "concat($0)"
              } in Intellisense.get_completion_items("Enum.concat/", binding, env)
 
       assert [
@@ -449,7 +449,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec concat(t()) :: t()
                  ```\
                  """,
-                 insert_text: "concat"
+                 insert_text: "concat($0)"
                },
                %{
                  label: "concat/2",
@@ -463,7 +463,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec concat(t(), t()) :: t()
                  ```\
                  """,
-                 insert_text: "concat"
+                 insert_text: "concat($0)"
                }
              ] = Intellisense.get_completion_items("Enum.concat", binding, env)
     end
@@ -484,7 +484,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec join(t(), String.t()) :: String.t()
                  ```\
                  """,
-                 insert_text: "join"
+                 insert_text: "join($0)"
                },
                %{
                  label: "join/2",
@@ -498,7 +498,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec join(t(), String.t()) :: String.t()
                  ```\
                  """,
-                 insert_text: "join"
+                 insert_text: "join($0)"
                }
              ] = Intellisense.get_completion_items("Enum.jo", binding, env)
     end
@@ -521,7 +521,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec version() :: String.t()
                  ```\
                  """,
-                 insert_text: "version"
+                 insert_text: "version()"
                }
              ] = Intellisense.get_completion_items("mod.ve", binding, env)
     end
@@ -692,7 +692,7 @@ defmodule Livebook.IntellisenseTest do
                  @spec version() :: String.t()
                  ```\
                  """,
-                 insert_text: "version"
+                 insert_text: "version()"
                }
              ] = Intellisense.get_completion_items("map.nested.deeply.mod.ve", binding, env)
 
@@ -739,7 +739,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.is_nil(term)",
                  documentation: "Returns `true` if `term` is `nil`, `false` otherwise.",
-                 insert_text: "is_nil"
+                 insert_text: "is_nil($0)"
                }
              ] = Intellisense.get_completion_items("Kernel.is_ni", binding, env)
     end
@@ -753,7 +753,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.SpecialForms.quote(opts, block)",
                  documentation: "Gets the representation of any expression.",
-                 insert_text: "quote"
+                 insert_text: "quote($0)"
                }
              ] = Intellisense.get_completion_items("quot", binding, env)
     end
@@ -767,7 +767,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.put_in(path, value)",
                  documentation: "Puts a value in a nested structure via the given `path`.",
-                 insert_text: "put_in"
+                 insert_text: "put_in($0)"
                },
                %{
                  label: "put_in/3",
@@ -784,7 +784,7 @@ defmodule Livebook.IntellisenseTest do
                        ) :: Access.t()
                  ```\
                  """,
-                 insert_text: "put_in"
+                 insert_text: "put_in($0)"
                }
              ] = Intellisense.get_completion_items("put_i", binding, env)
     end
@@ -864,7 +864,7 @@ defmodule Livebook.IntellisenseTest do
                @spec version() :: String.t()
                ```\
                """,
-               insert_text: "version"
+               insert_text: "version()"
              } in Intellisense.get_completion_items("v", binding, env)
 
       assert [
@@ -1026,7 +1026,7 @@ defmodule Livebook.IntellisenseTest do
                      when list: [t, ...], max: t, t: term()
                ```\
                """,
-               insert_text: "max"
+               insert_text: "max($0)"
              } in Intellisense.get_completion_items("EList.", binding, env)
 
       assert [] = Intellisense.get_completion_items("EList.Invalid", binding, env)
