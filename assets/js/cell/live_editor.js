@@ -3,10 +3,7 @@ import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
-import {
-  replacedSuffixLength,
-  functionCallCodeUntilCursor,
-} from "../lib/text_utils";
+import { replacedSuffixLength } from "../lib/text_utils";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -301,12 +298,11 @@ class LiveEditor {
     };
 
     this.editor.getModel().__getSignatureHelp = (model, position) => {
-      // Use a heuristic to support multiline calls, without sending all the code
-      const codeUntilCursor = functionCallCodeUntilCursor(
-        model.getLinesContent(),
-        position.lineNumber - 1,
-        position.column
-      );
+      const lines = model.getLinesContent();
+      const lineIdx = position.lineNumber - 1;
+      const prevLines = lines.slice(0, lineIdx);
+      const lineUntilCursor = lines[lineIdx].slice(0, position.column - 1);
+      const codeUntilCursor = [...prevLines, lineUntilCursor].join("\n");
 
       // Remove trailing characters that don't affect the signature
       const codeUntilLastStop = codeUntilCursor.replace(/[^(),]*?$/, "");
