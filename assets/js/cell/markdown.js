@@ -52,8 +52,8 @@ class Markdown {
         // We keep the HTML nodes, parse with rehype-raw and then sanitize
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeRaw)
-        .use(rehypeKatex)
         .use(rehypeSanitize, sanitizeSchema())
+        .use(rehypeKatex)
         .use(rehypeExternalLinks)
         .use(rehypeStringify)
         .process(this.content)
@@ -81,14 +81,13 @@ export default Markdown;
 // Plugins
 
 function sanitizeSchema() {
-  // Allow class ane style attributes on span tags for
-  // syntax highlighting and KaTeX tags
+  // Allow class and style attributes on tags for syntax highlighting,
+  // remarkMath tags, or user-written styles
   return {
     ...defaultSchema,
     attributes: {
       ...defaultSchema.attributes,
-      span: [...(defaultSchema.attributes.span || []), "className", "style"],
-      i: [...(defaultSchema.attributes.i || []), "className"],
+      "*": [...(defaultSchema.attributes["*"] || []), "className", "style"],
     },
   };
 }
