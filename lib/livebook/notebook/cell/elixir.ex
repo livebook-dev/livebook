@@ -38,6 +38,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
           | {:vega_lite_dynamic, widget_process :: pid()}
           # Interactive data table
           | {:table_dynamic, widget_process :: pid()}
+          # Dynamic wrapper for static output
+          | {:frame_dynamic, widget_process :: pid()}
           # Internal output format for errors
           | {:error, message :: binary(), type :: :other | :runtime_restart_required}
 
