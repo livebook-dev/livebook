@@ -562,6 +562,43 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
+  test "warns when custom comments are mixed with notebook metadata" do
+    markdown = """
+    <!-- livebook:{"persist_outputs":true} -->
+
+    <!-- vim: syntax=markdown -->
+
+    # My Notebook
+
+    ## Section 1
+
+    Cell 1
+    """
+
+    {notebook,
+     [
+       "found an invalid sequence of comments at the beginning, make sure custom comments are at the very top"
+     ]} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             persist_outputs: false,
+             leading_comments: [],
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 cells: [
+                   %Cell.Markdown{
+                     source: """
+                     Cell 1\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
   describe "outputs" do
     test "imports output snippets as cell textual outputs" do
       markdown = """

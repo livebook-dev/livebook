@@ -256,7 +256,18 @@ defmodule Livebook.LiveMarkdown.Import do
     name = text_from_markdown(content)
     {metadata, elems} = grab_metadata(elems)
     # If there are any non-metadata comments we keep them
-    {comments, []} = grab_leading_comments(elems)
+    {comments, elems} = grab_leading_comments(elems)
+
+    messages =
+      if elems == [] do
+        messages
+      else
+        messages ++
+          [
+            "found an invalid sequence of comments at the beginning, make sure custom comments are at the very top"
+          ]
+      end
+
     attrs = notebook_metadata_to_attrs(metadata)
 
     notebook =
@@ -294,6 +305,8 @@ defmodule Livebook.LiveMarkdown.Import do
     comments = for {:comment, _attrs, lines, %{comment: true}} <- Enum.reverse(md_ast), do: lines
     {comments, []}
   end
+
+  defp grab_leading_comments(elems), do: {[], elems}
 
   defp parse_input_attrs(data) do
     with {:ok, type} <- parse_input_type(data["type"]) do
