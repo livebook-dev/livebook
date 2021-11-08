@@ -86,6 +86,14 @@ solely client-side operations.
   @apply bg-blue-300;
 }
 
+[data-element="cell"][data-js-amplified] [data-element="outputs-container"] {
+  @apply bg-white m-0 py-16;
+
+  width: 90vw;
+  position: relative;
+  left: calc(-45vw + 50%);
+}
+
 [data-element="session"]:not([data-js-side-panel-content])
   [data-element="side-panel"] {
   @apply hidden;

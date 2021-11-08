@@ -49,6 +49,16 @@ const Cell = {
           revision
         );
 
+        // Setup action handlers
+        if (this.props.type === "elixir") {
+          const amplifyButton = this.el.querySelector(
+            `[data-element="amplify-outputs-button"]`
+          );
+          amplifyButton.addEventListener("click", (event) => {
+            this.el.toggleAttribute("data-js-amplified");
+          });
+        }
+
         // Setup change indicator
         if (this.props.type === "elixir") {
           this.state.evaluationDigest = evaluation_digest;
