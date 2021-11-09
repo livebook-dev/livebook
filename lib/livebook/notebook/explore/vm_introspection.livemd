@@ -84,84 +84,8 @@ end)
 From the result of `node/1` it's clear that the function was evaluated
 remotely, but note that we still get the standard output back.
 
-## LiveDashboard
-
-[LiveDashboard](https://github.com/phoenixframework/phoenix_live_dashboard)
-is a great tool for getting information and metrics about a running system
-and you can embed it into your Phoenix application very easily. In fact
-even Livebook does that!
-
-To leverage that, we first need to ensure the remote node is visible
-to the Livebook server, but this may not be the case at this point!
-
-**Why?**
-
-By default Erlang nodes create a fully connected mesh, meaning that
-each node is directly connected to all other nodes.
-However, the default Livebook runtime is started as a *hidden* node
-for better isolation and consequently its connections are not reflected
-to other nodes. That's the current state:
-
-```
-(Livebook server) <---> (Livebook runtime) <---> (Remote node)
-```
-
-**How?**
-
-So we "are" in `Livebook runtime` and our task is to connect
-`Livebook server` with `Remote node`.
-
-In fact, we already know how to connect to the remote node, we did that earlier.
-The question is how to make `Livebook server` do the same.
-
-First we need to determine what is the node name of `Livebook server`.
-Since we are connected to this node, it's easy to check!
-
-```elixir
-[livebook_app_node | _] = Node.list(:hidden)
-```
-
-We already saw `Node.set_cookie/2` and `Node.connect/1` in action,
-and we also know how to spawn a process in another node using `Node.spawn/2`.
-Let's put this together!
-
-```elixir
-Node.spawn(livebook_app_node, fn ->
-  # This code is evaluated in the Livebook server node
-  Node.set_cookie(node, cookie)
-  Node.connect(node)
-end)
-```
-
-Now go to [the dashboard](/dashboard) and check out the select
-in the upper right corner. If the connection was successful, you
-should be able to pick the desired node and see its details.
-
 ## Inspecting processes
 
-In fact, we can link to particular process instances inside the LiveDashboard
-by using the URL format `/{node}/processes?info={pid}`. Let's create a helper for that:
-
-```elixir
-defmodule Utils do
-  @doc """
-  Returns a URL to the given process page in LiveDashboard.
-  """
-  @spec dashboard_url(pid()) :: String.t()
-  def dashboard_url(pid) do
-    [livebook_app_node | _] = Node.list(:hidden)
-
-    # Note: the PID needs to be formatted relatively to
-    # the Livebook server node, so we call inspect/1 there
-    "#" <> pid_str = :rpc.call(livebook_app_node, Kernel, :inspect, [pid])
-
-    "/dashboard/#{node(pid)}/processes?info=#{pid_str}"
-  end
-end
-```
-
-Awesome, we already got the idea of how the nodes are connected
-and can see information about the node within LiveDashboard.
 Now we are going to extract some information from the running node on our own!
 
 Let's get the list of all processes in the system:
@@ -194,7 +118,6 @@ processes =
 
     %{
       pid: pid_inspect,
-      dashboard_url: Utils.dashboard_url(pid),
       reductions: info[:reductions],
       memory: info[:memory],
       status: info[:status]
@@ -212,12 +135,10 @@ Vl.new(width: 600, height: 400)
 |> Vl.encode_field(:y, "memory", type: :quantitative, scale: [type: "log", base: 10])
 |> Vl.encode_field(:color, "status", type: :nominal)
 |> Vl.encode_field(:tooltip, "pid", type: :nominal)
-|> Vl.encode_field(:href, "dashboard_url", type: :nominal)
 ```
 
 From the plot we can easily see which processes do the most work
-and take the most memory. Also, you can click individual processes to see them
-in LiveDashboard!
+and take the most memory.
 
 ## Tracking memory usage
 
