@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SessionLive.RuntimeComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.{Session, Runtime}
+  alias Livebook.Runtime
 
   @impl true
   def mount(socket) do
@@ -31,31 +31,11 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-3">
+    <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Runtime
       </h3>
       <div class="w-full flex-col space-y-5">
-        <p class="text-gray-700">
-          The code is evaluated in a separate Elixir runtime (node),
-          which you can configure yourself here.
-        </p>
-        <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-          <%= if @runtime do %>
-            <.labeled_text label="Type" text={runtime_type_label(@runtime)} />
-            <.labeled_text label="Node name" text={@runtime.node} />
-            <button class="button button-outlined-red"
-              type="button"
-              phx-click="disconnect"
-              phx-target={@myself}>
-              Disconnect
-            </button>
-          <% else %>
-            <p class="text-sm text-gray-700">
-              No connected node
-            </p>
-          <% end %>
-        </div>
         <div class="flex space-x-4">
           <.choice_button
             active={@type == "elixir_standalone"}
@@ -96,11 +76,6 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
     """
   end
 
-  defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
-  defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
-  defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
-  defp runtime_type_label(%Runtime.Embedded{}), do: "Embedded"
-
   defp runtime_type(%Runtime.ElixirStandalone{}), do: "elixir_standalone"
   defp runtime_type(%Runtime.MixStandalone{}), do: "mix_standalone"
   defp runtime_type(%Runtime.Attached{}), do: "attached"
@@ -114,11 +89,5 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   @impl true
   def handle_event("set_runtime_type", %{"type" => type}, socket) do
     {:noreply, assign(socket, type: type)}
-  end
-
-  def handle_event("disconnect", _params, socket) do
-    Session.disconnect_runtime(socket.assigns.session.pid)
-
-    {:noreply, socket}
   end
 end
