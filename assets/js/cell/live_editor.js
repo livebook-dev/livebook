@@ -6,8 +6,6 @@ import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../lib/text_utils";
 import { loadLocalSettings } from "../lib/settings";
 
-const settings = loadLocalSettings();
-
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
  */
@@ -143,6 +141,8 @@ class LiveEditor {
   }
 
   __mountEditor() {
+    const settings = loadLocalSettings();
+
     this.editor = monaco.editor.create(this.container, {
       language: this.type,
       value: this.source,
@@ -218,6 +218,8 @@ class LiveEditor {
    * Defines cell-specific providers for various editor features.
    */
   __setupIntellisense() {
+    const settings = loadLocalSettings();
+
     this.handlerByRef = {};
 
     /**
@@ -249,23 +251,24 @@ class LiveEditor {
         hint: lineUntilCursor,
       })
         .then((response) => {
-          const suggestions = completionItemsToSuggestions(response.items).map(
-            (suggestion) => {
-              const replaceLength = replacedSuffixLength(
-                lineUntilCursor,
-                suggestion.insertText
-              );
+          const suggestions = completionItemsToSuggestions(
+            response.items,
+            settings
+          ).map((suggestion) => {
+            const replaceLength = replacedSuffixLength(
+              lineUntilCursor,
+              suggestion.insertText
+            );
 
-              const range = new monaco.Range(
-                position.lineNumber,
-                position.column - replaceLength,
-                position.lineNumber,
-                position.column
-              );
+            const range = new monaco.Range(
+              position.lineNumber,
+              position.column - replaceLength,
+              position.lineNumber,
+              position.column
+            );
 
-              return { ...suggestion, range };
-            }
-          );
+            return { ...suggestion, range };
+          });
 
           return { suggestions };
         })
@@ -413,15 +416,17 @@ class LiveEditor {
   }
 }
 
-function completionItemsToSuggestions(items) {
-  return items.map(parseItem).map((suggestion, index) => ({
-    ...suggestion,
-    sortText: numberToSortableString(index, items.length),
-  }));
+function completionItemsToSuggestions(items, settings) {
+  return items
+    .map((item) => parseItem(item, settings))
+    .map((suggestion, index) => ({
+      ...suggestion,
+      sortText: numberToSortableString(index, items.length),
+    }));
 }
 
 // See `Livebook.Runtime` for completion item definition
-function parseItem(item) {
+function parseItem(item, settings) {
   return {
     label: item.label,
     kind: parseItemKind(item.kind),
