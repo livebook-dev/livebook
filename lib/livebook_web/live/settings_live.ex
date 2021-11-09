@@ -47,7 +47,7 @@ defmodule LivebookWeb.SettingsLive do
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
               </h2>
-              <span class="tooltip top" data-tooltip="Copy as environment variables">
+              <span class="tooltip left" data-tooltip="Copy as environment variables">
                 <button class="icon-button"
                   aria-label="copy as environment variables"
                   id={"file-systems-env-clipcopy"}
@@ -68,13 +68,16 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-semibold">
               Editor
             </h2>
-            <div class="flex flex-col space-y-3">
+            <div class="flex flex-col space-y-3"
+              id="editor-settings"
+              phx-hook="EditorSettings"
+              phx-update="ignore">
               <.switch_checkbox
-                name="quick_completion"
-                label="Show completion suggestions while typing"
+                name="auto_completion"
+                label="Show completion list while typing"
                 checked={false} />
               <.switch_checkbox
-                name="quick_signature"
+                name="auto_signature"
                 label="Show signature help while typing"
                 checked={false} />
             </div>

@@ -4,6 +4,9 @@ import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../lib/text_utils";
+import { loadLocalSettings } from "../lib/settings";
+
+const settings = loadLocalSettings();
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -161,10 +164,10 @@ class LiveEditor {
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: 14,
       tabIndex: -1,
-      quickSuggestions: false,
+      quickSuggestions: settings.auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
-      parameterHints: true,
+      parameterHints: settings.auto_signature,
     });
 
     this.editor.getModel().updateOptions({
@@ -430,10 +433,12 @@ function parseItem(item) {
     insertText: item.insert_text,
     insertTextRules:
       monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-    command: {
-      title: "Trigger Parameter Hint",
-      id: "editor.action.triggerParameterHints",
-    },
+    command: settings.auto_signature
+      ? {
+          title: "Trigger Parameter Hint",
+          id: "editor.action.triggerParameterHints",
+        }
+      : null,
   };
 }
 

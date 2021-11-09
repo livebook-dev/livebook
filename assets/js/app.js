@@ -19,6 +19,7 @@ import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
 import Menu from "./menu";
 import UserForm from "./user_form";
+import EditorSettings from "./editor_settings";
 import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
@@ -38,6 +39,7 @@ const hooks = {
   VirtualizedLines,
   Menu,
   UserForm,
+  EditorSettings,
   VegaLite,
   Timer,
   MarkdownRenderer,
