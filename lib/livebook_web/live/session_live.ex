@@ -37,7 +37,8 @@ defmodule LivebookWeb.SessionLive do
            platform: platform,
            self: self(),
            data_view: data_to_view(data),
-           autofocus_cell_id: autofocus_cell_id(data.notebook)
+           autofocus_cell_id: autofocus_cell_id(data.notebook),
+           empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
          )
          |> assign_private(data: data)
          |> allow_upload(:cell_image,
@@ -115,7 +116,7 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} self={@self} />
         </div>
         <div data-element="runtime-info">
-          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
+          <.runtime_info data_view={@data_view} session={@session} socket={@socket} empty_default_runtime={@empty_default_runtime} />
         </div>
       </div>
       <div class="flex-grow overflow-y-auto scroll-smooth" data-element="notebook">
@@ -399,14 +400,17 @@ defmodule LivebookWeb.SessionLive do
             <% end %>
           </div>
         <% else %>
-          <p class="text-sm text-gray-700">
-            No connected node
-          </p>
-          <div>
+          <div class="flex flex-col space-y-3">
+            <.labeled_text label="Type" text={runtime_type_label(@empty_default_runtime)} />
+          </div>
+          <div class="flex space-x-2">
+            <button class="button button-blue" phx-click="connect_default_runtime">
+              Connect
+            </button>
             <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button button-blue",
+                  class: "button button-gray button-square-icon",
                   type: "button" do  %>
-              Configure
+              <.remix_icon icon="settings-3-line" />
             <% end %>
           </div>
         <% end %>
@@ -743,6 +747,22 @@ defmodule LivebookWeb.SessionLive do
         end
       else
         socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("connect_default_runtime", %{}, socket) do
+    {runtime_module, args} = Livebook.Config.default_runtime()
+
+    socket =
+      case apply(runtime_module, :init, args) do
+        {:ok, runtime} ->
+          Session.connect_runtime(socket.assigns.session.pid, runtime)
+          socket
+
+        {:error, message} ->
+          put_flash(socket, :error, "Failed to setup runtime - #{message}")
       end
 
     {:noreply, socket}

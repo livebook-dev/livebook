@@ -2,7 +2,6 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, Runtime, Utils}
-  alias LivebookWeb.SessionLive.RuntimeHelpers
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
@@ -28,7 +27,6 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
           <%= @error_message %>
         </div>
       <% end %>
-      <RuntimeHelpers.default_runtime_note module={Runtime.Attached} />
       <p class="text-gray-700">
         Connect the session to an already running node
         and evaluate code in the context of that node.

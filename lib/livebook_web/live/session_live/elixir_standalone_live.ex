@@ -2,7 +2,6 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, Runtime}
-  alias LivebookWeb.SessionLive.RuntimeHelpers
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
@@ -22,7 +21,6 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
           <%= @error_message %>
         </div>
       <% end %>
-      <RuntimeHelpers.default_runtime_note module={Runtime.ElixirStandalone} />
       <p class="text-gray-700">
         Start a new local node to handle code evaluation.
       </p>
