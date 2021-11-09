@@ -20,7 +20,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_link_button cell_id={@cell_view.id} />
         <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button" aria-label="edit content">
             <.remix_icon icon="pencil-line" class="text-xl" />
@@ -33,6 +32,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             <.remix_icon icon="image-add-line" class="text-xl" />
           <% end %>
         </span>
+        <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
@@ -88,8 +88,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <% end %>
       </div>
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_link_button cell_id={@cell_view.id} />
+        <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
+          <button class="icon-button" aria-label="amplify outputs">
+            <.remix_icon icon="zoom-in-line" class="text-xl" />
+          </button>
+        </span>
         <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+        <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
@@ -100,7 +105,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <.editor cell_view={@cell_view} />
 
       <%= if @cell_view.outputs != [] do %>
-        <div class="mt-2">
+        <div class="mt-2" data-element="outputs-container">
           <.outputs cell_view={@cell_view} runtime={@runtime} socket={@socket} />
         </div>
       <% end %>
@@ -112,8 +117,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
       <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_link_button cell_id={@cell_view.id} />
         <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+        <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
