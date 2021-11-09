@@ -92,7 +92,7 @@ defmodule LivebookWeb.SettingsLive do
                   checked={false} />
                 <.switch_checkbox
                   name="editor_auto_signature"
-                  label="Show signature help while typing"
+                  label="Show function signature while typing"
                   checked={false} />
               </div>
             </div>
