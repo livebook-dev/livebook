@@ -31,15 +31,11 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-3">
+    <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Runtime
       </h3>
       <div class="w-full flex-col space-y-5">
-        <p class="text-gray-700">
-          The code is evaluated in a separate Elixir runtime (node),
-          which you can configure yourself here.
-        </p>
         <div class="flex space-x-4">
           <.choice_button
             active={@type == "elixir_standalone"}
