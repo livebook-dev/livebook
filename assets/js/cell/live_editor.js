@@ -481,10 +481,7 @@ function signatureResponseToSignatureHelp(response) {
       parameters: signature_item.arguments.map((argument) => ({
         label: argument,
       })),
-      documentation: signature_item.documentation && {
-        value: signature_item.documentation,
-        isTrusted: true,
-      },
+      documentation: null,
     })),
   };
 }
