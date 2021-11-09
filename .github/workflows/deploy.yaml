@@ -79,13 +79,6 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=edge,branch=main
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
@@ -93,12 +86,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          # TODO: switch to type=gha once available:
-          # * pending PR: https://github.com/moby/buildkit/pull/1974
-          # * context: https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#github-cache
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
