@@ -11,22 +11,22 @@ const EditorSettings = {
   mounted() {
     const settings = loadLocalSettings();
 
-    const autoCompletionCheckbox = this.el.querySelector(
-      `[name="auto_completion"][value="true"]`
+    const editorAutoCompletionCheckbox = this.el.querySelector(
+      `[name="editor_auto_completion"][value="true"]`
     );
-    const autoSignatureCheckbox = this.el.querySelector(
-      `[name="auto_signature"][value="true"]`
+    const editorAutoSignatureCheckbox = this.el.querySelector(
+      `[name="editor_auto_signature"][value="true"]`
     );
 
-    autoCompletionCheckbox.checked = settings.auto_completion;
-    autoSignatureCheckbox.checked = settings.auto_signature;
+    editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
+    editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
 
-    autoCompletionCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({ auto_completion: event.target.checked });
+    editorAutoCompletionCheckbox.addEventListener("change", (event) => {
+      storeLocalSettings({ editor_auto_completion: event.target.checked });
     });
 
-    autoSignatureCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({ auto_signature: event.target.checked });
+    editorAutoSignatureCheckbox.addEventListener("change", (event) => {
+      storeLocalSettings({ editor_auto_signature: event.target.checked });
     });
   },
 };

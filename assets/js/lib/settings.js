@@ -1,8 +1,8 @@
 const SETTINGS_KEY = "livebook:settings";
 
 const DEFAULT_SETTINGS = {
-  auto_completion: true,
-  auto_signature: false,
+  editor_auto_completion: true,
+  editor_auto_signature: false,
 };
 
 /**

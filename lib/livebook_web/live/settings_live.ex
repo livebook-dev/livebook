@@ -73,11 +73,11 @@ defmodule LivebookWeb.SettingsLive do
               phx-hook="EditorSettings"
               phx-update="ignore">
               <.switch_checkbox
-                name="auto_completion"
+                name="editor_auto_completion"
                 label="Show completion list while typing"
                 checked={false} />
               <.switch_checkbox
-                name="auto_signature"
+                name="editor_auto_signature"
                 label="Show signature help while typing"
                 checked={false} />
             </div>

@@ -164,10 +164,10 @@ class LiveEditor {
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: 14,
       tabIndex: -1,
-      quickSuggestions: settings.auto_completion,
+      quickSuggestions: settings.editor_auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
-      parameterHints: settings.auto_signature,
+      parameterHints: settings.editor_auto_signature,
     });
 
     this.editor.getModel().updateOptions({
@@ -438,7 +438,7 @@ function parseItem(item, settings) {
     insertText: item.insert_text,
     insertTextRules:
       monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-    command: settings.auto_signature
+    command: settings.editor_auto_signature
       ? {
           title: "Trigger Parameter Hint",
           id: "editor.action.triggerParameterHints",
