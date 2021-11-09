@@ -119,6 +119,10 @@ const Session = {
       toggleClientsList(this);
     });
 
+    getRuntimeInfoToggle().addEventListener("click", (event) => {
+      toggleRuntimeInfo(this);
+    });
+
     getNotebook().addEventListener("scroll", (event) => {
       updateSectionListHighlight();
     });
@@ -335,7 +339,7 @@ function handleDocumentKeyDown(hook, event) {
     } else if (keyBuffer.tryMatch(["s", "u"])) {
       toggleClientsList(hook);
     } else if (keyBuffer.tryMatch(["s", "r"])) {
-      showNotebookRuntimeSettings(hook);
+      toggleRuntimeInfo(hook);
     } else if (keyBuffer.tryMatch(["s", "b"])) {
       showBin(hook);
     } else if (keyBuffer.tryMatch(["e", "x"])) {
@@ -581,23 +585,23 @@ function updateSectionListHighlight() {
 // User action handlers (mostly keybindings)
 
 function toggleSectionsList(hook) {
-  if (hook.el.getAttribute("data-js-side-panel-content") === "sections-list") {
-    hook.el.removeAttribute("data-js-side-panel-content");
-  } else {
-    hook.el.setAttribute("data-js-side-panel-content", "sections-list");
-  }
+  toggleSidePanelContent(hook, "sections-list");
 }
 
 function toggleClientsList(hook) {
-  if (hook.el.getAttribute("data-js-side-panel-content") === "clients-list") {
-    hook.el.removeAttribute("data-js-side-panel-content");
-  } else {
-    hook.el.setAttribute("data-js-side-panel-content", "clients-list");
-  }
+  toggleSidePanelContent(hook, "clients-list");
 }
 
-function showNotebookRuntimeSettings(hook) {
-  hook.pushEvent("show_runtime_settings", {});
+function toggleRuntimeInfo(hook) {
+  toggleSidePanelContent(hook, "runtime-info");
+}
+
+function toggleSidePanelContent(hook, name) {
+  if (hook.el.getAttribute("data-js-side-panel-content") === name) {
+    hook.el.removeAttribute("data-js-side-panel-content");
+  } else {
+    hook.el.setAttribute("data-js-side-panel-content", name);
+  }
 }
 
 function showBin(hook) {
@@ -1022,6 +1026,10 @@ function getSectionsListToggle() {
 
 function getClientsListToggle() {
   return document.querySelector(`[data-element="clients-list-toggle"]`);
+}
+
+function getRuntimeInfoToggle() {
+  return document.querySelector(`[data-element="runtime-info-toggle"]`);
 }
 
 function cancelEvent(event) {

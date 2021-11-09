@@ -87,11 +87,10 @@ defmodule LivebookWeb.SessionLive do
           icon="group-fill"
           label="Connected users (su)"
           data_element="clients-list-toggle" />
-        <SidebarHelpers.link_item
+        <SidebarHelpers.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
-          path={Routes.session_path(@socket, :runtime_settings, @session.id)}
-          active={@live_action == :runtime_settings} />
+          data_element="runtime-info-toggle" />
         <SidebarHelpers.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
@@ -110,81 +109,13 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
         <div data-element="sections-list">
-          <div class="flex flex-col flex-grow">
-            <h3 class="text-lg font-semibold text-gray-800">
-              Sections
-            </h3>
-            <div class="flex flex-col mt-4 space-y-4">
-              <%= for section_item <- @data_view.sections_items do %>
-                <div class="flex items-center">
-                  <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900"
-                    data-element="sections-list-item"
-                    data-section-id={section_item.id}>
-                    <span class="flex items-center space-x-1">
-                      <span><%= section_item.name %></span>
-                      <%= if section_item.parent do %>
-                        <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
-                            consequently we show the tooltip wrapped to a fixed number of characters %>
-                        <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
-                          <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
-                        </span>
-                      <% end %>
-                    </span>
-                  </button>
-                  <.session_status status={elem(section_item.status, 0)} cell_id={elem(section_item.status, 1)} />
-                </div>
-              <% end %>
-            </div>
-            <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-              phx-click="append_section">
-              <.remix_icon icon="add-line" class="text-lg align-center" />
-              <span>New section</span>
-            </button>
-          </div>
+          <.sections_list data_view={@data_view} />
         </div>
         <div data-element="clients-list">
-          <div class="flex flex-col flex-grow">
-            <div class="flex items-center justify-between space-x-4">
-              <h3 class="text-lg font-semibold text-gray-800 flex-lg">
-                Users
-              </h3>
-              <span class="flex items-center p-2 space-x-2 text-sm bg-gray-200 rounded-lg">
-                <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
-                <span><%= length(@data_view.clients) %> connected</span>
-              </span>
-            </div>
-            <div class="flex flex-col mt-4 space-y-4">
-              <%= for {client_pid, user} <- @data_view.clients do %>
-                <div class="flex items-center justify-between space-x-2"
-                  id={"clients-list-item-#{inspect(client_pid)}"}
-                  data-element="clients-list-item"
-                  data-client-pid={inspect(client_pid)}>
-                  <button class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
-                    disabled={client_pid == @self}
-                    data-element="client-link">
-                    <.user_avatar user={user} class="flex-shrink-0 h-7 w-7" text_class="text-xs" />
-                    <span><%= user.name || "Anonymous" %></span>
-                  </button>
-                  <%= if client_pid != @self do %>
-                    <span class="tooltip left" data-tooltip="Follow this user"
-                      data-element="client-follow-toggle"
-                      data-meta="follow">
-                      <button class="icon-button" aria-label="follow this user">
-                        <.remix_icon icon="pushpin-line" class="text-lg" />
-                      </button>
-                    </span>
-                    <span class="tooltip left" data-tooltip="Unfollow this user"
-                      data-element="client-follow-toggle"
-                      data-meta="unfollow">
-                      <button class="icon-button" aria-label="unfollow this user">
-                        <.remix_icon icon="pushpin-fill" class="text-lg" />
-                      </button>
-                    </span>
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
-          </div>
+          <.clients_list data_view={@data_view} self={@self} />
+        </div>
+        <div data-element="runtime-info">
+          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
         </div>
       </div>
       <div class="flex-grow overflow-y-auto scroll-smooth" data-element="notebook">
@@ -354,6 +285,140 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
     """
   end
+
+  defp sections_list(assigns) do
+    ~H"""
+    <div class="flex flex-col flex-grow">
+      <h3 class="text-lg font-semibold text-gray-800">
+        Sections
+      </h3>
+      <div class="flex flex-col mt-4 space-y-4">
+        <%= for section_item <- @data_view.sections_items do %>
+          <div class="flex items-center">
+            <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900"
+              data-element="sections-list-item"
+              data-section-id={section_item.id}>
+              <span class="flex items-center space-x-1">
+                <span><%= section_item.name %></span>
+                <%= if section_item.parent do %>
+                  <%# Note: the container has overflow-y auto, so we cannot set overflow-x visible,
+                      consequently we show the tooltip wrapped to a fixed number of characters %>
+                  <span {branching_tooltip_attrs(section_item.name, section_item.parent.name)}>
+                    <.remix_icon icon="git-branch-line" class="text-lg font-normal leading-none flip-horizontally" />
+                  </span>
+                <% end %>
+              </span>
+            </button>
+            <.session_status status={elem(section_item.status, 0)} cell_id={elem(section_item.status, 1)} />
+          </div>
+        <% end %>
+      </div>
+      <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
+        phx-click="append_section">
+        <.remix_icon icon="add-line" class="text-lg align-center" />
+        <span>New section</span>
+      </button>
+    </div>
+    """
+  end
+
+  defp clients_list(assigns) do
+    ~H"""
+    <div class="flex flex-col flex-grow">
+      <div class="flex items-center justify-between space-x-4">
+        <h3 class="text-lg font-semibold text-gray-800 flex-lg">
+          Users
+        </h3>
+        <span class="flex items-center p-2 space-x-2 text-sm bg-gray-200 rounded-lg">
+          <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
+          <span><%= length(@data_view.clients) %> connected</span>
+        </span>
+      </div>
+      <div class="flex flex-col mt-4 space-y-4">
+        <%= for {client_pid, user} <- @data_view.clients do %>
+          <div class="flex items-center justify-between space-x-2"
+            id={"clients-list-item-#{inspect(client_pid)}"}
+            data-element="clients-list-item"
+            data-client-pid={inspect(client_pid)}>
+            <button class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
+              disabled={client_pid == @self}
+              data-element="client-link">
+              <.user_avatar user={user} class="flex-shrink-0 h-7 w-7" text_class="text-xs" />
+              <span><%= user.name || "Anonymous" %></span>
+            </button>
+            <%= if client_pid != @self do %>
+              <span class="tooltip left" data-tooltip="Follow this user"
+                data-element="client-follow-toggle"
+                data-meta="follow">
+                <button class="icon-button" aria-label="follow this user">
+                  <.remix_icon icon="pushpin-line" class="text-lg" />
+                </button>
+              </span>
+              <span class="tooltip left" data-tooltip="Unfollow this user"
+                data-element="client-follow-toggle"
+                data-meta="unfollow">
+                <button class="icon-button" aria-label="unfollow this user">
+                  <.remix_icon icon="pushpin-fill" class="text-lg" />
+                </button>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp runtime_info(assigns) do
+    ~H"""
+    <div class="flex flex-col flex-grow">
+      <h3 class="text-lg font-semibold text-gray-800">
+        Runtime
+      </h3>
+      <div class="flex flex-col mt-4 space-y-4">
+        <%= if @data_view.runtime do %>
+          <div class="flex flex-col space-y-3">
+            <.labeled_text label="Type" text={runtime_type_label(@data_view.runtime)} />
+            <.labeled_text label="Node name" text={@data_view.runtime.node} />
+          </div>
+          <div class="flex flex-col space-y-3">
+            <div class="flex space-x-2">
+              <button class="button button-outlined-blue w-full" phx-click="restart_runtime">
+                Reconnect
+              </button>
+              <button class="button button-outlined-red w-full"
+                type="button"
+                phx-click="disconnect_runtime">
+                Disconnect
+              </button>
+            </div>
+            <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
+                  class: "button button-gray button-square-icon",
+                  type: "button" do  %>
+              <.remix_icon icon="settings-3-line" />
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-sm text-gray-700">
+            No connected node
+          </p>
+          <div>
+            <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
+                  class: "button button-blue",
+                  type: "button" do  %>
+              Configure
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
+  defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
+  defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
+  defp runtime_type_label(%Runtime.Embedded{}), do: "Embedded"
 
   defp session_status(%{status: :evaluating} = assigns) do
     ~H"""
@@ -660,13 +725,6 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session.id))}
   end
 
-  def handle_event("show_runtime_settings", %{}, socket) do
-    {:noreply,
-     push_patch(socket,
-       to: Routes.session_path(socket, :runtime_settings, socket.assigns.session.id)
-     )}
-  end
-
   def handle_event("show_bin", %{}, socket) do
     {:noreply,
      push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session.id))}
@@ -687,6 +745,11 @@ defmodule LivebookWeb.SessionLive do
         socket
       end
 
+    {:noreply, socket}
+  end
+
+  def handle_event("disconnect_runtime", %{}, socket) do
+    Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
 

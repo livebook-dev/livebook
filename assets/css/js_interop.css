@@ -109,6 +109,11 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-element="session"]:not([data-js-side-panel-content="runtime-info"])
+  [data-element="runtime-info"] {
+  @apply hidden;
+}
+
 [data-element="session"][data-js-side-panel-content="sections-list"]
   [data-element="sections-list-toggle"] {
   @apply text-gray-50 bg-gray-700;
@@ -116,6 +121,11 @@ solely client-side operations.
 
 [data-element="session"][data-js-side-panel-content="clients-list"]
   [data-element="clients-list-toggle"] {
+  @apply text-gray-50 bg-gray-700;
+}
+
+[data-element="session"][data-js-side-panel-content="runtime-info"]
+  [data-element="runtime-info-toggle"] {
   @apply text-gray-50 bg-gray-700;
 }
 
