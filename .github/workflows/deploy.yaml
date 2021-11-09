@@ -7,6 +7,8 @@ on:
       - 'v*.*.*'
 jobs:
   assets:
+    outputs:
+      sha: ${{ steps.push_assets.outputs.commit_hash }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -44,17 +46,22 @@ jobs:
         run: npm ci --prefix assets
       - name: Build assets
         run: npm run deploy --prefix assets
-      - name: Update assets
+      - name: Push updated assets
+        id: push_assets
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update assets
           file_pattern: static
   docker:
     # The assets job may push new commit, so we wait for it
-    needs: assets
+    needs: [assets]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+        # The output is set only if there was a commit, otherwise
+        # we pass an empty ref and and the default is used
+          ref: ${{ needs.assets.outputs.sha }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
