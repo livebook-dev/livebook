@@ -32,7 +32,7 @@ defmodule LivebookWeb.SettingsLive do
         <SidebarHelpers.user_item current_user={@current_user} path={Routes.settings_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
+        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-12">
           <div>
             <PageHelpers.title text="Settings" socket={@socket} />
             <p class="mt-4 text-gray-700">
@@ -62,6 +62,22 @@ defmodule LivebookWeb.SettingsLive do
             <LivebookWeb.SettingsLive.FileSystemsComponent.render
               file_systems={@file_systems}
               socket={@socket} />
+          </div>
+          <!-- Editor configuration -->
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-semibold">
+              Editor
+            </h2>
+            <div class="flex flex-col space-y-3">
+              <.switch_checkbox
+                name="quick_completion"
+                label="Show completion suggestions while typing"
+                checked={false} />
+              <.switch_checkbox
+                name="quick_signature"
+                label="Show signature help while typing"
+                checked={false} />
+            </div>
           </div>
         </div>
       </div>
