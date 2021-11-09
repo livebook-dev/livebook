@@ -1153,6 +1153,15 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
+  # Currently we don't use signature docs, so we optimise the response
+  # to exclude them
+  defp process_intellisense_response(
+         %{signature_items: signature_items} = response,
+         {:signature, _hint}
+       ) do
+    %{response | signature_items: Enum.map(signature_items, &%{&1 | documentation: nil})}
+  end
+
   defp process_intellisense_response(response, _request), do: response
 
   defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
