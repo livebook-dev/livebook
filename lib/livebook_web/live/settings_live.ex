@@ -80,7 +80,7 @@ defmodule LivebookWeb.SettingsLive do
             <!-- Editor configuration -->
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-semibold">
-                Editor
+                Code editor
               </h2>
               <div class="flex flex-col space-y-3"
                 id="editor-settings"
