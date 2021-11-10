@@ -78,10 +78,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
             <div class="mt-2 text-gray-600 text-sm">
-              Created
-              <span class="text-gray-800 font-medium">
-                <%= format_creation_date(session.created_at) %>
-              </span>
+              Created <%= format_creation_date(session.created_at) %>
             </div>
           </div>
           <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
