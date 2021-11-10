@@ -10,8 +10,8 @@ Livebook with client-driven interactive widgets:
 
 ```elixir
 Mix.install([
-  {:vega_lite, "~> 0.1.0"},
-  {:kino, "~> 0.2.0"}
+  {:vega_lite, "~> 0.1.2"},
+  {:kino, "~> 0.3.1"}
 ])
 ```
 

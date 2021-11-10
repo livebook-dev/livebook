@@ -10,8 +10,8 @@ and interact with it.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.3.0"},
-  {:vega_lite, "~> 0.1.0"}
+  {:kino, "~> 0.3.1"},
+  {:vega_lite, "~> 0.1.2"}
 ])
 ```
 
@@ -234,3 +234,23 @@ for i <- 1..300 do
   Process.sleep(25)
 end
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.animate/3
+
+Sometimes we want a background task to update the output
+and we already saw how to dynamically push data points to
+a plot. However, you can turn any static output into animation
+by periodically rendering a new output frame.
+
+```elixir
+Kino.animate(100, 0, fn i ->
+  md = Kino.Markdown.new("**Iteration: `#{i}`**")
+  {:cont, md, i + 1}
+end)
+```
+
+The above example renders new Markdown output every 100ms.
+You can use the same approach to render regular output
+or images too!
