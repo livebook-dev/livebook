@@ -273,9 +273,9 @@ defmodule LivebookWeb.Helpers do
 
   ## Examples
 
-    <.with_password_toggle id="input-id">
-      <input type="password" ...>
-    </.with_password_toggle>
+      <.with_password_toggle id="input-id">
+        <input type="password" ...>
+      </.with_password_toggle>
   """
   def with_password_toggle(assigns) do
     ~H"""
@@ -289,6 +289,55 @@ defmodule LivebookWeb.Helpers do
         phx-change="ignore">
         <.remix_icon icon="eye-line" class="text-xl" />
       </button>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a popup menu that shows up on toggle click.
+
+  ## Assigns
+
+    * `:id` - unique HTML id
+
+    * `:disabled` - whether the menu is active. Defaults to `false`
+
+    * `:position` - which side of the clickable the menu menu should
+      be attached to, either `"left"` or `"right"`. Defaults to `"right"`
+
+    * `:secondary_click` - whether secondary click (usually right mouse click)
+      should open the menu. Defaults to `false`
+
+  ## Examples
+
+      <.menu id="my-menu">
+        <:toggle>
+          <button>Open</button>
+        </:toggle>
+        <:content>
+          <button class"menu-item">Option 1</button>
+        </:content>
+      </.menu>
+  """
+  def menu(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:disabled, fn -> false end)
+      |> assign_new(:position, fn -> "right" end)
+      |> assign_new(:secondary_click, fn -> false end)
+
+    ~H"""
+    <div class="relative"
+      id={@id}>
+      <div
+        phx-click={not @disabled && JS.toggle(to: "##{@id}-content")}
+        phx-click-away={JS.hide(to: "##{@id}-content")}
+        data-contextmenu-trigger-click={@secondary_click}>
+        <%= render_slot(@toggle) %>
+      </div>
+      <div id={"#{@id}-content"} class={"hidden menu #{@position}"}>
+        <%= render_slot(@content) %>
+      </div>
     </div>
     """
   end

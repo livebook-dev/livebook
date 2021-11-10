@@ -28,21 +28,23 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="mb-4 uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <div class="relative" id={"sessions-order-menu"} phx-hook="Menu" data-element="menu">
-          <button class="button button-outlined-gray px-4 py-1" data-toggle>
-            <span><%= order_by_label(@order_by) %></span>
-            <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
-          </button>
-          <div class="menu" data-content>
+        <.menu id="sessions-order-menu">
+          <:toggle>
+            <button class="button button-outlined-gray px-4 py-1">
+              <span><%= order_by_label(@order_by) %></span>
+              <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
+            </button>
+          </:toggle>
+          <:content>
             <%= for order_by <- ["date", "title"] do %>
-              <button class={"menu__item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
+              <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
                 phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
                 <.remix_icon icon={order_by_icon(order_by)} />
                 <span class="font-medium"><%= order_by_label(order_by) %></span>
               </button>
             <% end %>
-          </div>
-        </div>
+          </:content>
+        </.menu>
       </div>
       <.session_list sessions={@sessions} socket={@socket} />
     </div>
@@ -81,30 +83,32 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               Created <%= format_creation_date(session.created_at) %>
             </div>
           </div>
-          <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
-            <button class="icon-button" data-toggle>
-              <.remix_icon icon="more-2-fill" class="text-xl" />
-            </button>
-            <div class="menu" data-content>
-              <button class="menu__item text-gray-500"
+          <.menu id={"session-#{session.id}-menu"}>
+            <:toggle>
+              <button class="icon-button">
+                <.remix_icon icon="more-2-fill" class="text-xl" />
+              </button>
+            </:toggle>
+            <:content>
+              <button class="menu-item text-gray-500"
                 phx-click="fork_session"
                 phx-value-id={session.id}>
                 <.remix_icon icon="git-branch-line" />
                 <span class="font-medium">Fork</span>
               </button>
-              <a class="menu__item text-gray-500"
+              <a class="menu-item text-gray-500"
                 href={live_dashboard_process_path(@socket, session.pid)}
                 target="_blank">
                 <.remix_icon icon="dashboard-2-line" />
                 <span class="font-medium">See on Dashboard</span>
               </a>
               <%= live_patch to: Routes.home_path(@socket, :close_session, session.id),
-                    class: "menu__item text-red-600" do %>
+                    class: "menu-item text-red-600" do %>
                 <.remix_icon icon="close-circle-line" />
                 <span class="font-medium">Close</span>
               <% end %>
-            </div>
-          </div>
+            </:content>
+          </.menu>
         </div>
       <% end %>
     </div>

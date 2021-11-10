@@ -25,25 +25,26 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             </a>
           </span>
           <%= if @section_view.valid_parents != [] and not @section_view.has_children? do %>
-            <div class="relative" id={"section-#{@section_view.id}-branch-menu"} phx-hook="Menu" data-element="menu">
-              <span class="tooltip top" data-tooltip="Branch out from">
-                <button class="icon-button"
-                  aria-label="branch out from other section"
-                  data-toggle>
-                  <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
-                </button>
-              </span>
-              <div class="menu" data-content>
+            <.menu id={"section-#{@section_view.id}-branch-menu"}>
+              <:toggle>
+                <span class="tooltip top" data-tooltip="Branch out from">
+                  <button class="icon-button"
+                    aria-label="branch out from other section">
+                    <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
+                  </button>
+                </span>
+              </:toggle>
+              <:content>
                 <%= for parent <- @section_view.valid_parents do %>
                   <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
-                    <button class="menu__item text-gray-900"
+                    <button class="menu-item text-gray-900"
                       phx-click="unset_section_parent"
                       phx-value-section_id={@section_view.id}>
                       <.remix_icon icon="arrow-right-s-line" />
                       <span class="font-medium"><%= parent.name %></span>
                     </button>
                   <% else %>
-                    <button class="menu__item text-gray-500"
+                    <button class="menu-item text-gray-500"
                       phx-click="set_section_parent"
                       phx-value-section_id={@section_view.id}
                       phx-value-parent_id={parent.id}>
@@ -52,8 +53,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                     </button>
                   <% end %>
                 <% end %>
-              </div>
-            </div>
+              </:content>
+            </.menu>
           <% end %>
           <span class="tooltip top" data-tooltip="Move up">
             <button class="icon-button"

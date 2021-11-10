@@ -9,10 +9,6 @@ solely client-side operations.
 
 /* === Global === */
 
-[data-element="menu"]:not([data-js-open]) > [data-content] {
-  @apply hidden;
-}
-
 [phx-hook="Highlight"][data-highlighted] > [data-source] {
   @apply hidden;
 }

@@ -196,17 +196,20 @@
   /* Toggleable menu */
 
   .menu {
-    @apply absolute right-0 z-30 rounded-lg bg-white flex flex-col py-2 mt-1;
+    @apply absolute z-30 rounded-lg bg-white flex flex-col py-2 mt-1;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 
+  .menu.right {
+    @apply right-0;
+  }
+
   .menu.left {
-    right: auto;
     @apply left-0;
   }
 
-  .menu__item {
-    @apply flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 whitespace-nowrap;
+  .menu-item {
+    @apply w-full flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 whitespace-nowrap;
   }
 
   /* Boxes */

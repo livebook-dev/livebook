@@ -131,39 +131,41 @@ defmodule LivebookWeb.SessionLive do
               phx-blur="set_notebook_name"
               phx-hook="ContentEditable"
               data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
-            <div class="relative" id="session-menu" phx-hook="Menu" data-element="menu">
-              <button class="icon-button" data-toggle>
-                <.remix_icon icon="more-2-fill" class="text-xl" />
-              </button>
-              <div class="menu" data-content>
+            <.menu id="session-menu">
+              <:toggle>
+                <button class="icon-button">
+                  <.remix_icon icon="more-2-fill" class="text-xl" />
+                </button>
+              </:toggle>
+              <:content>
                 <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                      class: "menu__item text-gray-500" do %>
+                      class: "menu-item text-gray-500" do %>
                   <.remix_icon icon="download-2-line" />
                   <span class="font-medium">Export</span>
                 <% end %>
-                <button class="text-gray-500 menu__item"
+                <button class="menu-item text-gray-500"
                   phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
                   <span class="font-medium">Erase outputs</span>
                 </button>
-                <button class="text-gray-500 menu__item"
+                <button class="menu-item text-gray-500"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
-                <a class="text-gray-500 menu__item"
+                <a class="menu-item text-gray-500"
                   href={live_dashboard_process_path(@socket, @session.pid)}
                   target="_blank">
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
-                      class: "menu__item text-red-600" do %>
+                      class: "menu-item text-red-600" do %>
                   <.remix_icon icon="close-circle-line" />
                   <span class="font-medium">Close</span>
                 <% end %>
-              </div>
-            </div>
+              </:content>
+            </.menu>
           </div>
           <div class="flex flex-col w-full space-y-16">
             <%= if @data_view.section_views == [] do %>
