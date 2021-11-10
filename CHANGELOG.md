@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.3.2](https://github.com/livebook-dev/livebook/tree/v0.3.2) (2021-11-10)
+
+### Added
+
+- An option to clear evaluation outputs ([#661](https://github.com/livebook-dev/livebook/pull/661))
+- Evaluation indicators to the sections side panel ([#657](https://github.com/livebook-dev/livebook/pull/657))
+- Support for importing a notebook via file upload ([#665](https://github.com/livebook-dev/livebook/pull/665))
+- Show/hide button to password inputs ([#664](https://github.com/livebook-dev/livebook/pull/664))
+- Improved new directory creation under high latency ([#674](https://github.com/livebook-dev/livebook/pull/674))
+- Enabled persisting static Vega-Lite plot to Live Markdown ([#676](https://github.com/livebook-dev/livebook/pull/676))
+- Support for animable frame output ([#688](https://github.com/livebook-dev/livebook/pull/688))
+- An option to amplify cell outputs ([#689](https://github.com/livebook-dev/livebook/pull/689))
+- Included CMake in the Docker image ([#694](https://github.com/livebook-dev/livebook/pull/694))
+- Environment variable for disabling token auth ([#696](https://github.com/livebook-dev/livebook/pull/696))
+
+### Changed
+
+- Redesigned save to file modal ([#663](https://github.com/livebook-dev/livebook/pull/663))
+- Moved current runtime information into a new side panel ([#692](https://github.com/livebook-dev/livebook/pull/692))
+
+### Fixed
+
+- Rendering math with KaTeX that uses SVGs ([#684](https://github.com/livebook-dev/livebook/pull/684))
+
 ## [v0.3.1](https://github.com/livebook-dev/livebook/tree/v0.3.1) (2021-10-27)
 
 ### Added
