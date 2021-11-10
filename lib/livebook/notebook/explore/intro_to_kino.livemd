@@ -10,8 +10,8 @@ and interact with it.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.3.0"},
-  {:vega_lite, "~> 0.1.0"}
+  {:kino, "~> 0.3.1"},
+  {:vega_lite, "~> 0.1.2"}
 ])
 ```
 
@@ -234,3 +234,23 @@ for i <- 1..300 do
   Process.sleep(25)
 end
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.animate/3
+
+If you want to continuously update the output as time passes,
+you can use `Kino.animate/3`:
+
+```elixir
+Kino.animate(100, 0, fn i ->
+  md = Kino.Markdown.new("**Iteration: `#{i}`**")
+  {:cont, md, i + 1}
+end)
+```
+
+The above example renders new Markdown output every 100ms.
+You can use the same approach to render regular output
+or images too! Also note some elements may have specific
+functions for periodic updates, such as `Kino.VegaLite.periodically/4`
+seen in previous sections.

@@ -73,7 +73,7 @@ instance, otherwise the command below will fail.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.3.0"}
+  {:kino, "~> 0.3.1"}
 ])
 ```
 
