@@ -239,10 +239,8 @@ end
 
 ## Kino.animate/3
 
-Sometimes we want a background task to update the output
-and we already saw how to dynamically push data points to
-a plot. However, you can turn any static output into animation
-by periodically rendering a new output frame.
+If you want to continuously update the output as time passes,
+you can use `Kino.animate/3`:
 
 ```elixir
 Kino.animate(100, 0, fn i ->
