@@ -22,7 +22,6 @@ import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
-import ClipCopy from "./clip_copy";
 import DragAndDrop from "./darg_and_drop";
 import PasswordToggle from "./password_toggle";
 import morphdomCallbacks from "./morphdom_callbacks";
@@ -40,7 +39,6 @@ const hooks = {
   Timer,
   MarkdownRenderer,
   Highlight,
-  ClipCopy,
   DragAndDrop,
   PasswordToggle,
 };
@@ -87,6 +85,13 @@ window.addEventListener("lb:focus", (event) => {
 window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
 });
+
+if ("clipboard" in navigator) {
+  window.addEventListener("lb:clipcopy", (event) => {
+    const text = event.target.textContent;
+    navigator.clipboard.writeText(text);
+  });
+}
 
 // Other global handlers
 

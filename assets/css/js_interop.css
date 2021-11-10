@@ -140,6 +140,6 @@ solely client-side operations.
   @apply hidden;
 }
 
-[phx-hook="VirtualizedLines"]:not(:hover) [phx-hook="ClipCopy"] {
+[phx-hook="VirtualizedLines"]:not(:hover) [data-element="clipcopy"] {
   @apply hidden;
 }

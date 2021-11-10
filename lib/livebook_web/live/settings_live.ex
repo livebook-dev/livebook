@@ -50,9 +50,7 @@ defmodule LivebookWeb.SettingsLive do
               <span class="tooltip top" data-tooltip="Copy as environment variables">
                 <button class="icon-button"
                   aria-label="copy as environment variables"
-                  id={"file-systems-env-clipcopy"}
-                  phx-hook="ClipCopy"
-                  data-target-id={"file-systems-env-source"}
+                  phx-click={JS.dispatch("lb:clipcopy", to: "#file-systems-env-source")}
                   disabled={@file_systems_env == ""}>
                   <.remix_icon icon="clipboard-line" class="text-lg" />
                 </button>

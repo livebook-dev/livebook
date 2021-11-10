@@ -73,9 +73,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                     <span class="tooltip left" data-tooltip="Copy source">
                       <button class="icon-button"
                         aria-label="copy source"
-                        id={"bin-cell-#{cell.id}-clipcopy"}
-                        phx-hook="ClipCopy"
-                        data-target-id={"bin-cell-#{cell.id}-source"}>
+                        phx-click={JS.dispatch("lb:clipcopy", to: "#bin-cell-#{cell.id}-source")}>
                         <.remix_icon icon="clipboard-line" class="text-lg" />
                       </button>
                     </span>
