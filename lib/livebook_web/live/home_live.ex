@@ -13,7 +13,7 @@ defmodule LivebookWeb.HomeLive do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
     end
 
-    sessions = sort_sessions(Sessions.list_sessions())
+    sessions = sort_sessions(Sessions.list_sessions(), "date")
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
@@ -21,7 +21,8 @@ defmodule LivebookWeb.HomeLive do
        file: Livebook.Config.default_dir(),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
-       notebook_infos: notebook_infos
+       notebook_infos: notebook_infos,
+       order_by: "date"
      )}
   end
 
@@ -106,9 +107,26 @@ defmodule LivebookWeb.HomeLive do
           </div>
 
           <div class="py-12">
-            <h2 class="mb-4 uppercase font-semibold text-gray-500">
-              Running sessions (<%= length(@sessions) %>)
-            </h2>
+            <div class="flex items-center justify-between">
+              <h2 class="mb-4 uppercase font-semibold text-gray-500">
+                Running sessions (<%= length(@sessions) %>)
+              </h2>
+              <div class="relative" id={"sessions-order-menu"} phx-hook="Menu" data-element="menu">
+                <button class="button button-outlined-gray py-1" data-toggle>
+                  <span><%= order_by_label(@order_by) %></span>
+                  <.remix_icon icon="arrow-down-s-line" class="align-middle ml-1" />
+                </button>
+                <div class="menu" data-content>
+                  <%= for order_by <- ["date", "title"] do %>
+                    <button class={"menu__item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
+                      phx-click={JS.push("set_order", value: %{order_by: order_by})}>
+                      <.remix_icon icon={order_by_icon(order_by)} />
+                      <span class="font-medium"><%= order_by_label(order_by) %></span>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
             <.sessions_list sessions={@sessions} socket={@socket} />
           </div>
         </div>
@@ -287,6 +305,11 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, socket}
   end
 
+  def handle_event("set_order", %{"order_by" => order_by}, socket) do
+    sessions = sort_sessions(socket.assigns.sessions, order_by)
+    {:noreply, assign(socket, sessions: sessions, order_by: order_by)}
+  end
+
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     %{images_dir: images_dir} = session
@@ -326,7 +349,7 @@ defmodule LivebookWeb.HomeLive do
     if session in socket.assigns.sessions do
       {:noreply, socket}
     else
-      sessions = sort_sessions([session | socket.assigns.sessions])
+      sessions = sort_sessions([session | socket.assigns.sessions], socket.assigns.order_by)
       {:noreply, assign(socket, sessions: sessions)}
     end
   end
@@ -352,8 +375,20 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp sort_sessions(sessions) do
+  defp order_by_label("date"), do: "Date"
+  defp order_by_label("title"), do: "Title"
+
+  defp order_by_icon("date"), do: "calendar-2-line"
+  defp order_by_icon("title"), do: "text"
+
+  defp sort_sessions(sessions, "date") do
     Enum.sort_by(sessions, & &1.created_at, {:desc, DateTime})
+  end
+
+  defp sort_sessions(sessions, "title") do
+    Enum.sort_by(sessions, fn session ->
+      {session.notebook_name, -DateTime.to_unix(session.created_at)}
+    end)
   end
 
   defp files(sessions) do
