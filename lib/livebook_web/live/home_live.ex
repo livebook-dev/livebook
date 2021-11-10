@@ -13,7 +13,7 @@ defmodule LivebookWeb.HomeLive do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
     end
 
-    sessions = sort_sessions(Sessions.list_sessions())
+    sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
@@ -87,7 +87,7 @@ defmodule LivebookWeb.HomeLive do
 
           <div class="py-12">
             <div class="mb-4 flex justify-between items-center">
-              <h2 class="text-xl font-semibold text-gray-800">
+              <h2 class="uppercase font-semibold text-gray-500">
                 Explore
               </h2>
               <%= live_redirect to: Routes.explore_path(@socket, :page),
@@ -104,12 +104,10 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
           </div>
-
           <div class="py-12">
-            <h2 class="mb-4 text-xl font-semibold text-gray-800">
-              Running sessions
-            </h2>
-            <.sessions_list sessions={@sessions} socket={@socket} />
+            <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
+              id="session-list"
+              sessions={@sessions} />
           </div>
         </div>
       </div>
@@ -147,68 +145,6 @@ defmodule LivebookWeb.HomeLive do
     else
       []
     end
-  end
-
-  defp sessions_list(%{sessions: []} = assigns) do
-    ~H"""
-    <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
-      <div>
-        <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
-      </div>
-      <div class="text-gray-600">
-        You do not have any running sessions.
-        <br>
-        Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
-      </div>
-    </div>
-    """
-  end
-
-  defp sessions_list(assigns) do
-    ~H"""
-    <div class="flex flex-col space-y-4">
-      <%= for session <- @sessions do %>
-        <div class="p-5 flex items-center border border-gray-200 rounded-lg"
-          data-test-session-id={session.id}>
-          <div class="flex-grow flex flex-col space-y-1">
-            <%= live_redirect session.notebook_name,
-                  to: Routes.session_path(@socket, :page, session.id),
-                  class: "font-semibold text-gray-800 hover:text-gray-900" %>
-            <div class="text-gray-600 text-sm">
-              <%= if session.file, do: session.file.path, else: "No file" %>
-            </div>
-            <div class="text-gray-600 text-sm">
-              Created <%= format_creation_date(session.created_at) %>
-            </div>
-          </div>
-          <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
-            <button class="icon-button" data-toggle>
-              <.remix_icon icon="more-2-fill" class="text-xl" />
-            </button>
-            <div class="menu" data-content>
-              <button class="menu__item text-gray-500"
-                phx-click="fork_session"
-                phx-value-id={session.id}>
-                <.remix_icon icon="git-branch-line" />
-                <span class="font-medium">Fork</span>
-              </button>
-              <a class="menu__item text-gray-500"
-                href={live_dashboard_process_path(@socket, session.pid)}
-                target="_blank">
-                <.remix_icon icon="dashboard-2-line" />
-                <span class="font-medium">See on Dashboard</span>
-              </a>
-              <%= live_patch to: Routes.home_path(@socket, :close_session, session.id),
-                    class: "menu__item text-red-600" do %>
-                <.remix_icon icon="close-circle-line" />
-                <span class="font-medium">Close</span>
-              <% end %>
-            </div>
-          </div>
-        </div>
-      <% end %>
-    </div>
-    """
   end
 
   @impl true
@@ -323,8 +259,7 @@ defmodule LivebookWeb.HomeLive do
     if session in socket.assigns.sessions do
       {:noreply, socket}
     else
-      sessions = sort_sessions([session | socket.assigns.sessions])
-      {:noreply, assign(socket, sessions: sessions)}
+      {:noreply, assign(socket, sessions: [session | socket.assigns.sessions])}
     end
   end
 
@@ -348,10 +283,6 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
-
-  defp sort_sessions(sessions) do
-    Enum.sort_by(sessions, & &1.created_at, {:desc, DateTime})
-  end
 
   defp files(sessions) do
     Enum.map(sessions, & &1.file)
@@ -388,11 +319,6 @@ defmodule LivebookWeb.HomeLive do
   defp session_id_by_file(file, sessions) do
     session = Enum.find(sessions, &(&1.file == file))
     session.id
-  end
-
-  def format_creation_date(created_at) do
-    time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
-    time_words <> " ago"
   end
 
   defp import_content(socket, content, session_opts) do
