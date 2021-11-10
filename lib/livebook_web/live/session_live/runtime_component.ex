@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
     ~H"""
     <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Runtime
+        Runtime settings
       </h3>
       <div class="w-full flex-col space-y-5">
         <div class="flex space-x-4">

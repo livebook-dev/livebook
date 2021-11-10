@@ -290,7 +290,7 @@ defmodule LivebookWeb.SessionLive do
   defp sections_list(assigns) do
     ~H"""
     <div class="flex flex-col flex-grow">
-      <h3 class="text-lg font-semibold text-gray-800">
+      <h3 class="uppercase text-sm font-semibold text-gray-500">
         Sections
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
@@ -327,10 +327,10 @@ defmodule LivebookWeb.SessionLive do
     ~H"""
     <div class="flex flex-col flex-grow">
       <div class="flex items-center justify-between space-x-4">
-        <h3 class="text-lg font-semibold text-gray-800 flex-lg">
+        <h3 class="uppercase text-sm font-semibold text-gray-500">
           Users
         </h3>
-        <span class="flex items-center p-2 space-x-2 text-sm bg-gray-200 rounded-lg">
+        <span class="flex items-center px-2 py-1 space-x-2 text-sm bg-gray-200 rounded-lg">
           <span class="inline-flex w-3 h-3 bg-green-600 rounded-full"></span>
           <span><%= length(@data_view.clients) %> connected</span>
         </span>
@@ -373,31 +373,34 @@ defmodule LivebookWeb.SessionLive do
   defp runtime_info(assigns) do
     ~H"""
     <div class="flex flex-col flex-grow">
-      <h3 class="text-lg font-semibold text-gray-800">
-        Runtime
-      </h3>
+      <div class="flex items-center justify-between">
+        <h3 class="uppercase text-sm font-semibold text-gray-500">
+          Runtime
+        </h3>
+        <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
+              class: "icon-button",
+              type: "button" do  %>
+          <.remix_icon icon="settings-3-line text-xl" />
+        <% end %>
+      </div>
       <div class="flex flex-col mt-4 space-y-4">
         <%= if @data_view.runtime do %>
           <div class="flex flex-col space-y-3">
             <.labeled_text label="Type" text={runtime_type_label(@data_view.runtime)} />
-            <.labeled_text label="Node name" text={@data_view.runtime.node} />
+            <.labeled_text label="Node name" text={@data_view.runtime.node} one_line={true} />
           </div>
           <div class="flex flex-col space-y-3">
             <div class="flex space-x-2">
-              <button class="button button-outlined-blue w-full" phx-click="restart_runtime">
-                Reconnect
+              <button class="button button-blue" phx-click="restart_runtime">
+                <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+                <span>Reconnect</span>
               </button>
-              <button class="button button-outlined-red w-full"
+              <button class="button button-outlined-red"
                 type="button"
                 phx-click="disconnect_runtime">
                 Disconnect
               </button>
             </div>
-            <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button button-gray button-square-icon",
-                  type: "button" do  %>
-              <.remix_icon icon="settings-3-line" />
-            <% end %>
           </div>
         <% else %>
           <div class="flex flex-col space-y-3">
@@ -405,12 +408,13 @@ defmodule LivebookWeb.SessionLive do
           </div>
           <div class="flex space-x-2">
             <button class="button button-blue" phx-click="connect_default_runtime">
-              Connect
+              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+              <span>Connect</span>
             </button>
             <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button button-gray button-square-icon",
+                  class: "button button-outlined-gray bg-transparent",
                   type: "button" do  %>
-              <.remix_icon icon="settings-3-line" />
+              Configure
             <% end %>
           </div>
         <% end %>

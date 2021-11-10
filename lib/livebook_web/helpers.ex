@@ -250,12 +250,14 @@ defmodule LivebookWeb.Helpers do
       <.labeled_text label="Name" text="Sherlock Holmes" />
   """
   def labeled_text(assigns) do
+    assigns = assign_new(assigns, :one_line, fn -> false end)
+
     ~H"""
     <div class="flex flex-col space-y-1">
       <span class="text-xs text-gray-500">
         <%= @label %>
       </span>
-      <span class="text-gray-800 text-sm font-semibold">
+      <span class={"text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"}>
         <%= @text %>
       </span>
     </div>
