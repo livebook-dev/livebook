@@ -17,7 +17,6 @@ import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
 import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
-import Menu from "./menu";
 import UserForm from "./user_form";
 import VegaLite from "./vega_lite";
 import Timer from "./timer";
@@ -36,7 +35,6 @@ const hooks = {
   FocusOnUpdate,
   ScrollOnUpdate,
   VirtualizedLines,
-  Menu,
   UserForm,
   VegaLite,
   Timer,
@@ -88,4 +86,15 @@ window.addEventListener("lb:focus", (event) => {
 
 window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
+});
+
+// Other global handlers
+
+window.addEventListener("contextmenu", (event) => {
+  const target = event.target.closest("[data-contextmenu-trigger-click]");
+
+  if (target) {
+    event.preventDefault();
+    target.dispatchEvent(new Event("click", { bubbles: true }));
+  }
 });
