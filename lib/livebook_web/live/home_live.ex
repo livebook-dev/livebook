@@ -87,7 +87,7 @@ defmodule LivebookWeb.HomeLive do
 
           <div class="py-12">
             <div class="mb-4 flex justify-between items-center">
-              <h2 class="text-xl font-semibold text-gray-800">
+              <h2 class="uppercase font-semibold text-gray-500">
                 Explore
               </h2>
               <%= live_redirect to: Routes.explore_path(@socket, :page),
@@ -106,8 +106,8 @@ defmodule LivebookWeb.HomeLive do
           </div>
 
           <div class="py-12">
-            <h2 class="mb-4 text-xl font-semibold text-gray-800">
-              Running sessions
+            <h2 class="mb-4 uppercase font-semibold text-gray-500">
+              Running sessions (<%= length(@sessions) %>)
             </h2>
             <.sessions_list sessions={@sessions} socket={@socket} />
           </div>
@@ -166,19 +166,22 @@ defmodule LivebookWeb.HomeLive do
 
   defp sessions_list(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-4">
+    <div class="flex flex-col">
       <%= for session <- @sessions do %>
-        <div class="p-5 flex items-center border border-gray-200 rounded-lg"
+        <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
-          <div class="flex-grow flex flex-col space-y-1">
+          <div class="flex-grow flex flex-col">
             <%= live_redirect session.notebook_name,
                   to: Routes.session_path(@socket, :page, session.id),
                   class: "font-semibold text-gray-800 hover:text-gray-900" %>
             <div class="text-gray-600 text-sm">
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
-            <div class="text-gray-600 text-sm">
-              Created <%= format_creation_date(session.created_at) %>
+            <div class="mt-2 text-gray-600 text-sm">
+              Created
+              <span class="text-gray-800 font-medium">
+                <%= format_creation_date(session.created_at) %>
+              </span>
             </div>
           </div>
           <div class="relative" id={"session-#{session.id}-menu"} phx-hook="Menu" data-element="menu">
