@@ -18,9 +18,8 @@ defmodule LivebookWeb.Output.TextComponent do
         phx-update="ignore"></div>
       <div class="absolute right-0 top-0 z-10">
         <button class="icon-button bg-gray-100"
-          id={"virtualized-text-#{@id}-clipcopy"}
-          phx-hook="ClipCopy"
-          data-target-id={"virtualized-text-#{@id}-template"}>
+          data-element="clipcopy"
+          phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}>
           <.remix_icon icon="clipboard-line" class="text-lg" />
         </button>
       </div>
