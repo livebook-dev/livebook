@@ -167,7 +167,9 @@ The following environment variables configure Livebook:
     to run on the same domain but different ports, you also need to set LIVEBOOK_SECRET_KEY_BASE.
     Defaults to 8080.
 
-  * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection.
+  * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection. This does
+    not restrict access to upper directories unless the operating system user is
+    also restricted.
 
   * LIVEBOOK_SECRET_KEY_BASE - sets a secret key that is used to sign and encrypt
     the session and other payloads used by Livebook. Must be at least 64 characters
