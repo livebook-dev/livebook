@@ -159,12 +159,13 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_params(%{"url" => url}, _url, %{assigns: %{live_action: :public_import}} = socket) do
-    url
-    |> Livebook.ContentLoader.rewrite_url()
-    |> Livebook.ContentLoader.fetch_content()
+    origin = Livebook.ContentLoader.url_to_location(url)
+
+    origin
+    |> Livebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
-        socket = import_content(socket, content, origin: {:url, url})
+        socket = import_content(socket, content, origin: origin)
         {:noreply, socket}
 
       {:error, _message} ->

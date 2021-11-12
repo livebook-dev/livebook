@@ -58,7 +58,7 @@ defmodule Livebook.Session do
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
-          origin: {:file, FileSystem.File.t()} | {:url, String.t()} | nil,
+          origin: Livebook.ContentLoader.location() | nil,
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),

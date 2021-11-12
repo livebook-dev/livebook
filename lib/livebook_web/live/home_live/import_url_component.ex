@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.{ContentLoader, Utils}
+  alias Livebook.Utils
 
   @impl true
   def mount(socket) do
@@ -58,12 +58,13 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   end
 
   defp do_import(socket, url) do
-    url
-    |> ContentLoader.rewrite_url()
-    |> ContentLoader.fetch_content()
+    origin = Livebook.ContentLoader.url_to_location(url)
+
+    origin
+    |> Livebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
-        send(self(), {:import_content, content, [origin: {:url, url}]})
+        send(self(), {:import_content, content, [origin: origin]})
         socket
 
       {:error, message} ->
