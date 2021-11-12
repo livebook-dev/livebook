@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [access_by_id: 1]
 
   alias LivebookWeb.SidebarHelpers
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, FileSystem}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
   alias Livebook.JSInterop
 
@@ -961,11 +961,7 @@ defmodule LivebookWeb.SessionLive do
         |> redirect_to_self()
 
       resolution_location ->
-        origin =
-          case resolution_location do
-            {:url, url} -> {:url, Livebook.Utils.expand_url(url, relative_path)}
-            {:file, file} -> {:file, FileSystem.File.resolve(file, relative_path)}
-          end
+        origin = Livebook.ContentLoader.resolve_location(resolution_location, relative_path)
 
         case session_id_by_location(origin) do
           {:ok, session_id} ->
@@ -996,7 +992,7 @@ defmodule LivebookWeb.SessionLive do
   defp location(%{origin: origin}), do: origin
 
   defp open_notebook(socket, origin) do
-    case load_content(origin) do
+    case Livebook.ContentLoader.fetch_content_from_location(origin) do
       {:ok, content} ->
         {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
 
@@ -1013,19 +1009,6 @@ defmodule LivebookWeb.SessionLive do
         |> put_flash(:error, "Cannot navigate, " <> message)
         |> redirect_to_self()
     end
-  end
-
-  defp load_content({:file, file}) do
-    case FileSystem.File.read(file) do
-      {:ok, content} -> {:ok, content}
-      {:error, message} -> {:error, "failed to read #{file.path}, reason: #{message}"}
-    end
-  end
-
-  defp load_content({:url, url}) do
-    url
-    |> Livebook.ContentLoader.rewrite_url()
-    |> Livebook.ContentLoader.fetch_content()
   end
 
   defp file_and_notebook(fork?, origin, notebook)
