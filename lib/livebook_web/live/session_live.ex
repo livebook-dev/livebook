@@ -122,8 +122,9 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex-grow overflow-y-auto scroll-smooth" data-element="notebook">
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200">
-            <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300"
-              aria-description="notebook title"
+            <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300 whitespace-pre-wrap"
+              role="textbox"
+              aria-label="notebook title"
               id="notebook-name"
               data-element="notebook-name"
               contenteditable
@@ -133,34 +134,39 @@ defmodule LivebookWeb.SessionLive do
               data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
             <.menu id="session-menu">
               <:toggle>
-                <button class="icon-button">
+                <button class="icon-button" aria-label="open notebook menu">
                   <.remix_icon icon="more-2-fill" class="text-xl" />
                 </button>
               </:toggle>
               <:content>
                 <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                      class: "menu-item text-gray-500" do %>
+                      class: "menu-item text-gray-500",
+                      role: "menuitem" do %>
                   <.remix_icon icon="download-2-line" />
                   <span class="font-medium">Export</span>
                 <% end %>
                 <button class="menu-item text-gray-500"
+                  role="menuitem"
                   phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
                   <span class="font-medium">Erase outputs</span>
                 </button>
                 <button class="menu-item text-gray-500"
+                  role="menuitem"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
                 <a class="menu-item text-gray-500"
+                  role="menuitem"
                   href={live_dashboard_process_path(@socket, @session.pid)}
                   target="_blank">
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
-                      class: "menu-item text-red-600" do %>
+                      class: "menu-item text-red-600",
+                      role: "menuitem" do %>
                   <.remix_icon icon="close-circle-line" />
                   <span class="font-medium">Close</span>
                 <% end %>

@@ -315,7 +315,7 @@ defmodule LivebookWeb.Helpers do
           <button>Open</button>
         </:toggle>
         <:content>
-          <button class"menu-item">Option 1</button>
+          <button class"menu-item" role="menuitem">Option 1</button>
         </:content>
       </.menu>
   """
@@ -332,12 +332,14 @@ defmodule LivebookWeb.Helpers do
       <div
         phx-click={not @disabled && JS.toggle(to: "##{@id}-content")}
         phx-click-away={JS.hide(to: "##{@id}-content")}
-        data-contextmenu-trigger-click={@secondary_click}>
+        data-contextmenu-trigger-click={@secondary_click}
+        phx-window-keydown={JS.hide(to: "##{@id}-content")}
+        phx-key="escape">
         <%= render_slot(@toggle) %>
       </div>
-      <div id={"#{@id}-content"} class={"hidden menu #{@position}"}>
+      <menu id={"#{@id}-content"} class={"hidden menu #{@position}"} role="menu">
         <%= render_slot(@content) %>
-      </div>
+      </menu>
     </div>
     """
   end

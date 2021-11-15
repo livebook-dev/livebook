@@ -102,6 +102,13 @@ const Session = {
 
     document.addEventListener("dblclick", this.handleDocumentDoubleClick);
 
+    this.handleDocumentFocus = (event) => {
+      handleDocumentFocus(this, event);
+    };
+
+    // Note: the focus event doesn't bubble, so we register for the capture phase
+    document.addEventListener("focus", this.handleDocumentFocus, true);
+
     getSectionsList().addEventListener("click", (event) => {
       handleSectionsListClick(this, event);
       handleCellIndicatorsClick(this, event);
@@ -228,6 +235,7 @@ const Session = {
     document.removeEventListener("keydown", this.handleDocumentKeyDown);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
+    document.removeEventListener("focus", this.handleDocumentFocus, true);
 
     setFavicon("favicon");
   },
@@ -408,7 +416,7 @@ function handleDocumentMouseDown(hook, event) {
   const insertMode = editableElementClicked(event, cell);
 
   if (cellId !== hook.state.focusedCellId) {
-    setFocusedCell(hook, cellId, false);
+    setFocusedCell(hook, cellId, { scroll: false });
   }
 
   // Depending on whether the click targets editor disable/enable insert mode
@@ -441,6 +449,22 @@ function handleDocumentDoubleClick(hook, event) {
 
   if (markdownCell && hook.state.focusedCellId && !hook.state.insertMode) {
     setInsertMode(hook, true);
+  }
+}
+
+/**
+ * Focuses cell if the user "tab"s anywhere into it.
+ */
+function handleDocumentFocus(hook, event) {
+  // Find the cell element, if one was clicked
+  const cell = event.target.closest(`[data-element="cell"]`);
+
+  if (cell) {
+    const cellId = cell.dataset.cellId;
+
+    if (cellId !== hook.state.focusedCellId) {
+      setFocusedCell(hook, cellId, { focusElement: false });
+    }
   }
 }
 
@@ -547,7 +571,7 @@ function initializeFocus(hook) {
       }
     }
   } else if (hook.props.autofocusCellId) {
-    setFocusedCell(hook, hook.props.autofocusCellId, false);
+    setFocusedCell(hook, hook.props.autofocusCellId, { scroll: false });
     setInsertMode(hook, true);
   }
 }
@@ -723,7 +747,11 @@ function insertFirstCell(hook, type) {
   }
 }
 
-function setFocusedCell(hook, cellId, scroll = true) {
+function setFocusedCell(
+  hook,
+  cellId,
+  { scroll = true, focusElement = true } = {}
+) {
   hook.state.focusedCellId = cellId;
 
   if (hook.state.focusedCellId) {
@@ -732,9 +760,11 @@ function setFocusedCell(hook, cellId, scroll = true) {
     hook.state.focusedSectionId = getSectionIdByCellId(
       hook.state.focusedCellId
     );
-    // Focus the primary cell content, this is important for screen readers
-    const cellBody = cell.querySelector(`[data-element="cell-body"]`);
-    cellBody.focus({ preventScroll: true });
+    if (focusElement) {
+      // Focus the primary cell content, this is important for screen readers
+      const cellBody = cell.querySelector(`[data-element="cell-body"]`);
+      cellBody.focus({ preventScroll: true });
+    }
   } else {
     hook.state.focusedCellType = null;
     hook.state.focusedSectionId = null;

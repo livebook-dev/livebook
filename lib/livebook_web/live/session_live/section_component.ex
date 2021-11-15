@@ -6,8 +6,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
     <div data-element="section" data-section-id={@section_view.id}>
       <div class="flex space-x-4 items-center" data-element="section-headline">
         <h2 class="flex-grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border
-                   border-transparent hover:border-blue-200 focus:border-blue-300"
-          aria-description="section title"
+                   border-transparent hover:border-blue-200 focus:border-blue-300 whitespace-pre-wrap"
+          role="textbox"
+          aria-label="section title"
           data-element="section-name"
           id={@section_view.html_id}
           contenteditable
@@ -16,9 +17,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           phx-value-section_id={@section_view.id}
           phx-hook="ContentEditable"
           data-update-attribute="phx-value-name"><%= @section_view.name %></h2>
-          <%# ^ Note it's important there's no space between <h2> and </h2>
-            because we want the content to exactly match section name. %>
-        <div class="flex space-x-2 items-center" data-element="section-actions">
+        <menu class="flex space-x-2 items-center" data-element="section-actions"
+          role="menu"
+          aria-label="section actions">
           <span class="tooltip top" data-tooltip="Link">
             <a href={"##{@section_view.html_id}"} class="icon-button" aria-label="link to section">
               <.remix_icon icon="link" class="text-xl" />
@@ -29,6 +30,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               <:toggle>
                 <span class="tooltip top" data-tooltip="Branch out from">
                   <button class="icon-button"
+                    role="menuitem"
                     aria-label="branch out from other section">
                     <.remix_icon icon="git-branch-line" class="text-xl flip-horizontally" />
                   </button>
@@ -38,6 +40,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                 <%= for parent <- @section_view.valid_parents do %>
                   <%= if @section_view.parent && @section_view.parent.id == parent.id do %>
                     <button class="menu-item text-gray-900"
+                      role="menuitem"
                       phx-click="unset_section_parent"
                       phx-value-section_id={@section_view.id}>
                       <.remix_icon icon="arrow-right-s-line" />
@@ -45,6 +48,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                     </button>
                   <% else %>
                     <button class="menu-item text-gray-500"
+                      role="menuitem"
                       phx-click="set_section_parent"
                       phx-value-section_id={@section_view.id}
                       phx-value-parent_id={parent.id}>
@@ -58,6 +62,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <% end %>
           <span class="tooltip top" data-tooltip="Move up">
             <button class="icon-button"
+              role="menuitem"
               aria-label="move section up"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
@@ -67,6 +72,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           </span>
           <span class="tooltip top" data-tooltip="Move down">
             <button class="icon-button"
+              role="menuitem"
               aria-label="move section down"
               phx-click="move_section"
               phx-value-section_id={@section_view.id}
@@ -77,11 +83,12 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
           <span class="tooltip top" data-tooltip={if @section_view.has_children?, do: "Cannot delete this section because\nother sections branch from it", else: "Delete"}>
             <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
                   class: "icon-button #{if @section_view.has_children?, do: "disabled"}",
-                  aria_label: "delete section" do %>
+                  aria_label: "delete section",
+                  role: "menuitem" do %>
               <.remix_icon icon="delete-bin-6-line" class="text-xl" />
             <% end %>
           </span>
-        </div>
+        </menu>
       </div>
       <%= if @section_view.parent do %>
         <h3 class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800">

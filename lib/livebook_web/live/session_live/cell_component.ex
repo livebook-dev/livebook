@@ -19,16 +19,22 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
+      <menu class="relative z-20 flex items-center justify-end space-x-2"
+        role="menu"
+        aria-label="cell actions"
+        data-element="actions">
         <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
-          <button class="icon-button" aria-label="edit content">
+          <button class="icon-button"
+            aria-label="edit content"
+            role="menuitem">
             <.remix_icon icon="pencil-line" class="text-xl" />
           </button>
         </span>
         <span class="tooltip top" data-tooltip="Insert image" data-element="insert-image-button">
           <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_view.id),
                 class: "icon-button",
-                aria_label: "insert image" do %>
+                aria_label: "insert image",
+                role: "menuitem" do %>
             <.remix_icon icon="image-add-line" class="text-xl" />
           <% end %>
         </span>
@@ -36,7 +42,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
-      </div>
+      </menu>
     </div>
 
     <.cell_body>
@@ -87,9 +93,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           </button>
         <% end %>
       </div>
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
+      <menu class="relative z-20 flex items-center justify-end space-x-2"
+        role="menu"
+        data-element="actions"
+        aria-label="cell actions">
         <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
-          <button class="icon-button" aria-label="amplify outputs">
+          <button class="icon-button"
+            aria-label="amplify outputs"
+            role="menuitem">
             <.remix_icon icon="zoom-in-line" class="text-xl" />
           </button>
         </span>
@@ -98,7 +109,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
-      </div>
+      </menu>
     </div>
 
     <.cell_body>
@@ -116,13 +127,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell(%{cell_view: %{type: :input}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
+      <menu class="relative z-20 flex items-center justify-end space-x-2"
+        role="menu"
+        aria-label="cell actions"
+        data-element="actions">
         <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
-      </div>
+      </menu>
     </div>
 
     <.cell_body>
@@ -246,8 +260,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_body(assigns) do
     ~H"""
-    <!-- By setting tabindex="-1" we can programmatically focus this element  -->
-    <div class="flex relative" data-element="cell-body" tabindex="-1">
+    <!-- By setting tabindex we can programmatically focus this element,
+         also we actually want to make this element tab-focusable -->
+    <div class="flex relative" data-element="cell-body" tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
@@ -260,7 +275,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_link_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Link">
-      <a href={"#cell-#{@cell_id}"} class="icon-button" aria-label="link to cell">
+      <a href={"#cell-#{@cell_id}"} class="icon-button"
+        aria-label="link to cell"
+        role="menuitem">
         <.remix_icon icon="link" class="text-xl" />
       </a>
     </span>
@@ -272,7 +289,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Cell settings">
       <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id),
             class: "icon-button",
-            aria_label: "cell settings" do %>
+            aria_label: "cell settings",
+            role: "menuitem" do %>
         <.remix_icon icon="settings-3-line" class="text-xl" />
       <% end %>
     </span>
@@ -284,6 +302,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Move up">
       <button class="icon-button"
         aria-label="move cell up"
+        role="menuitem"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="-1">
@@ -298,6 +317,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Move down">
       <button class="icon-button"
         aria-label="move cell down"
+        role="menuitem"
         phx-click="move_cell"
         phx-value-cell_id={@cell_id}
         phx-value-offset="1">
@@ -312,6 +332,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Delete">
       <button class="icon-button"
         aria-label="delete cell"
+        role="menuitem"
         phx-click="delete_cell"
         phx-value-cell_id={@cell_id}>
         <.remix_icon icon="delete-bin-6-line" class="text-xl" />
