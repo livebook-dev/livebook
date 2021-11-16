@@ -73,7 +73,7 @@ defmodule LivebookWeb.SessionLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-grow h-full"
-      id="session"
+      id={"session-#{@session.id}"}
       data-element="session"
       phx-hook="Session"
       data-global-status={elem(@data_view.global_status, 0)}
@@ -121,46 +121,53 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="flex-grow overflow-y-auto scroll-smooth" data-element="notebook">
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7">
-          <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200">
-            <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg hover:border-blue-200 focus:border-blue-300"
-              aria-description="notebook title"
-              id="notebook-name"
-              data-element="notebook-name"
-              contenteditable
-              spellcheck="false"
-              phx-blur="set_notebook_name"
-              phx-hook="ContentEditable"
-              data-update-attribute="phx-value-name"><%= @data_view.notebook_name %></h1>
+          <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200"
+            data-element="notebook-headline"
+            data-focusable-id="notebook"
+            id="notebook"
+            phx-hook="Headline"
+            data-on-value-change="set_notebook_name"
+            data-metadata="notebook">
+            <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
+              tabindex="0"
+              id="notebook-heading"
+              data-element="heading"
+              spellcheck="false"><%= @data_view.notebook_name %></h1>
             <.menu id="session-menu">
               <:toggle>
-                <button class="icon-button">
+                <button class="icon-button" aria-label="open notebook menu">
                   <.remix_icon icon="more-2-fill" class="text-xl" />
                 </button>
               </:toggle>
               <:content>
                 <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "livemd"),
-                      class: "menu-item text-gray-500" do %>
+                      class: "menu-item text-gray-500",
+                      role: "menuitem" do %>
                   <.remix_icon icon="download-2-line" />
                   <span class="font-medium">Export</span>
                 <% end %>
                 <button class="menu-item text-gray-500"
+                  role="menuitem"
                   phx-click="erase_outputs">
                   <.remix_icon icon="eraser-fill" />
                   <span class="font-medium">Erase outputs</span>
                 </button>
                 <button class="menu-item text-gray-500"
+                  role="menuitem"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
                 <a class="menu-item text-gray-500"
+                  role="menuitem"
                   href={live_dashboard_process_path(@socket, @session.pid)}
                   target="_blank">
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
                 <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
-                      class: "menu-item text-red-600" do %>
+                      class: "menu-item text-red-600",
+                      role: "menuitem" do %>
                   <.remix_icon icon="close-circle-line" />
                   <span class="font-medium">Close</span>
                 <% end %>
@@ -560,9 +567,15 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("insert_section_into", %{"section_id" => section_id, "index" => index}, socket) do
-    index = ensure_integer(index) |> max(0)
-    Session.insert_section_into(socket.assigns.session.pid, section_id, index)
+  def handle_event("insert_section_below", params, socket) do
+    with {:ok, section, index} <-
+           section_with_next_index(
+             socket.private.data.notebook,
+             params["section_id"],
+             params["cell_id"]
+           ) do
+      Session.insert_section_into(socket.assigns.session.pid, section.id, index)
+    end
 
     {:noreply, socket}
   end
@@ -583,28 +596,17 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event(
-        "insert_cell",
-        %{"section_id" => section_id, "index" => index, "type" => type},
-        socket
-      ) do
-    index = ensure_integer(index) |> max(0)
+  def handle_event("insert_cell_below", %{"type" => type} = params, socket) do
     type = String.to_atom(type)
-    Session.insert_cell(socket.assigns.session.pid, section_id, index, type)
 
-    {:noreply, socket}
-  end
-
-  def handle_event("insert_cell_below", %{"cell_id" => cell_id, "type" => type}, socket) do
-    type = String.to_atom(type)
-    insert_cell_next_to(socket, cell_id, type, idx_offset: 1)
-
-    {:noreply, socket}
-  end
-
-  def handle_event("insert_cell_above", %{"cell_id" => cell_id, "type" => type}, socket) do
-    type = String.to_atom(type)
-    insert_cell_next_to(socket, cell_id, type, idx_offset: 0)
+    with {:ok, section, index} <-
+           section_with_next_index(
+             socket.private.data.notebook,
+             params["section_id"],
+             params["cell_id"]
+           ) do
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, type)
+    end
 
     {:noreply, socket}
   end
@@ -615,14 +617,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("set_notebook_name", %{"name" => name}, socket) do
+  def handle_event("set_notebook_name", %{"value" => name}, socket) do
     name = normalize_name(name)
     Session.set_notebook_name(socket.assigns.session.pid, name)
 
     {:noreply, socket}
   end
 
-  def handle_event("set_section_name", %{"section_id" => section_id, "name" => name}, socket) do
+  def handle_event("set_section_name", %{"metadata" => section_id, "value" => name}, socket) do
     name = normalize_name(name)
     Session.set_section_name(socket.assigns.session.pid, section_id, name)
 
@@ -1191,10 +1193,19 @@ defmodule LivebookWeb.SessionLive do
     String.upcase(head) <> tail
   end
 
-  defp insert_cell_next_to(socket, cell_id, type, idx_offset: idx_offset) do
-    {:ok, cell, section} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
-    index = Enum.find_index(section.cells, &(&1 == cell))
-    Session.insert_cell(socket.assigns.session.pid, section.id, index + idx_offset, type)
+  defp section_with_next_index(notebook, section_id, cell_id)
+
+  defp section_with_next_index(notebook, section_id, nil) do
+    with {:ok, section} <- Notebook.fetch_section(notebook, section_id) do
+      {:ok, section, 0}
+    end
+  end
+
+  defp section_with_next_index(notebook, _section_id, cell_id) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(notebook, cell_id) do
+      index = Enum.find_index(section.cells, &(&1 == cell))
+      {:ok, section, index + 1}
+    end
   end
 
   defp ensure_integer(n) when is_integer(n), do: n

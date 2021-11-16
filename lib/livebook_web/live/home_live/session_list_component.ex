@@ -38,6 +38,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           <:content>
             <%= for order_by <- ["date", "title"] do %>
               <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
+                role="menuitem"
                 phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
                 <.remix_icon icon={order_by_icon(order_by)} />
                 <span class="font-medium"><%= order_by_label(order_by) %></span>
@@ -85,25 +86,28 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </div>
           <.menu id={"session-#{session.id}-menu"}>
             <:toggle>
-              <button class="icon-button">
+              <button class="icon-button" aria-label="open session menu">
                 <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
             </:toggle>
             <:content>
               <button class="menu-item text-gray-500"
+                role="menuitem"
                 phx-click="fork_session"
                 phx-value-id={session.id}>
                 <.remix_icon icon="git-branch-line" />
                 <span class="font-medium">Fork</span>
               </button>
               <a class="menu-item text-gray-500"
+                role="menuitem"
                 href={live_dashboard_process_path(@socket, session.pid)}
                 target="_blank">
                 <.remix_icon icon="dashboard-2-line" />
                 <span class="font-medium">See on Dashboard</span>
               </a>
               <%= live_patch to: Routes.home_path(@socket, :close_session, session.id),
-                    class: "menu-item text-red-600" do %>
+                    class: "menu-item text-red-600",
+                    role: "menuitem" do %>
                 <.remix_icon icon="close-circle-line" />
                 <span class="font-medium">Close</span>
               <% end %>

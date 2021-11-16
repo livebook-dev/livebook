@@ -33,7 +33,7 @@ import monaco from "../cell/live_editor/monaco";
  *
  * ## Navigation
  *
- * This hook handles focusing cells and moving the focus around,
+ * This hook handles focusing section titles, cells and moving the focus around,
  * this is done purely on the client side because it is event-intensive
  * and specific to this client only. The UI changes are handled by
  * setting `data-js-*` attributes and using CSS accordingly (see assets/css/js_interop.css).
@@ -60,8 +60,7 @@ const Session = {
   mounted() {
     this.props = getProps(this);
     this.state = {
-      focusedCellId: null,
-      focusedSectionId: null,
+      focusedId: null,
       focusedCellType: null,
       insertMode: false,
       keyBuffer: new KeyBuffer(),
@@ -95,6 +94,19 @@ const Session = {
     };
 
     document.addEventListener("mousedown", this.handleDocumentMouseDown);
+
+    this.handleDocumentFocus = (event) => {
+      handleDocumentFocus(this, event);
+    };
+
+    // Note: the focus event doesn't bubble, so we register for the capture phase
+    document.addEventListener("focus", this.handleDocumentFocus, true);
+
+    this.handleDocumentClick = (event) => {
+      handleDocumentClick(this, event);
+    };
+
+    document.addEventListener("click", this.handleDocumentClick);
 
     this.handleDocumentDoubleClick = (event) => {
       handleDocumentDoubleClick(this, event);
@@ -142,7 +154,6 @@ const Session = {
     // DOM setup
 
     updateSectionListHighlight();
-    focusNotebookNameIfNew();
 
     // Server events
 
@@ -195,9 +206,9 @@ const Session = {
 
     this.handleEvent(
       "location_report",
-      ({ client_pid, cell_id, selection }) => {
+      ({ client_pid, focusable_id, selection }) => {
         const report = {
-          cellId: cell_id,
+          focusableId: focusable_id,
           selection: decodeSelection(selection),
         };
 
@@ -225,8 +236,10 @@ const Session = {
   destroyed() {
     this._unsubscribeFromSessionEvents();
 
-    document.removeEventListener("keydown", this.handleDocumentKeyDown);
+    document.removeEventListener("keydown", this.handleDocumentKeyDown, true);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
+    document.removeEventListener("focus", this.handleDocumentFocus, true);
+    document.removeEventListener("click", this.handleDocumentClick);
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
 
     setFavicon("favicon");
@@ -265,7 +278,7 @@ function faviconForEvaluationStatus(evaluationStatus) {
  *
  * @typedef LocationReport
  * @type {Object}
- * @property {String|null} cellId
+ * @property {String|null} focusableId
  * @property {monaco.Selection|null} selection
  */
 
@@ -346,20 +359,22 @@ function handleDocumentKeyDown(hook, event) {
       cancelFocusedCellEvaluation(hook);
     } else if (keyBuffer.tryMatch(["0", "0"])) {
       restartRuntime(hook);
+    } else if (keyBuffer.tryMatch(["Escape", "Escape"])) {
+      setFocusedEl(hook, null);
     } else if (keyBuffer.tryMatch(["?"])) {
       showShortcuts(hook);
     } else if (
       keyBuffer.tryMatch(["i"]) ||
       (event.target === document.body &&
-        hook.state.focusedCellId &&
+        hook.state.focusedId &&
         key === "Enter")
     ) {
       cancelEvent(event);
       enterInsertMode(hook);
     } else if (keyBuffer.tryMatch(["j"])) {
-      moveCellFocus(hook, 1);
+      moveFocus(hook, 1);
     } else if (keyBuffer.tryMatch(["k"])) {
-      moveCellFocus(hook, -1);
+      moveFocus(hook, -1);
     } else if (keyBuffer.tryMatch(["J"])) {
       moveFocusedCell(hook, 1);
     } else if (keyBuffer.tryMatch(["K"])) {
@@ -391,44 +406,59 @@ function handleDocumentMouseDown(hook, event) {
     return;
   }
 
-  // If the pencil icon is clicked, enter insert mode
-  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
-    setInsertMode(hook, true);
-    return;
+  // Find the focusable element, if one was clicked
+  const focusableEl = event.target.closest(`[data-focusable-id]`);
+  const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
+  const insertMode = editableElementClicked(event, focusableEl);
+
+  if (focusableId !== hook.state.focusedId) {
+    setFocusedEl(hook, focusableId, { scroll: false, focusElement: false });
   }
 
-  // If a cell action is clicked, keep the focus as is
+  // If a cell action is clicked, keep the insert mode as is
   if (event.target.closest(`[data-element="actions"]`)) {
     return;
   }
 
-  // Find the cell element, if one was clicked
-  const cell = event.target.closest(`[data-element="cell"]`);
-  const cellId = cell ? cell.dataset.cellId : null;
-  const insertMode = editableElementClicked(event, cell);
-
-  if (cellId !== hook.state.focusedCellId) {
-    setFocusedCell(hook, cellId, false);
-  }
-
-  // Depending on whether the click targets editor disable/enable insert mode
+  // Depending on whether the click targets editor or input disable/enable insert mode
   if (hook.state.insertMode !== insertMode) {
     setInsertMode(hook, insertMode);
   }
 }
 
-function editableElementClicked(event, cell) {
-  if (cell) {
-    const editorContainer = cell.querySelector(
-      `[data-element="editor-container"]`
+function editableElementClicked(event, element) {
+  if (element) {
+    const editableElement = element.querySelector(
+      `[data-element="editor-container"], [data-element="input"], [data-element="heading"]`
     );
-    const input = cell.querySelector(`[data-element="input"]`);
-    const editableElement = editorContainer || input;
-
     return editableElement.contains(event.target);
   }
 
   return false;
+}
+
+/**
+ * Focuses a focusable element if the user "tab"s anywhere into it.
+ */
+function handleDocumentFocus(hook, event) {
+  const focusableEl = event.target.closest(`[data-focusable-id]`);
+
+  if (focusableEl) {
+    const focusableId = focusableEl.dataset.focusableId;
+
+    if (focusableId !== hook.state.focusedId) {
+      setFocusedEl(hook, focusableId, { scroll: false, focusElement: false });
+    }
+  }
+}
+
+/**
+ * Enters insert mode when markdown edit action is clicked.
+ */
+function handleDocumentClick(hook, event) {
+  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
+    setInsertMode(hook, true);
+  }
 }
 
 /**
@@ -439,7 +469,7 @@ function handleDocumentDoubleClick(hook, event) {
     `[data-element="cell"][data-type="markdown"]`
   );
 
-  if (markdownCell && hook.state.focusedCellId && !hook.state.insertMode) {
+  if (markdownCell && hook.state.focusedId && !hook.state.insertMode) {
     setInsertMode(hook, true);
   }
 }
@@ -508,8 +538,8 @@ function handleClientFollowToggleClick(hook, clientPid, clientListItem) {
 function mirrorClientFocus(hook, clientPid) {
   const locationReport = hook.state.lastLocationReportByClientPid[clientPid];
 
-  if (locationReport && locationReport.cellId) {
-    setFocusedCell(hook, locationReport.cellId);
+  if (locationReport && locationReport.focusableId) {
+    setFocusedEl(hook, locationReport.focusableId);
   }
 }
 
@@ -520,7 +550,7 @@ function handleCellIndicatorsClick(hook, event) {
   const button = event.target.closest(`[data-element="focus-cell-button"]`);
   if (button) {
     const cellId = button.getAttribute("data-target");
-    setFocusedCell(hook, cellId);
+    setFocusedEl(hook, cellId);
   }
 }
 
@@ -532,22 +562,22 @@ function initializeFocus(hook) {
   const hash = window.location.hash;
 
   if (hash) {
-    if (hash.startsWith("#cell-")) {
-      const cellId = hash.replace(/^#cell-/, "");
-      if (getCellById(cellId)) {
-        setFocusedCell(hook, cellId);
-      }
-    } else {
-      // Explicitly scroll to the target element
-      // after the loading finishes
-      const htmlId = hash.replace(/^#/, "");
-      const element = document.getElementById(htmlId);
-      if (element) {
+    const htmlId = hash.replace(/^#/, "");
+    const element = document.getElementById(htmlId);
+
+    if (element) {
+      const focusableEl = elementelement.closest("[data-focusable-id]");
+
+      if (focusableEl) {
+        setFocusedEl(hook, focusableEl.dataset.focusableId);
+      } else {
+        // Explicitly scroll to the target element
+        // after the loading finishes
         element.scrollIntoView();
       }
     }
   } else if (hook.props.autofocusCellId) {
-    setFocusedCell(hook, hook.props.autofocusCellId, false);
+    setFocusedEl(hook, hook.props.autofocusCellId, { scroll: false });
     setInsertMode(hook, true);
   }
 }
@@ -613,15 +643,15 @@ function saveNotebook(hook) {
 }
 
 function deleteFocusedCell(hook) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("delete_cell", { cell_id: hook.state.focusedCellId });
+  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
+    hook.pushEvent("delete_cell", { cell_id: hook.state.focusedId });
   }
 }
 
 function queueFocusedCellEvaluation(hook) {
-  if (hook.state.focusedCellId) {
+  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
     hook.pushEvent("queue_cell_evaluation", {
-      cell_id: hook.state.focusedCellId,
+      cell_id: hook.state.focusedId,
     });
   }
 }
@@ -631,17 +661,21 @@ function queueAllCellsEvaluation(hook) {
 }
 
 function queueFocusedSectionEvaluation(hook) {
-  if (hook.state.focusedSectionId) {
-    hook.pushEvent("queue_section_cells_evaluation", {
-      section_id: hook.state.focusedSectionId,
-    });
+  if (hook.state.focusedId) {
+    const sectionId = getSectionIdByFocusableId(hook.state.focusedId);
+
+    if (sectionId) {
+      hook.pushEvent("queue_section_cells_evaluation", {
+        section_id: sectionId,
+      });
+    }
   }
 }
 
 function cancelFocusedCellEvaluation(hook) {
-  if (hook.state.focusedCellId) {
+  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
     hook.pushEvent("cancel_cell_evaluation", {
-      cell_id: hook.state.focusedCellId,
+      cell_id: hook.state.focusedId,
     });
   }
 }
@@ -655,7 +689,7 @@ function showShortcuts(hook) {
 }
 
 function enterInsertMode(hook) {
-  if (hook.state.focusedCellId) {
+  if (hook.state.focusedId) {
     setInsertMode(hook, true);
   }
 }
@@ -664,83 +698,88 @@ function escapeInsertMode(hook) {
   setInsertMode(hook, false);
 }
 
-function moveCellFocus(hook, offset) {
-  const cellId = nearbyCellId(hook.state.focusedCellId, offset);
-  setFocusedCell(hook, cellId);
+function moveFocus(hook, offset) {
+  const focusableId = nearbyFocusableId(hook.state.focusedId, offset);
+  setFocusedEl(hook, focusableId);
 }
 
 function moveFocusedCell(hook, offset) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("move_cell", { cell_id: hook.state.focusedCellId, offset });
+  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
+    hook.pushEvent("move_cell", { cell_id: hook.state.focusedId, offset });
   }
 }
 
 function insertCellBelowFocused(hook, type) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("insert_cell_below", {
-      cell_id: hook.state.focusedCellId,
-      type,
-    });
+  if (hook.state.focusedId) {
+    insertCellBelowFocusableId(hook, hook.state.focusedId, type);
   } else {
-    // If no cell is focused, insert below the last cell
-    const cellIds = getCellIds();
-    if (cellIds.length > 0) {
-      const lastCellId = cellIds[cellIds.length - 1];
-      hook.pushEvent("insert_cell_below", { cell_id: lastCellId, type });
-    } else {
-      insertFirstCell(hook, type);
+    const focusableIds = getFocusableIds();
+    if (focusableIds.length > 0) {
+      insertCellBelowFocusableId(
+        hook,
+        focusableIds[focusableIds.length - 1],
+        type
+      );
     }
   }
 }
 
 function insertCellAboveFocused(hook, type) {
-  if (hook.state.focusedCellId) {
-    hook.pushEvent("insert_cell_above", {
-      cell_id: hook.state.focusedCellId,
-      type,
-    });
+  if (hook.state.focusedId) {
+    const prevFocusableId = nearbyFocusableId(hook.state.focusedId, -1);
+    insertCellBelowFocusableId(hook, prevFocusableId, type);
   } else {
-    // If no cell is focused, insert above the first cell
-    const cellIds = getCellIds();
-    if (cellIds.length > 0) {
-      const lastCellId = cellIds[0];
-      hook.pushEvent("insert_cell_above", { cell_id: lastCellId, type });
-    } else {
-      insertFirstCell(hook, type);
+    const focusableIds = getFocusableIds();
+    if (focusableIds.length > 0) {
+      insertCellBelowFocusableId(hook, focusableIds[0], type);
     }
   }
 }
 
-function insertFirstCell(hook, type) {
-  const sectionIds = getSectionIds();
-
-  if (sectionIds.length > 0) {
-    hook.pushEvent("insert_cell", {
-      section_id: sectionIds[0],
-      index: 0,
-      type,
-    });
+function insertCellBelowFocusableId(hook, focusableId, type) {
+  if (isCell(focusableId)) {
+    hook.pushEvent("insert_cell_below", { type, cell_id: focusableId });
+  } else if (isSection(focusableId)) {
+    hook.pushEvent("insert_cell_below", { type, section_id: focusableId });
+  } else if (isNotebook(focusableId)) {
+    const sectionIds = getSectionIds();
+    if (sectionIds.length > 0) {
+      hook.pushEvent("insert_cell_below", { type, section_id: sectionIds[0] });
+    }
   }
 }
 
-function setFocusedCell(hook, cellId, scroll = true) {
-  hook.state.focusedCellId = cellId;
+function setFocusedEl(
+  hook,
+  focusableId,
+  { scroll = true, focusElement = true } = {}
+) {
+  hook.state.focusedId = focusableId;
 
-  if (hook.state.focusedCellId) {
-    const cell = getCellById(hook.state.focusedCellId);
-    hook.state.focusedCellType = cell.getAttribute("data-type");
-    hook.state.focusedSectionId = getSectionIdByCellId(
-      hook.state.focusedCellId
-    );
-    // Focus the primary cell content, this is important for screen readers
-    const cellBody = cell.querySelector(`[data-element="cell-body"]`);
-    cellBody.focus({ preventScroll: true });
+  if (focusableId) {
+    const el = getFocusableEl(focusableId);
+
+    if (isCell(focusableId)) {
+      hook.state.focusedCellType = el.getAttribute("data-type");
+    }
+
+    if (focusElement) {
+      // Focus the primary content in the focusable element, this is important for screen readers
+      const contentEl =
+        el.querySelector(`[data-element="cell-body"]`) ||
+        el.querySelector(`[data-element="heading"]`) ||
+        el;
+      contentEl.focus({ preventScroll: true });
+    }
   } else {
     hook.state.focusedCellType = null;
-    hook.state.focusedSectionId = null;
   }
 
-  globalPubSub.broadcast("cells", { type: "cell_focused", cellId, scroll });
+  globalPubSub.broadcast("navigation", {
+    type: "element_focused",
+    focusableId: focusableId,
+    scroll,
+  });
 
   setInsertMode(hook, false);
 }
@@ -754,12 +793,12 @@ function setInsertMode(hook, insertModeEnabled) {
     hook.el.removeAttribute("data-js-insert-mode");
 
     sendLocationReport(hook, {
-      cellId: hook.state.focusedCellId,
+      focusableId: hook.state.focusedId,
       selection: null,
     });
   }
 
-  globalPubSub.broadcast("cells", {
+  globalPubSub.broadcast("navigation", {
     type: "insert_mode_changed",
     enabled: insertModeEnabled,
   });
@@ -768,48 +807,41 @@ function setInsertMode(hook, insertModeEnabled) {
 // Server event handlers
 
 function handleCellInserted(hook, cellId) {
-  setFocusedCell(hook, cellId);
+  setFocusedEl(hook, cellId);
   if (["markdown", "elixir"].includes(hook.state.focusedCellType)) {
     setInsertMode(hook, true);
   }
 }
 
 function handleCellDeleted(hook, cellId, siblingCellId) {
-  if (hook.state.focusedCellId === cellId) {
-    setFocusedCell(hook, siblingCellId);
+  if (hook.state.focusedId === cellId) {
+    setFocusedEl(hook, siblingCellId);
   }
 }
 
 function handleCellRestored(hook, cellId) {
-  setFocusedCell(hook, cellId);
+  setFocusedEl(hook, cellId);
 }
 
 function handleCellMoved(hook, cellId) {
-  if (hook.state.focusedCellId === cellId) {
+  if (hook.state.focusedId === cellId) {
     globalPubSub.broadcast("cells", { type: "cell_moved", cellId });
-
-    // The cell may have moved to another section, so update this information.
-    hook.state.focusedSectionId = getSectionIdByCellId(
-      hook.state.focusedCellId
-    );
   }
 }
 
 function handleSectionInserted(hook, sectionId) {
-  if (hook.state.focusedSectionId) {
-    setFocusedCell(hook, null);
-  }
-
   const section = getSectionById(sectionId);
-  const nameElement = section.querySelector(`[data-element="section-name"]`);
-  nameElement.focus({ preventScroll: true });
-  selectElementContent(nameElement);
-  smoothlyScrollToElement(nameElement);
+  const headlineEl = section.querySelector(`[data-element="section-headline"]`);
+  const { focusableId } = headlineEl.dataset;
+  setFocusedEl(hook, focusableId);
+  setInsertMode(hook, true);
+  selectElementContent(document.activeElement);
 }
 
 function handleSectionDeleted(hook, sectionId) {
-  if (hook.state.focusedSectionId === sectionId) {
-    setFocusedCell(hook, null);
+  // Clear focus if the element no longer exists
+  if (hook.state.focusedId && !getFocusableEl(hook.state.focusedId)) {
+    setFocusedEl(hook, null);
   }
 }
 
@@ -819,8 +851,8 @@ function handleSectionMoved(hook, sectionId) {
 }
 
 function handleCellUpload(hook, cellId, url) {
-  if (hook.state.focusedCellId !== cellId) {
-    setFocusedCell(hook, cellId);
+  if (hook.state.focusedId !== cellId) {
+    setFocusedEl(hook, cellId);
   }
 
   if (!hook.state.insertMode) {
@@ -840,7 +872,7 @@ function handleClientLeft(hook, clientPid) {
   if (client) {
     delete hook.state.clientsMap[clientPid];
 
-    broadcastLocationReport(client, { cellId: null, selection: null });
+    broadcastLocationReport(client, { focusableId: null, selection: null });
 
     if (client.pid === hook.state.followedClientPid) {
       hook.state.followedClientPid = null;
@@ -864,20 +896,10 @@ function handleLocationReport(hook, clientPid, report) {
 
     if (
       client.pid === hook.state.followedClientPid &&
-      report.cellId !== hook.state.focusedCellId
+      report.focusableId !== hook.state.focusedId
     ) {
-      setFocusedCell(hook, report.cellId);
+      setFocusedEl(hook, report.focusableId);
     }
-  }
-}
-
-function focusNotebookNameIfNew() {
-  const sections = getSections();
-  const nameElement = document.querySelector(`[data-element="notebook-name"]`);
-
-  if (sections.length === 0 && nameElement.innerText === "Untitled notebook") {
-    nameElement.focus();
-    selectElementContent(nameElement);
   }
 }
 
@@ -886,7 +908,7 @@ function focusNotebookNameIfNew() {
 function handleSessionEvent(hook, event) {
   if (event.type === "cursor_selection_changed") {
     sendLocationReport(hook, {
-      cellId: event.cellId,
+      focusableId: event.focusableId,
       selection: event.selection,
     });
   }
@@ -896,7 +918,7 @@ function handleSessionEvent(hook, event) {
  * Broadcast new location report coming from the server to all the cells.
  */
 function broadcastLocationReport(client, report) {
-  globalPubSub.broadcast("cells", {
+  globalPubSub.broadcast("navigation", {
     type: "location_report",
     client,
     report,
@@ -912,7 +934,7 @@ function sendLocationReport(hook, report) {
   // Only send reports if there are other people to send to
   if (numberOfClients > 1) {
     hook.pushEvent("location_report", {
-      cell_id: report.cellId,
+      focusable_id: report.focusableId,
       selection: encodeSelection(report.selection),
     });
   }
@@ -949,44 +971,51 @@ function decodeSelection(encoded) {
 
 // Helpers
 
-function nearbyCellId(cellId, offset) {
-  const cellIds = getCellIds();
+function nearbyFocusableId(focusableId, offset) {
+  const focusableIds = getFocusableIds();
 
-  if (cellIds.length === 0) {
+  if (focusableIds.length === 0) {
     return null;
   }
 
-  const idx = cellIds.indexOf(cellId);
+  const idx = focusableIds.indexOf(focusableId);
 
   if (idx === -1) {
-    return cellIds[0];
+    return focusableIds[0];
   } else {
-    const siblingIdx = clamp(idx + offset, 0, cellIds.length - 1);
-    return cellIds[siblingIdx];
+    const siblingIdx = clamp(idx + offset, 0, focusableIds.length - 1);
+    return focusableIds[siblingIdx];
   }
 }
 
-function getCellIds() {
-  const cells = getCells();
-  return cells.map((cell) => cell.getAttribute("data-cell-id"));
+function isCell(focusableId) {
+  const el = getFocusableEl(focusableId);
+  return el.dataset.element === "cell";
 }
 
-function getCells() {
-  return Array.from(document.querySelectorAll(`[data-element="cell"]`));
+function isSection(focusableId) {
+  const el = getFocusableEl(focusableId);
+  return el.dataset.element === "section-headline";
 }
 
-function getCellById(cellId) {
-  return document.querySelector(
-    `[data-element="cell"][data-cell-id="${cellId}"]`
-  );
+function isNotebook(focusableId) {
+  const el = getFocusableEl(focusableId);
+  return el.dataset.element === "notebook-headline";
 }
 
-function getSectionIdByCellId(cellId) {
-  const cell = document.querySelector(
-    `[data-element="cell"][data-cell-id="${cellId}"]`
-  );
-  const section = cell.closest(`[data-element="section"]`);
-  return section.getAttribute("data-section-id");
+function getFocusableEl(focusableId) {
+  return document.querySelector(`[data-focusable-id="${focusableId}"]`);
+}
+
+function getFocusableIds() {
+  const elements = Array.from(document.querySelectorAll(`[data-focusable-id]`));
+  return elements.map((el) => el.getAttribute("data-focusable-id"));
+}
+
+function getSectionIdByFocusableId(focusableId) {
+  const el = getFocusableEl(focusableId);
+  const section = el.closest(`[data-element="section"]`);
+  return section && section.getAttribute("data-section-id");
 }
 
 function getSectionIds() {

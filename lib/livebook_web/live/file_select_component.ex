@@ -84,19 +84,14 @@ defmodule LivebookWeb.FileSelectComponent do
               autocomplete="off" />
           </form>
         </div>
-        <.menu id="path-selector-menu">
-          <:toggle>
-            <button class="icon-button" tabindex="-1">
-              <.remix_icon icon="add-line" class="text-xl" />
-            </button>
-          </:toggle>
-          <:content>
-            <button class="menu-item text-gray-500" phx-click={js_show_new_dir_section()}>
-              <.remix_icon icon="folder-add-fill" class="text-gray-400" />
-              <span class="font-medium">New directory</span>
-            </button>
-          </:content>
-        </.menu>
+        <span class="tooltip top" data-tooltip="New directory">
+          <button class="icon-button"
+            tabindex="-1"
+            aria-label="new directory"
+            phx-click={js_show_new_dir_section()}>
+            <.remix_icon icon="add-line" class="text-xl" />
+          </button>
+        </span>
         <%= if @inner_block do %>
           <div>
             <%= render_slot(@inner_block) %>
@@ -193,19 +188,22 @@ defmodule LivebookWeb.FileSelectComponent do
     ~H"""
     <.menu id="file-system-menu" disabled={@file_system_select_disabled} position="left">
       <:toggle>
-        <button type="button" class="button button-gray button-square-icon" disabled={@file_system_select_disabled}>
+        <button type="button" class="button button-gray button-square-icon"
+          aria-label="switch file system"
+          disabled={@file_system_select_disabled}>
           <.file_system_icon file_system={@file.file_system} />
         </button>
       </:toggle>
       <:content>
         <%= for {file_system, index} <- @file_systems |> Enum.with_index() do %>
           <%= if file_system == @file.file_system do %>
-            <button class="menu-item text-gray-900">
+            <button class="menu-item text-gray-900" role="menuitem">
               <.file_system_icon file_system={file_system} />
               <span class="font-medium"><%= file_system_label(file_system) %></span>
             </button>
           <% else %>
             <button class="menu-item text-gray-500"
+              role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
               phx-value-index={index}>
@@ -215,7 +213,8 @@ defmodule LivebookWeb.FileSelectComponent do
           <% end %>
         <% end %>
         <%= live_patch to: Routes.settings_path(@socket, :page),
-              class: "menu-item text-gray-500 border-t border-gray-200" do %>
+              class: "menu-item text-gray-500 border-t border-gray-200",
+              role: "menuitem" do %>
           <.remix_icon icon="settings-3-line" />
           <span class="font-medium">Configure</span>
         <% end %>
@@ -287,6 +286,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <:content>
         <%= if @file_info.editable do %>
           <button class="menu-item text-gray-500"
+            role="menuitem"
             phx-click="rename_file"
             phx-target={@myself}
             phx-value-path={@file_info.file.path}>
@@ -294,6 +294,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <span class="font-medium">Rename</span>
           </button>
           <button class="menu-item text-red-600"
+            role="menuitem"
             phx-click="delete_file"
             phx-target={@myself}
             phx-value-path={@file_info.file.path}>

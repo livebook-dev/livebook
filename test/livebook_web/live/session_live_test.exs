@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert %{cell_infos: %{^cell_id => %{evaluation_status: :evaluating}}} =
@@ -115,11 +115,11 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("cancel_cell_evaluation", %{"cell_id" => cell_id})
 
       assert %{cell_infos: %{^cell_id => %{evaluation_status: :ready}}} =
@@ -133,22 +133,22 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("insert_cell_below", %{"cell_id" => cell_id, "type" => "markdown"})
 
       assert %{notebook: %{sections: [%{cells: [_first_cell, %Cell.Markdown{}]}]}} =
                Session.get_data(session.pid)
     end
 
-    test "inserting a cell above the given cell", %{conn: conn, session: session} do
+    test "inserting a cell at section start", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      _cell_id = insert_text_cell(session.pid, section_id, :elixir)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
-      |> render_hook("insert_cell_above", %{"cell_id" => cell_id, "type" => "markdown"})
+      |> element(~s{[data-element="session"]})
+      |> render_hook("insert_cell_below", %{"section_id" => section_id, "type" => "markdown"})
 
       assert %{notebook: %{sections: [%{cells: [%Cell.Markdown{}, _first_cell]}]}} =
                Session.get_data(session.pid)
@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("delete_cell", %{"cell_id" => cell_id})
 
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session.pid)
@@ -285,7 +285,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("intellisense_request", %{
         "cell_id" => cell_id,
         "type" => "completion",
@@ -306,7 +306,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("#session")
+      |> element(~s{[data-element="session"]})
       |> render_hook("intellisense_request", %{
         "cell_id" => cell_id,
         "type" => "completion",

@@ -209,7 +209,7 @@
   }
 
   .menu-item {
-    @apply w-full flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 whitespace-nowrap;
+    @apply w-full flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 focus:bg-gray-50 whitespace-nowrap;
   }
 
   /* Boxes */

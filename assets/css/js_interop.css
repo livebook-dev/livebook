@@ -44,6 +44,22 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-element="notebook-headline"]:hover [data-element="heading"],
+[data-element="section-headline"]:hover [data-element="heading"] {
+  @apply border-blue-200;
+}
+
+[data-element="notebook-headline"][data-js-focused] [data-element="heading"],
+[data-element="section-headline"][data-js-focused] [data-element="heading"] {
+  @apply border-blue-300;
+}
+
+[data-element="section-headline"]:not(:hover):not([data-js-focused])
+  [data-element="heading"]
+  + [data-element="section-actions"]:not(:focus-within) {
+  @apply hidden;
+}
+
 [data-element="cell"][data-js-focused] {
   @apply border-blue-300 border-opacity-100;
 }
@@ -123,12 +139,6 @@ solely client-side operations.
 [data-element="session"][data-js-side-panel-content="runtime-info"]
   [data-element="runtime-info-toggle"] {
   @apply text-gray-50 bg-gray-700;
-}
-
-[data-element="section-headline"]:not(:hover)
-  [data-element="section-name"]:not(:focus)
-  + [data-element="section-actions"]:not(:focus-within) {
-  @apply hidden;
 }
 
 [data-element="clients-list-item"]:not([data-js-followed])

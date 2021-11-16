@@ -13,8 +13,10 @@ import scrollIntoView from "scroll-into-view-if-needed";
  *
  * Configuration:
  *
+ *   * `data-focusable-id` - an identifier for the focus/insert navigation
  *   * `data-cell-id` - id of the cell being edited
  *   * `data-type` - type of the cell
+ *   * `data-session-path` - root path to the current session
  */
 const Cell = {
   mounted() {
@@ -136,15 +138,22 @@ const Cell = {
       const input = getInput(this);
 
       input.addEventListener("blur", (event) => {
-        if (this.state.isFocused && this.state.insertMode) {
-          // We are still in the insert mode, so focus the input
-          // back once other handlers complete
-          setTimeout(() => {
+        // Wait for other handlers to complete and if still in insert
+        // force focus
+        setTimeout(() => {
+          if (this.state.isFocused && this.state.insertMode) {
             input.focus();
-          }, 0);
-        }
+          }
+        }, 0);
       });
     }
+
+    this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
+      "navigation",
+      (event) => {
+        handleNavigationEvent(this, event);
+      }
+    );
 
     this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
       "cells",
@@ -155,6 +164,7 @@ const Cell = {
   },
 
   destroyed() {
+    this._unsubscribeFromNavigationEvents();
     this._unsubscribeFromCellsEvents();
 
     if (this.state.liveEditor) {
@@ -184,24 +194,31 @@ function getInput(hook) {
 }
 
 /**
- * Handles client-side cells event.
+ * Handles client-side navigation event.
  */
-function handleCellsEvent(hook, event) {
-  if (event.type === "cell_focused") {
-    handleCellFocused(hook, event.cellId, event.scroll);
+function handleNavigationEvent(hook, event) {
+  if (event.type === "element_focused") {
+    handleElementFocused(hook, event.focusableId, event.scroll);
   } else if (event.type === "insert_mode_changed") {
     handleInsertModeChanged(hook, event.enabled);
-  } else if (event.type === "cell_moved") {
-    handleCellMoved(hook, event.cellId);
-  } else if (event.type === "cell_upload") {
-    handleCellUpload(hook, event.cellId, event.url);
   } else if (event.type === "location_report") {
     handleLocationReport(hook, event.client, event.report);
   }
 }
 
-function handleCellFocused(hook, cellId, scroll) {
-  if (hook.props.cellId === cellId) {
+/**
+ * Handles client-side cells event.
+ */
+function handleCellsEvent(hook, event) {
+  if (event.type === "cell_moved") {
+    handleCellMoved(hook, event.cellId);
+  } else if (event.type === "cell_upload") {
+    handleCellUpload(hook, event.cellId, event.url);
+  }
+}
+
+function handleElementFocused(hook, focusableId, scroll) {
+  if (hook.props.cellId === focusableId) {
     hook.state.isFocused = true;
     hook.el.setAttribute("data-js-focused", "true");
     if (scroll) {
@@ -277,7 +294,7 @@ function handleLocationReport(hook, client, report) {
     return;
   }
 
-  if (hook.props.cellId === report.cellId && report.selection) {
+  if (hook.props.cellId === report.focusableId && report.selection) {
     hook.state.liveEditor.updateUserSelection(client, report.selection);
   } else {
     hook.state.liveEditor.removeUserSelection(client);
@@ -291,7 +308,7 @@ function broadcastSelection(hook, selection = null) {
   if (hook.state.isFocused && hook.state.insertMode) {
     globalPubSub.broadcast("session", {
       type: "cursor_selection_changed",
-      cellId: hook.props.cellId,
+      focusableId: hook.props.cellId,
       selection,
     });
   }

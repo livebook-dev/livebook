@@ -11,7 +11,7 @@ import "phoenix_html";
 import { Socket } from "phoenix";
 import topbar from "topbar";
 import { LiveSocket } from "phoenix_live_view";
-import ContentEditable from "./content_editable";
+import Headline from "./headline";
 import Cell from "./cell";
 import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
@@ -28,7 +28,7 @@ import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
 const hooks = {
-  ContentEditable,
+  Headline,
   Cell,
   Session,
   FocusOnUpdate,
