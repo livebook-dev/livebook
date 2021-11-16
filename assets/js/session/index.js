@@ -1012,21 +1012,6 @@ function getFocusableIds() {
   return elements.map((el) => el.getAttribute("data-focusable-id"));
 }
 
-function getCellIds() {
-  const cells = getCells();
-  return cells.map((cell) => cell.getAttribute("data-cell-id"));
-}
-
-function getCells() {
-  return Array.from(document.querySelectorAll(`[data-element="cell"]`));
-}
-
-function getCellById(cellId) {
-  return document.querySelector(
-    `[data-element="cell"][data-cell-id="${cellId}"]`
-  );
-}
-
 function getSectionIdByFocusableId(focusableId) {
   const el = getFocusableEl(focusableId);
   const section = el.closest(`[data-element="section"]`);
