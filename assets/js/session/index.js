@@ -95,18 +95,24 @@ const Session = {
 
     document.addEventListener("mousedown", this.handleDocumentMouseDown);
 
-    this.handleDocumentDoubleClick = (event) => {
-      handleDocumentDoubleClick(this, event);
-    };
-
-    document.addEventListener("dblclick", this.handleDocumentDoubleClick);
-
     this.handleDocumentFocus = (event) => {
       handleDocumentFocus(this, event);
     };
 
     // Note: the focus event doesn't bubble, so we register for the capture phase
     document.addEventListener("focus", this.handleDocumentFocus, true);
+
+    this.handleDocumentClick = (event) => {
+      handleDocumentClick(this, event);
+    };
+
+    document.addEventListener("click", this.handleDocumentClick);
+
+    this.handleDocumentDoubleClick = (event) => {
+      handleDocumentDoubleClick(this, event);
+    };
+
+    document.addEventListener("dblclick", this.handleDocumentDoubleClick);
 
     getSectionsList().addEventListener("click", (event) => {
       handleSectionsListClick(this, event);
@@ -232,8 +238,9 @@ const Session = {
 
     document.removeEventListener("keydown", this.handleDocumentKeyDown, true);
     document.removeEventListener("mousedown", this.handleDocumentMouseDown);
-    document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
     document.removeEventListener("focus", this.handleDocumentFocus, true);
+    document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
 
     setFavicon("favicon");
   },
@@ -399,24 +406,18 @@ function handleDocumentMouseDown(hook, event) {
     return;
   }
 
-  // If the pencil icon is clicked, enter insert mode
-  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
-    setInsertMode(hook, true);
-    return;
-  }
-
-  // If a cell action is clicked, keep the focus as is
-  if (event.target.closest(`[data-element="actions"]`)) {
-    return;
-  }
-
   // Find the focusable element, if one was clicked
   const focusableEl = event.target.closest(`[data-focusable-id]`);
   const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
   const insertMode = editableElementClicked(event, focusableEl);
 
   if (focusableId !== hook.state.focusedId) {
-    setFocusedEl(hook, focusableId, { scroll: false });
+    setFocusedEl(hook, focusableId, { scroll: false, focusElement: false });
+  }
+
+  // If a cell action is clicked, keep the insert mode as is
+  if (event.target.closest(`[data-element="actions"]`)) {
+    return;
   }
 
   // Depending on whether the click targets editor or input disable/enable insert mode
@@ -437,19 +438,6 @@ function editableElementClicked(event, element) {
 }
 
 /**
- * Enters insert mode when a markdown cell is double-clicked.
- */
-function handleDocumentDoubleClick(hook, event) {
-  const markdownCell = event.target.closest(
-    `[data-element="cell"][data-type="markdown"]`
-  );
-
-  if (markdownCell && hook.state.focusedId && !hook.state.insertMode) {
-    setInsertMode(hook, true);
-  }
-}
-
-/**
  * Focuses a focusable element if the user "tab"s anywhere into it.
  */
 function handleDocumentFocus(hook, event) {
@@ -459,8 +447,30 @@ function handleDocumentFocus(hook, event) {
     const focusableId = focusableEl.dataset.focusableId;
 
     if (focusableId !== hook.state.focusedId) {
-      setFocusedEl(hook, focusableId, { focusElement: false });
+      setFocusedEl(hook, focusableId, { scroll: false, focusElement: false });
     }
+  }
+}
+
+/**
+ * Enters insert mode when markdown edit action is clicked.
+ */
+function handleDocumentClick(hook, event) {
+  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
+    setInsertMode(hook, true);
+  }
+}
+
+/**
+ * Enters insert mode when a markdown cell is double-clicked.
+ */
+function handleDocumentDoubleClick(hook, event) {
+  const markdownCell = event.target.closest(
+    `[data-element="cell"][data-type="markdown"]`
+  );
+
+  if (markdownCell && hook.state.focusedId && !hook.state.insertMode) {
+    setInsertMode(hook, true);
   }
 }
 
@@ -973,7 +983,7 @@ function nearbyFocusableId(focusableId, offset) {
   if (idx === -1) {
     return focusableIds[0];
   } else {
-    const siblingIdx = clamp(idx + offset, 0, focusableId.length - 1);
+    const siblingIdx = clamp(idx + offset, 0, focusableIds.length - 1);
     return focusableIds[siblingIdx];
   }
 }

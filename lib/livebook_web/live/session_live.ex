@@ -73,7 +73,7 @@ defmodule LivebookWeb.SessionLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-grow h-full"
-      id="session"
+      id={"session-#{@session.id}"}
       data-element="session"
       phx-hook="Session"
       data-global-status={elem(@data_view.global_status, 0)}
