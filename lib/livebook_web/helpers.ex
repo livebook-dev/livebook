@@ -34,6 +34,8 @@ defmodule LivebookWeb.Helpers do
         <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@class}"}
           role="dialog"
           aria-modal="true"
+          tabindex="0"
+          autofocus
           phx-window-keydown={click_modal_close()}
           phx-click-away={click_modal_close()}
           phx-key="escape">
