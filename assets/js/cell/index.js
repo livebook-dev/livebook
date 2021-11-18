@@ -231,43 +231,47 @@ function handleElementFocused(hook, focusableId, scroll) {
 }
 
 function handleInsertModeChanged(hook, insertMode) {
-  if (hook.state.isFocused) {
+  const input = getInput(hook);
+
+  if (hook.state.isFocused && !hook.state.insertMode && insertMode) {
     hook.state.insertMode = insertMode;
 
     if (hook.state.liveEditor) {
-      if (hook.state.insertMode) {
+      // For some reason, when clicking the editor for a brief moment it is
+      // already focused and the cursor is in the previous location, which
+      // makes the browser immediately scroll there. We blur the editor,
+      // then wait for the editor to update the cursor position, finally
+      // we focus the editor and scroll if the cursor is not in the view
+      // (when entering insert mode with "i").
+      hook.state.liveEditor.blur();
+      setTimeout(() => {
         hook.state.liveEditor.focus();
-        // The insert mode may be enabled as a result of clicking the editor,
-        // in which case we want to wait until editor handles the click
-        // and sets new cursor position.
-        // To achieve this, we simply put this task at the end of event loop,
-        // ensuring all click handlers are executed first.
-        setTimeout(() => {
-          scrollIntoView(document.activeElement, {
-            scrollMode: "if-needed",
-            behavior: "smooth",
-            block: "center",
-          });
-        }, 0);
+        scrollIntoView(document.activeElement, {
+          scrollMode: "if-needed",
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 0);
 
-        broadcastSelection(hook);
-      } else {
-        hook.state.liveEditor.blur();
-      }
+      broadcastSelection(hook);
     }
 
-    const input = getInput(hook);
+    if (input) {
+      input.focus();
+      // selectionStart is only supported on text based input
+      if (input.selectionStart !== null) {
+        input.selectionStart = input.selectionEnd = input.value.length;
+      }
+    }
+  } else if (hook.state.insertMode && !insertMode) {
+    hook.state.insertMode = insertMode;
+
+    if (hook.state.liveEditor) {
+      hook.state.liveEditor.blur();
+    }
 
     if (input) {
-      if (hook.state.insertMode) {
-        input.focus();
-        // selectionStart is only supported on text based input
-        if (input.selectionStart !== null) {
-          input.selectionStart = input.selectionEnd = input.value.length;
-        }
-      } else {
-        input.blur();
-      }
+      input.blur();
     }
   }
 }

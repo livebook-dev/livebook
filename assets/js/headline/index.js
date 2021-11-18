@@ -95,25 +95,24 @@ function handleElementFocused(hook, cellId, scroll) {
 }
 
 function handleInsertModeChanged(hook, insertMode) {
-  if (hook.state.isFocused) {
+  const heading = getHeading(hook);
+
+  if (hook.state.isFocused && !hook.state.insertMode && insertMode) {
     hook.state.insertMode = insertMode;
 
-    const heading = getHeading(hook);
-
-    if (hook.state.insertMode) {
-      // While in insert mode, ignore the incoming changes
-      hook.el.setAttribute("phx-update", "ignore");
-      heading.setAttribute("contenteditable", "true");
-      heading.focus();
-      moveSelectionToEnd(heading);
-    } else {
-      heading.removeAttribute("contenteditable");
-      hook.el.removeAttribute("phx-update");
-      hook.pushEvent(hook.props.onValueChange, {
-        value: headingValue(heading),
-        metadata: hook.props.metadata,
-      });
-    }
+    // While in insert mode, ignore the incoming changes
+    hook.el.setAttribute("phx-update", "ignore");
+    heading.setAttribute("contenteditable", "true");
+    heading.focus();
+    moveSelectionToEnd(heading);
+  } else if (hook.state.insertMode && !insertMode) {
+    hook.state.insertMode = insertMode;
+    heading.removeAttribute("contenteditable");
+    hook.el.removeAttribute("phx-update");
+    hook.pushEvent(hook.props.onValueChange, {
+      value: headingValue(heading),
+      metadata: hook.props.metadata,
+    });
   }
 }
 
