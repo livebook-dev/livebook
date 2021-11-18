@@ -24,6 +24,7 @@ import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
 import DragAndDrop from "./darg_and_drop";
 import PasswordToggle from "./password_toggle";
+import Controls from "./controls";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
@@ -41,6 +42,7 @@ const hooks = {
   Highlight,
   DragAndDrop,
   PasswordToggle,
+  Controls,
 };
 
 const csrfToken = document

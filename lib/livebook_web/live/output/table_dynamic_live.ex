@@ -6,7 +6,9 @@ defmodule LivebookWeb.Output.TableDynamicLive do
 
   @impl true
   def mount(_params, %{"pid" => pid, "id" => id}, socket) do
-    send(pid, {:connect, self()})
+    if connected?(socket) do
+      send(pid, {:connect, self()})
+    end
 
     {:ok,
      assign(socket,

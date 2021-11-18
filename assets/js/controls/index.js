@@ -1,0 +1,89 @@
+import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
+import { cancelEvent } from "../lib/utils";
+
+/**
+ * A hook for ControlsDynamicLive to handle user interactions
+ * with more control.
+ *
+ * Configuration:
+ *
+ *   * `data-keydown-enabled` - whether keydown events should be intercepted
+ *
+ *   * `data-keyup-enabled` - whether keyup events should be intercepted
+ */
+const Controls = {
+  mounted() {
+    this.props = getProps(this);
+
+    this.handleDocumentKeyDown = (event) => {
+      handleDocumentKeyDown(this, event);
+    };
+
+    // We intentionally register on window rather than document,
+    // to intercept clicks as early on as possible, even before
+    // the session shortcuts
+    window.addEventListener("keydown", this.handleDocumentKeyDown, true);
+
+    this.handleDocumentKeyUp = (event) => {
+      handleDocumentKeyUp(this, event);
+    };
+
+    window.addEventListener("keyup", this.handleDocumentKeyUp, true);
+  },
+
+  updated() {
+    this.props = getProps(this);
+  },
+
+  destroyed() {
+    window.removeEventListener("keydown", this.handleDocumentKeyDown, true);
+    window.removeEventListener("keyup", this.handleDocumentKeyUp, true);
+  },
+};
+
+function getProps(hook) {
+  return {
+    isKeydownEnabled: getAttributeOrThrow(
+      hook.el,
+      "data-keydown-enabled",
+      parseBoolean
+    ),
+    isKeyupEnabled: getAttributeOrThrow(
+      hook.el,
+      "data-keyup-enabled",
+      parseBoolean
+    ),
+  };
+}
+
+function handleDocumentKeyDown(hook, event) {
+  if (keyboardEnabled(hook)) {
+    cancelEvent(event);
+  }
+
+  if (hook.props.isKeydownEnabled) {
+    if (event.repeat) {
+      return;
+    }
+
+    const key = event.key;
+    hook.pushEvent("keydown", { key });
+  }
+}
+
+function handleDocumentKeyUp(hook, event) {
+  if (keyboardEnabled(hook)) {
+    cancelEvent(event);
+  }
+
+  if (hook.props.isKeyupEnabled) {
+    const key = event.key;
+    hook.pushEvent("keyup", { key });
+  }
+}
+
+function keyboardEnabled(hook) {
+  return hook.props.isKeydownEnabled || hook.props.isKeyupEnabled;
+}
+
+export default Controls;

@@ -59,6 +59,13 @@ defmodule LivebookWeb.Output do
     )
   end
 
+  def render_output({:controls_dynamic, pid}, %{id: id, socket: socket}) do
+    live_render(socket, LivebookWeb.Output.ControlsDynamicLive,
+      id: id,
+      session: %{"id" => id, "pid" => pid}
+    )
+  end
+
   def render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})
       when runtime != nil do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}

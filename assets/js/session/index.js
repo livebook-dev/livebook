@@ -5,6 +5,7 @@ import {
   selectElementContent,
   smoothlyScrollToElement,
   setFavicon,
+  cancelEvent,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
@@ -566,7 +567,7 @@ function initializeFocus(hook) {
     const element = document.getElementById(htmlId);
 
     if (element) {
-      const focusableEl = elementelement.closest("[data-focusable-id]");
+      const focusableEl = element.closest("[data-focusable-id]");
 
       if (focusableEl) {
         setFocusedEl(hook, focusableEl.dataset.focusableId);
@@ -1059,13 +1060,6 @@ function getClientsListToggle() {
 
 function getRuntimeInfoToggle() {
   return document.querySelector(`[data-element="runtime-info-toggle"]`);
-}
-
-function cancelEvent(event) {
-  // Cancel any default browser behavior.
-  event.preventDefault();
-  // Stop event propagation (e.g. so it doesn't reach the editor).
-  event.stopPropagation();
 }
 
 export default Session;
