@@ -437,6 +437,15 @@ defmodule Livebook.SessionTest do
   # Integration tests concerning input communication
   # between runtime and session
 
+  @livebook_put_input_code """
+  input = %{id: "input1", type: :number, label: "Name", default: "hey"}
+
+  send(
+    Process.group_leader(),
+    {:io_request, self(), make_ref(), {:livebook_put_output, {:input, input}}}
+  )
+  """
+
   @livebook_get_input_value_code """
   ref = make_ref()
   send(Process.group_leader(), {:io_request, self(), ref, {:livebook_get_input_value, "input1"}})
@@ -449,7 +458,7 @@ defmodule Livebook.SessionTest do
   describe "user input" do
     test "replies to runtime input request" do
       input = %{id: "input1", type: :number, label: "Name", default: "hey"}
-      input_elixir_cell = %{Notebook.Cell.new(:elixir) | outputs: [{:input, input}]}
+      input_elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_put_input_code}
 
       elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_get_input_value_code}
 
