@@ -195,8 +195,7 @@ defmodule Livebook.Session.Data do
 
   defp initial_input_values(notebook) do
     for section <- notebook.sections,
-        cell <- section.cells,
-        is_struct(cell, Cell.Elixir),
+        %Cell.Elixir{} = cell <- section.cells,
         output <- cell.outputs,
         attrs <- Cell.Elixir.find_inputs_in_output(output),
         into: %{},
