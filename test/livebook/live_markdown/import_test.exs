@@ -29,13 +29,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
-
     ```elixir
     IO.gets("length: ")
     ```
-
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
 
     <!-- livebook:{"branch_parent_index":1} -->
 
@@ -85,21 +81,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  id: section2_id,
                  name: "Section 2",
                  cells: [
-                   %Cell.Input{
-                     type: :text,
-                     name: "length",
-                     value: "100"
-                   },
                    %Cell.Elixir{
                      source: """
                      IO.gets("length: ")\
                      """
-                   },
-                   %Cell.Input{
-                     type: :range,
-                     name: "length",
-                     value: "100",
-                     props: %{min: 50, max: 150, step: 2}
                    }
                  ]
                },
@@ -451,35 +436,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
-  test "sets default input types props if not provided" do
-    markdown = """
-    # My Notebook
-
-    ## Section 1
-
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"extra":100,"max":150},"type":"range","value":"100"} -->
-    """
-
-    {notebook, []} = Import.notebook_from_markdown(markdown)
-
-    expected_props = %{min: 0, max: 150, step: 1}
-
-    assert %Notebook{
-             name: "My Notebook",
-             sections: [
-               %Notebook.Section{
-                 name: "Section 1",
-                 cells: [
-                   %Cell.Input{
-                     type: :range,
-                     props: ^expected_props
-                   }
-                 ]
-               }
-             ]
-           } = notebook
-  end
-
   test "imports markdown content into separate cells when a break annotation is encountered" do
     markdown = """
     # My Notebook
@@ -762,23 +718,23 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
-  test "skips invalid input type and returns a message" do
-    markdown = """
-    # My Notebook
-
-    ## Section 1
-
-    <!-- livebook:{"livebook_object":"cell_input","type":"input_from_the_future"} -->
-    """
-
-    {_notebook, messages} = Import.notebook_from_markdown(markdown)
-
-    assert [
-             ~s{unrecognised input type "input_from_the_future", if it's a valid type it means your Livebook version doesn't support it}
-           ] == messages
-  end
-
   describe "backward compatibility" do
+    test "warns if the imported notebook includes an input" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
+      """
+
+      {_notebook, messages} = Import.notebook_from_markdown(markdown)
+
+      assert [
+               "found an input cell, but those are no longer supported, please use Kino.Input instead"
+             ] == messages
+    end
+
     test "warns if the imported notebook includes a reactive input" do
       markdown = """
       # My Notebook
@@ -791,7 +747,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       {_notebook, messages} = Import.notebook_from_markdown(markdown)
 
       assert [
-               "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
+               "found an input cell, but those are no longer supported, please use Kino.Input instead." <>
+                 " Also, to make the input reactive you can use an automatically reevaluating cell"
              ] == messages
     end
   end

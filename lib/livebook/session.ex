@@ -298,6 +298,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Asynchronously sends a input value update to the server.
+  """
+  @spec set_input_value(pid(), Session.input_id(), term()) :: :ok
+  def set_input_value(pid, input_id, value) do
+    GenServer.cast(pid, {:set_input_value, self(), input_id, value})
+  end
+
+  @doc """
   Asynchronously connects to the given runtime.
 
   Note that this results in initializing the corresponding remote node
@@ -558,6 +566,11 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:set_input_value, client_pid, input_id, value}, state) do
+    operation = {:set_input_value, client_pid, input_id, value}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:connect_runtime, client_pid, runtime}, state) do
     if state.data.runtime do
       Runtime.disconnect(state.data.runtime)
@@ -639,27 +652,17 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:evaluation_input, cell_id, reply_to, prompt}, state) do
-    input_cell = Notebook.input_cell_for_prompt(state.data.notebook, cell_id, prompt)
-
-    reply =
-      with {:ok, cell} <- input_cell,
-           :ok <- Cell.Input.validate(cell) do
-        {:ok, cell.value <> "\n"}
+  def handle_info({:evaluation_input, cell_id, reply_to, input_id}, state) do
+    {reply, state} =
+      with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
+           {:ok, value} <- Map.fetch(state.data.input_values, input_id) do
+        state = handle_operation(state, {:bind_input, self(), cell.id, input_id})
+        {{:ok, value}, state}
       else
-        _ -> :error
+        _ -> {:error, state}
       end
 
     send(reply_to, {:evaluation_input_reply, reply})
-
-    state =
-      case input_cell do
-        {:ok, input_cell} ->
-          handle_operation(state, {:bind_input, self(), cell_id, input_cell.id})
-
-        :error ->
-          state
-      end
 
     {:noreply, state}
   end

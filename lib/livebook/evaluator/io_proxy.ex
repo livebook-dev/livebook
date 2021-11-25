@@ -30,7 +30,8 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   @doc """
-  Sets IO proxy destination and the reference to be attached to all messages.
+  Sets IO proxy destination and the reference to be attached
+  to all messages.
 
   For all supported requests a message is sent to `target`,
   so this device serves as a proxy. The given evaluation
@@ -38,8 +39,12 @@ defmodule Livebook.Evaluator.IOProxy do
 
   The possible messages are:
 
-  * `{:evaluation_output, ref, string}` - for output requests,
-    where `ref` is the given evaluation reference and `string` is the output.
+    * `{:evaluation_output, ref, output}`
+
+    * `{:evaluation_input, ref, reply_to, input_id}`
+
+  As described by the `Livebook.Runtime` protocol. The `ref`
+  is always the given evaluation reference.
   """
   @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
   def configure(pid, target, ref) do
@@ -47,7 +52,8 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   @doc """
-  Synchronously sends all buffer contents to the configured target process.
+  Synchronously sends all buffer contents to the configured
+  target process.
   """
   @spec flush(pid()) :: :ok
   def flush(pid) do
@@ -58,9 +64,9 @@ defmodule Livebook.Evaluator.IOProxy do
   Asynchronously clears all buffered inputs, so next time they
   are requested again.
   """
-  @spec clear_input_buffers(pid()) :: :ok
-  def clear_input_buffers(pid) do
-    GenServer.cast(pid, :clear_input_buffers)
+  @spec clear_input_cache(pid()) :: :ok
+  def clear_input_cache(pid) do
+    GenServer.cast(pid, :clear_input_cache)
   end
 
   @doc """
@@ -81,18 +87,19 @@ defmodule Livebook.Evaluator.IOProxy do
        target: nil,
        ref: nil,
        buffer: [],
-       input_buffers: %{},
-       widget_pids: MapSet.new()
+       input_cache: %{},
+       widget_pids: MapSet.new(),
+       token_count: 0
      }}
   end
 
   @impl true
   def handle_cast({:configure, target, ref}, state) do
-    {:noreply, %{state | target: target, ref: ref}}
+    {:noreply, %{state | target: target, ref: ref, token_count: 0}}
   end
 
-  def handle_cast(:clear_input_buffers, state) do
-    {:noreply, %{state | input_buffers: %{}}}
+  def handle_cast(:clear_input_cache, state) do
+    {:noreply, %{state | input_cache: %{}}}
   end
 
   @impl true
@@ -131,28 +138,28 @@ defmodule Livebook.Evaluator.IOProxy do
     put_chars(encoding, apply(mod, fun, args), req, state)
   end
 
-  defp io_request({:get_chars, prompt, count}, state) when count >= 0 do
-    get_chars(:latin1, prompt, count, state)
+  defp io_request({:get_chars, _prompt, count}, state) when count >= 0 do
+    {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_chars, encoding, prompt, count}, state) when count >= 0 do
-    get_chars(encoding, prompt, count, state)
+  defp io_request({:get_chars, _encoding, _prompt, count}, state) when count >= 0 do
+    {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_line, prompt}, state) do
-    get_line(:latin1, prompt, state)
+  defp io_request({:get_line, _prompt}, state) do
+    {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_line, encoding, prompt}, state) do
-    get_line(encoding, prompt, state)
+  defp io_request({:get_line, _encoding, _prompt}, state) do
+    {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_until, prompt, mod, fun, args}, state) do
-    get_until(:latin1, prompt, mod, fun, args, state)
+  defp io_request({:get_until, _prompt, _mod, _fun, _args}, state) do
+    {{:error, :enotsup}, state}
   end
 
-  defp io_request({:get_until, encoding, prompt, mod, fun, args}, state) do
-    get_until(encoding, prompt, mod, fun, args, state)
+  defp io_request({:get_until, _encoding, _prompt, _mod, _fun, _args}, state) do
+    {{:error, :enotsup}, state}
   end
 
   defp io_request({:get_password, _encoding}, state) do
@@ -183,9 +190,11 @@ defmodule Livebook.Evaluator.IOProxy do
     io_requests(reqs, {:ok, state})
   end
 
-  # Livebook custom request type, handled in a special manner
+  # Livebook custom request types, handled in a special manner
   # by IOProxy and safely failing for any other IO device
   # (resulting in the {:error, :request} response).
+  # Those requests are generally made by Kino
+
   defp io_request({:livebook_put_output, output}, state) do
     state = flush_buffer(state)
     send(state.target, {:evaluation_output, state.ref, output})
@@ -197,6 +206,22 @@ defmodule Livebook.Evaluator.IOProxy do
       end
 
     {:ok, state}
+  end
+
+  defp io_request({:livebook_get_input_value, input_id}, state) do
+    input_cache =
+      Map.put_new_lazy(state.input_cache, input_id, fn ->
+        request_input_value(input_id, state)
+      end)
+
+    {input_cache[input_id], %{state | input_cache: input_cache}}
+  end
+
+  # Token is a unique, reevaluation-safe opaque identifier
+  defp io_request(:livebook_generate_token, state) do
+    token = {state.ref, state.token_count}
+    state = update_in(state.token_count, &(&1 + 1))
+    {token, state}
   end
 
   defp io_request(_, state) do
@@ -227,147 +252,24 @@ defmodule Livebook.Evaluator.IOProxy do
     ArgumentError -> {{:error, req}, state}
   end
 
-  defp get_line(encoding, prompt, state) do
-    get_consume(encoding, prompt, state, fn input ->
-      line_from_input(input)
-    end)
-  end
-
-  defp get_chars(encoding, prompt, count, state) do
-    get_consume(encoding, prompt, state, fn input ->
-      chars_from_input(input, encoding, count)
-    end)
-  end
-
-  defp get_until(encoding, prompt, mod, fun, args, state) do
-    get_consume(encoding, prompt, state, fn input ->
-      get_until_from_input(input, encoding, mod, fun, args)
-    end)
-  end
-
-  defp get_consume(encoding, prompt, state, consume_fun) do
-    prompt = :unicode.characters_to_binary(prompt, encoding, state.encoding)
-
-    case get_input(prompt, state) do
-      input when is_binary(input) ->
-        {chars, rest} = consume_fun.(input)
-        state = put_in(state.input_buffers[prompt], rest)
-        {chars, state}
-
-      error ->
-        {error, state}
-    end
-  end
-
-  defp get_input(prompt, state) do
-    Map.get_lazy(state.input_buffers, prompt, fn ->
-      request_input(prompt, state)
-    end)
-  end
-
-  defp request_input(prompt, state) do
-    send(state.target, {:evaluation_input, state.ref, self(), prompt})
+  defp request_input_value(input_id, state) do
+    send(state.target, {:evaluation_input, state.ref, self(), input_id})
 
     ref = Process.monitor(state.target)
 
     receive do
-      {:evaluation_input_reply, {:ok, string}} ->
+      {:evaluation_input_reply, {:ok, value}} ->
         Process.demonitor(ref, [:flush])
-        string
+        {:ok, value}
 
       {:evaluation_input_reply, :error} ->
         Process.demonitor(ref, [:flush])
-        {:error, "no matching Livebook input found"}
+        {:error, :not_found}
 
       {:DOWN, ^ref, :process, _object, _reason} ->
         {:error, :terminated}
     end
   end
-
-  defp line_from_input(""), do: {:eof, ""}
-
-  defp line_from_input(input) do
-    case :binary.match(input, ["\r\n", "\n"]) do
-      :nomatch ->
-        {input, ""}
-
-      {pos, len} ->
-        :erlang.split_binary(input, pos + len)
-    end
-  end
-
-  defp chars_from_input("", _encoding, _count), do: {:eof, ""}
-
-  defp chars_from_input(input, :unicode, count) do
-    {:ok, count} = utf8_split_at(input, count)
-    :erlang.split_binary(input, count)
-  end
-
-  defp chars_from_input(input, :latin1, count) do
-    if byte_size(input) > count do
-      :erlang.split_binary(input, count)
-    else
-      {input, ""}
-    end
-  end
-
-  defp utf8_split_at(input, count), do: utf8_split_at(input, count, 0)
-
-  defp utf8_split_at(_, 0, acc), do: {:ok, acc}
-
-  defp utf8_split_at(<<h::utf8, t::binary>>, count, acc),
-    do: utf8_split_at(t, count - 1, acc + byte_size(<<h::utf8>>))
-
-  defp utf8_split_at(<<_, _::binary>>, _count, _acc),
-    do: {:error, :invalid_unicode}
-
-  defp utf8_split_at(<<>>, _count, acc),
-    do: {:ok, acc}
-
-  defp get_until_from_input(input, encoding, mod, fun, args) do
-    {chars, rest} = get_until_from_input(input, encoding, mod, fun, args, [])
-    {get_until_result(chars, encoding), rest}
-  end
-
-  defp get_until_from_input("", encoding, mod, fun, args, continuation) do
-    case apply(mod, fun, [continuation, :eof | args]) do
-      {:done, result, :eof} ->
-        {result, ""}
-
-      {:done, result, rest} ->
-        {result, list_to_binary(rest, encoding)}
-
-      {:more, next_continuation} ->
-        get_until_from_input("", encoding, mod, fun, args, next_continuation)
-    end
-  end
-
-  defp get_until_from_input(input, encoding, mod, fun, args, continuation) do
-    {line, rest} = line_from_input(input)
-
-    case apply(mod, fun, [continuation, binary_to_list(line, encoding) | args]) do
-      {:done, result, :eof} ->
-        {result, rest}
-
-      {:done, result, extra} ->
-        {result, list_to_binary(extra, encoding) <> rest}
-
-      {:more, next_continuation} ->
-        get_until_from_input(rest, encoding, mod, fun, args, next_continuation)
-    end
-  end
-
-  defp binary_to_list(data, :unicode) when is_binary(data), do: String.to_charlist(data)
-  defp binary_to_list(data, :latin1) when is_binary(data), do: :erlang.binary_to_list(data)
-
-  defp list_to_binary(data, _) when is_binary(data), do: data
-  defp list_to_binary(data, :unicode) when is_list(data), do: List.to_string(data)
-  defp list_to_binary(data, :latin1) when is_list(data), do: :erlang.list_to_binary(data)
-
-  # From https://erlang.org/doc/apps/stdlib/io_protocol.html - result can be any
-  # Erlang term, but if it is a list(), the I/O server can convert it to a binary().
-  defp get_until_result(data, encoding) when is_list(data), do: list_to_binary(data, encoding)
-  defp get_until_result(data, _), do: data
 
   defp io_reply(from, reply_as, reply) do
     send(from, {:io_reply, reply_as, reply})

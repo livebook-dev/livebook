@@ -326,9 +326,15 @@ function handleDocumentKeyDown(hook, event) {
       saveNotebook(hook);
     }
   } else {
-    // Ignore inputs and notebook/section title fields
+    // Ignore keystrokes on input fields
     if (isEditableElement(event.target)) {
       keyBuffer.reset();
+
+      // Use Escape for universal blur
+      if (key === "Escape") {
+        event.target.blur();
+      }
+
       return;
     }
 
@@ -429,7 +435,7 @@ function handleDocumentMouseDown(hook, event) {
 function editableElementClicked(event, element) {
   if (element) {
     const editableElement = element.querySelector(
-      `[data-element="editor-container"], [data-element="input"], [data-element="heading"]`
+      `[data-element="editor-container"], [data-element="heading"]`
     );
     return editableElement.contains(event.target);
   }

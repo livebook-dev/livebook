@@ -2,10 +2,10 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
   use LivebookWeb, :live_view
 
   @impl true
-  def mount(_params, %{"pid" => pid, "id" => id}, socket) do
+  def mount(_params, %{"pid" => pid, "id" => id, "input_values" => input_values}, socket) do
     send(pid, {:connect, self()})
 
-    {:ok, assign(socket, id: id, output: nil)}
+    {:ok, assign(socket, id: id, output: nil, input_values: input_values)}
   end
 
   @impl true
@@ -13,11 +13,12 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
     ~H"""
     <div>
       <%= if @output do %>
-        <%= LivebookWeb.Output.render_output(@output, %{
-              id: "#{@id}-frame",
-              socket: @socket,
-              runtime: nil
-            }) %>
+        <LivebookWeb.Output.outputs
+          outputs={[@output]}
+          id={"#{@id}-frame"}
+          socket={@socket}
+          runtime={nil}
+          input_values={@input_values} />
       <% else %>
         <div class="text-gray-300">
           Empty output frame

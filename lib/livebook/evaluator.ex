@@ -243,7 +243,7 @@ defmodule Livebook.Evaluator do
     state = put_in(state.contexts[ref], result_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
-    Evaluator.IOProxy.clear_input_buffers(state.io_proxy)
+    Evaluator.IOProxy.clear_input_cache(state.io_proxy)
 
     output = state.formatter.format_response(response)
     metadata = %{evaluation_time_ms: evaluation_time_ms}
