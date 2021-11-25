@@ -2238,6 +2238,113 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
+
+    test "stores default values for new inputs" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta}
+
+      assert {:ok, %{input_values: %{"i1" => "hey"}}, _} = Data.apply_operation(data, operation)
+    end
+
+    test "keeps input values for inputs that existed" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:set_input_value, self(), "i1", "value"},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      # Output the same input again
+      operation = {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta}
+
+      assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
+    end
+
+    test "garbage collects input values that are no longer used" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:set_input_value, self(), "i1", "value"},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      # This time w don't output the input
+      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, 10}, @eval_meta}
+
+      empty_map = %{}
+
+      assert {:ok, %{input_values: ^empty_map}, _} = Data.apply_operation(data, operation)
+    end
+
+    test "does not garbage collect inputs if present in another cell" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c2", {:input, input}, @eval_meta},
+          {:set_input_value, self(), "i1", "value"},
+          {:queue_cell_evaluation, self(), "c1"}
+        ])
+
+      # This time w don't output the input
+      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, 10}, @eval_meta}
+
+      assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
+    end
+
+    test "does not garbage collect inputs if another evaluation is ongoing" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_section, self(), 2, "s3"},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_section_parent, self(), "s3", "s1"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:set_input_value, self(), "i1", "value"},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:queue_cell_evaluation, self(), "c2"}
+        ])
+
+      # This time w don't output the input
+      operation = {:add_cell_evaluation_response, self(), "c1", {:ok, 10}, @eval_meta}
+
+      assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :bind_input" do
@@ -3081,6 +3188,30 @@ defmodule Livebook.Session.DataTest do
   end
 
   describe "apply_operation/2 given :set_input_value" do
+    test "returns an error given invalid input id" do
+      data = Data.new()
+
+      operation = {:set_input_value, self(), "nonexistent", "stuff"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "stores new input value" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta}
+        ])
+
+      operation = {:set_input_value, self(), "i1", "stuff"}
+
+      assert {:ok, %{input_values: %{"i1" => "stuff"}}, _} = Data.apply_operation(data, operation)
+    end
+
     test "given input value change, marks evaluated bound cells and their dependants as stale" do
       input = %{id: "i1", type: :text, label: "Text", default: "hey"}
 
@@ -3118,13 +3249,6 @@ defmodule Livebook.Session.DataTest do
   end
 
   describe "apply_operation/2 given :set_runtime" do
-    test "returns an error given invalid input id" do
-      data = Data.new()
-
-      operation = {:set_input_value, self(), "nonexistent", "stuff"}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
     test "updates data with the given runtime" do
       data = Data.new()
 

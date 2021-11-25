@@ -427,6 +427,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> add_cell_evaluation_response(cell, output)
       |> finish_cell_evaluation(cell, section, metadata)
+      |> garbage_collect_input_values()
       |> compute_snapshots_and_validity()
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
@@ -951,6 +952,12 @@ defmodule Livebook.Session.Data do
     info.evaluating_cell_id != nil
   end
 
+  defp any_section_evaluating?(data) do
+    Enum.any?(data.notebook.sections, fn section ->
+      section_evaluating?(data, section.id)
+    end)
+  end
+
   defp section_awaits_evaluation?(data, section_id) do
     info = data.section_infos[section_id]
     info.evaluating_cell_id == nil and info.evaluation_queue != []
@@ -1254,6 +1261,16 @@ defmodule Livebook.Session.Data do
       list
     else
       list ++ [item]
+    end
+  end
+
+  defp garbage_collect_input_values({data, _} = data_actions) do
+    if any_section_evaluating?(data) do
+      # Wait if evaluation is ongoing as it may render inputs
+      data_actions
+    else
+      used_input_ids = data.notebook |> initial_input_values() |> Map.keys()
+      set!(data_actions, input_values: Map.take(data.input_values, used_input_ids))
     end
   end
 
