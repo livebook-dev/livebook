@@ -175,8 +175,14 @@ defmodule LivebookWeb.Output.InputComponent do
     if html_value == "" do
       {:ok, nil}
     else
-      {number, ""} = Float.parse(html_value)
-      {:ok, number}
+      case Integer.parse(html_value) do
+        {number, ""} ->
+          {:ok, number}
+
+        _ ->
+          {number, ""} = Float.parse(html_value)
+          {:ok, number}
+      end
     end
   end
 

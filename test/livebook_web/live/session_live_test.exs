@@ -183,7 +183,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s/[data-element="outputs-container"] form/)
       |> render_change(%{"value" => "10"})
 
-      assert %{input_values: %{"input1" => 10.0}} = Session.get_data(session.pid)
+      assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
     end
 
     test "newlines in text input are normalized", %{conn: conn, session: session} do
