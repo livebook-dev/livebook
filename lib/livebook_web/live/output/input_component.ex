@@ -94,6 +94,7 @@ defmodule LivebookWeb.Output.InputComponent do
       data-element="input"
       class="input h-[200px] resize-none tiny-scrollbar"
       name="value"
+      phx-debounce="300"
       spellcheck="false"><%= [?\n, @value] %></textarea>
     """
   end
@@ -163,12 +164,18 @@ defmodule LivebookWeb.Output.InputComponent do
     end
   end
 
-  defp parse(html_value, %{type: :url}) do
-    cond do
-      html_value == "" -> {:ok, nil}
-      Livebook.Utils.valid_url?(html_value) -> {:ok, html_value}
-      true -> {:error, "not a valid URL", html_value}
-    end
+  defp parse(html_value, %{type: :text}) do
+    {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :textarea}) do
+    # The browser may normalize newlines to \r\n, but we prefer just \n
+    value = String.replace(html_value, "\r\n", "\n")
+    {:ok, value}
+  end
+
+  defp parse(html_value, %{type: :password}) do
+    {:ok, html_value}
   end
 
   defp parse(html_value, %{type: :number}) do
@@ -186,13 +193,12 @@ defmodule LivebookWeb.Output.InputComponent do
     end
   end
 
-  defp parse(html_value, %{type: :checkbox}) do
-    {:ok, html_value == "true"}
-  end
-
-  defp parse(html_value, %{type: :range}) do
-    {number, ""} = Float.parse(html_value)
-    {:ok, number}
+  defp parse(html_value, %{type: :url}) do
+    cond do
+      html_value == "" -> {:ok, nil}
+      Livebook.Utils.valid_url?(html_value) -> {:ok, html_value}
+      true -> {:error, "not a valid URL", html_value}
+    end
   end
 
   defp parse(html_value, %{type: :select, options: options}) do
@@ -205,21 +211,16 @@ defmodule LivebookWeb.Output.InputComponent do
     end)
   end
 
-  defp parse(html_value, %{type: :password}) do
-    {:ok, html_value}
+  defp parse(html_value, %{type: :checkbox}) do
+    {:ok, html_value == "true"}
+  end
+
+  defp parse(html_value, %{type: :range}) do
+    {number, ""} = Float.parse(html_value)
+    {:ok, number}
   end
 
   defp parse(html_value, %{type: :color}) do
     {:ok, html_value}
-  end
-
-  defp parse(html_value, %{type: :text}) do
-    {:ok, html_value}
-  end
-
-  defp parse(html_value, %{type: :textarea}) do
-    # The browser may normalize newlines to \r\n, but we prefer just \n
-    value = String.replace(html_value, "\r\n", "\n")
-    {:ok, value}
   end
 end
