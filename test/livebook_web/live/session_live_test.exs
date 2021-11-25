@@ -191,10 +191,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       insert_cell_with_input(session.pid, section_id, %{
         id: "input1",
-        type: :text,
+        type: :textarea,
         label: "Name",
-        default: "hey",
-        mutliline: true
+        default: "hey"
       })
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
