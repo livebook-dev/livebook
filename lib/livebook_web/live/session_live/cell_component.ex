@@ -122,140 +122,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell(%{cell_view: %{type: :input}} = assigns) do
-    ~H"""
-    <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-20 flex items-center justify-end space-x-2"
-        role="toolbar"
-        aria-label="cell actions"
-        data-element="actions">
-        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
-      </div>
-    </div>
-
-    <.cell_body>
-      <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
-        <input type="hidden" name="cell_id" value={@cell_view.id} />
-        <div class="input-label">
-          <%= @cell_view.name %>
-        </div>
-
-        <.cell_input cell_view={@cell_view} />
-
-        <%= if @cell_view.error do %>
-          <div class="input-error">
-            <%= String.capitalize(@cell_view.error) %>
-          </div>
-        <% end %>
-      </form>
-    </.cell_body>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :textarea}} = assigns) do
-    ~H"""
-    <textarea
-      data-element="input"
-      class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
-      name="value"
-      spellcheck="false"
-      tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :range}} = assigns) do
-    ~H"""
-    <div class="flex items-center space-x-2">
-      <div><%= @cell_view.props.min %></div>
-      <input type="range"
-        data-element="input"
-        class="input-range"
-        name="value"
-        value={@cell_view.value}
-        phx-debounce="300"
-        spellcheck="false"
-        autocomplete="off"
-        tabindex="-1"
-        min={@cell_view.props.min}
-        max={@cell_view.props.max}
-        step={@cell_view.props.step} />
-      <div><%= @cell_view.props.max %></div>
-    </div>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :select}} = assigns) do
-    ~H"""
-    <div class="flex items-center space-x-2">
-      <select
-       data-element="input"
-       spellcheck="false"
-       phx-debounce="300"
-       class="input input-select"
-       tabindex="-1"
-       name="value">
-        <%= for option <- @cell_view.props.options do %>
-          <option value={option} selected={option == @cell_view.value}>
-            <%= option %>
-          </option>
-        <% end %>
-      </select>
-    </div>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :checkbox}} = assigns) do
-    ~H"""
-    <div class="mt-1">
-      <.switch_checkbox
-        data-element="input"
-        name="value"
-        checked={@cell_view.value == "true"} />
-    </div>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :password}} = assigns) do
-    ~H"""
-    <.with_password_toggle id={@cell_view.id}>
-      <input type="password"
-        data-element="input"
-        class={"input w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
-        name="value"
-        value={@cell_view.value}
-        phx-debounce="300"
-        spellcheck="false"
-        autocomplete="off"
-        tabindex="-1" />
-    </.with_password_toggle>
-    """
-  end
-
-  defp cell_input(assigns) do
-    ~H"""
-    <input type={html_input_type(@cell_view.input_type)}
-      data-element="input"
-      class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
-      name="value"
-      value={@cell_view.value}
-      phx-debounce="300"
-      spellcheck="false"
-      autocomplete="off"
-      tabindex="-1" />
-    """
-  end
-
-  defp html_input_type(:password), do: "password"
-  defp html_input_type(:number), do: "number"
-  defp html_input_type(:color), do: "color"
-  defp html_input_type(:range), do: "range"
-  defp html_input_type(:select), do: "select"
-  defp html_input_type(_), do: "text"
-
   defp cell_body(assigns) do
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
@@ -474,7 +340,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <%= LivebookWeb.Output.render_output(output, %{
                 id: "cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-output#{index}",
                 socket: @socket,
-                runtime: @runtime
+                runtime: @runtime,
+                input_values: @cell_view.input_values
               }) %>
         </div>
       <% end %>

@@ -436,21 +436,27 @@ defmodule Livebook.SessionTest do
 
   # Integration tests concerning input communication
   # between runtime and session
+
+  @livebook_get_input_value_code """
+  ref = make_ref()
+  send(Process.group_leader(), {:io_request, self(), ref, {:livebook_get_input_value, "input1"}})
+
+  receive do
+    {:io_reply, ^ref, reply} -> reply
+  end
+  """
+
   describe "user input" do
     test "replies to runtime input request" do
-      input_cell = %{Notebook.Cell.new(:input) | name: "name", value: "Jake Peralta"}
+      input = %{id: "input1", type: :number, label: "Name", default: "hey"}
+      input_elixir_cell = %{Notebook.Cell.new(:elixir) | outputs: [{:input, input}]}
 
-      elixir_cell = %{
-        Notebook.Cell.new(:elixir)
-        | source: """
-          IO.gets("name: ")
-          """
-      }
+      elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_get_input_value_code}
 
       notebook = %{
         Notebook.new()
         | sections: [
-            %{Notebook.Section.new() | cells: [input_cell, elixir_cell]}
+            %{Notebook.Section.new() | cells: [input_elixir_cell, elixir_cell]}
           ]
       }
 
@@ -465,16 +471,11 @@ defmodule Livebook.SessionTest do
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
                        %{evaluation_time_ms: _time_ms}}}
 
-      assert text_output =~ "Jake Peralta"
+      assert text_output =~ "hey"
     end
 
     test "replies with error when no matching input is found" do
-      elixir_cell = %{
-        Notebook.Cell.new(:elixir)
-        | source: """
-          IO.gets("name: ")
-          """
-      }
+      elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_get_input_value_code}
 
       notebook = %{
         Notebook.new()
@@ -492,42 +493,9 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
-                       %{evaluation_time_ms: _time_ms}}},
-                     2_000
+                       %{evaluation_time_ms: _time_ms}}}
 
-      assert text_output =~ "no matching Livebook input found"
-    end
-
-    test "replies with error when the matching input is invalid" do
-      input_cell = %{Notebook.Cell.new(:input) | type: :url, name: "url", value: "invalid"}
-
-      elixir_cell = %{
-        Notebook.Cell.new(:elixir)
-        | source: """
-          IO.gets("name: ")
-          """
-      }
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Notebook.Section.new() | cells: [input_cell, elixir_cell]}
-          ]
-      }
-
-      session = start_session(notebook: notebook)
-
-      cell_id = elixir_cell.id
-
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
-      Session.queue_cell_evaluation(session.pid, cell_id)
-
-      assert_receive {:operation,
-                      {:add_cell_evaluation_response, _, ^cell_id, {:text, text_output},
-                       %{evaluation_time_ms: _time_ms}}},
-                     2_000
-
-      assert text_output =~ "no matching Livebook input found"
+      assert text_output =~ ":error"
     end
   end
 

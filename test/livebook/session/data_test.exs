@@ -2170,20 +2170,24 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "if bound input value changes during cell evaluation, the cell is marked as stale afterwards" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
           {:queue_cell_evaluation, self(), "c2"},
           {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
           # Make the Elixir cell evaluating
           {:queue_cell_evaluation, self(), "c2"},
           # Bind the input (effectively read the current value)
-          {:bind_input, self(), "c2", "c1"},
+          {:bind_input, self(), "c2", "i1"},
           # Change the input value, while the cell is evaluating
-          {:set_cell_attributes, self(), "c1", %{value: "stuff"}}
+          {:set_input_value, self(), "i1", "stuff"}
         ])
 
       operation = {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
@@ -2261,16 +2265,22 @@ defmodule Livebook.Session.DataTest do
     end
 
     test "updates elixir cell info with binding to the input cell" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:queue_cell_evaluation, self(), "c2"}
         ])
 
-      operation = {:bind_input, self(), "c2", "c1"}
+      operation = {:bind_input, self(), "c2", "i1"}
 
-      bound_to_input_ids = MapSet.new(["c1"])
+      bound_to_input_ids = MapSet.new(["i1"])
 
       assert {:ok,
               %{
@@ -3041,38 +3051,6 @@ defmodule Livebook.Session.DataTest do
               }, _} = Data.apply_operation(data, operation)
     end
 
-    test "given input value change, marks evaluated bound cells and their dependants as stale" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
-          # Insert three evaluated cells and bind the second one to the input
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cell_evaluation, self(), "c2"},
-          {:queue_cell_evaluation, self(), "c3"},
-          {:queue_cell_evaluation, self(), "c4"},
-          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
-          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
-          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta},
-          {:bind_input, self(), "c3", "c1"}
-        ])
-
-      attrs = %{value: "stuff"}
-      operation = {:set_cell_attributes, self(), "c1", attrs}
-
-      assert {:ok,
-              %{
-                cell_infos: %{
-                  "c2" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale}
-                }
-              }, _} = Data.apply_operation(data, operation)
-    end
-
     test "setting reevaluate_automatically on stale cell marks it for evaluation" do
       data =
         data_after_operations!([
@@ -3102,7 +3080,51 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :set_input_value" do
+    test "given input value change, marks evaluated bound cells and their dependants as stale" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          # Insert three evaluated cells and bind the second one to the input
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:queue_cell_evaluation, self(), "c2"},
+          {:queue_cell_evaluation, self(), "c3"},
+          {:queue_cell_evaluation, self(), "c4"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c4", @eval_resp, @eval_meta},
+          {:bind_input, self(), "c3", "i1"}
+        ])
+
+      operation = {:set_input_value, self(), "i1", "stuff"}
+
+      assert {:ok,
+              %{
+                cell_infos: %{
+                  "c2" => %{validity_status: :evaluated},
+                  "c3" => %{validity_status: :stale},
+                  "c4" => %{validity_status: :stale}
+                }
+              }, _} = Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :set_runtime" do
+    test "returns an error given invalid input id" do
+      data = Data.new()
+
+      operation = {:set_input_value, self(), "nonexistent", "stuff"}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
     test "updates data with the given runtime" do
       data = Data.new()
 
@@ -3210,39 +3232,29 @@ defmodule Livebook.Session.DataTest do
   end
 
   describe "bound_cells_with_section/2" do
-    test "returns an empty list when an invalid cell id is given" do
+    test "returns an empty list when an invalid input id is given" do
       data = Data.new()
       assert [] = Data.bound_cells_with_section(data, "nonexistent")
     end
 
-    test "returns elixir cells bound to the given input cell" do
+    test "returns elixir cells bound to the given input" do
+      input = %{id: "i1", type: :text, label: "Text", default: "hey"}
+
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :input, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:insert_cell, self(), "s1", 1, :elixir, "c2"},
           {:insert_cell, self(), "s1", 2, :elixir, "c3"},
           {:insert_cell, self(), "s1", 4, :elixir, "c4"},
-          {:bind_input, self(), "c2", "c1"},
-          {:bind_input, self(), "c4", "c1"}
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cell_evaluation, self(), "c1"},
+          {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
+          {:bind_input, self(), "c2", "i1"},
+          {:bind_input, self(), "c4", "i1"}
         ])
 
-      assert [{%{id: "c2"}, _}, {%{id: "c4"}, _}] = Data.bound_cells_with_section(data, "c1")
-    end
-
-    test "returns only child cells" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c4"},
-          {:insert_cell, self(), "s1", 1, :input, "c1"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c3"},
-          {:bind_input, self(), "c2", "c1"},
-          {:bind_input, self(), "c4", "c1"}
-        ])
-
-      assert [{%{id: "c2"}, _}] = Data.bound_cells_with_section(data, "c1")
+      assert [{%{id: "c2"}, _}, {%{id: "c4"}, _}] = Data.bound_cells_with_section(data, "i1")
     end
   end
 end

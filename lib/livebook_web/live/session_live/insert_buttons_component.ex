@@ -21,12 +21,6 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           phx-value-cell_id={@cell_id}
           >+ Elixir</button>
         <button class="button button-small"
-          phx-click="insert_cell_below"
-          phx-value-type="input"
-          phx-value-section_id={@section_id}
-          phx-value-cell_id={@cell_id}
-          >+ Input</button>
-        <button class="button button-small"
           phx-click="insert_section_below"
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}

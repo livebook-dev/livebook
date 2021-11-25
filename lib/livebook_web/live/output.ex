@@ -7,7 +7,8 @@ defmodule LivebookWeb.Output do
   @spec render_output(Livebook.Cell.Elixir.output(), %{
           id: String.t(),
           socket: Phoenix.LiveView.Socket.t(),
-          runtime: Livebook.Runtime.t()
+          runtime: Livebook.Runtime.t(),
+          input_values: map()
         }) :: Phoenix.LiveView.Rendered.t()
   def render_output(output, context)
 
@@ -52,10 +53,18 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  def render_output({:frame_dynamic, pid}, %{id: id, socket: socket}) do
+  def render_output({:frame_dynamic, pid}, %{id: id, socket: socket, input_values: input_values}) do
     live_render(socket, LivebookWeb.Output.FrameDynamicLive,
       id: id,
-      session: %{"id" => id, "pid" => pid}
+      session: %{"id" => id, "pid" => pid, "input_values" => input_values}
+    )
+  end
+
+  def render_output({:input, attrs}, %{id: id, input_values: input_values}) do
+    live_component(LivebookWeb.Output.InputComponent,
+      id: id,
+      attrs: attrs,
+      input_values: input_values
     )
   end
 

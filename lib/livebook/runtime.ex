@@ -139,10 +139,11 @@ defprotocol Livebook.Runtime do
       result of the evaluation. Recognised metadata entries
       are: `evaluation_time_ms`
 
-  The evaluation may request user input by sending
-  `{:evaluation_input, ref, reply_to, prompt}` to the runtime owner,
-  which is supposed to reply with `{:evaluation_input_reply, reply}`
-  where `reply` is either `{:ok, input}` or `:error` if no matching
+  The output may include input fields. The evaluation may then
+  request the current value of a previously rendered input by
+  sending `{:evaluation_input, ref, reply_to, input_id}` to the
+  runtime owner, which is supposed to reply with `{:evaluation_input_reply, reply}`
+  where `reply` is either `{:ok, value}` or `:error` if no matching
   input can be found.
 
   In all of the above `ref` is the evaluation reference.

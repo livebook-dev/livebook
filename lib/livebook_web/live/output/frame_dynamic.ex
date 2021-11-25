@@ -16,7 +16,8 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
         <%= LivebookWeb.Output.render_output(@output, %{
               id: "#{@id}-frame",
               socket: @socket,
-              runtime: nil
+              runtime: nil,
+              input_values: @input_values
             }) %>
       <% else %>
         <div class="text-gray-300">

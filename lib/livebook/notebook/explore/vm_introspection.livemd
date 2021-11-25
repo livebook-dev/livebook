@@ -14,7 +14,7 @@ so let's add `:vega_lite` and `:kino` for that.
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.2"},
-  {:kino, "~> 0.3.1"}
+  {:kino, "~> 0.3.1", github: "livebook-dev/kino"}
 ])
 ```
 
@@ -50,22 +50,26 @@ IO.puts Node.get_cookie()
 
 Now, paste these in the inputs below:
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Node","type":"text","value":""} -->
+```elixir
+node_input = Kino.Input.text("Node")
+```
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Cookie","type":"text","value":""} -->
+```elixir
+cookie_input = Kino.Input.text("Cookie")
+```
 
 And now execute the code cell below, which will read the inputs,
 configure the cookie, and connect to the other notebook:
 
 ```elixir
 node =
-  IO.gets("Node: ")
-  |> String.trim()
+  node_input
+  |> Kino.Input.read()
   |> String.to_atom()
 
 cookie =
-  IO.gets("Cookie: ")
-  |> String.trim()
+  cookie_input
+  |> Kino.Input.read()
   |> String.to_atom()
 
 Node.set_cookie(node, cookie)

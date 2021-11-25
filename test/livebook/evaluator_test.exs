@@ -55,13 +55,22 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_output, :code_1, "hey\n"}
     end
 
-    test "using standard input sends input request to the caller", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), ~s{IO.gets("name: ")}, :code_1)
+    test "using livebook input sends input request to the caller", %{evaluator: evaluator} do
+      code = """
+      ref = make_ref()
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_get_input_value, "input1"}})
 
-      assert_receive {:evaluation_input, :code_1, reply_to, "name: "}
-      send(reply_to, {:evaluation_input_reply, {:ok, "Jake Peralta\n"}})
+      receive do
+        {:io_reply, ^ref, {:ok, value}} -> value
+      end
+      """
 
-      assert_receive {:evaluation_response, :code_1, {:ok, "Jake Peralta\n"},
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
+
+      assert_receive {:evaluation_input, :code_1, reply_to, "input1"}
+      send(reply_to, {:evaluation_input_reply, {:ok, :value}})
+
+      assert_receive {:evaluation_response, :code_1, {:ok, :value},
                       %{evaluation_time_ms: _time_ms}}
     end
 
