@@ -88,7 +88,7 @@ defmodule LivebookWeb.Output.InputComponent do
     """
   end
 
-  defp input(%{attrs: %{type: :text, multiline: true}} = assigns) do
+  defp input(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
     <textarea
       data-element="input"
@@ -214,6 +214,10 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp parse(html_value, %{type: :text}) do
+    {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :textarea}) do
     # The browser may normalize newlines to \r\n, but we prefer just \n
     value = String.replace(html_value, "\r\n", "\n")
     {:ok, value}
