@@ -115,7 +115,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.outputs != [] do %>
         <div class="mt-2" data-element="outputs-container">
-          <.outputs cell_view={@cell_view} runtime={@runtime} socket={@socket} />
+          <LivebookWeb.Output.outputs
+            outputs={@cell_view.outputs}
+            id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
+            socket={@socket}
+            runtime={@runtime}
+            input_values={@cell_view.input_values} />
         </div>
       <% end %>
     </.cell_body>
@@ -331,23 +336,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
-
-  defp outputs(assigns) do
-    ~H"""
-    <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
-      <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
-        <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
-          <%= LivebookWeb.Output.render_output(output, %{
-                id: "cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-output#{index}",
-                socket: @socket,
-                runtime: @runtime,
-                input_values: @cell_view.input_values
-              }) %>
-        </div>
-      <% end %>
-    </div>
-    """
-  end
 
   defp evaluation_number(:evaluating, number_of_evaluations), do: number_of_evaluations + 1
   defp evaluation_number(_evaluation_status, number_of_evaluations), do: number_of_evaluations

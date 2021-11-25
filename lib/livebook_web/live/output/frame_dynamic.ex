@@ -13,12 +13,12 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
     ~H"""
     <div>
       <%= if @output do %>
-        <%= LivebookWeb.Output.render_output(@output, %{
-              id: "#{@id}-frame",
-              socket: @socket,
-              runtime: nil,
-              input_values: @input_values
-            }) %>
+        <LivebookWeb.Output.outputs
+          outputs={[@output]}
+          id={"#{@id}-frame"}
+          socket={@socket}
+          runtime={nil}
+          input_values={@input_values} />
       <% else %>
         <div class="text-gray-300">
           Empty output frame
