@@ -457,7 +457,6 @@ defmodule Livebook.SessionTest do
 
   describe "user input" do
     test "replies to runtime input request" do
-      input = %{id: "input1", type: :number, label: "Name", default: "hey"}
       input_elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_put_input_code}
 
       elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_get_input_value_code}
