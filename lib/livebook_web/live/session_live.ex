@@ -475,9 +475,6 @@ defmodule LivebookWeb.SessionLive do
   defp settings_component_for(%Cell.Elixir{}),
     do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
 
-  defp settings_component_for(%Cell.Input{}),
-    do: LivebookWeb.SessionLive.InputCellSettingsComponent
-
   defp branching_tooltip_attrs(name, parent_name) do
     direction = if String.length(name) >= 16, do: "left", else: "right"
 
@@ -652,16 +649,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("set_cell_value", %{"cell_id" => cell_id, "value" => value}, socket) do
-    # The browser may normalize newlines to \r\n, but we want \n
-    # to more closely imitate an actual shell
-    value = String.replace(value, "\r\n", "\n")
-
-    Session.set_cell_attributes(socket.assigns.session.pid, cell_id, %{value: value})
-
-    {:noreply, socket}
-  end
-
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
     offset = ensure_integer(offset)
     Session.move_cell(socket.assigns.session.pid, cell_id, offset)
@@ -697,18 +684,6 @@ defmodule LivebookWeb.SessionLive do
     for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
         data.cell_infos[cell.id].validity_status != :evaluated do
       Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
-    end
-
-    {:noreply, socket}
-  end
-
-  def handle_event("queue_bound_cells_evaluation", %{"cell_id" => cell_id}, socket) do
-    data = socket.private.data
-
-    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
-      for {bound_cell, _} <- Session.Data.bound_cells_with_section(data, cell.id) do
-        Session.queue_cell_evaluation(socket.assigns.session.pid, bound_cell.id)
-      end
     end
 
     {:noreply, socket}
@@ -933,6 +908,19 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "location_report", report)}
   end
 
+  def handle_info({:set_input_value, input_id, value}, socket) do
+    Session.set_input_value(socket.assigns.session.pid, input_id, value)
+    {:noreply, socket}
+  end
+
+  def handle_info({:queue_bound_cells_evaluation, input_id}, socket) do
+    for {bound_cell, _} <- Session.Data.bound_cells_with_section(socket.private.data, input_id) do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, bound_cell.id)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path) do
@@ -1090,18 +1078,9 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, type, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
     if client_pid == self() do
-      case type do
-        :input ->
-          push_patch(socket,
-            to: Routes.session_path(socket, :cell_settings, socket.assigns.session.id, cell_id)
-          )
-
-        _ ->
-          socket
-      end
-      |> push_event("cell_inserted", %{cell_id: cell_id})
+      push_event(socket, "cell_inserted", %{cell_id: cell_id})
     else
       socket
     end
@@ -1344,7 +1323,9 @@ defmodule LivebookWeb.SessionLive do
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
       number_of_evaluations: info.number_of_evaluations,
-      reevaluate_automatically: cell.reevaluate_automatically
+      reevaluate_automatically: cell.reevaluate_automatically,
+      # Pass input values relevant to the given cell
+      input_values: input_values_for_cell(cell, data)
     }
   end
 
@@ -1358,20 +1339,13 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp cell_to_view(%Cell.Input{} = cell, _data) do
-    %{
-      id: cell.id,
-      type: :input,
-      input_type: cell.type,
-      name: cell.name,
-      value: cell.value,
-      error:
-        case Cell.Input.validate(cell) do
-          :ok -> nil
-          {:error, error} -> error
-        end,
-      props: cell.props
-    }
+  defp input_values_for_cell(cell, data) do
+    input_ids =
+      for output <- cell.outputs,
+          attrs <- Cell.Elixir.find_inputs_in_output(output),
+          do: attrs.id
+
+    Map.take(data.input_values, input_ids)
   end
 
   # Updates current data_view in response to an operation.

@@ -153,11 +153,22 @@ defmodule Livebook.Utils do
 
   @doc """
   Validates if the given URL is syntactically valid.
+
+  ## Examples
+
+      iex> Livebook.Utils.valid_url?("not_a_url")
+      false
+
+      iex> Livebook.Utils.valid_url?("https://example.com")
+      true
+
+      iex> Livebook.Utils.valid_url?("http://localhost")
+      true
   """
   @spec valid_url?(String.t()) :: boolean()
   def valid_url?(url) do
     uri = URI.parse(url)
-    uri.scheme != nil and uri.host != nil and uri.host =~ "."
+    uri.scheme != nil and uri.host != nil
   end
 
   @doc """

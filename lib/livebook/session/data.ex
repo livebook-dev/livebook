@@ -21,6 +21,7 @@ defmodule Livebook.Session.Data do
     :dirty,
     :section_infos,
     :cell_infos,
+    :input_values,
     :bin_entries,
     :runtime,
     :clients_map,
@@ -39,6 +40,7 @@ defmodule Livebook.Session.Data do
           dirty: boolean(),
           section_infos: %{Section.id() => section_info()},
           cell_infos: %{Cell.id() => cell_info()},
+          input_values: %{input_id() => term()},
           bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t() | nil,
           clients_map: %{pid() => User.id()},
@@ -61,7 +63,7 @@ defmodule Livebook.Session.Data do
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           number_of_evaluations: non_neg_integer(),
-          bound_to_input_ids: MapSet.t(Cell.id()),
+          bound_to_input_ids: MapSet.t(input_id()),
           bound_input_readings: input_reading()
         }
 
@@ -77,6 +79,8 @@ defmodule Livebook.Session.Data do
 
   @type cell_validity_status :: :fresh | :evaluated | :stale | :aborted
   @type cell_evaluation_status :: :ready | :queued | :evaluating
+
+  @type input_id :: String.t()
 
   @type client :: {User.id(), pid()}
 
@@ -99,7 +103,7 @@ defmodule Livebook.Session.Data do
   #
   @type snapshot :: {deps_snapshot :: term(), bound_inputs_snapshot :: term()}
 
-  @type input_reading :: {input_name :: String.t(), input_value :: String.t()}
+  @type input_reading :: {input_id(), input_value :: term()}
 
   # Note that all operations carry the pid of whatever
   # process originated the operation. Some operations
@@ -125,7 +129,7 @@ defmodule Livebook.Session.Data do
           | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), term(), metadata :: map()}
-          | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_cell_id :: Cell.id()}
+          | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_id()}
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
@@ -138,6 +142,7 @@ defmodule Livebook.Session.Data do
           | {:apply_cell_delta, pid(), Cell.id(), Delta.t(), cell_revision()}
           | {:report_cell_revision, pid(), Cell.id(), cell_revision()}
           | {:set_cell_attributes, pid(), Cell.id(), map()}
+          | {:set_input_value, pid(), input_id(), value :: term()}
           | {:set_runtime, pid(), Runtime.t() | nil}
           | {:set_file, pid(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, pid(), non_neg_integer() | nil}
@@ -162,6 +167,7 @@ defmodule Livebook.Session.Data do
       dirty: false,
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
+      input_values: initial_input_values(notebook),
       bin_entries: [],
       runtime: nil,
       clients_map: %{},
@@ -185,6 +191,15 @@ defmodule Livebook.Session.Data do
         cell <- section.cells,
         into: %{},
         do: {cell.id, new_cell_info(%{})}
+  end
+
+  defp initial_input_values(notebook) do
+    for section <- notebook.sections,
+        %Cell.Elixir{} = cell <- section.cells,
+        output <- cell.outputs,
+        attrs <- Cell.Elixir.find_inputs_in_output(output),
+        into: %{},
+        do: {attrs.id, attrs.default}
   end
 
   @doc """
@@ -412,6 +427,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> add_cell_evaluation_response(cell, output)
       |> finish_cell_evaluation(cell, section, metadata)
+      |> garbage_collect_input_values()
       |> compute_snapshots_and_validity()
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
@@ -422,15 +438,14 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:bind_input, _client_pid, id, input_id}) do
+  def apply_operation(data, {:bind_input, _client_pid, cell_id, input_id}) do
     with {:ok, %Cell.Elixir{} = cell, _section} <-
-           Notebook.fetch_cell_and_section(data.notebook, id),
-         {:ok, %Cell.Input{} = input_cell, _section} <-
-           Notebook.fetch_cell_and_section(data.notebook, input_id),
-         false <- MapSet.member?(data.cell_infos[cell.id].bound_to_input_ids, input_cell.id) do
+           Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         true <- Map.has_key?(data.input_values, input_id),
+         false <- MapSet.member?(data.cell_infos[cell.id].bound_to_input_ids, input_id) do
       data
       |> with_actions()
-      |> bind_input(cell, input_cell)
+      |> bind_input(cell, input_id)
       |> wrap_ok()
     else
       _ -> :error
@@ -560,6 +575,18 @@ defmodule Livebook.Session.Data do
       |> set_cell_attributes(cell, attrs)
       |> compute_snapshots_and_validity()
       |> set_dirty()
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:set_input_value, _client_pid, input_id, value}) do
+    with true <- Map.has_key?(data.input_values, input_id) do
+      data
+      |> with_actions()
+      |> set_input_value(input_id, value)
+      |> compute_snapshots_and_validity()
       |> wrap_ok()
     else
       _ -> :error
@@ -717,7 +744,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp unqueue_cells_after_moved({data, _} = data_actions, prev_notebook) do
-    relevant_cell? = fn cell -> is_struct(cell, Cell.Elixir) or is_struct(cell, Cell.Input) end
+    relevant_cell? = fn cell -> is_struct(cell, Cell.Elixir) end
     graph_before = Notebook.cell_dependency_graph(prev_notebook, cell_filter: relevant_cell?)
     graph_after = Notebook.cell_dependency_graph(data.notebook, cell_filter: relevant_cell?)
 
@@ -793,23 +820,28 @@ defmodule Livebook.Session.Data do
     |> set_cell_info!(cell.id, evaluation_status: :ready)
   end
 
-  defp add_cell_evaluation_output({data, _} = data_actions, cell, output) do
+  defp add_cell_evaluation_output(data_actions, cell, output) do
     data_actions
-    |> set!(
-      notebook:
-        Notebook.update_cell(data.notebook, cell.id, fn cell ->
-          %{cell | outputs: add_output(cell.outputs, output)}
-        end)
-    )
+    |> add_cell_output(cell, output)
   end
 
-  defp add_cell_evaluation_response({data, _} = data_actions, cell, output) do
+  defp add_cell_evaluation_response(data_actions, cell, output) do
+    data_actions
+    |> add_cell_output(cell, output)
+  end
+
+  defp add_cell_output({data, _} = data_actions, cell, output) do
     data_actions
     |> set!(
       notebook:
         Notebook.update_cell(data.notebook, cell.id, fn cell ->
           %{cell | outputs: add_output(cell.outputs, output)}
-        end)
+        end),
+      input_values:
+        output
+        |> Cell.Elixir.find_inputs_in_output()
+        |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
+        |> Map.merge(data.input_values)
     )
   end
 
@@ -920,6 +952,12 @@ defmodule Livebook.Session.Data do
     info.evaluating_cell_id != nil
   end
 
+  defp any_section_evaluating?(data) do
+    Enum.any?(data.notebook.sections, fn section ->
+      section_evaluating?(data, section.id)
+    end)
+  end
+
   defp section_awaits_evaluation?(data, section_id) do
     info = data.section_infos[section_id]
     info.evaluating_cell_id == nil and info.evaluation_queue != []
@@ -953,13 +991,15 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp bind_input(data_actions, cell, input_cell) do
+  defp bind_input({data, _} = data_actions, cell, input_id) do
     data_actions
     |> update_cell_info!(cell.id, fn info ->
       %{
         info
-        | bound_to_input_ids: MapSet.put(info.bound_to_input_ids, input_cell.id),
-          bound_input_readings: [{input_cell.name, input_cell.value} | info.bound_input_readings]
+        | bound_to_input_ids: MapSet.put(info.bound_to_input_ids, input_id),
+          bound_input_readings: [
+            {input_id, data.input_values[input_id]} | info.bound_input_readings
+          ]
       }
     end)
   end
@@ -1171,6 +1211,11 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &Map.merge(&1, attrs)))
   end
 
+  defp set_input_value({data, _} = data_actions, input_id, value) do
+    data_actions
+    |> set!(input_values: Map.put(data.input_values, input_id, value))
+  end
+
   defp set_runtime(data_actions, prev_data, runtime) do
     {data, _} = data_actions = set!(data_actions, runtime: runtime)
 
@@ -1216,6 +1261,16 @@ defmodule Livebook.Session.Data do
       list
     else
       list ++ [item]
+    end
+  end
+
+  defp garbage_collect_input_values({data, _} = data_actions) do
+    if any_section_evaluating?(data) do
+      # Wait if evaluation is ongoing as it may render inputs
+      data_actions
+    else
+      used_input_ids = data.notebook |> initial_input_values() |> Map.keys()
+      set!(data_actions, input_values: Map.take(data.input_values, used_input_ids))
     end
   end
 
@@ -1306,15 +1361,15 @@ defmodule Livebook.Session.Data do
   end
 
   @doc """
-  Find child cells bound to the given input cell.
+  Find cells bound to the given input.
   """
-  @spec bound_cells_with_section(t(), Cell.id()) :: list(Cell.t())
-  def bound_cells_with_section(data, cell_id) do
-    data
-    |> dependent_cells_with_section(cell_id)
-    |> Enum.filter(fn {child_cell, _} ->
-      info = data.cell_infos[child_cell.id]
-      MapSet.member?(info.bound_to_input_ids, cell_id)
+  @spec bound_cells_with_section(t(), input_id()) :: list({Cell.t(), Section.t()})
+  def bound_cells_with_section(data, input_id) do
+    data.notebook
+    |> Notebook.cells_with_section()
+    |> Enum.filter(fn {cell, _} ->
+      info = data.cell_infos[cell.id]
+      MapSet.member?(info.bound_to_input_ids, input_id)
     end)
   end
 
@@ -1341,20 +1396,6 @@ defmodule Livebook.Session.Data do
 
     cells_with_section = Notebook.elixir_cells_with_section(data.notebook)
 
-    inputs_by_id =
-      for section <- data.notebook.sections,
-          cell <- section.cells,
-          is_struct(cell, Cell.Input),
-          into: %{},
-          do: {cell.id, cell}
-
-    graph_with_inputs =
-      Notebook.cell_dependency_graph(data.notebook,
-        cell_filter: fn cell ->
-          is_struct(cell, Cell.Elixir) or is_struct(cell, Cell.Input)
-        end
-      )
-
     cell_snapshots =
       Enum.reduce(cells_with_section, %{}, fn {cell, section}, cell_snapshots ->
         info = data.cell_infos[cell.id]
@@ -1370,16 +1411,7 @@ defmodule Livebook.Session.Data do
               data.cell_infos[prev_cell_id].number_of_evaluations
             }
 
-        input_deps =
-          graph_with_inputs
-          |> Graph.find_path(cell.id, nil)
-          |> Enum.map(fn cell_id -> cell_id && inputs_by_id[cell_id] end)
-          |> Enum.reject(&is_nil/1)
-          |> Enum.map(& &1.name)
-          |> Enum.sort()
-          |> Enum.dedup()
-
-        deps = {is_branch?, parent_deps, input_deps}
+        deps = {is_branch?, parent_deps}
         deps_snapshot = :erlang.phash2(deps)
 
         inputs_snapshot =
@@ -1407,11 +1439,8 @@ defmodule Livebook.Session.Data do
     %{bound_to_input_ids: bound_to_input_ids} = data.cell_infos[cell.id]
 
     for(
-      section <- data.notebook.sections,
-      cell <- section.cells,
-      is_struct(cell, Cell.Input),
-      cell.id in bound_to_input_ids,
-      do: {cell.name, cell.value}
+      input_id <- bound_to_input_ids,
+      do: {input_id, data.input_values[input_id]}
     )
     |> input_readings_snapshot()
   end

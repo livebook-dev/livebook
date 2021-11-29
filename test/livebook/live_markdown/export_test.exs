@@ -47,23 +47,10 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               name: "Section 2",
               cells: [
                 %{
-                  Notebook.Cell.new(:input)
-                  | type: :text,
-                    name: "length",
-                    value: "100"
-                },
-                %{
                   Notebook.Cell.new(:elixir)
                   | source: """
                     IO.gets("length: ")\
                     """
-                },
-                %{
-                  Notebook.Cell.new(:input)
-                  | type: :range,
-                    name: "length",
-                    value: "100",
-                    props: %{min: 50, max: 150, step: 2}
                 }
               ]
           },
@@ -106,13 +93,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ## Section 2
 
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
-
     ```elixir
     IO.gets("length: ")
     ```
-
-    <!-- livebook:{"livebook_object":"cell_input","name":"length","props":{"max":150,"min":50,"step":2},"type":"range","value":"100"} -->
 
     <!-- livebook:{"branch_parent_index":1} -->
 
@@ -381,39 +364,6 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     ```elixir
     [1,2,3] # Comment
     ```
-    """
-
-    document = Export.notebook_to_markdown(notebook)
-
-    assert expected_document == document
-  end
-
-  test "saves password as empty string" do
-    notebook = %{
-      Notebook.new()
-      | name: "My Notebook",
-        sections: [
-          %{
-            Notebook.Section.new()
-            | name: "Section 1",
-              cells: [
-                %{
-                  Notebook.Cell.new(:input)
-                  | type: :password,
-                    name: "pass",
-                    value: "0123456789"
-                }
-              ]
-          }
-        ]
-    }
-
-    expected_document = """
-    # My Notebook
-
-    ## Section 1
-
-    <!-- livebook:{"livebook_object":"cell_input","name":"pass","type":"password","value":""} -->
     """
 
     document = Export.notebook_to_markdown(notebook)

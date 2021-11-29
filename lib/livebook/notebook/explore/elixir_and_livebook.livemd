@@ -73,7 +73,7 @@ instance, otherwise the command below will fail.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.3.1"}
+  {:kino, "~> 0.3.1", github: "livebook-dev/kino"}
 ])
 ```
 
@@ -169,19 +169,18 @@ from your notebook code, using `IO.gets/1`. Let's see an example
 that expects a date in the format `YYYY-MM-DD` and returns if the
 data is valid or not:
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
+```elixir
+date_input = Kino.Input.text("Date")
+```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-# Read the date input, which returns something like "2020-02-30\n"
-input = IO.gets("Date: ")
-
-# So we trim the newline from the input value
-trimmed = String.trim(input)
+# Read the date input, which returns something like "2020-02-30"
+input = Kino.Input.read(date_input)
 
 # And then match on the return value
-case Date.from_iso8601(trimmed) do
+case Date.from_iso8601(input) do
   {:ok, date} ->
     "We got a valid date: #{inspect(date)}"
 
