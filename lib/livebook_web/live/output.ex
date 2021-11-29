@@ -113,11 +113,8 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:controls_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.ControlsDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
+  defp render_output({:control, attrs}, %{id: id}) do
+    live_component(LivebookWeb.Output.ControlComponent, id: id, attrs: attrs)
   end
 
   defp render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})

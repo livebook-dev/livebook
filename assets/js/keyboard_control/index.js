@@ -2,16 +2,17 @@ import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
 import { cancelEvent } from "../lib/utils";
 
 /**
- * A hook for ControlsDynamicLive to handle user interactions
- * with more control.
+ * A hook for ControlComponent to handle user keyboard interactions.
  *
  * Configuration:
  *
  *   * `data-keydown-enabled` - whether keydown events should be intercepted
  *
  *   * `data-keyup-enabled` - whether keyup events should be intercepted
+ *
+ *   * `data-target` - the target to send live events to
  */
-const Controls = {
+const KeyboardControl = {
   mounted() {
     this.props = getProps(this);
 
@@ -53,6 +54,7 @@ function getProps(hook) {
       "data-keyup-enabled",
       parseBoolean
     ),
+    target: getAttributeOrThrow(hook.el, "data-target"),
   };
 }
 
@@ -67,7 +69,7 @@ function handleDocumentKeyDown(hook, event) {
     }
 
     const key = event.key;
-    hook.pushEvent("keydown", { key });
+    hook.pushEventTo(hook.props.target, "keydown", { key });
   }
 }
 
@@ -78,7 +80,7 @@ function handleDocumentKeyUp(hook, event) {
 
   if (hook.props.isKeyupEnabled) {
     const key = event.key;
-    hook.pushEvent("keyup", { key });
+    hook.pushEventTo(hook.props.target, "keyup", { key });
   }
 }
 
@@ -86,4 +88,4 @@ function keyboardEnabled(hook) {
   return hook.props.isKeydownEnabled || hook.props.isKeyupEnabled;
 }
 
-export default Controls;
+export default KeyboardControl;
