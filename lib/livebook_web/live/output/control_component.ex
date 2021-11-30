@@ -68,7 +68,7 @@ defmodule LivebookWeb.Output.ControlComponent do
   end
 
   defp report_event(socket, attrs \\ %{}) do
-    topic = socket.assigns.attrs.id
+    topic = socket.assigns.attrs.ref
     event = Map.merge(%{origin: self()}, attrs)
     send(socket.assigns.attrs.destination, {:event, topic, event})
   end
