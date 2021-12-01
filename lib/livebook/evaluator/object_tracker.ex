@@ -19,14 +19,6 @@ defmodule Livebook.Evaluator.ObjectTracker do
 
   use GenServer
 
-  @doc """
-  Starts a new object tracker.
-  """
-  @spec start_link() :: GenServer.on_start()
-  def start_link() do
-    GenServer.start_link(__MODULE__, [])
-  end
-
   @type state :: %{
           object_ids: %{
             object_id() => %{
@@ -50,7 +42,15 @@ defmodule Livebook.Evaluator.ObjectTracker do
   @typedoc """
   Hook to be executed on object release.
   """
-  @type hook :: {:send, pid(), term()} | {:kill, pid()}
+  @type hook :: (() -> any())
+
+  @doc """
+  Starts a new object tracker.
+  """
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts)
+  end
 
   @doc """
   Adds a pointer to the given object.
@@ -70,13 +70,8 @@ defmodule Livebook.Evaluator.ObjectTracker do
 
   @doc """
   Adds a hook to be executed on object release.
-
-  Available hooks are:
-
-    * `{:send, pid, message}` - sends the given `message` to `pid`
-
-    * `{:kill, pid}` - gracefully exits the process with `Process.exit/2`
   """
+  @spec add_release_hook(pid(), object_id(), hook()) :: :ok
   def add_release_hook(object_tracker, object_id, hook) do
     GenServer.cast(object_tracker, {:add_release_hook, object_id, hook})
   end
@@ -146,12 +141,9 @@ defmodule Livebook.Evaluator.ObjectTracker do
       Enum.split_with(state.object_ids, &match?({_, %{pointers: []}}, &1))
 
     for {_, %{hooks: hooks}} <- to_release, hook <- hooks do
-      exec_hook(hook)
+      hook.()
     end
 
     %{state | object_ids: Map.new(object_ids)}
   end
-
-  defp exec_hook({:send, pid, message}), do: send(pid, message)
-  defp exec_hook({:kill, pid}), do: Process.exit(pid, :shutdown)
 end

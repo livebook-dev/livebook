@@ -8,12 +8,15 @@ defmodule Livebook.Evaluator.ObjecTrackerTest do
     %{object_tracker: object_tracker}
   end
 
-  test "executes :send hooks when all object pointers are released",
-       %{object_tracker: object_tracker} do
+  test "executes hooks when all object pointers are released", %{object_tracker: object_tracker} do
     ObjectTracker.add_pointer(object_tracker, :object1, {self(), :ref1})
     ObjectTracker.add_pointer(object_tracker, :object1, {self(), :ref2})
 
-    ObjectTracker.add_release_hook(object_tracker, :object1, {:send, self(), :object1_released})
+    parent = self()
+
+    ObjectTracker.add_release_hook(object_tracker, :object1, fn ->
+      send(parent, :object1_released)
+    end)
 
     ObjectTracker.remove_pointer(object_tracker, {self(), :ref1})
     ObjectTracker.remove_pointer(object_tracker, {self(), :ref2})
@@ -21,41 +24,39 @@ defmodule Livebook.Evaluator.ObjecTrackerTest do
     assert_receive :object1_released
   end
 
-  test "does not execute hooks when other pointers still point to an object",
+  test "does not execute hooks when other pointers still point to the object",
        %{object_tracker: object_tracker} do
     ObjectTracker.add_pointer(object_tracker, :object1, {self(), :ref1})
     ObjectTracker.add_pointer(object_tracker, :object1, {self(), :ref2})
 
-    ObjectTracker.add_release_hook(object_tracker, :object1, {:send, self(), :object1_released})
+    parent = self()
+
+    ObjectTracker.add_release_hook(object_tracker, :object1, fn ->
+      send(parent, :object1_released)
+    end)
 
     ObjectTracker.remove_pointer(object_tracker, {self(), :ref1})
 
     refute_receive :object1_released
   end
 
-  test "executes :kill hooks all object pointers are released", %{object_tracker: object_tracker} do
-    pid = spawn(fn -> Process.sleep(:infinity) end)
-    monitor_ref = Process.monitor(pid)
-
-    ObjectTracker.add_pointer(object_tracker, :object1, {self(), :ref1})
-    ObjectTracker.add_release_hook(object_tracker, :object1, {:kill, pid})
-    ObjectTracker.remove_pointer(object_tracker, {self(), :ref1})
-
-    assert_receive {:DOWN, ^monitor_ref, :process, ^pid, :shutdown}
-  end
-
   test "removes a pointer if its process terminates", %{object_tracker: object_tracker} do
-    parent =
+    pointer_pid =
       spawn(fn ->
         receive do
           :stop -> :ok
         end
       end)
 
-    ObjectTracker.add_pointer(object_tracker, :object1, {parent, :ref1})
-    ObjectTracker.add_release_hook(object_tracker, :object1, {:send, self(), :object1_released})
+    ObjectTracker.add_pointer(object_tracker, :object1, {pointer_pid, :ref1})
 
-    send(parent, :stop)
+    parent = self()
+
+    ObjectTracker.add_release_hook(object_tracker, :object1, fn ->
+      send(parent, :object1_released)
+    end)
+
+    send(pointer_pid, :stop)
     assert_receive :object1_released
   end
 end
