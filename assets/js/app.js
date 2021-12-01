@@ -22,7 +22,7 @@ import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
-import DragAndDrop from "./darg_and_drop";
+import DragAndDrop from "./drag_and_drop";
 import PasswordToggle from "./password_toggle";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
