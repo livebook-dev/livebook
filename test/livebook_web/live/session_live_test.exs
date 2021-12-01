@@ -173,6 +173,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       insert_cell_with_input(session.pid, section_id, %{
+        ref: :reference,
         id: "input1",
         type: :number,
         label: "Name",
@@ -195,6 +196,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       insert_cell_with_input(session.pid, section_id, %{
+        ref: :reference,
         id: "input1",
         type: :textarea,
         label: "Name",
