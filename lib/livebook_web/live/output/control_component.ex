@@ -53,7 +53,7 @@ defmodule LivebookWeb.Output.ControlComponent do
   end
 
   def handle_event("button_click", %{}, socket) do
-    report_event(socket)
+    report_event(socket, %{type: :click})
     {:noreply, socket}
   end
 
@@ -67,7 +67,7 @@ defmodule LivebookWeb.Output.ControlComponent do
     {:noreply, socket}
   end
 
-  defp report_event(socket, attrs \\ %{}) do
+  defp report_event(socket, attrs) do
     topic = socket.assigns.attrs.ref
     event = Map.merge(%{origin: self()}, attrs)
     send(socket.assigns.attrs.destination, {:event, topic, event})

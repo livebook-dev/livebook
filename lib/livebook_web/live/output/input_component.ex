@@ -248,7 +248,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp report_event(socket, value) do
     topic = socket.assigns.attrs.ref
-    event = %{value: value, origin: self()}
+    event = %{value: value, origin: self(), type: :change}
     send(socket.assigns.attrs.destination, {:event, topic, event})
   end
 end
