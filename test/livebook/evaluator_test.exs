@@ -178,7 +178,7 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2},
                       %{evaluation_time_ms: _time_ms}}
 
-      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
 
       assert Process.alive?(widget_pid2)
     end
@@ -226,7 +226,7 @@ defmodule Livebook.EvaluatorTest do
       ref = Process.monitor(widget_pid1)
       Evaluator.forget_evaluation(evaluator, :code_1)
 
-      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
     end
   end
 
@@ -302,19 +302,20 @@ defmodule Livebook.EvaluatorTest do
     :ok
   end
 
-  # Returns a code that spawns a widget process, registers a pointer
-  # for it and adds a release hook, then returns widget pid from the
-  # evaluation
+  # Returns a code that spawns a widget process, registers
+  # a pointer for it and adds monitoring, then returns widget
+  # pid from the evaluation
   defp spawn_widget_code() do
     """
     widget_pid = spawn(fn ->
-      Process.sleep(:infinity)
+      receive do
+        :stop -> :ok
+      end
     end)
 
     ref = make_ref()
     send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_add_pointer, widget_pid, self()}})
-    hook = fn -> Process.exit(widget_pid, :shutdown) end
-    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_add_release_hook, widget_pid, hook}})
+    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_monitor, widget_pid, widget_pid, :stop}})
 
     receive do
       {:io_reply, ^ref, :ok} -> :ok
@@ -331,13 +332,14 @@ defmodule Livebook.EvaluatorTest do
     # Arbitrary process that spawns the widget and terminates afterwards
     spawn(fn ->
       widget_pid = spawn(fn ->
-        Process.sleep(:infinity)
+        receive do
+          :stop -> :ok
+        end
       end)
 
       ref = make_ref()
       send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_add_pointer, widget_pid, self()}})
-      hook = fn -> Process.exit(widget_pid, :shutdown) end
-      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_add_release_hook, widget_pid, hook}})
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_monitor, widget_pid, widget_pid, :stop}})
 
       receive do
         {:io_reply, ^ref, :ok} -> :ok

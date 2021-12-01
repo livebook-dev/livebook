@@ -233,8 +233,8 @@ defmodule Livebook.Evaluator.IOProxy do
     {:ok, state}
   end
 
-  defp io_request({:livebook_object_add_release_hook, object_id, hook}, state) do
-    Evaluator.ObjectTracker.add_release_hook(state.object_tracker, object_id, hook)
+  defp io_request({:livebook_object_monitor, object_id, destination, payload}, state) do
+    Evaluator.ObjectTracker.monitor(state.object_tracker, object_id, destination, payload)
     {:ok, state}
   end
 

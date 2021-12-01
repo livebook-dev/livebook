@@ -14,8 +14,7 @@ defmodule Livebook.Evaluator.ObjectTracker do
   # process terminates.
   #
   # When all pointers for the given object are removed,
-  # all hooks registered with `add_release_hook/3` are
-  # executed.
+  # all messages scheduled with `monitor/3` are sent.
 
   use GenServer
 
@@ -23,7 +22,7 @@ defmodule Livebook.Evaluator.ObjectTracker do
           object_ids: %{
             object_id() => %{
               pointers: list(pointer),
-              hooks: list(hook)
+              monitors: list(monitor)
             }
           }
         }
@@ -40,9 +39,9 @@ defmodule Livebook.Evaluator.ObjectTracker do
   @type pointer :: {parent :: pid(), reference :: term()}
 
   @typedoc """
-  Hook to be executed on object release.
+  Scheduled message to be sent when an object is released.
   """
-  @type hook :: (() -> any())
+  @type monitor :: {Process.dest(), payload :: term()}
 
   @doc """
   Starts a new object tracker.
@@ -69,11 +68,12 @@ defmodule Livebook.Evaluator.ObjectTracker do
   end
 
   @doc """
-  Adds a hook to be executed on object release.
+  Schedules `payload` to be send to `destination` when the object
+  is released.
   """
-  @spec add_release_hook(pid(), object_id(), hook()) :: :ok
-  def add_release_hook(object_tracker, object_id, hook) do
-    GenServer.cast(object_tracker, {:add_release_hook, object_id, hook})
+  @spec monitor(pid(), object_id(), Process.dest(), term()) :: :ok
+  def monitor(object_tracker, object_id, destination, payload) do
+    GenServer.cast(object_tracker, {:monitor, object_id, destination, payload})
   end
 
   @impl true
@@ -92,7 +92,7 @@ defmodule Livebook.Evaluator.ObjectTracker do
           if pointer in pointers, do: pointers, else: [pointer | pointers]
         end)
       else
-        put_in(state.object_ids[object_id], %{pointers: [pointer], hooks: []})
+        put_in(state.object_ids[object_id], %{pointers: [pointer], monitors: []})
       end
 
     {:noreply, state}
@@ -104,11 +104,13 @@ defmodule Livebook.Evaluator.ObjectTracker do
     {:noreply, garbage_collect(state)}
   end
 
-  def handle_cast({:add_release_hook, object_id, hook}, state) do
+  def handle_cast({:monitor, object_id, destination, payload}, state) do
+    monitor = {destination, payload}
+
     state =
       if state.object_ids[object_id] do
-        update_in(state.object_ids[object_id].hooks, fn hooks ->
-          if hook in hooks, do: hooks, else: [hook | hooks]
+        update_in(state.object_ids[object_id].monitors, fn monitors ->
+          if monitor in monitors, do: monitors, else: [monitor | monitors]
         end)
       else
         state
@@ -140,8 +142,8 @@ defmodule Livebook.Evaluator.ObjectTracker do
     {to_release, object_ids} =
       Enum.split_with(state.object_ids, &match?({_, %{pointers: []}}, &1))
 
-    for {_, %{hooks: hooks}} <- to_release, hook <- hooks do
-      hook.()
+    for {_, %{monitors: monitors}} <- to_release, {dest, payload} <- monitors do
+      send(dest, payload)
     end
 
     %{state | object_ids: Map.new(object_ids)}
