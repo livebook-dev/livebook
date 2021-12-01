@@ -123,7 +123,7 @@ defmodule LivebookWeb.Output do
     <%= if @is_standalone do %>
       <div>
         <button class="button button-gray" phx-click="restart_runtime">
-          Reconnect
+          Reconnect runtime
         </button>
       </div>
     <% else %>
