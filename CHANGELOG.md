@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
+
+### Added
+
+* Support for file scheme when importing notebook from URL ([#706](https://github.com/livebook-dev/livebook/pull/706))
+* Support for rendering UI controls, such as buttons and keyboard ([#710](https://github.com/livebook-dev/livebook/pull/710))
+
+### Changed
+
+* Restructured j/k navigation to support headlines ([#707](https://github.com/livebook-dev/livebook/pull/707))
+* Migrated inputs to Kino ([#714](https://github.com/livebook-dev/livebook/pull/714))
+
+### Removed
+
+* Removed input cells in favour of `Kino.Input`, see [#714](https://github.com/livebook-dev/livebook/pull/714) for more details
+
 ## [v0.3.2](https://github.com/livebook-dev/livebook/tree/v0.3.2) (2021-11-10)
 
 ### Added
