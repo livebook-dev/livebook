@@ -38,6 +38,10 @@ defmodule Livebook.Notebook.Cell.Elixir do
           | {:vega_lite_dynamic, widget_process :: pid()}
           # Interactive data table
           | {:table_dynamic, widget_process :: pid()}
+          # Dynamic wrapper for static output
+          | {:frame_dynamic, widget_process :: pid()}
+          # An input field
+          | {:input, attrs :: map()}
           # Internal output format for errors
           | {:error, message :: binary(), type :: :other | :runtime_restart_required}
 
@@ -54,4 +58,13 @@ defmodule Livebook.Notebook.Cell.Elixir do
       reevaluate_automatically: false
     }
   end
+
+  @doc """
+  Extracts all inputs from the given output.
+  """
+  @spec find_inputs_in_output(output()) :: list(input_attrs :: map())
+  def find_inputs_in_output(output)
+
+  def find_inputs_in_output({:input, attrs}), do: [attrs]
+  def find_inputs_in_output(_output), do: []
 end

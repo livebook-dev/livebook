@@ -115,13 +115,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, completion_supervisor} = Task.Supervisor.start_link()
+    {:ok, object_tracker} = Livebook.Evaluator.ObjectTracker.start_link()
 
     {:ok,
      %{
        owner: nil,
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
-       completion_supervisor: completion_supervisor
+       completion_supervisor: completion_supervisor,
+       object_tracker: object_tracker
      }}
   end
 
@@ -234,7 +236,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if Map.has_key?(state.evaluators, container_ref) do
       state
     else
-      {:ok, evaluator} = ErlDist.EvaluatorSupervisor.start_evaluator(state.evaluator_supervisor)
+      {:ok, evaluator} =
+        ErlDist.EvaluatorSupervisor.start_evaluator(
+          state.evaluator_supervisor,
+          state.object_tracker
+        )
+
       Process.monitor(evaluator.pid)
       %{state | evaluators: Map.put(state.evaluators, container_ref, evaluator)}
     end

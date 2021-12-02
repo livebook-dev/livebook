@@ -221,14 +221,18 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook([{:cell, :input, data} | elems], cells, sections, messages) do
-    case parse_input_attrs(data) do
-      {:ok, attrs, input_messages} ->
-        cell = Notebook.Cell.new(:input) |> Map.merge(attrs)
-        build_notebook(elems, [cell | cells], sections, messages ++ input_messages)
+    warning =
+      "found an input cell, but those are no longer supported, please use Kino.Input instead"
 
-      {:error, message} ->
-        build_notebook(elems, cells, sections, [message | messages])
-    end
+    warning =
+      if data["reactive"] == true do
+        warning <>
+          ". Also, to make the input reactive you can use an automatically reevaluating cell"
+      else
+        warning
+      end
+
+    build_notebook(elems, cells, sections, messages ++ [warning])
   end
 
   defp build_notebook([{:section_name, content} | elems], cells, sections, messages) do
@@ -256,7 +260,18 @@ defmodule Livebook.LiveMarkdown.Import do
     name = text_from_markdown(content)
     {metadata, elems} = grab_metadata(elems)
     # If there are any non-metadata comments we keep them
-    {comments, []} = grab_leading_comments(elems)
+    {comments, elems} = grab_leading_comments(elems)
+
+    messages =
+      if elems == [] do
+        messages
+      else
+        messages ++
+          [
+            "found an invalid sequence of comments at the beginning, make sure custom comments are at the very top"
+          ]
+      end
+
     attrs = notebook_metadata_to_attrs(metadata)
 
     notebook =
@@ -295,47 +310,7 @@ defmodule Livebook.LiveMarkdown.Import do
     {comments, []}
   end
 
-  defp parse_input_attrs(data) do
-    with {:ok, type} <- parse_input_type(data["type"]) do
-      warnings =
-        if data["reactive"] == true do
-          [
-            "found a reactive input, but those are no longer supported, you can use automatically reevaluating cell instead"
-          ]
-        else
-          []
-        end
-
-      {:ok,
-       %{
-         type: type,
-         name: data["name"],
-         value: data["value"],
-         # Fields with implicit value
-         props: data |> Map.get("props", %{}) |> parse_input_props(type)
-       }, warnings}
-    end
-  end
-
-  defp parse_input_type(string) do
-    case Notebook.Cell.Input.type_from_string(string) do
-      {:ok, type} ->
-        {:ok, type}
-
-      :error ->
-        {:error,
-         "unrecognised input type #{inspect(string)}, if it's a valid type it means your Livebook version doesn't support it"}
-    end
-  end
-
-  defp parse_input_props(data, type) do
-    default_props = Notebook.Cell.Input.default_props(type)
-
-    Map.new(default_props, fn {key, default_value} ->
-      value = Map.get(data, to_string(key), default_value)
-      {key, value}
-    end)
-  end
+  defp grab_leading_comments(elems), do: {[], elems}
 
   defp notebook_metadata_to_attrs(metadata) do
     Enum.reduce(metadata, %{}, fn

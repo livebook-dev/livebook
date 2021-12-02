@@ -264,6 +264,19 @@ defmodule LivebookWeb.HomeLiveTest do
       assert render(view) =~ "My notebook"
     end
 
+    @tag :tmp_dir
+    test "imports notebook from local file URL", %{conn: conn, tmp_dir: tmp_dir} do
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+      File.write!(notebook_path, "# My notebook")
+      notebook_url = "file://" <> notebook_path
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               live(conn, "/import?url=#{URI.encode_www_form(notebook_url)}")
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "My notebook"
+    end
+
     test "redirects to the import form on error", %{conn: conn} do
       bypass = Bypass.open()
 

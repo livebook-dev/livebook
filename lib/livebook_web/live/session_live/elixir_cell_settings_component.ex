@@ -26,9 +26,9 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
       <form phx-submit="save" phx-target={@myself}>
         <div class="w-full flex-col space-y-6">
           <.switch_checkbox
-            name="disable_formatting"
-            label="Disable code formatting (when saving to file)"
-            checked={@disable_formatting} />
+            name="enable_formatting"
+            label="Format code when saving to file"
+            checked={not @disable_formatting} />
         </div>
         <div class="w-full flex-col space-y-6 mt-4">
           <.switch_checkbox
@@ -51,12 +51,12 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
   def handle_event(
         "save",
         %{
-          "disable_formatting" => disable_formatting,
+          "enable_formatting" => enable_formatting,
           "reevaluate_automatically" => reevaluate_automatically
         },
         socket
       ) do
-    disable_formatting = disable_formatting == "true"
+    disable_formatting = enable_formatting == "false"
     reevaluate_automatically = reevaluate_automatically == "true"
 
     Session.set_cell_attributes(socket.assigns.session.pid, socket.assigns.cell.id, %{

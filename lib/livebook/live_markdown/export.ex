@@ -109,28 +109,6 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp render_cell(%Cell.Input{} = cell, _ctx) do
-    value = if cell.type == :password, do: "", else: cell.value
-
-    json =
-      %{
-        livebook_object: :cell_input,
-        type: Cell.Input.type_to_string(cell.type),
-        name: cell.name,
-        value: value
-      }
-      |> put_unless_default(
-        Map.take(cell, [:props]),
-        Map.take(Cell.Input.new(), [:props])
-      )
-      |> Jason.encode!()
-
-    metadata = cell_metadata(cell)
-
-    "<!-- livebook:#{json} -->"
-    |> prepend_metadata(metadata)
-  end
-
   defp cell_metadata(%Cell.Elixir{} = cell) do
     put_unless_default(
       %{},

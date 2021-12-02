@@ -43,24 +43,22 @@ defmodule LivebookWeb.SettingsLive do
                 soon as you stop the application.
               </p>
             </div>
-            <!-- File systems configuration -->
+          <!-- File systems configuration -->
             <div class="flex flex-col space-y-4">
-              <div class="flex justify-between items-center">
-                <h2 class="text-xl text-gray-800 font-semibold">
-                  File systems
-                </h2>
-                <span class="tooltip left" data-tooltip="Copy as environment variables">
-                  <button class="icon-button"
-                    aria-label="copy as environment variables"
-                    id={"file-systems-env-clipcopy"}
-                    phx-hook="ClipCopy"
-                    data-target-id={"file-systems-env-source"}
-                    disabled={@file_systems_env == ""}>
-                    <.remix_icon icon="clipboard-line" class="text-lg" />
-                  </button>
-                  <span class="hidden" id="file-systems-env-source"><%= @file_systems_env %></span>
-                </span>
-              </div>
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl text-gray-800 font-semibold">
+                File systems
+              </h2>
+              <span class="tooltip top" data-tooltip="Copy as environment variables">
+                <button class="icon-button"
+                  aria-label="copy as environment variables"
+                  phx-click={JS.dispatch("lb:clipcopy", to: "#file-systems-env-source")}
+                  disabled={@file_systems_env == ""}>
+                  <.remix_icon icon="clipboard-line" class="text-lg" />
+                </button>
+                <span class="hidden" id="file-systems-env-source"><%= @file_systems_env %></span>
+              </span>
+            </div>
               <LivebookWeb.SettingsLive.FileSystemsComponent.render
                 file_systems={@file_systems}
                 socket={@socket} />

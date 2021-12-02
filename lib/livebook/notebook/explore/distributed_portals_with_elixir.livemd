@@ -197,17 +197,23 @@ if the date is valid or not? We can use `case` to pattern match on
 the different tuples. This is also a good opportunity to use Livebook's
 inputs to pass different values to our code:
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Date","type":"text","value":""} -->
+```elixir
+# Bring in Livebook inputs
+Mix.install([
+  {:kino, "~> 0.3.1", github: "livebook-dev/kino"}
+])
+```
 
 ```elixir
-# Read the date input, which returns something like "2020-02-30\n"
-input = IO.gets("Date: ")
+date_input = Kino.Input.text("Date")
+```
 
-# So we trim the newline from the input value
-trimmed = String.trim(input)
+```elixir
+# Read the date input, which returns something like "2020-02-30"
+input = Kino.Input.read(date_input)
 
 # And then match on the return value
-case Date.from_iso8601(trimmed) do
+case Date.from_iso8601(input) do
   {:ok, date} ->
     "We got a valid date: #{inspect(date)}"
 
@@ -715,22 +721,26 @@ IO.puts Node.get_cookie()
 
 Now paste the result of the other node name and its cookie in the inputs below:
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Other node","type":"text","value":""} -->
+```elixir
+node_input = Kino.Input.text("Other node")
+```
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Other cookie","type":"text","value":""} -->
+```elixir
+cookie_input = Kino.Input.text("Other cookie")
+```
 
 And now execute the code cell below, which will read the inputs, configure the
 cookie, and connect to the other notebook:
 
 ```elixir
 other_node =
-  IO.gets("Other node: ")
-  |> String.trim()
+  node_input
+  |> Kino.Input.read()
   |> String.to_atom()
 
 other_cookie =
-  IO.gets("Other cookie: ")
-  |> String.trim()
+  cookie_input
+  |> Kino.Input.read()
   |> String.to_atom()
 
 Node.set_cookie(other_node, other_cookie)

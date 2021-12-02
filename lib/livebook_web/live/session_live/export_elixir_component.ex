@@ -34,9 +34,7 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
             <span class="tooltip left" data-tooltip="Copy source">
               <button class="icon-button"
                 aria-label="copy source"
-                id="export-notebook-source-clipcopy"
-                phx-hook="ClipCopy"
-                data-target-id="export-notebook-source">
+                phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}>
                 <.remix_icon icon="clipboard-line" class="text-lg" />
               </button>
             </span>

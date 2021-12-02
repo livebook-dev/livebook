@@ -81,7 +81,7 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s2",
                 cells: [
-                  %{Cell.new(:input) | id: "c3"},
+                  %{Cell.new(:markdown) | id: "c3"},
                   %{Cell.new(:elixir) | id: "c4"}
                 ]
             }
@@ -252,65 +252,6 @@ defmodule Livebook.NotebookTest do
                  "c3" => "c1",
                  "c1" => nil
                }
-    end
-  end
-
-  describe "input_cell_for_prompt/3" do
-    test "returns an error if no input matches the given prompt" do
-      cell1 = Cell.new(:elixir)
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Section.new() | cells: [cell1]}
-          ]
-      }
-
-      assert :error = Notebook.input_cell_for_prompt(notebook, cell1.id, "name")
-    end
-
-    test "returns an input field if one is matching" do
-      cell1 = %{Cell.new(:input) | name: "name", value: "Jake Peralta"}
-      cell2 = Cell.new(:elixir)
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Section.new() | cells: [cell1, cell2]}
-          ]
-      }
-
-      assert {:ok, ^cell1} = Notebook.input_cell_for_prompt(notebook, cell2.id, "name")
-    end
-
-    test "returns the first input if there are many with the same name" do
-      cell1 = %{Cell.new(:input) | name: "name", value: "Amy Santiago"}
-      cell2 = %{Cell.new(:input) | name: "name", value: "Jake Peralta"}
-      cell3 = Cell.new(:elixir)
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Section.new() | cells: [cell1, cell2, cell3]}
-          ]
-      }
-
-      assert {:ok, ^cell2} = Notebook.input_cell_for_prompt(notebook, cell3.id, "name")
-    end
-
-    test "returns longest-prefix input if many match the prompt" do
-      cell1 = %{Cell.new(:input) | name: "name", value: "Amy Santiago"}
-      cell2 = %{Cell.new(:input) | name: "nam", value: "Jake Peralta"}
-      cell3 = Cell.new(:elixir)
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Section.new() | cells: [cell1, cell2, cell3]}
-          ]
-      }
-
-      assert {:ok, ^cell1} = Notebook.input_cell_for_prompt(notebook, cell3.id, "name: ")
     end
   end
 end

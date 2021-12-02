@@ -44,23 +44,10 @@ defmodule Livebook.Notebook.Export.ElixirTest do
               name: "Section 2",
               cells: [
                 %{
-                  Notebook.Cell.new(:input)
-                  | type: :text,
-                    name: "length",
-                    value: "100"
-                },
-                %{
                   Notebook.Cell.new(:elixir)
                   | source: """
                     IO.gets("length: ")\
                     """
-                },
-                %{
-                  Notebook.Cell.new(:input)
-                  | type: :range,
-                    name: "length",
-                    value: "100",
-                    props: %{min: 50, max: 150, step: 2}
                 }
               ]
           },

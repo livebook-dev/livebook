@@ -32,13 +32,13 @@ Example usage:
   white-space: pre;
   text-align: center;
   display: block;
+  z-index: 100;
   background-color: #1c273c;
   color: #f0f5f9;
   font-size: 12px;
   font-weight: 500;
   border-radius: 4px;
   padding: 3px 12px;
-  z-index: 100;
   visibility: hidden;
   transition-property: visibility;
   transition-duration: 0s;
@@ -50,6 +50,7 @@ Example usage:
   content: "";
   position: absolute;
   display: block;
+  z-index: 100;
   /* For the arrow we use the triangle trick: https://css-tricks.com/snippets/css/css-triangle/ */
   border-width: var(--arrow-size);
   border-style: solid;

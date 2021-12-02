@@ -127,3 +127,10 @@ export function findChildOrThrow(element, selector) {
 
   return child;
 }
+
+export function cancelEvent(event) {
+  // Cancel any default browser behavior.
+  event.preventDefault();
+  // Stop event propagation (e.g. so it doesn't reach the editor).
+  event.stopPropagation();
+}

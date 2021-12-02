@@ -68,13 +68,15 @@ defmodule LivebookCLI.Server do
         )
 
       :available ->
-        case start_server() do
-          :ok ->
+        # We configure the endpoint with `server: true`,
+        # so it's gonna start listening
+        case Application.ensure_all_started(:livebook) do
+          {:ok, _} ->
             open_from_options(LivebookWeb.Endpoint.access_url(), opts)
             Process.sleep(:infinity)
 
-          :error ->
-            print_error("Livebook failed to start")
+          {:error, error} ->
+            print_error("Livebook failed to start with reason: #{inspect(error)}")
         end
     end
   end
@@ -108,15 +110,6 @@ defmodule LivebookCLI.Server do
 
       {:error, _error} ->
         :available
-    end
-  end
-
-  defp start_server() do
-    # We configure the endpoint with `server: true`,
-    # so it's gonna start listening
-    case Application.ensure_all_started(:livebook) do
-      {:ok, _} -> :ok
-      {:error, _} -> :error
     end
   end
 

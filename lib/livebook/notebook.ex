@@ -486,28 +486,6 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
-  Finds an input cell available to the given cell and matching
-  the given prompt.
-  """
-  @spec input_cell_for_prompt(t(), Cell.id(), String.t()) :: {:ok, Cell.Input.t()} | :error
-  def input_cell_for_prompt(notebook, cell_id, prompt) do
-    notebook
-    |> parent_cells_with_section(cell_id)
-    |> Enum.map(fn {cell, _} -> cell end)
-    |> Enum.filter(fn cell ->
-      is_struct(cell, Cell.Input) and String.starts_with?(prompt, cell.name)
-    end)
-    |> case do
-      [] ->
-        :error
-
-      input_cells ->
-        cell = Enum.max_by(input_cells, &String.length(&1.name))
-        {:ok, cell}
-    end
-  end
-
-  @doc """
   Returns a forked version of the given notebook.
   """
   @spec forked(t()) :: t()

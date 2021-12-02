@@ -12,9 +12,9 @@ defmodule Livebook.Notebook.Cell do
 
   @type id :: Utils.id()
 
-  @type t :: Cell.Elixir.t() | Cell.Markdown.t() | Cell.Input.t()
+  @type t :: Cell.Elixir.t() | Cell.Markdown.t()
 
-  @type type :: :markdown | :elixir | :input
+  @type type :: :markdown | :elixir
 
   @doc """
   Returns an empty cell of the given type.
@@ -24,7 +24,6 @@ defmodule Livebook.Notebook.Cell do
 
   def new(:markdown), do: Cell.Markdown.new()
   def new(:elixir), do: Cell.Elixir.new()
-  def new(:input), do: Cell.Input.new()
 
   @doc """
   Returns an atom representing the type of the given cell.
@@ -34,5 +33,4 @@ defmodule Livebook.Notebook.Cell do
 
   def type(%Cell.Elixir{}), do: :elixir
   def type(%Cell.Markdown{}), do: :markdown
-  def type(%Cell.Input{}), do: :input
 end

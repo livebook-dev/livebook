@@ -31,10 +31,15 @@ defmodule Livebook do
       config :livebook, LivebookWeb.Endpoint, http: [ip: ip]
     end
 
-    if password = Livebook.Config.password!("LIVEBOOK_PASSWORD") do
-      config :livebook, authentication_mode: :password, password: password
-    else
-      config :livebook, token: Livebook.Utils.random_id()
+    cond do
+      password = Livebook.Config.password!("LIVEBOOK_PASSWORD") ->
+        config :livebook, authentication_mode: :password, password: password
+
+      Livebook.Config.token_enabled!("LIVEBOOK_TOKEN_ENABLED") ->
+        config :livebook, token: Livebook.Utils.random_id()
+
+      true ->
+        config :livebook, authentication_mode: :disabled
     end
 
     if runtime = Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") do

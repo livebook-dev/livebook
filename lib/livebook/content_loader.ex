@@ -3,6 +3,11 @@ defmodule Livebook.ContentLoader do
 
   alias Livebook.Utils.HTTP
 
+  @typedoc """
+  A location from where content gets loaded.
+  """
+  @type location :: {:file, FileSystem.File.t()} | {:url, String.t()}
+
   @doc """
   Rewrite known URLs, so that they point to plain text file rather than HTML.
 
@@ -80,5 +85,52 @@ defmodule Livebook.ContentLoader do
       _ ->
         {:error, "failed to download notebook from the given URL"}
     end
+  end
+
+  @doc """
+  Loads a notebook content from the given location.
+  """
+  @spec fetch_content_from_location(location()) :: {:ok, String.t()} | {:error, String.t()}
+  def fetch_content_from_location(location)
+
+  def fetch_content_from_location({:file, file}) do
+    case Livebook.FileSystem.File.read(file) do
+      {:ok, content} -> {:ok, content}
+      {:error, message} -> {:error, "failed to read #{file.path}, reason: #{message}"}
+    end
+  end
+
+  def fetch_content_from_location({:url, url}) do
+    url
+    |> rewrite_url()
+    |> fetch_content()
+  end
+
+  @doc """
+  Normalizes the given URL into a location.
+  """
+  @spec url_to_location(String.t()) :: location()
+  def url_to_location(url)
+
+  def url_to_location("file://" <> path) do
+    path = Path.expand(path)
+    file = Livebook.FileSystem.File.local(path)
+    {:file, file}
+  end
+
+  def url_to_location(url), do: {:url, url}
+
+  @doc """
+  Resolves the given relative path with regard to the given location.
+  """
+  @spec resolve_location(location(), String.t()) :: location()
+  def resolve_location(location, relative_path)
+
+  def resolve_location({:url, url}, relative_path) do
+    {:url, Livebook.Utils.expand_url(url, relative_path)}
+  end
+
+  def resolve_location({:file, file}, relative_path) do
+    {:file, Livebook.FileSystem.File.resolve(file, relative_path)}
   end
 end

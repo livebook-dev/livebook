@@ -2,7 +2,6 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
   use LivebookWeb, :live_view
 
   alias Livebook.{Session, Runtime}
-  alias LivebookWeb.SessionLive.RuntimeHelpers
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
@@ -17,7 +16,6 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
-      <RuntimeHelpers.default_runtime_note module={Runtime.Embedded} />
       <p class="text-gray-700">
         Run the notebook code within the Livebook node itself.
         This is reserved for specific cases where there is no option

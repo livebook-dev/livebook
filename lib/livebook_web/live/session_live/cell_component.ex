@@ -9,6 +9,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
       data-cell-id={@cell_view.id}
+      data-focusable-id={@cell_view.id}
       data-type={@cell_view.type}
       data-session-path={Routes.session_path(@socket, :page, @session_id)}>
       <%= render_cell(assigns) %>
@@ -19,8 +20,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
     <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_link_button cell_id={@cell_view.id} />
+      <div class="relative z-20 flex items-center justify-end space-x-2"
+        role="toolbar"
+        aria-label="cell actions"
+        data-element="actions">
         <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button" aria-label="edit content">
             <.remix_icon icon="pencil-line" class="text-xl" />
@@ -29,10 +32,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" data-tooltip="Insert image" data-element="insert-image-button">
           <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_view.id),
                 class: "icon-button",
-                aria_label: "insert image" do %>
+                aria_label: "insert image",
+                role: "button" do %>
             <.remix_icon icon="image-add-line" class="text-xl" />
           <% end %>
         </span>
+        <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
@@ -87,9 +92,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           </button>
         <% end %>
       </div>
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_link_button cell_id={@cell_view.id} />
+      <div class="relative z-20 flex items-center justify-end space-x-2"
+        role="toolbar"
+        aria-label="cell actions"
+        data-element="actions">
+        <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
+          <button class="icon-button"
+            aria-label="amplify outputs">
+            <.remix_icon icon="zoom-in-line" class="text-xl" />
+          </button>
+        </span>
         <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+        <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
@@ -100,149 +114,24 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <.editor cell_view={@cell_view} />
 
       <%= if @cell_view.outputs != [] do %>
-        <div class="mt-2">
-          <.outputs cell_view={@cell_view} runtime={@runtime} socket={@socket} />
+        <div class="mt-2" data-element="outputs-container">
+          <LivebookWeb.Output.outputs
+            outputs={@cell_view.outputs}
+            id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
+            socket={@socket}
+            runtime={@runtime}
+            input_values={@cell_view.input_values} />
         </div>
       <% end %>
     </.cell_body>
     """
   end
 
-  defp render_cell(%{cell_view: %{type: :input}} = assigns) do
-    ~H"""
-    <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions">
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
-      </div>
-    </div>
-
-    <.cell_body>
-      <form phx-change="set_cell_value" phx-submit="queue_bound_cells_evaluation">
-        <input type="hidden" name="cell_id" value={@cell_view.id} />
-        <div class="input-label">
-          <%= @cell_view.name %>
-        </div>
-
-        <.cell_input cell_view={@cell_view} />
-
-        <%= if @cell_view.error do %>
-          <div class="input-error">
-            <%= String.capitalize(@cell_view.error) %>
-          </div>
-        <% end %>
-      </form>
-    </.cell_body>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :textarea}} = assigns) do
-    ~H"""
-    <textarea
-      data-element="input"
-      class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
-      name="value"
-      spellcheck="false"
-      tabindex="-1"><%= [?\n, @cell_view.value] %></textarea>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :range}} = assigns) do
-    ~H"""
-    <div class="flex items-center space-x-2">
-      <div><%= @cell_view.props.min %></div>
-      <input type="range"
-        data-element="input"
-        class="input-range"
-        name="value"
-        value={@cell_view.value}
-        phx-debounce="300"
-        spellcheck="false"
-        autocomplete="off"
-        tabindex="-1"
-        min={@cell_view.props.min}
-        max={@cell_view.props.max}
-        step={@cell_view.props.step} />
-      <div><%= @cell_view.props.max %></div>
-    </div>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :select}} = assigns) do
-    ~H"""
-    <div class="flex items-center space-x-2">
-      <select
-       data-element="input"
-       spellcheck="false"
-       phx-debounce="300"
-       class="input input-select"
-       tabindex="-1"
-       name="value">
-        <%= for option <- @cell_view.props.options do %>
-          <option value={option} selected={option == @cell_view.value}>
-            <%= option %>
-          </option>
-        <% end %>
-      </select>
-    </div>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :checkbox}} = assigns) do
-    ~H"""
-    <div class="mt-1">
-      <.switch_checkbox
-        data-element="input"
-        name="value"
-        checked={@cell_view.value == "true"} />
-    </div>
-    """
-  end
-
-  defp cell_input(%{cell_view: %{input_type: :password}} = assigns) do
-    ~H"""
-    <.with_password_toggle id={@cell_view.id}>
-      <input type="password"
-        data-element="input"
-        class={"input w-auto bg-gray-50 #{if(@cell_view.error, do: "input--error")}"}
-        name="value"
-        value={@cell_view.value}
-        phx-debounce="300"
-        spellcheck="false"
-        autocomplete="off"
-        tabindex="-1" />
-    </.with_password_toggle>
-    """
-  end
-
-  defp cell_input(assigns) do
-    ~H"""
-    <input type={html_input_type(@cell_view.input_type)}
-      data-element="input"
-      class={"input w-auto #{if(@cell_view.error, do: "input--error")}"}
-      name="value"
-      value={@cell_view.value}
-      phx-debounce="300"
-      spellcheck="false"
-      autocomplete="off"
-      tabindex="-1" />
-    """
-  end
-
-  defp html_input_type(:password), do: "password"
-  defp html_input_type(:number), do: "number"
-  defp html_input_type(:color), do: "color"
-  defp html_input_type(:range), do: "range"
-  defp html_input_type(:select), do: "select"
-  defp html_input_type(_), do: "text"
-
   defp cell_body(assigns) do
     ~H"""
-    <!-- By setting tabindex="-1" we can programmatically focus this element  -->
-    <div class="flex relative" data-element="cell-body" tabindex="-1">
+    <!-- By setting tabindex we can programmatically focus this element,
+         also we actually want to make this element tab-focusable -->
+    <div class="flex relative" data-element="cell-body" tabindex="0">
       <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
       </div>
       <div class="w-full">
@@ -255,7 +144,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_link_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Link">
-      <a href={"#cell-#{@cell_id}"} class="icon-button" aria-label="link to cell">
+      <a href={"#cell-#{@cell_id}"} class="icon-button"
+        aria-label="link to cell">
         <.remix_icon icon="link" class="text-xl" />
       </a>
     </span>
@@ -267,7 +157,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Cell settings">
       <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id),
             class: "icon-button",
-            aria_label: "cell settings" do %>
+            aria_label: "cell settings",
+            role: "button" do %>
         <.remix_icon icon="settings-3-line" class="text-xl" />
       <% end %>
     </span>
@@ -446,108 +337,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp evaluated_label(_time_ms), do: nil
 
-  # Outputs
-
-  defp outputs(assigns) do
-    ~H"""
-    <div class="flex flex-col rounded-lg border border-gray-200 divide-y divide-gray-200">
-      <%= for {output, index} <- @cell_view.outputs |> Enum.reverse() |> Enum.with_index(), output != :ignored do %>
-        <div class="p-4 max-w-full overflow-y-auto tiny-scrollbar">
-          <%= render_output(output, %{
-                id: "cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-output#{index}",
-                socket: @socket,
-                runtime: @runtime
-              }) %>
-        </div>
-      <% end %>
-    </div>
-    """
-  end
-
   defp evaluation_number(:evaluating, number_of_evaluations), do: number_of_evaluations + 1
   defp evaluation_number(_evaluation_status, number_of_evaluations), do: number_of_evaluations
-
-  defp render_output(text, %{id: id}) when is_binary(text) do
-    # Captured output usually has a trailing newline that we can ignore,
-    # because each line is itself an HTML block anyway.
-    text = String.replace_suffix(text, "\n", "")
-    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: true)
-  end
-
-  defp render_output({:text, text}, %{id: id}) do
-    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
-  end
-
-  defp render_output({:markdown, markdown}, %{id: id}) do
-    live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
-  end
-
-  defp render_output({:image, content, mime_type}, %{id: id}) do
-    live_component(LivebookWeb.Output.ImageComponent,
-      id: id,
-      content: content,
-      mime_type: mime_type
-    )
-  end
-
-  defp render_output({:vega_lite_static, spec}, %{id: id}) do
-    live_component(LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
-  end
-
-  defp render_output({:vega_lite_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.VegaLiteDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
-  end
-
-  defp render_output({:table_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.TableDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
-  end
-
-  defp render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})
-       when runtime != nil do
-    assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
-
-    ~H"""
-    <div class="flex flex-col space-y-4">
-      <%= render_error_message_output(@formatted) %>
-      <%= if @is_standalone do %>
-        <div>
-          <button class="button-base button-gray" phx-click="restart_runtime">
-            Restart runtime
-          </button>
-        </div>
-      <% else %>
-        <div class="text-red-600">
-          <span class="font-semibold">Note:</span>
-          This operation requires restarting the runtime, but we cannot
-          do it automatically for the current runtime
-        </div>
-      <% end %>
-    </div>
-    """
-  end
-
-  defp render_output({:error, formatted, _type}, %{}) do
-    render_error_message_output(formatted)
-  end
-
-  defp render_output(output, %{}) do
-    render_error_message_output("""
-    Unknown output format: #{inspect(output)}. If you're using Kino,
-    you may want to update Kino and Livebook to the latest version.
-    """)
-  end
-
-  defp render_error_message_output(message) do
-    assigns = %{message: message}
-
-    ~H"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
-    """
-  end
 end

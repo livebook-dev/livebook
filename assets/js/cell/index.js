@@ -13,8 +13,10 @@ import scrollIntoView from "scroll-into-view-if-needed";
  *
  * Configuration:
  *
+ *   * `data-focusable-id` - an identifier for the focus/insert navigation
  *   * `data-cell-id` - id of the cell being edited
  *   * `data-type` - type of the cell
+ *   * `data-session-path` - root path to the current session
  */
 const Cell = {
   mounted() {
@@ -48,6 +50,16 @@ const Cell = {
           source,
           revision
         );
+
+        // Setup action handlers
+        if (this.props.type === "elixir") {
+          const amplifyButton = this.el.querySelector(
+            `[data-element="amplify-outputs-button"]`
+          );
+          amplifyButton.addEventListener("click", (event) => {
+            this.el.toggleAttribute("data-js-amplified");
+          });
+        }
 
         // Setup change indicator
         if (this.props.type === "elixir") {
@@ -122,19 +134,12 @@ const Cell = {
       });
     }
 
-    if (this.props.type === "input") {
-      const input = getInput(this);
-
-      input.addEventListener("blur", (event) => {
-        if (this.state.isFocused && this.state.insertMode) {
-          // We are still in the insert mode, so focus the input
-          // back once other handlers complete
-          setTimeout(() => {
-            input.focus();
-          }, 0);
-        }
-      });
-    }
+    this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
+      "navigation",
+      (event) => {
+        handleNavigationEvent(this, event);
+      }
+    );
 
     this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
       "cells",
@@ -145,6 +150,7 @@ const Cell = {
   },
 
   destroyed() {
+    this._unsubscribeFromNavigationEvents();
     this._unsubscribeFromCellsEvents();
 
     if (this.state.liveEditor) {
@@ -165,11 +171,16 @@ function getProps(hook) {
   };
 }
 
-function getInput(hook) {
-  if (hook.props.type === "input") {
-    return hook.el.querySelector(`[data-element="input"]`);
-  } else {
-    return null;
+/**
+ * Handles client-side navigation event.
+ */
+function handleNavigationEvent(hook, event) {
+  if (event.type === "element_focused") {
+    handleElementFocused(hook, event.focusableId, event.scroll);
+  } else if (event.type === "insert_mode_changed") {
+    handleInsertModeChanged(hook, event.enabled);
+  } else if (event.type === "location_report") {
+    handleLocationReport(hook, event.client, event.report);
   }
 }
 
@@ -177,21 +188,15 @@ function getInput(hook) {
  * Handles client-side cells event.
  */
 function handleCellsEvent(hook, event) {
-  if (event.type === "cell_focused") {
-    handleCellFocused(hook, event.cellId, event.scroll);
-  } else if (event.type === "insert_mode_changed") {
-    handleInsertModeChanged(hook, event.enabled);
-  } else if (event.type === "cell_moved") {
+  if (event.type === "cell_moved") {
     handleCellMoved(hook, event.cellId);
   } else if (event.type === "cell_upload") {
     handleCellUpload(hook, event.cellId, event.url);
-  } else if (event.type === "location_report") {
-    handleLocationReport(hook, event.client, event.report);
   }
 }
 
-function handleCellFocused(hook, cellId, scroll) {
-  if (hook.props.cellId === cellId) {
+function handleElementFocused(hook, focusableId, scroll) {
+  if (hook.props.cellId === focusableId) {
     hook.state.isFocused = true;
     hook.el.setAttribute("data-js-focused", "true");
     if (scroll) {
@@ -204,43 +209,33 @@ function handleCellFocused(hook, cellId, scroll) {
 }
 
 function handleInsertModeChanged(hook, insertMode) {
-  if (hook.state.isFocused) {
+  if (hook.state.isFocused && !hook.state.insertMode && insertMode) {
     hook.state.insertMode = insertMode;
 
     if (hook.state.liveEditor) {
-      if (hook.state.insertMode) {
+      // For some reason, when clicking the editor for a brief moment it is
+      // already focused and the cursor is in the previous location, which
+      // makes the browser immediately scroll there. We blur the editor,
+      // then wait for the editor to update the cursor position, finally
+      // we focus the editor and scroll if the cursor is not in the view
+      // (when entering insert mode with "i").
+      hook.state.liveEditor.blur();
+      setTimeout(() => {
         hook.state.liveEditor.focus();
-        // The insert mode may be enabled as a result of clicking the editor,
-        // in which case we want to wait until editor handles the click
-        // and sets new cursor position.
-        // To achieve this, we simply put this task at the end of event loop,
-        // ensuring all click handlers are executed first.
-        setTimeout(() => {
-          scrollIntoView(document.activeElement, {
-            scrollMode: "if-needed",
-            behavior: "smooth",
-            block: "center",
-          });
-        }, 0);
+        scrollIntoView(document.activeElement, {
+          scrollMode: "if-needed",
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 0);
 
-        broadcastSelection(hook);
-      } else {
-        hook.state.liveEditor.blur();
-      }
+      broadcastSelection(hook);
     }
+  } else if (hook.state.insertMode && !insertMode) {
+    hook.state.insertMode = insertMode;
 
-    const input = getInput(hook);
-
-    if (input) {
-      if (hook.state.insertMode) {
-        input.focus();
-        // selectionStart is only supported on text based input
-        if (input.selectionStart !== null) {
-          input.selectionStart = input.selectionEnd = input.value.length;
-        }
-      } else {
-        input.blur();
-      }
+    if (hook.state.liveEditor) {
+      hook.state.liveEditor.blur();
     }
   }
 }
@@ -267,7 +262,7 @@ function handleLocationReport(hook, client, report) {
     return;
   }
 
-  if (hook.props.cellId === report.cellId && report.selection) {
+  if (hook.props.cellId === report.focusableId && report.selection) {
     hook.state.liveEditor.updateUserSelection(client, report.selection);
   } else {
     hook.state.liveEditor.removeUserSelection(client);
@@ -281,7 +276,7 @@ function broadcastSelection(hook, selection = null) {
   if (hook.state.isFocused && hook.state.insertMode) {
     globalPubSub.broadcast("session", {
       type: "cursor_selection_changed",
-      cellId: hook.props.cellId,
+      focusableId: hook.props.cellId,
       selection,
     });
   }

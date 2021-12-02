@@ -34,6 +34,8 @@ defmodule LivebookWeb.Helpers do
         <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@class}"}
           role="dialog"
           aria-modal="true"
+          tabindex="0"
+          autofocus
           phx-window-keydown={click_modal_close()}
           phx-click-away={click_modal_close()}
           phx-key="escape">
@@ -250,12 +252,14 @@ defmodule LivebookWeb.Helpers do
       <.labeled_text label="Name" text="Sherlock Holmes" />
   """
   def labeled_text(assigns) do
+    assigns = assign_new(assigns, :one_line, fn -> false end)
+
     ~H"""
     <div class="flex flex-col space-y-1">
       <span class="text-xs text-gray-500">
         <%= @label %>
       </span>
-      <span class="text-gray-800 text-sm font-semibold">
+      <span class={"text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"}>
         <%= @text %>
       </span>
     </div>
@@ -271,9 +275,9 @@ defmodule LivebookWeb.Helpers do
 
   ## Examples
 
-    <.with_password_toggle id="input-id">
-      <input type="password" ...>
-    </.with_password_toggle>
+      <.with_password_toggle id="input-id">
+        <input type="password" ...>
+      </.with_password_toggle>
   """
   def with_password_toggle(assigns) do
     ~H"""
@@ -287,6 +291,57 @@ defmodule LivebookWeb.Helpers do
         phx-change="ignore">
         <.remix_icon icon="eye-line" class="text-xl" />
       </button>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a popup menu that shows up on toggle click.
+
+  ## Assigns
+
+    * `:id` - unique HTML id
+
+    * `:disabled` - whether the menu is active. Defaults to `false`
+
+    * `:position` - which side of the clickable the menu menu should
+      be attached to, either `"left"` or `"right"`. Defaults to `"right"`
+
+    * `:secondary_click` - whether secondary click (usually right mouse click)
+      should open the menu. Defaults to `false`
+
+  ## Examples
+
+      <.menu id="my-menu">
+        <:toggle>
+          <button>Open</button>
+        </:toggle>
+        <:content>
+          <button class"menu-item" role="menuitem">Option 1</button>
+        </:content>
+      </.menu>
+  """
+  def menu(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:disabled, fn -> false end)
+      |> assign_new(:position, fn -> "right" end)
+      |> assign_new(:secondary_click, fn -> false end)
+
+    ~H"""
+    <div class="relative"
+      id={@id}>
+      <div
+        phx-click={not @disabled && JS.toggle(to: "##{@id}-content")}
+        phx-click-away={JS.hide(to: "##{@id}-content")}
+        data-contextmenu-trigger-click={@secondary_click}
+        phx-window-keydown={JS.hide(to: "##{@id}-content")}
+        phx-key="escape">
+        <%= render_slot(@toggle) %>
+      </div>
+      <menu id={"#{@id}-content"} class={"hidden menu #{@position}"} role="menu">
+        <%= render_slot(@content) %>
+      </menu>
     </div>
     """
   end

@@ -11,42 +11,40 @@ import "phoenix_html";
 import { Socket } from "phoenix";
 import topbar from "topbar";
 import { LiveSocket } from "phoenix_live_view";
-import ContentEditable from "./content_editable";
+import Headline from "./headline";
 import Cell from "./cell";
 import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
 import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
-import Menu from "./menu";
 import UserForm from "./user_form";
 import EditorSettings from "./editor_settings";
 import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
-import ClipCopy from "./clip_copy";
-import DragAndDrop from "./darg_and_drop";
+import DragAndDrop from "./drag_and_drop";
 import PasswordToggle from "./password_toggle";
+import KeyboardControl from "./keyboard_control";
 import morphdomCallbacks from "./morphdom_callbacks";
 import { loadUserData } from "./lib/user";
 
 const hooks = {
-  ContentEditable,
+  Headline,
   Cell,
   Session,
   FocusOnUpdate,
   ScrollOnUpdate,
   VirtualizedLines,
-  Menu,
   UserForm,
   EditorSettings,
   VegaLite,
   Timer,
   MarkdownRenderer,
   Highlight,
-  ClipCopy,
   DragAndDrop,
   PasswordToggle,
+  KeyboardControl,
 };
 
 const csrfToken = document
@@ -90,4 +88,22 @@ window.addEventListener("lb:focus", (event) => {
 
 window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
+});
+
+if ("clipboard" in navigator) {
+  window.addEventListener("lb:clipcopy", (event) => {
+    const text = event.target.textContent;
+    navigator.clipboard.writeText(text);
+  });
+}
+
+// Other global handlers
+
+window.addEventListener("contextmenu", (event) => {
+  const target = event.target.closest("[data-contextmenu-trigger-click]");
+
+  if (target) {
+    event.preventDefault();
+    target.dispatchEvent(new Event("click", { bubbles: true }));
+  }
 });
