@@ -222,7 +222,7 @@ defmodule Livebook.Evaluator do
   defp handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
 
-    Evaluator.ObjectTracker.remove_pointer(state.object_tracker, {self(), ref})
+    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
     context = get_context(state, prev_ref)
     file = Keyword.get(opts, :file, "nofile")
@@ -257,7 +257,7 @@ defmodule Livebook.Evaluator do
 
   defp handle_cast({:forget_evaluation, ref}, state) do
     state = Map.update!(state, :contexts, &Map.delete(&1, ref))
-    Evaluator.ObjectTracker.remove_pointer(state.object_tracker, {self(), ref})
+    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
     {:noreply, state}
   end
 

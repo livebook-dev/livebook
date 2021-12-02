@@ -5,24 +5,24 @@ defmodule Livebook.Evaluator.ObjectTracker do
   # references to them and garbage collection.
   #
   # Every object is identified by an arbitrary unique term.
-  # Processes can add pointers to those objects. A pointer
-  # is a pair of `{pid(), term()}`, where pid is the pointing
-  # process and term can be used as an additional scope.
+  # Processes can reference those objects by adding a pair
+  # of `{pid, scope}`, scope is an optional additinal term
+  # distinguishing the reference.
   #
-  # Each pointer can be released either manually by calling
-  # `remove_pointer/2` or automatically when the pointing
+  # Each reference can be released either manually by calling
+  # `remove_reference/2` or automatically when the pointing
   # process terminates.
   #
-  # When all pointers for the given object are removed,
+  # When all references for the given object are removed,
   # all messages scheduled with `monitor/3` are sent.
 
   use GenServer
 
   @type state :: %{
-          object_ids: %{
-            object_id() => %{
-              pointers: list(pointer),
-              monitors: list(monitor)
+          objects: %{
+            object() => %{
+              references: list(object_reference()),
+              monitors: list(monitor())
             }
           }
         }
@@ -30,13 +30,12 @@ defmodule Livebook.Evaluator.ObjectTracker do
   @typedoc """
   Arbitrary term identifying an object.
   """
-  @type object_id :: term()
+  @type object :: term()
 
   @typedoc """
-  Reference to an object, where `parent` is the pointing
-  process and `reference` is an additional scope.
+  Reference to an object with an optional scope.
   """
-  @type pointer :: {parent :: pid(), reference :: term()}
+  @type object_reference :: {process :: pid(), scope :: term()}
 
   @typedoc """
   Scheduled message to be sent when an object is released.
@@ -52,100 +51,100 @@ defmodule Livebook.Evaluator.ObjectTracker do
   end
 
   @doc """
-  Adds a pointer to the given object.
+  Adds a reference to the given object.
   """
-  @spec add_pointer(pid(), object_id(), pointer()) :: :ok
-  def add_pointer(object_tracker, object_id, pointer) do
-    GenServer.cast(object_tracker, {:add_pointer, object_id, pointer})
+  @spec add_reference(pid(), object(), object_reference()) :: :ok
+  def add_reference(object_tracker, object, reference) do
+    GenServer.cast(object_tracker, {:add_reference, object, reference})
   end
 
   @doc """
-  Removes the given pointer from all objects it is attached to.
+  Removes the given reference from all objects it is attached to.
   """
-  @spec remove_pointer(pid(), pointer()) :: :ok
-  def remove_pointer(object_tracker, pointer) do
-    GenServer.cast(object_tracker, {:remove_pointer, pointer})
+  @spec remove_reference(pid(), object_reference()) :: :ok
+  def remove_reference(object_tracker, reference) do
+    GenServer.cast(object_tracker, {:remove_reference, reference})
   end
 
   @doc """
   Schedules `payload` to be send to `destination` when the object
   is released.
   """
-  @spec monitor(pid(), object_id(), Process.dest(), term()) :: :ok
-  def monitor(object_tracker, object_id, destination, payload) do
-    GenServer.cast(object_tracker, {:monitor, object_id, destination, payload})
+  @spec monitor(pid(), object(), Process.dest(), term()) :: :ok | {:error, :bad_object}
+  def monitor(object_tracker, object, destination, payload) do
+    GenServer.call(object_tracker, {:monitor, object, destination, payload})
   end
 
   @impl true
   def init(_opts) do
-    {:ok, %{object_ids: %{}}}
+    {:ok, %{objects: %{}}}
   end
 
   @impl true
-  def handle_cast({:add_pointer, object_id, pointer}, state) do
-    {parent, _reference} = pointer
+  def handle_cast({:add_reference, object, reference}, state) do
+    {parent, _scope} = reference
     Process.monitor(parent)
 
     state =
-      if state.object_ids[object_id] do
-        update_in(state.object_ids[object_id].pointers, fn pointers ->
-          if pointer in pointers, do: pointers, else: [pointer | pointers]
+      if state.objects[object] do
+        update_in(state.objects[object].references, fn references ->
+          if reference in references, do: references, else: [reference | references]
         end)
       else
-        put_in(state.object_ids[object_id], %{pointers: [pointer], monitors: []})
+        put_in(state.objects[object], %{references: [reference], monitors: []})
       end
 
     {:noreply, state}
   end
 
-  def handle_cast({:remove_pointer, pointer}, state) do
-    state = update_pointers(state, fn pointers -> List.delete(pointers, pointer) end)
-
-    {:noreply, garbage_collect(state)}
-  end
-
-  def handle_cast({:monitor, object_id, destination, payload}, state) do
-    monitor = {destination, payload}
-
-    state =
-      if state.object_ids[object_id] do
-        update_in(state.object_ids[object_id].monitors, fn monitors ->
-          if monitor in monitors, do: monitors, else: [monitor | monitors]
-        end)
-      else
-        state
-      end
+  def handle_cast({:remove_reference, reference}, state) do
+    state = update_references(state, fn references -> List.delete(references, reference) end)
 
     {:noreply, garbage_collect(state)}
   end
 
   @impl true
+  def handle_call({:monitor, object, destination, payload}, _from, state) do
+    monitor = {destination, payload}
+
+    if state.objects[object] do
+      state =
+        update_in(state.objects[object].monitors, fn monitors ->
+          if monitor in monitors, do: monitors, else: [monitor | monitors]
+        end)
+
+      {:reply, :ok, garbage_collect(state)}
+    else
+      {:reply, {:error, :bad_object}, state}
+    end
+  end
+
+  @impl true
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     state =
-      update_pointers(state, fn pointers ->
-        Enum.reject(pointers, &match?({^pid, _}, &1))
+      update_references(state, fn references ->
+        Enum.reject(references, &match?({^pid, _}, &1))
       end)
 
     {:noreply, garbage_collect(state)}
   end
 
-  # Updates pointers for every object with the given function
-  defp update_pointers(state, fun) do
-    update_in(state.object_ids, fn object_ids ->
-      for {object_id, %{pointers: pointers} = info} <- object_ids, into: %{} do
-        {object_id, %{info | pointers: fun.(pointers)}}
+  # Updates references for every object with the given function
+  defp update_references(state, fun) do
+    update_in(state.objects, fn objects ->
+      for {object, %{references: references} = info} <- objects, into: %{} do
+        {object, %{info | references: fun.(references)}}
       end
     end)
   end
 
   defp garbage_collect(state) do
-    {to_release, object_ids} =
-      Enum.split_with(state.object_ids, &match?({_, %{pointers: []}}, &1))
+    {to_release, objects} = Enum.split_with(state.objects, &match?({_, %{references: []}}, &1))
 
     for {_, %{monitors: monitors}} <- to_release, {dest, payload} <- monitors do
       send(dest, payload)
     end
 
-    %{state | object_ids: Map.new(object_ids)}
+    %{state | objects: Map.new(objects)}
   end
 end

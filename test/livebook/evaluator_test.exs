@@ -314,8 +314,8 @@ defmodule Livebook.EvaluatorTest do
     end)
 
     ref = make_ref()
-    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_add_pointer, widget_pid, self()}})
-    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_monitor, widget_pid, widget_pid, :stop}})
+    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_reference_object, widget_pid, self()}})
+    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_object, widget_pid, widget_pid, :stop}})
 
     receive do
       {:io_reply, ^ref, :ok} -> :ok
@@ -338,8 +338,8 @@ defmodule Livebook.EvaluatorTest do
       end)
 
       ref = make_ref()
-      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_add_pointer, widget_pid, self()}})
-      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_object_monitor, widget_pid, widget_pid, :stop}})
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_reference_object, widget_pid, self()}})
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_object, widget_pid, widget_pid, :stop}})
 
       receive do
         {:io_reply, ^ref, :ok} -> :ok

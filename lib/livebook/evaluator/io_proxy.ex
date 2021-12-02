@@ -217,25 +217,25 @@ defmodule Livebook.Evaluator.IOProxy do
     {token, state}
   end
 
-  defp io_request({:livebook_object_add_pointer, object_id, from}, state) do
+  defp io_request({:livebook_reference_object, object, pid}, state) do
     # When the request comes from evaluator we want the pointer
     # specific to the current evaluation. For any other process
     # we only care about monitoring.
 
-    pointer =
-      if from == state.evaluator do
-        {from, state.ref}
+    reference =
+      if pid == state.evaluator do
+        {pid, state.ref}
       else
-        {from, :process}
+        {pid, :process}
       end
 
-    Evaluator.ObjectTracker.add_pointer(state.object_tracker, object_id, pointer)
+    Evaluator.ObjectTracker.add_reference(state.object_tracker, object, reference)
     {:ok, state}
   end
 
-  defp io_request({:livebook_object_monitor, object_id, destination, payload}, state) do
-    Evaluator.ObjectTracker.monitor(state.object_tracker, object_id, destination, payload)
-    {:ok, state}
+  defp io_request({:livebook_monitor_object, object, destination, payload}, state) do
+    reply = Evaluator.ObjectTracker.monitor(state.object_tracker, object, destination, payload)
+    {reply, state}
   end
 
   defp io_request(_, state) do
