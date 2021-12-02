@@ -20,11 +20,11 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
   @doc """
   Spawns a new evaluator.
   """
-  @spec start_evaluator(pid()) :: {:ok, Evaluator.t()} | {:error, any()}
-  def start_evaluator(supervisor) do
+  @spec start_evaluator(pid(), pid()) :: {:ok, Evaluator.t()} | {:error, any()}
+  def start_evaluator(supervisor, object_tracker) do
     case DynamicSupervisor.start_child(
            supervisor,
-           {Evaluator, [formatter: Evaluator.DefaultFormatter]}
+           {Evaluator, [formatter: Evaluator.DefaultFormatter, object_tracker: object_tracker]}
          ) do
       {:ok, _pid, evaluator} -> {:ok, evaluator}
       {:error, reason} -> {:error, reason}

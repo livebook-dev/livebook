@@ -167,14 +167,18 @@ defmodule LivebookWeb.SessionLiveTest do
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session.pid)
     end
 
-    test "editing input field in cell output", %{conn: conn, session: session} do
+    test "editing input field in cell output", %{conn: conn, session: session, test: test} do
       section_id = insert_section(session.pid)
 
+      Process.register(self(), test)
+
       insert_cell_with_input(session.pid, section_id, %{
+        ref: :reference,
         id: "input1",
         type: :number,
         label: "Name",
-        default: "hey"
+        default: "hey",
+        destination: test
       })
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -186,14 +190,18 @@ defmodule LivebookWeb.SessionLiveTest do
       assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
     end
 
-    test "newlines in text input are normalized", %{conn: conn, session: session} do
+    test "newlines in text input are normalized", %{conn: conn, session: session, test: test} do
       section_id = insert_section(session.pid)
 
+      Process.register(self(), test)
+
       insert_cell_with_input(session.pid, section_id, %{
+        ref: :reference,
         id: "input1",
         type: :textarea,
         label: "Name",
-        default: "hey"
+        default: "hey",
+        destination: test
       })
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -705,7 +713,8 @@ defmodule LivebookWeb.SessionLiveTest do
       quote do
         send(
           Process.group_leader(),
-          {:io_request, self(), make_ref(), {:livebook_put_output, {:input, unquote(input)}}}
+          {:io_request, self(), make_ref(),
+           {:livebook_put_output, {:input, unquote(Macro.escape(input))}}}
         )
       end
       |> Macro.to_string()

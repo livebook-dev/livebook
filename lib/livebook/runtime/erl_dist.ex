@@ -23,6 +23,7 @@ defmodule Livebook.Runtime.ErlDist do
   @required_modules [
     Livebook.Evaluator,
     Livebook.Evaluator.IOProxy,
+    Livebook.Evaluator.ObjectTracker,
     Livebook.Evaluator.DefaultFormatter,
     Livebook.Intellisense,
     Livebook.Intellisense.IdentifierMatcher,

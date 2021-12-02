@@ -113,6 +113,10 @@ defmodule LivebookWeb.Output do
     )
   end
 
+  defp render_output({:control, attrs}, %{id: id}) do
+    live_component(LivebookWeb.Output.ControlComponent, id: id, attrs: attrs)
+  end
+
   defp render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})
        when runtime != nil do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}

@@ -24,9 +24,9 @@ defmodule Livebook.Evaluator.IOProxy do
 
   Make sure to use `configure/3` to actually proxy the requests.
   """
-  @spec start_link() :: GenServer.on_start()
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts)
+  @spec start_link(pid(), pid()) :: GenServer.on_start()
+  def start_link(evaluator, object_tracker) do
+    GenServer.start_link(__MODULE__, evaluator: evaluator, object_tracker: object_tracker)
   end
 
   @doc """
@@ -80,7 +80,10 @@ defmodule Livebook.Evaluator.IOProxy do
   ## Callbacks
 
   @impl true
-  def init(_opts) do
+  def init(opts) do
+    evaluator = Keyword.fetch!(opts, :evaluator)
+    object_tracker = Keyword.fetch!(opts, :object_tracker)
+
     {:ok,
      %{
        encoding: :unicode,
@@ -88,8 +91,9 @@ defmodule Livebook.Evaluator.IOProxy do
        ref: nil,
        buffer: [],
        input_cache: %{},
-       widget_pids: MapSet.new(),
-       token_count: 0
+       token_count: 0,
+       evaluator: evaluator,
+       object_tracker: object_tracker
      }}
   end
 
@@ -105,10 +109,6 @@ defmodule Livebook.Evaluator.IOProxy do
   @impl true
   def handle_call(:flush, _from, state) do
     {:reply, :ok, flush_buffer(state)}
-  end
-
-  def handle_call(:flush_widgets, _from, state) do
-    {:reply, state.widget_pids, %{state | widget_pids: MapSet.new()}}
   end
 
   @impl true
@@ -198,13 +198,6 @@ defmodule Livebook.Evaluator.IOProxy do
   defp io_request({:livebook_put_output, output}, state) do
     state = flush_buffer(state)
     send(state.target, {:evaluation_output, state.ref, output})
-
-    state =
-      case Evaluator.widget_pid_from_output(output) do
-        {:ok, pid} -> update_in(state.widget_pids, &MapSet.put(&1, pid))
-        :error -> state
-      end
-
     {:ok, state}
   end
 
@@ -222,6 +215,27 @@ defmodule Livebook.Evaluator.IOProxy do
     token = {state.ref, state.token_count}
     state = update_in(state.token_count, &(&1 + 1))
     {token, state}
+  end
+
+  defp io_request({:livebook_reference_object, object, pid}, state) do
+    # When the request comes from evaluator we want the pointer
+    # specific to the current evaluation. For any other process
+    # we only care about monitoring.
+
+    reference =
+      if pid == state.evaluator do
+        {pid, state.ref}
+      else
+        {pid, :process}
+      end
+
+    Evaluator.ObjectTracker.add_reference(state.object_tracker, object, reference)
+    {:ok, state}
+  end
+
+  defp io_request({:livebook_monitor_object, object, destination, payload}, state) do
+    reply = Evaluator.ObjectTracker.monitor(state.object_tracker, object, destination, payload)
+    {reply, state}
   end
 
   defp io_request(_, state) do

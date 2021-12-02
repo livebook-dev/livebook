@@ -78,6 +78,8 @@ defmodule LivebookWeb.Output.InputComponent do
         name="value"
         value={@value}
         phx-debounce="300"
+        phx-blur="blur"
+        phx-target={@myself}
         spellcheck="false"
         autocomplete="off"
         min={@attrs.min}
@@ -95,6 +97,8 @@ defmodule LivebookWeb.Output.InputComponent do
       class="input h-[200px] resize-none tiny-scrollbar"
       name="value"
       phx-debounce="300"
+      phx-blur="blur"
+      phx-target={@myself}
       spellcheck="false"><%= [?\n, @value] %></textarea>
     """
   end
@@ -108,13 +112,15 @@ defmodule LivebookWeb.Output.InputComponent do
         name="value"
         value={@value}
         phx-debounce="300"
+        phx-blur="blur"
+        phx-target={@myself}
         spellcheck="false"
         autocomplete="off" />
     </.with_password_toggle>
     """
   end
 
-  defp input(assigns) do
+  defp input(%{attrs: %{type: type}} = assigns) when type in [:number, :color, :url, :text] do
     ~H"""
     <input type={html_input_type(@attrs.type)}
       data-element="input"
@@ -122,10 +128,18 @@ defmodule LivebookWeb.Output.InputComponent do
       name="value"
       value={to_string(@value)}
       phx-debounce="300"
-      spellcheck="false"
-      autocomplete="off"
       phx-blur="blur"
-      phx-target={@myself} />
+      phx-target={@myself}
+      spellcheck="false"
+      autocomplete="off" />
+    """
+  end
+
+  defp input(assigns) do
+    ~H"""
+    <div class="text-red-600">
+      Unknown input type <%= @attrs.type %>
+    </div>
     """
   end
 
@@ -139,7 +153,9 @@ defmodule LivebookWeb.Output.InputComponent do
     {:noreply, handle_html_value(socket, html_value)}
   end
 
-  def handle_event("blur", %{}, socket) do
+  def handle_event("blur", %{"value" => html_value}, socket) do
+    socket = handle_html_value(socket, html_value)
+
     if socket.assigns.error do
       {:noreply, assign(socket, value: socket.assigns.initial_value, error: nil)}
     else
@@ -154,9 +170,15 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp handle_html_value(socket, html_value) do
+    current_value = socket.assigns.value
+
     case parse(html_value, socket.assigns.attrs) do
+      {:ok, ^current_value} ->
+        socket
+
       {:ok, value} ->
         send(self(), {:set_input_value, socket.assigns.attrs.id, value})
+        report_event(socket, value)
         assign(socket, value: value, error: nil)
 
       {:error, error, value} ->
@@ -222,5 +244,11 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp parse(html_value, %{type: :color}) do
     {:ok, html_value}
+  end
+
+  defp report_event(socket, value) do
+    topic = socket.assigns.attrs.ref
+    event = %{value: value, origin: self(), type: :change}
+    send(socket.assigns.attrs.destination, {:event, topic, event})
   end
 end

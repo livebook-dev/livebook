@@ -23,14 +23,12 @@ defmodule Livebook.Evaluator do
   @type t :: %{pid: pid(), ref: reference()}
 
   @type state :: %{
+          ref: reference(),
           formatter: module(),
           io_proxy: pid(),
+          object_tracker: pid(),
           contexts: %{ref() => context()},
-          initial_context: context(),
-          # We track the widgets rendered by every evaluation,
-          # so that we can kill those no longer needed
-          widget_pids: %{ref() => MapSet.t(pid())},
-          widget_counts: %{pid() => non_neg_integer()}
+          initial_context: context()
         }
 
   @typedoc """
@@ -56,6 +54,8 @@ defmodule Livebook.Evaluator do
   Starts the evaluator.
 
   Options:
+
+    * `object_tracker` - a PID of `Livebook.Evaluator.ObjectTracker`, required
 
     * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
       used for transforming evaluation response before it's sent to the client
@@ -171,16 +171,18 @@ defmodule Livebook.Evaluator do
   end
 
   def init(opts) do
+    object_tracker = Keyword.fetch!(opts, :object_tracker)
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
 
-    {:ok, io_proxy} = Evaluator.IOProxy.start_link()
+    {:ok, io_proxy} = Evaluator.IOProxy.start_link(self(), object_tracker)
 
-    # Use the dedicated IO device as the group leader,
-    # so that it handles all :stdio operations.
+    # Use the dedicated IO device as the group leader, so that
+    # intercepts all :stdio requests and also handles Livebook
+    # specific ones
     Process.group_leader(self(), io_proxy)
 
     evaluator_ref = make_ref()
-    state = initial_state(evaluator_ref, formatter, io_proxy)
+    state = initial_state(evaluator_ref, formatter, io_proxy, object_tracker)
     evaluator = %{pid: self(), ref: evaluator_ref}
 
     :proc_lib.init_ack(evaluator)
@@ -188,15 +190,14 @@ defmodule Livebook.Evaluator do
     loop(state)
   end
 
-  defp initial_state(evaluator_ref, formatter, io_proxy) do
+  defp initial_state(evaluator_ref, formatter, io_proxy, object_tracker) do
     %{
       evaluator_ref: evaluator_ref,
       formatter: formatter,
       io_proxy: io_proxy,
+      object_tracker: object_tracker,
       contexts: %{},
-      initial_context: initial_context(),
-      widget_pids: %{},
-      widget_counts: %{}
+      initial_context: initial_context()
     }
   end
 
@@ -220,6 +221,8 @@ defmodule Livebook.Evaluator do
 
   defp handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
+
+    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
     context = get_context(state, prev_ref)
     file = Keyword.get(opts, :file, "nofile")
@@ -249,18 +252,12 @@ defmodule Livebook.Evaluator do
     metadata = %{evaluation_time_ms: evaluation_time_ms}
     send(send_to, {:evaluation_response, ref, output, metadata})
 
-    widget_pids = Evaluator.IOProxy.flush_widgets(state.io_proxy)
-    state = track_evaluation_widgets(state, ref, widget_pids, output)
-
     {:noreply, state}
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
-    state =
-      state
-      |> Map.update!(:contexts, &Map.delete(&1, ref))
-      |> garbage_collect_widgets(ref, [])
-
+    state = Map.update!(state, :contexts, &Map.delete(&1, ref))
+    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
     {:noreply, state}
   end
 
@@ -371,56 +368,6 @@ defmodule Livebook.Evaluator do
 
   defp internal_dictionary_key?("$" <> _), do: true
   defp internal_dictionary_key?(_), do: false
-
-  # Widgets
-
-  defp track_evaluation_widgets(state, ref, widget_pids, output) do
-    widget_pids =
-      case widget_pid_from_output(output) do
-        {:ok, pid} -> MapSet.put(widget_pids, pid)
-        :error -> widget_pids
-      end
-
-    garbage_collect_widgets(state, ref, widget_pids)
-  end
-
-  defp garbage_collect_widgets(state, ref, widget_pids) do
-    prev_widget_pids = state.widget_pids[ref] || []
-
-    state = put_in(state.widget_pids[ref], widget_pids)
-
-    update_in(state.widget_counts, fn counts ->
-      counts =
-        Enum.reduce(prev_widget_pids, counts, fn pid, counts ->
-          Map.update!(counts, pid, &(&1 - 1))
-        end)
-
-      counts =
-        Enum.reduce(widget_pids, counts, fn pid, counts ->
-          Map.update(counts, pid, 1, &(&1 + 1))
-        end)
-
-      {to_remove, to_keep} = Enum.split_with(counts, fn {_pid, count} -> count == 0 end)
-
-      for {pid, 0} <- to_remove do
-        Process.exit(pid, :shutdown)
-      end
-
-      Map.new(to_keep)
-    end)
-  end
-
-  @doc """
-  Checks the given output value for widget pid to track.
-  """
-  @spec widget_pid_from_output(term()) :: {:ok, pid()} | :error
-  def widget_pid_from_output(output)
-
-  def widget_pid_from_output({_type, pid}) when is_pid(pid) do
-    {:ok, pid}
-  end
-
-  def widget_pid_from_output(_output), do: :error
 
   defp get_execution_time_delta(started_at) do
     System.monotonic_time()

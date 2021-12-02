@@ -3,7 +3,9 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
 
   @impl true
   def mount(_params, %{"pid" => pid, "id" => id, "input_values" => input_values}, socket) do
-    send(pid, {:connect, self()})
+    if connected?(socket) do
+      send(pid, {:connect, self()})
+    end
 
     {:ok, assign(socket, id: id, output: nil, input_values: input_values)}
   end

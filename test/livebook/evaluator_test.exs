@@ -4,8 +4,9 @@ defmodule Livebook.EvaluatorTest do
   alias Livebook.Evaluator
 
   setup do
-    {:ok, _pid, evaluator} = start_supervised(Evaluator)
-    %{evaluator: evaluator}
+    {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
+    {:ok, _pid, evaluator} = start_supervised({Evaluator, [object_tracker: object_tracker]})
+    %{evaluator: evaluator, object_tracker: object_tracker}
   end
 
   describe "evaluate_code/6" do
@@ -161,8 +162,9 @@ defmodule Livebook.EvaluatorTest do
     end
 
     test "kills widgets that that no evaluation points to", %{evaluator: evaluator} do
-      # Evaluate the code twice, which spawns two widget processes
-      # First of them should be eventually killed
+      # Evaluate the code twice, each time a new widget is spawned.
+      # The evaluation reference is the same, so the second one overrides
+      # the first one and the first widget should eventually be kiled.
 
       Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
 
@@ -176,27 +178,26 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2},
                       %{evaluation_time_ms: _time_ms}}
 
-      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
 
       assert Process.alive?(widget_pid2)
     end
 
-    test "does not kill a widget if another evaluation points to it", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+    test "kills widgets when the spawning process terminates", %{evaluator: evaluator} do
+      # The widget is spawned from a process that terminates,
+      # so the widget should terminate immediately as well
+
+      Evaluator.evaluate_code(
+        evaluator,
+        self(),
+        spawn_widget_from_terminating_process_code(),
+        :code_1
+      )
 
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1},
                       %{evaluation_time_ms: _time_ms}}
 
-      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_2)
-
-      assert_receive {:evaluation_response, :code_2, {:ok, widget_pid2},
-                      %{evaluation_time_ms: _time_ms}}
-
-      ref = Process.monitor(widget_pid1)
-      refute_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
-
-      assert Process.alive?(widget_pid1)
-      assert Process.alive?(widget_pid2)
+      refute Process.alive?(widget_pid1)
     end
   end
 
@@ -225,7 +226,7 @@ defmodule Livebook.EvaluatorTest do
       ref = Process.monitor(widget_pid1)
       Evaluator.forget_evaluation(evaluator, :code_1)
 
-      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, :shutdown}
+      assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
     end
   end
 
@@ -262,8 +263,10 @@ defmodule Livebook.EvaluatorTest do
   end
 
   describe "initialize_from/3" do
-    setup do
-      {:ok, _pid, parent_evaluator} = start_supervised(Evaluator, id: :parent_evaluator)
+    setup %{object_tracker: object_tracker} do
+      {:ok, _pid, parent_evaluator} =
+        start_supervised({Evaluator, [object_tracker: object_tracker]}, id: :parent_evaluator)
+
       %{parent_evaluator: parent_evaluator}
     end
 
@@ -299,22 +302,55 @@ defmodule Livebook.EvaluatorTest do
     :ok
   end
 
-  # Returns a code that spawns and renders a widget process
-  # and returns its pid from the evaluation
+  # Returns a code that spawns a widget process, registers
+  # a pointer for it and adds monitoring, then returns widget
+  # pid from the evaluation
   defp spawn_widget_code() do
     """
     widget_pid = spawn(fn ->
-      Process.sleep(:infinity)
+      receive do
+        :stop -> :ok
+      end
     end)
 
     ref = make_ref()
-    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_put_output, {:vega_lite_dynamic, widget_pid}}})
+    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_reference_object, widget_pid, self()}})
+    send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_object, widget_pid, widget_pid, :stop}})
 
     receive do
       {:io_reply, ^ref, :ok} -> :ok
     end
 
     widget_pid
+    """
+  end
+
+  defp spawn_widget_from_terminating_process_code() do
+    """
+    parent = self()
+
+    # Arbitrary process that spawns the widget and terminates afterwards
+    spawn(fn ->
+      widget_pid = spawn(fn ->
+        receive do
+          :stop -> :ok
+        end
+      end)
+
+      ref = make_ref()
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_reference_object, widget_pid, self()}})
+      send(Process.group_leader(), {:io_request, self(), ref, {:livebook_monitor_object, widget_pid, widget_pid, :stop}})
+
+      receive do
+        {:io_reply, ^ref, :ok} -> :ok
+      end
+
+      send(parent, {:widget_pid, widget_pid})
+    end)
+
+    receive do
+      {:widget_pid, widget_pid} -> widget_pid
+    end
     """
   end
 end

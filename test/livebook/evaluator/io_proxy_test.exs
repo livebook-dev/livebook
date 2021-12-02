@@ -1,10 +1,15 @@
 defmodule Livebook.Evaluator.IOProxyTest do
   use ExUnit.Case, async: true
 
+  alias Livebook.Evaluator
   alias Livebook.Evaluator.IOProxy
 
   setup do
-    {:ok, io} = IOProxy.start_link()
+    # {:ok, io} = IOProxy.start_link()
+
+    {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
+    {:ok, _pid, evaluator} = start_supervised({Evaluator, [object_tracker: object_tracker]})
+    io = Process.info(evaluator.pid)[:group_leader]
     IOProxy.configure(io, self(), :ref)
     %{io: io}
   end
@@ -85,18 +90,6 @@ defmodule Livebook.Evaluator.IOProxyTest do
     livebook_put_output(io, {:text, "[1, 2, 3]"})
 
     assert_received {:evaluation_output, :ref, {:text, "[1, 2, 3]"}}
-  end
-
-  test "flush_widgets/1 returns new widget pids", %{io: io} do
-    widget1_pid = IEx.Helpers.pid(0, 0, 0)
-    widget2_pid = IEx.Helpers.pid(0, 0, 1)
-
-    livebook_put_output(io, {:vega_lite_dynamic, widget1_pid})
-    livebook_put_output(io, {:vega_lite_dynamic, widget2_pid})
-    livebook_put_output(io, {:vega_lite_dynamic, widget1_pid})
-
-    assert IOProxy.flush_widgets(io) == MapSet.new([widget1_pid, widget2_pid])
-    assert IOProxy.flush_widgets(io) == MapSet.new()
   end
 
   describe "token requests" do

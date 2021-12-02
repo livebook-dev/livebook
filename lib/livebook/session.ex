@@ -619,7 +619,7 @@ defmodule Livebook.Session do
     maybe_save_notebook_sync(state)
     broadcast_message(state.session_id, :session_closed)
 
-    {:stop, :shutdown, state}
+    {:stop, :normal, state}
   end
 
   @impl true
