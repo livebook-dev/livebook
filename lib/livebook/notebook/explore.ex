@@ -91,6 +91,13 @@ defmodule Livebook.Notebook.Explore do
         description: "Extract and visualize information about a remote running node.",
         cover_url: "/images/vm_introspection.png"
       }
+    },
+    %{
+      path: Path.join(__DIR__, "explore/pong.livemd"),
+      details: %{
+        description: "Implement and play multiplayer Pong directly in Livebook.",
+        cover_url: "/images/pong.png"
+      }
     }
   ]
 

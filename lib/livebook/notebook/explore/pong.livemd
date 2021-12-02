@@ -1,0 +1,519 @@
+# Building Pong
+
+## Introduction
+
+In the [Interactions with Kino](/explore/notebooks/intro-to-kino) notebook
+we discussed various ways of rendering your data in Livebook, including
+dynamically updating content. This time we will take this further and showcase
+how we can capture user interactions.
+
+Specifically, we will be building the the [Pong](https://en.wikipedia.org/wiki/Pong)
+game directly in Livebook. Not only that, we will actually make it multiplayer!
+
+## Setup
+
+Since we are going to code everything from, all we need is `kino` for
+the visualization and interactions.
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.3.1", github: "livebook-dev/kino"}
+])
+```
+
+## Capturing user events
+
+Before we get into the game, let's first discuss `Kino.Control`.
+This module offers a number of UI controls that the user can
+interact with. Let's create a simple button:
+
+```elixir
+button = Kino.Control.button("Hello")
+```
+
+Now we can subscribe to button events, which means we will receive
+event messages whenever the button is clicked:
+
+```elixir
+Kino.Control.subscribe(button, :hello)
+```
+
+Click the button a few times and evaluate the cell below to see the
+event feed.
+
+```elixir
+IEx.Helpers.flush()
+```
+
+Another control that will be particularly useful for us is keyboard!
+
+```elixir
+keyboard = Kino.Control.keyboard([:status, :keyup, :keydown])
+Kino.render(keyboard)
+Kino.Control.subscribe(keyboard, :keyboard)
+```
+
+The keyboard icon toggles interception mode, which means all keystrokes
+are captured and also transformed into events. See for yourself!
+
+```elixir
+IEx.Helpers.flush()
+```
+
+## Painting the scene
+
+With all necessary tools under the belt we can move forward and
+start implementing Pong! To make the objective more clear, we will
+start by visualizing the scene. To do so, we will use SVG images
+and for clarity let's build a tiny abstraction for painting those
+images.
+
+```elixir
+defmodule Canvas do
+  @moduledoc """
+  A canvas for graphing geometric shapes on.
+  """
+
+  defstruct [:width, :height, :scale, :objects]
+
+  def new(width, height, opts \\ []) do
+    scale = opts[:scale] || 10
+    %__MODULE__{width: width, height: height, scale: scale, objects: []}
+  end
+
+  def add_rect(canvas, x, y, width, height, opts \\ []) do
+    fill = opts[:fill] || "black"
+    object = {:rect, x, y, width, height, fill}
+    %{canvas | objects: canvas.objects ++ [object]}
+  end
+
+  def add_circle(canvas, x, y, r, opts \\ []) do
+    fill = opts[:fill] || "black"
+    object = {:circle, x, y, r, fill}
+    %{canvas | objects: canvas.objects ++ [object]}
+  end
+
+  def add_text(canvas, x, y, text, opts \\ []) do
+    fill = opts[:fill] || "black"
+    font_size = opts[:font_size] || 1
+    object = {:text, x, y, text, font_size, fill}
+    %{canvas | objects: canvas.objects ++ [object]}
+  end
+
+  def to_svg(canvas) do
+    scale = canvas.scale
+
+    object_svgs =
+      Enum.map(canvas.objects, fn
+        {:rect, x, y, width, height, fill} ->
+          ~s{<rect x="#{x * scale}" y="#{y * scale}" width="#{width * scale}" height="#{height * scale}" fill="#{fill}" />}
+
+        {:circle, x, y, r, fill} ->
+          ~s{<circle cx="#{x * scale}" cy="#{y * scale}" r="#{r * scale}" fill="#{fill}" />}
+
+        {:text, x, y, text, font_size, fill} ->
+          ~s{<text x="#{x * scale}" y="#{y * scale}" fill="#{fill}" font-size="#{font_size * scale}px" text-anchor="middle" dominant-baseline="hanging">#{text}</text>}
+      end)
+
+    """
+    <svg viewBox="0 0 #{canvas.width * scale} #{canvas.height * scale}" xmlns="http://www.w3.org/2000/svg">
+      #{Enum.join(object_svgs)}
+    </svg>
+    """
+  end
+end
+```
+
+With this piece of code, we can now declaratively compose an image
+out of basic geometric shapes.
+
+At this point we can already experiment and render our static scene!
+
+```elixir
+Canvas.new(400, 200)
+|> Canvas.add_rect(0, 0, 400, 200, fill: "#d4f1f477")
+|> Canvas.add_text(200, 4, "0 : 0", font_size: 10)
+|> Canvas.add_rect(0, 10, 2, 40, fill: "black")
+|> Canvas.add_rect(398, 120, 2, 40, fill: "black")
+|> Canvas.add_circle(200, 100, 8, fill: "tomato")
+|> Canvas.to_svg()
+|> Kino.Image.new(:svg)
+```
+
+## Game logic
+
+Having the image in mind, we can now model the game state together
+with all its rules. It makes sense to keep this part separate from
+the runtime elements to make it predictable and easy to test.
+Consequently we will encapsulate the whole game state in a struct
+and define functions for the possible interactions.
+
+```elixir
+defmodule Pong do
+  @moduledoc """
+  Represents the paddles game state and rules.
+  """
+
+  defstruct [:state, :left, :right, :ball]
+
+  @type t :: %__MODULE__{state: state(), left: paddle(), right: paddle(), ball: ball()}
+
+  @type state :: :idle | :running | :finished
+
+  @type paddle :: %{y: integer(), dy: integer(), points: non_neg_integer()}
+
+  @type ball :: %{x: integer(), y: integer(), dx: integer(), dy: integer()}
+
+  @w 400
+  @h 200
+  @paddle_w 2
+  @paddle_h 40
+  @ball_r 8
+  @paddle_dy div(@h, 50)
+
+  @doc """
+  Returns initial game state.
+  """
+  def new() do
+    %__MODULE__{state: :idle, left: new_paddle(), right: new_paddle(), ball: new_ball()}
+  end
+
+  defp new_paddle() do
+    y = div(@h - @paddle_h, 2)
+    %{y: y, dy: 0, points: 0}
+  end
+
+  defp new_ball() do
+    %{x: div(@w, 2), y: div(@h, 2), dx: Enum.random([3, -3]), dy: Enum.random([2, -2])}
+  end
+
+  @doc """
+  Resets game to a new state, keeping the points.
+  """
+  def reset(pong) do
+    %{
+      pong
+      | state: :idle,
+        left: reset_paddle(pong.left),
+        right: reset_paddle(pong.right),
+        ball: new_ball()
+    }
+  end
+
+  defp reset_paddle(%{points: points}) do
+    %{new_paddle() | points: points}
+  end
+
+  @doc """
+  Marks the game as running.
+  """
+  def start(pong) do
+    %{pong | state: :running}
+  end
+
+  @doc """
+  Sets the given paddle into motion in the given direction.
+  """
+  def move_paddle(pong, side, dir) when side in [:left, :right] and dir in [:up, :down] do
+    Map.update!(pong, side, &%{&1 | dy: dir_to_number(dir) * @paddle_dy})
+  end
+
+  defp dir_to_number(:up), do: -1
+  defp dir_to_number(:down), do: 1
+
+  @doc """
+  Stops movement of the given paddle.
+  """
+  def stop_paddle(pong, side) when side in [:left, :right] do
+    Map.update!(pong, side, &%{&1 | dy: 0})
+  end
+
+  @doc """
+  Performs a single step within the game by updating object positions.
+  """
+  def step(%{state: :running} = pong) do
+    pong
+    |> Map.update!(:ball, &step_ball/1)
+    |> Map.update!(:left, &step_paddle/1)
+    |> Map.update!(:right, &step_paddle/1)
+    |> handle_collisions()
+  end
+
+  def step(pong), do: pong
+
+  defp step_ball(ball) do
+    %{ball | x: ball.x + ball.dx, y: ball.y + ball.dy}
+  end
+
+  defp step_paddle(paddle) do
+    %{paddle | y: clip(paddle.y + paddle.dy, 0, @h - @paddle_h)}
+  end
+
+  defp clip(x, a, b), do: x |> max(a) |> min(b)
+
+  defp handle_collisions(pong) do
+    pong
+    |> bounce_x()
+    |> bounce_y()
+  end
+
+  defp bounce_y(%{ball: ball} = pong) when ball.y - @ball_r <= 0 do
+    %{pong | ball: %{ball | y: @ball_r, dy: -ball.dy}}
+  end
+
+  defp bounce_y(%{ball: ball} = pong) when ball.y + @ball_r >= @h do
+    %{pong | ball: %{ball | y: @h - @ball_r, dy: -ball.dy}}
+  end
+
+  defp bounce_y(pong), do: pong
+
+  defp bounce_x(%{ball: ball} = pong) when ball.x - @ball_r <= @paddle_w do
+    if ball.x + @ball_r >= @paddle_w and collides_vertically?(ball, pong.left) do
+      %{pong | ball: %{ball | x: @ball_r + @paddle_w, dx: -ball.dx}}
+    else
+      finish_round(pong, :right)
+    end
+  end
+
+  defp bounce_x(%{ball: ball} = pong) when ball.x + @ball_r >= @w do
+    if ball.x - @ball_r <= @w - @paddle_w and collides_vertically?(ball, pong.right) do
+      %{pong | ball: %{ball | x: @w - @ball_r - @paddle_w, dx: -ball.dx}}
+    else
+      finish_round(pong, :left)
+    end
+  end
+
+  defp bounce_x(pong), do: pong
+
+  defp collides_vertically?(ball, paddle) do
+    ball.y - @ball_r < paddle.y + @paddle_h and ball.y + @ball_r > paddle.y
+  end
+
+  defp finish_round(pong, winning_side) do
+    pong
+    |> Map.put(:state, :finished)
+    |> Map.update!(winning_side, fn paddle -> %{paddle | points: paddle.points + 1} end)
+  end
+
+  @doc """
+  Returns an SVG representation of the game board.
+  """
+  def to_svg(pong) do
+    %{ball: ball, left: left, right: right} = pong
+
+    Canvas.new(@w, @h)
+    |> Canvas.add_rect(0, 0, @w, @h, fill: "#d4f1f477")
+    |> Canvas.add_text(div(@w, 2), 4, "#{left.points} : #{right.points}", font_size: 10)
+    |> Canvas.add_rect(0, left.y, @paddle_w, @paddle_h)
+    |> Canvas.add_rect(@w - @paddle_w, right.y, @paddle_w, @paddle_h)
+    |> Canvas.add_circle(ball.x, ball.y, @ball_r, fill: "tomato")
+    |> Canvas.to_svg()
+  end
+end
+```
+
+It is a fair amount of code, but it is mostly related to dealing with
+the game geometrics. Conveniently, we implemented a `to_svg` function,
+let's have a look:
+
+```elixir
+Pong.new() |> Pong.to_svg() |> Kino.Image.new(:svg)
+```
+
+More interestingly, having the visualization we can literally **see**
+how the API behaves using `Kino.animate/3` to iterate the game.
+
+```elixir
+initial_pong =
+  Pong.new()
+  |> Pong.start()
+  |> Pong.move_paddle(:right, :down)
+  |> Pong.move_paddle(:left, :up)
+
+Kino.animate(25, initial_pong, fn pong ->
+  img = pong |> Pong.to_svg() |> Kino.Image.new(:svg)
+  {:cont, img, Pong.step(pong)}
+end)
+```
+
+Above we render the scene every 25ms and call `Pong.step/1` to apply
+a single time tick within the game.
+
+## Game server
+
+Finally, we need a runtime component to orchestrate interactions with
+the game. In this case we will have a single process that periodically
+_steps_ the game and handles all user interactions.
+
+In the `start!/0` function we first render a keyboard control for user
+interactions and a frame to dynamically draw the game scene into. Then,
+as part of the `GenServer` initialization we subscribe to keyboard events.
+
+Note that all control events include an `:origin` property, which essentially
+identifies the client that triggered that event. We will use this information
+to allow two clients to join the game and interact with whichever paddle
+we assign to them.
+
+Again, this is a fair bit of code, but having all the heavy lifting encapsulated
+in the `Pong` module, it should be straightforward to follow.
+
+```elixir
+defmodule Pong.Server do
+  @moduledoc """
+  The game server, handles rendering, timing and interactions.
+  """
+
+  use GenServer
+
+  @tick_time_ms 25
+
+  @doc """
+  Starts the server and renders the initial UI.
+  """
+  def start!() do
+    keyboard = Kino.Control.keyboard([:status, :keydown, :keyup])
+    frame = Kino.Frame.new()
+
+    # Render the Kino widgets
+    Kino.render(keyboard)
+    Kino.render(frame)
+
+    {:ok, _} = Kino.start_child({__MODULE__, keyboard: keyboard, frame: frame})
+    Kino.nothing()
+  end
+
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts)
+  end
+
+  @impl true
+  def init(opts) do
+    # Subscribe to keyboard events
+    Kino.Control.subscribe(opts[:keyboard], :keyboard)
+
+    state = %{
+      frame: opts[:frame],
+      pong: nil,
+      players: [],
+      timer_ref: nil
+    }
+
+    {:ok, render(state)}
+  end
+
+  @impl true
+  def handle_info({:keyboard, event}, state) do
+    {:noreply, handle_event(state, event)}
+  end
+
+  def handle_info(:tick, state) do
+    state = %{state | pong: Pong.step(state.pong)}
+
+    state =
+      case state.pong.state do
+        :running -> schedule_tick(state)
+        :finished -> %{state | pong: Pong.reset(state.pong)}
+      end
+
+    {:noreply, render(state)}
+  end
+
+  defp handle_event(state, %{type: :status, enabled: true, origin: origin}) do
+    case state.players do
+      [] ->
+        %{state | players: [%{side: :left, origin: origin}]} |> render()
+
+      [%{origin: ^origin}] ->
+        state
+
+      [player] ->
+        %{state | players: [player, %{side: :right, origin: origin}], pong: Pong.new()}
+        |> render()
+
+      _ ->
+        state
+    end
+  end
+
+  defp handle_event(%{pong: %{state: :idle}} = state, %{type: :keydown, origin: origin}) do
+    if Enum.any?(state.players, &(&1.origin == origin)) do
+      %{state | pong: Pong.start(state.pong)} |> schedule_tick()
+    else
+      state
+    end
+  end
+
+  defp handle_event(state, %{type: type, key: key, origin: origin})
+       when key in ["ArrowUp", "ArrowDown"] do
+    player = Enum.find(state.players, &(&1.origin == origin))
+
+    case {player, type} do
+      {%{side: side}, :keydown} ->
+        pong = Pong.move_paddle(state.pong, side, key_to_dir(key))
+        %{state | pong: pong} |> render()
+
+      {%{side: side}, :keyup} ->
+        pong = Pong.stop_paddle(state.pong, side)
+        %{state | pong: pong} |> render()
+
+      _ ->
+        state
+    end
+  end
+
+  defp handle_event(state, %{type: :status, enabled: false, origin: origin}) do
+    case Enum.split_with(state.players, &(&1.origin == origin)) do
+      {[], _all_players} ->
+        state
+
+      {_leaving, remaining} ->
+        if state.timer_ref do
+          Process.cancel_timer(state.timer_ref)
+        end
+
+        %{state | timer_ref: nil, players: remaining, pong: nil} |> render()
+    end
+  end
+
+  defp handle_event(state, _event), do: state
+
+  defp key_to_dir("ArrowUp"), do: :up
+  defp key_to_dir("ArrowDown"), do: :down
+
+  defp schedule_tick(state) do
+    ref = Process.send_after(self(), :tick, @tick_time_ms)
+    %{state | timer_ref: ref}
+  end
+
+  defp render(state) do
+    output = paint(state)
+    Kino.Frame.render(state.frame, output)
+    state
+  end
+
+  defp paint(%{players: []}) do
+    Kino.Markdown.new("Waiting for players. Enable your keyboard to join **left**!")
+  end
+
+  defp paint(%{players: [_]}) do
+    Kino.Markdown.new("Waiting for another player. Enable your keyboard to join **right**!")
+  end
+
+  defp paint(state) do
+    state.pong |> Pong.to_svg() |> Kino.Image.new(:svg)
+  end
+end
+```
+
+With all that, we are ready to play!
+
+To verify it for yourself, open this session in a separate browser tab
+and toggle the keyboard mode in both tabs. It may be challenging to act
+as two players at the same time, but let's say it's a part of the game!
+
+*Note: once you are finished make sure to toggle off the keyboard mode,
+so that keys are no longer intercepted.*
+
+```elixir
+Pong.Server.start!()
+```
