@@ -167,8 +167,10 @@ defmodule Livebook.Utils do
   """
   @spec valid_url?(String.t()) :: boolean()
   def valid_url?(url) do
-    uri = URI.parse(url)
-    uri.scheme != nil and uri.host != nil
+    case URI.new(url) do
+      {:ok, uri} -> uri.scheme != nil and uri.host != nil
+      _ -> false
+    end
   end
 
   @doc """
@@ -245,7 +247,7 @@ defmodule Livebook.Utils do
   @spec expand_url(String.t(), String.t()) :: String.t()
   def expand_url(url, relative_path) do
     url
-    |> URI.parse()
+    |> URI.new!()
     |> Map.update!(:path, fn path ->
       path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
     end)

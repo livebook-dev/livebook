@@ -668,8 +668,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "if the remote notebook is already imported, redirects to the session",
          %{conn: conn, test: test} do
-      index_url = "http://example.com/#{test}/index.livemd"
-      notebook_url = "http://example.com/#{test}/notebook.livemd"
+      test_path = test |> to_string() |> URI.encode_www_form()
+      index_url = "http://example.com/#{test_path}/index.livemd"
+      notebook_url = "http://example.com/#{test_path}/notebook.livemd"
 
       {:ok, index_session} = Sessions.create_session(origin: {:url, index_url})
       {:ok, notebook_session} = Sessions.create_session(origin: {:url, notebook_url})
@@ -682,8 +683,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "renders an error message if there are already multiple session imported from the relative URL",
          %{conn: conn, test: test} do
-      index_url = "http://example.com/#{test}/index.livemd"
-      notebook_url = "http://example.com/#{test}/notebook.livemd"
+      test_path = test |> to_string() |> URI.encode_www_form()
+      index_url = "http://example.com/#{test_path}/index.livemd"
+      notebook_url = "http://example.com/#{test_path}/notebook.livemd"
 
       {:ok, index_session} = Sessions.create_session(origin: {:url, index_url})
       {:ok, _notebook_session1} = Sessions.create_session(origin: {:url, notebook_url})
