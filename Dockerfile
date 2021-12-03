@@ -1,6 +1,6 @@
 # Stage 1
 # Builds the Livebook release
-FROM hexpm/elixir:1.12.3-erlang-24.0.6-debian-bullseye-20210902-slim AS build
+FROM hexpm/elixir:1.13.0-erlang-24.1.7-debian-bullseye-20210902-slim AS build
 
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
@@ -37,7 +37,7 @@ RUN mix do compile, release
 # We use the same base image, because we need Erlang, Elixir and Mix
 # during runtime to spawn the Livebook standalone runtimes.
 # Consequently the release doesn't include ERTS as we have it anyway.
-FROM hexpm/elixir:1.12.3-erlang-24.0.6-debian-bullseye-20210902-slim
+FROM hexpm/elixir:1.13.0-erlang-24.1.7-debian-bullseye-20210902-slim
 
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
