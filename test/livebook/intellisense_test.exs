@@ -539,7 +539,7 @@ defmodule Livebook.IntellisenseTest do
 
                  ```
                  @spec list() ++ term() ::
-                   maybe_improper_list()
+                         maybe_improper_list()
                  ```\
                  """,
                  insert_text: "++"
@@ -566,8 +566,7 @@ defmodule Livebook.IntellisenseTest do
                  Arithmetic addition operator.
 
                  ```
-                 @spec integer() + integer() ::
-                   integer()
+                 @spec integer() + integer() :: integer()
                  @spec float() + float() :: float()
                  @spec integer() + float() :: float()
                  @spec float() + integer() :: float()
