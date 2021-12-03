@@ -131,6 +131,9 @@ defmodule Livebook.Intellisense.Docs do
     end
   end
 
+  # In case insensitive file systems, attempting to load
+  # Elixir will log a warning in the terminal as it wrongly
+  # loads elixir.beam, so we explicitly list it.
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(module), do: Code.ensure_loaded?(module)
 end
