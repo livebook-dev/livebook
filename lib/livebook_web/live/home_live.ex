@@ -242,17 +242,15 @@ defmodule LivebookWeb.HomeLive do
      )}
   end
 
+  def handle_event("open_autosave_directory", %{}, socket) do
+    file = Livebook.Config.autosave_dir()
+    file_info = %{exists: true, access: file_access(file)}
+    {:noreply, assign(socket, file: file, file_info: file_info)}
+  end
+
   @impl true
   def handle_info({:set_file, file, info}, socket) do
-    file_info = %{
-      exists: info.exists,
-      access:
-        case FileSystem.File.access(file) do
-          {:ok, access} -> access
-          {:error, _} -> :none
-        end
-    }
-
+    file_info = %{exists: info.exists, access: file_access(file)}
     {:noreply, assign(socket, file: file, file_info: file_info)}
   end
 
@@ -335,5 +333,12 @@ defmodule LivebookWeb.HomeLive do
 
     session_opts = Keyword.merge(session_opts, notebook: notebook)
     create_session(socket, session_opts)
+  end
+
+  defp file_access(file) do
+    case FileSystem.File.access(file) do
+      {:ok, access} -> access
+      {:error, _} -> :none
+    end
   end
 end

@@ -12,10 +12,18 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
     sessions = sort_sessions(sessions, socket.assigns.order_by)
 
+    show_autosave_note? =
+      Livebook.Config.autosave_dir()
+      |> Livebook.FileSystem.File.list()
+      |> case do
+        {:ok, [_ | _]} -> true
+        _ -> false
+      end
+
     socket =
       socket
       |> assign(assigns)
-      |> assign(:sessions, sessions)
+      |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
 
     {:ok, socket}
   end
@@ -47,7 +55,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </:content>
         </.menu>
       </div>
-      <.session_list sessions={@sessions} socket={@socket} />
+      <.session_list sessions={@sessions} socket={@socket} show_autosave_note?={@show_autosave_note?} />
     </div>
     """
   end
@@ -64,6 +72,21 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
       </div>
     </div>
+    <%= if @show_autosave_note? do %>
+      <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+        <div>
+          <.remix_icon icon="history-line" class="text-gray-400 text-xl" />
+        </div>
+        <div class="text-gray-600">
+          We automatically persist all notebooks that you forget to save manually.
+          <br>
+          To restore one of those
+          <a class="font-semibold" href="#" phx-click="open_autosave_directory">
+            go to backups
+          </a>
+        </div>
+      </div>
+    <% end %>
     """
   end
 
