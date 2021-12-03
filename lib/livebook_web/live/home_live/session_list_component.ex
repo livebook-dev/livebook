@@ -54,7 +54,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp session_list(%{sessions: []} = assigns) do
     ~H"""
-    <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+    <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
       <div>
         <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
       </div>
