@@ -15,6 +15,7 @@ defmodule LivebookWeb.Output do
                     id: "#{@id}-output#{group_idx}_#{idx}",
                     socket: @socket,
                     runtime: @runtime,
+                    cell_validity_status: @cell_validity_status,
                     input_values: @input_values
                   }) %>
             </div>
@@ -117,8 +118,11 @@ defmodule LivebookWeb.Output do
     live_component(LivebookWeb.Output.ControlComponent, id: id, attrs: attrs)
   end
 
-  defp render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})
-       when runtime != nil do
+  defp render_output({:error, formatted, :runtime_restart_required}, %{
+         runtime: runtime,
+         cell_validity_status: cell_validity_status
+       })
+       when runtime != nil and cell_validity_status == :evaluated do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""
