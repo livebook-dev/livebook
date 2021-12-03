@@ -214,6 +214,33 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "outputs" do
+    test "dynamic frame output renders output sent from the frame server",
+         %{conn: conn, session: session} do
+      frame_pid =
+        spawn(fn ->
+          output = {:text, "Dynamic output in frame"}
+
+          receive do
+            {:connect, pid} -> send(pid, {:connect_reply, %{output: output}})
+          end
+        end)
+
+      frame_output = {:frame_dynamic, frame_pid}
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      # Evaluate the cell
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      # Send an additional output
+      send(session.pid, {:evaluation_output, cell_id, frame_output})
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert render(view) =~ "Dynamic output in frame"
+    end
+  end
+
   describe "runtime settings" do
     test "connecting to elixir standalone updates connect button to reconnect",
          %{conn: conn, session: session} do
