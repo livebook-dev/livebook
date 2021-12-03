@@ -274,25 +274,13 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{
-                 detail: "Livebook.TestModules.Hidden.hidden()",
-                 documentation: "This is a private API",
-                 insert_text: "hidden()",
-                 kind: :function,
-                 label: "hidden/0"
-               },
-               %{
                  detail: "Livebook.TestModules.Hidden.visible()",
                  documentation: "No documentation available",
                  insert_text: "visible()",
                  kind: :function,
                  label: "visible/0"
                }
-             ] =
-               Intellisense.get_completion_items(
-                 "Livebook.TestModules.Hidden.",
-                 binding,
-                 env
-               )
+             ] = Intellisense.get_completion_items("Livebook.TestModules.Hidden.", binding, env)
     end
 
     test "Elixir root submodule completion" do

@@ -118,6 +118,12 @@ defmodule Livebook.Intellisense do
   end
 
   defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
+
+  defp include_in_completion?(
+         {:function, _module, _name, _arity, _display_name, :hidden, _signatures, _specs}
+       ),
+       do: false
+
   defp include_in_completion?(_), do: true
 
   defp format_completion_item({:variable, name, value}),
