@@ -13,11 +13,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     sessions = sort_sessions(sessions, socket.assigns.order_by)
 
     show_autosave_note? =
-      Livebook.Config.autosave_dir()
-      |> File.ls()
-      |> case do
-        {:ok, [_ | _]} -> true
-        _ -> false
+      case Livebook.Config.autosave_path() do
+        nil -> false
+        path -> File.ls!(path) != []
       end
 
     socket =
@@ -81,7 +79,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           We automatically persist all notebooks that you forget to save manually.
           <br>
           To restore one of those
-          <a class="font-semibold" href="#" phx-click="open_autosave_directory">
+          <a class="font-semibold" href="#" phx-click="open_autosave_pathectory">
             go to backups
           </a>
         </div>

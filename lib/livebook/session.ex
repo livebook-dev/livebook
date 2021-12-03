@@ -1012,7 +1012,7 @@ defmodule Livebook.Session do
   end
 
   defp default_notebook_file(session) do
-    if path = Livebook.Config.autosave_dir() do
+    if path = Livebook.Config.autosave_path() do
       dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
       filename = name_with_timestamp(session.created_at) <> ".livemd"
       FileSystem.File.resolve(dir, filename)

@@ -61,14 +61,14 @@ defmodule Livebook do
 
     config :livebook, :file_systems, [local_file_system | configured_file_systems]
 
-    autosave_dir =
+    autosave_path =
       if config_env() == :test do
         nil
       else
-        Livebook.Config.autosave_dir!("LIVEBOOK_AUTOSAVE_DIR")
+        Livebook.Config.autosave_path!("LIVEBOOK_AUTOSAVE_PATH")
       end
 
-    config :livebook, :autosave_dir, autosave_dir
+    config :livebook, :autosave_path, autosave_path
   end
 
   @doc """

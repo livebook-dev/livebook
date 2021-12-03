@@ -74,9 +74,9 @@ defmodule Livebook.Config do
   @doc """
   Returns the directory where notebooks with no file should be persisted.
   """
-  @spec autosave_dir() :: String.t() | nil
-  def autosave_dir() do
-    Application.fetch_env!(:livebook, :autosave_dir)
+  @spec autosave_path() :: String.t() | nil
+  def autosave_path() do
+    Application.fetch_env!(:livebook, :autosave_path)
   end
 
   ## Parsing
@@ -107,31 +107,31 @@ defmodule Livebook.Config do
   @doc """
   Parses and validates the autosave directory from env.
   """
-  def autosave_dir!(env) do
+  def autosave_path!(env) do
     if path = System.get_env(env) do
-      autosave_dir!(env, path)
+      autosave_path!(env, path)
     else
-      default_autosave_dir!()
+      default_autosave_path!()
     end
   end
 
   @doc """
-  Validates `autosave_dir` within context.
+  Validates `autosave_path` within context.
   """
-  def autosave_dir!(context, path)
+  def autosave_path!(context, path)
 
-  def autosave_dir!(_context, "none"), do: nil
+  def autosave_path!(_context, "none"), do: nil
 
-  def autosave_dir!(context, path) do
+  def autosave_path!(context, path) do
     if writable_directory?(path) do
       Path.expand(path)
     else
       IO.warn("ignoring #{context} because it doesn't point to a writable directory: #{path}")
-      default_autosave_dir!()
+      default_autosave_path!()
     end
   end
 
-  defp default_autosave_dir!() do
+  defp default_autosave_path!() do
     cache_path = :filename.basedir(:user_cache, "livebook")
 
     path =
