@@ -118,6 +118,12 @@ defmodule Livebook.Intellisense do
   end
 
   defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
+
+  defp include_in_completion?(
+         {:function, _module, _name, _arity, _display_name, :hidden, _signatures, _specs}
+       ),
+       do: false
+
   defp include_in_completion?(_), do: true
 
   defp format_completion_item({:variable, name, value}),
@@ -201,11 +207,15 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
+  @ordered_kinds [:field, :variable, :module, :struct, :interface, :function, :type]
+
+  defp completion_item_priority(%{kind: :struct, detail: "exception"} = completion_item) do
+    {length(@ordered_kinds), completion_item.label}
+  end
+
   defp completion_item_priority(completion_item) do
     {completion_item_kind_priority(completion_item.kind), completion_item.label}
   end
-
-  @ordered_kinds [:field, :variable, :module, :struct, :interface, :function, :type]
 
   defp completion_item_kind_priority(kind) when kind in @ordered_kinds do
     Enum.find_index(@ordered_kinds, &(&1 == kind))
