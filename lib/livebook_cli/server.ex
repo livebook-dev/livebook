@@ -217,9 +217,8 @@ defmodule LivebookCLI.Server do
 
   defp append_path(url, path) do
     url
-    |> URI.parse()
-    # TODO: remove `&1 || ""` when we require Elixir 1.13
-    |> Map.update!(:path, &((&1 || "") <> path))
+    |> URI.new!()
+    |> Map.update!(:path, &(&1 <> path))
     |> URI.to_string()
   end
 
