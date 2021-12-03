@@ -115,6 +115,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.outputs != [] do %>
         <div class="mt-2" data-element="outputs-container">
+          <%# There is an akin render in LivebookWeb.Output.FrameDynamicLive %>
           <LivebookWeb.Output.outputs
             outputs={@cell_view.outputs}
             id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
