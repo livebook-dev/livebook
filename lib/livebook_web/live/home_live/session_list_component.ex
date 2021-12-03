@@ -30,7 +30,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </h2>
         <.menu id="sessions-order-menu">
           <:toggle>
-            <button class="button button-outlined-gray px-4 py-1">
+            <button class="button-base button-outlined-gray px-4 py-1">
               <span><%= order_by_label(@order_by) %></span>
               <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
             </button>

@@ -48,8 +48,8 @@ defmodule LivebookWeb.HomeLive do
             <div class="flex space-x-2 pt-2">
               <%= live_patch "Import",
                     to: Routes.home_path(@socket, :import, "url"),
-                    class: "button button-outlined-gray whitespace-nowrap" %>
-              <button class="button button-blue" phx-click="new">
+                    class: "button-base button-outlined-gray whitespace-nowrap" %>
+              <button class="button-base button-blue" phx-click="new">
                 New notebook
               </button>
             </div>
@@ -62,7 +62,7 @@ defmodule LivebookWeb.HomeLive do
                 extnames={[LiveMarkdown.extension()]}
                 running_files={files(@sessions)}>
               <div class="flex justify-end space-x-2">
-                <button class="button button-outlined-gray whitespace-nowrap"
+                <button class="button-base button-outlined-gray whitespace-nowrap"
                   phx-click="fork"
                   disabled={not path_forkable?(@file, @file_info)}>
                   <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
@@ -71,10 +71,10 @@ defmodule LivebookWeb.HomeLive do
                 <%= if file_running?(@file, @sessions) do %>
                   <%= live_redirect "Join session",
                         to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
-                        class: "button button-blue" %>
+                        class: "button-base button-blue" %>
                 <% else %>
                   <span {open_button_tooltip_attrs(@file, @file_info)}>
-                    <button class="button button-blue"
+                    <button class="button-base button-blue"
                       phx-click="open"
                       disabled={not path_openable?(@file, @file_info, @sessions)}>
                       Open

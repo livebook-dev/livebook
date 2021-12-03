@@ -16,7 +16,7 @@ defmodule LivebookWeb.Output.ControlComponent do
       data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @attrs.events)}
       data-target={@myself}>
       <span class="tooltip right" data-tooltip="Toggle keyboard control">
-        <button class={"button #{if @keyboard_enabled, do: "button-blue", else: "button-gray"} button-square-icon"}
+        <button class={"button-base #{if @keyboard_enabled, do: "button-blue", else: "button-gray"} button-square-icon"}
           type="button"
           aria-label="toggle keyboard control"
           phx-click={JS.push("toggle_keyboard", target: @myself)}>
@@ -30,7 +30,7 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(%{attrs: %{type: :button}} = assigns) do
     ~H"""
     <div class="flex">
-      <button class="button button-gray"
+      <button class="button-base button-gray"
         type="button"
         phx-click={JS.push("button_click", target: @myself)}>
         <%= @attrs.label %>

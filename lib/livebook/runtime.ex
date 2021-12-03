@@ -36,6 +36,7 @@ defprotocol Livebook.Runtime do
   @type intellisense_request ::
           completion_request()
           | details_request()
+          | signature_request()
           | format_request()
 
   @typedoc """
@@ -49,6 +50,7 @@ defprotocol Livebook.Runtime do
           nil
           | completion_response()
           | details_response()
+          | signature_response()
           | format_response()
 
   @typedoc """
@@ -83,6 +85,25 @@ defprotocol Livebook.Runtime do
             to: non_neg_integer()
           },
           contents: list(String.t())
+        }
+
+  @typedoc """
+  Looks up a list of function signatures matching the given hint.
+
+  The resulting information includes current position in the
+  argument list.
+  """
+  @type signature_request :: {:signature, hint :: String.t()}
+
+  @type signature_response :: %{
+          active_argument: non_neg_integer(),
+          signature_items: list(signature_item())
+        }
+
+  @type signature_item :: %{
+          signature: String.t(),
+          arguments: list(String.t()),
+          documentation: String.t() | nil
         }
 
   @typedoc """

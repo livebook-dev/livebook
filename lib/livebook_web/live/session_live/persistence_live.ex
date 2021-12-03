@@ -79,11 +79,11 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 <span class="text-gray-700 whitespace-no-wrap font-medium">
                   <%= @new_attrs.file.path %>
                 </span>
-                <button class="button button-gray button-small"
+                <button class="button-base button-gray button-small"
                   phx-click="open_file_select">
                   Change file
                 </button>
-                <button class="button button-gray button-small"
+                <button class="button-base button-gray button-small"
                   phx-click="clear_file">
                   Stop saving
                 </button>
@@ -91,7 +91,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 <span class="text-gray-700 whitespace-no-wrap">
                   no file selected
                 </span>
-                <button class="button button-gray button-small"
+                <button class="button-base button-gray button-small"
                   phx-click="open_file_select">
                   Choose a file
                 </button>
@@ -109,12 +109,12 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 running_files={@running_files}
                 submit_event={:confirm_file}>
                 <div class="flex justify-end space-x-2">
-                  <button class="button button-gray"
+                  <button class="button-base button-gray"
                     phx-click="close_file_select"
                     tabindex="-1">
                     Cancel
                   </button>
-                  <button class="button button-blue"
+                  <button class="button-base button-blue"
                     phx-click="confirm_file"
                     tabindex="-1">
                     Choose
@@ -129,7 +129,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
         <% end %>
         <div class="flex">
           <%= if @new_attrs.file do %>
-            <button class="button button-blue"
+            <button class="button-base button-blue"
               phx-click="save"
               disabled={
                 not savable?(@new_attrs, @attrs, @running_files, @draft_file) or
@@ -138,7 +138,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
               Save now
             </button>
           <% else %>
-            <button class="button button-blue"
+            <button class="button-base button-blue"
               phx-click="save"
               disabled={not savable?(@new_attrs, @attrs, @running_files, @draft_file) or same_attrs?(@new_attrs, @attrs)}>
               Apply

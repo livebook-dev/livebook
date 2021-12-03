@@ -13,22 +13,23 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # which is a very extensive implementation used in the
   # Elixir Language Server.
 
+  alias Livebook.Intellisense.Docs
+
   @typedoc """
   A single identifier together with relevant information.
   """
   @type identifier_item ::
           {:variable, name(), value()}
           | {:map_field, name(), value()}
-          | {:module, module(), name(), doc_content()}
-          | {:function, module(), name(), arity(), doc_content(), list(signature()), spec()}
-          | {:type, module(), name(), arity(), doc_content()}
-          | {:module_attribute, name(), doc_content()}
+          | {:module, module(), display_name(), Docs.documentation()}
+          | {:function, module(), name(), arity(), display_name(), Docs.documentation(),
+             list(Docs.signature()), list(Docs.spec())}
+          | {:type, module(), name(), arity(), Docs.documentation()}
+          | {:module_attribute, name(), Docs.documentation()}
 
-  @type name :: String.t()
+  @type name :: atom()
+  @type display_name :: String.t()
   @type value :: term()
-  @type doc_content :: {format :: String.t(), content :: String.t()} | :hidden | nil
-  @type signature :: String.t()
-  @type spec :: tuple() | nil
 
   @exact_matcher &Kernel.==/2
   @prefix_matcher &String.starts_with?/2
@@ -191,9 +192,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_struct(hint, ctx) do
-    for {:module, module, name, doc_content} <- match_alias(hint, ctx, true),
+    for {:module, module, name, documentation} <- match_alias(hint, ctx, true),
         has_struct?(module),
-        do: {:module, module, name, doc_content}
+        do: {:module, module, name, documentation}
   end
 
   defp has_struct?(mod) do
@@ -240,17 +241,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_sigil(hint, ctx) do
-    for {:function, module, "sigil_" <> sigil_name, arity, doc_content, signatures, spec} <-
+    for {:function, module, name, arity, "sigil_" <> sigil_name, documentation, signatures, specs} <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
-        do: {:function, module, "~" <> sigil_name, arity, doc_content, signatures, spec}
+        do: {:function, module, name, arity, "~" <> sigil_name, documentation, signatures, specs}
   end
 
   defp match_erlang_module(hint, ctx) do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
-        do: {:module, mod, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, Livebook.Intellisense.Docs.get_module_documentation(mod)}
   end
 
   # Converts alias string to module atom with regard to the given env
@@ -268,7 +269,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {alias, mod} <- ctx.env.aliases,
         [name] = Module.split(alias),
         ctx.matcher.(name, hint),
-        do: {:module, mod, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, Livebook.Intellisense.Docs.get_module_documentation(mod)}
   end
 
   defp match_module(base_mod, hint, nested?, ctx) do
@@ -317,7 +318,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         valid_alias_piece?("." <> name),
         mod = Module.concat(parent_mod_parts ++ name_parts),
         uniq: true,
-        do: {:module, mod, name, get_module_doc_content(mod)}
+        do: {:module, mod, name, Livebook.Intellisense.Docs.get_module_documentation(mod)}
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -372,88 +373,32 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp match_module_function(mod, hint, ctx, funs \\ nil) do
     if ensure_loaded?(mod) do
-      {format, docs} = get_docs(mod, [:function, :macro])
-      specs = get_specs(mod)
       funs = funs || exports(mod)
-      funs_with_base_arity = funs_with_base_arity(docs)
 
-      funs
-      |> Enum.filter(fn {name, _arity} ->
-        name = Atom.to_string(name)
-        ctx.matcher.(name, hint)
-      end)
-      |> Enum.map(fn {name, arity} ->
-        base_arity = Map.get(funs_with_base_arity, {name, arity}, arity)
-        doc = find_doc(docs, {name, base_arity})
-        spec = find_spec(specs, {name, base_arity})
+      matching_funs =
+        Enum.filter(funs, fn {name, _arity} ->
+          name = Atom.to_string(name)
+          ctx.matcher.(name, hint)
+        end)
 
-        doc_content = doc_content(doc, format)
-        signatures = doc_signatures(doc)
+      doc_items =
+        Livebook.Intellisense.Docs.lookup_module_members(mod, matching_funs,
+          kinds: [:function, :macro]
+        )
 
-        {:function, mod, Atom.to_string(name), arity, doc_content, signatures, spec}
+      Enum.map(matching_funs, fn {name, arity} ->
+        doc_item =
+          Enum.find(doc_items, %{documentation: nil, signatures: [], specs: []}, fn doc_item ->
+            doc_item.name == name && doc_item.arity == arity
+          end)
+
+        {:function, mod, name, arity, Atom.to_string(name), doc_item && doc_item.documentation,
+         doc_item.signatures, doc_item.specs}
       end)
     else
       []
     end
   end
-
-  # If a function has default arguments it generates less-arity functions,
-  # but they have the same docs/specs as the original function.
-  # Here we build a map that given function {name, arity} returns its base arity.
-  defp funs_with_base_arity(docs) do
-    for {{_, fun_name, arity}, _, _, _, metadata} <- docs,
-        count = Map.get(metadata, :defaults, 0),
-        count > 0,
-        new_arity <- (arity - count)..(arity - 1),
-        into: %{},
-        do: {{fun_name, new_arity}, arity}
-  end
-
-  defp get_docs(mod, kinds) do
-    case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, format, _, _, docs} ->
-        docs = for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-        {format, docs}
-
-      _ ->
-        {nil, []}
-    end
-  end
-
-  defp get_module_doc_content(mod) do
-    case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, format, %{"en" => docstring}, _, _} ->
-        {format, docstring}
-
-      {:docs_v1, _, _, _, :hidden, _, _} ->
-        :hidden
-
-      _ ->
-        nil
-    end
-  end
-
-  defp find_doc(docs, {name, arity}) do
-    Enum.find(docs, &match?({{_, ^name, ^arity}, _, _, _, _}, &1))
-  end
-
-  defp get_specs(mod) do
-    case Code.Typespec.fetch_specs(mod) do
-      {:ok, specs} -> specs
-      :error -> []
-    end
-  end
-
-  defp find_spec(specs, {name, arity}) do
-    Enum.find(specs, &match?({{^name, ^arity}, _}, &1))
-  end
-
-  defp doc_signatures({_, _, signatures, _, _}), do: signatures
-  defp doc_signatures(_), do: []
-
-  defp doc_content({_, _, _, %{"en" => docstr}, _}, format), do: {format, docstr}
-  defp doc_content({_, _, _, :hidden, _}, _format), do: :hidden
-  defp doc_content(_doc, _format), do: nil
 
   defp exports(mod) do
     if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
@@ -464,19 +409,24 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_module_type(mod, hint, ctx) do
-    {format, docs} = get_docs(mod, [:type])
     types = get_module_types(mod)
 
-    types
-    |> Enum.filter(fn {name, _arity} ->
-      name = Atom.to_string(name)
-      ctx.matcher.(name, hint)
-    end)
-    |> Enum.map(fn {name, arity} ->
-      doc = find_doc(docs, {name, arity})
-      doc_content = doc_content(doc, format)
+    matching_types =
+      Enum.filter(types, fn {name, _arity} ->
+        name = Atom.to_string(name)
+        ctx.matcher.(name, hint)
+      end)
 
-      {:type, mod, Atom.to_string(name), arity, doc_content}
+    doc_items =
+      Livebook.Intellisense.Docs.lookup_module_members(mod, matching_types, kinds: [:type])
+
+    Enum.map(matching_types, fn {name, arity} ->
+      doc_item =
+        Enum.find(doc_items, %{documentation: nil}, fn doc_item ->
+          doc_item.name == name && doc_item.arity == arity
+        end)
+
+      {:type, mod, Atom.to_string(name), arity, doc_item.documentation}
     end)
   end
 

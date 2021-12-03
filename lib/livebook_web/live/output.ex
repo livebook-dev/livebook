@@ -140,7 +140,7 @@ defmodule LivebookWeb.Output do
     <%= render_error_message_output(@formatted) %>
     <%= if @is_standalone do %>
       <div>
-        <button class="button button-gray" phx-click="restart_runtime">
+        <button class="button-base button-gray" phx-click="restart_runtime">
           Reconnect runtime
         </button>
       </div>

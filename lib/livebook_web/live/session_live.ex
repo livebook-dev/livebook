@@ -177,7 +177,7 @@ defmodule LivebookWeb.SessionLive do
           <div class="flex flex-col w-full space-y-16">
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
-                <button class="button button-small"
+                <button class="button-base button-small"
                   phx-click="append_section">
                   + Section
                 </button>
@@ -400,11 +400,11 @@ defmodule LivebookWeb.SessionLive do
           </div>
           <div class="flex flex-col space-y-3">
             <div class="flex space-x-2">
-              <button class="button button-blue" phx-click="restart_runtime">
+              <button class="button-base button-blue" phx-click="restart_runtime">
                 <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
                 <span>Reconnect</span>
               </button>
-              <button class="button button-outlined-red"
+              <button class="button-base button-outlined-red"
                 type="button"
                 phx-click="disconnect_runtime">
                 Disconnect
@@ -416,12 +416,12 @@ defmodule LivebookWeb.SessionLive do
             <.labeled_text label="Type" text={runtime_type_label(@empty_default_runtime)} />
           </div>
           <div class="flex space-x-2">
-            <button class="button button-blue" phx-click="connect_default_runtime">
+            <button class="button-base button-blue" phx-click="connect_default_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Connect</span>
             </button>
             <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button button-outlined-gray bg-transparent",
+                  class: "button-base button-outlined-gray bg-transparent",
                   type: "button" do  %>
               Configure
             <% end %>
@@ -765,6 +765,9 @@ defmodule LivebookWeb.SessionLive do
         %{"type" => "details", "line" => line, "column" => column} ->
           column = JSInterop.js_column_to_elixir(column, line)
           {:details, line, column}
+
+        %{"type" => "signature", "hint" => hint} ->
+          {:signature, hint}
 
         %{"type" => "format", "code" => code} ->
           {:format, code}
@@ -1210,6 +1213,15 @@ defmodule LivebookWeb.SessionLive do
           to: JSInterop.elixir_column_to_js(to, line)
         }
     }
+  end
+
+  # Currently we don't use signature docs, so we optimise the response
+  # to exclude them
+  defp process_intellisense_response(
+         %{signature_items: signature_items} = response,
+         {:signature, _hint}
+       ) do
+    %{response | signature_items: Enum.map(signature_items, &%{&1 | documentation: nil})}
   end
 
   defp process_intellisense_response(response, _request), do: response

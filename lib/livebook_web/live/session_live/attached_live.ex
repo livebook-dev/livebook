@@ -59,7 +59,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
             <%= text_input f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie" %>
           </div>
         </div>
-        <button class="mt-5 button button-blue"
+        <button class="mt-5 button-base button-blue"
           type="submit"
           disabled={not data_valid?(@data)}>
           <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>

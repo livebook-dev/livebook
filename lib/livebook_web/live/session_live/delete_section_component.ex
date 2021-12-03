@@ -23,11 +23,11 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
           checked={@is_first}
           disabled={@is_first} />
         <div class="mt-8 flex justify-end space-x-2">
-          <button type="submit" class="button button-red">
+          <button type="submit" class="button-base button-red">
             <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
             Delete
           </button>
-          <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
+          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
         </div>
       </form>
     </div>

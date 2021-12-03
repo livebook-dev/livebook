@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
               submit_event={if(disabled?(@file.path), do: nil, else: :init)}
               file_system_select_disabled={true} />
         </div>
-        <button class="button button-blue" phx-click="init" disabled={disabled?(@file.path)}>
+        <button class="button-base button-blue" phx-click="init" disabled={disabled?(@file.path)}>
           <%= if(matching_runtime?(@current_runtime, @file.path), do: "Reconnect", else: "Connect") %>
         </button>
       <% end %>

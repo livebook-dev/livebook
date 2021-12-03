@@ -1,7 +1,7 @@
 @layer components {
   /* Buttons */
 
-  .button {
+  .button-base {
     @apply px-5 py-2 rounded-lg border border-transparent font-medium text-sm;
   }
 
@@ -29,7 +29,7 @@
     @apply bg-white border-gray-300 text-gray-600 hover:bg-gray-100 focus:bg-gray-100;
   }
 
-  .button:disabled {
+  .button-base:disabled {
     @apply cursor-default pointer-events-none border-transparent bg-gray-100 text-gray-400;
   }
 

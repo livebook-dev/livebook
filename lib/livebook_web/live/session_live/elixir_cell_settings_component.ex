@@ -37,8 +37,8 @@ defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
             checked={@reevaluate_automatically} />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button button-outlined-gray" %>
-          <button class="button button-blue" type="submit">
+          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
+          <button class="button-base button-blue" type="submit">
             Save
           </button>
         </div>
