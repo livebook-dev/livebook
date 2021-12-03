@@ -188,7 +188,7 @@ defmodule LivebookWeb.FileSelectComponent do
     ~H"""
     <.menu id="file-system-menu" disabled={@file_system_select_disabled} position="left">
       <:toggle>
-        <button type="button" class="button button-gray button-square-icon"
+        <button type="button" class="button-base button-gray button-square-icon"
           aria-label="switch file system"
           disabled={@file_system_select_disabled}>
           <.file_system_icon file_system={@file.file_system} />

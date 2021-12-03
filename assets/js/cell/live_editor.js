@@ -3,7 +3,8 @@ import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
-import { replacedSuffixLength } from "../highlight/text_utils";
+import { replacedSuffixLength } from "../lib/text_utils";
+import { loadLocalSettings } from "../lib/settings";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -140,6 +141,8 @@ class LiveEditor {
   }
 
   __mountEditor() {
+    const settings = loadLocalSettings();
+
     this.editor = monaco.editor.create(this.container, {
       language: this.type,
       value: this.source,
@@ -161,9 +164,10 @@ class LiveEditor {
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: 14,
       tabIndex: -1,
-      quickSuggestions: false,
+      quickSuggestions: settings.editor_auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
+      parameterHints: settings.editor_auto_signature,
     });
 
     this.editor.getModel().updateOptions({
@@ -214,6 +218,8 @@ class LiveEditor {
    * Defines cell-specific providers for various editor features.
    */
   __setupIntellisense() {
+    const settings = loadLocalSettings();
+
     this.handlerByRef = {};
 
     /**
@@ -245,23 +251,24 @@ class LiveEditor {
         hint: lineUntilCursor,
       })
         .then((response) => {
-          const suggestions = completionItemsToSuggestions(response.items).map(
-            (suggestion) => {
-              const replaceLength = replacedSuffixLength(
-                lineUntilCursor,
-                suggestion.insertText
-              );
+          const suggestions = completionItemsToSuggestions(
+            response.items,
+            settings
+          ).map((suggestion) => {
+            const replaceLength = replacedSuffixLength(
+              lineUntilCursor,
+              suggestion.insertText
+            );
 
-              const range = new monaco.Range(
-                position.lineNumber,
-                position.column - replaceLength,
-                position.lineNumber,
-                position.column
-              );
+            const range = new monaco.Range(
+              position.lineNumber,
+              position.column - replaceLength,
+              position.lineNumber,
+              position.column
+            );
 
-              return { ...suggestion, range };
-            }
-          );
+            return { ...suggestion, range };
+          });
 
           return { suggestions };
         })
@@ -287,6 +294,45 @@ class LiveEditor {
           );
 
           return { contents, range };
+        })
+        .catch(() => null);
+    };
+
+    const signatureCache = {
+      codeUntilLastStop: null,
+      response: null,
+    };
+
+    this.editor.getModel().__getSignatureHelp = (model, position) => {
+      const lines = model.getLinesContent();
+      const lineIdx = position.lineNumber - 1;
+      const prevLines = lines.slice(0, lineIdx);
+      const lineUntilCursor = lines[lineIdx].slice(0, position.column - 1);
+      const codeUntilCursor = [...prevLines, lineUntilCursor].join("\n");
+
+      // Remove trailing characters that don't affect the signature
+      const codeUntilLastStop = codeUntilCursor.replace(/[^(),]*?$/, "");
+
+      // Cache subsequent requests for the same prefix, so that we don't
+      // make unnecessary requests
+      if (codeUntilLastStop === signatureCache.codeUntilLastStop) {
+        return {
+          value: signatureResponseToSignatureHelp(signatureCache.response),
+          dispose: () => {},
+        };
+      }
+
+      return this.__asyncIntellisenseRequest("signature", {
+        hint: codeUntilCursor,
+      })
+        .then((response) => {
+          signatureCache.response = response;
+          signatureCache.codeUntilLastStop = codeUntilLastStop;
+
+          return {
+            value: signatureResponseToSignatureHelp(response),
+            dispose: () => {},
+          };
         })
         .catch(() => null);
     };
@@ -370,15 +416,17 @@ class LiveEditor {
   }
 }
 
-function completionItemsToSuggestions(items) {
-  return items.map(parseItem).map((suggestion, index) => ({
-    ...suggestion,
-    sortText: numberToSortableString(index, items.length),
-  }));
+function completionItemsToSuggestions(items, settings) {
+  return items
+    .map((item) => parseItem(item, settings))
+    .map((suggestion, index) => ({
+      ...suggestion,
+      sortText: numberToSortableString(index, items.length),
+    }));
 }
 
 // See `Livebook.Runtime` for completion item definition
-function parseItem(item) {
+function parseItem(item, settings) {
   return {
     label: item.label,
     kind: parseItemKind(item.kind),
@@ -388,6 +436,14 @@ function parseItem(item) {
       isTrusted: true,
     },
     insertText: item.insert_text,
+    insertTextRules:
+      monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+    command: settings.editor_auto_signature
+      ? {
+          title: "Trigger Parameter Hint",
+          id: "editor.action.triggerParameterHints",
+        }
+      : null,
   };
 }
 
@@ -414,6 +470,20 @@ function parseItemKind(kind) {
 
 function numberToSortableString(number, maxNumber) {
   return String(number).padStart(maxNumber, "0");
+}
+
+function signatureResponseToSignatureHelp(response) {
+  return {
+    activeSignature: 0,
+    activeParameter: response.active_argument,
+    signatures: response.signature_items.map((signature_item) => ({
+      label: signature_item.signature,
+      parameters: signature_item.arguments.map((argument) => ({
+        label: argument,
+      })),
+      documentation: null,
+    })),
+  };
 }
 
 export default LiveEditor;

@@ -642,8 +642,8 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:evaluation_output, cell_id, string}, state) do
-    operation = {:add_cell_evaluation_output, self(), cell_id, string}
+  def handle_info({:evaluation_output, cell_id, output}, state) do
+    operation = {:add_cell_evaluation_output, self(), cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 

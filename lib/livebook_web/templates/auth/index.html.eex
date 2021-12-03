@@ -14,7 +14,7 @@
       <form method="post" class="flex flex-col space-y-4 items-center">
         <input type="hidden" value="<%= Phoenix.Controller.get_csrf_token() %>" name="_csrf_token"/>
         <input type="password" name="password" class="input" placeholder="Password" autofocus />
-        <button type="submit" class="button button-blue">
+        <button type="submit" class="button-base button-blue">
           Authenticate
         </button>
       </form>

@@ -214,6 +214,33 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "outputs" do
+    test "dynamic frame output renders output sent from the frame server",
+         %{conn: conn, session: session} do
+      frame_pid =
+        spawn(fn ->
+          output = {:text, "Dynamic output in frame"}
+
+          receive do
+            {:connect, pid} -> send(pid, {:connect_reply, %{output: output}})
+          end
+        end)
+
+      frame_output = {:frame_dynamic, frame_pid}
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      # Evaluate the cell
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      # Send an additional output
+      send(session.pid, {:evaluation_output, cell_id, frame_output})
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert render(view) =~ "Dynamic output in frame"
+    end
+  end
+
   describe "runtime settings" do
     test "connecting to elixir standalone updates connect button to reconnect",
          %{conn: conn, session: session} do
@@ -641,8 +668,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "if the remote notebook is already imported, redirects to the session",
          %{conn: conn, test: test} do
-      index_url = "http://example.com/#{test}/index.livemd"
-      notebook_url = "http://example.com/#{test}/notebook.livemd"
+      test_path = test |> to_string() |> URI.encode_www_form()
+      index_url = "http://example.com/#{test_path}/index.livemd"
+      notebook_url = "http://example.com/#{test_path}/notebook.livemd"
 
       {:ok, index_session} = Sessions.create_session(origin: {:url, index_url})
       {:ok, notebook_session} = Sessions.create_session(origin: {:url, notebook_url})
@@ -655,8 +683,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "renders an error message if there are already multiple session imported from the relative URL",
          %{conn: conn, test: test} do
-      index_url = "http://example.com/#{test}/index.livemd"
-      notebook_url = "http://example.com/#{test}/notebook.livemd"
+      test_path = test |> to_string() |> URI.encode_www_form()
+      index_url = "http://example.com/#{test_path}/index.livemd"
+      notebook_url = "http://example.com/#{test_path}/notebook.livemd"
 
       {:ok, index_session} = Sessions.create_session(origin: {:url, index_url})
       {:ok, _notebook_session1} = Sessions.create_session(origin: {:url, notebook_url})

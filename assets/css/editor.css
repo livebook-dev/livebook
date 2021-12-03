@@ -6,60 +6,103 @@ so we need to adjust styles of Monaco-rendered Markdown docs.
 Also some spacing adjustments.
 */
 
-.suggest-details .header p {
-  @apply pb-0 pt-3 !important;
-}
-
 .monaco-hover p,
-.suggest-details .docs p {
+.suggest-details p,
+.parameter-hints-widget p {
   @apply my-2 !important;
 }
 
 .suggest-details h1,
-.monaco-hover h1 {
+.monaco-hover h1,
+.parameter-hints-widget h1 {
   @apply text-xl font-semibold mt-4 mb-2;
 }
 
 .suggest-details h2,
-.monaco-hover h2 {
+.monaco-hover h2,
+.parameter-hints-widget h2 {
   @apply text-lg font-medium mt-4 mb-2;
 }
 
 .suggest-details h3,
-.monaco-hover h3 {
+.monaco-hover h3,
+.parameter-hints-widget h3 {
   @apply font-medium mt-4 mb-2;
 }
 
 .suggest-details ul,
-.monaco-hover ul {
+.monaco-hover ul,
+.parameter-hints-widget ul {
   @apply list-disc;
 }
 
 .suggest-details ol,
-.monaco-hover ol {
+.monaco-hover ol,
+.parameter-hints-widget ol {
   @apply list-decimal;
 }
 
 .suggest-details hr,
-.monaco-hover hr {
+.monaco-hover hr,
+.parameter-hints-widget hr {
   @apply my-2 !important;
 }
 
 .suggest-details blockquote,
-.monaco-hover blockquote {
+.monaco-hover blockquote,
+.parameter-hints-widget blockquote {
   @apply border-l-4 border-gray-200 pl-4 py-0.5 my-2;
 }
 
 /* Add some spacing to code snippets in completion suggestions */
 .suggest-details div.monaco-tokenized-source,
-.monaco-hover div.monaco-tokenized-source {
-  @apply my-2;
+.monaco-hover div.monaco-tokenized-source,
+.parameter-hints-widget div.monaco-tokenized-source {
+  @apply my-2 whitespace-pre-wrap;
+}
+
+/* Use z-index over cell icons */
+.suggest-details,
+.monaco-hover,
+.parameter-hints-widget {
+  z-index: 100 !important;
+}
+
+/* Adjust header spacing in completion details */
+.suggest-details .header p {
+  @apply pb-0 pt-3 !important;
+}
+
+/* Adjust divider in signature help widget */
+.parameter-hints-widget .markdown-docs hr {
+  border-top: 1px solid rgba(69, 69, 69, 0.5);
+  margin-right: -8px;
+  margin-left: -8px;
 }
 
 /* Increase the hover box limits */
 .monaco-hover-content {
   max-width: 1000px !important;
   max-height: 300px !important;
+}
+
+/* Increase the completion details box limits */
+.suggest-details-container,
+.suggest-details {
+  width: fit-content !important;
+  height: fit-content !important;
+  max-width: 420px !important;
+  max-height: 250px !important;
+}
+
+/* Adjust completion details spacing */
+.suggest-details .header .type {
+  padding-top: 0 !important;
+}
+
+/* The content already has some padding */
+.docs.markdown-docs {
+  margin: 0 !important;
 }
 
 /* === Monaco cursor widget === */

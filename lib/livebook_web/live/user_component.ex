@@ -60,7 +60,7 @@ defmodule LivebookWeb.UserComponent do
             </div>
           </div>
           <button
-            class="button button-blue flex space-x-1 justify-center items-center"
+            class="button-base button-blue flex space-x-1 justify-center items-center"
             type="submit"
             disabled={not @valid}>
             <.remix_icon icon="save-line" />

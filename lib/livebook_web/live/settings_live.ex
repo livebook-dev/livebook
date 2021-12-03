@@ -32,17 +32,19 @@ defmodule LivebookWeb.SettingsLive do
         <SidebarHelpers.user_item current_user={@current_user} path={Routes.settings_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="flex-grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
-          <div>
-            <PageHelpers.title text="Settings" socket={@socket} />
-            <p class="mt-4 text-gray-700">
-              Here you can change global Livebook configuration. Keep in mind
-              that this configuration is not persisted and gets discarded as
-              soon as you stop the application.
-            </p>
-          </div>
+        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-16">
+          <!-- System settings section -->
+          <div class="flex flex-col space-y-8">
+            <div>
+              <PageHelpers.title text="System settings" socket={@socket} />
+              <p class="mt-4 text-gray-700">
+                Here you can change global Livebook configuration. Keep in mind
+                that this configuration is not persisted and gets discarded as
+                soon as you stop the application.
+              </p>
+            </div>
           <!-- File systems configuration -->
-          <div class="flex flex-col space-y-4">
+            <div class="flex flex-col space-y-4">
             <div class="flex justify-between items-center">
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
@@ -57,9 +59,41 @@ defmodule LivebookWeb.SettingsLive do
                 <span class="hidden" id="file-systems-env-source"><%= @file_systems_env %></span>
               </span>
             </div>
-            <LivebookWeb.SettingsLive.FileSystemsComponent.render
-              file_systems={@file_systems}
-              socket={@socket} />
+              <LivebookWeb.SettingsLive.FileSystemsComponent.render
+                file_systems={@file_systems}
+                socket={@socket} />
+            </div>
+          </div>
+          <!-- User settings section -->
+          <div class="flex flex-col space-y-8">
+            <div>
+              <h1 class="text-3xl text-gray-800 font-semibold">
+                User settings
+              </h1>
+              <p class="mt-4 text-gray-700">
+                The configuration in this section changes only your Livebook
+                experience and is saved in your browser.
+              </p>
+            </div>
+            <!-- Editor configuration -->
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-semibold">
+                Code editor
+              </h2>
+              <div class="flex flex-col space-y-3"
+                id="editor-settings"
+                phx-hook="EditorSettings"
+                phx-update="ignore">
+                <.switch_checkbox
+                  name="editor_auto_completion"
+                  label="Show completion list while typing"
+                  checked={false} />
+                <.switch_checkbox
+                  name="editor_auto_signature"
+                  label="Show function signature while typing"
+                  checked={false} />
+              </div>
+            </div>
           </div>
         </div>
       </div>

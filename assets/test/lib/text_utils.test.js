@@ -1,4 +1,4 @@
-import { replacedSuffixLength } from "../../js/highlight/text_utils";
+import { replacedSuffixLength } from "../../js/lib/text_utils";
 
 test("replacedSuffixLength", () => {
   expect(replacedSuffixLength("to_string(", "")).toEqual(0);

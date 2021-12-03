@@ -52,7 +52,7 @@ defmodule LivebookWeb.ExploreLive do
               <div class="mt-4">
                 <%= live_patch "Let's go",
                       to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
-                      class: "button button-blue" %>
+                      class: "button-base button-blue" %>
               </div>
             </div>
             <div class="flex-grow hidden md:flex flex items-center justify-center">

@@ -306,15 +306,18 @@ function handleDocumentKeyDown(hook, event) {
     if (key === "Escape") {
       const monacoInputOpen = !!event.target.closest(".monaco-inputbox");
 
-      const activeDescendant = event.target.getAttribute(
-        "aria-activedescendant"
+      const editor = event.target.closest(".monaco-editor.focused");
+
+      const completionBoxOpen = !!editor.querySelector(
+        ".editor-widget.parameter-hints-widget.visible"
       );
-      const completionBoxOpen =
-        activeDescendant && activeDescendant.includes("suggest");
+      const signatureDetailsOpen = !!editor.querySelector(
+        ".editor-widget.suggest-widget.visible"
+      );
 
       // Ignore Escape if it's supposed to close some Monaco input
-      // (like the find/replace box), or the completion box.
-      if (!monacoInputOpen && !completionBoxOpen) {
+      // (like the find/replace box), or an intellisense widget
+      if (!monacoInputOpen && !completionBoxOpen && !signatureDetailsOpen) {
         escapeInsertMode(hook);
       }
     } else if (cmd && key === "Enter" && !alt) {

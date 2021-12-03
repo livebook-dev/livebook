@@ -16,7 +16,7 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
             <%= unless is_struct(file_system, FileSystem.Local) do %>
               <%= live_patch "Detach",
                     to: Routes.settings_path(@socket, :detach_file_system, index),
-                    class: "button button-outlined-red" %>
+                    class: "button-base button-outlined-red" %>
             <% end %>
           </div>
         <% end %>
@@ -24,7 +24,7 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
       <div class="flex">
         <%= live_patch "Add file system",
               to: Routes.settings_path(@socket, :add_file_system),
-              class: "button button-blue" %>
+              class: "button-base button-blue" %>
       </div>
     </div>
     """

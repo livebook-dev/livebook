@@ -30,8 +30,10 @@ defmodule Livebook.EvaluatorTest do
         Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
 
         assert_receive {:evaluation_response, :code_2,
-                        {:error, _kind, %CompileError{description: "undefined function x/0"},
-                         _stacktrace}, %{evaluation_time_ms: _time_ms}}
+                        {:error, _kind,
+                         %CompileError{
+                           description: "undefined function x/0 (there is no such import)"
+                         }, _stacktrace}, %{evaluation_time_ms: _time_ms}}
       end)
     end
 
@@ -212,8 +214,10 @@ defmodule Livebook.EvaluatorTest do
         Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
 
         assert_receive {:evaluation_response, :code_2,
-                        {:error, _kind, %CompileError{description: "undefined function x/0"},
-                         _stacktrace}, %{evaluation_time_ms: _time_ms}}
+                        {:error, _kind,
+                         %CompileError{
+                           description: "undefined function x/0 (there is no such import)"
+                         }, _stacktrace}, %{evaluation_time_ms: _time_ms}}
       end)
     end
 
