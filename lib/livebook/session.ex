@@ -973,9 +973,10 @@ defmodule Livebook.Session do
   end
 
   defp maybe_save_notebook_async(state) do
-    if should_save_notebook?(state) do
+    file = notebook_autosave_file(state)
+
+    if file && should_save_notebook?(state) do
       pid = self()
-      file = state.data.file
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
 
       {:ok, pid} =
@@ -991,9 +992,11 @@ defmodule Livebook.Session do
   end
 
   defp maybe_save_notebook_sync(state) do
-    if should_save_notebook?(state) do
+    file = notebook_autosave_file(state)
+
+    if file && should_save_notebook?(state) do
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
-      result = FileSystem.File.write(state.data.file, content)
+      result = FileSystem.File.write(file, content)
       handle_save_finished(state, result)
     else
       state
@@ -1001,7 +1004,25 @@ defmodule Livebook.Session do
   end
 
   defp should_save_notebook?(state) do
-    state.data.file != nil and state.data.dirty and state.save_task_pid == nil
+    state.data.dirty and state.save_task_pid == nil
+  end
+
+  defp notebook_autosave_file(state) do
+    state.data.file || default_notebook_file(state)
+  end
+
+  defp default_notebook_file(session) do
+    if dir = Livebook.Config.autosave_dir() do
+      filename = name_with_timestamp(session.created_at) <> ".livemd"
+      FileSystem.File.resolve(dir, filename)
+    end
+  end
+
+  defp name_with_timestamp(date_time) do
+    date_time
+    |> DateTime.to_iso8601()
+    |> String.replace(["-", ":"], "_")
+    |> String.replace(["T", "."], "__")
   end
 
   defp handle_save_finished(state, result) do

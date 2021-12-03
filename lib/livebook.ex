@@ -60,6 +60,15 @@ defmodule Livebook do
     configured_file_systems = Livebook.Config.file_systems!("LIVEBOOK_FILE_SYSTEM_")
 
     config :livebook, :file_systems, [local_file_system | configured_file_systems]
+
+    autosave_dir =
+      if config_env() == :test do
+        nil
+      else
+        Livebook.Config.autosave_dir!("LIVEBOOK_AUTOSAVE_DIR")
+      end
+
+    config :livebook, :autosave_dir, autosave_dir
   end
 
   @doc """

@@ -19,6 +19,9 @@ defmodule LivebookCLI.Server do
 
     Available options:
 
+      --autosave-dir       The directory where notebooks with no file are persisted.
+                           Defaults to livebook/notebooks/ under the default user cache
+                           location. You can pass "none" to disable this behaviour
       --cookie             Sets a cookie for the app distributed node
       --default-runtime    Sets the runtime type that is used by default when none is started
                            explicitly for the given notebook, defaults to standalone
@@ -126,6 +129,7 @@ defmodule LivebookCLI.Server do
   end
 
   @switches [
+    autosave_dir: :string,
     cookie: :string,
     default_runtime: :string,
     ip: :string,
@@ -200,6 +204,11 @@ defmodule LivebookCLI.Server do
   defp opts_to_config([{:default_runtime, default_runtime} | opts], config) do
     default_runtime = Livebook.Config.default_runtime!("--default-runtime", default_runtime)
     opts_to_config(opts, [{:livebook, :default_runtime, default_runtime} | config])
+  end
+
+  defp opts_to_config([{:autosave_dir, path} | opts], config) do
+    autosave_dir = Livebook.Config.autosave_dir!("--autosave-dir", path)
+    opts_to_config(opts, [{:livebook, :autosave_dir, autosave_dir} | config])
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)

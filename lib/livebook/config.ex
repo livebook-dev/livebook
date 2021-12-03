@@ -71,6 +71,14 @@ defmodule Livebook.Config do
     FileSystem.File.new(file_system)
   end
 
+  @doc """
+  Returns the directory where notebooks with no file should be persisted.
+  """
+  @spec autosave_dir() :: FileSystem.File.t() | nil
+  def autosave_dir() do
+    Application.fetch_env!(:livebook, :autosave_dir)
+  end
+
   ## Parsing
 
   @doc """
@@ -78,7 +86,7 @@ defmodule Livebook.Config do
   """
   def root_path!(env) do
     if root_path = System.get_env(env) do
-      root_path!("LIVEBOOK_ROOT_PATH", root_path)
+      root_path!(env, root_path)
     else
       File.cwd!()
     end
@@ -89,11 +97,64 @@ defmodule Livebook.Config do
   """
   def root_path!(context, root_path) do
     if File.dir?(root_path) do
-      root_path
+      Path.expand(root_path)
     else
       IO.warn("ignoring #{context} because it doesn't point to a directory: #{root_path}")
       File.cwd!()
     end
+  end
+
+  @doc """
+  Parses and validates the autosave directory from env.
+  """
+  def autosave_dir!(env) do
+    if path = System.get_env(env) do
+      autosave_dir!(env, path)
+    else
+      default_autosave_dir!()
+    end
+  end
+
+  @doc """
+  Validates `autosave_dir` within context.
+  """
+  def autosave_dir!(context, path)
+
+  def autosave_dir!(_context, "none"), do: nil
+
+  def autosave_dir!(context, path) do
+    if writable_directory?(path) do
+      path |> Path.expand() |> to_local_dir()
+    else
+      IO.warn("ignoring #{context} because it doesn't point to a writable directory: #{path}")
+      default_autosave_dir!()
+    end
+  end
+
+  defp default_autosave_dir!() do
+    cache_path = :filename.basedir(:user_cache, "livebook")
+
+    path =
+      if writable_directory?(cache_path) do
+        cache_path
+      else
+        System.tmp_dir!() |> Path.join("livebook")
+      end
+
+    path |> Path.dirname() |> File.mkdir_p!()
+
+    path |> Path.join("notebooks") |> to_local_dir()
+  end
+
+  defp writable_directory?(path) do
+    case File.stat(path) do
+      {:ok, %{type: :directory, access: access}} when access in [:read_write, :write] -> true
+      _ -> false
+    end
+  end
+
+  defp to_local_dir(path) do
+    path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
   end
 
   @doc """
