@@ -1322,6 +1322,7 @@ defmodule LivebookWeb.SessionLive do
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
+      evaluation_start: info.evaluation_start,
       number_of_evaluations: info.number_of_evaluations,
       reevaluate_automatically: cell.reevaluate_automatically,
       # Pass input values relevant to the given cell

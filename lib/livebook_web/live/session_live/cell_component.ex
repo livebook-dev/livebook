@@ -254,7 +254,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <span class="font-mono"
         id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
         phx-hook="Timer"
-        phx-update="ignore">
+        phx-update="ignore"
+        data-start={DateTime.to_iso8601(@cell_view.evaluation_start)}>
       </span>
     </.status_indicator>
     """
