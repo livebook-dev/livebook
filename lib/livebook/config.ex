@@ -74,7 +74,7 @@ defmodule Livebook.Config do
   @doc """
   Returns the directory where notebooks with no file should be persisted.
   """
-  @spec autosave_dir() :: FileSystem.File.t() | nil
+  @spec autosave_dir() :: String.t() | nil
   def autosave_dir() do
     Application.fetch_env!(:livebook, :autosave_dir)
   end
@@ -124,7 +124,7 @@ defmodule Livebook.Config do
 
   def autosave_dir!(context, path) do
     if writable_directory?(path) do
-      path |> Path.expand() |> to_local_dir()
+      Path.expand(path)
     else
       IO.warn("ignoring #{context} because it doesn't point to a writable directory: #{path}")
       default_autosave_dir!()
@@ -143,7 +143,7 @@ defmodule Livebook.Config do
 
     path |> Path.dirname() |> File.mkdir_p!()
 
-    path |> Path.join("notebooks") |> to_local_dir()
+    Path.join(path, "notebooks")
   end
 
   defp writable_directory?(path) do
@@ -151,10 +151,6 @@ defmodule Livebook.Config do
       {:ok, %{type: :directory, access: access}} when access in [:read_write, :write] -> true
       _ -> false
     end
-  end
-
-  defp to_local_dir(path) do
-    path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
   end
 
   @doc """

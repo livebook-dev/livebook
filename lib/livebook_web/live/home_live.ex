@@ -243,7 +243,11 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("open_autosave_directory", %{}, socket) do
-    file = Livebook.Config.autosave_dir()
+    file =
+      Livebook.Config.autosave_dir()
+      |> FileSystem.Utils.ensure_dir_path()
+      |> FileSystem.File.local()
+
     file_info = %{exists: true, access: file_access(file)}
     {:noreply, assign(socket, file: file, file_info: file_info)}
   end

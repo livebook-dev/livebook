@@ -14,7 +14,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
     show_autosave_note? =
       Livebook.Config.autosave_dir()
-      |> Livebook.FileSystem.File.list()
+      |> File.ls()
       |> case do
         {:ok, [_ | _]} -> true
         _ -> false
