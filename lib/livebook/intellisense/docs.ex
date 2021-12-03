@@ -107,20 +107,23 @@ defmodule Livebook.Intellisense.Docs do
           :protocol | :implementation | :exception | :struct | :behaviour | nil
   def get_module_subtype(module) do
     cond do
-      module_has_function?(module, :__protocol__, 1) ->
+      not ensure_loaded?(module) ->
+        nil
+
+      function_exported?(module, :__protocol__, 1) ->
         :protocol
 
-      module_has_function?(module, :__impl__, 1) ->
+      function_exported?(module, :__impl__, 1) ->
         :implementation
 
-      module_has_function?(module, :__struct__, 0) ->
-        if module_has_function?(module, :exception, 1) do
+      function_exported?(module, :__struct__, 0) ->
+        if function_exported?(module, :exception, 1) do
           :exception
         else
           :struct
         end
 
-      module_has_function?(module, :behaviour_info, 1) ->
+      function_exported?(module, :behaviour_info, 1) ->
         :behaviour
 
       true ->
@@ -128,7 +131,6 @@ defmodule Livebook.Intellisense.Docs do
     end
   end
 
-  defp module_has_function?(module, func, arity) do
-    Code.ensure_loaded?(module) and function_exported?(module, func, arity)
-  end
+  defp ensure_loaded?(Elixir), do: false
+  defp ensure_loaded?(module), do: Code.ensure_loaded?(module)
 end
