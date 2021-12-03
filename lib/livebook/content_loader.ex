@@ -18,23 +18,17 @@ defmodule Livebook.ContentLoader do
   """
   @spec rewrite_url(String.t()) :: String.t()
   def rewrite_url(url) do
-    url
-    |> URI.parse()
-    |> do_rewrite_url()
-    |> URI.to_string()
+    case URI.new(url) do
+      {:ok, uri} -> uri |> do_rewrite_url() |> URI.to_string()
+      {:error, _} -> url
+    end
   end
 
   defp do_rewrite_url(%URI{host: "github.com"} = uri) do
     case String.split(uri.path, "/") do
       ["", owner, repo, "blob", hash | file_path] ->
         path = Enum.join(["", owner, repo, hash | file_path], "/")
-
-        %{
-          uri
-          | path: path,
-            host: "raw.githubusercontent.com",
-            authority: "raw.githubusercontent.com"
-        }
+        %{uri | path: path, host: "raw.githubusercontent.com"}
 
       _ ->
         uri
@@ -45,13 +39,7 @@ defmodule Livebook.ContentLoader do
     case String.split(uri.path, "/") do
       ["", owner, hash] ->
         path = Enum.join(["", owner, hash, "raw"], "/")
-
-        %{
-          uri
-          | path: path,
-            host: "gist.githubusercontent.com",
-            authority: "gist.githubusercontent.com"
-        }
+        %{uri | path: path, host: "gist.githubusercontent.com"}
 
       _ ->
         uri
