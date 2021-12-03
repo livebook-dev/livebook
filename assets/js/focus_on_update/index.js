@@ -21,7 +21,7 @@ const FocusOnUpdate = {
 
     this.el.focus();
     this.el.selectionStart = this.el.selectionEnd = this.el.value.length;
-    this.el.scrollLeft = this.el.scrollWidth
+    this.el.scrollLeft = this.el.scrollWidth;
   },
 };
 
