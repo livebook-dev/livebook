@@ -5,8 +5,8 @@
 In this notebook we will explore the possibilities that
 [`kino`](https://github.com/elixir-nx/kino) brings
 into your notebooks. Kino can be thought of as Livebook's
-friend that instructs it how to render certain output
-and interact with it.
+friend that instructs it how to render certain widgets
+and interact with them.
 
 ```elixir
 Mix.install([

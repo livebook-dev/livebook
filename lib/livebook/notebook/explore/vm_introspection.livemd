@@ -48,18 +48,16 @@ IO.puts node()
 IO.puts Node.get_cookie()
 ```
 
-Now, paste these in the inputs below:
+Now render the inputs below:
 
 ```elixir
 node_input = Kino.Input.text("Node")
-```
-
-```elixir
 cookie_input = Kino.Input.text("Cookie")
 ```
 
-And now execute the code cell below, which will read the inputs,
-configure the cookie, and connect to the other notebook:
+And paste the node name and the cookie value from the other node inside.
+
+Now let's read the inputs, configure the cookie, and connect to the other notebook:
 
 ```elixir
 node =

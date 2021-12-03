@@ -195,18 +195,23 @@ Date.from_iso8601("2020-02-30")
 Now, what happens if we want our code to behave differently depending
 if the date is valid or not? We can use `case` to pattern match on
 the different tuples. This is also a good opportunity to use Livebook's
-inputs to pass different values to our code:
+inputs to pass different values to our code. To render inputs, we need to
+install the [Kino](https://github.com/livebook-dev/kino) library:
 
 ```elixir
-# Bring in Livebook inputs
 Mix.install([
   {:kino, "~> 0.3.1", github: "livebook-dev/kino"}
 ])
 ```
 
+Kino allows our code notebooks to control Livebook itself. Let's render
+an input by evaluating the cell below:
+
 ```elixir
 date_input = Kino.Input.text("Date")
 ```
+
+Now we can read its value and parse it:
 
 ```elixir
 # Read the date input, which returns something like "2020-02-30"
@@ -222,15 +227,12 @@ case Date.from_iso8601(input) do
 end
 ```
 
-We have been using `IO.inspect` to write values out of the notebook
-and here we used `IO.gets` to read data in. The string passed to
-`IO.gets` must have the same suffix as the input name. The returned
-string is always appended with a newline. Then we remove the trailing new
-line and use `case` to pattern match on the different outcomes of the
-`Date.from_iso8601` function. We say the `case` above has two clauses,
-one matching on `{:ok, date}` and another on `{:error, reason}`.
-Try changing the input and re-executing the cell to see how the outcome
-changes.
+Now try adding a date to the input above, such as `2020-02-30` and
+reevaluate the cell accordingly. In this example, we are using `case`
+to pattern match on the different outcomes of the `Date.from_iso8601`
+function. We say the `case` above has two clauses, one matching on
+`{:ok, date}` and another on `{:error, reason}`. Try changing the input
+and re-executing the cell to see how the outcome changes.
 
 Finally, we can also pattern match on maps. This is used to extract the
 values for the given keys:
