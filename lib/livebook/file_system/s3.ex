@@ -366,7 +366,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     headers = opts[:headers] || []
     body = opts[:body]
 
-    %{host: host} = URI.parse(file_system.bucket_url)
+    %{host: host} = URI.new!(file_system.bucket_url)
 
     url = file_system.bucket_url <> path <> "?" <> URI.encode_query(query)
 
@@ -394,7 +394,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
   defp region_from_uri(uri) do
     # For many services the API host is of the form *.[region].[rootdomain].com
-    %{host: host} = URI.parse(uri)
+    %{host: host} = URI.new!(uri)
     host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
   end
 

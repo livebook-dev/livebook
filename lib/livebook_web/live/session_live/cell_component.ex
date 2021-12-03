@@ -115,11 +115,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
       <%= if @cell_view.outputs != [] do %>
         <div class="mt-2" data-element="outputs-container">
+          <%# There is an akin render in LivebookWeb.Output.FrameDynamicLive %>
           <LivebookWeb.Output.outputs
             outputs={@cell_view.outputs}
             id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
             socket={@socket}
             runtime={@runtime}
+            cell_validity_status={@cell_view.validity_status}
             input_values={@cell_view.input_values} />
         </div>
       <% end %>
@@ -253,7 +255,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <span class="font-mono"
         id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
         phx-hook="Timer"
-        phx-update="ignore">
+        phx-update="ignore"
+        data-start={DateTime.to_iso8601(@cell_view.evaluation_start)}>
       </span>
     </.status_indicator>
     """

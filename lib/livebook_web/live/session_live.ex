@@ -305,7 +305,7 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col mt-4 space-y-4">
         <%= for section_item <- @data_view.sections_items do %>
           <div class="flex items-center">
-            <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900"
+            <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900 text-left"
               data-element="sections-list-item"
               data-section-id={section_item.id}>
               <span class="flex items-center space-x-1">
@@ -1334,6 +1334,7 @@ defmodule LivebookWeb.SessionLive do
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
+      evaluation_start: info.evaluation_start,
       number_of_evaluations: info.number_of_evaluations,
       reevaluate_automatically: cell.reevaluate_automatically,
       # Pass input values relevant to the given cell

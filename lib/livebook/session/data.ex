@@ -62,6 +62,7 @@ defmodule Livebook.Session.Data do
           evaluation_digest: String.t() | nil,
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
+          evaluation_start: DateTime.t() | nil,
           number_of_evaluations: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
           bound_input_readings: input_reading()
@@ -980,7 +981,10 @@ defmodule Livebook.Session.Data do
               evaluation_digest: nil,
               evaluation_snapshot: info.snapshot,
               bound_to_input_ids: MapSet.new(),
-              bound_input_readings: []
+              bound_input_readings: [],
+              # This is a rough estimate, the exact time is measured in the
+              # evaluator itself
+              evaluation_start: DateTime.utc_now()
           }
         end)
         |> set_section_info!(section.id, evaluating_cell_id: id, evaluation_queue: ids)
@@ -1292,6 +1296,7 @@ defmodule Livebook.Session.Data do
       evaluation_status: :ready,
       evaluation_digest: nil,
       evaluation_time_ms: nil,
+      evaluation_start: nil,
       number_of_evaluations: 0,
       bound_to_input_ids: MapSet.new(),
       bound_input_readings: [],

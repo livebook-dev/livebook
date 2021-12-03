@@ -37,28 +37,6 @@ return the Elixir version.
 Note you can also press <kbd>tab</kbd> to cycle across the completion
 alternatives.
 
-## Imports
-
-You can import Elixir modules to make the imported functions visible
-to all subsequent cells. Usually you want to keep `import`, `alias`, and
-`require` in the first section, as part of the notebook setup.
-
-For instance, you can import `IEx.Helpers` and bring all of the amazing
-conveniences in Elixir's shell to your notebook:
-
-```elixir
-import IEx.Helpers
-```
-
-```elixir
-h(Enum.map())
-```
-
-```elixir
-# Sidenote: http://www.numbat.org.au/thenumbat
-i("I ❤️ Numbats")
-```
-
 ## Using packages
 
 Sometimes you need a dependency or two and notebooks are no exception to this.
@@ -161,50 +139,6 @@ Since this branch is a separate process, a crash has limited scope:
 ```elixir
 Process.exit(self(), :kill)
 ```
-
-## Inputs
-
-Livebook supports inputs and you read the input values directly
-from your notebook code, using `IO.gets/1`. Let's see an example
-that expects a date in the format `YYYY-MM-DD` and returns if the
-data is valid or not:
-
-```elixir
-date_input = Kino.Input.text("Date")
-```
-
-<!-- livebook:{"reevaluate_automatically":true} -->
-
-```elixir
-# Read the date input, which returns something like "2020-02-30"
-input = Kino.Input.read(date_input)
-
-# And then match on the return value
-case Date.from_iso8601(input) do
-  {:ok, date} ->
-    "We got a valid date: #{inspect(date)}"
-
-  {:error, reason} ->
-    "Oh no, the date is invalid. Reason: #{inspect(reason)}"
-end
-```
-
-The string passed to `IO.gets/1` must be prefixed with the name you
-assigned to the input. The returned string is always appended with
-a newline. This is built-in on top of Erlang's IO protocol and built
-in a way that your notebooks can be exported to Elixir scripts and
-still work!
-
-You may also have noticed something special about the code cell above.
-After you evaluate it for the first time, it says "Reevaluates automatically"
-instead of showing the "Reevaluate" button. This means the cell will
-automatically reevaluate whenever the input changes or whenever a
-previous cell is reevaluated. Give it a try! You can enable this
-behaviour by clicking the Cell Settings icon (<i class="ri-settings-3-line"></i>)
-after focusing a code cell.
-
-There are many other input types available, give them a try to learn
-more.
 
 ## Evaluation vs compilation
 

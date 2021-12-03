@@ -15,6 +15,7 @@ defmodule LivebookWeb.Output do
                     id: "#{@id}-output#{group_idx}_#{idx}",
                     socket: @socket,
                     runtime: @runtime,
+                    cell_validity_status: @cell_validity_status,
                     input_values: @input_values
                   }) %>
             </div>
@@ -98,10 +99,20 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:frame_dynamic, pid}, %{id: id, socket: socket, input_values: input_values}) do
+  defp render_output({:frame_dynamic, pid}, %{
+         id: id,
+         socket: socket,
+         input_values: input_values,
+         cell_validity_status: cell_validity_status
+       }) do
     live_render(socket, LivebookWeb.Output.FrameDynamicLive,
       id: id,
-      session: %{"id" => id, "pid" => pid, "input_values" => input_values}
+      session: %{
+        "id" => id,
+        "pid" => pid,
+        "input_values" => input_values,
+        "cell_validity_status" => cell_validity_status
+      }
     )
   end
 
@@ -117,8 +128,11 @@ defmodule LivebookWeb.Output do
     live_component(LivebookWeb.Output.ControlComponent, id: id, attrs: attrs)
   end
 
-  defp render_output({:error, formatted, :runtime_restart_required}, %{runtime: runtime})
-       when runtime != nil do
+  defp render_output({:error, formatted, :runtime_restart_required}, %{
+         runtime: runtime,
+         cell_validity_status: cell_validity_status
+       })
+       when runtime != nil and cell_validity_status == :evaluated do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""

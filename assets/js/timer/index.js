@@ -1,3 +1,5 @@
+import { getAttributeOrThrow } from "../lib/attribute";
+
 const UPDATE_INTERVAL_MS = 100;
 
 /**
@@ -6,8 +8,10 @@ const UPDATE_INTERVAL_MS = 100;
  */
 const Timer = {
   mounted() {
+    this.props = getProps(this);
+
     this.state = {
-      start: Date.now(),
+      start: new Date(this.props.start),
       interval: null,
     };
 
@@ -27,5 +31,11 @@ const Timer = {
     this.el.innerHTML = `${elapsedSeconds.toFixed(1)}s`;
   },
 };
+
+function getProps(hook) {
+  return {
+    start: getAttributeOrThrow(hook.el, "data-start"),
+  };
+}
 
 export default Timer;
