@@ -10,7 +10,7 @@ and interact with them.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.3.1"},
+  {:kino, "~> 0.4.0"},
   {:vega_lite, "~> 0.1.2"}
 ])
 ```
