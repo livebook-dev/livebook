@@ -185,6 +185,9 @@ defmodule Livebook.Intellisense do
              type == :macro and keyword_macro?(name) ->
                "#{display_name} "
 
+             type == :macro and env_macro?(name) ->
+               display_name
+
              String.starts_with?(display_name, "~") ->
                display_name
 
@@ -239,6 +242,10 @@ defmodule Livebook.Intellisense do
         :unless,
         :with
       ]
+  end
+
+  defp env_macro?(name) do
+    name in [:__ENV__, :__MODULE__, :__DIR__, :__STACKTRACE__, :__CALLER__]
   end
 
   defp extra_completion_items(hint) do

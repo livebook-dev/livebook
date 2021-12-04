@@ -1147,6 +1147,17 @@ defmodule Livebook.IntellisenseTest do
                }
              ] = Intellisense.get_completion_items("impor", binding, env)
     end
+
+    test "includes doesn't include space nor parentheses for macros like __ENV__" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "__ENV__/0",
+                 insert_text: "__ENV__"
+               }
+             ] = Intellisense.get_completion_items("__EN", binding, env)
+    end
   end
 
   describe "get_details/3" do
