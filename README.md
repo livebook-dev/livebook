@@ -144,6 +144,10 @@ Livebook if said token is supplied as part of the URL.
 
 The following environment variables configure Livebook:
 
+  * LIVEBOOK_AUTOSAVE_PATH - sets the directory where notebooks with no file are
+    saved. Defaults to livebook/notebooks/ under the default user cache location.
+    You can pass "none" to disable this behaviour.
+
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 

@@ -308,11 +308,12 @@ function handleDocumentKeyDown(hook, event) {
 
       const editor = event.target.closest(".monaco-editor.focused");
 
-      const completionBoxOpen = !!editor.querySelector(
-        ".editor-widget.parameter-hints-widget.visible"
+      const completionBoxOpen = !!(
+        editor &&
+        editor.querySelector(".editor-widget.parameter-hints-widget.visible")
       );
-      const signatureDetailsOpen = !!editor.querySelector(
-        ".editor-widget.suggest-widget.visible"
+      const signatureDetailsOpen = !!(
+        editor && editor.querySelector(".editor-widget.suggest-widget.visible")
       );
 
       // Ignore Escape if it's supposed to close some Monaco input

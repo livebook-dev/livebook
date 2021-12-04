@@ -12,10 +12,16 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
     sessions = sort_sessions(sessions, socket.assigns.order_by)
 
+    show_autosave_note? =
+      case Livebook.Config.autosave_path() do
+        nil -> false
+        path -> File.ls!(path) != []
+      end
+
     socket =
       socket
       |> assign(assigns)
-      |> assign(:sessions, sessions)
+      |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
 
     {:ok, socket}
   end
@@ -47,21 +53,29 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </:content>
         </.menu>
       </div>
-      <.session_list sessions={@sessions} socket={@socket} />
+      <.session_list sessions={@sessions} socket={@socket} show_autosave_note?={@show_autosave_note?} />
     </div>
     """
   end
 
   defp session_list(%{sessions: []} = assigns) do
     ~H"""
-    <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+    <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
       <div>
         <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
       </div>
-      <div class="text-gray-600">
-        You do not have any running sessions.
-        <br>
-        Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
+      <div class="flex-grow flex items-center justify-between">
+        <div class="text-gray-600">
+          You do not have any running sessions.
+          <%= if @show_autosave_note? do %>
+            <br>
+            Looking for unsaved notebooks?
+            <a class="font-semibold" href="#" phx-click="open_autosave_directory">Browse them here</a>.
+          <% end %>
+        </div>
+        <button class="button-base button-blue" phx-click="new">
+          New notebook
+        </button>
       </div>
     </div>
     """

@@ -973,9 +973,10 @@ defmodule Livebook.Session do
   end
 
   defp maybe_save_notebook_async(state) do
-    if should_save_notebook?(state) do
+    file = notebook_autosave_file(state)
+
+    if file && should_save_notebook?(state) do
       pid = self()
-      file = state.data.file
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
 
       {:ok, pid} =
@@ -991,9 +992,11 @@ defmodule Livebook.Session do
   end
 
   defp maybe_save_notebook_sync(state) do
-    if should_save_notebook?(state) do
+    file = notebook_autosave_file(state)
+
+    if file && should_save_notebook?(state) do
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
-      result = FileSystem.File.write(state.data.file, content)
+      result = FileSystem.File.write(file, content)
       handle_save_finished(state, result)
     else
       state
@@ -1001,7 +1004,34 @@ defmodule Livebook.Session do
   end
 
   defp should_save_notebook?(state) do
-    state.data.file != nil and state.data.dirty and state.save_task_pid == nil
+    state.data.dirty and state.save_task_pid == nil
+  end
+
+  defp notebook_autosave_file(state) do
+    state.data.file || default_notebook_file(state)
+  end
+
+  defp default_notebook_file(session) do
+    if path = Livebook.Config.autosave_path() do
+      dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
+      notebook_rel_path = path_with_timestamp(session.session_id, session.created_at)
+      FileSystem.File.resolve(dir, notebook_rel_path)
+    end
+  end
+
+  defp path_with_timestamp(session_id, date_time) do
+    # We want a random, but deterministic part, so we
+    # use a few characters from the session id, which
+    # is random already
+    random_str = String.slice(session_id, 0..3)
+
+    [date_str, time_str, _] =
+      date_time
+      |> DateTime.to_iso8601()
+      |> String.replace(["-", ":"], "_")
+      |> String.split(["T", "."])
+
+    "#{date_str}/#{time_str}_#{random_str}.livemd"
   end
 
   defp handle_save_finished(state, result) do
