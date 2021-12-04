@@ -784,14 +784,14 @@ defmodule LivebookWeb.SessionLive do
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
         info =
-          case params["type"] do
-            "completion" ->
+          cond do
+            params["type"] == "completion" and not params["editor_auto_completion"] ->
               "You need to start a runtime (or evaluate a cell) for code completion"
 
-            "format" ->
+            params["type"] == "format" ->
               "You need to start a runtime (or evaluate a cell) to enable code formatting"
 
-            _ ->
+            true ->
               nil
           end
 

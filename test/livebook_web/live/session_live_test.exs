@@ -348,7 +348,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("intellisense_request", %{
         "cell_id" => cell_id,
         "type" => "completion",
-        "hint" => "System.ver"
+        "hint" => "System.ver",
+        "editor_auto_completion" => false
       })
 
       assert_reply view, %{"ref" => nil}
@@ -369,7 +370,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("intellisense_request", %{
         "cell_id" => cell_id,
         "type" => "completion",
-        "hint" => "System.ver"
+        "hint" => "System.ver",
+        "editor_auto_completion" => false
       })
 
       assert_reply view, %{"ref" => ref}
