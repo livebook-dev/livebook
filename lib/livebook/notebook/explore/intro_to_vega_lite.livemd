@@ -11,7 +11,7 @@ directly, but it is required to render VegaLite:
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.2"},
-  {:kino, "~> 0.3.1"}
+  {:kino, "~> 0.4.0"}
 ])
 ```
 
