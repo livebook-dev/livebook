@@ -141,9 +141,9 @@ defmodule Livebook.Config do
         System.tmp_dir!() |> Path.join("livebook")
       end
 
-    path |> Path.dirname() |> File.mkdir_p!()
-
-    Path.join(path, "notebooks")
+    notebooks_path = Path.join(path, "notebooks")
+    File.mkdir_p!(notebooks_path)
+    notebooks_path
   end
 
   defp writable_directory?(path) do
