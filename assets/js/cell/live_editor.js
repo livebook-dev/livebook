@@ -164,10 +164,11 @@ class LiveEditor {
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: 14,
       tabIndex: -1,
-      quickSuggestions: settings.editor_auto_completion,
+      quickSuggestions:
+        this.type === "elixir" && settings.editor_auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
-      parameterHints: settings.editor_auto_signature,
+      parameterHints: this.type === "elixir" && settings.editor_auto_signature,
     });
 
     this.editor.getModel().updateOptions({
