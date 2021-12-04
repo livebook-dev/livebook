@@ -1110,6 +1110,21 @@ defmodule Livebook.IntellisenseTest do
       {binding, env} = eval(do: nil)
       assert [] = Intellisense.get_completion_items("@attr.value", binding, env)
     end
+
+    test "includes language keywords" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "do",
+                 kind: :keyword,
+                 detail: "do-end block",
+                 documentation: nil,
+                 insert_text: "do\n  $0\nend"
+               }
+               | _
+             ] = Intellisense.get_completion_items("do", binding, env)
+    end
   end
 
   describe "get_details/3" do

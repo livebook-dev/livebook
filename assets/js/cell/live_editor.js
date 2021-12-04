@@ -464,6 +464,8 @@ function parseItemKind(kind) {
       return monaco.languages.CompletionItemKind.Variable;
     case "field":
       return monaco.languages.CompletionItemKind.Field;
+    case "keyword":
+      return monaco.languages.CompletionItemKind.Keyword;
     default:
       return null;
   }

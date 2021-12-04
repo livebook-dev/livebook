@@ -114,6 +114,7 @@ defmodule Livebook.Intellisense do
     IdentifierMatcher.completion_identifiers(hint, binding, env)
     |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
+    |> Enum.concat(extra_completion_items(hint))
     |> Enum.sort_by(&completion_item_priority/1)
   end
 
@@ -207,7 +208,69 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
-  @ordered_kinds [:field, :variable, :module, :struct, :interface, :function, :type]
+  defp extra_completion_items(hint) do
+    items = [
+      %{
+        label: "do",
+        kind: :keyword,
+        detail: "do-end block",
+        documentation: nil,
+        insert_text: "do\n  $0\nend"
+      },
+      %{
+        label: "end",
+        kind: :keyword,
+        detail: "do-end block",
+        documentation: nil,
+        insert_text: "end"
+      },
+      %{
+        label: "fn",
+        kind: :keyword,
+        detail: "anonymous function",
+        documentation: nil,
+        insert_text: "fn"
+      },
+      %{
+        label: "true",
+        kind: :keyword,
+        detail: "boolean",
+        documentation: nil,
+        insert_text: "true"
+      },
+      %{
+        label: "false",
+        kind: :keyword,
+        detail: "boolean",
+        documentation: nil,
+        insert_text: "false"
+      },
+      %{
+        label: "nil",
+        kind: :keyword,
+        detail: "special atom",
+        documentation: nil,
+        insert_text: "nil"
+      },
+      %{
+        label: "when",
+        kind: :keyword,
+        detail: "guard operator",
+        documentation: nil,
+        insert_text: "when"
+      }
+    ]
+
+    last_word = hint |> String.split(~r/\s/) |> List.last()
+
+    if last_word == "" do
+      []
+    else
+      Enum.filter(items, &String.starts_with?(&1.label, last_word))
+    end
+  end
+
+  @ordered_kinds [:keyword, :field, :variable, :module, :struct, :interface, :function, :type]
 
   defp completion_item_priority(%{kind: :struct, detail: "exception"} = completion_item) do
     {length(@ordered_kinds), completion_item.label}
