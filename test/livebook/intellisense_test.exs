@@ -738,7 +738,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.SpecialForms.quote(opts, block)",
                  documentation: "Gets the representation of any expression.",
-                 insert_text: "quote($0)"
+                 insert_text: "quote "
                }
              ] = Intellisense.get_completion_items("quot", binding, env)
     end
@@ -1135,6 +1135,17 @@ defmodule Livebook.IntellisenseTest do
                  insert_text: "defmodule "
                }
              ] = Intellisense.get_completion_items("defmodu", binding, env)
+    end
+
+    test "includes space instead of parentheses for keyword macros" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "import/2",
+                 insert_text: "import "
+               }
+             ] = Intellisense.get_completion_items("impor", binding, env)
     end
   end
 

@@ -182,7 +182,7 @@ defmodule Livebook.Intellisense do
            ]),
          insert_text:
            cond do
-             type == :macro and String.starts_with?(display_name, "def") ->
+             type == :macro and keyword_macro?(name) ->
                "#{display_name} "
 
              String.starts_with?(display_name, "~") ->
@@ -217,6 +217,29 @@ defmodule Livebook.Intellisense do
       documentation: format_documentation(documentation, :short),
       insert_text: name
     }
+
+  defp keyword_macro?(name) do
+    def? = name |> Atom.to_string() |> String.starts_with?("def")
+
+    def? or
+      name in [
+        :alias,
+        :import,
+        :require,
+        :use,
+        :case,
+        :cond,
+        :for,
+        :if,
+        :quote,
+        :raise,
+        :receive,
+        :throw,
+        :try,
+        :unless,
+        :with
+      ]
+  end
 
   defp extra_completion_items(hint) do
     items = [
