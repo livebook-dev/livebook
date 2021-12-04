@@ -29,6 +29,16 @@ const theme = {
     { token: "variable.md", foreground: "#56b6c2" },
     { token: "string.md", foreground: "#abb2bf" },
     { token: "variable.source.md", foreground: "#abb2bf" },
+
+    // XML specific
+    { token: "tag", foreground: "#e06c75" },
+    { token: "metatag", foreground: "#e06c75" },
+    { token: "attribute.name", foreground: "#d19a66" },
+    { token: "attribute.value", foreground: "#98c379" },
+
+    // JSON specific
+    { token: "string.key", foreground: "#e06c75" },
+    { token: "keyword.json", foreground: "#61afef" },
   ],
 
   colors: {
