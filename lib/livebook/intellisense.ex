@@ -121,7 +121,7 @@ defmodule Livebook.Intellisense do
   defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
 
   defp include_in_completion?(
-         {:function, _module, _name, _arity, _display_name, :hidden, _signatures, _specs}
+         {:function, _module, _name, _arity, _type, _display_name, :hidden, _signatures, _specs}
        ),
        do: false
 
@@ -169,7 +169,7 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_completion_item(
-         {:function, module, name, arity, display_name, documentation, signatures, specs}
+         {:function, module, name, arity, type, display_name, documentation, signatures, specs}
        ),
        do: %{
          label: "#{display_name}/#{arity}",
@@ -182,11 +182,21 @@ defmodule Livebook.Intellisense do
            ]),
          insert_text:
            cond do
-             String.starts_with?(display_name, "~") -> display_name
-             Macro.operator?(name, arity) -> display_name
-             # A snippet with cursor in parentheses
-             arity == 0 -> "#{display_name}()"
-             true -> "#{display_name}($0)"
+             type == :macro and String.starts_with?(display_name, "def") ->
+               "#{display_name} "
+
+             String.starts_with?(display_name, "~") ->
+               display_name
+
+             Macro.operator?(name, arity) ->
+               display_name
+
+             arity == 0 ->
+               "#{display_name}()"
+
+             true ->
+               # A snippet with cursor in parentheses
+               "#{display_name}($0)"
            end
        }
 
@@ -326,7 +336,7 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_details_item(
-         {:function, module, name, _arity, _display_name, documentation, signatures, specs}
+         {:function, module, name, _arity, _type, _display_name, documentation, signatures, specs}
        ) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),

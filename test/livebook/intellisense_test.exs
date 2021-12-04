@@ -1125,6 +1125,17 @@ defmodule Livebook.IntellisenseTest do
                | _
              ] = Intellisense.get_completion_items("do", binding, env)
     end
+
+    test "includes space instead of parentheses for def* macros" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "defmodule/2",
+                 insert_text: "defmodule "
+               }
+             ] = Intellisense.get_completion_items("defmodu", binding, env)
+    end
   end
 
   describe "get_details/3" do
