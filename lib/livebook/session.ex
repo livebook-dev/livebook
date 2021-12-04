@@ -1014,16 +1014,24 @@ defmodule Livebook.Session do
   defp default_notebook_file(session) do
     if path = Livebook.Config.autosave_path() do
       dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
-      filename = name_with_timestamp(session.created_at) <> ".livemd"
-      FileSystem.File.resolve(dir, filename)
+      notebook_rel_path = path_with_timestamp(session.session_id, session.created_at)
+      FileSystem.File.resolve(dir, notebook_rel_path)
     end
   end
 
-  defp name_with_timestamp(date_time) do
-    date_time
-    |> DateTime.to_iso8601()
-    |> String.replace(["-", ":"], "_")
-    |> String.replace(["T", "."], "__")
+  defp path_with_timestamp(session_id, date_time) do
+    # We want a random, but deterministic part, so we
+    # use a few characters from the session id, which
+    # is random already
+    random_str = String.slice(session_id, 0..3)
+
+    [date_str, time_str, _] =
+      date_time
+      |> DateTime.to_iso8601()
+      |> String.replace(["-", ":"], "_")
+      |> String.split(["T", "."])
+
+    "#{date_str}/#{time_str}_#{random_str}.livemd"
   end
 
   defp handle_save_finished(state, result) do

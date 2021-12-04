@@ -64,27 +64,20 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <div>
         <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
       </div>
-      <div class="text-gray-600">
-        You do not have any running sessions.
-        <br>
-        Please create a new one by clicking <span class="font-semibold">“New notebook”</span>
+      <div class="flex-grow flex items-center justify-between">
+        <div class="text-gray-600">
+          You do not have any running sessions.
+          <%= if @show_autosave_note? do %>
+            <br>
+            Looking for unsaved notebooks?
+            <a class="font-semibold" href="#" phx-click="open_autosave_directory">Browse them here</a>.
+          <% end %>
+        </div>
+        <button class="button-base button-blue" phx-click="new">
+          New notebook
+        </button>
       </div>
     </div>
-    <%= if @show_autosave_note? do %>
-      <div class="mt-4 p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
-        <div>
-          <.remix_icon icon="history-line" class="text-gray-400 text-xl" />
-        </div>
-        <div class="text-gray-600">
-          We automatically persist all notebooks that you forget to save manually.
-          <br>
-          To restore one of those
-          <a class="font-semibold" href="#" phx-click="open_autosave_pathectory">
-            go to backups
-          </a>
-        </div>
-      </div>
-    <% end %>
     """
   end
 

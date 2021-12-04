@@ -19,7 +19,7 @@ defmodule LivebookCLI.Server do
 
     Available options:
 
-      --autosave-path       The directory where notebooks with no file are persisted.
+      --autosave-path      The directory where notebooks with no file are persisted.
                            Defaults to livebook/notebooks/ under the default user cache
                            location. You can pass "none" to disable this behaviour
       --cookie             Sets a cookie for the app distributed node

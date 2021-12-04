@@ -242,7 +242,7 @@ defmodule LivebookWeb.HomeLive do
      )}
   end
 
-  def handle_event("open_autosave_pathectory", %{}, socket) do
+  def handle_event("open_autosave_directory", %{}, socket) do
     file =
       Livebook.Config.autosave_path()
       |> FileSystem.Utils.ensure_dir_path()
