@@ -226,22 +226,26 @@ defmodule Livebook.Intellisense do
 
     def? or
       name in [
-        :fn,
+        # Special forms
         :alias,
-        :import,
-        :require,
-        :use,
         :case,
         :cond,
         :for,
-        :if,
+        :fn,
+        :import,
         :quote,
-        :raise,
         :receive,
-        :throw,
+        :require,
         :try,
+        :with,
+
+        # Kernel
+        :destructure,
+        :raise,
+        :reraise,
+        :if,
         :unless,
-        :with
+        :use
       ]
   end
 
