@@ -71,7 +71,8 @@ defmodule Livebook.Session do
           created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
-          save_task_pid: pid() | nil
+          save_task_pid: pid() | nil,
+          saved_default_file: FileSystem.File.t() | nil
         }
 
   @typedoc """
@@ -399,7 +400,8 @@ defmodule Livebook.Session do
         created_at: DateTime.utc_now(),
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
-        save_task_pid: nil
+        save_task_pid: nil,
+        saved_default_file: nil
       }
 
       {:ok, state}
@@ -688,9 +690,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:save_finished, pid, result}, %{save_task_pid: pid} = state) do
+  def handle_info({:save_finished, pid, result, file, default?}, %{save_task_pid: pid} = state) do
     state = %{state | save_task_pid: nil}
-    {:noreply, handle_save_finished(state, result)}
+    {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -973,7 +975,7 @@ defmodule Livebook.Session do
   end
 
   defp maybe_save_notebook_async(state) do
-    file = notebook_autosave_file(state)
+    {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
       pid = self()
@@ -982,7 +984,7 @@ defmodule Livebook.Session do
       {:ok, pid} =
         Task.start(fn ->
           result = FileSystem.File.write(file, content)
-          send(pid, {:save_finished, self(), result})
+          send(pid, {:save_finished, self(), result, file, default?})
         end)
 
       %{state | save_task_pid: pid}
@@ -992,12 +994,12 @@ defmodule Livebook.Session do
   end
 
   defp maybe_save_notebook_sync(state) do
-    file = notebook_autosave_file(state)
+    {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
       content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
       result = FileSystem.File.write(file, content)
-      handle_save_finished(state, result)
+      handle_save_finished(state, result, file, default?)
     else
       state
     end
@@ -1008,33 +1010,52 @@ defmodule Livebook.Session do
   end
 
   defp notebook_autosave_file(state) do
-    state.data.file || default_notebook_file(state)
+    file = state.data.file || default_notebook_file(state)
+    default? = state.data.file == nil
+    {file, default?}
   end
 
   defp default_notebook_file(session) do
     if path = Livebook.Config.autosave_path() do
       dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
-      notebook_rel_path = path_with_timestamp(session.session_id, session.created_at)
+      notebook_rel_path = default_notebook_path(session)
       FileSystem.File.resolve(dir, notebook_rel_path)
     end
   end
 
-  defp path_with_timestamp(session_id, date_time) do
+  defp default_notebook_path(session) do
+    title_str =
+      session.data.notebook.name
+      |> String.downcase()
+      |> String.replace(~r/\s+/, "_")
+      |> String.replace(~r/[^\w]/, "")
+
     # We want a random, but deterministic part, so we
-    # use a few characters from the session id, which
-    # is random already
-    random_str = String.slice(session_id, 0..3)
+    # use a few trailing characters from the session id,
+    # which are random already
+    random_str = String.slice(session.session_id, -4..-1)
 
     [date_str, time_str, _] =
-      date_time
+      session.created_at
       |> DateTime.to_iso8601()
       |> String.replace(["-", ":"], "_")
       |> String.split(["T", "."])
 
-    "#{date_str}/#{time_str}_#{random_str}.livemd"
+    "#{date_str}/#{time_str}_#{title_str}_#{random_str}.livemd"
   end
 
-  defp handle_save_finished(state, result) do
+  defp handle_save_finished(state, result, file, default?) do
+    state =
+      if default? do
+        if state.saved_default_file && state.saved_default_file != file do
+          FileSystem.File.remove(state.saved_default_file)
+        end
+
+        %{state | saved_default_file: file}
+      else
+        state
+      end
+
     case result do
       :ok ->
         handle_operation(state, {:mark_as_not_dirty, self()})
