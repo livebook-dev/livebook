@@ -114,13 +114,14 @@ defmodule Livebook.Intellisense do
     IdentifierMatcher.completion_identifiers(hint, binding, env)
     |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
+    |> Enum.concat(extra_completion_items(hint))
     |> Enum.sort_by(&completion_item_priority/1)
   end
 
   defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
 
   defp include_in_completion?(
-         {:function, _module, _name, _arity, _display_name, :hidden, _signatures, _specs}
+         {:function, _module, _name, _arity, _type, _display_name, :hidden, _signatures, _specs}
        ),
        do: false
 
@@ -168,7 +169,7 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_completion_item(
-         {:function, module, name, arity, display_name, documentation, signatures, specs}
+         {:function, module, name, arity, type, display_name, documentation, signatures, specs}
        ),
        do: %{
          label: "#{display_name}/#{arity}",
@@ -181,11 +182,24 @@ defmodule Livebook.Intellisense do
            ]),
          insert_text:
            cond do
-             String.starts_with?(display_name, "~") -> display_name
-             Macro.operator?(name, arity) -> display_name
-             # A snippet with cursor in parentheses
-             arity == 0 -> "#{display_name}()"
-             true -> "#{display_name}($0)"
+             type == :macro and keyword_macro?(name) ->
+               "#{display_name} "
+
+             type == :macro and env_macro?(name) ->
+               display_name
+
+             String.starts_with?(display_name, "~") ->
+               display_name
+
+             Macro.operator?(name, arity) ->
+               display_name
+
+             arity == 0 ->
+               "#{display_name}()"
+
+             true ->
+               # A snippet with cursor in parentheses
+               "#{display_name}($0)"
            end
        }
 
@@ -207,7 +221,87 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
-  @ordered_kinds [:field, :variable, :module, :struct, :interface, :function, :type]
+  defp keyword_macro?(name) do
+    def? = name |> Atom.to_string() |> String.starts_with?("def")
+
+    def? or
+      name in [
+        # Special forms
+        :alias,
+        :case,
+        :cond,
+        :for,
+        :fn,
+        :import,
+        :quote,
+        :receive,
+        :require,
+        :try,
+        :with,
+
+        # Kernel
+        :destructure,
+        :raise,
+        :reraise,
+        :if,
+        :unless,
+        :use
+      ]
+  end
+
+  defp env_macro?(name) do
+    name in [:__ENV__, :__MODULE__, :__DIR__, :__STACKTRACE__, :__CALLER__]
+  end
+
+  defp extra_completion_items(hint) do
+    items = [
+      %{
+        label: "do",
+        kind: :keyword,
+        detail: "do-end block",
+        documentation: nil,
+        insert_text: "do\n  $0\nend"
+      },
+      %{
+        label: "true",
+        kind: :keyword,
+        detail: "boolean",
+        documentation: nil,
+        insert_text: "true"
+      },
+      %{
+        label: "false",
+        kind: :keyword,
+        detail: "boolean",
+        documentation: nil,
+        insert_text: "false"
+      },
+      %{
+        label: "nil",
+        kind: :keyword,
+        detail: "special atom",
+        documentation: nil,
+        insert_text: "nil"
+      },
+      %{
+        label: "when",
+        kind: :keyword,
+        detail: "guard operator",
+        documentation: nil,
+        insert_text: "when"
+      }
+    ]
+
+    last_word = hint |> String.split(~r/\s/) |> List.last()
+
+    if last_word == "" do
+      []
+    else
+      Enum.filter(items, &String.starts_with?(&1.label, last_word))
+    end
+  end
+
+  @ordered_kinds [:keyword, :field, :variable, :module, :struct, :interface, :function, :type]
 
   defp completion_item_priority(%{kind: :struct, detail: "exception"} = completion_item) do
     {length(@ordered_kinds), completion_item.label}
@@ -263,7 +357,7 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_details_item(
-         {:function, module, name, _arity, _display_name, documentation, signatures, specs}
+         {:function, module, name, _arity, _type, _display_name, documentation, signatures, specs}
        ) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),

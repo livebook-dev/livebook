@@ -250,6 +250,7 @@ class LiveEditor {
 
       return this.__asyncIntellisenseRequest("completion", {
         hint: lineUntilCursor,
+        editor_auto_completion: settings.editor_auto_completion,
       })
         .then((response) => {
           const suggestions = completionItemsToSuggestions(
@@ -311,8 +312,11 @@ class LiveEditor {
       const lineUntilCursor = lines[lineIdx].slice(0, position.column - 1);
       const codeUntilCursor = [...prevLines, lineUntilCursor].join("\n");
 
-      // Remove trailing characters that don't affect the signature
-      const codeUntilLastStop = codeUntilCursor.replace(/[^(),]*?$/, "");
+      const codeUntilLastStop = codeUntilCursor
+        // Remove trailing characters that don't affect the signature
+        .replace(/[^(),\s]*?$/, "")
+        // Remove whitespace before delimiter
+        .replace(/([(),])\s*$/, "$1");
 
       // Cache subsequent requests for the same prefix, so that we don't
       // make unnecessary requests
@@ -464,6 +468,8 @@ function parseItemKind(kind) {
       return monaco.languages.CompletionItemKind.Variable;
     case "field":
       return monaco.languages.CompletionItemKind.Field;
+    case "keyword":
+      return monaco.languages.CompletionItemKind.Keyword;
     default:
       return null;
   }

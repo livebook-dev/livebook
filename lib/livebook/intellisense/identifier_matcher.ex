@@ -22,14 +22,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           {:variable, name(), value()}
           | {:map_field, name(), value()}
           | {:module, module(), display_name(), Docs.documentation()}
-          | {:function, module(), name(), arity(), display_name(), Docs.documentation(),
-             list(Docs.signature()), list(Docs.spec())}
+          | {:function, module(), name(), arity(), function_type(), display_name(),
+             Docs.documentation(), list(Docs.signature()), list(Docs.spec())}
           | {:type, module(), name(), arity(), Docs.documentation()}
           | {:module_attribute, name(), Docs.documentation()}
 
   @type name :: atom()
   @type display_name :: String.t()
   @type value :: term()
+  @type function_type :: :function | :macro
 
   @exact_matcher &Kernel.==/2
   @prefix_matcher &String.starts_with?/2
@@ -241,10 +242,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_sigil(hint, ctx) do
-    for {:function, module, name, arity, "sigil_" <> sigil_name, documentation, signatures, specs} <-
+    for {:function, module, name, arity, type, "sigil_" <> sigil_name, documentation, signatures,
+         specs} <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
-        do: {:function, module, name, arity, "~" <> sigil_name, documentation, signatures, specs}
+        do:
+          {:function, module, name, arity, type, "~" <> sigil_name, documentation, signatures,
+           specs}
   end
 
   defp match_erlang_module(hint, ctx) do
@@ -376,24 +380,26 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       funs = funs || exports(mod)
 
       matching_funs =
-        Enum.filter(funs, fn {name, _arity} ->
+        Enum.filter(funs, fn {name, _arity, _type} ->
           name = Atom.to_string(name)
           ctx.matcher.(name, hint)
         end)
 
       doc_items =
-        Livebook.Intellisense.Docs.lookup_module_members(mod, matching_funs,
+        Livebook.Intellisense.Docs.lookup_module_members(
+          mod,
+          Enum.map(matching_funs, &Tuple.delete_at(&1, 2)),
           kinds: [:function, :macro]
         )
 
-      Enum.map(matching_funs, fn {name, arity} ->
+      Enum.map(matching_funs, fn {name, arity, type} ->
         doc_item =
           Enum.find(doc_items, %{documentation: nil, signatures: [], specs: []}, fn doc_item ->
             doc_item.name == name && doc_item.arity == arity
           end)
 
-        {:function, mod, name, arity, Atom.to_string(name), doc_item && doc_item.documentation,
-         doc_item.signatures, doc_item.specs}
+        {:function, mod, name, arity, type, Atom.to_string(name),
+         doc_item && doc_item.documentation, doc_item.signatures, doc_item.specs}
       end)
     else
       []
@@ -402,10 +408,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp exports(mod) do
     if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
-      mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
+      macros = mod.__info__(:macros)
+      functions = mod.__info__(:functions) -- [__info__: 1]
+      append_funs_type(macros, :macro) ++ append_funs_type(functions, :function)
     else
-      mod.module_info(:exports) -- [module_info: 0, module_info: 1]
+      functions = mod.module_info(:exports) -- [module_info: 0, module_info: 1]
+      append_funs_type(functions, :function)
     end
+  end
+
+  defp append_funs_type(funs, type) do
+    Enum.map(funs, &Tuple.append(&1, type))
   end
 
   defp match_module_type(mod, hint, ctx) do
@@ -444,7 +457,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
-  defp imports_from_env(env), do: env.functions ++ env.macros
+  defp imports_from_env(env) do
+    Enum.map(env.functions, fn {mod, funs} ->
+      {mod, append_funs_type(funs, :function)}
+    end) ++
+      Enum.map(env.macros, fn {mod, funs} ->
+        {mod, append_funs_type(funs, :macro)}
+      end)
+  end
 
   defp split_at_last_occurrence(string, pattern) do
     case :binary.matches(string, pattern) do

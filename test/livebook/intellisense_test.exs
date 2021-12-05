@@ -738,7 +738,7 @@ defmodule Livebook.IntellisenseTest do
                  kind: :function,
                  detail: "Kernel.SpecialForms.quote(opts, block)",
                  documentation: "Gets the representation of any expression.",
-                 insert_text: "quote($0)"
+                 insert_text: "quote "
                }
              ] = Intellisense.get_completion_items("quot", binding, env)
     end
@@ -1109,6 +1109,54 @@ defmodule Livebook.IntellisenseTest do
     test "handles calls on module attribute" do
       {binding, env} = eval(do: nil)
       assert [] = Intellisense.get_completion_items("@attr.value", binding, env)
+    end
+
+    test "includes language keywords" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "do",
+                 kind: :keyword,
+                 detail: "do-end block",
+                 documentation: nil,
+                 insert_text: "do\n  $0\nend"
+               }
+               | _
+             ] = Intellisense.get_completion_items("do", binding, env)
+    end
+
+    test "includes space instead of parentheses for def* macros" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "defmodule/2",
+                 insert_text: "defmodule "
+               }
+             ] = Intellisense.get_completion_items("defmodu", binding, env)
+    end
+
+    test "includes space instead of parentheses for keyword macros" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "import/2",
+                 insert_text: "import "
+               }
+             ] = Intellisense.get_completion_items("impor", binding, env)
+    end
+
+    test "includes doesn't include space nor parentheses for macros like __ENV__" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "__ENV__/0",
+                 insert_text: "__ENV__"
+               }
+             ] = Intellisense.get_completion_items("__EN", binding, env)
     end
   end
 

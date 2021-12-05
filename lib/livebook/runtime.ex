@@ -72,7 +72,7 @@ defprotocol Livebook.Runtime do
         }
 
   @type completion_item_kind ::
-          :function | :module | :struct | :interface | :type | :variable | :field
+          :function | :module | :struct | :interface | :type | :variable | :field | :keyword
 
   @typedoc """
   Looks up more details about an identifier found in `column` in `line`.
