@@ -583,6 +583,30 @@ defmodule Livebook.SessionTest do
     assert DateTime.compare(session.created_at, DateTime.utc_now()) == :lt
   end
 
+  @tag :tmp_dir
+  test "session without a file is persisted to autosave path", %{tmp_dir: tmp_dir} do
+    session = start_session(autosave_path: tmp_dir)
+
+    notebook_glob = Path.join(tmp_dir, "**/*.livemd")
+
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+    Session.save(session.pid)
+    assert_receive {:operation, {:mark_as_not_dirty, _}}
+
+    assert [notebook_path] = Path.wildcard(notebook_glob)
+    assert Path.basename(notebook_path) =~ "untitled_notebook"
+
+    # After the name is changed we should save to a different file
+    Session.set_notebook_name(session.pid, "Cat's guide to life")
+
+    Session.save(session.pid)
+    assert_receive {:operation, {:mark_as_not_dirty, _}}
+
+    assert [notebook_path] = Path.wildcard(notebook_glob)
+    assert Path.basename(notebook_path) =~ "cats_guide_to_life"
+  end
+
   defp start_session(opts \\ []) do
     session_id = Utils.random_id()
     {:ok, pid} = Session.start_link(Keyword.merge([id: session_id], opts))

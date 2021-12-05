@@ -100,6 +100,9 @@ defmodule Livebook.Session do
 
     * `:images` - a map from image name to its binary content, an alternative
       to `:copy_images_from` when the images are in memory
+
+    * `:autosave_path` - a local directory to save notebooks without a file into.
+      Defaults to `Livebook.Config.autosave_path/1`
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -400,6 +403,7 @@ defmodule Livebook.Session do
         created_at: DateTime.utc_now(),
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
+        autosave_path: opts[:autosave_path],
         save_task_pid: nil,
         saved_default_file: nil
       }
@@ -1015,17 +1019,17 @@ defmodule Livebook.Session do
     {file, default?}
   end
 
-  defp default_notebook_file(session) do
-    if path = Livebook.Config.autosave_path() do
+  defp default_notebook_file(state) do
+    if path = state.autosave_path || Livebook.Config.autosave_path() do
       dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
-      notebook_rel_path = default_notebook_path(session)
+      notebook_rel_path = default_notebook_path(state)
       FileSystem.File.resolve(dir, notebook_rel_path)
     end
   end
 
-  defp default_notebook_path(session) do
+  defp default_notebook_path(state) do
     title_str =
-      session.data.notebook.name
+      state.data.notebook.name
       |> String.downcase()
       |> String.replace(~r/\s+/, "_")
       |> String.replace(~r/[^\w]/, "")
@@ -1033,10 +1037,10 @@ defmodule Livebook.Session do
     # We want a random, but deterministic part, so we
     # use a few trailing characters from the session id,
     # which are random already
-    random_str = String.slice(session.session_id, -4..-1)
+    random_str = String.slice(state.session_id, -4..-1)
 
     [date_str, time_str, _] =
-      session.created_at
+      state.created_at
       |> DateTime.to_iso8601()
       |> String.replace(["-", ":"], "_")
       |> String.split(["T", "."])
