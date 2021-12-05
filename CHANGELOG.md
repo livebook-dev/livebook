@@ -4,21 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased](https://github.com/livebook-dev/livebook/tree/main)
+## [v0.4.0](https://github.com/livebook-dev/livebook/tree/v0.4.0) (2021-12-05)
 
 ### Added
 
-* Support for file scheme when importing notebook from URL ([#706](https://github.com/livebook-dev/livebook/pull/706))
-* Support for rendering UI controls, such as buttons and keyboard ([#710](https://github.com/livebook-dev/livebook/pull/710))
+- Support for file scheme when importing notebook from URL ([#706](https://github.com/livebook-dev/livebook/pull/706))
+- Support for rendering UI controls, such as buttons and keyboard ([#710](https://github.com/livebook-dev/livebook/pull/710))
+- Added Pong notebook to the explore section to showcase controls ([#729](https://github.com/livebook-dev/livebook/pull/729))
+- Improved function completion to insert parentheses ([#693](https://github.com/livebook-dev/livebook/pull/693))
+- Added user-specific intellisense configuration ([#693](https://github.com/livebook-dev/livebook/pull/693))
+- Added signature completion ([#640](https://github.com/livebook-dev/livebook/pull/640))
+- Added automatic persistence for unsaved notebooks ([#736](https://github.com/livebook-dev/livebook/pull/736))
+- Support XML and JSON highlighting in Markdown cells ([#743](https://github.com/livebook-dev/livebook/pull/743))
 
 ### Changed
 
-* Restructured j/k navigation to support headlines ([#707](https://github.com/livebook-dev/livebook/pull/707))
-* Migrated inputs to Kino ([#714](https://github.com/livebook-dev/livebook/pull/714))
+- Restructured j/k navigation to support headlines ([#707](https://github.com/livebook-dev/livebook/pull/707))
+- Migrated inputs to Kino ([#714](https://github.com/livebook-dev/livebook/pull/714))
 
 ### Removed
 
-* Removed input cells in favour of `Kino.Input`, see [#714](https://github.com/livebook-dev/livebook/pull/714) for more details
+- Removed input cells in favour of `Kino.Input`, see [#714](https://github.com/livebook-dev/livebook/pull/714) for more details
+
+### Fixed
+
+- Fixed evaluation timer reset on page refresh ([#732](https://github.com/livebook-dev/livebook/pull/732))
+- Fixed alignment of long names in the sections panel ([#734](https://github.com/livebook-dev/livebook/pull/734))
+- Fixed timeout when importing a notebook with Vega-Lite output ([#741](https://github.com/livebook-dev/livebook/issues/741))
 
 ## [v0.3.2](https://github.com/livebook-dev/livebook/tree/v0.3.2) (2021-11-10)
 
