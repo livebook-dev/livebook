@@ -242,8 +242,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_sigil(hint, ctx) do
-    for {:function, module, name, arity, type, "sigil_" <> sigil_name, documentation,
-         signatures,
+    for {:function, module, name, arity, type, "sigil_" <> sigil_name, documentation, signatures,
          specs} <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
