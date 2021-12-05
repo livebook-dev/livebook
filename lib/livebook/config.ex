@@ -138,7 +138,7 @@ defmodule Livebook.Config do
       if writable_directory?(cache_path) do
         cache_path
       else
-        System.tmp_dir!() |> Path.join("livebook")
+        System.tmp_dir!() |> Path.expand() |> Path.join("livebook")
       end
 
     notebooks_path = Path.join(path, "notebooks")
