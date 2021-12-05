@@ -226,6 +226,7 @@ defmodule Livebook.Intellisense do
 
     def? or
       name in [
+        :fn,
         :alias,
         :import,
         :require,
@@ -256,20 +257,6 @@ defmodule Livebook.Intellisense do
         detail: "do-end block",
         documentation: nil,
         insert_text: "do\n  $0\nend"
-      },
-      %{
-        label: "end",
-        kind: :keyword,
-        detail: "do-end block",
-        documentation: nil,
-        insert_text: "end"
-      },
-      %{
-        label: "fn",
-        kind: :keyword,
-        detail: "anonymous function",
-        documentation: nil,
-        insert_text: "fn"
       },
       %{
         label: "true",
