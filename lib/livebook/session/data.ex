@@ -165,7 +165,7 @@ defmodule Livebook.Session.Data do
       notebook: notebook,
       origin: nil,
       file: nil,
-      dirty: false,
+      dirty: true,
       section_infos: initial_section_infos(notebook),
       cell_infos: initial_cell_infos(notebook),
       input_values: initial_input_values(notebook),
