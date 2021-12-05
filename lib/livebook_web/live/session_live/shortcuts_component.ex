@@ -45,8 +45,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         desc: "Delete lines"
       },
       %{
-        seq: ["ctrl", "]"],
-        seq_mac: ["⌘", "]"],
+        seq: ["ctrl", "["],
+        seq_mac: ["⌘", "["],
         press_all: true,
         desc: "Indent lines"
       },
