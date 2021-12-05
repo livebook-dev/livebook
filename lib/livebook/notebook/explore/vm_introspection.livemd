@@ -14,7 +14,7 @@ so let's add `:vega_lite` and `:kino` for that.
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.2"},
-  {:kino, "~> 0.4.0"}
+  {:kino, "~> 0.4.1"}
 ])
 ```
 
@@ -165,7 +165,7 @@ widget =
     |> Vl.encode(:color, datum: [repeat: :layer], type: :nominal)
   )
   |> Kino.VegaLite.new()
-  |> tap(&Kino.render/1)
+  |> Kino.render()
 
 Kino.VegaLite.periodically(widget, 200, 1, fn i ->
   point =

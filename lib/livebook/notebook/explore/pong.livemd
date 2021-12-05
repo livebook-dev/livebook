@@ -17,7 +17,7 @@ the visualization and interactions.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.4.0"}
+  {:kino, "~> 0.4.1"}
 ])
 ```
 

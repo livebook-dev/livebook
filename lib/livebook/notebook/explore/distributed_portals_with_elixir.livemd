@@ -200,7 +200,7 @@ install the [Kino](https://github.com/livebook-dev/kino) library:
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.4.0"}
+  {:kino, "~> 0.4.1"}
 ])
 ```
 
