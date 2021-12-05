@@ -113,6 +113,13 @@ defmodule Livebook.IntellisenseTest do
     end
 
     @tag :erl_docs
+    test "Erlang completion doesn't include quoted atoms" do
+      {binding, env} = eval(do: nil)
+
+      assert [] = Intellisense.get_completion_items(~s{:Elixir}, binding, env)
+    end
+
+    @tag :erl_docs
     test "Erlang module completion with 'in' operator in spec" do
       {binding, env} = eval(do: nil)
 
