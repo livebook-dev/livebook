@@ -10,7 +10,7 @@ and interact with them.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.4.0"},
+  {:kino, "~> 0.4.1"},
   {:vega_lite, "~> 0.1.2"}
 ])
 ```
@@ -74,7 +74,7 @@ widget =
   |> Vl.encode_field(:x, "x", type: :quantitative)
   |> Vl.encode_field(:y, "y", type: :quantitative)
   |> Kino.VegaLite.new()
-  |> tap(&Kino.render/1)
+  |> Kino.render()
 
 # Add a callback to run every 25ms
 Kino.VegaLite.periodically(widget, 25, 0, fn i ->
@@ -226,7 +226,7 @@ widget =
   |> Vl.encode_field(:x, "x", type: :quantitative)
   |> Vl.encode_field(:y, "y", type: :quantitative)
   |> Kino.VegaLite.new()
-  |> tap(&Kino.render/1)
+  |> Kino.render()
 
 for i <- 1..300 do
   point = %{x: i / 10, y: :math.sin(i / 10)}
