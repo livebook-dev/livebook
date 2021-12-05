@@ -127,21 +127,21 @@ defmodule Livebook.Intellisense do
 
   defp include_in_completion?(_), do: true
 
-  defp format_completion_item({:variable, name, value}),
+  defp format_completion_item({:variable, name, _value}),
     do: %{
       label: name,
       kind: :variable,
       detail: "variable",
-      documentation: value_snippet(value, @line_length),
+      documentation: nil,
       insert_text: name
     }
 
-  defp format_completion_item({:map_field, name, value}),
+  defp format_completion_item({:map_field, name, _value}),
     do: %{
       label: name,
       kind: :field,
       detail: "field",
-      documentation: value_snippet(value, @line_length),
+      documentation: nil,
       insert_text: name
     }
 
@@ -336,18 +336,9 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_details_item({:variable, name, value}) do
-    join_with_divider([
-      code(name),
-      value_snippet(value, @extended_line_length)
-    ])
-  end
+  defp format_details_item({:variable, name, _value}), do: code(name)
 
-  defp format_details_item({:map_field, _name, value}) do
-    join_with_divider([
-      value_snippet(value, @extended_line_length)
-    ])
-  end
+  defp format_details_item({:map_field, name, _value}), do: code(name)
 
   defp format_details_item({:module, _module, display_name, documentation}) do
     join_with_divider([
@@ -399,14 +390,6 @@ defmodule Livebook.Intellisense do
     """
     ```
     #{code}
-    ```\
-    """
-  end
-
-  defp value_snippet(value, line_length) do
-    """
-    ```
-    #{inspect(value, pretty: true, width: line_length)}
     ```\
     """
   end

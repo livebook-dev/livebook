@@ -589,21 +589,21 @@ defmodule Livebook.IntellisenseTest do
                  label: "bar_1",
                  kind: :field,
                  detail: "field",
-                 documentation: ~s{```\n~r/pattern/\n```},
+                 documentation: nil,
                  insert_text: "bar_1"
                },
                %{
                  label: "bar_2",
                  kind: :field,
                  detail: "field",
-                 documentation: ~s{```\ntrue\n```},
+                 documentation: nil,
                  insert_text: "bar_2"
                },
                %{
                  label: "foo",
                  kind: :field,
                  detail: "field",
-                 documentation: ~s{```\n1\n```},
+                 documentation: nil,
                  insert_text: "foo"
                }
              ] = Intellisense.get_completion_items("map.", binding, env)
@@ -613,7 +613,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "foo",
                  kind: :field,
                  detail: "field",
-                 documentation: ~s{```\n1\n```},
+                 documentation: nil,
                  insert_text: "foo"
                }
              ] = Intellisense.get_completion_items("map.f", binding, env)
@@ -639,18 +639,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "nested",
                  kind: :field,
                  detail: "field",
-                 documentation: """
-                 ```
-                 %{
-                   deeply: %{
-                     bar_1: 23,
-                     bar_2: 14,
-                     foo: 1,
-                     mod: System
-                   }
-                 }
-                 ```\
-                 """,
+                 documentation: nil,
                  insert_text: "nested"
                }
              ] = Intellisense.get_completion_items("map.nest", binding, env)
@@ -660,7 +649,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "foo",
                  kind: :field,
                  detail: "field",
-                 documentation: ~s{```\n1\n```},
+                 documentation: nil,
                  insert_text: "foo"
                }
              ] = Intellisense.get_completion_items("map.nested.deeply.f", binding, env)
@@ -787,7 +776,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "numbats",
                  kind: :variable,
                  detail: "variable",
-                 documentation: ~s{```\n["numbat", "numbat"]\n```},
+                 documentation: nil,
                  insert_text: "numbats"
                }
              ] = Intellisense.get_completion_items("numba", binding, env)
@@ -797,14 +786,14 @@ defmodule Livebook.IntellisenseTest do
                  label: "numbats",
                  kind: :variable,
                  detail: "variable",
-                 documentation: ~s{```\n["numbat", "numbat"]\n```},
+                 documentation: nil,
                  insert_text: "numbats"
                },
                %{
                  label: "number",
                  kind: :variable,
                  detail: "variable",
-                 documentation: ~s{```\n3\n```},
+                 documentation: nil,
                  insert_text: "number"
                }
              ] = Intellisense.get_completion_items("num", binding, env)
@@ -814,7 +803,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "nothing",
                  kind: :variable,
                  detail: "variable",
-                 documentation: ~s{```\nnil\n```},
+                 documentation: nil,
                  insert_text: "nothing"
                },
                %{label: "node/0"},
