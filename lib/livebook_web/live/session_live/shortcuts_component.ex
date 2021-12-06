@@ -118,6 +118,13 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         basic: true
       },
       %{
+        seq: ["ctrl", "shift", "↵"],
+        seq_mac: ["⌘", "⇧", "↵"],
+        press_all: true,
+        desc: "Evaluate all stale/new cells in either mode",
+        basic: true
+      },
+      %{
         seq: ["ctrl", "s"],
         seq_mac: ["⌘", "s"],
         press_all: true,

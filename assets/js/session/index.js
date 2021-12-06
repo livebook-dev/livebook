@@ -297,6 +297,7 @@ function handleDocumentKeyDown(hook, event) {
 
   const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
   const alt = event.altKey;
+  const shift = event.shiftKey;
   const key = event.key;
   const keyBuffer = hook.state.keyBuffer;
 
@@ -321,7 +322,10 @@ function handleDocumentKeyDown(hook, event) {
       if (!monacoInputOpen && !completionBoxOpen && !signatureDetailsOpen) {
         escapeInsertMode(hook);
       }
-    } else if (cmd && key === "Enter" && !alt) {
+    } else if (cmd && shift && !alt && key === "Enter") {
+      cancelEvent(event);
+      queueAllCellsEvaluation(hook);
+    } else if (cmd && !alt && key === "Enter") {
       cancelEvent(event);
       if (hook.state.focusedCellType === "elixir") {
         queueFocusedCellEvaluation(hook);
@@ -350,12 +354,18 @@ function handleDocumentKeyDown(hook, event) {
       saveNotebook(hook);
     } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
-    } else if (keyBuffer.tryMatch(["e", "e"]) || (cmd && key === "Enter")) {
+    } else if (
+      keyBuffer.tryMatch(["e", "a"]) ||
+      (cmd && shift && !alt && key === "Enter")
+    ) {
+      queueAllCellsEvaluation(hook);
+    } else if (
+      keyBuffer.tryMatch(["e", "e"]) ||
+      (cmd && !alt && key === "Enter")
+    ) {
       if (hook.state.focusedCellType === "elixir") {
         queueFocusedCellEvaluation(hook);
       }
-    } else if (keyBuffer.tryMatch(["e", "a"])) {
-      queueAllCellsEvaluation(hook);
     } else if (keyBuffer.tryMatch(["e", "s"])) {
       queueFocusedSectionEvaluation(hook);
     } else if (keyBuffer.tryMatch(["s", "s"])) {
