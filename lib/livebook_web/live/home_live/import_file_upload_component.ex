@@ -44,7 +44,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
             You can only upload files with .livemd extension.
           </div>
         <% end %>
-        <button type="submit" class="mt-5 button button-blue" disabled={@uploads.notebook.entries == [] || @error}>
+        <button type="submit" class="mt-5 button-base button-blue" disabled={@uploads.notebook.entries == [] || @error}>
           Import
         </button>
       </form>
