@@ -105,6 +105,13 @@ Also some spacing adjustments.
   margin: 0 !important;
 }
 
+/* Command palette height is computed based on editor height,
+   which is not what we want, since the editor can have just
+   a single line, hence we override with a fixed height */
+.monaco-editor .quick-input-list .monaco-list {
+  max-height: 300px !important;
+}
+
 /* === Monaco cursor widget === */
 
 .monaco-cursor-widget-container {

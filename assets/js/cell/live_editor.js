@@ -218,6 +218,19 @@ class LiveEditor {
       "editor.action.showHover",
       monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I
     );
+
+    /* Overrides */
+
+    // Move the command palette widget to overflowing widgets container,
+    // so that it's visible on small editors.
+    // See: https://github.com/microsoft/monaco-editor/issues/70
+    const commandPaletteNode = this.editor.getContribution(
+      "editor.controller.quickInput"
+    ).widget.domNode;
+    commandPaletteNode.remove();
+    this.editor._modelData.view._contentWidgets.overflowingContentWidgetsDomNode.domNode.appendChild(
+      commandPaletteNode
+    );
   }
 
   /**
