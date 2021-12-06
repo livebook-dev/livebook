@@ -81,7 +81,13 @@ solely client-side operations.
   @apply opacity-100 pointer-events-auto;
 }
 
-[data-element="cell"] [data-element="change-indicator"]:not([data-js-shown]) {
+[data-element="cell"] [data-element="cell-status"][data-js-changed] {
+  @apply italic;
+}
+
+[data-element="cell"]
+  [data-element="cell-status"]:not([data-js-changed])
+  [data-element="change-indicator"] {
   @apply invisible;
 }
 

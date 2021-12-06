@@ -309,7 +309,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
-        <div class="flex text-xs text-gray-400">
+        <div class="flex text-xs text-gray-400" data-element="cell-status">
           <%= render_slot(@inner_block) %>
           <%= if @change_indicator do %>
             <span data-element="change-indicator">*</span>
