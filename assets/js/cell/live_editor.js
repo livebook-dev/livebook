@@ -168,6 +168,11 @@ class LiveEditor {
         this.type === "elixir" && settings.editor_auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
+      // For Elixir word suggestions are confusing at times.
+      // For example given `defmodule<CURSOR> Foo do`, if the
+      // user opens completion list and then jumps to the end
+      // of the line we would get "defmodule" as a word completion.
+      wordBasedSuggestions: this.type !== "elixir",
       parameterHints: this.type === "elixir" && settings.editor_auto_signature,
     });
 
