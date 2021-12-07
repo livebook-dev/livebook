@@ -262,7 +262,7 @@ defmodule Livebook.Session do
   @doc """
   Sends full evaluation request to the server.
 
-  All outdated (new/stale/changed) cellss, as well as cells given
+  All outdated (new/stale/changed) cells, as well as cells given
   as `forced_cell_ids` are scheduled for evaluation.
   """
   @spec queue_full_evaluation(pid(), list(Cell.id())) :: :ok
