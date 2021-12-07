@@ -66,15 +66,18 @@ const Cell = {
           this.state.evaluationDigest = evaluation_digest;
 
           const updateChangeIndicator = () => {
-            const indicator = this.el.querySelector(
-              `[data-element="change-indicator"]`
+            const cellStatus = this.el.querySelector(
+              `[data-element="cell-status"]`
             );
+            const indicator =
+              cellStatus &&
+              cellStatus.querySelector(`[data-element="change-indicator"]`);
 
             if (indicator) {
               const source = this.state.liveEditor.getSource();
               const digest = md5Base64(source);
               const changed = this.state.evaluationDigest !== digest;
-              indicator.toggleAttribute("data-js-shown", changed);
+              cellStatus.toggleAttribute("data-js-changed", changed);
             }
           };
 

@@ -148,7 +148,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends notebook attributes update to the server.
+  Sends notebook attributes update to the server.
   """
   @spec set_notebook_attributes(pid(), map()) :: :ok
   def set_notebook_attributes(pid, attrs) do
@@ -156,7 +156,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends section insertion request to the server.
+  Sends section insertion request to the server.
   """
   @spec insert_section(pid(), non_neg_integer()) :: :ok
   def insert_section(pid, index) do
@@ -164,7 +164,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends section insertion request to the server.
+  Sends section insertion request to the server.
   """
   @spec insert_section_into(pid(), Section.id(), non_neg_integer()) :: :ok
   def insert_section_into(pid, section_id, index) do
@@ -172,7 +172,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends parent update request to the server.
+  Sends parent update request to the server.
   """
   @spec set_section_parent(pid(), Section.id(), Section.id()) :: :ok
   def set_section_parent(pid, section_id, parent_id) do
@@ -180,7 +180,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends parent update request to the server.
+  Sends parent update request to the server.
   """
   @spec unset_section_parent(pid(), Section.id()) :: :ok
   def unset_section_parent(pid, section_id) do
@@ -188,7 +188,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends cell insertion request to the server.
+  Sends cell insertion request to the server.
   """
   @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type()) :: :ok
   def insert_cell(pid, section_id, index, type) do
@@ -196,7 +196,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends section deletion request to the server.
+  Sends section deletion request to the server.
   """
   @spec delete_section(pid(), Section.id(), boolean()) :: :ok
   def delete_section(pid, section_id, delete_cells) do
@@ -204,7 +204,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends cell deletion request to the server.
+  Sends cell deletion request to the server.
   """
   @spec delete_cell(pid(), Cell.id()) :: :ok
   def delete_cell(pid, cell_id) do
@@ -212,7 +212,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends cell restoration request to the server.
+  Sends cell restoration request to the server.
   """
   @spec restore_cell(pid(), Cell.id()) :: :ok
   def restore_cell(pid, cell_id) do
@@ -220,7 +220,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends cell move request to the server.
+  Sends cell move request to the server.
   """
   @spec move_cell(pid(), Cell.id(), integer()) :: :ok
   def move_cell(pid, cell_id, offset) do
@@ -228,7 +228,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends section move request to the server.
+  Sends section move request to the server.
   """
   @spec move_section(pid(), Section.id(), integer()) :: :ok
   def move_section(pid, section_id, offset) do
@@ -236,7 +236,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends cell evaluation request to the server.
+  Sends cell evaluation request to the server.
   """
   @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
   def queue_cell_evaluation(pid, cell_id) do
@@ -244,7 +244,34 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends cell evaluation cancellation request to the server.
+  Sends section evaluation request to the server.
+  """
+  @spec queue_section_evaluation(pid(), Section.id()) :: :ok
+  def queue_section_evaluation(pid, section_id) do
+    GenServer.cast(pid, {:queue_section_evaluation, self(), section_id})
+  end
+
+  @doc """
+  Sends input bound cells evaluation request to the server.
+  """
+  @spec queue_bound_cells_evaluation(pid(), Data.input_id()) :: :ok
+  def queue_bound_cells_evaluation(pid, input_id) do
+    GenServer.cast(pid, {:queue_bound_cells_evaluation, self(), input_id})
+  end
+
+  @doc """
+  Sends full evaluation request to the server.
+
+  All outdated (new/stale/changed) cells, as well as cells given
+  as `forced_cell_ids` are scheduled for evaluation.
+  """
+  @spec queue_full_evaluation(pid(), list(Cell.id())) :: :ok
+  def queue_full_evaluation(pid, forced_cell_ids) do
+    GenServer.cast(pid, {:queue_full_evaluation, self(), forced_cell_ids})
+  end
+
+  @doc """
+  Sends cell evaluation cancellation request to the server.
   """
   @spec cancel_cell_evaluation(pid(), Cell.id()) :: :ok
   def cancel_cell_evaluation(pid, cell_id) do
@@ -252,7 +279,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends erase outputs request to the server.
+  Sends erase outputs request to the server.
   """
   @spec erase_outputs(pid()) :: :ok
   def erase_outputs(pid) do
@@ -260,7 +287,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends notebook name update request to the server.
+  Sends notebook name update request to the server.
   """
   @spec set_notebook_name(pid(), String.t()) :: :ok
   def set_notebook_name(pid, name) do
@@ -268,7 +295,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends section name update request to the server.
+  Sends section name update request to the server.
   """
   @spec set_section_name(pid(), Section.id(), String.t()) :: :ok
   def set_section_name(pid, section_id, name) do
@@ -276,7 +303,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends a cell delta to apply to the server.
+  Sends a cell delta to apply to the server.
   """
   @spec apply_cell_delta(pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
   def apply_cell_delta(pid, cell_id, delta, revision) do
@@ -284,7 +311,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously informs at what revision the given client is.
+  Informs at what revision the given client is.
 
   This helps to remove old deltas that are no longer necessary.
   """
@@ -294,7 +321,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends a cell attributes update to the server.
+  Sends a cell attributes update to the server.
   """
   @spec set_cell_attributes(pid(), Cell.id(), map()) :: :ok
   def set_cell_attributes(pid, cell_id, attrs) do
@@ -302,15 +329,15 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends a input value update to the server.
+  Sends a input value update to the server.
   """
-  @spec set_input_value(pid(), Session.input_id(), term()) :: :ok
+  @spec set_input_value(pid(), Data.input_id(), term()) :: :ok
   def set_input_value(pid, input_id, value) do
     GenServer.cast(pid, {:set_input_value, self(), input_id, value})
   end
 
   @doc """
-  Asynchronously connects to the given runtime.
+  Connects to the given runtime.
 
   Note that this results in initializing the corresponding remote node
   with modules and processes required for evaluation.
@@ -321,7 +348,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously disconnects from the current runtime.
+  Disconnects from the current runtime.
 
   Note that this results in clearing the evaluation state.
   """
@@ -331,7 +358,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends file location update request to the server.
+  Sends file location update request to the server.
   """
   @spec set_file(pid(), FileSystem.File.t() | nil) :: :ok
   def set_file(pid, file) do
@@ -339,7 +366,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends save request to the server.
+  Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
   it will be persisted to said file.
@@ -360,7 +387,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Asynchronously sends a close request to the server.
+  Sends a close request to the server.
 
   This results in saving the file and broadcasting
   a :closed message to the session topic.
@@ -533,7 +560,35 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
-    operation = {:queue_cell_evaluation, client_pid, cell_id}
+    operation = {:queue_cells_evaluation, client_pid, [cell_id]}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:queue_section_evaluation, client_pid, section_id}, state) do
+    case Notebook.fetch_section(state.data.notebook, section_id) do
+      {:ok, section} ->
+        cell_ids = for cell <- section.cells, is_struct(cell, Cell.Elixir), do: cell.id
+        operation = {:queue_cells_evaluation, client_pid, cell_ids}
+        {:noreply, handle_operation(state, operation)}
+
+      :error ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_cast({:queue_bound_cells_evaluation, client_pid, input_id}, state) do
+    cell_ids =
+      for {bound_cell, _} <- Data.bound_cells_with_section(state.data, input_id),
+          do: bound_cell.id
+
+    operation = {:queue_cells_evaluation, client_pid, cell_ids}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:queue_full_evaluation, client_pid, forced_cell_ids}, state) do
+    cell_ids = Data.cell_ids_for_full_evaluation(state.data, forced_cell_ids)
+
+    operation = {:queue_cells_evaluation, client_pid, cell_ids}
     {:noreply, handle_operation(state, operation)}
   end
 
