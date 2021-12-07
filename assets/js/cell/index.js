@@ -69,9 +69,9 @@ const Cell = {
             const cellStatus = this.el.querySelector(
               `[data-element="cell-status"]`
             );
-            const indicator = cellStatus.querySelector(
-              `[data-element="change-indicator"]`
-            );
+            const indicator =
+              cellStatus &&
+              cellStatus.querySelector(`[data-element="change-indicator"]`);
 
             if (indicator) {
               const source = this.state.liveEditor.getSource();

@@ -665,26 +665,18 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
-    {:noreply, socket}
-  end
-
-  def handle_event("queue_section_cells_evaluation", %{"section_id" => section_id}, socket) do
-    with {:ok, section} <- Notebook.fetch_section(socket.private.data.notebook, section_id) do
-      for cell <- section.cells, is_struct(cell, Cell.Elixir) do
-        Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
-      end
-    end
 
     {:noreply, socket}
   end
 
-  def handle_event("queue_all_cells_evaluation", _params, socket) do
-    data = socket.private.data
+  def handle_event("queue_section_evaluation", %{"section_id" => section_id}, socket) do
+    Session.queue_section_evaluation(socket.assigns.session.pid, section_id)
 
-    for {cell, _} <- Notebook.elixir_cells_with_section(data.notebook),
-        data.cell_infos[cell.id].validity_status != :evaluated do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, cell.id)
-    end
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_full_evaluation", %{"forced_cell_ids" => forced_cell_ids}, socket) do
+    Session.queue_full_evaluation(socket.assigns.session.pid, forced_cell_ids)
 
     {:noreply, socket}
   end
@@ -917,9 +909,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info({:queue_bound_cells_evaluation, input_id}, socket) do
-    for {bound_cell, _} <- Session.Data.bound_cells_with_section(socket.private.data, input_id) do
-      Session.queue_cell_evaluation(socket.assigns.session.pid, bound_cell.id)
-    end
+    Session.queue_bound_cells_evaluation(socket.assigns.session.pid, input_id)
 
     {:noreply, socket}
   end

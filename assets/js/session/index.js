@@ -324,7 +324,7 @@ function handleDocumentKeyDown(hook, event) {
       }
     } else if (cmd && shift && !alt && key === "Enter") {
       cancelEvent(event);
-      queueAllCellsEvaluation(hook);
+      queueFullCellsEvaluation(hook, true);
     } else if (cmd && !alt && key === "Enter") {
       cancelEvent(event);
       if (hook.state.focusedCellType === "elixir") {
@@ -354,11 +354,10 @@ function handleDocumentKeyDown(hook, event) {
       saveNotebook(hook);
     } else if (keyBuffer.tryMatch(["d", "d"])) {
       deleteFocusedCell(hook);
-    } else if (
-      keyBuffer.tryMatch(["e", "a"]) ||
-      (cmd && shift && !alt && key === "Enter")
-    ) {
-      queueAllCellsEvaluation(hook);
+    } else if (cmd && shift && !alt && key === "Enter") {
+      queueFullCellsEvaluation(hook, true);
+    } else if (keyBuffer.tryMatch(["e", "a"])) {
+      queueFullCellsEvaluation(hook, false);
     } else if (
       keyBuffer.tryMatch(["e", "e"]) ||
       (cmd && !alt && key === "Enter")
@@ -677,8 +676,15 @@ function queueFocusedCellEvaluation(hook) {
   }
 }
 
-function queueAllCellsEvaluation(hook) {
-  hook.pushEvent("queue_all_cells_evaluation", {});
+function queueFullCellsEvaluation(hook, includeFocused) {
+  const forcedCellIds =
+    includeFocused && hook.state.focusedId && isCell(hook.state.focusedId)
+      ? [hook.state.focusedId]
+      : [];
+
+  hook.pushEvent("queue_full_evaluation", {
+    forced_cell_ids: forcedCellIds,
+  });
 }
 
 function queueFocusedSectionEvaluation(hook) {
@@ -686,7 +692,7 @@ function queueFocusedSectionEvaluation(hook) {
     const sectionId = getSectionIdByFocusableId(hook.state.focusedId);
 
     if (sectionId) {
-      hook.pushEvent("queue_section_cells_evaluation", {
+      hook.pushEvent("queue_section_evaluation", {
         section_id: sectionId,
       });
     }

@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["d", "d"], desc: "Delete cell", basic: true},
       %{seq: ["e", "e"], desc: "Evaluate cell"},
       %{seq: ["e", "s"], desc: "Evaluate section"},
-      %{seq: ["e", "a"], desc: "Evaluate all stale/new cells", basic: true},
+      %{seq: ["e", "a"], desc: "Evaluate all outdated cells", basic: true},
       %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
       %{seq: ["s", "s"], desc: "Toggle sections panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
@@ -121,7 +121,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq: ["ctrl", "shift", "↵"],
         seq_mac: ["⌘", "⇧", "↵"],
         press_all: true,
-        desc: "Evaluate all stale/new cells in either mode",
+        desc: "Evaluate current and all outdated cells",
         basic: true
       },
       %{

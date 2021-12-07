@@ -417,6 +417,23 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Returns the list with the given parent cells and all of
+  their child cells.
+
+  The cells are not ordered in any secific way.
+  """
+  @spec cell_ids_with_children(t(), list(Cell.id())) :: list(Cell.id())
+  def cell_ids_with_children(data, parent_cell_ids) do
+    graph = cell_dependency_graph(data.notebook)
+
+    for parent_id <- parent_cell_ids,
+        leaf_id <- Graph.leaves(graph),
+        cell_id <- Graph.find_path(graph, leaf_id, parent_id),
+        uniq: true,
+        do: cell_id
+  end
+
+  @doc """
   Computes cell dependency graph.
 
   Every cell has one or none parent cells, so the graph

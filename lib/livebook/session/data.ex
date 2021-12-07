@@ -126,7 +126,7 @@ defmodule Livebook.Session.Data do
           | {:restore_cell, pid(), Cell.id()}
           | {:move_cell, pid(), Cell.id(), offset :: integer()}
           | {:move_section, pid(), Section.id(), offset :: integer()}
-          | {:queue_cell_evaluation, pid(), Cell.id()}
+          | {:queue_cells_evaluation, pid(), list(Cell.id())}
           | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), term(), metadata :: map()}
@@ -379,20 +379,28 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:queue_cell_evaluation, _client_pid, id}) do
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
-         %Cell.Elixir{} <- cell,
-         :ready <- data.cell_infos[cell.id].evaluation_status do
-      data
-      |> with_actions()
-      |> queue_prerequisite_cells_evaluation(cell)
-      |> queue_cell_evaluation(cell, section)
+  def apply_operation(data, {:queue_cells_evaluation, _client_pid, cell_ids}) do
+    cells_with_section =
+      data.notebook
+      |> Notebook.elixir_cells_with_section()
+      |> Enum.filter(fn {cell, _section} ->
+        info = data.cell_infos[cell.id]
+        cell.id in cell_ids and info.evaluation_status == :ready
+      end)
+
+    if cell_ids != [] and length(cell_ids) == length(cells_with_section) do
+      cells_with_section
+      |> Enum.reduce(with_actions(data), fn {cell, section}, data_actions ->
+        data_actions
+        |> queue_prerequisite_cells_evaluation(cell)
+        |> queue_cell_evaluation(cell, section)
+      end)
       |> maybe_start_runtime(data)
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
       |> wrap_ok()
     else
-      _ -> :error
+      :error
     end
   end
 
@@ -1489,5 +1497,41 @@ defmodule Livebook.Session.Data do
       |> queue_prerequisite_cells_evaluation(cell)
       |> queue_cell_evaluation(cell, section)
     end)
+  end
+
+  @doc """
+  Checks if the given cell is outdated.
+
+  A cell is considered outdated if its new/fresh or its content
+  has changed since the last evaluation.
+  """
+  @spec cell_outdated?(t(), Cell.t()) :: boolean()
+  def cell_outdated?(data, cell) do
+    info = data.cell_infos[cell.id]
+    digest = :erlang.md5(cell.source)
+    info.validity_status != :evaluated or info.evaluation_digest != digest
+  end
+
+  @doc """
+  Returns the list of cell ids for full evaluation.
+
+  The list includes all outdated cells, cells in `forced_cell_ids`
+  and all of their child cells.
+  """
+  @spec cell_ids_for_full_evaluation(t(), list(Cell.id())) :: list(Cell.id())
+  def cell_ids_for_full_evaluation(data, forced_cell_ids) do
+    elixir_cells_with_section = Notebook.elixir_cells_with_section(data.notebook)
+
+    evaluable_cell_ids =
+      for {cell, _} <- elixir_cells_with_section,
+          cell_outdated?(data, cell) or cell.id in forced_cell_ids,
+          uniq: true,
+          do: cell.id
+
+    cell_ids = Notebook.cell_ids_with_children(data, evaluable_cell_ids)
+
+    for {cell, _} <- elixir_cells_with_section,
+        cell.id in cell_ids,
+        do: cell.id
   end
 end

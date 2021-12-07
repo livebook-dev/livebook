@@ -90,7 +90,7 @@ defmodule Livebook.SessionTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      assert_receive {:operation, {:queue_cell_evaluation, ^pid, ^cell_id}}
+      assert_receive {:operation, {:queue_cells_evaluation, ^pid, [^cell_id]}}
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, _,
