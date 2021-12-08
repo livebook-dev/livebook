@@ -112,6 +112,18 @@ solely client-side operations.
   left: calc(-45vw + 50%);
 }
 
+[data-element="cell"][data-js-amplified]
+  [data-element="amplify-outputs-button"]
+  [data-element="zoom-in-icon"] {
+  @apply hidden;
+}
+
+[data-element="cell"]:not([data-js-amplified])
+  [data-element="amplify-outputs-button"]
+  [data-element="zoom-out-icon"] {
+  @apply hidden;
+}
+
 [data-element="session"]:not([data-js-side-panel-content])
   [data-element="side-panel"] {
   @apply hidden;

@@ -99,7 +99,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
           <button class="icon-button"
             aria-label="amplify outputs">
-            <.remix_icon icon="zoom-in-line" class="text-xl" />
+            <.remix_icon icon="zoom-in-line" class="text-xl" data-element="zoom-in-icon" />
+            <.remix_icon icon="zoom-out-line" class="text-xl" data-element="zoom-out-icon" />
           </button>
         </span>
         <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
