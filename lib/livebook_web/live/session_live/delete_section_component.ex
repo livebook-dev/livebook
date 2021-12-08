@@ -44,6 +44,6 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
       delete_cells?
     )
 
-    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+    {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 end
