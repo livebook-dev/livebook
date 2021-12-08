@@ -199,7 +199,7 @@ file gets rendered on GitHub, so all you need to do is add a magic comment in ev
 such notebook:
 
 ```
-<!-- vim: syntax=markdown -->
+<!-- vim: set syntax=markdown: -->
 
 # My notebook
 

@@ -471,7 +471,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       | name: "My Notebook",
         persist_outputs: true,
         leading_comments: [
-          ["vim: syntax=markdown"],
+          ["vim: set syntax=markdown:"],
           ["nowhitespace"],
           ["  Multi", "  line"]
         ],
@@ -492,7 +492,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     }
 
     expected_document = """
-    <!-- vim: syntax=markdown -->
+    <!-- vim: set syntax=markdown: -->
 
     <!-- nowhitespace -->
 

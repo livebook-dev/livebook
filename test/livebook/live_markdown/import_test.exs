@@ -475,7 +475,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
   test "imports comments preceding the notebook title" do
     markdown = """
-    <!-- vim: syntax=markdown -->
+    <!-- vim: set syntax=markdown: -->
 
     <!--nowhitespace-->
 
@@ -499,7 +499,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              name: "My Notebook",
              persist_outputs: true,
              leading_comments: [
-               ["vim: syntax=markdown"],
+               ["vim: set syntax=markdown:"],
                ["nowhitespace"],
                ["  Multi", "  line"]
              ],
@@ -522,7 +522,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     markdown = """
     <!-- livebook:{"persist_outputs":true} -->
 
-    <!-- vim: syntax=markdown -->
+    <!-- vim: set syntax=markdown: -->
 
     # My Notebook
 
