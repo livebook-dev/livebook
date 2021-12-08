@@ -48,10 +48,12 @@ defmodule LivebookWeb.FileSelectComponent do
   def update(assigns, socket) do
     {force_reload?, assigns} = Map.pop(assigns, :force_reload, false)
 
+    running_files_changed? = assigns.running_files != (socket.assigns[:running_files] || [])
+
     socket =
       socket
       |> assign(assigns)
-      |> update_file_infos(force_reload?)
+      |> update_file_infos(force_reload? or running_files_changed?)
 
     {:ok, socket}
   end
