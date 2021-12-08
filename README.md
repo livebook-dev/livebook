@@ -48,7 +48,7 @@ pick the one that best fits your use case.
 ### Running locally
 
 You can run Livebook on your own machine. You will need
-[Elixir v1.12](https://elixir-lang.org/install.html) or later.
+[Elixir v1.13](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
 with most Erlang distributions but certain package managers may split
