@@ -18,10 +18,10 @@ defmodule Livebook.ContentLoader do
   """
   @spec rewrite_url(String.t()) :: String.t()
   def rewrite_url(url) do
-    case URI.new(url) do
-      {:ok, uri} -> uri |> do_rewrite_url() |> URI.to_string()
-      {:error, _} -> url
-    end
+    url
+    |> URI.parse()
+    |> do_rewrite_url()
+    |> URI.to_string()
   end
 
   defp do_rewrite_url(%URI{host: "github.com"} = uri) do
