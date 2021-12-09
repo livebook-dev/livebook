@@ -164,6 +164,10 @@ class LiveEditor {
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: 14,
       tabIndex: -1,
+      tabSize: 2,
+      autoIndent: true,
+      formatOnType: true,
+      formatOnPaste: true,
       quickSuggestions:
         this.type === "elixir" && settings.editor_auto_completion,
       tabCompletion: "on",
@@ -174,16 +178,6 @@ class LiveEditor {
       // of the line we would get "defmodule" as a word completion.
       wordBasedSuggestions: this.type !== "elixir",
       parameterHints: this.type === "elixir" && settings.editor_auto_signature,
-    });
-
-    this.editor.getModel().updateOptions({
-      tabSize: 2,
-    });
-
-    this.editor.updateOptions({
-      autoIndent: true,
-      tabSize: 2,
-      formatOnType: true,
     });
 
     // Automatically adjust the editor size to fit the container.
