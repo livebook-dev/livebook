@@ -461,7 +461,8 @@ function editableElementClicked(event, element) {
  * Focuses a focusable element if the user "tab"s anywhere into it.
  */
 function handleDocumentFocus(hook, event) {
-  const focusableEl = event.target.closest(`[data-focusable-id]`);
+  const focusableEl =
+    event.target.closest && event.target.closest(`[data-focusable-id]`);
 
   if (focusableEl) {
     const focusableId = focusableEl.dataset.focusableId;
