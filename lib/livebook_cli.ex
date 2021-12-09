@@ -53,9 +53,11 @@ defmodule LivebookCLI do
     try do
       task.call(args)
     rescue
-      error ->
+      error in OptionParser.ParseError ->
         IO.ANSI.format([:red, Exception.message(error), "\n"]) |> IO.puts()
-        IO.write(task.usage())
+
+      error ->
+        IO.ANSI.format([:red, Exception.format(:error, error, __STACKTRACE__), "\n"]) |> IO.puts()
     end
   end
 
