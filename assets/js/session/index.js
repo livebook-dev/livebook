@@ -427,9 +427,7 @@ function handleDocumentMouseDown(hook, event) {
   }
 
   // Find the focusable element, if one was clicked
-  const focusableEl = event.target.closest
-    ? event.target.closest(`[data-focusable-id]`)
-    : false;
+  const focusableEl = event.target.closest(`[data-focusable-id]`);
   const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
   const insertMode = editableElementClicked(event, focusableEl);
 
