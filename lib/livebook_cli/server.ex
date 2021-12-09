@@ -226,8 +226,8 @@ defmodule LivebookCLI.Server do
 
   defp append_path(url, path) do
     url
-    |> URI.new!()
-    |> Map.update!(:path, &(&1 <> path))
+    |> URI.parse()
+    |> Map.update!(:path, &((&1 || "") <> path))
     |> URI.to_string()
   end
 
