@@ -427,7 +427,7 @@ function handleDocumentMouseDown(hook, event) {
   }
 
   // Find the focusable element, if one was clicked
-  const focusableEl = event.target.closest(`[data-focusable-id]`);
+  const focusableEl = event.target.closest ? event.target.closest(`[data-focusable-id]`) : false;
   const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
   const insertMode = editableElementClicked(event, focusableEl);
 
@@ -461,7 +461,7 @@ function editableElementClicked(event, element) {
  * Focuses a focusable element if the user "tab"s anywhere into it.
  */
 function handleDocumentFocus(hook, event) {
-  const focusableEl = event.target.closest(`[data-focusable-id]`);
+  const focusableEl = event.target.closest ? event.target.closest(`[data-focusable-id]`) : false;
 
   if (focusableEl) {
     const focusableId = focusableEl.dataset.focusableId;
