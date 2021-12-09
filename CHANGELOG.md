@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.4.1](https://github.com/livebook-dev/livebook/tree/v0.4.1) (2021-12-09)
+
+### Added
+
+- Added <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Enter</kbd> (<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>↵</kbd>) for evaluating current and all outdated cells ([#766](https://github.com/livebook-dev/livebook/pull/766))
+
+### Changed
+
+- Disabled word suggestions on Elixir cells ([#763](https://github.com/livebook-dev/livebook/pull/763))
+
+### Fixed
+
+- Fixed error on back navigation after closing a session ([#769](https://github.com/livebook-dev/livebook/pull/769))
+- Fixed disappearing indentation when pasting code into the editor ([#779](https://github.com/livebook-dev/livebook/pull/779))
+
 ## [v0.4.0](https://github.com/livebook-dev/livebook/tree/v0.4.0) (2021-12-05)
 
 ### Added
