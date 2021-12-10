@@ -4,12 +4,7 @@
 
 In this notebook, we will explore some unique features when
 using Elixir and Livebook together, such as inputs, autocompletion,
-and more. To get started, execute the cell below so we can get
-the Elixir runtime up and running:
-
-```elixir
-"Hello world"
-```
+and more.
 
 If you are not familiar with Elixir, there is a fast paced
 introduction to the language in the [Distributed portals with
@@ -21,9 +16,16 @@ Let's move on.
 ## Autocompletion
 
 Elixir code cells also support autocompletion by
-pressing <kbd>ctrl</kbd> + <kbd>␣</kbd>. Try it out by
-autocompleting the code below to `System.version()`. First put
-the cursor after the `.` below and
+pressing <kbd>ctrl</kbd> + <kbd>␣</kbd>. The runtime must
+have started for autocompletion to work. A simple way to
+do so is by executing any code, such as the cell below:
+
+```elixir
+"Hello world"
+```
+
+Now try autocompleting the code below to `System.version()`.
+First put the cursor after the `.` below and
 press <kbd>ctrl</kbd>&nbsp;+&nbsp;<kbd>␣</kbd>:
 
 ```elixir
