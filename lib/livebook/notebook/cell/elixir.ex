@@ -65,6 +65,13 @@ defmodule Livebook.Notebook.Cell.Elixir do
   @spec find_inputs_in_output(output()) :: list(input_attrs :: map())
   def find_inputs_in_output(output)
 
-  def find_inputs_in_output({:input, attrs}), do: [attrs]
+  def find_inputs_in_output({:input, attrs}) do
+    [attrs]
+  end
+
+  def find_inputs_in_output({:control, %{type: :form, fields: fields}}) do
+    Keyword.values(fields)
+  end
+
   def find_inputs_in_output(_output), do: []
 end
