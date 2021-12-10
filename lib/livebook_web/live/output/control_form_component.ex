@@ -17,8 +17,16 @@ defmodule LivebookWeb.Output.ControlFormComponent do
         {field, assigns.input_values[input_attrs.id]}
       end)
 
-    if data != prev_data and assigns.attrs.report_change do
-      report_event(socket, %{type: :change, data: data})
+    if data != prev_data do
+      change_data =
+        for {field, value} <- data,
+            assigns.attrs.report_changes[field],
+            into: %{},
+            do: {field, value}
+
+      if change_data != %{} do
+        report_event(socket, %{type: :change, data: change_data})
+      end
     end
 
     {:ok, assign(socket, data: data)}

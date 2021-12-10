@@ -238,7 +238,7 @@ defmodule LivebookWeb.SessionLiveTest do
           }
         ],
         submit: "Send",
-        report_change: false,
+        report_changes: %{},
         reset_on_submit: []
       }
 
