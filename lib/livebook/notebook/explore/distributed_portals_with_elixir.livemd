@@ -199,10 +199,17 @@ inputs to pass different values to our code. To render inputs, we need to
 install the [Kino](https://github.com/livebook-dev/kino) library:
 
 ```elixir
-Mix.install([
-  {:kino, "~> 0.4.1"}
-])
+Mix.install(
+  [
+    {:kino, "~> 0.4.1"}
+  ],
+  consolidate_protocols: false
+)
 ```
+
+> Note: the `consolidate_protocols: false` option is not usually
+> given, but it will be handy when we discuss protocols later
+> in this notebook.
 
 Kino allows our code notebooks to control Livebook itself. Let's render
 an input by evaluating the cell below:
