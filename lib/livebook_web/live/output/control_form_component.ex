@@ -47,7 +47,8 @@ defmodule LivebookWeb.Output.ControlFormComponent do
         <div>
           <button class="button-base button-blue"
             type="button"
-            phx-click={JS.push("submit", target: @myself)}>
+            phx-click="submit"
+            phx-target={@myself}>
             <%= @attrs.submit %>
           </button>
         </div>

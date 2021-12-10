@@ -173,7 +173,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       input = %{
-        ref: :reference,
+        ref: :input_ref,
         id: "input1",
         type: :number,
         label: "Name",
@@ -190,6 +190,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{"value" => "10"})
 
       assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
+
+      assert_receive {:event, :input_ref, %{value: 10, type: :change}}
     end
 
     test "newlines in text input are normalized", %{conn: conn, session: session, test: test} do
@@ -198,7 +200,7 @@ defmodule LivebookWeb.SessionLiveTest do
       Process.register(self(), test)
 
       input = %{
-        ref: :reference,
+        ref: :input_ref,
         id: "input1",
         type: :textarea,
         label: "Name",
@@ -229,7 +231,7 @@ defmodule LivebookWeb.SessionLiveTest do
         destination: test,
         fields: [
           name: %{
-            ref: :reference,
+            ref: :input_ref,
             id: "input1",
             type: :text,
             label: "Name",
@@ -254,6 +256,12 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "sherlock"
       # but it's not reflected in the synchronized session data
       assert %{input_values: %{"input1" => "initial"}} = Session.get_data(session.pid)
+
+      view
+      |> element(~s/[data-element="outputs-container"] button/, "Send")
+      |> render_click()
+
+      assert_receive {:event, :form_ref, %{data: %{name: "sherlock"}, type: :submit}}
     end
   end
 
