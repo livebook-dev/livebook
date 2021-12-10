@@ -20,22 +20,24 @@ defmodule Livebook.Runtime.ErlDist do
   # For further details see `Livebook.Runtime.ErlDist.NodeManager`.
 
   # Modules to load into the connected node.
-  @required_modules [
-    Livebook.Evaluator,
-    Livebook.Evaluator.IOProxy,
-    Livebook.Evaluator.ObjectTracker,
-    Livebook.Evaluator.DefaultFormatter,
-    Livebook.Intellisense,
-    Livebook.Intellisense.Docs,
-    Livebook.Intellisense.IdentifierMatcher,
-    Livebook.Intellisense.SignatureMatcher,
-    Livebook.Runtime.ErlDist,
-    Livebook.Runtime.ErlDist.NodeManager,
-    Livebook.Runtime.ErlDist.RuntimeServer,
-    Livebook.Runtime.ErlDist.EvaluatorSupervisor,
-    Livebook.Runtime.ErlDist.IOForwardGL,
-    Livebook.Runtime.ErlDist.LoggerGLBackend
-  ]
+  def required_modules do
+    [
+      Livebook.Evaluator,
+      Livebook.Evaluator.IOProxy,
+      Livebook.Evaluator.ObjectTracker,
+      Livebook.Evaluator.DefaultFormatter,
+      Livebook.Intellisense,
+      Livebook.Intellisense.Docs,
+      Livebook.Intellisense.IdentifierMatcher,
+      Livebook.Intellisense.SignatureMatcher,
+      Livebook.Runtime.ErlDist,
+      Livebook.Runtime.ErlDist.NodeManager,
+      Livebook.Runtime.ErlDist.RuntimeServer,
+      Livebook.Runtime.ErlDist.EvaluatorSupervisor,
+      Livebook.Runtime.ErlDist.IOForwardGL,
+      Livebook.Runtime.ErlDist.LoggerGLBackend
+    ]
+  end
 
   @doc """
   Starts a runtime server on the given node.
@@ -58,7 +60,7 @@ defmodule Livebook.Runtime.ErlDist do
   end
 
   defp load_required_modules(node) do
-    for module <- @required_modules do
+    for module <- required_modules() do
       {_module, binary, filename} = :code.get_object_code(module)
 
       case :rpc.call(node, :code, :load_binary, [module, filename, binary]) do
@@ -103,7 +105,7 @@ defmodule Livebook.Runtime.ErlDist do
   Unloads the previously loaded Livebook modules from the caller node.
   """
   def unload_required_modules() do
-    for module <- @required_modules do
+    for module <- required_modules() do
       # If we attached, detached and attached again, there may still
       # be deleted module code, so purge it first.
       :code.purge(module)
