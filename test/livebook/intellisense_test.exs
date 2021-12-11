@@ -1054,10 +1054,7 @@ defmodule Livebook.IntellisenseTest do
     end
 
     test "completion for struct keys inside struct" do
-      {binding, env} =
-        eval do
-          struct = %Livebook.IntellisenseTest.MyStruct{}
-        end
+      {binding, env} = eval(do: nil)
 
       assert [
                %{
@@ -1075,7 +1072,7 @@ defmodule Livebook.IntellisenseTest do
                )
     end
 
-    test "completion for struct keys inside struct removed filled keys" do
+    test "completion for struct keys inside struct removes filled keys" do
       {binding, env} =
         eval do
           struct = %Livebook.IntellisenseTest.MyStruct{}
@@ -1084,6 +1081,21 @@ defmodule Livebook.IntellisenseTest do
       assert [] =
                Intellisense.get_completion_items(
                  "%Livebook.IntellisenseTest.MyStruct{my_val: 123, ",
+                 binding,
+                 env
+               )
+    end
+
+    test "completion for struct keys inside struct ignores `__exception" do
+      {binding, env} = eval(do: nil)
+
+      refute [
+               %{
+                 label: "__exception__"
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{my",
                  binding,
                  env
                )
