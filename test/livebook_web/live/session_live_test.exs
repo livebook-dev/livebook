@@ -172,14 +172,16 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Process.register(self(), test)
 
-      insert_cell_with_input(session.pid, section_id, %{
-        ref: :reference,
+      input = %{
+        ref: :input_ref,
         id: "input1",
         type: :number,
         label: "Name",
         default: "hey",
         destination: test
-      })
+      }
+
+      insert_cell_with_output(session.pid, section_id, {:input, input})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -188,6 +190,8 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{"value" => "10"})
 
       assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
+
+      assert_receive {:event, :input_ref, %{value: 10, type: :change}}
     end
 
     test "newlines in text input are normalized", %{conn: conn, session: session, test: test} do
@@ -195,14 +199,16 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Process.register(self(), test)
 
-      insert_cell_with_input(session.pid, section_id, %{
-        ref: :reference,
+      input = %{
+        ref: :input_ref,
         id: "input1",
         type: :textarea,
         label: "Name",
         default: "hey",
         destination: test
-      })
+      }
+
+      insert_cell_with_output(session.pid, section_id, {:input, input})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -211,6 +217,51 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_change(%{"value" => "line\r\nline"})
 
       assert %{input_values: %{"input1" => "line\nline"}} = Session.get_data(session.pid)
+    end
+
+    test "form input changes are reflected only in local LV data",
+         %{conn: conn, session: session, test: test} do
+      section_id = insert_section(session.pid)
+
+      Process.register(self(), test)
+
+      form_control = %{
+        type: :form,
+        ref: :form_ref,
+        destination: test,
+        fields: [
+          name: %{
+            ref: :input_ref,
+            id: "input1",
+            type: :text,
+            label: "Name",
+            default: "initial",
+            destination: test
+          }
+        ],
+        submit: "Send",
+        report_changes: %{},
+        reset_on_submit: []
+      }
+
+      insert_cell_with_output(session.pid, section_id, {:control, form_control})
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      view
+      |> element(~s/[data-element="outputs-container"] form/)
+      |> render_change(%{"value" => "sherlock"})
+
+      # The new value is on the page
+      assert render(view) =~ "sherlock"
+      # but it's not reflected in the synchronized session data
+      assert %{input_values: %{"input1" => "initial"}} = Session.get_data(session.pid)
+
+      view
+      |> element(~s/[data-element="outputs-container"] button/, "Send")
+      |> render_click()
+
+      assert_receive {:event, :form_ref, %{data: %{name: "sherlock"}, type: :submit}}
     end
   end
 
@@ -739,13 +790,12 @@ defmodule LivebookWeb.SessionLiveTest do
     cell.id
   end
 
-  defp insert_cell_with_input(session_pid, section_id, input) do
+  defp insert_cell_with_output(session_pid, section_id, output) do
     code =
       quote do
         send(
           Process.group_leader(),
-          {:io_request, self(), make_ref(),
-           {:livebook_put_output, {:input, unquote(Macro.escape(input))}}}
+          {:io_request, self(), make_ref(), {:livebook_put_output, unquote(Macro.escape(output))}}
         )
       end
       |> Macro.to_string()

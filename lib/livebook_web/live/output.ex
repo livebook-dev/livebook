@@ -53,6 +53,7 @@ defmodule LivebookWeb.Output do
   defp standalone?({:table_dynamic, _}), do: true
   defp standalone?({:frame_dynamic, _}), do: true
   defp standalone?({:input, _}), do: true
+  defp standalone?({:control, _}), do: true
   defp standalone?(_output), do: false
 
   defp composite?({:frame_dynamic, _}), do: true
@@ -124,8 +125,12 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:control, attrs}, %{id: id}) do
-    live_component(LivebookWeb.Output.ControlComponent, id: id, attrs: attrs)
+  defp render_output({:control, attrs}, %{id: id, input_values: input_values}) do
+    live_component(LivebookWeb.Output.ControlComponent,
+      id: id,
+      attrs: attrs,
+      input_values: input_values
+    )
   end
 
   defp render_output({:error, formatted, :runtime_restart_required}, %{
