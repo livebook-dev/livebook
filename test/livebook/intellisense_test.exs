@@ -1095,7 +1095,7 @@ defmodule Livebook.IntellisenseTest do
                }
              ] =
                Intellisense.get_completion_items(
-                 "%Livebook.IntellisenseTest.MyStruct{my",
+                 "%ArgumentError{",
                  binding,
                  env
                )
