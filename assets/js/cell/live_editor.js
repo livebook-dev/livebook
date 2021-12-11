@@ -1,4 +1,4 @@
-import monaco, { addKeybinding } from "./live_editor/monaco";
+import monaco from "./live_editor/monaco";
 import EditorClient from "./live_editor/editor_client";
 import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
@@ -200,18 +200,6 @@ class LiveEditor {
       const contentHeight = this.editor.getContentHeight();
       this.container.style.height = `${contentHeight}px`;
     });
-
-    // Replace built-in keybindings
-    // Note that generally we want to stick to defaults, so that we match
-    // VS Code, but some keybindings are overly awkward, in which case we
-    // add our own
-
-    // By default this is a sequence of: Ctrl + K Ctrl + I
-    addKeybinding(
-      this.editor,
-      "editor.action.showHover",
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I
-    );
 
     /* Overrides */
 
