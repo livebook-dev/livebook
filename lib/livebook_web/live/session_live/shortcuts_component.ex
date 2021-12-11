@@ -18,11 +18,10 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         desc: "Show signature help"
       },
       %{
-        seq: ["ctrl", "i"],
-        seq_mac: ["⌘", "i"],
+        seq: ["alt", "i"],
+        seq_mac: ["⌥", "i"],
         press_all: true,
-        desc: "Show identifier documentation",
-        basic: true
+        desc: "Show identifier documentation"
       },
       %{
         seq: ["ctrl", "shift", "i"],
@@ -45,14 +44,14 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         desc: "Delete lines"
       },
       %{
-        seq: ["ctrl", "["],
-        seq_mac: ["⌘", "["],
+        seq: ["ctrl", "]"],
+        seq_mac: ["⌘", "]"],
         press_all: true,
         desc: "Indent lines"
       },
       %{
-        seq: ["ctrl", "]"],
-        seq_mac: ["⌘", "]"],
+        seq: ["ctrl", "["],
+        seq_mac: ["⌘", "["],
         press_all: true,
         desc: "Outdent lines"
       },

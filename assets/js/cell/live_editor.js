@@ -210,7 +210,7 @@ class LiveEditor {
     addKeybinding(
       this.editor,
       "editor.action.showHover",
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_I
+      monaco.KeyMod.Alt | monaco.KeyCode.KEY_I
     );
 
     /* Overrides */
