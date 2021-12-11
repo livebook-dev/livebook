@@ -153,17 +153,17 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         the notebook and execute commands, whereas in the <span class="font-semibold">insert mode</span>
         you have editor focus and directly modify the given cell content.
       </p>
-      <.shortcuts_section title="Navigation mode" shortcuts={@shortcuts.navigation_mode} basic={@basic} platform={@platform} />
-      <.shortcuts_section title="Insert mode" shortcuts={@shortcuts.insert_mode} basic={@basic} platform={@platform} />
-      <.shortcuts_section title="Universal" shortcuts={@shortcuts.universal} basic={@basic} platform={@platform} />
-      <div class="mt-8 flex justify-end">
-        <form phx-change="settings" onsubmit="return false;" phx-target={@myself}>
+      <div class="flex">
+        <form class="mt-4" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
           <.switch_checkbox
             name="basic"
             label="Basic view (essential shortcuts only)"
             checked={@basic} />
         </form>
       </div>
+      <.shortcuts_section title="Navigation mode" shortcuts={@shortcuts.navigation_mode} basic={@basic} platform={@platform} />
+      <.shortcuts_section title="Insert mode" shortcuts={@shortcuts.insert_mode} basic={@basic} platform={@platform} />
+      <.shortcuts_section title="Universal" shortcuts={@shortcuts.universal} basic={@basic} platform={@platform} />
     </div>
     """
   end
