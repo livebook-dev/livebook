@@ -18,12 +18,6 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         desc: "Show signature help"
       },
       %{
-        seq: ["alt", "i"],
-        seq_mac: ["⌥", "i"],
-        press_all: true,
-        desc: "Show identifier documentation"
-      },
-      %{
         seq: ["ctrl", "shift", "i"],
         seq_mac: ["⇧", "⌥", "f"],
         seq_windows: ["shift", "alt", "f"],
