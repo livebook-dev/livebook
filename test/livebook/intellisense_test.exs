@@ -1089,16 +1089,14 @@ defmodule Livebook.IntellisenseTest do
     test "completion for struct keys inside struct ignores `__exception" do
       {binding, env} = eval(do: nil)
 
-      refute [
-               %{
-                 label: "__exception__"
-               }
-             ] =
-               Intellisense.get_completion_items(
-                 "%ArgumentError{",
-                 binding,
-                 env
-               )
+      completions =
+        Intellisense.get_completion_items(
+          "%ArgumentError{",
+          binding,
+          env
+        )
+
+      refute Enum.find(completions, &match?(%{label: "__exception__"}, &1))
     end
 
     test "ignore invalid Elixir module literals" do
