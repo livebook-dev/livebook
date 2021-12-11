@@ -48,7 +48,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           list(identifier_item())
   def completion_identifiers(hint, binding, env) do
     context = Code.Fragment.cursor_context(hint)
-    ctx = %{binding: binding, env: env, matcher: @prefix_matcher}
+    ctx = %{binding: binding, env: env, matcher: @prefix_matcher, hint: hint}
     context_to_matches(context, ctx, :completion)
   end
 
@@ -100,7 +100,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_default(ctx)
 
       {:local_or_var, local_or_var} ->
-        match_local_or_var(List.to_string(local_or_var), ctx)
+        match_struct_fields_or_local_or_var(List.to_string(local_or_var), ctx)
 
       {:local_arity, local} ->
         match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
@@ -178,7 +178,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_default(ctx) do
-    match_local_or_var("", ctx)
+    match_struct_fields_or_local_or_var("", ctx)
   end
 
   defp match_alias(hint, ctx, nested?) do
@@ -205,6 +205,48 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp match_module_member(mod, hint, ctx) do
     match_module_function(mod, hint, ctx) ++ match_module_type(mod, hint, ctx)
+  end
+
+  defp match_struct_fields_or_local_or_var(hint, ctx) do
+    case expand_struct_fields(ctx) do
+      {:ok, struct, fields} ->
+        for field <- fields, do: {:map_field, field, nil}
+
+      _ ->
+        match_local_or_var(hint, ctx)
+    end
+  end
+
+  defp expand_struct_fields(ctx) do
+    with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(ctx.hint),
+         {aliases, pairs} <- find_struct_fields(quoted),
+         alias = Enum.join(aliases, "."),
+         mod = expand_alias(alias, ctx),
+         true <- has_struct?(mod) do
+      fields =
+        pairs
+        |> Enum.reduce(Map.from_struct(mod.__struct__), fn {key, _}, map ->
+          Map.delete(map, key)
+        end)
+        |> Map.keys()
+        |> Enum.map(&Atom.to_string/1)
+
+      {:ok, mod, fields}
+    end
+  end
+
+  defp find_struct_fields(ast) do
+    ast
+    |> Macro.prewalker()
+    |> Enum.find_value(fn node ->
+      with {:%, _, [{:__aliases__, _, aliases}, {:%{}, _, pairs}]} <- node,
+           {pairs, [{:__cursor__, _, []}]} <- Enum.split(pairs, -1),
+           true <- Keyword.keyword?(pairs) do
+        {aliases, pairs}
+      else
+        _ -> nil
+      end
+    end)
   end
 
   defp match_local_or_var(hint, ctx) do

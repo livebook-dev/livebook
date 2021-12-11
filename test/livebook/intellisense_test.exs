@@ -1053,6 +1053,42 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items("struct.my", binding, env)
     end
 
+    test "completion for struct keys inside struct" do
+      {binding, env} =
+        eval do
+          struct = %Livebook.IntellisenseTest.MyStruct{}
+        end
+
+      assert [
+               %{
+                 label: "my_val",
+                 kind: :field,
+                 detail: "field",
+                 documentation: nil,
+                 insert_text: "my_val"
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{my",
+                 binding,
+                 env
+               )
+    end
+
+    test "completion for struct keys inside struct removed filled keys" do
+      {binding, env} =
+        eval do
+          struct = %Livebook.IntellisenseTest.MyStruct{}
+        end
+
+      assert [] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{my_val: 123, ",
+                 binding,
+                 env
+               )
+    end
+
     test "ignore invalid Elixir module literals" do
       {binding, env} = eval(do: nil)
 
