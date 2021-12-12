@@ -138,11 +138,11 @@ defmodule Livebook.Intellisense do
 
   defp format_completion_item({:map_field, name, _value}),
     do: %{
-      label: name,
+      label: "#{name}",
       kind: :field,
       detail: "field",
       documentation: nil,
-      insert_text: name
+      insert_text: "#{name}"
     }
 
   defp format_completion_item({:in_struct_field, struct_name, name, default}),

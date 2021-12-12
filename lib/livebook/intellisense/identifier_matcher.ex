@@ -311,7 +311,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         is_atom(key),
         name = Atom.to_string(key),
         ctx.matcher.(name, hint),
-        do: {:map_field, name, value}
+        do: {:map_field, key, value}
   end
 
   defp match_sigil(hint, ctx) do
