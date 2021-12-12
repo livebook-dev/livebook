@@ -340,9 +340,9 @@ defmodule Livebook.Intellisense do
 
   defp format_details_item({:map_field, name, _value}), do: code(name)
 
-  defp format_details_item({:module, _module, display_name, documentation}) do
+  defp format_details_item({:module, module, _display_name, documentation}) do
     join_with_divider([
-      code(display_name),
+      code(module_to_string(module)),
       format_documentation(documentation, :all)
     ])
   end
@@ -401,16 +401,16 @@ defmodule Livebook.Intellisense do
 
     # Don't add module prefix to operator signatures
     if :binary.match(signatures_string, ["(", "/"]) != :nomatch do
-      module_to_prefix(module) <> signatures_string
+      module_to_string(module) <> "." <> signatures_string
     else
       signatures_string
     end
   end
 
-  defp module_to_prefix(mod) do
+  defp module_to_string(mod) do
     case Atom.to_string(mod) do
-      "Elixir." <> name -> name <> "."
-      name -> ":" <> name <> "."
+      "Elixir." <> name -> name
+      name -> ":" <> name
     end
   end
 
