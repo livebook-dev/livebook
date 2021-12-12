@@ -302,7 +302,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         is_atom(key),
         name = Atom.to_string(key),
         ctx.matcher.(name, hint),
-        do: {:variable, name, value}
+        do: {:variable, key, value}
   end
 
   defp match_map_field(map, hint, ctx) do
@@ -512,7 +512,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           doc_item.name == name && doc_item.arity == arity
         end)
 
-      {:type, mod, Atom.to_string(name), arity, doc_item.documentation}
+      {:type, mod, name, arity, doc_item.documentation}
     end)
   end
 
@@ -555,7 +555,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {attribute, info} <- Module.reserved_attributes(),
         name = Atom.to_string(attribute),
         ctx.matcher.(name, hint),
-        do: {:module_attribute, name, {"text/markdown", info.doc}}
+        do: {:module_attribute, attribute, {"text/markdown", info.doc}}
   end
 
   # ---

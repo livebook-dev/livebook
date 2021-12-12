@@ -129,25 +129,25 @@ defmodule Livebook.Intellisense do
 
   defp format_completion_item({:variable, name, _value}),
     do: %{
-      label: name,
+      label: Atom.to_string(name),
       kind: :variable,
       detail: "variable",
       documentation: nil,
-      insert_text: name
+      insert_text: Atom.to_string(name)
     }
 
   defp format_completion_item({:map_field, name, _value}),
     do: %{
-      label: "#{name}",
+      label: Atom.to_string(name),
       kind: :field,
       detail: "field",
       documentation: nil,
-      insert_text: "#{name}"
+      insert_text: Atom.to_string(name)
     }
 
   defp format_completion_item({:in_struct_field, struct, name, default}),
     do: %{
-      label: "#{name}",
+      label: Atom.to_string(name),
       kind: :field,
       detail: "#{inspect(struct)} struct field",
       documentation:
@@ -228,16 +228,16 @@ defmodule Livebook.Intellisense do
       kind: :type,
       detail: "typespec",
       documentation: format_documentation(documentation, :short),
-      insert_text: name
+      insert_text: Atom.to_string(name)
     }
 
   defp format_completion_item({:module_attribute, name, documentation}),
     do: %{
-      label: name,
+      label: Atom.to_string(name),
       kind: :variable,
       detail: "module attribute",
       documentation: format_documentation(documentation, :short),
-      insert_text: name
+      insert_text: Atom.to_string(name)
     }
 
   defp keyword_macro?(name) do
@@ -398,7 +398,7 @@ defmodule Livebook.Intellisense do
 
   defp format_details_item({:module_attribute, name, documentation}) do
     join_with_divider([
-      code("@" <> name),
+      code("@#{name}"),
       format_documentation(documentation, :all)
     ])
   end
