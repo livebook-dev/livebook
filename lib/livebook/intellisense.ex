@@ -138,11 +138,30 @@ defmodule Livebook.Intellisense do
 
   defp format_completion_item({:map_field, name, _value}),
     do: %{
-      label: name,
+      label: "#{name}",
       kind: :field,
       detail: "field",
       documentation: nil,
-      insert_text: name
+      insert_text: "#{name}"
+    }
+
+  defp format_completion_item({:in_struct_field, struct, name, default}),
+    do: %{
+      label: "#{name}",
+      kind: :field,
+      detail: "#{inspect(struct)} struct field",
+      documentation:
+        join_with_divider([
+          code(name),
+          """
+          **Default**
+
+          ```
+          #{inspect(default, pretty: true, width: @line_length)}
+          ```
+          """
+        ]),
+      insert_text: "#{name}: "
     }
 
   defp format_completion_item({:module, module, display_name, documentation}) do
@@ -339,6 +358,19 @@ defmodule Livebook.Intellisense do
   defp format_details_item({:variable, name, _value}), do: code(name)
 
   defp format_details_item({:map_field, name, _value}), do: code(name)
+
+  defp format_details_item({:in_struct_field, _struct, name, default}) do
+    join_with_divider([
+      code(name),
+      """
+      **Default**
+
+      ```
+      #{inspect(default, pretty: true, width: @line_length)}
+      ```
+      """
+    ])
+  end
 
   defp format_details_item({:module, _module, display_name, documentation}) do
     join_with_divider([

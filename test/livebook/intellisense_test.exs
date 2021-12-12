@@ -1053,6 +1053,52 @@ defmodule Livebook.IntellisenseTest do
              ] = Intellisense.get_completion_items("struct.my", binding, env)
     end
 
+    test "completion for struct keys inside struct" do
+      {binding, env} = eval(do: nil)
+
+      assert [
+               %{
+                 label: "my_val",
+                 kind: :field,
+                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
+                 documentation: "```\nmy_val\n```\n\n---\n\n**Default**\n\n```\nnil\n```\n",
+                 insert_text: "my_val: "
+               }
+             ] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{my",
+                 binding,
+                 env
+               )
+    end
+
+    test "completion for struct keys inside struct removes filled keys" do
+      {binding, env} =
+        eval do
+          struct = %Livebook.IntellisenseTest.MyStruct{}
+        end
+
+      assert [] =
+               Intellisense.get_completion_items(
+                 "%Livebook.IntellisenseTest.MyStruct{my_val: 123, ",
+                 binding,
+                 env
+               )
+    end
+
+    test "completion for struct keys inside struct ignores `__exception__`" do
+      {binding, env} = eval(do: nil)
+
+      completions =
+        Intellisense.get_completion_items(
+          "%ArgumentError{",
+          binding,
+          env
+        )
+
+      refute Enum.find(completions, &match?(%{label: "__exception__"}, &1))
+    end
+
     test "ignore invalid Elixir module literals" do
       {binding, env} = eval(do: nil)
 
