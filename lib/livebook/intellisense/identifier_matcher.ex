@@ -256,7 +256,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           |> Map.reject(fn {key, _} ->
             key
             |> Atom.to_string()
-            |> String.match?(~r/__.*__/)
+            |> String.starts_with?("_")
           end)
         else
           %{}
