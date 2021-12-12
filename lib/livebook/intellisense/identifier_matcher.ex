@@ -21,7 +21,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @type identifier_item ::
           {:variable, name(), value()}
           | {:map_field, name(), value()}
-          | {:in_struct_field, struct_name :: display_name(), name(), default :: value()}
+          | {:in_struct_field, module(), name(), default :: value()}
           | {:module, module(), display_name(), Docs.documentation()}
           | {:function, module(), name(), arity(), function_type(), display_name(),
              Docs.documentation(), list(Docs.signature()), list(Docs.spec())}
@@ -213,12 +213,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp match_struct(hint, ctx) do
     for {:module, module, name, documentation} <- match_alias(hint, ctx, true),
         has_struct?(module),
+        not is_exception?(module),
         do: {:module, module, name, documentation}
   end
 
   defp has_struct?(mod) do
-    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1) and
-      not function_exported?(mod, :exception, 1)
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+  end
+
+  defp is_exception?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :exception, 1)
   end
 
   defp match_module_member(mod, hint, ctx) do
@@ -246,23 +250,19 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
       fields =
         if has_struct?(mod) do
-          map = Map.from_struct(mod.__struct__)
-
-          case ctx.type do
-            :locate ->
-              map
-
-            # When autocompleting we remove the keys that have already been filled
-            :completion ->
-              Enum.reduce(pairs, map, fn {key, _}, map ->
-                Map.delete(map, key)
-              end)
-          end
+          # Remove the keys that have already been filled, and internal keys
+          Map.from_struct(mod.__struct__)
+          |> Map.drop(Keyword.keys(pairs))
+          |> Map.reject(fn {key, _} ->
+            key
+            |> Atom.to_string()
+            |> String.match?(~r/__.*__/)
+          end)
         else
           %{}
         end
 
-      {:ok, mod_name, fields}
+      {:ok, mod, fields}
     end
   end
 
