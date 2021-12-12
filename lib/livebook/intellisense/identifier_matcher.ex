@@ -21,6 +21,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @type identifier_item ::
           {:variable, name(), value()}
           | {:map_field, name(), value()}
+          | {:in_struct_field, struct_name :: display_name(), name(), default :: value()}
           | {:module, module(), display_name(), Docs.documentation()}
           | {:function, module(), name(), arity(), function_type(), display_name(),
              Docs.documentation(), list(Docs.signature()), list(Docs.spec())}
@@ -48,8 +49,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           list(identifier_item())
   def completion_identifiers(hint, binding, env) do
     context = Code.Fragment.cursor_context(hint)
-    ctx = %{binding: binding, env: env, matcher: @prefix_matcher, hint: hint}
-    context_to_matches(context, ctx, :completion)
+
+    ctx = %{
+      fragment: hint,
+      binding: binding,
+      env: env,
+      matcher: @prefix_matcher,
+      type: :completion
+    }
+
+    context_to_matches(context, ctx)
   end
 
   @doc """
@@ -67,8 +76,17 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   def locate_identifier(line, column, binding, env) do
     case Code.Fragment.surround_context(line, {1, column}) do
       %{context: context, begin: {_, from}, end: {_, to}} ->
-        ctx = %{binding: binding, env: env, matcher: @exact_matcher}
-        matches = context_to_matches(context, ctx, :locate)
+        fragment = String.slice(line, 0, to - 1)
+
+        ctx = %{
+          fragment: fragment,
+          binding: binding,
+          env: env,
+          matcher: @exact_matcher,
+          type: :locate
+        }
+
+        matches = context_to_matches(context, ctx)
         %{matches: matches, range: %{from: from, to: to}}
 
       :none ->
@@ -79,7 +97,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # Takes a context returned from Code.Fragment.cursor_context
   # or Code.Fragment.surround_context and looks up matching
   # identifier items
-  defp context_to_matches(context, ctx, type) do
+  defp context_to_matches(context, ctx) do
     case context do
       {:alias, alias} ->
         match_alias(List.to_string(alias), ctx, false)
@@ -100,13 +118,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_default(ctx)
 
       {:local_or_var, local_or_var} ->
-        match_struct_fields_or_local_or_var(List.to_string(local_or_var), ctx)
+        match_in_struct_fields_or_local_or_var(List.to_string(local_or_var), ctx)
 
       {:local_arity, local} ->
         match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
 
       {:local_call, local} ->
-        case type do
+        case ctx.type do
           :completion -> match_default(ctx)
           :locate -> match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
         end
@@ -178,7 +196,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_default(ctx) do
-    match_struct_fields_or_local_or_var("", ctx)
+    match_in_struct_fields_or_local_or_var("", ctx)
   end
 
   defp match_alias(hint, ctx, nested?) do
@@ -207,10 +225,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     match_module_function(mod, hint, ctx) ++ match_module_type(mod, hint, ctx)
   end
 
-  defp match_struct_fields_or_local_or_var(hint, ctx) do
+  defp match_in_struct_fields_or_local_or_var(hint, ctx) do
     case expand_struct_fields(ctx) do
       {:ok, struct, fields} ->
-        for field <- fields, do: {:map_field, field, nil}
+        for {field, default} <- fields,
+            name = Atom.to_string(field),
+            ctx.matcher.(name, hint),
+            do: {:in_struct_field, struct, field, default}
 
       _ ->
         match_local_or_var(hint, ctx)
@@ -218,20 +239,30 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp expand_struct_fields(ctx) do
-    with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(ctx.hint),
-         {aliases, pairs} <- find_struct_fields(quoted),
-         alias = Enum.join(aliases, "."),
-         mod = expand_alias(alias, ctx),
-         true <- has_struct?(mod) do
-      fields =
-        pairs
-        |> Enum.reduce(Map.from_struct(mod.__struct__), fn {key, _}, map ->
-          Map.delete(map, key)
-        end)
-        |> Map.keys()
-        |> Enum.map(&Atom.to_string/1)
+    with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(ctx.fragment),
+         {aliases, pairs} <- find_struct_fields(quoted) do
+      mod_name = Enum.join(aliases, ".")
+      mod = expand_alias(mod_name, ctx)
 
-      {:ok, mod, fields}
+      fields =
+        if has_struct?(mod) do
+          map = Map.from_struct(mod.__struct__)
+
+          case ctx.type do
+            :locate ->
+              map
+
+            # When autocompleting we remove the keys that have already been filled
+            :completion ->
+              Enum.reduce(pairs, map, fn {key, _}, map ->
+                Map.delete(map, key)
+              end)
+          end
+        else
+          %{}
+        end
+
+      {:ok, mod_name, fields}
     end
   end
 

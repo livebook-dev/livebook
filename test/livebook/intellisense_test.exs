@@ -1060,9 +1060,9 @@ defmodule Livebook.IntellisenseTest do
                %{
                  label: "my_val",
                  kind: :field,
-                 detail: "field",
-                 documentation: nil,
-                 insert_text: "my_val"
+                 detail: "Livebook.IntellisenseTest.MyStruct struct field",
+                 documentation: "Default: nil",
+                 insert_text: "my_val: "
                }
              ] =
                Intellisense.get_completion_items(
@@ -1086,7 +1086,7 @@ defmodule Livebook.IntellisenseTest do
                )
     end
 
-    test "completion for struct keys inside struct ignores `__exception" do
+    test "completion for struct keys inside struct ignores `__exception__`" do
       {binding, env} = eval(do: nil)
 
       completions =

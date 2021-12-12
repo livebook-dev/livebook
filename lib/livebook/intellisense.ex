@@ -145,6 +145,15 @@ defmodule Livebook.Intellisense do
       insert_text: name
     }
 
+  defp format_completion_item({:in_struct_field, struct_name, name, default}),
+    do: %{
+      label: "#{name}",
+      kind: :field,
+      detail: "#{struct_name} struct field",
+      documentation: "Default: #{inspect(default)}",
+      insert_text: "#{name}: "
+    }
+
   defp format_completion_item({:module, module, display_name, documentation}) do
     subtype = Docs.get_module_subtype(module)
 
@@ -339,6 +348,13 @@ defmodule Livebook.Intellisense do
   defp format_details_item({:variable, name, _value}), do: code(name)
 
   defp format_details_item({:map_field, name, _value}), do: code(name)
+
+  defp format_details_item({:in_struct_field, _struct_name, name, default}) do
+    join_with_divider([
+      code(name),
+      "Default: #{inspect(default)}"
+    ])
+  end
 
   defp format_details_item({:module, _module, display_name, documentation}) do
     join_with_divider([
