@@ -16,7 +16,7 @@ defmodule LivebookWeb.Output.TextComponent do
       <div data-content class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
         id={"virtualized-text-#{@id}-content"}
         phx-update="ignore"></div>
-      <div class="absolute right-0 top-0 z-10">
+      <div class="absolute right-2 top-0 z-10">
         <button class="icon-button bg-gray-100"
           data-element="clipcopy"
           phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}>
