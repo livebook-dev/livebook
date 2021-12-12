@@ -14,9 +14,9 @@ defmodule LivebookWeb.Helpers do
 
   ## Example
 
-      <.live_modal return_to={...}>
+      <.modal return_to={...}>
         <.live_component module={MyComponent}  />
-      </.live_modal>
+      </.modal>
   """
   def modal(assigns) do
     assigns =

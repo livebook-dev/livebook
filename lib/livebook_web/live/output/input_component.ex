@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, error: nil)}
+    {:ok, assign(socket, error: nil, local: false)}
   end
 
   @impl true
@@ -177,8 +177,15 @@ defmodule LivebookWeb.Output.InputComponent do
         socket
 
       {:ok, value} ->
-        send(self(), {:set_input_value, socket.assigns.attrs.id, value})
-        report_event(socket, value)
+        send(
+          self(),
+          {:set_input_values, [{socket.assigns.attrs.id, value}], socket.assigns.local}
+        )
+
+        unless socket.assigns.local do
+          report_event(socket, value)
+        end
+
         assign(socket, value: value, error: nil)
 
       {:error, error, value} ->

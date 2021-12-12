@@ -39,6 +39,17 @@ defmodule LivebookWeb.Output.ControlComponent do
     """
   end
 
+  def render(%{attrs: %{type: :form}} = assigns) do
+    ~H"""
+    <div>
+      <.live_component module={LivebookWeb.Output.ControlFormComponent}
+        id={@id}
+        attrs={@attrs}
+        input_values={@input_values} />
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <div class="text-red-600">

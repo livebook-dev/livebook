@@ -54,7 +54,7 @@ defmodule Livebook.MixProject do
       {:phoenix_live_view, "~> 0.17.3"},
       {:phoenix_live_dashboard, "~> 0.6.0"},
       {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
+      {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},

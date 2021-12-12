@@ -834,20 +834,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_info({:operation, operation}, socket) do
-    case Session.Data.apply_operation(socket.private.data, operation) do
-      {:ok, data, actions} ->
-        new_socket =
-          socket
-          |> assign_private(data: data)
-          |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
-          |> after_operation(socket, operation)
-          |> handle_actions(actions)
-
-        {:noreply, new_socket}
-
-      :error ->
-        {:noreply, socket}
-    end
+    {:noreply, handle_operation(socket, operation)}
   end
 
   def handle_info({:error, error}, socket) do
@@ -903,9 +890,22 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "location_report", report)}
   end
 
-  def handle_info({:set_input_value, input_id, value}, socket) do
-    Session.set_input_value(socket.assigns.session.pid, input_id, value)
-    {:noreply, socket}
+  def handle_info({:set_input_values, values, local}, socket) do
+    if local do
+      socket =
+        Enum.reduce(values, socket, fn {input_id, value}, socket ->
+          operation = {:set_input_value, self(), input_id, value}
+          handle_operation(socket, operation)
+        end)
+
+      {:noreply, socket}
+    else
+      for {input_id, value} <- values do
+        Session.set_input_value(socket.assigns.session.pid, input_id, value)
+      end
+
+      {:noreply, socket}
+    end
   end
 
   def handle_info({:queue_bound_cells_evaluation, input_id}, socket) do
@@ -1024,6 +1024,20 @@ defmodule LivebookWeb.SessionLive do
 
   defp redirect_to_self(socket) do
     push_patch(socket, to: Routes.session_path(socket, :page, socket.assigns.session.id))
+  end
+
+  defp handle_operation(socket, operation) do
+    case Session.Data.apply_operation(socket.private.data, operation) do
+      {:ok, data, actions} ->
+        socket
+        |> assign_private(data: data)
+        |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
+        |> after_operation(socket, operation)
+        |> handle_actions(actions)
+
+      :error ->
+        socket
+    end
   end
 
   defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
