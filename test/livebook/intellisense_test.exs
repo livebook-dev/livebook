@@ -1061,7 +1061,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "my_val",
                  kind: :field,
                  detail: "Livebook.IntellisenseTest.MyStruct struct field",
-                 documentation: "Default: nil",
+                 documentation: "```\nmy_val\n```\n\n---\n\n**Default**\n\n```\nnil\n```\n",
                  insert_text: "my_val: "
                }
              ] =
