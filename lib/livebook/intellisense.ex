@@ -150,7 +150,17 @@ defmodule Livebook.Intellisense do
       label: "#{name}",
       kind: :field,
       detail: "#{inspect(struct)} struct field",
-      documentation: "Default: #{inspect(default)}",
+      documentation:
+        join_with_divider([
+          code(name),
+          """
+          **Default**
+
+          ```
+          #{inspect(default, pretty: true, width: @line_length)}
+          ```
+          """
+        ]),
       insert_text: "#{name}: "
     }
 
