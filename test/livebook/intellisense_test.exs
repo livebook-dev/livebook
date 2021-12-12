@@ -1248,6 +1248,13 @@ defmodule Livebook.IntellisenseTest do
 
       assert to_string_fn =~ "Converts the argument to a string"
     end
+
+    test "includes full module name in the docs" do
+      {binding, env} = eval(do: nil)
+
+      assert %{contents: [date_range]} = Intellisense.get_details("Date.Range", 8, binding, env)
+      assert date_range =~ "Date.Range"
+    end
   end
 
   describe "get_signature_items/3" do
