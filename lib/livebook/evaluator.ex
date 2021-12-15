@@ -151,11 +151,15 @@ defmodule Livebook.Evaluator do
   end
 
   defp call(evaluator, message) do
-    call_ref = make_ref()
+    call_ref = Process.monitor(evaluator.pid)
     send(evaluator.pid, {:call, evaluator.ref, self(), call_ref, message})
 
     receive do
-      {^call_ref, reply} -> reply
+      {^call_ref, reply} ->
+        reply
+
+      {:DOWN, ^call_ref, _, _, reason} ->
+        exit({reason, {__MODULE__, :call, [evaluator, message]}})
     end
   end
 
@@ -252,12 +256,15 @@ defmodule Livebook.Evaluator do
     metadata = %{evaluation_time_ms: evaluation_time_ms}
     send(send_to, {:evaluation_response, ref, output, metadata})
 
+    :erlang.garbage_collect(self())
     {:noreply, state}
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
     state = Map.update!(state, :contexts, &Map.delete(&1, ref))
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
+
+    :erlang.garbage_collect(self())
     {:noreply, state}
   end
 
@@ -274,6 +281,7 @@ defmodule Livebook.Evaluator do
 
     send(send_to, {:intellisense_response, ref, request, response})
 
+    :erlang.garbage_collect(self())
     {:noreply, state}
   end
 
