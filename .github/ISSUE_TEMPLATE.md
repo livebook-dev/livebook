@@ -5,7 +5,7 @@
 * Elixir & Erlang/OTP versions (elixir --version): 
 * Operating system: 
 * How have you started Livebook (mix phx.server, livebook CLI, Docker, etc): 
-* Livebook version (use `git show` if running with mix): 
+* Livebook version (use `git rev-parse HEAD` if running with mix): 
 * Browsers that reproduce this bug (the more the merrier): 
 * Include what is logged in the browser console: 
 * Include what is logged to the server console:
