@@ -324,6 +324,7 @@ defmodule Livebook.Evaluator do
   defp eval(code, binding, env) do
     try do
       quoted = Code.string_to_quoted!(code)
+      # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
       {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
 
       {:ok, result, binding, env}

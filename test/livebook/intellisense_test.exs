@@ -9,6 +9,7 @@ defmodule Livebook.IntellisenseTest.Utils do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
+      # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
       env = :elixir.env_for_eval([])
       {_, binding, env} = :elixir.eval_quoted(block, binding, env)
       {binding, env}
