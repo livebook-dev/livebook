@@ -854,6 +854,8 @@ defmodule Livebook.Session.Data do
     )
   end
 
+  defp add_output([], output) when is_binary(output), do: [apply_rewind(output)]
+
   defp add_output([], output), do: [output]
 
   defp add_output([head | tail], output) when is_binary(head) and is_binary(output) do
