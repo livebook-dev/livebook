@@ -215,7 +215,7 @@ Livebook is primarily a Phoenix web application and can be setup as such:
 ```shell
 git clone https://github.com/livebook-dev/livebook.git
 cd livebook
-mix deps.get
+mix dev.setup
 
 # Run the Livebook server
 mix phx.server
