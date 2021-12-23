@@ -91,10 +91,12 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 <span class="text-gray-700 whitespace-no-wrap">
                   no file selected
                 </span>
-                <button class="button-base button-gray button-small"
-                  phx-click="open_file_select">
-                  Choose a file
-                </button>
+                <%= unless @draft_file do %>
+                  <button class="button-base button-gray button-small"
+                    phx-click="open_file_select">
+                    Choose a file
+                  </button>
+                <% end %>
               <% end %>
             </div>
           </form>
