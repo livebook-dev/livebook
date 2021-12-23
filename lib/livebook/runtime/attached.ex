@@ -73,4 +73,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   end
 
   def standalone?(_runtime), do: false
+
+  def read_file(runtime, path) do
+    ErlDist.RuntimeServer.read_file(runtime.server_pid, path)
+  end
 end

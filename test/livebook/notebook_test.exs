@@ -254,4 +254,24 @@ defmodule Livebook.NotebookTest do
                }
     end
   end
+
+  describe "find_asset_info/2" do
+    test "returns asset info matching the given type if found" do
+      assets_info = %{archive: "/path/to/archive.tar.gz", hash: "abcd", js_path: "main.js"}
+      js_info = %{assets: assets_info}
+      output = {:js_static, js_info, %{}}
+
+      notebook = %{
+        Notebook.new()
+        | sections: [%{Section.new() | cells: [%{Cell.new(:elixir) | outputs: [output]}]}]
+      }
+
+      assert ^assets_info = Notebook.find_asset_info(notebook, "abcd")
+    end
+
+    test "returns nil if no matching info is found" do
+      notebook = Notebook.new()
+      assert Notebook.find_asset_info(notebook, "abcd") == nil
+    end
+  end
 end

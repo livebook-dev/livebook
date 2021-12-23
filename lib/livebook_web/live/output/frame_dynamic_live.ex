@@ -7,6 +7,7 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
         %{
           "pid" => pid,
           "id" => id,
+          "session_id" => session_id,
           "input_values" => input_values,
           "cell_validity_status" => cell_validity_status
         },
@@ -20,6 +21,7 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
      assign(socket,
        id: id,
        output: nil,
+       session_id: session_id,
        input_values: input_values,
        cell_validity_status: cell_validity_status
      )}
@@ -34,6 +36,7 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
           outputs={[@output]}
           id={"#{@id}-frame"}
           socket={@socket}
+          session_id={@session_id}
           runtime={nil}
           input_values={@input_values}
           cell_validity_status={@cell_validity_status} />

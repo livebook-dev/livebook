@@ -121,6 +121,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             outputs={@cell_view.outputs}
             id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
             socket={@socket}
+            session_id={@session_id}
             runtime={@runtime}
             cell_validity_status={@cell_view.validity_status}
             input_values={@cell_view.input_values} />

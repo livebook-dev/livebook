@@ -16,6 +16,17 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
+  pipeline :js_output_assets do
+    plug :put_secure_browser_headers
+  end
+
+  scope "/", LivebookWeb do
+    pipe_through [:js_output_assets]
+
+    get "/sessions/assets/:hash/*file_parts", SessionController, :show_cached_asset
+    get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
+  end
+
   live_session :default, on_mount: LivebookWeb.CurrentUserHook do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]

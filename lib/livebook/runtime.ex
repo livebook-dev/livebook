@@ -232,4 +232,11 @@ defprotocol Livebook.Runtime do
   """
   @spec standalone?(Runtime.t()) :: boolean()
   def standalone?(runtime)
+
+  @doc """
+  Reads file at the given absolute path within the runtime
+  file system.
+  """
+  @spec read_file(Runtime.t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
+  def read_file(runtime, path)
 end

@@ -75,11 +75,10 @@ defmodule LivebookWeb.SessionController do
 
   defp serve_with_cache(conn, file, :stale) do
     filename = FileSystem.File.name(file)
-    content_type = MIME.from_path(filename)
 
     with {:ok, content} <- FileSystem.File.read(file) do
       conn
-      |> put_resp_header("content-type", content_type)
+      |> put_content_type(filename)
       |> send_resp(200, content)
       |> then(&{:ok, &1})
     end
@@ -87,5 +86,80 @@ defmodule LivebookWeb.SessionController do
 
   defp serve_with_cache(conn, _file, :fresh) do
     {:ok, send_resp(conn, 304, "")}
+  end
+
+  def show_asset(conn, %{"id" => id, "hash" => hash, "file_parts" => file_parts}) do
+    asset_path = Path.join(file_parts)
+
+    # The request comes from a cross-origin iframe
+    conn = allow_cors(conn)
+
+    # This route include session id, while we want the browser to
+    # cache assets across sessions, so we only ensure the asset
+    # is available and redirect to the corresponding route without
+    # session id
+    if ensure_asset?(id, hash, asset_path) do
+      conn
+      |> cache_permanently()
+      |> put_status(:moved_permanently)
+      |> redirect(to: Routes.session_path(conn, :show_cached_asset, hash, file_parts))
+    else
+      send_resp(conn, 404, "Not found")
+    end
+  end
+
+  def show_cached_asset(conn, %{"hash" => hash, "file_parts" => file_parts}) do
+    asset_path = Path.join(file_parts)
+
+    # The request comes from a cross-origin iframe
+    conn = allow_cors(conn)
+
+    case lookup_asset(hash, file_parts) do
+      {:ok, local_asset_path} ->
+        conn
+        |> put_content_type(asset_path)
+        |> cache_permanently()
+        |> send_file(200, local_asset_path)
+
+      :error ->
+        send_resp(conn, 404, "Not found")
+    end
+  end
+
+  defp ensure_asset?(session_id, hash, asset_path) do
+    case lookup_asset(hash, asset_path) do
+      {:ok, _local_asset_path} ->
+        true
+
+      :error ->
+        with {:ok, session} <- Sessions.fetch_session(session_id),
+             :ok <- Session.fetch_assets(session.pid, hash) do
+          true
+        else
+          _ -> false
+        end
+    end
+  end
+
+  defp lookup_asset(hash, asset_path) do
+    with {:ok, local_asset_path} <- Session.local_asset_path(hash, asset_path),
+         true <- File.exists?(local_asset_path) do
+      {:ok, local_asset_path}
+    else
+      _ -> :error
+    end
+  end
+
+  defp allow_cors(conn) do
+    put_resp_header(conn, "access-control-allow-origin", "*")
+  end
+
+  defp cache_permanently(conn) do
+    put_resp_header(conn, "cache-control", "public, max-age=31536000")
+  end
+
+  defp put_content_type(conn, path) do
+    content_type = MIME.from_path(path)
+    put_resp_header(conn, "content-type", content_type)
   end
 end

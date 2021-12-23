@@ -16,6 +16,13 @@ defmodule Livebook.Runtime.NoopRuntime do
     def drop_container(_, _), do: :ok
     def handle_intellisense(_, _, _, _, _), do: :ok
     def duplicate(_), do: {:ok, Livebook.Runtime.NoopRuntime.new()}
-    def standalone?(_runtime), do: false
+    def standalone?(_), do: false
+
+    def read_file(_, path) do
+      case File.read(path) do
+        {:ok, content} -> {:ok, content}
+        {:error, posix} -> {:error, posix |> :file.format_error() |> List.to_string()}
+      end
+    end
   end
 end

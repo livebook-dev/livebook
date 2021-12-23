@@ -6,10 +6,7 @@ export function isMacOS() {
 }
 
 export function isEditableElement(element) {
-  return (
-    ["input", "textarea"].includes(element.tagName.toLowerCase()) ||
-    element.contentEditable === "true"
-  );
+  return element.matches("input, textarea, [contenteditable]");
 }
 
 export function clamp(n, x, y) {
@@ -71,7 +68,18 @@ export function decodeBase64(binary) {
  * Generates a random string.
  */
 export function randomId() {
-  const array = new Uint8Array(24);
+  return randomString(24);
+}
+
+/**
+ * Generates a random long string.
+ */
+export function randomToken() {
+  return randomString(40);
+}
+
+function randomString(byteSize) {
+  const array = new Uint8Array(byteSize);
   crypto.getRandomValues(array);
   const byteString = String.fromCharCode(...array);
   return btoa(byteString);

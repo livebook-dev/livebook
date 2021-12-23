@@ -99,6 +99,25 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Reads file at the given absolute path within the runtime
+  file system.
+  """
+  @spec read_file(pid(), String.t()) :: {:ok, binary()} | {:error, String.t()}
+  def read_file(pid, path) do
+    {result_ref, task_pid} = GenServer.call(pid, {:read_file, path})
+
+    monitor_ref = Process.monitor(task_pid)
+
+    receive do
+      {:result, ^result_ref, result} ->
+        result
+
+      {:DOWN, ^monitor_ref, :process, _object, _reason} ->
+        {:error, "unexpected termination"}
+    end
+  end
+
+  @doc """
   Stops the manager.
 
   This results in all Livebook-related modules being unloaded
@@ -114,7 +133,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     Process.send_after(self(), :check_owner, @await_owner_timeout)
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
-    {:ok, completion_supervisor} = Task.Supervisor.start_link()
+    {:ok, task_supervisor} = Task.Supervisor.start_link()
     {:ok, object_tracker} = Livebook.Evaluator.ObjectTracker.start_link()
 
     {:ok,
@@ -122,7 +141,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        owner: nil,
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
-       completion_supervisor: completion_supervisor,
+       task_supervisor: task_supervisor,
        object_tracker: object_tracker
      }}
   end
@@ -221,7 +240,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       Evaluator.handle_intellisense(evaluator, send_to, ref, request, evaluation_ref)
     else
       # Handle the request in a temporary process using an empty evaluation context
-      Task.Supervisor.start_child(state.completion_supervisor, fn ->
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
         binding = []
         env = :elixir.env_for_eval([])
         response = Livebook.Intellisense.handle_request(request, binding, env)
@@ -230,6 +249,27 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
 
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_call({:read_file, path}, {from_pid, _}, state) do
+    # Delegate reading to a separate task and let the caller
+    # wait for the response
+
+    result_ref = make_ref()
+
+    {:ok, task_pid} =
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
+        result =
+          case File.read(path) do
+            {:ok, content} -> {:ok, content}
+            {:error, posix} -> {:error, posix |> :file.format_error() |> List.to_string()}
+          end
+
+        send(from_pid, {:result, result_ref, result})
+      end)
+
+    {:reply, {result_ref, task_pid}, state}
   end
 
   defp ensure_evaluator(state, container_ref) do

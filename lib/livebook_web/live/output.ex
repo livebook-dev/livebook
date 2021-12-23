@@ -14,6 +14,7 @@ defmodule LivebookWeb.Output do
               <%= render_output(output, %{
                     id: "#{@id}-output#{group_idx}_#{idx}",
                     socket: @socket,
+                    session_id: @session_id,
                     runtime: @runtime,
                     cell_validity_status: @cell_validity_status,
                     input_values: @input_values
@@ -93,6 +94,22 @@ defmodule LivebookWeb.Output do
     )
   end
 
+  defp render_output({:js_static, info, data}, %{id: id, session_id: session_id}) do
+    live_component(LivebookWeb.Output.JSStaticComponent,
+      id: id,
+      info: info,
+      data: data,
+      session_id: session_id
+    )
+  end
+
+  defp render_output({:js_dynamic, info, pid}, %{id: id, socket: socket, session_id: session_id}) do
+    live_render(socket, LivebookWeb.Output.JSDynamicLive,
+      id: id,
+      session: %{"id" => id, "info" => info, "pid" => pid, "session_id" => session_id}
+    )
+  end
+
   defp render_output({:table_dynamic, pid}, %{id: id, socket: socket}) do
     live_render(socket, LivebookWeb.Output.TableDynamicLive,
       id: id,
@@ -103,6 +120,7 @@ defmodule LivebookWeb.Output do
   defp render_output({:frame_dynamic, pid}, %{
          id: id,
          socket: socket,
+         session_id: session_id,
          input_values: input_values,
          cell_validity_status: cell_validity_status
        }) do
@@ -111,6 +129,7 @@ defmodule LivebookWeb.Output do
       session: %{
         "id" => id,
         "pid" => pid,
+        "session_id" => session_id,
         "input_values" => input_values,
         "cell_validity_status" => cell_validity_status
       }
