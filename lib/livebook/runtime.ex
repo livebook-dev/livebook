@@ -141,7 +141,7 @@ defprotocol Livebook.Runtime do
 
   The given `locator` identifies the container where
   the code should be evaluated as well as the evaluation
-  reference to store the resulting contxt under.
+  reference to store the resulting context under.
 
   Additionally, `prev_locator` points to a previous
   evaluation to be used as the starting point of this
