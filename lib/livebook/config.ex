@@ -72,6 +72,28 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns a path for a new file named with the default untitled file
+  naming convention.
+  """
+  @spec untitled_file_path(FileSystem.t()) :: FileSystem.File.t()
+  def untitled_file_path(file_system) do
+    default_path = FileSystem.default_path(file_system)
+
+    untitled_count =
+      default_path
+      |> then(&FileSystem.list(file_system, &1, false))
+      |> elem(1)
+      |> Enum.filter(&Regex.match?(~r/(?:\/|\\)untitled-\d*\.livemd$/, &1))
+      |> Enum.count()
+
+    FileSystem.resolve_path(
+      file_system,
+      default_path,
+      "#{default_path}untitled-#{untitled_count}.livemd"
+    )
+  end
+
+  @doc """
   Returns the directory where notebooks with no file should be persisted.
   """
   @spec autosave_path() :: String.t() | nil

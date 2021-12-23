@@ -37,7 +37,7 @@ defmodule Livebook.FileSystem.File do
 
         path
       else
-        default_path
+        Livebook.Config.untitled_file_path(file_system)
       end
 
     %__MODULE__{file_system: file_system, path: path}

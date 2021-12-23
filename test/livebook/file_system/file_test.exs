@@ -24,9 +24,13 @@ defmodule Livebook.FileSystem.FileTest do
                    end
     end
 
-    test "uses default file system path if non is given" do
-      file_system = FileSystem.Local.new(default_path: "/dir/")
-      assert %FileSystem.File{path: "/dir/"} = FileSystem.File.new(file_system)
+    test "uses default file system path if not given" do
+      current_dir = elem(File.cwd(), 1) <> "/"
+      file_system = FileSystem.Local.new(default_path: current_dir)
+
+      path = "#{current_dir}untitled-0.livemd"
+
+      assert %FileSystem.File{path: ^path} = FileSystem.File.new(file_system)
     end
   end
 
