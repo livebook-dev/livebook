@@ -116,11 +116,17 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                     tabindex="-1">
                     Cancel
                   </button>
-                  <button class="button-base button-blue"
-                    phx-click="confirm_file"
-                    tabindex="-1">
-                    Choose
-                  </button>
+                  <%= unless String.at(@draft_file.path, -1) == "/" do %>
+                    <button class="button-base button-blue"
+                      phx-click="confirm_file"
+                      tabindex="-1">
+                      Choose
+                    </button>
+                  <%= else %>
+                    <button class="button-base button-blue opacity-50 cursor-not-allowed">
+                      Choose
+                    </button>
+                  <%= end %>
                 </div>
               </.live_component>
             </div>
