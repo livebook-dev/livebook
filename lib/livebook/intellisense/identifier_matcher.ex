@@ -560,7 +560,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   # ---
 
-  # TODO use Macro.classify_atom/1 on Elixir 1.14
+  # TODO: use Macro.classify_atom/1 on Elixir 1.14
 
   def macro_classify_atom(atom) do
     case macro_inner_classify(atom) do

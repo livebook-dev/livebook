@@ -148,6 +148,41 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Fetches assets matching the given hash.
+
+  The assets are cached locally and fetched from the runtime
+  only once.
+
+  See `local_asset_path/2` for locating a specific asset.
+  """
+  @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
+  def fetch_assets(pid, hash) do
+    local_assets_path = local_assets_path(hash)
+
+    if File.exists?(local_assets_path) do
+      :ok
+    else
+      with {:ok, runtime, archive_path} <-
+             GenServer.call(pid, {:get_runtime_and_archive_path, hash}) do
+        fun = fn ->
+          # Make sure the file hasn't been fetched by this point
+          unless File.exists?(local_assets_path) do
+            {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
+            extract_archive!(archive_binary, local_assets_path)
+          end
+        end
+
+        # Fetch assets in a separate process and avoid several
+        # simultaneous fateches of the same assets
+        case Livebook.UniqueTask.run(hash, fun) do
+          :ok -> :ok
+          :error -> {:error, "failed to fetch assets"}
+        end
+      end
+    end
+  end
+
+  @doc """
   Sends notebook attributes update to the server.
   """
   @spec set_notebook_attributes(pid(), map()) :: :ok
@@ -490,6 +525,25 @@ defmodule Livebook.Session do
     {:reply, state.data, state}
   end
 
+  def handle_call({:get_runtime_and_archive_path, hash}, _from, state) do
+    assets_info = Notebook.find_asset_info(state.data.notebook, hash)
+    runtime = state.data.runtime
+
+    reply =
+      cond do
+        assets_info == nil ->
+          {:error, "unknown hash"}
+
+        runtime == nil ->
+          {:error, "no runtime"}
+
+        true ->
+          {:ok, runtime, assets_info.archive_path}
+      end
+
+    {:reply, reply, state}
+  end
+
   def handle_call(:get_notebook, _from, state) do
     {:reply, state.data.notebook, state}
   end
@@ -796,14 +850,51 @@ defmodule Livebook.Session do
   end
 
   defp session_tmp_dir(session_id) do
-    tmp_dir = System.tmp_dir!() |> Path.expand()
-    path = Path.join([tmp_dir, "livebook", "sessions", session_id]) <> "/"
-    FileSystem.File.local(path)
+    livebook_tmp_path()
+    |> Path.join("sessions/#{session_id}")
+    |> FileSystem.Utils.ensure_dir_path()
+    |> FileSystem.File.local()
   end
 
   defp cleanup_tmp_dir(session_id) do
     tmp_dir = session_tmp_dir(session_id)
     FileSystem.File.remove(tmp_dir)
+  end
+
+  defp local_assets_path(hash) do
+    Path.join([livebook_tmp_path(), "assets", encode_path_component(hash)])
+  end
+
+  @doc """
+  Returns a local path to asset matching the given
+  hash and path.
+
+  The file is not guaranteed to exist. See `fetch_assets/2`
+  for fetching assets through a particular session.
+
+  The path is expected to be a simple relative path
+  within the assets directory, otherwise an error is
+  returned.
+  """
+  @spec local_asset_path(String.t(), String.t()) :: {:ok, String.t()} | :error
+  def local_asset_path(hash, asset_path) do
+    assets_path = local_assets_path(hash)
+    local_asset_path = Path.expand(asset_path, assets_path)
+
+    if String.starts_with?(local_asset_path, assets_path <> "/") do
+      {:ok, local_asset_path}
+    else
+      :error
+    end
+  end
+
+  defp encode_path_component(component) do
+    String.replace(component, [".", "/", "\\", ":"], "_")
+  end
+
+  defp livebook_tmp_path() do
+    tmp_dir = System.tmp_dir!() |> Path.expand()
+    Path.join(tmp_dir, "livebook")
   end
 
   defp copy_images(state, source) do
@@ -1123,6 +1214,10 @@ defmodule Livebook.Session do
         broadcast_error(state.session_id, "failed to save notebook - #{message}")
         state
     end
+  end
+
+  defp extract_archive!(binary, path) do
+    :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, path}])
   end
 
   @doc """

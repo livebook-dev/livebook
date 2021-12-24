@@ -509,4 +509,22 @@ defmodule Livebook.Notebook do
   def forked(notebook) do
     %{notebook | name: notebook.name <> " - fork"}
   end
+
+  @doc """
+  Traverses cell outputs to find asset info matching
+  the given hash.
+  """
+  @spec find_asset_info(t(), String.t()) :: (asset_info :: map()) | nil
+  def find_asset_info(notebook, hash) do
+    Enum.find_value(notebook.sections, fn section ->
+      Enum.find_value(section.cells, fn cell ->
+        is_struct(cell, Cell.Elixir) &&
+          Enum.find_value(cell.outputs, fn
+            {:js_static, %{assets: %{hash: ^hash} = assets_info}, _data} -> assets_info
+            {:js_dynamic, %{assets: %{hash: ^hash} = assets_info}, _pid} -> assets_info
+            _ -> nil
+          end)
+      end)
+    end)
+  end
 end

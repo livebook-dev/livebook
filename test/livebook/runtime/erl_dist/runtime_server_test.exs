@@ -168,6 +168,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
   end
 
+  describe "read_file/2" do
+    test "returns file contents when the file exists", %{pid: pid} do
+      assert {:ok, _} = RuntimeServer.read_file(pid, __ENV__.file)
+    end
+
+    test "returns an error when the file does not exist", %{pid: pid} do
+      assert {:error, "no such file or directory"} =
+               RuntimeServer.read_file(pid, "/definitly_non_existent/file/path")
+    end
+  end
+
   test "notifies the owner when an evaluator goes down", %{pid: pid} do
     code = """
     spawn_link(fn -> Process.exit(self(), :kill) end)

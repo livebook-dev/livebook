@@ -139,4 +139,80 @@ defmodule LivebookWeb.SessionControllerTest do
       Session.close(session.pid)
     end
   end
+
+  describe "show_asset" do
+    test "fetches assets and redirects to the session-less path", %{conn: conn} do
+      %{notebook: notebook, hash: hash} = notebook_with_js_output()
+
+      conn = start_session_and_request_asset(conn, notebook, hash)
+
+      assert redirected_to(conn, 301) ==
+               Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+    end
+
+    test "skips the session if assets are in cache", %{conn: conn} do
+      %{notebook: notebook, hash: hash} = notebook_with_js_output()
+      # Fetch the assets for the first time
+      conn = start_session_and_request_asset(conn, notebook, hash)
+
+      # Use nonexistent session, so any communication would fail
+      random_session_id = Livebook.Utils.random_node_aware_id()
+
+      conn =
+        get(conn, Routes.session_path(conn, :show_asset, random_session_id, hash, ["main.js"]))
+
+      assert redirected_to(conn, 301) ==
+               Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+    end
+  end
+
+  describe "show_cached_asset" do
+    test "returns not found when no matching assets are in the cache", %{conn: conn} do
+      %{notebook: _notebook, hash: hash} = notebook_with_js_output()
+
+      conn = get(conn, Routes.session_path(conn, :show_cached_asset, hash, ["main.js"]))
+
+      assert conn.status == 404
+      assert conn.resp_body == "Not found"
+    end
+
+    test "returns the requestes asset if available in cache", %{conn: conn} do
+      %{notebook: notebook, hash: hash} = notebook_with_js_output()
+      # Fetch the assets for the first time
+      conn = start_session_and_request_asset(conn, notebook, hash)
+
+      conn = get(conn, Routes.session_path(conn, :show_cached_asset, hash, ["main.js"]))
+
+      assert conn.status == 200
+      assert "export function init(" <> _ = conn.resp_body
+    end
+  end
+
+  defp start_session_and_request_asset(conn, notebook, hash) do
+    {:ok, session} = Sessions.create_session(notebook: notebook)
+    # We need runtime in place to actually copy the archive
+    Session.connect_runtime(session.pid, Livebook.Runtime.NoopRuntime.new())
+
+    conn = get(conn, Routes.session_path(conn, :show_asset, session.id, hash, ["main.js"]))
+
+    Session.close(session.pid)
+
+    conn
+  end
+
+  defp notebook_with_js_output() do
+    archive_path = Path.expand("../../support/assets.tar.gz", __DIR__)
+    hash = "test-" <> Livebook.Utils.random_id()
+    assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
+    output = {:js_static, %{assets: assets_info}, %{}}
+
+    notebook = %{
+      Notebook.new()
+      | sections: [
+          %{Notebook.Section.new() | cells: [%{Notebook.Cell.new(:elixir) | outputs: [output]}]}
+        ]
+    }
+
+    %{notebook: notebook, hash: hash}
+  end
 end
