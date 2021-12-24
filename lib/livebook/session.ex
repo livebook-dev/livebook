@@ -157,8 +157,21 @@ defmodule Livebook.Session do
   """
   @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
   def fetch_assets(pid, hash) do
-    # TODO make this async using the worker-registry pattern
-    GenServer.call(pid, {:fetch_assets, hash})
+    case GenServer.call(pid, {:handle_fetch_assets, hash}) do
+      :already_fetched ->
+        :ok
+
+      {:fetch, fun} ->
+        # Fetch assets in a separate process and avoid several
+        # simultaneous fateches of the same assets
+        case Livebook.UniqueTask.run(hash, fun) do
+          :ok -> :ok
+          :error -> {:error, "failed to fetch assets"}
+        end
+
+      {:error, error} ->
+        {:error, error}
+    end
   end
 
   @doc """
@@ -504,12 +517,12 @@ defmodule Livebook.Session do
     {:reply, state.data, state}
   end
 
-  def handle_call({:fetch_assets, hash}, _from, state) do
+  def handle_call({:handle_fetch_assets, hash}, _from, state) do
     local_assets_path = local_assets_path(hash)
 
     reply =
       if File.exists?(local_assets_path) do
-        :ok
+        :already_fetched
       else
         assets_info = Notebook.find_asset_info(state.data.notebook, hash)
         runtime = state.data.runtime
@@ -522,10 +535,15 @@ defmodule Livebook.Session do
             {:error, "no runtime"}
 
           true ->
-            with {:ok, archive_binary} <- Runtime.read_file(runtime, assets_info.archive_path) do
-              extract_archive!(archive_binary, local_assets_path)
-              :ok
+            fun = fn ->
+              # Make sure the file hasn't been fetched by this point
+              unless File.exists?(local_assets_path) do
+                {:ok, archive_binary} = Runtime.read_file(runtime, assets_info.archive_path)
+                extract_archive!(archive_binary, local_assets_path)
+              end
             end
+
+            {:fetch, fun}
         end
       end
 

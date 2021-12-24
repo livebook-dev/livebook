@@ -23,6 +23,8 @@ defmodule Livebook.Application do
       Livebook.Session.FileGuard,
       # Start the Node Pool for managing node names
       Livebook.Runtime.NodePool,
+      # Start the unique task dependencies
+      Livebook.UniqueTask,
       # Start the Endpoint (http/https)
       LivebookWeb.Endpoint
     ]
