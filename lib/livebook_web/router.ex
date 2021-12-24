@@ -73,7 +73,8 @@ defmodule LivebookWeb.Router do
 
     live_dashboard "/dashboard",
       metrics: LivebookWeb.Telemetry,
-      home_app: {"Livebook", :livebook}
+      home_app: {"Livebook", :livebook},
+      ecto_repos: []
   end
 
   # Public URLs without authentication
