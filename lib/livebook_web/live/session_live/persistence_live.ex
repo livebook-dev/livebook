@@ -35,7 +35,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
        attrs: attrs,
        new_attrs: attrs,
        draft_file: nil,
-       choose_disabled: nil,
        saved_file: nil
      )}
   end
@@ -117,7 +116,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                     tabindex="-1">
                     Cancel
                   </button>
-                  <%= unless @choose_disabled do %>
+                  <%= unless String.at(@draft_file.path, -1) == "/" do %>
                     <button class="button-base button-blue"
                       phx-click="confirm_file"
                       tabindex="-1">
@@ -162,8 +161,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   @impl true
   def handle_event("open_file_select", %{}, socket) do
     file = socket.assigns.new_attrs.file || Livebook.Config.default_dir()
-    choose_disabled = FileSystem.File.dir?(file)
-    {:noreply, assign(socket, draft_file: file, choose_disabled: choose_disabled)}
+    {:noreply, assign(socket, draft_file: file)}
   end
 
   def handle_event("close_file_select", %{}, socket) do
@@ -226,8 +224,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   @impl true
   def handle_info({:set_file, file, _file_info}, socket) do
-    choose_disabled = FileSystem.File.dir?(file)
-    {:noreply, assign(socket, draft_file: file, choose_disabled: choose_disabled)}
+    {:noreply, assign(socket, draft_file: file)}
   end
 
   def handle_info(:confirm_file, socket) do
