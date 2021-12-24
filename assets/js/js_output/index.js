@@ -9,7 +9,7 @@ import iframeHtml from "./iframe.html";
  * The JavaScript is defined by the user, so we sandbox the script
  * execution inside an iframe.
  *
- * The hooks expects `js_output:<id>:init` event with `{ data }` payload,
+ * The hook expects `js_output:<id>:init` event with `{ data }` payload,
  * the data is then used in the initial call to the custom JS module.
  *
  * Then, a number of `js_output:<id>:event` with `{ event }` payload can
@@ -17,7 +17,7 @@ import iframeHtml from "./iframe.html";
  *
  * Configuration:
  *
- *   * `data-id` - a unique identifier used to as messages scope
+ *   * `data-id` - a unique identifier used as messages scope
  *
  *   * `data-assets-base-url` - the URL to resolve all relative paths
  *     against in the iframe

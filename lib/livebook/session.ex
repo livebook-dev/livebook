@@ -895,7 +895,7 @@ defmodule Livebook.Session do
   end
 
   defp encode_path_component(component) do
-    String.replace(component, [".", "/"], "_")
+    String.replace(component, [".", "/", "\\", ":"], "_")
   end
 
   defp livebook_tmp_path() do
