@@ -312,7 +312,7 @@ defmodule LivebookWeb.SessionLiveTest do
       widget_pid =
         spawn(fn ->
           receive do
-            {:connect, pid} -> send(pid, {:connect_reply, [1, 2, 3]})
+            {:connect, pid, %{}} -> send(pid, {:connect_reply, [1, 2, 3]})
           end
         end)
 

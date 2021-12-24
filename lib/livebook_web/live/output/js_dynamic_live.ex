@@ -8,7 +8,7 @@ defmodule LivebookWeb.Output.JSDynamicLive do
         socket
       ) do
     if connected?(socket) do
-      send(pid, {:connect, self()})
+      send(pid, {:connect, self(), %{origin: self()}})
     end
 
     assets_base_url = Routes.session_url(socket, :show_asset, session_id, info.assets.hash, [])
@@ -37,7 +37,7 @@ defmodule LivebookWeb.Output.JSDynamicLive do
 
   @impl true
   def handle_event("event", %{"event" => event, "payload" => payload}, socket) do
-    send(socket.assigns.widget_pid, {:event, event, payload})
+    send(socket.assigns.widget_pid, {:event, event, payload, %{origin: self()}})
     {:noreply, socket}
   end
 
