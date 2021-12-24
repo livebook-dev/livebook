@@ -118,6 +118,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                   </button>
                   <button class="button-base button-blue"
                     phx-click="confirm_file"
+                    disabled={FileSystem.File.dir?(@draft_file)}
                     tabindex="-1">
                     Choose
                   </button>
