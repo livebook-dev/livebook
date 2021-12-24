@@ -122,11 +122,11 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                       tabindex="-1">
                       Choose
                     </button>
-                  <%= else %>
+                  <% else %>
                     <button class="button-base button-blue opacity-50 cursor-not-allowed">
                       Choose
                     </button>
-                  <%= end %>
+                  <% end %>
                 </div>
               </.live_component>
             </div>
