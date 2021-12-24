@@ -157,20 +157,28 @@ defmodule Livebook.Session do
   """
   @spec fetch_assets(pid(), String.t()) :: :ok | {:error, String.t()}
   def fetch_assets(pid, hash) do
-    case GenServer.call(pid, {:handle_fetch_assets, hash}) do
-      :already_fetched ->
-        :ok
+    local_assets_path = local_assets_path(hash)
 
-      {:fetch, fun} ->
+    if File.exists?(local_assets_path) do
+      :ok
+    else
+      with {:ok, runtime, archive_path} <-
+             GenServer.call(pid, {:get_runtime_and_archive_path, hash}) do
+        fun = fn ->
+          # Make sure the file hasn't been fetched by this point
+          unless File.exists?(local_assets_path) do
+            {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
+            extract_archive!(archive_binary, local_assets_path)
+          end
+        end
+
         # Fetch assets in a separate process and avoid several
         # simultaneous fateches of the same assets
         case Livebook.UniqueTask.run(hash, fun) do
           :ok -> :ok
           :error -> {:error, "failed to fetch assets"}
         end
-
-      {:error, error} ->
-        {:error, error}
+      end
     end
   end
 
@@ -517,34 +525,20 @@ defmodule Livebook.Session do
     {:reply, state.data, state}
   end
 
-  def handle_call({:handle_fetch_assets, hash}, _from, state) do
-    local_assets_path = local_assets_path(hash)
+  def handle_call({:get_runtime_and_archive_path, hash}, _from, state) do
+    assets_info = Notebook.find_asset_info(state.data.notebook, hash)
+    runtime = state.data.runtime
 
     reply =
-      if File.exists?(local_assets_path) do
-        :already_fetched
-      else
-        assets_info = Notebook.find_asset_info(state.data.notebook, hash)
-        runtime = state.data.runtime
+      cond do
+        assets_info == nil ->
+          {:error, "unknown hash"}
 
-        cond do
-          assets_info == nil ->
-            {:error, "unknown hash"}
+        runtime == nil ->
+          {:error, "no runtime"}
 
-          runtime == nil ->
-            {:error, "no runtime"}
-
-          true ->
-            fun = fn ->
-              # Make sure the file hasn't been fetched by this point
-              unless File.exists?(local_assets_path) do
-                {:ok, archive_binary} = Runtime.read_file(runtime, assets_info.archive_path)
-                extract_archive!(archive_binary, local_assets_path)
-              end
-            end
-
-            {:fetch, fun}
-        end
+        true ->
+          {:ok, runtime, assets_info.archive_path}
       end
 
     {:reply, reply, state}
