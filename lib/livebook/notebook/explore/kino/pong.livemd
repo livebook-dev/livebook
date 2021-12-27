@@ -1,4 +1,4 @@
-# Building Pong
+# Building multiplayer Pong
 
 ## Introduction
 

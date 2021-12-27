@@ -12,6 +12,7 @@ defmodule Livebook.Notebook.Explore do
   end
 
   @type notebook_info :: %{
+          ref: atom() | nil,
           slug: String.t(),
           livemd: String.t(),
           title: String.t(),
@@ -24,6 +25,13 @@ defmodule Livebook.Notebook.Explore do
   @type details :: %{
           description: String.t(),
           cover_url: String.t()
+        }
+
+  @type group_info :: %{
+          title: String.t(),
+          description: String.t(),
+          cover_url: String.t(),
+          notebook_infos: list(notebook_info())
         }
 
   images_dir = Path.expand("explore/images", __DIR__)
@@ -64,13 +72,6 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/intro_to_kino.livemd"),
-      details: %{
-        description: "Display and control rich and interactive widgets in Livebook.",
-        cover_url: "/images/kino.png"
-      }
-    },
-    %{
       path: Path.join(__DIR__, "explore/intro_to_nx.livemd"),
       details: %{
         description:
@@ -93,11 +94,16 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/pong.livemd"),
-      details: %{
-        description: "Implement and play multiplayer Pong directly in Livebook.",
-        cover_url: "/images/pong.png"
-      }
+      ref: :kino_intro,
+      path: Path.join(__DIR__, "explore/kino/intro_to_kino.livemd")
+    },
+    %{
+      ref: :kino_pong,
+      path: Path.join(__DIR__, "explore/kino/pong.livemd")
+    },
+    %{
+      ref: :kino_custom_widgets,
+      path: Path.join(__DIR__, "explore/kino/creating_custom_widgets.livemd")
     }
   ]
 
@@ -136,6 +142,7 @@ defmodule Livebook.Notebook.Explore do
         config[:slug] || path |> Path.basename() |> Path.rootname() |> String.replace("_", "-")
 
       %{
+        ref: config[:ref],
         slug: slug,
         livemd: markdown,
         title: notebook.name,
@@ -188,6 +195,38 @@ defmodule Livebook.Notebook.Explore do
       notebook_info ->
         {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(notebook_info.livemd)
         {notebook, notebook_info.images}
+    end
+  end
+
+  @group_configs [
+    %{
+      title: "Interactions with Kino",
+      description:
+        "Kino is an Elixir package that allows for displaying and controlling rich, interactieve widgets in Livebook. Learn how to make your notebooks more engaging with inputs, plots, tables, and much more!",
+      cover_url: "/images/kino.png",
+      notebook_refs: [:kino_intro, :kino_pong, :kino_custom_widgets]
+    }
+  ]
+
+  @doc """
+  Returns a list of all defined notebook groups.
+  """
+  @spec group_infos() :: list(group_info())
+  def group_infos() do
+    notebook_infos = notebook_infos()
+
+    for config <- @group_configs do
+      %{
+        title: config.title,
+        description: config.description,
+        cover_url: config.cover_url,
+        notebook_infos:
+          for(
+            ref <- config.notebook_refs,
+            info = Enum.find(notebook_infos, &(&1[:ref] == ref)),
+            do: info
+          )
+      }
     end
   end
 end
