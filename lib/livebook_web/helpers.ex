@@ -375,4 +375,21 @@ defmodule LivebookWeb.Helpers do
 
   def file_system_label(%FileSystem.Local{}), do: "Local disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
+
+  @doc """
+  Checks if the given data can be correctly encoded as JSON.
+  """
+  @spec validate_json_serializability(term()) :: :ok | {:error, Stirng.t()}
+  def validate_json_serializability(data) do
+    case Jason.encode(data) do
+      {:ok, _data} ->
+        :ok
+
+      {:error, %Protocol.UndefinedError{protocol: Jason.Encoder, value: value}} ->
+        {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
+
+      {:error, error} ->
+        {:error, Exception.message(error)}
+    end
+  end
 end

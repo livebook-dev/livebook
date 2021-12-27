@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.JSStaticComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, initialized: false)}
+    {:ok, assign(socket, initialized: false, error: nil)}
   end
 
   @impl true
@@ -20,9 +20,15 @@ defmodule LivebookWeb.Output.JSStaticComponent do
 
     socket =
       if connected?(socket) and not socket.assigns.initialized do
-        socket
-        |> assign(initialized: true)
-        |> push_event("js_output:#{socket.assigns.id}:init", %{"data" => assigns.data})
+        socket = assign(socket, initialized: true)
+
+        case validate_json_serializability(assigns.data) do
+          :ok ->
+            push_event(socket, "js_output:#{socket.assigns.id}:init", %{"data" => assigns.data})
+
+          {:error, error} ->
+            assign(socket, error: "Failed to serialize widget data, " <> error)
+        end
       else
         socket
       end
@@ -33,12 +39,20 @@ defmodule LivebookWeb.Output.JSStaticComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"js-output-#{@id}"}
-      phx-hook="JSOutput"
-      phx-update="ignore"
-      data-id={@id}
-      data-assets-base-url={@assets_base_url}
-      data-js-path={@js_path}>
+    <div>
+      <%= if @error do %>
+        <div class="error-box">
+          <%= @error %>
+        </div>
+      <% else %>
+        <div id={"js-output-#{@id}"}
+          phx-hook="JSOutput"
+          phx-update="ignore"
+          data-id={@id}
+          data-assets-base-url={@assets_base_url}
+          data-js-path={@js_path}>
+        </div>
+      <% end %>
     </div>
     """
   end
