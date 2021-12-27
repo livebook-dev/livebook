@@ -77,20 +77,12 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             {if @section_view.has_children?,
                do: [class: "tooltip left", data_tooltip: "Cannot delete this section because\nother sections branch from it"],
                else: [class: "tooltip top", data_tooltip: "Delete"]}>
-            <%= if @section_view.cell_views == [] or Enum.all?(@section_view.cell_views, & &1.empty?) do %>
-               <button class="icon-button #{if @section_view.has_children?, do: 'disabled'}"
-                 aria-label="delete section"
-                 phx-click="delete_empty_section"
-                 phx-value-section_id={@section_view.id}>
+              <button class="icon-button #{if @section_view.has_children?, do: 'disabled'}"
+                aria-label="delete section"
+                phx-click="delete_section"
+                phx-value-section_id={@section_view.id}>
                 <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-            <% else %>
-              <%= live_patch to: Routes.session_path(@socket, :delete_section, @session_id, @section_view.id),
-                    class: "icon-button #{if @section_view.has_children?, do: "disabled"}",
-                    aria_label: "delete section",
-                    role: "button" do %>
-                <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-              <% end %>
-            <% end %>
+              </button>
           </span>
         </div>
       </div>
