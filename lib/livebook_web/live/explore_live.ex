@@ -66,6 +66,9 @@ defmodule LivebookWeb.ExploreLive do
               <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
             <% end %>
           </div>
+          <%= for group_info <- Explore.group_infos() do %>
+            <.notebook_group group_info={group_info} socket={@socket} />
+          <% end %>
         </div>
       </div>
     </div>
@@ -75,6 +78,46 @@ defmodule LivebookWeb.ExploreLive do
         return_to={Routes.explore_path(@socket, :page)}
         current_user={@current_user} />
     <% end %>
+    """
+  end
+
+  defp notebook_group(assigns) do
+    ~H"""
+    <div>
+      <div class="p-8 rounded-2xl border border-gray-300 flex space-x-8 items-center">
+        <img src={@group_info.cover_url} width="100" />
+        <div>
+          <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
+            <%= length(@group_info.notebook_infos) %> notebooks
+          </div>
+          <h3 class="mt-1 text-2xl text-gray-800 font-semibold">
+            <%= @group_info.title %>
+          </h3>
+          <p class="mt-2 text-gray-700">
+            <%= @group_info.description %>
+          </p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <ul>
+          <%= for {notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1) do %>
+            <li class="py-4 flex items-center space-x-5 border-b border-gray-200 last:border-b-0">
+              <div class="text-lg text-gray-400 font-semibold">
+                <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
+              </div>
+              <div class="flex-grow text-lg text-gray-800 font-semibold">
+                <%= notebook_info.title %>
+              </div>
+              <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),
+                    class: "button-base button-outlined-gray" do %>
+                <.remix_icon icon="play-circle-line" class="align-middle mr-1" />
+                Open notebook
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
     """
   end
 

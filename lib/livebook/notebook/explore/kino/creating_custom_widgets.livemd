@@ -1,0 +1,290 @@
+# Creating custom widgets
+
+## Introduction
+
+The `Kino.JS` and `Kino.JS.Live` docs outline the API that enables
+developing custom JavaScript powered widgets. The examples discussed
+there are kept minimal to introduce the basic concepts without much
+overhead. In this notebook we take things a bit further and showcase
+a couple more elaborate use cases.
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+## Diagrams with Mermaid
+
+As a quick recap let's define a widget for rendering diagrams
+from text specification using [Mermaid](https://mermaid-js.github.io/mermaid/#/).
+
+```elixir
+defmodule Kino.Mermaid do
+  use Kino.JS
+
+  def new(graph) do
+    Kino.JS.new(__MODULE__, graph)
+  end
+
+  asset "main.js" do
+    """
+    import "https://cdn.jsdelivr.net/npm/mermaid@8.13.3/dist/mermaid.min.js";
+
+    mermaid.initialize({ startOnLoad: false });
+
+    export function init(ctx, graph) {
+      mermaid.render("graph1", graph, (svgSource, bindListeners) => {
+        ctx.root.innerHTML = svgSource;
+        bindListeners && bindListeners(ctx.root);
+      });
+    }
+    """
+  end
+end
+```
+
+In this case we pass the graph specification to Mermaid, which
+generates an SVG image for us and we embed it directly into the
+page. Note how we import the package directly from a CDN. Using
+this approach we can quickly create widgets without setting up
+a whole JavaScript bundling system.
+
+Let's celebate our new widget with a couple graphs. Feel free
+to try out other examples from the Mermaid website!
+
+```elixir
+Kino.Mermaid.new("""
+graph TD;
+  A-->B;
+  A-->C;
+  B-->D;
+  C-->D;
+""")
+```
+
+```elixir
+Kino.Mermaid.new("""
+erDiagram
+  CUSTOMER ||--o{ ORDER : places
+  ORDER ||--|{ LINE-ITEM : contains
+  CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+""")
+```
+
+## Dynamic maps with Leaflet
+
+Widgets with static data are useful, but they really come down
+to a piece of JavaScript. This time we will try out something
+more exciting. We will set up a simple map and then push points
+directly from the Elixir code!
+
+There is a number of different JavaScript packages to pick from
+when dealing with maps, for our purpose we will use [Leaflet](https://leafletjs.com),
+which is an established solution in this area.
+
+```elixir
+defmodule Kino.Leaflet do
+  use Kino.JS
+  use Kino.JS.Live
+
+  def new(center, zoom) do
+    Kino.JS.Live.new(__MODULE__, {normalize_location(center), zoom})
+  end
+
+  def add_marker(widget, location) do
+    Kino.JS.Live.cast(widget, {:add_marker, normalize_location(location)})
+  end
+
+  @impl true
+  def init({center, zoom}, ctx) do
+    {:ok, assign(ctx, center: center, zoom: zoom, locations: [])}
+  end
+
+  @impl true
+  def handle_connect(ctx) do
+    data = %{
+      center: ctx.assigns.center,
+      zoom: ctx.assigns.zoom,
+      locations: ctx.assigns.locations
+    }
+
+    {:ok, data, ctx}
+  end
+
+  @impl true
+  def handle_cast({:add_marker, location}, ctx) do
+    ctx =
+      ctx
+      |> broadcast_event("add_marker", location)
+      |> update(:locations, &[location | &1])
+
+    {:noreply, ctx}
+  end
+
+  defp normalize_location({lag, lng}), do: [lag, lng]
+
+  asset "main.js" do
+    """
+    import * as L from "https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet-src.esm.js";
+
+    export async function init(ctx, data) {
+      ctx.root.style.height = "400px";
+
+      // Leaflet requires styles to be present before creating the map,
+      // so we await for the import to finish
+      await ctx.importCSS("https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css");
+
+      const { center, zoom, locations } = data;
+      const map = L.map(ctx.root, { center, zoom });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      locations.forEach((location) => {
+        L.marker(location).addTo(map);
+      });
+
+      ctx.handleEvent("add_marker", (location) => {
+        L.marker(location).addTo(map);
+      });
+    }
+    """
+  end
+end
+```
+
+This is a bit more code, however the flow is very straightforward.
+The map is initialized with the central location and zoom, we store
+those in the server state and pass to each client when they connect.
+
+Additionally we keep a list of locations that we want to mark on the
+map. The public `add_marker` function allows for pushing new locations
+to the server, in which case we send the it to the client. On the
+client we render all initial markers we get and subscribe to any new
+that appear later on.
+
+Note that we keep track of all locations on the server, this way
+whenever a new user joins the page, we can send them all of the
+locations we already have. To verify this behaviour you can refresh
+the page and you should see all of the markers still in place. Feel
+free to try this out in separte browser tabs too!
+
+```elixir
+map = Kino.Leaflet.new({51.505, -0.09}, 13)
+```
+
+The below cell marks a random location, so you can evaluate it
+multiple times for better results.
+
+```elixir
+delta = fn -> (:rand.uniform() - 0.5) * 0.05 end
+
+Kino.Leaflet.add_marker(map, {51.505 + delta.(), -0.09 + delta.()})
+```
+
+We barely scratched the surface of maps, the Leaflet API alone is extremely
+extensive and there are other packages worth exploring. However, even with
+this simple widget we could already visualize some geographic data in real-time!
+
+## Bidirectional live counter
+
+The map example reiterated how we can send events from the server
+to the clients, however communication in the other direction is
+possible as well!
+
+Let's build a counter that can be incremented both through Elixir
+calls and client interactions.
+
+```elixir
+defmodule Kino.Counter do
+  use Kino.JS
+  use Kino.JS.Live
+
+  def new(count) do
+    Kino.JS.Live.new(__MODULE__, count)
+  end
+
+  def bump(widget) do
+    Kino.JS.Live.cast(widget, :bump)
+  end
+
+  @impl true
+  def init(count, ctx) do
+    {:ok, assign(ctx, count: count)}
+  end
+
+  @impl true
+  def handle_connect(ctx) do
+    {:ok, ctx.assigns.count, ctx}
+  end
+
+  @impl true
+  def handle_cast(:bump, ctx) do
+    {:noreply, bump_count(ctx)}
+  end
+
+  @impl true
+  def handle_event("bump", _, ctx) do
+    {:noreply, bump_count(ctx)}
+  end
+
+  defp bump_count(ctx) do
+    ctx = update(ctx, :count, &(&1 + 1))
+    broadcast_event(ctx, "update", ctx.assigns.count)
+  end
+
+  asset "main.js" do
+    """
+    export function init(ctx, count) {
+      ctx.root.innerHTML = `
+        <div id="count"></div>
+        <button id="bump">Bump</button>
+      `;
+
+      const countEl = document.getElementById("count");
+      const bumpEl = document.getElementById("bump");
+
+      countEl.innerHTML = count;
+
+      ctx.handleEvent("update", (count) => {
+        countEl.innerHTML = count;
+      });
+
+      bumpEl.addEventListener("click", (event) => {
+        ctx.pushEvent("bump");
+      });
+    }
+    """
+  end
+end
+```
+
+At this point the server mechanics should be clear. On the
+client side we listen to button clicks and whenever it happens
+we send the `"bump"` event to the server. This event gets
+handled by the `handle_event` callback, similarly to other
+message types.
+
+Let's render our counter!
+
+```elixir
+counter = Kino.Counter.new(0)
+```
+
+As an experiment you can open another browser tab to verify
+that the counter is synchronized.
+
+In addition to client events we can also use the Elixir API
+we defined for our counter.
+
+```elixir
+Kino.Counter.bump(counter)
+```
+
+## Final words
+
+Hopefully these futher examples give you a better idea of the
+possibilities enabled by custom JavaScript widgets. We would
+love to see what cool stuff you can build with it! 🚀

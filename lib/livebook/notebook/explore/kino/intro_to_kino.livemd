@@ -1,4 +1,4 @@
-# Interactions with Kino
+# Introduction to Kino
 
 ## Setup
 
