@@ -665,24 +665,29 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_section", %{"section_id" => section_id}, socket) do
-    {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
+    socket =
+      case Notebook.fetch_section(socket.private.data.notebook, section_id) do
+        {:ok, section} ->
+          if section.cells == [] do
+            Session.delete_section(socket.assigns.session.pid, section_id, true)
+            socket
+          else
+            push_patch(socket,
+              to:
+                Routes.session_path(
+                  socket,
+                  :delete_section,
+                  socket.assigns.session.id,
+                  section.id
+                )
+            )
+          end
 
-    if section.cells == [] do
-      Session.delete_section(socket.assigns.session.pid, section_id, true)
+        :error ->
+          socket
+      end
 
-      {:noreply, socket}
-    else
-      {:noreply,
-       push_patch(socket,
-         to:
-           Routes.session_path(
-             socket,
-             :delete_section,
-             socket.assigns.session.id,
-             section.id
-           )
-       )}
-    end
+    {:noreply, socket}
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
