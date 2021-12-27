@@ -665,28 +665,23 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_section", %{"section_id" => section_id}, socket) do
-    %{section_views: section_views} = socket.assigns.data_view
-    section_view = Enum.find(section_views, &(&1.id == section_id))
+    {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
 
-    if section_view do
-      if section_view.cell_views == [] or Enum.all?(section_view.cell_views, & &1.empty?) do
-        Session.delete_section(socket.assigns.session.pid, section_id, true)
+    if section.cells == [] do
+      Session.delete_section(socket.assigns.session.pid, section_id, true)
 
-        {:noreply, socket}
-      else
-        {:noreply,
-         push_patch(socket,
-           to:
-             Routes.session_path(
-               socket,
-               :delete_section,
-               socket.assigns.session.id,
-               section_view.id
-             )
-         )}
-      end
-    else
       {:noreply, socket}
+    else
+      {:noreply,
+       push_patch(socket,
+         to:
+           Routes.session_path(
+             socket,
+             :delete_section,
+             socket.assigns.session.id,
+             section.id
+           )
+       )}
     end
   end
 
