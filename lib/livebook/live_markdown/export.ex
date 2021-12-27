@@ -144,7 +144,23 @@ defmodule Livebook.LiveMarkdown.Export do
     ["```", "vega-lite\n", Jason.encode!(spec), "\n", "```"]
   end
 
+  defp render_output({:js_static, %{export: %{info_string: info_string, key: key}}, data})
+       when is_binary(info_string) do
+    payload = if key && is_map(data), do: data[key], else: data
+
+    case encode_js_data(payload) do
+      {:ok, binary} ->
+        ["```", info_string, "\n", binary, "\n", "```"]
+
+      _ ->
+        :ignored
+    end
+  end
+
   defp render_output(_output), do: :ignored
+
+  defp encode_js_data(data) when is_binary(data), do: {:ok, data}
+  defp encode_js_data(data), do: Jason.encode(data)
 
   defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
     do: source
