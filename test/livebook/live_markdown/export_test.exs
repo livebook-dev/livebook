@@ -678,7 +678,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "includes vega_lite_static output" do
+    test "does not include js_static output with no export info" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -689,34 +689,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                 cells: [
                   %{
                     Notebook.Cell.new(:elixir)
-                    | source: """
-                      Vl.new(width: 500, height: 200)
-                      |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
-                      |> Vl.mark(:line)
-                      |> Vl.encode_field(:x, "in", type: :quantitative)
-                      |> Vl.encode_field(:y, "out", type: :quantitative)\
-                      """,
+                    | source: ":ok",
                       outputs: [
-                        {:vega_lite_static,
+                        {:js_static,
                          %{
-                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
-                           "data" => %{
-                             "values" => [
-                               %{"in" => 1, "out" => 1},
-                               %{"in" => 2, "out" => 2},
-                               %{"in" => 3, "out" => 3},
-                               %{"in" => 4, "out" => 4},
-                               %{"in" => 5, "out" => 5}
-                             ]
-                           },
-                           "encoding" => %{
-                             "x" => %{"field" => "in", "type" => "quantitative"},
-                             "y" => %{"field" => "out", "type" => "quantitative"}
-                           },
-                           "height" => 200,
-                           "mark" => "line",
-                           "width" => 500
-                         }}
+                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                           export: nil
+                         }, "data"}
                       ]
                   }
                 ]
@@ -730,15 +709,140 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ## Section 1
 
       ```elixir
-      Vl.new(width: 500, height: 200)
-      |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
-      |> Vl.mark(:line)
-      |> Vl.encode_field(:x, "in", type: :quantitative)
-      |> Vl.encode_field(:y, "out", type: :quantitative)
+      :ok
+      ```
+      """
+
+      document = Export.notebook_to_markdown(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "includes js_static output if export info is set" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:elixir)
+                    | source: ":ok",
+                      outputs: [
+                        {:js_static,
+                         %{
+                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                           export: %{info_string: "mermaid", key: nil}
+                         }, "graph TD;\nA-->B;"}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      :ok
+      ```
+
+      ```mermaid
+      graph TD;
+      A-->B;
+      ```
+      """
+
+      document = Export.notebook_to_markdown(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "serializes js_static data to JSON if not binary" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:elixir)
+                    | source: ":ok",
+                      outputs: [
+                        {:js_static,
+                         %{
+                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                           export: %{info_string: "box", key: nil}
+                         }, %{height: 50, width: 50}}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      :ok
+      ```
+
+      ```box
+      {"height":50,"width":50}
+      ```
+      """
+
+      document = Export.notebook_to_markdown(notebook, include_outputs: true)
+
+      assert expected_document == document
+    end
+
+    test "exports partial js_static data when export_key is set" do
+      notebook = %{
+        Notebook.new()
+        | name: "My Notebook",
+          sections: [
+            %{
+              Notebook.Section.new()
+              | name: "Section 1",
+                cells: [
+                  %{
+                    Notebook.Cell.new(:elixir)
+                    | source: ":ok",
+                      outputs: [
+                        {:js_static,
+                         %{
+                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                           export: %{info_string: "vega-lite", key: :spec}
+                         }, %{spec: %{"height" => 50, "width" => 50}, datasets: []}}
+                      ]
+                  }
+                ]
+            }
+          ]
+      }
+
+      expected_document = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      :ok
       ```
 
       ```vega-lite
-      {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","data":{"values":[{"in":1,"out":1},{"in":2,"out":2},{"in":3,"out":3},{"in":4,"out":4},{"in":5,"out":5}]},"encoding":{"x":{"field":"in","type":"quantitative"},"y":{"field":"out","type":"quantitative"}},"height":200,"mark":"line","width":500}
+      {"height":50,"width":50}
       ```
       """
 
