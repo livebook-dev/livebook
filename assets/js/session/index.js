@@ -305,21 +305,8 @@ function handleDocumentKeyDown(hook, event) {
     keyBuffer.reset();
 
     if (key === "Escape") {
-      const monacoInputOpen = !!event.target.closest(".monaco-inputbox");
-
-      const editor = event.target.closest(".monaco-editor.focused");
-
-      const completionBoxOpen = !!(
-        editor &&
-        editor.querySelector(".editor-widget.parameter-hints-widget.visible")
-      );
-      const signatureDetailsOpen = !!(
-        editor && editor.querySelector(".editor-widget.suggest-widget.visible")
-      );
-
-      // Ignore Escape if it's supposed to close some Monaco input
-      // (like the find/replace box), or an intellisense widget
-      if (!monacoInputOpen && !completionBoxOpen && !signatureDetailsOpen) {
+      // Ignore Escape if it's supposed to close an editor widget
+      if (!escapesMonacoWidget(event)) {
         escapeInsertMode(hook);
       }
     } else if (cmd && shift && !alt && key === "Enter") {
@@ -409,6 +396,36 @@ function handleDocumentKeyDown(hook, event) {
       insertCellAboveFocused(hook, "markdown");
     }
   }
+}
+
+function escapesMonacoWidget(event) {
+  // Escape pressed in an editor input
+  if (event.target.closest(".monaco-inputbox")) {
+    return true;
+  }
+
+  const editor = event.target.closest(".monaco-editor.focused");
+
+  if (!editor) {
+    return false;
+  }
+
+  // Completion box open
+  if (editor.querySelector(".editor-widget.parameter-hints-widget.visible")) {
+    return true;
+  }
+
+  // Signature details open
+  if (editor.querySelector(".editor-widget.suggest-widget.visible")) {
+    return true;
+  }
+
+  // Multi-cursor selection enabled
+  if (editor.querySelectorAll(".cursor").length > 1) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
