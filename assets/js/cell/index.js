@@ -216,15 +216,14 @@ function handleInsertModeChanged(hook, insertMode) {
     hook.state.insertMode = insertMode;
 
     if (hook.state.liveEditor) {
-      // For some reason, when clicking the editor for a brief moment it is
-      // already focused and the cursor is in the previous location, which
-      // makes the browser immediately scroll there. We blur the editor,
-      // then wait for the editor to update the cursor position, finally
-      // we focus the editor and scroll if the cursor is not in the view
-      // (when entering insert mode with "i").
-      hook.state.liveEditor.blur();
+      hook.state.liveEditor.focus();
+
+      // The insert mode may be enabled as a result of clicking the editor,
+      // in which case we want to wait until editor handles the click and
+      // sets new cursor position. To achieve this, we simply put this task
+      // at the end of event loop, ensuring the editor mousedown handler is
+      // executed first
       setTimeout(() => {
-        hook.state.liveEditor.focus();
         scrollIntoView(document.activeElement, {
           scrollMode: "if-needed",
           behavior: "smooth",

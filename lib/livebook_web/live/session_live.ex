@@ -119,7 +119,7 @@ defmodule LivebookWeb.SessionLive do
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} empty_default_runtime={@empty_default_runtime} />
         </div>
       </div>
-      <div class="flex-grow overflow-y-auto scroll-smooth relative" data-element="notebook">
+      <div class="flex-grow overflow-y-auto relative" data-element="notebook">
         <div data-element="output-iframes" phx-update="ignore" id="output-iframes"></div>
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-element="notebook-content">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200"
