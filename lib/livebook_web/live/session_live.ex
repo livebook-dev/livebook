@@ -741,7 +741,7 @@ defmodule LivebookWeb.SessionLive do
         case Runtime.duplicate(runtime) do
           {:ok, new_runtime} ->
             Session.connect_runtime(socket.assigns.session.pid, new_runtime)
-            socket
+            clear_flash(socket, :error)
 
           {:error, message} ->
             put_flash(socket, :error, "Failed to setup runtime - #{message}")

@@ -83,9 +83,23 @@ defmodule Livebook.Runtime.MixStandalone do
 
     init_async(project_path, emitter)
 
+    await_init(ref, [])
+  end
+
+  defp await_init(ref, outputs) do
     receive do
-      {:emitter, ^ref, {:ok, runtime}} -> {:ok, runtime}
-      {:emitter, ^ref, {:error, error}} -> {:error, error}
+      {:emitter, ^ref, message} -> message
+    end
+    |> case do
+      {:ok, runtime} ->
+        {:ok, runtime}
+
+      {:error, error} ->
+        message = IO.iodata_to_binary([error, ". Output:\n\n", Enum.reverse(outputs)])
+        {:error, message}
+
+      {:output, output} ->
+        await_init(ref, [output | outputs])
     end
   end
 
@@ -98,7 +112,7 @@ defmodule Livebook.Runtime.MixStandalone do
            into: output_emitter
          ) do
       {_callback, 0} -> :ok
-      {_callback, _status} -> {:error, "running mix #{task} failed, see output for more details"}
+      {_callback, _status} -> {:error, "running mix #{task} failed"}
     end
   end
 
