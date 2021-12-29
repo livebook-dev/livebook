@@ -56,7 +56,7 @@ defmodule LivebookWeb.SidebarHelpers do
 
   def break_item(assigns) do
     ~H"""
-    <div class="flex-grow"></div>
+    <div class="grow"></div>
     """
   end
 

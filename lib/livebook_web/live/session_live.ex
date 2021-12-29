@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-grow h-full"
+    <div class="flex grow h-full"
       id={"session-#{@session.id}"}
       data-element="session"
       phx-hook="Session"
@@ -119,7 +119,7 @@ defmodule LivebookWeb.SessionLive do
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} empty_default_runtime={@empty_default_runtime} />
         </div>
       </div>
-      <div class="flex-grow overflow-y-auto relative" data-element="notebook">
+      <div class="grow overflow-y-auto relative" data-element="notebook">
         <div data-element="output-iframes" phx-update="ignore" id="output-iframes"></div>
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-element="notebook-content">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200"
@@ -129,7 +129,7 @@ defmodule LivebookWeb.SessionLive do
             phx-hook="Headline"
             data-on-value-change="set_notebook_name"
             data-metadata="notebook">
-            <h1 class="flex-grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
+            <h1 class="grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
               tabindex="0"
               id="notebook-heading"
               data-element="heading"
@@ -299,14 +299,14 @@ defmodule LivebookWeb.SessionLive do
 
   defp sections_list(assigns) do
     ~H"""
-    <div class="flex flex-col flex-grow">
+    <div class="flex flex-col grow">
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Sections
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
         <%= for section_item <- @data_view.sections_items do %>
           <div class="flex items-center">
-            <button class="flex-grow flex items-center text-gray-500 hover:text-gray-900 text-left"
+            <button class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
               data-element="sections-list-item"
               data-section-id={section_item.id}>
               <span class="flex items-center space-x-1">
@@ -335,7 +335,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp clients_list(assigns) do
     ~H"""
-    <div class="flex flex-col flex-grow">
+    <div class="flex flex-col grow">
       <div class="flex items-center justify-between space-x-4">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Users
@@ -354,7 +354,7 @@ defmodule LivebookWeb.SessionLive do
             <button class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
               disabled={client_pid == @self}
               data-element="client-link">
-              <.user_avatar user={user} class="flex-shrink-0 h-7 w-7" text_class="text-xs" />
+              <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
               <span><%= user.name || "Anonymous" %></span>
             </button>
             <%= if client_pid != @self do %>
@@ -382,7 +382,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp runtime_info(assigns) do
     ~H"""
-    <div class="flex flex-col flex-grow">
+    <div class="flex flex-col grow">
       <div class="flex items-center justify-between">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Runtime

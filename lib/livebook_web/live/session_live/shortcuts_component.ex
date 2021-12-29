@@ -177,7 +177,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <%= @title %>
     </h3>
     <div class="mt-2 flex flex-col lg:flex-row lg:space-x-4">
-      <div class="lg:flex-grow">
+      <div class="lg:grow">
         <.shortcuts_section_table shortcuts={@left} platform={@platform} />
       </div>
       <div class="lg:w-1/2">
