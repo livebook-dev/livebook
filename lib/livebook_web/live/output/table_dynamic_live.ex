@@ -49,7 +49,7 @@ defmodule LivebookWeb.Output.TableDynamicLive do
       <h3 class="font-semibold text-gray-800">
         <%= @name %>
       </h3>
-      <div class="flex-grow"></div>
+      <div class="grow"></div>
       <!-- Actions -->
       <div class="flex space-x-2">
         <%= if :refetch in @features do %>

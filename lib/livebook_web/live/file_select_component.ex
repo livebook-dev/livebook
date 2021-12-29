@@ -63,14 +63,14 @@ defmodule LivebookWeb.FileSelectComponent do
     ~H"""
     <div class="h-full flex flex-col">
       <div class="flex space-x-3 items-center mb-4">
-        <div class="flex-grow flex space-x-1">
+        <div class="grow flex space-x-1">
           <.file_system_menu_button
             file={@file}
             file_systems={@file_systems}
             file_system_select_disabled={@file_system_select_disabled}
             socket={@socket}
             myself={@myself} />
-          <form class="flex-grow"
+          <form class="grow"
             phx-change="set_path"
             phx-submit={if @submit_event, do: "submit"}
             onsubmit={unless @submit_event, do: "return false"}
@@ -111,7 +111,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <% end %>
         <%= if @deleting_file do %>
           <div class="mb-4 px-4 py-3 flex space-x-4 items-center border border-gray-200 rounded-lg">
-            <p class="flex-grow text-gray-700 text-sm">
+            <p class="grow text-gray-700 text-sm">
               Are you sure you want to irreversibly delete
               <span class="font-semibold"><%= @deleting_file.path %></span>?
             </p>
@@ -131,7 +131,7 @@ defmodule LivebookWeb.FileSelectComponent do
           </div>
         <% end %>
       </div>
-      <div class="flex-grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
+      <div class="grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
         <div class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
           id="new_dir_section">
           <div class="flex space-x-2 items-center p-2 rounded-lg">
@@ -275,11 +275,11 @@ defmodule LivebookWeb.FileSelectComponent do
           </span>
           <span class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"}>
             <%= if @file_info.highlighted != "" do %>
-              <span class={"font-medium overflow-hidden overflow-ellipsis #{if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")}"}>
+              <span class={"font-medium overflow-hidden text-ellipsis #{if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")}"}>
                 <%= @file_info.highlighted %>
               </span>
             <% end %>
-            <span class="overflow-hidden overflow-ellipsis">
+            <span class="overflow-hidden text-ellipsis">
               <%= @file_info.unhighlighted %>
             </span>
           </span>

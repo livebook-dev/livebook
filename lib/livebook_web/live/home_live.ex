@@ -28,7 +28,7 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-grow h-full">
+    <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.break_item />
         <SidebarHelpers.link_item
@@ -38,7 +38,7 @@ defmodule LivebookWeb.HomeLive do
           active={false} />
         <SidebarHelpers.user_item current_user={@current_user} path={Routes.home_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
-      <div class="flex-grow px-6 py-8 overflow-y-auto">
+      <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
                       sm:flex-row sm:space-y-0 sm:justify-between">

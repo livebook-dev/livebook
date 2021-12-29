@@ -30,7 +30,7 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
             File upload
           </span>
         <% end %>
-        <div class="flex-grow tab">
+        <div class="grow tab">
         </div>
       </div>
       <div>

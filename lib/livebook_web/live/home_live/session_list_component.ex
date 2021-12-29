@@ -64,7 +64,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <div>
         <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
       </div>
-      <div class="flex-grow flex items-center justify-between">
+      <div class="grow flex items-center justify-between">
         <div class="text-gray-600">
           You do not have any running sessions.
           <%= if @show_autosave_note? do %>
@@ -87,7 +87,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <%= for session <- @sessions do %>
         <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
-          <div class="flex-grow flex flex-col items-start">
+          <div class="grow flex flex-col items-start">
             <%= live_redirect session.notebook_name,
                   to: Routes.session_path(@socket, :page, session.id),
                   class: "font-semibold text-gray-800 hover:text-gray-900" %>

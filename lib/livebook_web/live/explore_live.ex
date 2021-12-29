@@ -21,7 +21,7 @@ defmodule LivebookWeb.ExploreLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-grow h-full">
+    <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.break_item />
@@ -32,7 +32,7 @@ defmodule LivebookWeb.ExploreLive do
           active={false} />
         <SidebarHelpers.user_item current_user={@current_user} path={Routes.explore_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
-      <div class="flex-grow px-6 py-8 overflow-y-auto">
+      <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
           <div>
             <PageHelpers.title text="Explore" socket={@socket} />
@@ -55,7 +55,7 @@ defmodule LivebookWeb.ExploreLive do
                       class: "button-base button-blue" %>
               </div>
             </div>
-            <div class="flex-grow hidden md:flex flex items-center justify-center">
+            <div class="grow hidden md:flex flex items-center justify-center">
               <img src={@lead_notebook_info.details.cover_url} height="120" width="120" alt="livebook" />
             </div>
           </div>
@@ -105,7 +105,7 @@ defmodule LivebookWeb.ExploreLive do
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
-              <div class="flex-grow text-lg text-gray-800 font-semibold">
+              <div class="grow text-lg text-gray-800 font-semibold">
                 <%= notebook_info.title %>
               </div>
               <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),

@@ -76,7 +76,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                     [<.file_system_icon file_system={@new_attrs.file.file_system} />]
                   </span>
                 </span>
-                <span class="text-gray-700 whitespace-no-wrap font-medium overflow-ellipsis overflow-hidden">
+                <span class="text-gray-700 whitespace-no-wrap font-medium text-ellipsis overflow-hidden">
                   <%= @new_attrs.file.path %>
                 </span>
                 <button class="button-base button-gray button-small"

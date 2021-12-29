@@ -7,7 +7,8 @@ defmodule LivebookWeb.Endpoint do
   @session_options [
     store: :cookie,
     key: "_livebook_key",
-    signing_salt: "deadbook"
+    signing_salt: "deadbook",
+    same_site: "Lax"
   ]
 
   socket "/live", Phoenix.LiveView.Socket,

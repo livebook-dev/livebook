@@ -11,7 +11,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         phx-hook="Headline"
         data-on-value-change="set_section_name"
         data-metadata={@section_view.id}>
-        <h2 class="flex-grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
+        <h2 class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
           id={@section_view.html_id}
           data-element="heading"

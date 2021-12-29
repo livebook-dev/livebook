@@ -47,7 +47,7 @@ defmodule LivebookWeb.UserComponent do
                   style={"background-color: #{@preview_user.hex_color}"}>
                 </div>
               </div>
-              <div class="relative flex-grow">
+              <div class="relative grow">
                 <%= text_input f, :hex_color, value: @data["hex_color"], class: "input", spellcheck: "false", maxlength: 7 %>
                 <button
                   class="icon-button absolute right-2 top-1"

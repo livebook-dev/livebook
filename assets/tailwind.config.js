@@ -1,13 +1,11 @@
 module.exports = {
-  mode: "jit",
-  purge: [
+  content: [
     "../lib/**/*.ex",
     "../lib/**/*.leex",
     "../lib/**/*.heex",
     "../lib/**/*.eex",
     "./js/**/*.js",
   ],
-  darkMode: false,
   theme: {
     fontFamily: {
       sans: ["Inter"],
@@ -53,9 +51,6 @@ module.exports = {
         },
       },
     },
-  },
-  variants: {
-    extend: {},
   },
   plugins: [],
 };

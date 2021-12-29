@@ -48,7 +48,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
               </div>
             </label>
           </div>
-          <div class="flex-grow">
+          <div class="grow">
             <input class="input" name="name" value={@name} placeholder="Name" autocomplete="off" />
           </div>
         </div>
