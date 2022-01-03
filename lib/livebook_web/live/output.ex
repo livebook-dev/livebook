@@ -53,6 +53,7 @@ defmodule LivebookWeb.Output do
 
   defp standalone?({:table_dynamic, _}), do: true
   defp standalone?({:frame_dynamic, _}), do: true
+  defp standalone?({:js_dynamic, _, _}), do: true
   defp standalone?({:input, _}), do: true
   defp standalone?({:control, _}), do: true
   defp standalone?(_output), do: false
