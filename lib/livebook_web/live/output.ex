@@ -51,11 +51,11 @@ defmodule LivebookWeb.Output do
     end
   end
 
-  defp standalone?({:table_dynamic, _}), do: true
-  defp standalone?({:frame_dynamic, _}), do: true
-  defp standalone?({:input, _}), do: true
-  defp standalone?({:control, _}), do: true
-  defp standalone?(_output), do: false
+  defp standalone?(:ignored), do: false
+  defp standalone?(text) when is_binary(text), do: false
+  defp standalone?({:text, _text}), do: false
+  defp standalone?({:error, _message, _type}), do: false
+  defp standalone?(_output), do: true
 
   defp composite?({:frame_dynamic, _}), do: true
   defp composite?(_output), do: false

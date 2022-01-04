@@ -275,7 +275,10 @@ defmodule LivebookWeb.FileSelectComponent do
           </span>
           <span class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"}>
             <%= if @file_info.highlighted != "" do %>
-              <span class={"font-medium overflow-hidden text-ellipsis #{if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")}"}>
+              <span class={
+                "font-medium
+                  #{if(@file_info.unhighlighted == "", do: "overflow-hidden text-ellipsis")}
+                  #{if(@file_info.is_running, do: "text-green-400", else: "text-gray-900")}"}>
                 <%= @file_info.highlighted %>
               </span>
             <% end %>
