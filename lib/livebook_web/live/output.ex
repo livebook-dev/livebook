@@ -103,10 +103,12 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:js_dynamic, info, pid}, %{id: id, socket: socket, session_id: session_id}) do
-    live_render(socket, LivebookWeb.Output.JSDynamicLive,
+  defp render_output({:js_dynamic, info, pid}, %{id: id, session_id: session_id}) do
+    live_component(LivebookWeb.Output.JSDynamicComponent,
       id: id,
-      session: %{"id" => id, "info" => info, "pid" => pid, "session_id" => session_id}
+      info: info,
+      pid: pid,
+      session_id: session_id
     )
   end
 

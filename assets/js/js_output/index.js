@@ -1,7 +1,27 @@
-import { getAttributeOrThrow } from "../lib/attribute";
+import { getAttributeOrDefault, getAttributeOrThrow } from "../lib/attribute";
 import { randomToken } from "../lib/utils";
 
 import iframeHtml from "./iframe.html";
+
+const global = {
+  socket: null,
+  channel: null,
+};
+
+// To avoid circular dependency between JS modules,
+// we set the socket from outside
+export function onSocket(socket) {
+  global.socket = socket;
+}
+
+function getChannel() {
+  if (!global.channel) {
+    global.channel = global.socket.channel(`js_dynamic`, {});
+    global.channel.join();
+  }
+
+  return global.channel;
+}
 
 /**
  * A hook used to render JS-enabled cell output.
@@ -9,21 +29,33 @@ import iframeHtml from "./iframe.html";
  * The JavaScript is defined by the user, so we sandbox the script
  * execution inside an iframe.
  *
- * The hook expects `js_output:<id>:init` event with `{ data }` payload,
+ * ## Static mode
+ *
+ * The hook expects `js_output:<ref>:init` event with `{ data }` payload,
  * the data is then used in the initial call to the custom JS module.
  *
- * Then, a number of `js_output:<id>:event` with `{ event }` payload can
+ * ## Dynamic mode
+ *
+ * When `data-session-token` is set, the hook connects to a dedicated
+ * channel, sending the token and output ref in an initial message.
+ * It expects `init:<ref>` message with `{ data }` payload, similarly
+ * to the static mode.
+ *
+ * Then, a number of `event:<ref>` with `{ event, payload }` payload can
  * be sent. The `event` is forwarded to the initialized component.
  *
- * Configuration:
+ * ## Configuration
  *
- *   * `data-id` - a unique identifier used as messages scope
+ *   * `data-ref` - a unique identifier used as messages scope
  *
  *   * `data-assets-base-url` - the URL to resolve all relative paths
  *     against in the iframe
  *
  *   * `data-js-path` - a relative path for the initial output-specific
  *     JS module
+ *
+ *   * `data-session-token` - enables dynamic mode, the token is sent
+ *     in the "connect" message to the channel
  *
  */
 const JSOutput = {
@@ -34,7 +66,10 @@ const JSOutput = {
       childReadyPromise: null,
       childReady: false,
       iframe: null,
+      channelUnsubscribe: null,
     };
+
+    const channel = getChannel();
 
     const iframePlaceholder = document.createElement("div");
     const iframe = document.createElement("iframe");
@@ -85,7 +120,7 @@ const JSOutput = {
             this.el.dispatchEvent(event);
           } else if (message.type === "event") {
             const { event, payload } = message;
-            this.pushEvent("event", { event, payload });
+            channel.push("event", { event, payload, ref: this.props.ref });
           }
         }
       };
@@ -163,20 +198,38 @@ const JSOutput = {
 
     // Event handlers
 
-    this.handleEvent(`js_output:${this.props.id}:init`, ({ data }) => {
-      this.state.childReadyPromise.then(() => {
-        postMessage({ type: "init", data });
+    if (this.props.sessionToken) {
+      channel.push("connect", {
+        session_token: this.props.sessionToken,
+        ref: this.props.ref,
       });
-    });
 
-    this.handleEvent(
-      `js_output:${this.props.id}:event`,
-      ({ event, payload }) => {
+      const initRef = channel.on(`init:${this.props.ref}`, ({ data }) => {
         this.state.childReadyPromise.then(() => {
-          postMessage({ type: "event", event, payload });
+          postMessage({ type: "init", data });
         });
-      }
-    );
+      });
+
+      const eventRef = channel.on(
+        `event:${this.props.ref}`,
+        ({ event, payload }) => {
+          this.state.childReadyPromise.then(() => {
+            postMessage({ type: "event", event, payload });
+          });
+        }
+      );
+
+      this.state.channelUnsubscribe = () => {
+        channel.off(`init:${this.props.ref}`, initRef);
+        channel.off(`event:${this.props.ref}`, eventRef);
+      };
+    } else {
+      this.handleEvent(`js_output:${this.props.ref}:init`, ({ data }) => {
+        this.state.childReadyPromise.then(() => {
+          postMessage({ type: "init", data });
+        });
+      });
+    }
   },
 
   updated() {
@@ -188,14 +241,21 @@ const JSOutput = {
     this.resizeObserver.disconnect();
     this.intersectionObserver.disconnect();
     this.state.iframe.remove();
+
+    if (this.state.channelUnsubscribe) {
+      this.state.channelUnsubscribe();
+      const channel = getChannel();
+      channel.push("disconnect", { ref: this.props.ref });
+    }
   },
 };
 
 function getProps(hook) {
   return {
-    id: getAttributeOrThrow(hook.el, "data-id"),
+    ref: getAttributeOrThrow(hook.el, "data-ref"),
     assetsBaseUrl: getAttributeOrThrow(hook.el, "data-assets-base-url"),
     jsPath: getAttributeOrThrow(hook.el, "data-js-path"),
+    sessionToken: getAttributeOrDefault(hook.el, "data-session-token", null),
   };
 }
 

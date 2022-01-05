@@ -11,7 +11,7 @@ defmodule LivebookWeb.Endpoint do
     same_site: "Lax"
   ]
 
-  socket "/live", Phoenix.LiveView.Socket,
+  socket "/live", LivebookWeb.Socket,
     # Don't check the origin as we don't know how the web app is gonna be accessed.
     # It runs locally, but may be exposed via IP or domain name.
     # The WebSocket connection is already protected from CSWSH by using CSRF token.

@@ -8,21 +8,14 @@ defmodule LivebookWeb.Output.JSStaticComponent do
 
   @impl true
   def update(assigns, socket) do
-    assets_base_url =
-      Routes.session_url(socket, :show_asset, assigns.session_id, assigns.info.assets.hash, [])
-
-    socket =
-      assign(socket,
-        id: assigns.id,
-        assets_base_url: assets_base_url,
-        js_path: assigns.info.assets.js_path
-      )
+    socket = assign(socket, assigns)
 
     socket =
       if connected?(socket) and not socket.assigns.initialized do
         socket
         |> assign(initialized: true)
-        |> push_event("js_output:#{socket.assigns.id}:init", %{"data" => assigns.data})
+        # TODO validate serialization
+        |> push_event("js_output:#{socket.assigns.info.ref}:init", %{"data" => assigns.data})
       else
         socket
       end
@@ -36,9 +29,9 @@ defmodule LivebookWeb.Output.JSStaticComponent do
     <div id={"js-output-#{@id}"}
       phx-hook="JSOutput"
       phx-update="ignore"
-      data-id={@id}
-      data-assets-base-url={@assets_base_url}
-      data-js-path={@js_path}>
+      data-ref={@info.ref}
+      data-assets-base-url={Routes.session_url(@socket, :show_asset, @session_id, @info.assets.hash, [])}
+      data-js-path={@info.assets.js_path}>
     </div>
     """
   end
