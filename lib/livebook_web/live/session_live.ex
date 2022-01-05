@@ -619,7 +619,7 @@ defmodule LivebookWeb.SessionLive do
     name = normalize_name(name)
     Session.set_notebook_name(socket.assigns.session.pid, name)
 
-    {:noreply, socket}
+    {:noreply, assign(socket, page_title: name)}
   end
 
   def handle_event("set_section_name", %{"metadata" => section_id, "value" => name}, socket) do
