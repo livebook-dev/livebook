@@ -1,27 +1,8 @@
 import { getAttributeOrDefault, getAttributeOrThrow } from "../lib/attribute";
 import { randomToken } from "../lib/utils";
+import { getChannel } from "../session";
 
 import iframeHtml from "./iframe.html";
-
-const global = {
-  socket: null,
-  channel: null,
-};
-
-// To avoid circular dependency between JS modules,
-// we set the socket from outside
-export function onSocket(socket) {
-  global.socket = socket;
-}
-
-function getChannel() {
-  if (!global.channel) {
-    global.channel = global.socket.channel(`js_dynamic`, {});
-    global.channel.join();
-  }
-
-  return global.channel;
-}
 
 /**
  * A hook used to render JS-enabled cell output.
@@ -254,9 +235,10 @@ const JSOutput = {
     this.intersectionObserver.disconnect();
     this.state.iframe.remove();
 
-    if (this.state.channelUnsubscribe) {
+    const channel = getChannel({ create: false });
+
+    if (this.state.channelUnsubscribe && channel) {
       this.state.channelUnsubscribe();
-      const channel = getChannel();
       channel.push("disconnect", { ref: this.props.ref });
     }
   },

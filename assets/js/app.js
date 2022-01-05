@@ -27,7 +27,7 @@ import DragAndDrop from "./drag_and_drop";
 import PasswordToggle from "./password_toggle";
 import KeyboardControl from "./keyboard_control";
 import morphdomCallbacks from "./morphdom_callbacks";
-import JSOutput, { onSocket } from "./js_output";
+import JSOutput from "./js_output";
 import { loadUserData } from "./lib/user";
 
 const hooks = {
@@ -64,8 +64,6 @@ const liveSocket = new LiveSocket("/live", Socket, {
   hooks: hooks,
   dom: morphdomCallbacks,
 });
-
-onSocket(liveSocket.getSocket());
 
 // Show progress bar on live navigation and form submits
 topbar.config({
