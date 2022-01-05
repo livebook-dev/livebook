@@ -291,9 +291,14 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "Dynamic output in frame"
     end
 
+    @js_info %{
+      ref: "1",
+      assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+      export: nil
+    }
+
     test "static js output sends the embedded data to the client", %{conn: conn, session: session} do
-      js_info = %{ref: "1", assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}}
-      js_static_output = {:js_static, js_info, [1, 2, 3]}
+      js_static_output = {:js_static, @js_info, [1, 2, 3]}
 
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :elixir)
@@ -305,6 +310,23 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       assert_push_event(view, "js_output:" <> _, %{"data" => [1, 2, 3]})
+    end
+
+    test "static js output renders a clear error on unserializable data",
+         %{conn: conn, session: session} do
+      js_static_output = {:js_static, @js_info, {}}
+
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      # Evaluate the cell
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      # Send an additional output
+      send(session.pid, {:evaluation_output, cell_id, js_static_output})
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert render(view) =~
+               "Failed to serialize widget data, value {} is not JSON-serializable, use another data type"
     end
   end
 

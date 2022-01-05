@@ -67,6 +67,7 @@ const JSOutput = {
       childReady: false,
       iframe: null,
       channelUnsubscribe: null,
+      errorContainer: null,
     };
 
     const channel = getChannel();
@@ -219,9 +220,20 @@ const JSOutput = {
         }
       );
 
+      const errorRef = channel.on(`error:${this.props.ref}`, ({ message }) => {
+        if (!this.state.errorContainer) {
+          this.state.errorContainer = document.createElement("div");
+          this.state.errorContainer.classList.add("error-box", "mb-4");
+          this.el.prepend(this.state.errorContainer);
+        }
+
+        this.state.errorContainer.textContent = message;
+      });
+
       this.state.channelUnsubscribe = () => {
         channel.off(`init:${this.props.ref}`, initRef);
         channel.off(`event:${this.props.ref}`, eventRef);
+        channel.off(`error:${this.props.ref}`, errorRef);
       };
     } else {
       this.handleEvent(`js_output:${this.props.ref}:init`, ({ data }) => {

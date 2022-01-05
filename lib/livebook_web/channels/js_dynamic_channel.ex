@@ -25,7 +25,7 @@ defmodule LivebookWeb.JSDynamicChannel do
     {:noreply, socket}
   end
 
-  def handle_in("diconnect", %{"ref" => ref}, socket) do
+  def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
       if socket.assigns.ref_with_count[ref] == 1 do
         {_, ref_with_count} = Map.pop!(socket.assigns.ref_with_count, ref)
@@ -41,13 +41,28 @@ defmodule LivebookWeb.JSDynamicChannel do
 
   @impl true
   def handle_info({:connect_reply, data, %{ref: ref}}, socket) do
-    # TODO validate serialization
-    push(socket, "init:#{ref}", %{"data" => data})
+    case LivebookWeb.Helpers.validate_json_serializability(data) do
+      :ok ->
+        push(socket, "init:#{ref}", %{"data" => data})
+
+      {:error, error} ->
+        message = "Failed to serialize initial widget data, " <> error
+        push(socket, "error:#{ref}", %{"message" => message})
+    end
+
     {:noreply, socket}
   end
 
   def handle_info({:event, event, payload, %{ref: ref}}, socket) do
-    push(socket, "event:#{ref}", %{"event" => event, "payload" => payload})
+    case LivebookWeb.Helpers.validate_json_serializability(payload) do
+      :ok ->
+        push(socket, "event:#{ref}", %{"event" => event, "payload" => payload})
+
+      {:error, error} ->
+        message = "Failed to serialize event payload, " <> error
+        push(socket, "error:#{ref}", %{"message" => message})
+    end
+
     {:noreply, socket}
   end
 end
