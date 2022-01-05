@@ -36,29 +36,6 @@ defmodule LivebookWeb.JSDynamicChannelTest do
     assert_receive {:event, "ping", [1, 2, 3], %{origin: _origin}}
   end
 
-  describe "serialization errors" do
-    test "sends an error on initial data serialization failure", %{socket: socket} do
-      push(socket, "connect", %{"session_token" => session_token(), "ref" => "1"})
-
-      assert_receive {:connect, from, %{}}
-      send(from, {:connect_reply, {}, %{ref: "1"}})
-
-      assert_push "error:1", %{
-        "message" =>
-          "Failed to serialize initial widget data, value {} is not JSON-serializable, use another data type"
-      }
-    end
-
-    test "sends an error on event payload serialization failure", %{socket: socket} do
-      send(socket.channel_pid, {:event, "ping", {}, %{ref: "1"}})
-
-      assert_push "error:1", %{
-        "message" =>
-          "Failed to serialize event payload, value {} is not JSON-serializable, use another data type"
-      }
-    end
-  end
-
   defp session_token() do
     Phoenix.Token.sign(LivebookWeb.Endpoint, "js dynamic", %{pid: self()})
   end

@@ -41,28 +41,34 @@ defmodule LivebookWeb.JSDynamicChannel do
 
   @impl true
   def handle_info({:connect_reply, data, %{ref: ref}}, socket) do
-    case LivebookWeb.Helpers.validate_json_serializability(data) do
-      :ok ->
-        push(socket, "init:#{ref}", %{"data" => data})
-
-      {:error, error} ->
-        message = "Failed to serialize initial widget data, " <> error
-        push(socket, "error:#{ref}", %{"message" => message})
+    with {:error, error} <- try_push(socket, "init:#{ref}", %{"data" => data}) do
+      message = "Failed to serialize initial widget data, " <> error
+      push(socket, "error:#{ref}", %{"message" => message})
     end
 
     {:noreply, socket}
   end
 
   def handle_info({:event, event, payload, %{ref: ref}}, socket) do
-    case LivebookWeb.Helpers.validate_json_serializability(payload) do
-      :ok ->
-        push(socket, "event:#{ref}", %{"event" => event, "payload" => payload})
-
-      {:error, error} ->
-        message = "Failed to serialize event payload, " <> error
-        push(socket, "error:#{ref}", %{"message" => message})
+    with {:error, error} <-
+           try_push(socket, "event:#{ref}", %{"event" => event, "payload" => payload}) do
+      message = "Failed to serialize event payload, " <> error
+      push(socket, "error:#{ref}", %{"message" => message})
     end
 
     {:noreply, socket}
+  end
+
+  # In case the payload fails to encode we catch the error
+  defp try_push(socket, event, payload) do
+    try do
+      push(socket, event, payload)
+    catch
+      :error, %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
+        {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
+
+      :error, error ->
+        {:error, Exception.message(error)}
+    end
   end
 end
