@@ -11,6 +11,7 @@ import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "../cell/live_editor/monaco";
+import { leaveChannel } from "../js_output";
 
 /**
  * A hook managing the whole session.
@@ -244,6 +245,8 @@ const Session = {
     document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
 
     setFavicon("favicon");
+
+    leaveChannel();
   },
 };
 

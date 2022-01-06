@@ -14,13 +14,43 @@ defmodule Livebook.LiveMarkdown.Export do
   """
   @spec notebook_to_markdown(Notebook.t(), keyword()) :: String.t()
   def notebook_to_markdown(notebook, opts \\ []) do
-    ctx = %{
-      include_outputs?: Keyword.get(opts, :include_outputs, notebook.persist_outputs)
-    }
+    include_outputs? = Keyword.get(opts, :include_outputs, notebook.persist_outputs)
+
+    js_ref_with_data = if include_outputs?, do: collect_js_output_data(notebook), else: %{}
+
+    ctx = %{include_outputs?: include_outputs?, js_ref_with_data: js_ref_with_data}
 
     iodata = render_notebook(notebook, ctx)
     # Add trailing newline
     IO.iodata_to_binary([iodata, "\n"])
+  end
+
+  defp collect_js_output_data(notebook) do
+    for section <- notebook.sections,
+        %Cell.Elixir{} = cell <- section.cells,
+        {:js, %{export: %{}, ref: ref, pid: pid}} <- cell.outputs do
+      Task.async(fn ->
+        {ref, get_js_output_data(pid, ref)}
+      end)
+    end
+    |> Task.await_many(:infinity)
+    |> Map.new()
+  end
+
+  defp get_js_output_data(pid, ref) do
+    send(pid, {:connect, self(), %{origin: self(), ref: ref}})
+
+    monitor_ref = Process.monitor(pid)
+
+    data =
+      receive do
+        {:connect_reply, data, %{ref: ^ref}} -> data
+        {:DOWN, ^monitor_ref, :process, _pid, _reason} -> nil
+      end
+
+    Process.demonitor(monitor_ref, [:flush])
+
+    data
   end
 
   defp render_notebook(notebook, ctx) do
@@ -94,7 +124,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp render_cell(%Cell.Elixir{} = cell, ctx) do
     delimiter = MarkdownHelpers.code_block_delimiter(cell.source)
     code = get_elixir_cell_code(cell)
-    outputs = if ctx.include_outputs?, do: render_outputs(cell), else: []
+    outputs = if ctx.include_outputs?, do: render_outputs(cell, ctx), else: []
 
     metadata = cell_metadata(cell)
 
@@ -119,33 +149,37 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp cell_metadata(_cell), do: %{}
 
-  defp render_outputs(cell) do
+  defp render_outputs(cell, ctx) do
     cell.outputs
     |> Enum.reverse()
-    |> Enum.map(&render_output/1)
+    |> Enum.map(&render_output(&1, ctx))
     |> Enum.reject(&(&1 == :ignored))
     |> Enum.intersperse("\n\n")
   end
 
-  defp render_output(text) when is_binary(text) do
+  defp render_output(text, _ctx) when is_binary(text) do
     text = String.replace_suffix(text, "\n", "")
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
     [delimiter, "output\n", text, "\n", delimiter]
   end
 
-  defp render_output({:text, text}) do
+  defp render_output({:text, text}, _ctx) do
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
     [delimiter, "output\n", text, "\n", delimiter]
   end
 
-  defp render_output({:vega_lite_static, spec}) do
+  defp render_output({:vega_lite_static, spec}, _ctx) do
     ["```", "vega-lite\n", Jason.encode!(spec), "\n", "```"]
   end
 
-  defp render_output({:js_static, %{export: %{info_string: info_string, key: key}}, data})
+  defp render_output(
+         {:js, %{export: %{info_string: info_string, key: key}, ref: ref}},
+         ctx
+       )
        when is_binary(info_string) do
+    data = ctx.js_ref_with_data[ref]
     payload = if key && is_map(data), do: data[key], else: data
 
     case encode_js_data(payload) do
@@ -157,7 +191,7 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
-  defp render_output(_output), do: :ignored
+  defp render_output(_output, _ctx), do: :ignored
 
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
   defp encode_js_data(data), do: Jason.encode(data)

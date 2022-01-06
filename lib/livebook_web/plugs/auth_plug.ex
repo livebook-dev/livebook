@@ -28,21 +28,29 @@ defmodule LivebookWeb.AuthPlug do
   Stores in the session the secret for the given mode.
   """
   def store(conn, mode, value) do
-    put_session(conn, key(conn, mode), hash(value))
+    put_session(conn, key(conn.port, mode), hash(value))
   end
 
   @doc """
   Checks if given connection is already authenticated.
   """
   @spec authenticated?(Plug.Conn.t(), Livebook.Config.auth_mode()) :: boolean()
-  def authenticated?(conn, mode)
+  def authenticated?(conn, mode) do
+    authenticated?(get_session(conn), conn.port, mode)
+  end
 
-  def authenticated?(conn, mode) when mode in [:token, :password] do
-    secret = get_session(conn, key(conn, mode))
+  @doc """
+  Checks if the given session is authenticated.
+  """
+  @spec authenticated?(map(), non_neg_integer(), Livebook.Config.auth_mode()) :: boolean()
+  def authenticated?(session, port, mode)
+
+  def authenticated?(session, port, mode) when mode in [:token, :password] do
+    secret = session[key(port, mode)]
     is_binary(secret) and Plug.Crypto.secure_compare(secret, expected(mode))
   end
 
-  def authenticated?(_conn, _mode) do
+  def authenticated?(_session, _port, _mode) do
     true
   end
 
@@ -66,7 +74,7 @@ defmodule LivebookWeb.AuthPlug do
     end
   end
 
-  defp key(conn, mode), do: "#{conn.port}:#{mode}"
+  defp key(port, mode), do: "#{port}:#{mode}"
   defp expected(mode), do: hash(Application.fetch_env!(:livebook, mode))
   defp hash(value), do: :crypto.hash(:sha256, value)
 end

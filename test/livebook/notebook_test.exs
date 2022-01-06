@@ -259,7 +259,7 @@ defmodule Livebook.NotebookTest do
     test "returns asset info matching the given type if found" do
       assets_info = %{archive: "/path/to/archive.tar.gz", hash: "abcd", js_path: "main.js"}
       js_info = %{assets: assets_info}
-      output = {:js_static, js_info, %{}}
+      output = {:js, js_info}
 
       notebook = %{
         Notebook.new()

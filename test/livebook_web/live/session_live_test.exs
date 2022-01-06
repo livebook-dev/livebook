@@ -290,46 +290,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert render(view) =~ "Dynamic output in frame"
     end
-
-    test "static js output sends the embedded data to the client", %{conn: conn, session: session} do
-      js_info = %{assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}}
-      js_static_output = {:js_static, js_info, [1, 2, 3]}
-
-      section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
-      # Evaluate the cell
-      Session.queue_cell_evaluation(session.pid, cell_id)
-      # Send an additional output
-      send(session.pid, {:evaluation_output, cell_id, js_static_output})
-
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-
-      assert_push_event(view, "js_output:" <> _, %{"data" => [1, 2, 3]})
-    end
-
-    test "dynamic js output loads initial data from the widget server",
-         %{conn: conn, session: session} do
-      widget_pid =
-        spawn(fn ->
-          receive do
-            {:connect, pid, %{}} -> send(pid, {:connect_reply, [1, 2, 3]})
-          end
-        end)
-
-      js_info = %{assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}}
-      js_dynamic_output = {:js_dynamic, js_info, widget_pid}
-
-      section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
-      # Evaluate the cell
-      Session.queue_cell_evaluation(session.pid, cell_id)
-      # Send an additional output
-      send(session.pid, {:evaluation_output, cell_id, js_dynamic_output})
-
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
-
-      assert_push_event(view, "js_output:" <> _, %{"data" => [1, 2, 3]})
-    end
   end
 
   describe "runtime settings" do
