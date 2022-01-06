@@ -21,7 +21,8 @@ defmodule LivebookWeb.HomeLive do
        file: Livebook.Config.default_dir(),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
-       notebook_infos: notebook_infos
+       notebook_infos: notebook_infos,
+       page_title: "Livebook"
      )}
   end
 

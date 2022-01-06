@@ -14,7 +14,8 @@ defmodule LivebookWeb.ExploreLive do
     {:ok,
      assign(socket,
        lead_notebook_info: lead_notebook_info,
-       notebook_infos: notebook_infos
+       notebook_infos: notebook_infos,
+       page_title: "Livebook - Explore"
      )}
   end
 
