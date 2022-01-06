@@ -678,7 +678,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "does not include js_dynamic output with no export info" do
+    test "does not include js output with no export info" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -691,12 +691,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_dynamic,
+                        {:js,
                          %{
                            ref: "1",
+                           pid: spawn_widget_with_data("1", "data"),
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: nil
-                         }, spawn_widget_with_data("1", "data")}
+                         }}
                       ]
                   }
                 ]
@@ -719,7 +720,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "includes js_dynamic output if export info is set" do
+    test "includes js output if export info is set" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -732,12 +733,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_dynamic,
+                        {:js,
                          %{
                            ref: "1",
+                           pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: %{info_string: "mermaid", key: nil}
-                         }, spawn_widget_with_data("1", "graph TD;\nA-->B;")}
+                         }}
                       ]
                   }
                 ]
@@ -765,7 +767,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "serializes js_dynamic data to JSON if not binary" do
+    test "serializes js output data to JSON if not binary" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -778,12 +780,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_dynamic,
+                        {:js,
                          %{
                            ref: "1",
+                           pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: %{info_string: "box", key: nil}
-                         }, spawn_widget_with_data("1", %{height: 50, width: 50})}
+                         }}
                       ]
                   }
                 ]
@@ -810,7 +813,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "exports partial js_dynamic data when export_key is set" do
+    test "exports partial js output data when export_key is set" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -823,16 +826,17 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_dynamic,
+                        {:js,
                          %{
                            ref: "1",
+                           pid:
+                             spawn_widget_with_data("1", %{
+                               spec: %{"height" => 50, "width" => 50},
+                               datasets: []
+                             }),
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: %{info_string: "vega-lite", key: :spec}
-                         },
-                         spawn_widget_with_data("1", %{
-                           spec: %{"height" => 50, "width" => 50},
-                           datasets: []
-                         })}
+                         }}
                       ]
                   }
                 ]

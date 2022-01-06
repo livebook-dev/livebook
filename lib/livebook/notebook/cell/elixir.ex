@@ -37,7 +37,7 @@ defmodule Livebook.Notebook.Cell.Elixir do
           # Vega-Lite graphic with dynamic data
           | {:vega_lite_dynamic, widget_process :: pid()}
           # JavaScript powered output
-          | {:js_dynamic, info :: map(), widget_process :: pid()}
+          | {:js, info :: map()}
           # Interactive data table
           | {:table_dynamic, widget_process :: pid()}
           # Dynamic wrapper for static output

@@ -28,7 +28,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp collect_js_output_data(notebook) do
     for section <- notebook.sections,
         %Cell.Elixir{} = cell <- section.cells,
-        {:js_dynamic, %{export: %{}, ref: ref}, pid} <- cell.outputs do
+        {:js, %{export: %{}, ref: ref, pid: pid}} <- cell.outputs do
       Task.async(fn ->
         {ref, get_js_output_data(pid, ref)}
       end)
@@ -175,7 +175,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_output(
-         {:js_dynamic, %{export: %{info_string: info_string, key: key}, ref: ref}, _pid},
+         {:js, %{export: %{info_string: info_string, key: key}, ref: ref}},
          ctx
        )
        when is_binary(info_string) do
