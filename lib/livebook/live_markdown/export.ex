@@ -33,7 +33,7 @@ defmodule Livebook.LiveMarkdown.Export do
         {ref, get_js_output_data(pid, ref)}
       end)
     end
-    |> Task.await_many()
+    |> Task.await_many(:infinity)
     |> Map.new()
   end
 
