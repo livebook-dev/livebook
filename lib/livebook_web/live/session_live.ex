@@ -38,6 +38,7 @@ defmodule LivebookWeb.SessionLive do
            self: self(),
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
+           page_title: get_page_title(data.notebook.name),
            empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
          )
          |> assign_private(data: data)
@@ -1083,6 +1084,10 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "clients_updated", %{clients: updated_clients})
   end
 
+  defp after_operation(socket, _prev_socket, {:set_notebook_name, _client_pid, name}) do
+    assign(socket, page_title: get_page_title(name))
+  end
+
   defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
     if client_pid == self() do
       push_event(socket, "section_inserted", %{section_id: section_id})
@@ -1424,5 +1429,9 @@ defmodule LivebookWeb.SessionLive do
   # have impact on dirtiness, so we need to always mirror it
   defp update_dirty_status(data_view, data) do
     put_in(data_view.dirty, data.dirty)
+  end
+
+  defp get_page_title(notebook_name) do
+    "Livebook - #{notebook_name}"
   end
 end
