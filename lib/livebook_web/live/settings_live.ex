@@ -13,7 +13,8 @@ defmodule LivebookWeb.SettingsLive do
     {:ok,
      assign(socket,
        file_systems: file_systems,
-       file_systems_env: file_systems_env
+       file_systems_env: file_systems_env,
+       page_title: "Livebook - Settings"
      )}
   end
 

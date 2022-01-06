@@ -28,6 +28,17 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "My notebook"
     end
 
+    test "renders an updated notebook name in title", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert page_title(view) =~ "Untitled notebook"
+
+      Session.set_notebook_name(session.pid, "My notebook")
+      wait_for_session_update(session.pid)
+
+      assert page_title(view) =~ "My notebook"
+    end
+
     test "renders a newly inserted section", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
