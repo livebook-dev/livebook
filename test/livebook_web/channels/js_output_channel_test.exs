@@ -1,11 +1,11 @@
-defmodule LivebookWeb.JSDynamicChannelTest do
+defmodule LivebookWeb.JSOutputChannelTest do
   use LivebookWeb.ChannelCase
 
   setup do
     {:ok, _, socket} =
       LivebookWeb.Socket
       |> socket()
-      |> subscribe_and_join(LivebookWeb.JSDynamicChannel, "js_dynamic")
+      |> subscribe_and_join(LivebookWeb.JSOutputChannel, "js_output")
 
     %{socket: socket}
   end
@@ -37,6 +37,6 @@ defmodule LivebookWeb.JSDynamicChannelTest do
   end
 
   defp session_token() do
-    Phoenix.Token.sign(LivebookWeb.Endpoint, "js dynamic", %{pid: self()})
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "js output", %{pid: self()})
   end
 end

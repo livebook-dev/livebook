@@ -678,7 +678,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "does not include js_static output with no export info" do
+    test "does not include js_dynamic output with no export info" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -691,11 +691,12 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_static,
+                        {:js_dynamic,
                          %{
+                           ref: "1",
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: nil
-                         }, "data"}
+                         }, spawn_widget_with_data("1", "data")}
                       ]
                   }
                 ]
@@ -718,7 +719,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "includes js_static output if export info is set" do
+    test "includes js_dynamic output if export info is set" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -731,11 +732,12 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_static,
+                        {:js_dynamic,
                          %{
+                           ref: "1",
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: %{info_string: "mermaid", key: nil}
-                         }, "graph TD;\nA-->B;"}
+                         }, spawn_widget_with_data("1", "graph TD;\nA-->B;")}
                       ]
                   }
                 ]
@@ -763,7 +765,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "serializes js_static data to JSON if not binary" do
+    test "serializes js_dynamic data to JSON if not binary" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -776,11 +778,12 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_static,
+                        {:js_dynamic,
                          %{
+                           ref: "1",
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: %{info_string: "box", key: nil}
-                         }, %{height: 50, width: 50}}
+                         }, spawn_widget_with_data("1", %{height: 50, width: 50})}
                       ]
                   }
                 ]
@@ -807,7 +810,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       assert expected_document == document
     end
 
-    test "exports partial js_static data when export_key is set" do
+    test "exports partial js_dynamic data when export_key is set" do
       notebook = %{
         Notebook.new()
         | name: "My Notebook",
@@ -820,11 +823,16 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js_static,
+                        {:js_dynamic,
                          %{
+                           ref: "1",
                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
                            export: %{info_string: "vega-lite", key: :spec}
-                         }, %{spec: %{"height" => 50, "width" => 50}, datasets: []}}
+                         },
+                         spawn_widget_with_data("1", %{
+                           spec: %{"height" => 50, "width" => 50},
+                           datasets: []
+                         })}
                       ]
                   }
                 ]
@@ -950,5 +958,13 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     document = Export.notebook_to_markdown(notebook)
 
     assert expected_document == document
+  end
+
+  defp spawn_widget_with_data(ref, data) do
+    spawn(fn ->
+      receive do
+        {:connect, pid, %{ref: ^ref}} -> send(pid, {:connect_reply, data, %{ref: ref}})
+      end
+    end)
   end
 end

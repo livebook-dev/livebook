@@ -1129,10 +1129,11 @@ defmodule Livebook.Session do
 
     if file && should_save_notebook?(state) do
       pid = self()
-      content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
+      notebook = state.data.notebook
 
       {:ok, pid} =
         Task.start(fn ->
+          content = LiveMarkdown.Export.notebook_to_markdown(notebook)
           result = FileSystem.File.write(file, content)
           send(pid, {:save_finished, self(), result, file, default?})
         end)

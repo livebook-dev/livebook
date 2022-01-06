@@ -2,7 +2,7 @@ defmodule LivebookWeb.Socket do
   use Phoenix.Socket
 
   # App channels
-  channel "js_dynamic", LivebookWeb.JSDynamicChannel
+  channel "js_output", LivebookWeb.JSOutputChannel
 
   # LiveView channels
   channel "lvu:*", Phoenix.LiveView.UploadChannel

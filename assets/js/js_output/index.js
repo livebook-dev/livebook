@@ -1,8 +1,28 @@
-import { getAttributeOrDefault, getAttributeOrThrow } from "../lib/attribute";
+import { getAttributeOrThrow } from "../lib/attribute";
 import { randomToken } from "../lib/utils";
-import { getChannel } from "../session";
 
 import iframeHtml from "./iframe.html";
+
+const global = {
+  channel: null,
+};
+
+// Returns channel responsible for JS communication in the current session
+function getChannel(socket, { create = true } = {}) {
+  if (!global.channel && create) {
+    global.channel = socket.channel("js_output", {});
+    global.channel.join();
+  }
+
+  return global.channel;
+}
+
+export function leaveChannel() {
+  if (global.channel) {
+    global.channel.leave();
+    global.channel = null;
+  }
+}
 
 /**
  * A hook used to render JS-enabled cell output.
@@ -10,22 +30,15 @@ import iframeHtml from "./iframe.html";
  * The JavaScript is defined by the user, so we sandbox the script
  * execution inside an iframe.
  *
- * ## Static mode
+ * The hook connects to a dedicated channel, sending the token and
+ * output ref in an initial message. It expects `init:<ref>` message
+ * with `{ data }` payload, the data is then used in the initial call
+ * to the custom JS module.
  *
- * The hook expects `js_output:<ref>:init` event with `{ data }` payload,
- * the data is then used in the initial call to the custom JS module.
+ * Then, a number of `event:<ref>` with `{ event, payload }` payload
+ * can be sent. The `event` is forwarded to the initialized component.
  *
- * ## Dynamic mode
- *
- * When `data-session-token` is set, the hook connects to a dedicated
- * channel, sending the token and output ref in an initial message.
- * It expects `init:<ref>` message with `{ data }` payload, similarly
- * to the static mode.
- *
- * Then, a number of `event:<ref>` with `{ event, payload }` payload can
- * be sent. The `event` is forwarded to the initialized component.
- *
- * ## Configuration
+ * Configuration:
  *
  *   * `data-ref` - a unique identifier used as messages scope
  *
@@ -35,15 +48,15 @@ import iframeHtml from "./iframe.html";
  *   * `data-js-path` - a relative path for the initial output-specific
  *     JS module
  *
- *   * `data-session-token` - enables dynamic mode, the token is sent
- *     in the "connect" message to the channel
+ *   * `data-session-token` - token is sent in the "connect" message to
+ *     the channel
  *
  */
 const JSOutput = {
   mounted() {
     this.props = getProps(this);
     this.state = {
-      token: randomToken(),
+      childToken: randomToken(),
       childReadyPromise: null,
       childReady: false,
       iframe: null,
@@ -51,7 +64,7 @@ const JSOutput = {
       errorContainer: null,
     };
 
-    const channel = getChannel();
+    const channel = getChannel(this.__liveSocket.getSocket());
 
     const iframePlaceholder = document.createElement("div");
     const iframe = document.createElement("iframe");
@@ -74,7 +87,7 @@ const JSOutput = {
         if (message.type === "ready" && !this.state.childReady) {
           postMessage({
             type: "readyReply",
-            token: this.state.token,
+            token: this.state.childToken,
             baseUrl: this.props.assetsBaseUrl,
             jsPath: this.props.jsPath,
           });
@@ -88,7 +101,7 @@ const JSOutput = {
           // any of those messages, so we can treat this as a possible
           // surface for attacks. In this case the most "critical" actions
           // are shortcuts, neither of which is particularly dangerous.
-          if (message.token !== this.state.token) {
+          if (message.token !== this.state.childToken) {
             throw new Error("Token mismatch");
           }
 
@@ -180,49 +193,41 @@ const JSOutput = {
 
     // Event handlers
 
-    if (this.props.sessionToken) {
-      channel.push("connect", {
-        session_token: this.props.sessionToken,
-        ref: this.props.ref,
-      });
+    channel.push("connect", {
+      session_token: this.props.sessionToken,
+      ref: this.props.ref,
+    });
 
-      const initRef = channel.on(`init:${this.props.ref}`, ({ data }) => {
+    const initRef = channel.on(`init:${this.props.ref}`, ({ data }) => {
+      this.state.childReadyPromise.then(() => {
+        postMessage({ type: "init", data });
+      });
+    });
+
+    const eventRef = channel.on(
+      `event:${this.props.ref}`,
+      ({ event, payload }) => {
         this.state.childReadyPromise.then(() => {
-          postMessage({ type: "init", data });
+          postMessage({ type: "event", event, payload });
         });
-      });
+      }
+    );
 
-      const eventRef = channel.on(
-        `event:${this.props.ref}`,
-        ({ event, payload }) => {
-          this.state.childReadyPromise.then(() => {
-            postMessage({ type: "event", event, payload });
-          });
-        }
-      );
+    const errorRef = channel.on(`error:${this.props.ref}`, ({ message }) => {
+      if (!this.state.errorContainer) {
+        this.state.errorContainer = document.createElement("div");
+        this.state.errorContainer.classList.add("error-box", "mb-4");
+        this.el.prepend(this.state.errorContainer);
+      }
 
-      const errorRef = channel.on(`error:${this.props.ref}`, ({ message }) => {
-        if (!this.state.errorContainer) {
-          this.state.errorContainer = document.createElement("div");
-          this.state.errorContainer.classList.add("error-box", "mb-4");
-          this.el.prepend(this.state.errorContainer);
-        }
+      this.state.errorContainer.textContent = message;
+    });
 
-        this.state.errorContainer.textContent = message;
-      });
-
-      this.state.channelUnsubscribe = () => {
-        channel.off(`init:${this.props.ref}`, initRef);
-        channel.off(`event:${this.props.ref}`, eventRef);
-        channel.off(`error:${this.props.ref}`, errorRef);
-      };
-    } else {
-      this.handleEvent(`js_output:${this.props.ref}:init`, ({ data }) => {
-        this.state.childReadyPromise.then(() => {
-          postMessage({ type: "init", data });
-        });
-      });
-    }
+    this.state.channelUnsubscribe = () => {
+      channel.off(`init:${this.props.ref}`, initRef);
+      channel.off(`event:${this.props.ref}`, eventRef);
+      channel.off(`error:${this.props.ref}`, errorRef);
+    };
   },
 
   updated() {
@@ -235,9 +240,11 @@ const JSOutput = {
     this.intersectionObserver.disconnect();
     this.state.iframe.remove();
 
-    const channel = getChannel({ create: false });
+    const channel = getChannel(this.__liveSocket.getSocket(), {
+      create: false,
+    });
 
-    if (this.state.channelUnsubscribe && channel) {
+    if (channel) {
       this.state.channelUnsubscribe();
       channel.push("disconnect", { ref: this.props.ref });
     }
@@ -249,7 +256,7 @@ function getProps(hook) {
     ref: getAttributeOrThrow(hook.el, "data-ref"),
     assetsBaseUrl: getAttributeOrThrow(hook.el, "data-assets-base-url"),
     jsPath: getAttributeOrThrow(hook.el, "data-js-path"),
-    sessionToken: getAttributeOrDefault(hook.el, "data-session-token", null),
+    sessionToken: getAttributeOrThrow(hook.el, "data-session-token"),
   };
 }
 

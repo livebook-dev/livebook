@@ -94,15 +94,6 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:js_static, info, data}, %{id: id, session_id: session_id}) do
-    live_component(LivebookWeb.Output.JSStaticComponent,
-      id: id,
-      info: info,
-      data: data,
-      session_id: session_id
-    )
-  end
-
   defp render_output({:js_dynamic, info, pid}, %{id: id, session_id: session_id}) do
     live_component(LivebookWeb.Output.JSDynamicComponent,
       id: id,

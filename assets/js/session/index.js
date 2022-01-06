@@ -11,21 +11,7 @@ import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "../cell/live_editor/monaco";
-
-const global = {
-  socket: null,
-  channel: null,
-};
-
-// Returns channel responsible for JS communication in the current session
-export function getChannel({ create = true } = {}) {
-  if (!global.channel && create) {
-    global.channel = global.socket.channel(`js_dynamic`, {});
-    global.channel.join();
-  }
-
-  return global.channel;
-}
+import { leaveChannel } from "../js_output";
 
 /**
  * A hook managing the whole session.
@@ -74,8 +60,6 @@ export function getChannel({ create = true } = {}) {
  */
 const Session = {
   mounted() {
-    global.socket = this.__liveSocket.getSocket();
-
     this.props = getProps(this);
     this.state = {
       focusedId: null,
@@ -262,10 +246,7 @@ const Session = {
 
     setFavicon("favicon");
 
-    if (global.channel) {
-      global.channel.leave();
-      global.channel = null;
-    }
+    leaveChannel();
   },
 };
 

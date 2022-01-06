@@ -16,6 +16,6 @@ defmodule LivebookWeb.Output.JSDynamicComponent do
   end
 
   defp session_token(pid) do
-    Phoenix.Token.sign(LivebookWeb.Endpoint, "js dynamic", %{pid: pid})
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "js output", %{pid: pid})
   end
 end

@@ -520,7 +520,6 @@ defmodule Livebook.Notebook do
       Enum.find_value(section.cells, fn cell ->
         is_struct(cell, Cell.Elixir) &&
           Enum.find_value(cell.outputs, fn
-            {:js_static, %{assets: %{hash: ^hash} = assets_info}, _data} -> assets_info
             {:js_dynamic, %{assets: %{hash: ^hash} = assets_info}, _pid} -> assets_info
             _ -> nil
           end)

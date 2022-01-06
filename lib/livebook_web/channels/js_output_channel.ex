@@ -1,17 +1,17 @@
-defmodule LivebookWeb.JSDynamicChannel do
+defmodule LivebookWeb.JSOutputChannel do
   use Phoenix.Channel
 
   @impl true
-  def join("js_dynamic", %{}, socket) do
+  def join("js_output", %{}, socket) do
     {:ok, assign(socket, ref_with_pid: %{}, ref_with_count: %{})}
   end
 
   @impl true
   def handle_in("connect", %{"session_token" => session_token, "ref" => ref}, socket) do
-    {:ok, data} = Phoenix.Token.verify(LivebookWeb.Endpoint, "js dynamic", session_token)
+    {:ok, data} = Phoenix.Token.verify(LivebookWeb.Endpoint, "js output", session_token)
     %{pid: pid} = data
 
-    send(pid, {:connect, self(), %{origin: self()}})
+    send(pid, {:connect, self(), %{origin: self(), ref: ref}})
 
     ref_with_pid = Map.put(socket.assigns.ref_with_pid, ref, pid)
     ref_with_count = Map.update(socket.assigns.ref_with_count, ref, 1, &(&1 + 1))
@@ -21,7 +21,7 @@ defmodule LivebookWeb.JSDynamicChannel do
 
   def handle_in("event", %{"event" => event, "payload" => payload, "ref" => ref}, socket) do
     pid = socket.assigns.ref_with_pid[ref]
-    send(pid, {:event, event, payload, %{origin: self()}})
+    send(pid, {:event, event, payload, %{origin: self(), ref: ref}})
     {:noreply, socket}
   end
 
