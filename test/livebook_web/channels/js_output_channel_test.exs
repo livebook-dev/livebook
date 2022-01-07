@@ -24,8 +24,6 @@ defmodule LivebookWeb.JSOutputChannelTest do
   end
 
   test "sends events received from widget server to the client", %{socket: socket} do
-    push(socket, "connect", %{"session_token" => session_token(), "ref" => "1"})
-
     send(socket.channel_pid, {:event, "ping", [1, 2, 3], %{ref: "1"}})
 
     assert_push "event:1", %{"event" => "ping", "payload" => [1, 2, 3]}
