@@ -238,17 +238,8 @@ defmodule Livebook.Evaluator.IOProxy do
     {reply, state}
   end
 
-  defp io_request({:livebook_broadcast, topic, message}, state) do
-    send(state.target, {:runtime_broadcast, topic, message})
-    {:ok, state}
-  end
-
-  defp io_request({:livebook_send, pid, message}, state) do
-    # For now we just send directly, but we use this delegation,
-    # so that all Runtime<->Livebook communication goes through
-    # this process, in case we want to change the transport later
-    send(pid, message)
-    {:ok, state}
+  defp io_request(:livebook_get_broadcast_target, state) do
+    {{:ok, state.target}, state}
   end
 
   defp io_request(_, state) do
