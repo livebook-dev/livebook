@@ -1,5 +1,5 @@
 defmodule LivebookWeb.JSOutputChannelTest do
-  use LivebookWeb.ChannelCase
+  use LivebookWeb.ChannelCase, async: true
 
   setup do
     session_id = Livebook.Utils.random_node_aware_id()
