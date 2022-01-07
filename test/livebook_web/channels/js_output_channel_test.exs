@@ -2,10 +2,14 @@ defmodule LivebookWeb.JSOutputChannelTest do
   use LivebookWeb.ChannelCase
 
   setup do
+    session_id = Livebook.Utils.random_node_aware_id()
+
     {:ok, _, socket} =
       LivebookWeb.Socket
       |> socket()
-      |> subscribe_and_join(LivebookWeb.JSOutputChannel, "js_output")
+      |> subscribe_and_join(LivebookWeb.JSOutputChannel, "js_output", %{
+        "session_id" => session_id
+      })
 
     %{socket: socket}
   end
@@ -20,6 +24,8 @@ defmodule LivebookWeb.JSOutputChannelTest do
   end
 
   test "sends events received from widget server to the client", %{socket: socket} do
+    push(socket, "connect", %{"session_token" => session_token(), "ref" => "1"})
+
     send(socket.channel_pid, {:event, "ping", [1, 2, 3], %{ref: "1"}})
 
     assert_push "event:1", %{"event" => "ping", "payload" => [1, 2, 3]}

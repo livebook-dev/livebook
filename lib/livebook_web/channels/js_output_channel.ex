@@ -2,7 +2,8 @@ defmodule LivebookWeb.JSOutputChannel do
   use Phoenix.Channel
 
   @impl true
-  def join("js_output", %{}, socket) do
+  def join("js_output", %{"session_id" => session_id}, socket) do
+    Livebook.Session.subscribe_to_runtime_events(session_id, "js_live:*")
     {:ok, assign(socket, ref_with_pid: %{}, ref_with_count: %{})}
   end
 
@@ -50,10 +51,12 @@ defmodule LivebookWeb.JSOutputChannel do
   end
 
   def handle_info({:event, event, payload, %{ref: ref}}, socket) do
-    with {:error, error} <-
-           try_push(socket, "event:#{ref}", %{"event" => event, "payload" => payload}) do
-      message = "Failed to serialize event payload, " <> error
-      push(socket, "error:#{ref}", %{"message" => message})
+    if Map.has_key?(socket.assigns.ref_with_count, ref) do
+      with {:error, error} <-
+             try_push(socket, "event:#{ref}", %{"event" => event, "payload" => payload}) do
+        message = "Failed to serialize event payload, " <> error
+        push(socket, "error:#{ref}", %{"message" => message})
+      end
     end
 
     {:noreply, socket}

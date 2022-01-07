@@ -782,6 +782,17 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_broadcast, topic, message}, state) do
+    topics = [topic | wilcard_topics(topic)]
+
+    for topic <- topics do
+      full_topic = runtime_messages_topic(state.session_id, topic)
+      Phoenix.PubSub.broadcast(Livebook.PubSub, full_topic, message)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info({:container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
@@ -1219,6 +1230,27 @@ defmodule Livebook.Session do
 
   defp extract_archive!(binary, path) do
     :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, path}])
+  end
+
+  defp wilcard_topics(topic) do
+    topic
+    |> String.split(":")
+    |> Enum.map_reduce("", fn part, prefix ->
+      {prefix <> "*", prefix <> part <> ":"}
+    end)
+    |> elem(0)
+  end
+
+  @doc """
+  Subscribes the caller to runtime messages under the given topic.
+  """
+  @spec subscribe_to_runtime_events(id(), String.t()) :: :ok | {:error, term()}
+  def subscribe_to_runtime_events(session_id, topic) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, runtime_messages_topic(session_id, topic))
+  end
+
+  defp runtime_messages_topic(session_id, topic) do
+    "sessions:#{session_id}:runtime_messages:#{topic}"
   end
 
   @doc """
