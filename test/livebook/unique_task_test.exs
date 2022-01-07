@@ -54,8 +54,8 @@ defmodule Livebook.UniqueTaskTest do
       send(parent, {:result2, result})
     end)
 
-    assert_receive {:ping_from_task, task1_pid}, 200
-    assert_receive {:ping_from_task, task2_pid}, 200
+    assert_receive {:ping_from_task, task1_pid}, 2000
+    assert_receive {:ping_from_task, task2_pid}, 2000
 
     send(task1_pid, :pong)
     send(task2_pid, :pong)
