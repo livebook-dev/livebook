@@ -8,9 +8,9 @@ const global = {
 };
 
 // Returns channel responsible for JS communication in the current session
-function getChannel(socket, { create = true } = {}) {
+function getChannel(socket, sessionId, { create = true } = {}) {
   if (!global.channel && create) {
-    global.channel = socket.channel("js_output", {});
+    global.channel = socket.channel("js_output", { session_id: sessionId });
     global.channel.join();
   }
 
@@ -64,7 +64,10 @@ const JSOutput = {
       errorContainer: null,
     };
 
-    const channel = getChannel(this.__liveSocket.getSocket());
+    const channel = getChannel(
+      this.__liveSocket.getSocket(),
+      this.props.sessionId
+    );
 
     const iframePlaceholder = document.createElement("div");
     const iframe = document.createElement("iframe");
@@ -240,9 +243,13 @@ const JSOutput = {
     this.intersectionObserver.disconnect();
     this.state.iframe.remove();
 
-    const channel = getChannel(this.__liveSocket.getSocket(), {
-      create: false,
-    });
+    const channel = getChannel(
+      this.__liveSocket.getSocket(),
+      this.props.sessionId,
+      {
+        create: false,
+      }
+    );
 
     if (channel) {
       this.state.channelUnsubscribe();
@@ -257,6 +264,7 @@ function getProps(hook) {
     assetsBaseUrl: getAttributeOrThrow(hook.el, "data-assets-base-url"),
     jsPath: getAttributeOrThrow(hook.el, "data-js-path"),
     sessionToken: getAttributeOrThrow(hook.el, "data-session-token"),
+    sessionId: getAttributeOrThrow(hook.el, "data-session-id"),
   };
 }
 

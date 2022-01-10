@@ -2,8 +2,8 @@ defmodule LivebookWeb.JSOutputChannel do
   use Phoenix.Channel
 
   @impl true
-  def join("js_output", %{}, socket) do
-    {:ok, assign(socket, ref_with_pid: %{}, ref_with_count: %{})}
+  def join("js_output", %{"session_id" => session_id}, socket) do
+    {:ok, assign(socket, session_id: session_id, ref_with_pid: %{}, ref_with_count: %{})}
   end
 
   @impl true
@@ -16,6 +16,11 @@ defmodule LivebookWeb.JSOutputChannel do
     ref_with_pid = Map.put(socket.assigns.ref_with_pid, ref, pid)
     ref_with_count = Map.update(socket.assigns.ref_with_count, ref, 1, &(&1 + 1))
     socket = assign(socket, ref_with_pid: ref_with_pid, ref_with_count: ref_with_count)
+
+    if socket.assigns.ref_with_count[ref] == 1 do
+      Livebook.Session.subscribe_to_runtime_events(socket.assigns.session_id, "js_live", ref)
+    end
+
     {:noreply, socket}
   end
 
@@ -28,6 +33,12 @@ defmodule LivebookWeb.JSOutputChannel do
   def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
       if socket.assigns.ref_with_count[ref] == 1 do
+        Livebook.Session.unsubscribe_from_runtime_events(
+          socket.assigns.session_id,
+          "js_live",
+          ref
+        )
+
         {_, ref_with_count} = Map.pop!(socket.assigns.ref_with_count, ref)
         {_, ref_with_pid} = Map.pop!(socket.assigns.ref_with_pid, ref)
         assign(socket, ref_with_count: ref_with_count, ref_with_pid: ref_with_pid)

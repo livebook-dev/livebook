@@ -238,6 +238,10 @@ defmodule Livebook.Evaluator.IOProxy do
     {reply, state}
   end
 
+  defp io_request(:livebook_get_broadcast_target, state) do
+    {{:ok, state.target}, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end
