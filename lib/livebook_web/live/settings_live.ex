@@ -96,6 +96,35 @@ defmodule LivebookWeb.SettingsLive do
               </div>
             </div>
           </div>
+          <!-- current version -->
+          <div class="flex flex-col space-y-8">
+            <div>
+              <h1 class="text-3xl text-gray-800 font-semibold">
+                Current Version
+              </h1>
+              <p class="mt-4 text-gray-700">
+                Displays the current version of Livebook and checks for new releases.
+              </p>
+            </div>
+            <!-- display version -->
+            <div class="flex justify-between items-center">
+              <h2 class="text-xl text-gray-800">
+                v<%= Mix.Project.config[:version] %>
+              </h2>
+              <div>
+              </div>
+              <div class="space-x-2">
+                <%= live_patch "Shutdown",
+                    to: Routes.settings_path(@socket, :page),
+                    class: "button-base button-red" %>
+
+                <%= live_patch "Dashboard",
+                  to: Routes.home_path(@socket, :page),
+                  class: "button-base button-blue"
+                %>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
