@@ -303,4 +303,18 @@ defmodule Livebook.Utils do
     data = Base.encode64(content)
     "data:#{mime};base64,#{data}"
   end
+
+  @doc """
+  Opens the given `url` in the browser.
+  """
+  def browser_open(url) do
+    {cmd, args} =
+      case :os.type() do
+        {:win32, _} -> {"cmd", ["/c", "start", url]}
+        {:unix, :darwin} -> {"open", [url]}
+        {:unix, _} -> {"xdg-open", [url]}
+      end
+
+    System.cmd(cmd, args)
+  end
 end

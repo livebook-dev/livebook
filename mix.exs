@@ -24,10 +24,15 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
+      extra_applications:
+        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
+          extra_applications(Mix.target()),
       env: Application.get_all_env(:livebook)
     ]
   end
+
+  defp extra_applications(:app), do: [:wx]
+  defp extra_applications(_), do: []
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
@@ -62,7 +67,8 @@ defmodule Livebook.MixProject do
       {:aws_signature, "~> 0.2.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
-      {:bypass, "~> 2.1", only: :test}
+      {:bypass, "~> 2.1", only: :test},
+      {:app_builder, path: "app_builder", targets: [:app]}
     ]
   end
 
@@ -103,8 +109,47 @@ defmodule Livebook.MixProject do
       livebook: [
         include_executables_for: [:unix],
         include_erts: false
+      ],
+      mac_app: [
+        include_executables_for: [:unix],
+        rel_templates_path: "rel/app",
+        steps: [:assemble, &build_mac_app/1]
+      ],
+      mac_app_dmg: [
+        include_executables_for: [:unix],
+        rel_templates_path: "rel/app",
+        steps: [:assemble, &build_mac_app_dmg/1]
       ]
     ]
+  end
+
+  @app_options [
+    name: "Livebook",
+    logo_path: "static/images/logo.png",
+    url_schemes: ["livebook"],
+    document_types: [
+      %{name: "LiveMarkdown", role: "Editor", extensions: ["livemd"]}
+    ]
+  ]
+
+  defp build_mac_app(release) do
+    AppBuilder.build_mac_app(release, @app_options)
+  end
+
+  defp build_mac_app_dmg(release) do
+    options =
+      [
+        codesign: [
+          identity: System.fetch_env!("CODESIGN_IDENTITY")
+        ],
+        notarize: [
+          team_id: System.fetch_env!("NOTARIZE_TEAM_ID"),
+          apple_id: System.fetch_env!("NOTARIZE_APPLE_ID"),
+          password: System.fetch_env!("NOTARIZE_PASSWORD")
+        ]
+      ] ++ @app_options
+
+    AppBuilder.build_mac_app_dmg(release, options)
   end
 
   def package do

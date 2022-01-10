@@ -26,7 +26,9 @@ defmodule Livebook.Application do
       # Start the unique task dependencies
       Livebook.UniqueTask,
       # Start the Endpoint (http/https)
-      LivebookWeb.Endpoint
+      LivebookWeb.Endpoint,
+      # Start the desktop app
+      app_spec()
     ]
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
@@ -157,4 +159,10 @@ defmodule Livebook.Application do
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
   defp config_env_var?(_), do: false
+
+  if Mix.target() == :app do
+    defp app_spec, do: Livebook.App
+  else
+    defp app_spec, do: {Task, fn -> :ok end}
+  end
 end
