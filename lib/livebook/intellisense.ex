@@ -445,7 +445,7 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_meta(:deprecated, %{deprecated: deprecated}) do
-    "This function is deprecated. " <> deprecated
+    "**Deprecated**. " <> deprecated
   end
 
   defp format_meta(:since, %{since: since}) do
