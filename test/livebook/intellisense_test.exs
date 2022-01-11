@@ -1217,6 +1217,20 @@ defmodule Livebook.IntellisenseTest do
       assert content =~ "## Examples"
     end
 
+    test "returns deprecated docs" do
+      {binding, env} = eval(do: nil)
+
+      assert %{contents: [content | _]} = Intellisense.get_details("Enum.chunk", 6, binding, env)
+      assert content =~ "Use Enum.chunk_every/2 instead"
+    end
+
+    test "returns since docs" do
+      {binding, env} = eval(do: nil)
+
+      assert %{contents: [content]} = Intellisense.get_details("then", 2, binding, env)
+      assert content =~ "Since 1.12.0"
+    end
+
     @tag :erl_docs
     test "returns full Erlang docs" do
       {binding, env} = eval(do: nil)

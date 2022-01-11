@@ -121,7 +121,8 @@ defmodule Livebook.Intellisense do
   defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
 
   defp include_in_completion?(
-         {:function, _module, _name, _arity, _type, _display_name, :hidden, _signatures, _specs}
+         {:function, _module, _name, _arity, _type, _display_name, :hidden, _signatures, _specs,
+          _meta}
        ),
        do: false
 
@@ -188,7 +189,8 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_completion_item(
-         {:function, module, name, arity, type, display_name, documentation, signatures, specs}
+         {:function, module, name, arity, type, display_name, documentation, signatures, specs,
+          _meta}
        ),
        do: %{
          label: "#{display_name}/#{arity}",
@@ -380,10 +382,13 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_details_item(
-         {:function, module, name, _arity, _type, _display_name, documentation, signatures, specs}
+         {:function, module, name, _arity, _type, _display_name, documentation, signatures, specs,
+          meta}
        ) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
+      format_meta(:since, meta),
+      format_meta(:deprecated, meta),
       format_specs(specs, name, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
     ])
@@ -438,6 +443,16 @@ defmodule Livebook.Intellisense do
       signatures_string
     end
   end
+
+  defp format_meta(:deprecated, %{deprecated: deprecated}) do
+    "**Deprecated**. " <> deprecated
+  end
+
+  defp format_meta(:since, %{since: since}) do
+    "Since " <> since
+  end
+
+  defp format_meta(_, _), do: nil
 
   defp format_specs([], _name, _line_length), do: nil
 
