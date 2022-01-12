@@ -518,12 +518,16 @@ defmodule Livebook.Notebook do
   def find_asset_info(notebook, hash) do
     Enum.find_value(notebook.sections, fn section ->
       Enum.find_value(section.cells, fn cell ->
-        is_struct(cell, Cell.Elixir) &&
-          Enum.find_value(cell.outputs, fn
-            {:js, %{assets: %{hash: ^hash} = assets_info}} -> assets_info
-            _ -> nil
-          end)
+        is_struct(cell, Cell.Elixir) && find_assets_info_in_outputs(cell.outputs, hash)
       end)
+    end)
+  end
+
+  defp find_assets_info_in_outputs(outputs, hash) do
+    Enum.find_value(outputs, fn
+      {:js, %{assets: %{hash: ^hash} = assets_info}} -> assets_info
+      {:frame, outputs, _} -> find_assets_info_in_outputs(outputs, hash)
+      _ -> nil
     end)
   end
 end

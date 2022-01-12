@@ -33,7 +33,7 @@ defmodule LivebookWeb.Output.FrameDynamicLive do
     <div>
       <%= if @output do %>
         <LivebookWeb.Output.outputs
-          outputs={[@output]}
+          output_views={[%{id: "#{@id}-output", output: @output}]}
           id={"#{@id}-frame"}
           socket={@socket}
           session_id={@session_id}

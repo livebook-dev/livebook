@@ -7,18 +7,17 @@ defmodule LivebookWeb.Output do
   def outputs(assigns) do
     ~H"""
     <div class="flex flex-col space-y-2">
-      <%= for {{outputs, standalone?}, group_idx} <- @outputs |> group_outputs() |> Enum.with_index() do %>
+      <%= for {output_views, standalone?} <- group_output_views(@output_views) do %>
         <div class={"flex flex-col #{if not standalone?, do: "rounded-lg border border-gray-200 divide-y divide-gray-200"}"}>
-          <%= for {output, idx} <- Enum.with_index(outputs) do %>
-            <div class={"max-w-full #{if not standalone?, do: "px-4"} #{if not composite?(output), do: "py-4"}"}>
-              <%= render_output(output, %{
-                    id: "#{@id}-output#{group_idx}_#{idx}",
-                    socket: @socket,
-                    session_id: @session_id,
-                    runtime: @runtime,
-                    cell_validity_status: @cell_validity_status,
-                    input_values: @input_values
-                  }) %>
+          <%= for output_view <- output_views do %>
+            <div class={"max-w-full py-4 #{if not standalone?, do: "px-4"}"}>
+              <.live_component module={LivebookWeb.OutputComponent}
+                id={output_view.id}
+                output={output_view.output}
+                session_id={@session_id}
+                runtime={@runtime}
+                cell_validity_status={@cell_validity_status}
+                input_values={@input_values} />
             </div>
           <% end %>
         </div>
@@ -27,26 +26,26 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp group_outputs(outputs) do
-    outputs = Enum.filter(outputs, &(&1 != :ignored))
-    group_outputs(outputs, [])
+  defp group_output_views(output_views) do
+    output_views = Enum.reject(output_views, &match?(%{output: :ignored}, &1))
+    group_output_views(output_views, [])
   end
 
-  defp group_outputs([], groups), do: groups
+  defp group_output_views([], groups), do: groups
 
-  defp group_outputs([output | outputs], []) do
-    group_outputs(outputs, [{[output], standalone?(output)}])
+  defp group_output_views([view | views], []) do
+    group_output_views(views, [{[view], standalone?(view.output)}])
   end
 
-  defp group_outputs([output | outputs], [{group_outputs, group_standalone?} | groups]) do
-    case standalone?(output) do
+  defp group_output_views([view | views], [{group_views, group_standalone?} | groups]) do
+    case standalone?(view.output) do
       ^group_standalone? ->
-        group_outputs(outputs, [{[output | group_outputs], group_standalone?} | groups])
+        group_output_views(views, [{[view | group_views], group_standalone?} | groups])
 
       standalone? ->
-        group_outputs(
-          outputs,
-          [{[output], standalone?}, {group_outputs, group_standalone?} | groups]
+        group_output_views(
+          views,
+          [{[view], standalone?}, {group_views, group_standalone?} | groups]
         )
     end
   end
@@ -56,133 +55,4 @@ defmodule LivebookWeb.Output do
   defp standalone?({:text, _text}), do: false
   defp standalone?({:error, _message, _type}), do: false
   defp standalone?(_output), do: true
-
-  defp composite?({:frame_dynamic, _}), do: true
-  defp composite?(_output), do: false
-
-  defp render_output(text, %{id: id}) when is_binary(text) do
-    # Captured output usually has a trailing newline that we can ignore,
-    # because each line is itself an HTML block anyway.
-    text = String.replace_suffix(text, "\n", "")
-    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: true)
-  end
-
-  defp render_output({:text, text}, %{id: id}) do
-    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
-  end
-
-  defp render_output({:markdown, markdown}, %{id: id}) do
-    live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
-  end
-
-  defp render_output({:image, content, mime_type}, %{id: id}) do
-    live_component(LivebookWeb.Output.ImageComponent,
-      id: id,
-      content: content,
-      mime_type: mime_type
-    )
-  end
-
-  defp render_output({:vega_lite_static, spec}, %{id: id}) do
-    live_component(LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
-  end
-
-  defp render_output({:vega_lite_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.VegaLiteDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
-  end
-
-  defp render_output({:js, info}, %{id: id, session_id: session_id}) do
-    live_component(LivebookWeb.Output.JSComponent, id: id, info: info, session_id: session_id)
-  end
-
-  defp render_output({:table_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.TableDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
-  end
-
-  defp render_output({:frame_dynamic, pid}, %{
-         id: id,
-         socket: socket,
-         session_id: session_id,
-         input_values: input_values,
-         cell_validity_status: cell_validity_status
-       }) do
-    live_render(socket, LivebookWeb.Output.FrameDynamicLive,
-      id: id,
-      session: %{
-        "id" => id,
-        "pid" => pid,
-        "session_id" => session_id,
-        "input_values" => input_values,
-        "cell_validity_status" => cell_validity_status
-      }
-    )
-  end
-
-  defp render_output({:input, attrs}, %{id: id, input_values: input_values}) do
-    live_component(LivebookWeb.Output.InputComponent,
-      id: id,
-      attrs: attrs,
-      input_values: input_values
-    )
-  end
-
-  defp render_output({:control, attrs}, %{id: id, input_values: input_values}) do
-    live_component(LivebookWeb.Output.ControlComponent,
-      id: id,
-      attrs: attrs,
-      input_values: input_values
-    )
-  end
-
-  defp render_output({:error, formatted, :runtime_restart_required}, %{
-         runtime: runtime,
-         cell_validity_status: cell_validity_status
-       })
-       when runtime != nil and cell_validity_status == :evaluated do
-    assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
-
-    ~H"""
-    <div class="flex flex-col space-y-4">
-    <%= render_error_message_output(@formatted) %>
-    <%= if @is_standalone do %>
-      <div>
-        <button class="button-base button-gray" phx-click="restart_runtime">
-          Reconnect runtime
-        </button>
-      </div>
-    <% else %>
-      <div class="text-red-600">
-        <span class="font-semibold">Note:</span>
-        This operation requires restarting the runtime, but we cannot
-        do it automatically for the current runtime
-      </div>
-    <% end %>
-    </div>
-    """
-  end
-
-  defp render_output({:error, formatted, _type}, %{}) do
-    render_error_message_output(formatted)
-  end
-
-  defp render_output(output, %{}) do
-    render_error_message_output("""
-    Unknown output format: #{inspect(output)}. If you're using Kino,
-    you may want to update Kino and Livebook to the latest version.
-    """)
-  end
-
-  defp render_error_message_output(message) do
-    assigns = %{message: message}
-
-    ~H"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
-    """
-  end
 end

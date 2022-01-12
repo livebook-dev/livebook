@@ -1058,7 +1058,10 @@ defmodule LivebookWeb.SessionLive do
       {:ok, data, actions} ->
         socket
         |> assign_private(data: data)
-        |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
+        |> assign(
+          data_view:
+            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
+        )
         |> after_operation(socket, operation)
         |> handle_actions(actions)
 
@@ -1365,7 +1368,7 @@ defmodule LivebookWeb.SessionLive do
       # Note: we need this during initial loading,
       # at which point we still have the source
       empty?: cell.source == "",
-      outputs: cell.outputs,
+      output_views: cell_to_output_views(cell, info),
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
@@ -1387,6 +1390,39 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
+  defp cell_to_output_views(cell, info) do
+    id = "output-#{cell.id}-#{evaluation_number(info)}"
+
+    cell.outputs
+    |> Enum.with_index()
+    |> Enum.flat_map(fn {output, idx} ->
+      output_to_view(output, "#{id}-#{idx}")
+    end)
+  end
+
+  defp evaluation_number(%{evaluation_status: :evaluating} = info),
+    do: info.number_of_evaluations + 1
+
+  defp evaluation_number(info), do: info.number_of_evaluations
+
+  defp output_to_view({:frame, [], _info}, id) do
+    [%{id: id, output: :empty_frame}]
+  end
+
+  # Unwrap outputs within frame
+  defp output_to_view({:frame, outputs, _info}, id) do
+    outputs
+    |> Enum.reverse()
+    |> Enum.with_index()
+    |> Enum.flat_map(fn {output, idx} ->
+      output_to_view(output, "#{id}-#{idx}")
+    end)
+  end
+
+  defp output_to_view(output, id) do
+    [%{id: id, output: output}]
+  end
+
   defp input_values_for_cell(cell, data) do
     input_ids =
       for output <- cell.outputs,
@@ -1399,7 +1435,7 @@ defmodule LivebookWeb.SessionLive do
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
   # most common ones we only update the relevant parts.
-  defp update_data_view(data_view, data, operation) do
+  defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       {:report_cell_revision, _pid, _cell_id, _revision} ->
         data_view
@@ -1409,9 +1445,37 @@ defmodule LivebookWeb.SessionLive do
         |> update_cell_view(data, cell_id)
         |> update_dirty_status(data)
 
+      # For outputs we send the update directly to the corresponding
+      # component, so the DOM patch is isolated and fast. This is
+      # important for intensive output updates
+      {:add_cell_evaluation_output, _client_pid, _id, _output} ->
+        prev_output_views = output_views(prev_data)
+        output_views = output_views(data)
+
+        if Enum.map(prev_output_views, & &1.id) == Enum.map(output_views, & &1.id) do
+          for changed_output_view <- output_views -- prev_output_views do
+            send_update(LivebookWeb.OutputComponent,
+              id: changed_output_view.id,
+              output: changed_output_view.output
+            )
+          end
+
+          data_view
+        else
+          data_to_view(data)
+        end
+
       _ ->
         data_to_view(data)
     end
+  end
+
+  defp output_views(data) do
+    for section <- data.notebook.sections,
+        %Cell.Elixir{} = cell <- section.cells,
+        info = data.cell_infos[cell.id],
+        output_view <- cell_to_output_views(cell, info),
+        do: output_view
   end
 
   defp update_cell_view(data_view, data, cell_id) do

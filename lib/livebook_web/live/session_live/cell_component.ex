@@ -114,12 +114,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <.cell_body>
       <.editor cell_view={@cell_view} />
 
-      <%= if @cell_view.outputs != [] do %>
+      <%= if @cell_view.output_views != [] do %>
         <div class="mt-2" data-element="outputs-container">
-          <%# There is an akin render in LivebookWeb.Output.FrameDynamicLive %>
           <LivebookWeb.Output.outputs
-            outputs={@cell_view.outputs}
-            id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
+            output_views={@cell_view.output_views}
             socket={@socket}
             session_id={@session_id}
             runtime={@runtime}
@@ -341,7 +339,4 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
-
-  defp evaluation_number(:evaluating, number_of_evaluations), do: number_of_evaluations + 1
-  defp evaluation_number(_evaluation_status, number_of_evaluations), do: number_of_evaluations
 end

@@ -1861,6 +1861,38 @@ defmodule Livebook.Session.DataTest do
               }, []} = Data.apply_operation(data, operation)
     end
 
+    test "updates existing frames on frame update ouptut" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1", "c2"]},
+          {:add_cell_evaluation_response, self(), "c1", {:frame, [], %{ref: "1", type: :default}},
+           @eval_meta},
+          {:add_cell_evaluation_output, self(), "c2", {:frame, [], %{ref: "1", type: :default}}}
+        ])
+
+      operation =
+        {:add_cell_evaluation_output, self(), "c2",
+         {:frame, [{:text, "hola"}], %{ref: "1", type: :replace}}}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{
+                      cells: [
+                        %{outputs: [{:frame, [{:text, "hola"}], %{ref: "1", type: :default}}]},
+                        %{outputs: [{:frame, [{:text, "hola"}], %{ref: "1", type: :default}}]}
+                      ]
+                    }
+                  ]
+                }
+              }, []} = Data.apply_operation(data, operation)
+    end
+
     test "adds output even after the cell finished evaluation" do
       data =
         data_after_operations!([

@@ -42,6 +42,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
           | {:table_dynamic, widget_process :: pid()}
           # Dynamic wrapper for static output
           | {:frame_dynamic, widget_process :: pid()}
+          # Outputs placeholder
+          | {:frame, outputs :: list(output()), info :: map()}
           # An input field
           | {:input, attrs :: map()}
           # A control element
@@ -75,6 +77,10 @@ defmodule Livebook.Notebook.Cell.Elixir do
 
   def find_inputs_in_output({:control, %{type: :form, fields: fields}}) do
     Keyword.values(fields)
+  end
+
+  def find_inputs_in_output({:frame, outputs, _}) do
+    Enum.flat_map(outputs, &find_inputs_in_output/1)
   end
 
   def find_inputs_in_output(_output), do: []

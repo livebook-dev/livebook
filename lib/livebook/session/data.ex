@@ -422,6 +422,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> add_cell_evaluation_output(cell, output)
+      |> garbage_collect_input_values()
       |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
@@ -493,6 +494,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> erase_outputs()
+    |> garbage_collect_input_values()
     |> wrap_ok()
   end
 
@@ -842,10 +844,7 @@ defmodule Livebook.Session.Data do
   defp add_cell_output({data, _} = data_actions, cell, output) do
     data_actions
     |> set!(
-      notebook:
-        Notebook.update_cell(data.notebook, cell.id, fn cell ->
-          %{cell | outputs: add_output(cell.outputs, output)}
-        end),
+      notebook: add_output_to_notebook(data.notebook, cell, output),
       input_values:
         output
         |> Cell.Elixir.find_inputs_in_output()
@@ -853,6 +852,39 @@ defmodule Livebook.Session.Data do
         |> Map.merge(data.input_values)
     )
   end
+
+  defp add_output_to_notebook(notebook, _cell, {:frame, _outputs, %{type: type}} = frame)
+       when type != :default do
+    Notebook.update_cells(notebook, fn
+      %Cell.Elixir{} = cell ->
+        %{cell | outputs: update_frames(cell.outputs, frame)}
+
+      cell ->
+        cell
+    end)
+  end
+
+  defp add_output_to_notebook(notebook, cell, output) do
+    Notebook.update_cell(notebook, cell.id, fn cell ->
+      %{cell | outputs: add_output(cell.outputs, output)}
+    end)
+  end
+
+  defp update_frames(outputs, {:frame, new_outputs, %{ref: ref, type: type}} = frame) do
+    Enum.map(outputs, fn
+      {:frame, outputs, %{ref: ^ref} = info} ->
+        {:frame, apply_frame_update(outputs, new_outputs, type), info}
+
+      {:frame, outputs, info} ->
+        {:frame, update_frames(outputs, frame), info}
+
+      output ->
+        output
+    end)
+  end
+
+  defp apply_frame_update(_outputs, new_outputs, :replace), do: new_outputs
+  defp apply_frame_update(outputs, new_outputs, :append), do: outputs ++ new_outputs
 
   defp add_output([], output) when is_binary(output), do: [apply_rewind(output)]
 
