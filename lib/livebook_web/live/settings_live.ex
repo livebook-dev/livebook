@@ -44,8 +44,25 @@ defmodule LivebookWeb.SettingsLive do
                 soon as you stop the application.
               </p>
             </div>
+
+          <!-- System details -->
+          <div class="flex flex-col space-y-4">
+            <h1 class="text-xl text-gray-800 font-semibold">
+              About
+            </h1>
+            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center space-x-12">
+                <.labeled_text label="Version" text={Mix.Project.config[:version]} />
+                <.labeled_text label="Elixir" text={System.version()} />
+              </div>
+
+              <%= live_redirect "Dashboard",
+                to: Routes.home_path(@socket, :page),
+                class: "button-base button-blue"%>
+            </div>
+          </div>
           <!-- File systems configuration -->
-            <div class="flex flex-col space-y-4">
+          <div class="flex flex-col space-y-4">
             <div class="flex justify-between items-center">
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
