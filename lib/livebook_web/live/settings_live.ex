@@ -44,8 +44,46 @@ defmodule LivebookWeb.SettingsLive do
                 soon as you stop the application.
               </p>
             </div>
+
+          <!-- current version -->
+          <div class="flex flex-col space-y-8">
+            <div>
+              <h1 class="text-xl text-gray-800 font-semibold">
+                Current Version
+              </h1>
+              <p class="mt-4 text-gray-700">
+                Displays the current version of Livebook and Elixir.
+              </p>
+            </div>
+            <!-- display version -->
+            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
+              <div class="flex space-x-8">
+                <%= for field <- [:version, :elixir] do %>
+                    <div class="flex flex-col items-center justify-center">
+                      <h3><%= field |> Atom.to_string() |> String.capitalize() %></h3>
+                      <h4>
+                        <%= case field do %>
+                        <% :version -> %>
+                            <%= Mix.Project.config[:version] %>
+                        <% :elixir -> %>
+                            <%=
+                              Mix.Project.config[:elixir]
+                              |> String.split(" ")
+                              |> (fn [_, version] -> version end).()
+                            %>
+                        <%end %>
+                      </h4>
+                    </div>
+                <% end %>
+              </div>
+
+              <%= live_redirect "Dashboard",
+                to: Routes.home_path(@socket, :page),
+                class: "button-base button-blue"%>
+            </div>
+          </div>
           <!-- File systems configuration -->
-            <div class="flex flex-col space-y-4">
+          <div class="flex flex-col space-y-4">
             <div class="flex justify-between items-center">
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
@@ -93,35 +131,6 @@ defmodule LivebookWeb.SettingsLive do
                   name="editor_auto_signature"
                   label="Show function signature while typing"
                   checked={false} />
-              </div>
-            </div>
-          </div>
-          <!-- current version -->
-          <div class="flex flex-col space-y-8">
-            <div>
-              <h1 class="text-3xl text-gray-800 font-semibold">
-                Current Version
-              </h1>
-              <p class="mt-4 text-gray-700">
-                Displays the current version of Livebook and checks for new releases.
-              </p>
-            </div>
-            <!-- display version -->
-            <div class="flex justify-between items-center">
-              <h2 class="text-xl text-gray-800">
-                v<%= Mix.Project.config[:version] %>
-              </h2>
-              <div>
-              </div>
-              <div class="space-x-2">
-                <%= live_patch "Shutdown",
-                    to: Routes.settings_path(@socket, :page),
-                    class: "button-base button-red" %>
-
-                <%= live_patch "Dashboard",
-                  to: Routes.home_path(@socket, :page),
-                  class: "button-base button-blue"
-                %>
               </div>
             </div>
           </div>
