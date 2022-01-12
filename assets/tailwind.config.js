@@ -9,7 +9,7 @@ module.exports = {
   theme: {
     fontFamily: {
       sans: ["Inter"],
-      mono: ["JetBrains Mono"],
+      mono: ["JetBrains Mono", "monospace"],
     },
     extend: {
       colors: {
