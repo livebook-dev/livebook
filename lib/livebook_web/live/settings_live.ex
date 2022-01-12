@@ -57,7 +57,7 @@ defmodule LivebookWeb.SettingsLive do
               </div>
 
               <%= live_redirect "Dashboard",
-                to: Routes.home_path(@socket, :page),
+                to: Routes.live_dashboard_path(@socket, :home),
                 class: "button-base button-blue"%>
             </div>
           </div>
