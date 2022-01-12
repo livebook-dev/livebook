@@ -45,36 +45,15 @@ defmodule LivebookWeb.SettingsLive do
               </p>
             </div>
 
-          <!-- current version -->
-          <div class="flex flex-col space-y-8">
-            <div>
-              <h1 class="text-xl text-gray-800 font-semibold">
-                Current Version
-              </h1>
-              <p class="mt-4 text-gray-700">
-                Displays the current version of Livebook and Elixir.
-              </p>
-            </div>
-            <!-- display version -->
+          <!-- System details -->
+          <div class="flex flex-col space-y-4">
+            <h1 class="text-xl text-gray-800 font-semibold">
+              About
+            </h1>
             <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-              <div class="flex space-x-8">
-                <%= for field <- [:version, :elixir] do %>
-                    <div class="flex flex-col items-center justify-center">
-                      <h3><%= field |> Atom.to_string() |> String.capitalize() %></h3>
-                      <h4>
-                        <%= case field do %>
-                        <% :version -> %>
-                            <%= Mix.Project.config[:version] %>
-                        <% :elixir -> %>
-                            <%=
-                              Mix.Project.config[:elixir]
-                              |> String.split(" ")
-                              |> (fn [_, version] -> version end).()
-                            %>
-                        <%end %>
-                      </h4>
-                    </div>
-                <% end %>
+              <div class="flex items-center space-x-12">
+                <.labeled_text label="Version" text={Mix.Project.config[:version]} />
+                <.labeled_text label="Elixir" text={System.version()} />
               </div>
 
               <%= live_redirect "Dashboard",
