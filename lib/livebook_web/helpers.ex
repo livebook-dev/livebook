@@ -256,7 +256,7 @@ defmodule LivebookWeb.Helpers do
 
     ~H"""
     <div class="flex flex-col space-y-1">
-      <span class="text-xs text-gray-500">
+      <span class="text-sm text-gray-500">
         <%= @label %>
       </span>
       <span class={"text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"}>
