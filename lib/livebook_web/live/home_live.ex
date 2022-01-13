@@ -17,7 +17,9 @@ defmodule LivebookWeb.HomeLive do
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
-     assign(socket,
+     socket
+     |> SidebarHelpers.shared_home_handlers()
+     |> assign(
        file: Livebook.Config.default_dir(),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
@@ -31,13 +33,10 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
-        <SidebarHelpers.break_item />
-        <SidebarHelpers.link_item
-          icon="settings-3-fill"
-          label="Settings"
-          path={Routes.settings_path(@socket, :page)}
-          active={false} />
-        <SidebarHelpers.user_item current_user={@current_user} path={Routes.home_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer
+          socket={@socket}
+          current_user={@current_user}
+          user_path={Routes.home_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
