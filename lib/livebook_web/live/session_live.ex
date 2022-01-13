@@ -449,7 +449,7 @@ defmodule LivebookWeb.SessionLive do
   defp session_status(%{status: :stale} = assigns) do
     ~H"""
     <button data-element="focus-cell-button" data-target={@cell_id}>
-      <.status_indicator circle_class="bg-yellow-200">
+      <.status_indicator circle_class="bg-yellow-bright-200">
       </.status_indicator>
     </button>
     """
