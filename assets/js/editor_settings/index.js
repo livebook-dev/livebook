@@ -1,4 +1,8 @@
-import { loadLocalSettings, storeLocalSettings } from "../lib/settings";
+import {
+  loadLocalSettings,
+  storeLocalSettings,
+  EDITOR_FONT_SIZE,
+} from "../lib/settings";
 
 /**
  * A hook for the editor settings.
@@ -24,7 +28,7 @@ const EditorSettings = {
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
     editorFontSizeCheckbox.checked =
-      settings.editor_font_size === 16 ? true : false;
+      settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({ editor_auto_completion: event.target.checked });
@@ -35,7 +39,11 @@ const EditorSettings = {
     });
 
     editorFontSizeCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({ editor_font_size: event.target.checked ? 16 : 14 });
+      storeLocalSettings({
+        editor_font_size: event.target.checked
+          ? EDITOR_FONT_SIZE.large
+          : EDITOR_FONT_SIZE.normal,
+      });
     });
   },
 };
