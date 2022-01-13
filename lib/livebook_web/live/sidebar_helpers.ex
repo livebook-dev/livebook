@@ -59,8 +59,9 @@ defmodule LivebookWeb.SidebarHelpers do
       ~H"""
       <span class="tooltip right distant" data-tooltip="Shutdown">
         <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
-          aria-label="Shutdown"
-          phx-click="shutdown">
+          aria-label="shutdown"
+          phx-click="shutdown"
+          data-confirm="Are you sure you want to shutdown Livebook?">
             <.remix_icon icon="shut-down-line" />
         </button>
       </span>
