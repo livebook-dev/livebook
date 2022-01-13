@@ -1,8 +1,14 @@
 const SETTINGS_KEY = "livebook:settings";
 
+export const EDITOR_FONT_SIZE = {
+  normal: 14,
+  large: 16,
+};
+
 const DEFAULT_SETTINGS = {
   editor_auto_completion: true,
   editor_auto_signature: true,
+  editor_font_size: EDITOR_FONT_SIZE.normal,
 };
 
 /**

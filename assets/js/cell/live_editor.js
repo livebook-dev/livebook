@@ -162,7 +162,7 @@ class LiveEditor {
       renderLineHighlight: "none",
       theme: "custom",
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
-      fontSize: 14,
+      fontSize: settings.editor_font_size,
       tabIndex: -1,
       tabSize: 2,
       autoIndent: true,
