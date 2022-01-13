@@ -17,9 +17,14 @@ const EditorSettings = {
     const editorAutoSignatureCheckbox = this.el.querySelector(
       `[name="editor_auto_signature"][value="true"]`
     );
+    const editorFontSizeCheckbox = this.el.querySelector(
+      `[name="editor_font_size"][value="true"]`
+    );
 
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
+    editorFontSizeCheckbox.checked =
+      settings.editor_font_size === 16 ? true : false;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({ editor_auto_completion: event.target.checked });
@@ -27,6 +32,10 @@ const EditorSettings = {
 
     editorAutoSignatureCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({ editor_auto_signature: event.target.checked });
+    });
+
+    editorFontSizeCheckbox.addEventListener("change", (event) => {
+      storeLocalSettings({ editor_font_size: event.target.checked ? 16 : 14 });
     });
   },
 };

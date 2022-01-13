@@ -110,6 +110,10 @@ defmodule LivebookWeb.SettingsLive do
                   name="editor_auto_signature"
                   label="Show function signature while typing"
                   checked={false} />
+                <.switch_checkbox
+                  name="editor_font_size"
+                  label="Increases the font size"
+                  checked={false} />
               </div>
             </div>
           </div>
