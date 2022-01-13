@@ -112,7 +112,7 @@ defmodule LivebookWeb.SettingsLive do
                   checked={false} />
                 <.switch_checkbox
                   name="editor_font_size"
-                  label="Increases the font size"
+                  label="Increase font size"
                   checked={false} />
               </div>
             </div>
