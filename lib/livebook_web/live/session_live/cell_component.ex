@@ -275,7 +275,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
     ~H"""
     <.status_indicator
-      circle_class="bg-green-400"
+      circle_class="bg-green-bright-400"
       change_indicator={true}
       tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
       Evaluated
@@ -285,7 +285,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-yellow-200" change_indicator={true}>
+    <.status_indicator circle_class="bg-yellow-bright-200" change_indicator={true}>
       Stale
     </.status_indicator>
     """

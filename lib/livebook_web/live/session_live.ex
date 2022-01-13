@@ -389,8 +389,7 @@ defmodule LivebookWeb.SessionLive do
           Runtime
         </h3>
         <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-              class: "icon-button",
-              type: "button" do  %>
+              class: "icon-button" do  %>
           <.remix_icon icon="settings-3-line text-xl" />
         <% end %>
       </div>
@@ -423,8 +422,7 @@ defmodule LivebookWeb.SessionLive do
               <span>Connect</span>
             </button>
             <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button-base button-outlined-gray bg-transparent",
-                  type: "button" do  %>
+                  class: "button-base button-outlined-gray bg-transparent" do  %>
               Configure
             <% end %>
           </div>
@@ -451,7 +449,7 @@ defmodule LivebookWeb.SessionLive do
   defp session_status(%{status: :stale} = assigns) do
     ~H"""
     <button data-element="focus-cell-button" data-target={@cell_id}>
-      <.status_indicator circle_class="bg-yellow-200">
+      <.status_indicator circle_class="bg-yellow-bright-200">
       </.status_indicator>
     </button>
     """
