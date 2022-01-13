@@ -54,7 +54,7 @@
   }
 
   .icon-button {
-    @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800 rounded-full;
+    @apply p-1 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-full;
   }
 
   .icon-button:focus {
