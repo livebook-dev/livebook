@@ -52,13 +52,15 @@ defmodule LivebookWeb.SettingsLive do
             </h1>
             <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
               <div class="flex items-center space-x-12">
-                <.labeled_text label="Version" text={Mix.Project.config[:version]} />
-                <.labeled_text label="Elixir" text={System.version()} />
+                <.labeled_text label="Livebook" text={"v#{Application.spec(:livebook, :vsn)}"} />
+                <.labeled_text label="Elixir" text={"v#{System.version()}"} />
               </div>
 
-              <%= live_redirect "Dashboard",
-                to: Routes.live_dashboard_path(@socket, :home),
-                class: "button-base button-blue"%>
+              <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
+                                class: "button-base button-outlined-gray" do %>
+                <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+                <span>Open dashboard</span>
+              <% end %>
             </div>
           </div>
           <!-- File systems configuration -->
