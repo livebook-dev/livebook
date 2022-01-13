@@ -3,7 +3,7 @@ defmodule Livebook.UniqueTaskTest do
 
   alias Livebook.UniqueTask
 
-  test "run/2 only awaits existing function call when the given key is taken" do
+  test "run/2 only awaits existing function call when the given key is taken", %{test: test} do
     parent = self()
 
     fun = fn ->
@@ -15,12 +15,12 @@ defmodule Livebook.UniqueTaskTest do
     end
 
     spawn_link(fn ->
-      result = UniqueTask.run("key1", fun)
+      result = UniqueTask.run("#{test}-key1", fun)
       send(parent, {:result1, result})
     end)
 
     spawn_link(fn ->
-      result = UniqueTask.run("key1", fun)
+      result = UniqueTask.run("#{test}-key1", fun)
       send(parent, {:result2, result})
     end)
 
@@ -33,7 +33,7 @@ defmodule Livebook.UniqueTaskTest do
     assert_receive {:result2, :ok}
   end
 
-  test "run/2 runs functions in parallel when different have different keys" do
+  test "run/2 runs functions in parallel when different have different keys", %{test: test} do
     parent = self()
 
     fun = fn ->
@@ -45,17 +45,17 @@ defmodule Livebook.UniqueTaskTest do
     end
 
     spawn_link(fn ->
-      result = UniqueTask.run("key1", fun)
+      result = UniqueTask.run("#{test}-key1", fun)
       send(parent, {:result1, result})
     end)
 
     spawn_link(fn ->
-      result = UniqueTask.run("key2", fun)
+      result = UniqueTask.run("#{test}-key2", fun)
       send(parent, {:result2, result})
     end)
 
-    assert_receive {:ping_from_task, task1_pid}, 2000
-    assert_receive {:ping_from_task, task2_pid}, 2000
+    assert_receive {:ping_from_task, task1_pid}
+    assert_receive {:ping_from_task, task2_pid}
 
     send(task1_pid, :pong)
     send(task2_pid, :pong)
