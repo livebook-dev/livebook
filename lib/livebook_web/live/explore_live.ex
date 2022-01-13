@@ -12,7 +12,9 @@ defmodule LivebookWeb.ExploreLive do
     [lead_notebook_info | notebook_infos] = Explore.visible_notebook_infos()
 
     {:ok,
-     assign(socket,
+     socket
+     |> SidebarHelpers.shared_home_handlers()
+     |> assign(
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
        page_title: "Livebook - Explore"
@@ -25,13 +27,10 @@ defmodule LivebookWeb.ExploreLive do
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.break_item />
-        <SidebarHelpers.link_item
-          icon="settings-3-fill"
-          label="Settings"
-          path={Routes.settings_path(@socket, :page)}
-          active={false} />
-        <SidebarHelpers.user_item current_user={@current_user} path={Routes.explore_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer
+          socket={@socket}
+          current_user={@current_user}
+          user_path={Routes.explore_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">

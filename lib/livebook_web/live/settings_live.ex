@@ -11,7 +11,9 @@ defmodule LivebookWeb.SettingsLive do
     file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
 
     {:ok,
-     assign(socket,
+     socket
+     |> SidebarHelpers.shared_home_handlers()
+     |> assign(
        file_systems: file_systems,
        file_systems_env: file_systems_env,
        page_title: "Livebook - Settings"
@@ -24,13 +26,10 @@ defmodule LivebookWeb.SettingsLive do
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.break_item />
-        <SidebarHelpers.link_item
-          icon="settings-3-fill"
-          label="Settings"
-          path={Routes.settings_path(@socket, :page)}
-          active={false} />
-        <SidebarHelpers.user_item current_user={@current_user} path={Routes.settings_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer
+          socket={@socket}
+          current_user={@current_user}
+          user_path={Routes.settings_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-16">
