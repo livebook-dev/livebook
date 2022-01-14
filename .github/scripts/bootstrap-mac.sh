@@ -104,8 +104,8 @@ build_otp() {
 
   ./otp_build boot -a
   ./otp_build release -a $RELEASE_ROOT
+  make release_docs DOC_TARGETS=chunks
 
-  # make release_docs DOC_TARGETS=chunks
   cd $RELEASE_ROOT
   ./Install -sasl $PWD
   ./bin/erl -noshell -eval 'io:format("~s", [erlang:system_info(system_version)]), halt().'
@@ -116,14 +116,14 @@ build_otp() {
 
 build_elixir() {
   vsn=$1
+  otp_release=$(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().')
 
   cd tmp
-  curl --fail -LO https://github.com/elixir-lang/elixir/archive/refs/tags/v$vsn.tar.gz
-  mv v$vsn.tar.gz elixir-$vsn.tar.gz
-  tar -xf elixir-$vsn.tar.gz
-  cd elixir-$vsn
-  make
-  cd ../..
+  url=https://repo.hex.pm/builds/elixir/v${vsn}-otp-${otp_release}.zip
+  curl --fail -LO $url
+  mkdir elixir-$vsn
+  unzip v${vsn}-otp-${otp_release}.zip -d elixir-$vsn
+  cd ..
 }
 
 target() {

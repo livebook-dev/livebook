@@ -60,8 +60,6 @@ defmodule AppBuilder.MacOS do
     File.rm_rf!(tmp_dmg_path)
     File.rm_rf!(dmg_path)
 
-    IO.puts(">> creating #{dmg_path}")
-
     cmd!(
       "hdiutil",
       ~w(create #{tmp_dmg_path} -ov -volname #{app_name}Install -fs HFS+ -srcfolder tmp/dmg)

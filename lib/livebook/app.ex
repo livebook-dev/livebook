@@ -27,7 +27,7 @@ if Mix.target() == :app do
       wx = :wx.new()
       frame = :wxFrame.new(wx, -1, title, size: {0, 0})
 
-      if macOS?() do
+      if macos?() do
         fixup_macos_menubar(frame, title)
       end
 
@@ -104,7 +104,7 @@ if Mix.target() == :app do
       end
     end
 
-    defp macOS?() do
+    defp macos?() do
       :os.type() == {:unix, :darwin}
     end
 
