@@ -1,5 +1,6 @@
-// This is a port of the One Dark theme to the Monaco editor.
+import { loadLocalSettings } from "../../lib/settings"
 
+// This is a port of the One Dark theme to the Monaco editor.
 const colors = {
   default: "#abb2bf",
   lightRed: "#e06c75",
@@ -11,6 +12,8 @@ const colors = {
   teal: "#56b6c2",
   peach: "#d19a66",
 };
+
+const settings = loadLocalSettings()
 
 const theme = {
   base: "vs-dark",
@@ -54,7 +57,7 @@ const theme = {
   ],
 
   colors: {
-    "editor.background": "#282c34",
+    "editor.background": settings.editor_background_color,
     "editor.foreground": colors.default,
     "editorLineNumber.foreground": "#636d83",
     "editorCursor.foreground": "#636d83",

@@ -4,6 +4,7 @@ import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
+import { loadLocalSettings } from "../lib/settings";
 
 /**
  * A hook managing a single cell.
@@ -41,6 +42,10 @@ const Cell = {
         // Create an empty container for the editor to be mounted in.
         const editorElement = document.createElement("div");
         editorContainer.appendChild(editorElement);
+        // Adjust the background color based on local settings
+        const settings = loadLocalSettings();
+        editorContainer.parentElement.style.backgroundColor =
+          settings.editor_background_color;
         // Setup the editor instance.
         this.state.liveEditor = new LiveEditor(
           this,
