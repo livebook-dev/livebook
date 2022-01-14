@@ -119,6 +119,7 @@ build_elixir() {
   otp_release=$(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().')
 
   cd tmp
+  # TODO: On Elixir 1.14, use https://github.com/elixir-lang/elixir/releases/download/v${vsn}/elixir-${vsn}-otp-${otp_release}.zip
   url=https://repo.hex.pm/builds/elixir/v${vsn}-otp-${otp_release}.zip
   curl --fail -LO $url
   mkdir elixir-$vsn
