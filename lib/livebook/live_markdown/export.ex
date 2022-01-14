@@ -267,6 +267,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp strip_ansi(string) do
     string
     |> Livebook.Utils.ANSI.parse_ansi_string()
+    |> elem(0)
     |> Enum.map(fn {_modifiers, string} -> string end)
   end
 end

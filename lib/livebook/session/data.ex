@@ -886,27 +886,20 @@ defmodule Livebook.Session.Data do
   defp apply_frame_update(_outputs, new_outputs, :replace), do: new_outputs
   defp apply_frame_update(outputs, new_outputs, :append), do: outputs ++ new_outputs
 
-  defp add_output([], output) when is_binary(output), do: [apply_rewind(output)]
+  defp add_output([], {:stdout, text}), do: [{:stdout, Livebook.Utils.apply_rewind(text)}]
 
   defp add_output([], output), do: [output]
 
-  defp add_output([head | tail], output) when is_binary(head) and is_binary(output) do
-    # Merge consecutive string outputs
-    [apply_rewind(head <> output) | tail]
+  defp add_output([{:stdout, :__pruned__} | _] = outputs, {:stdout, _text}) do
+    outputs
+  end
+
+  defp add_output([{:stdout, text} | tail], {:stdout, cont}) do
+    # Merge consecutive stdout outputs
+    [{:stdout, Livebook.Utils.apply_rewind(text <> cont)} | tail]
   end
 
   defp add_output(outputs, output), do: [output | outputs]
-
-  # Respect \r indicating a line should be cleared,
-  # so we ignore unnecessary text fragments
-  defp apply_rewind(text) do
-    text
-    |> String.split("\n")
-    |> Enum.map(fn line ->
-      String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
-    end)
-    |> Enum.join("\n")
-  end
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions
@@ -1020,6 +1013,7 @@ defmodule Livebook.Session.Data do
               # so that another queue operation doesn't cause duplicated
               # :start_evaluation action
               evaluation_status: :evaluating,
+              evaluation_id: "#{id}-eval-#{info.number_of_evaluations + 1}",
               evaluation_digest: nil,
               evaluation_snapshot: info.snapshot,
               bound_to_input_ids: MapSet.new(),
@@ -1337,6 +1331,7 @@ defmodule Livebook.Session.Data do
       validity_status: :fresh,
       evaluation_status: :ready,
       evaluation_digest: nil,
+      evaluation_id: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
       number_of_evaluations: 0,

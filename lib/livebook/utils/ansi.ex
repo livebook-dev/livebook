@@ -1,6 +1,8 @@
 defmodule Livebook.Utils.ANSI do
   @moduledoc false
 
+  @type modifiers :: list(modifier())
+
   @type modifier ::
           {:font_weight, :bold | :light}
           | {:font_style, :italic}
@@ -31,14 +33,22 @@ defmodule Livebook.Utils.ANSI do
   @doc """
   Takes a string with ANSI escape codes and parses it
   into a list of `{modifiers, string}` parts.
+
+  Also returns the final modifiers.
+
+  ## Options
+
+    * `:modifiers` - a list with initial modifiers
   """
-  @spec parse_ansi_string(String.t()) :: list({list(modifier()), String.t()})
-  def parse_ansi_string(string) do
+  @spec parse_ansi_string(String.t(), keyword()) :: {list({modifiers(), String.t()}), modifiers()}
+  def parse_ansi_string(string, opts \\ []) do
+    modifiers = opts |> Keyword.get(:modifiers, []) |> Map.new()
+
     [head | ansi_prefixed_strings] = String.split(string, "\e")
 
     # Each part has the form of {modifiers, string}
-    {tail_parts, _} =
-      Enum.map_reduce(ansi_prefixed_strings, %{}, fn string, modifiers ->
+    {tail_parts, modifiers} =
+      Enum.map_reduce(ansi_prefixed_strings, modifiers, fn string, modifiers ->
         {modifiers, rest} =
           case ansi_prefix_to_modifiers(string) do
             {:ok, new_modifiers, rest} ->
@@ -54,9 +64,12 @@ defmodule Livebook.Utils.ANSI do
 
     parts = [{[], head} | tail_parts]
 
-    parts
-    |> Enum.reject(fn {_modifiers, string} -> string == "" end)
-    |> merge_adjacent_parts([])
+    parts =
+      parts
+      |> Enum.reject(fn {_modifiers, string} -> string == "" end)
+      |> merge_adjacent_parts([])
+
+    {parts, Map.to_list(modifiers)}
   end
 
   defp merge_adjacent_parts([], acc), do: Enum.reverse(acc)

@@ -331,8 +331,12 @@ initial_pong =
   |> Pong.move_paddle(:left, :up)
 
 Kino.animate(25, initial_pong, fn pong ->
-  img = pong |> Pong.to_svg() |> Kino.Image.new(:svg)
-  {:cont, img, Pong.step(pong)}
+  if pong.state == :finished do
+    :halt
+  else
+    img = pong |> Pong.to_svg() |> Kino.Image.new(:svg)
+    {:cont, img, Pong.step(pong)}
+  end
 end)
 ```
 

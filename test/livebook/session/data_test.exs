@@ -1776,14 +1776,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hello!"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hello!"]}]
+                      cells: [%{outputs: [{:stdout, "Hello!"}]}]
                     }
                   ]
                 }
@@ -1797,17 +1797,17 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_output, self(), "c1", "Hola"}
+          {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hola"}}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", " amigo!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, " amigo!"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hola amigo!"]}]
+                      cells: [%{outputs: [{:stdout, "Hola amigo!"}]}]
                     }
                   ]
                 }
@@ -1823,14 +1823,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hola\rHey"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hola\rHey"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hey"]}]
+                      cells: [%{outputs: [{:stdout, "Hey"}]}]
                     }
                   ]
                 }
@@ -1844,17 +1844,17 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :elixir, "c1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_output, self(), "c1", "Hola"}
+          {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hola"}}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "\ramigo!\r"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "\ramigo!\r"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["amigo!\r"]}]
+                      cells: [%{outputs: [{:stdout, "amigo!\r"}]}]
                     }
                   ]
                 }
@@ -1903,14 +1903,14 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hello!"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hello!", _result]}]
+                      cells: [%{outputs: [{:stdout, "Hello!"}, _result]}]
                     }
                   ]
                 }
@@ -1928,7 +1928,7 @@ defmodule Livebook.Session.DataTest do
           {:mark_as_not_dirty, self()}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hello!"}}
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end

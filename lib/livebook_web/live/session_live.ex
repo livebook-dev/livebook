@@ -41,7 +41,7 @@ defmodule LivebookWeb.SessionLive do
            page_title: get_page_title(data.notebook.name),
            empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
          )
-         |> assign_private(data: data)
+         |> assign_private(data: prune_outputs_in_data(data))
          |> allow_upload(:cell_image,
            accept: ~w(.jpg .jpeg .png .gif),
            max_entries: 1,
@@ -1058,10 +1058,7 @@ defmodule LivebookWeb.SessionLive do
       {:ok, data, actions} ->
         socket
         |> assign_private(data: data)
-        |> assign(
-          data_view:
-            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
-        )
+        |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
         |> after_operation(socket, operation)
         |> handle_actions(actions)
 
@@ -1176,6 +1173,22 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "evaluation_started:#{cell_id}", %{
       evaluation_digest: encode_digest(evaluation_digest)
     })
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_output, _client_pid, _cell_id, _output}
+       ) do
+    assign_private(socket, data: prune_outputs_in_data(socket.private.data))
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_pid, _id, _output, _metadata}
+       ) do
+    assign_private(socket, data: prune_outputs_in_data(socket.private.data))
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
@@ -1391,36 +1404,15 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp cell_to_output_views(cell, info) do
-    id = "output-#{cell.id}-#{evaluation_number(info)}"
+    id = "output-#{cell.id}-#{info.evaluation_id}"
 
     cell.outputs
-    |> Enum.with_index()
-    |> Enum.flat_map(fn {output, idx} ->
-      output_to_view(output, "#{id}-#{idx}")
-    end)
-  end
-
-  defp evaluation_number(%{evaluation_status: :evaluating} = info),
-    do: info.number_of_evaluations + 1
-
-  defp evaluation_number(info), do: info.number_of_evaluations
-
-  defp output_to_view({:frame, [], _info}, id) do
-    [%{id: id, output: :empty_frame}]
-  end
-
-  # Unwrap outputs within frame
-  defp output_to_view({:frame, outputs, _info}, id) do
-    outputs
     |> Enum.reverse()
     |> Enum.with_index()
-    |> Enum.flat_map(fn {output, idx} ->
-      output_to_view(output, "#{id}-#{idx}")
+    |> Enum.reverse()
+    |> Enum.map(fn {output, idx} ->
+      %{id: "#{id}-#{idx}", output: output}
     end)
-  end
-
-  defp output_to_view(output, id) do
-    [%{id: id, output: output}]
   end
 
   defp input_values_for_cell(cell, data) do
@@ -1435,7 +1427,7 @@ defmodule LivebookWeb.SessionLive do
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
   # most common ones we only update the relevant parts.
-  defp update_data_view(data_view, prev_data, data, operation) do
+  defp update_data_view(data_view, data, operation) do
     case operation do
       {:report_cell_revision, _pid, _cell_id, _revision} ->
         data_view
@@ -1445,37 +1437,50 @@ defmodule LivebookWeb.SessionLive do
         |> update_cell_view(data, cell_id)
         |> update_dirty_status(data)
 
-      # For outputs we send the update directly to the corresponding
-      # component, so the DOM patch is isolated and fast. This is
-      # important for intensive output updates
-      {:add_cell_evaluation_output, _client_pid, _id, _output} ->
-        prev_output_views = output_views(prev_data)
-        output_views = output_views(data)
+      # For outputs that update existing outputs we send the update directly
+      # to the corresponding component, so the DOM patch is isolated and fast.
+      # This is important for intensive output updates
+      {:add_cell_evaluation_output, _client_pid, _id,
+       {:frame, frame_outputs, %{type: type, ref: ref}}}
+      when type != :default ->
+        for section_view <- data_view.section_views,
+            %{output_views: output_views} <- section_view.cell_views,
+            %{id: id, output: {:frame, _, %{ref: ^ref}}} <- output_views do
+          send_update(LivebookWeb.Output.FrameComponent,
+            id: id,
+            outputs: frame_outputs,
+            update_type: type
+          )
+        end
 
-        if Enum.map(prev_output_views, & &1.id) == Enum.map(output_views, & &1.id) do
-          for changed_output_view <- output_views -- prev_output_views do
-            send_update(LivebookWeb.OutputComponent,
-              id: changed_output_view.id,
-              output: changed_output_view.output
-            )
-          end
+        data_view
 
-          data_view
-        else
-          data_to_view(data)
+      {:add_cell_evaluation_output, _client_pid, id, {:stdout, text}} ->
+        data_view.section_views
+        |> Enum.find_value(:error, fn section_view ->
+          Enum.find_value(section_view.cell_views, fn
+            %{id: ^id, output_views: [%{id: output_id, output: {:stdout, _}} | _]} ->
+              {:ok, output_id}
+
+            %{id: ^id} ->
+              :error
+
+            _output_view ->
+              nil
+          end)
+        end)
+        |> case do
+          {:ok, output_id} ->
+            send_update(LivebookWeb.Output.StdoutComponent, id: output_id, text: text)
+            data_view
+
+          :error ->
+            data_to_view(data)
         end
 
       _ ->
         data_to_view(data)
     end
-  end
-
-  defp output_views(data) do
-    for section <- data.notebook.sections,
-        %Cell.Elixir{} = cell <- section.cells,
-        info = data.cell_infos[cell.id],
-        output_view <- cell_to_output_views(cell, info),
-        do: output_view
   end
 
   defp update_cell_view(data_view, data, cell_id) do
@@ -1488,6 +1493,31 @@ defmodule LivebookWeb.SessionLive do
       cell_view
     )
   end
+
+  defp prune_outputs_in_data(data) do
+    %{
+      data
+      | notebook:
+          Notebook.update_cells(data.notebook, fn
+            %Cell.Elixir{} = cell ->
+              %{cell | outputs: Enum.map(cell.outputs, &prune_output/1)}
+
+            cell ->
+              cell
+          end)
+    }
+  end
+
+  defp prune_output({:stdout, _}), do: {:stdout, :__pruned__}
+  defp prune_output({:text, _}), do: {:text, :__pruned__}
+  defp prune_output({:image, _, _}), do: {:image, :__pruned__, :__pruned__}
+  defp prune_output({:markdown, _}), do: {:markdown, :__pruned__}
+
+  defp prune_output({:frame, outputs, info}) do
+    {:frame, Enum.map(outputs, &prune_output/1), info}
+  end
+
+  defp prune_output(output), do: output
 
   # Changes that affect only a single cell are still likely to
   # have impact on dirtiness, so we need to always mirror it

@@ -24,8 +24,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
   """
   @type output ::
           :ignored
-          # Regular text, adjacent such outputs can be treated as a whole
-          | binary()
+          # IO output, adjacent such outputs are treated as a whole
+          | {:stdout, binary()}
           # Standalone text block
           | {:text, binary()}
           # Markdown content
