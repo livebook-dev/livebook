@@ -6,62 +6,33 @@ defmodule LivebookWeb.Output do
   """
   def outputs(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-2">
-      <%= for {{output_views, standalone?}, idx} <- @output_views |> group_output_views() |> Enum.with_index() do %>
-        <div class={"flex flex-col #{if not standalone?, do: "rounded-lg border border-gray-200 divide-y divide-gray-200"}"}
-          id={"outputs-#{@id}-group-#{idx}"}
-          phx-update="append">
-          <%= for {output_view, output_idx} <- Enum.with_index(output_views), not skip_render?(output_view.output) do %>
-            <div class={"max-w-full #{if not standalone?, do: "px-4"} #{if not composite?(output_view.output), do: "py-4"}"}
-              id={"outputs-#{@id}-group-#{idx}-#{output_idx}"}>
-              <%= render_output(output_view.output, %{
-                    id: output_view.id,
-                    socket: @socket,
-                    session_id: @session_id,
-                    runtime: @runtime,
-                    cell_validity_status: @cell_validity_status,
-                    input_values: @input_values
-                  }) %>
-            </div>
-          <% end %>
+    <div class="flex flex-col" id={"outputs-#{@id}"} phx-update="append">
+      <%= for output_view <- @output_views, not skip_render?(output_view.output) do %>
+        <div class="max-w-full" id={"outputs-#{@id}-#{output_view.id}"}
+          data-element="output"
+          data-border={border?(output_view.output)}
+          data-wrapper={wrapper?(output_view.output)}>
+          <%= render_output(output_view.output, %{
+                id: output_view.id,
+                socket: @socket,
+                session_id: @session_id,
+                runtime: @runtime,
+                cell_validity_status: @cell_validity_status,
+                input_values: @input_values
+              }) %>
         </div>
       <% end %>
     </div>
     """
   end
 
-  defp group_output_views(output_views) do
-    output_views = Enum.reject(output_views, &match?(%{output: :ignored}, &1))
-    group_output_views(output_views, [])
-  end
+  defp border?({:stdout, _text}), do: true
+  defp border?({:text, _text}), do: true
+  defp border?({:error, _message, _type}), do: true
+  defp border?(_output), do: false
 
-  defp group_output_views([], groups), do: groups
-
-  defp group_output_views([view | views], []) do
-    group_output_views(views, [{[view], standalone?(view.output)}])
-  end
-
-  defp group_output_views([view | views], [{group_views, group_standalone?} | groups]) do
-    case standalone?(view.output) do
-      ^group_standalone? ->
-        group_output_views(views, [{[view | group_views], group_standalone?} | groups])
-
-      standalone? ->
-        group_output_views(
-          views,
-          [{[view], standalone?}, {group_views, group_standalone?} | groups]
-        )
-    end
-  end
-
-  defp standalone?(:ignored), do: false
-  defp standalone?({:stdout, _text}), do: false
-  defp standalone?({:text, _text}), do: false
-  defp standalone?({:error, _message, _type}), do: false
-  defp standalone?(_output), do: true
-
-  defp composite?({:frame, _outputs, _info}), do: true
-  defp composite?(_output), do: false
+  defp wrapper?({:frame, _outputs, _info}), do: true
+  defp wrapper?(_output), do: false
 
   defp skip_render?({:stdout, :__pruned__}), do: true
   defp skip_render?({:text, :__pruned__}), do: true

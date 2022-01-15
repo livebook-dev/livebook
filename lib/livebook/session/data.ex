@@ -890,6 +890,8 @@ defmodule Livebook.Session.Data do
 
   defp add_output([], output), do: [output]
 
+  defp add_output(outputs, :ignored), do: outputs
+
   defp add_output([{:stdout, :__pruned__} | _] = outputs, {:stdout, _text}) do
     outputs
   end
