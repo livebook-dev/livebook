@@ -33,10 +33,7 @@ const EditorSettings = {
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
     editorFontSizeCheckbox.checked =
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
-    editorHighContrastCheckbox.checked =
-      settings.editor_background_color === EDITOR_BACKGROUND_COLOR.highConstrast
-        ? true
-        : false;
+    editorHighContrastCheckbox.checked = settings.editor_high_contrast;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({ editor_auto_completion: event.target.checked });
