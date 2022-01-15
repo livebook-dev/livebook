@@ -108,6 +108,7 @@ if Mix.target() == :app do
       :os.type() == {:unix, :darwin}
     end
 
+    # TODO: On Elixir v1.14, use URI.append_query/2
     defp append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
       %{uri | query: query_to_add}
     end
