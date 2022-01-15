@@ -45,7 +45,7 @@ const Cell = {
         editorContainer.appendChild(editorElement);
         // Adjust the background color based on local settings
         const settings = loadLocalSettings();
-        editorContainer.parentElement.style.backgroundColor =
+        editorContainer.style.backgroundColor =
           THEME_BACKGROUND_COLOR[settings.editor_theme];
         // Setup the editor instance.
         this.state.liveEditor = new LiveEditor(
