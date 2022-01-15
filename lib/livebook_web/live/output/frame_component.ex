@@ -34,6 +34,7 @@ defmodule LivebookWeb.Output.FrameComponent do
     <div id={"frame-output-#{@id}"}>
       <%= if @outputs != [] do %>
         <LivebookWeb.Output.outputs
+          id={"frame-output-#{@id}-outputs"}
           output_views={output_views(@outputs, @id, @counter)}
           socket={@socket}
           session_id={@session_id}

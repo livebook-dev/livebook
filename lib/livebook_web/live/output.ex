@@ -7,12 +7,13 @@ defmodule LivebookWeb.Output do
   def outputs(assigns) do
     ~H"""
     <div class="flex flex-col space-y-2">
-      <%= for {output_views, standalone?} <- group_output_views(@output_views) do %>
-        <div class={"flex flex-col #{if not standalone?, do: "rounded-lg border border-gray-200 divide-y divide-gray-200"}"}>
-          <%= for output_view <- output_views do %>
-            <div class={"max-w-full
-              #{if not standalone?, do: "px-4"}
-              #{if not composite?(output_view.output), do: "py-4"}"}>
+      <%= for {{output_views, standalone?}, idx} <- @output_views |> group_output_views() |> Enum.with_index() do %>
+        <div class={"flex flex-col #{if not standalone?, do: "rounded-lg border border-gray-200 divide-y divide-gray-200"}"}
+          id={"outputs-#{@id}-group-#{idx}"}
+          phx-update="append">
+          <%= for {output_view, output_idx} <- Enum.with_index(output_views), not skip_render?(output_view.output) do %>
+            <div class={"max-w-full #{if not standalone?, do: "px-4"} #{if not composite?(output_view.output), do: "py-4"}"}
+              id={"outputs-#{@id}-group-#{idx}-#{output_idx}"}>
               <%= render_output(output_view.output, %{
                     id: output_view.id,
                     socket: @socket,
@@ -62,6 +63,12 @@ defmodule LivebookWeb.Output do
   defp composite?({:frame, _outputs, _info}), do: true
   defp composite?(_output), do: false
 
+  defp skip_render?({:stdout, :__pruned__}), do: true
+  defp skip_render?({:text, :__pruned__}), do: true
+  defp skip_render?({:image, :__pruned__, :__pruned__}), do: true
+  defp skip_render?({:markdown, :__pruned__}), do: true
+  defp skip_render?(_output), do: false
+
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
     live_component(LivebookWeb.Output.StdoutComponent, id: id, text: text, follow: true)
@@ -71,42 +78,19 @@ defmodule LivebookWeb.Output do
     assigns = %{id: id, text: text}
 
     ~H"""
-    <div id={"static-output-#{@id}"} phx-update="ignore">
-      <%= if @text != :__pruned__ do %>
-        <LivebookWeb.Output.TextComponent.render
-          id={@id}
-          content={@text}
-          follow={false} />
-      <% end %>
-    </div>
+    <LivebookWeb.Output.TextComponent.render id={@id} content={@text} follow={false} />
     """
   end
 
   defp render_output({:markdown, markdown}, %{id: id}) do
-    assigns = %{id: id, markdown: markdown}
-
-    ~H"""
-    <div id={"static-output-#{@id}"} phx-update="ignore">
-      <%= if @markdown != :__pruned__ do %>
-        <.live_component module={LivebookWeb.Output.MarkdownComponent}
-          id={@id}
-          content={@markdown} />
-      <% end %>
-    </div>
-    """
+    live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
   end
 
   defp render_output({:image, content, mime_type}, %{id: id}) do
     assigns = %{id: id, content: content, mime_type: mime_type}
 
     ~H"""
-    <div id={"static-output-#{@id}"} phx-update="ignore">
-      <%= if @content != :__pruned__ do %>
-        <LivebookWeb.Output.ImageComponent.render
-          content={@content}
-          mime_type={@mime_type} />
-      <% end %>
-    </div>
+    <LivebookWeb.Output.ImageComponent.render content={@content} mime_type={@mime_type} />
     """
   end
 

@@ -63,7 +63,7 @@ defmodule Livebook.Session.Data do
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           evaluation_start: DateTime.t() | nil,
-          number_of_evaluations: non_neg_integer(),
+          evaluation_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
           bound_input_readings: input_reading()
         }
@@ -908,7 +908,6 @@ defmodule Livebook.Session.Data do
         info
         | evaluation_status: :ready,
           evaluation_time_ms: metadata.evaluation_time_ms,
-          number_of_evaluations: info.number_of_evaluations + 1,
           # After finished evaluation, take the snapshot of read inputs
           evaluation_snapshot:
             {elem(info.evaluation_snapshot, 0),
@@ -1013,7 +1012,7 @@ defmodule Livebook.Session.Data do
               # so that another queue operation doesn't cause duplicated
               # :start_evaluation action
               evaluation_status: :evaluating,
-              evaluation_id: "#{id}-eval-#{info.number_of_evaluations + 1}",
+              evaluation_number: info.evaluation_number + 1,
               evaluation_digest: nil,
               evaluation_snapshot: info.snapshot,
               bound_to_input_ids: MapSet.new(),
@@ -1331,10 +1330,9 @@ defmodule Livebook.Session.Data do
       validity_status: :fresh,
       evaluation_status: :ready,
       evaluation_digest: nil,
-      evaluation_id: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
-      number_of_evaluations: 0,
+      evaluation_number: 0,
       bound_to_input_ids: MapSet.new(),
       bound_input_readings: [],
       snapshot: {nil, nil},
@@ -1450,7 +1448,7 @@ defmodule Livebook.Session.Data do
             {
               prev_cell_id,
               cell_snapshots[prev_cell_id],
-              data.cell_infos[prev_cell_id].number_of_evaluations
+              number_of_evaluations(data.cell_infos[prev_cell_id])
             }
 
         deps = {is_branch?, parent_deps}
@@ -1476,6 +1474,12 @@ defmodule Livebook.Session.Data do
       end)
     end)
   end
+
+  defp number_of_evaluations(%{evaluation_status: :evaluating} = info) do
+    info.evaluation_number - 1
+  end
+
+  defp number_of_evaluations(info), do: info.evaluation_number
 
   defp bound_inputs_snapshot(data, cell) do
     %{bound_to_input_ids: bound_to_input_ids} = data.cell_infos[cell.id]

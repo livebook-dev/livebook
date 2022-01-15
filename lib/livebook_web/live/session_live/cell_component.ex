@@ -117,6 +117,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <%= if @cell_view.output_views != [] do %>
         <div class="mt-2" data-element="outputs-container">
           <LivebookWeb.Output.outputs
+            id={"outputs-#{@cell_view.id}-#{@cell_view.evaluation_number}"}
             output_views={@cell_view.output_views}
             socket={@socket}
             session_id={@session_id}
@@ -253,7 +254,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
       <span class="font-mono"
-        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
+        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.evaluation_number}"}
         phx-hook="Timer"
         phx-update="ignore"
         data-start={DateTime.to_iso8601(@cell_view.evaluation_start)}>

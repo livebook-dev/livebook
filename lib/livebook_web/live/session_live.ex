@@ -1386,7 +1386,7 @@ defmodule LivebookWeb.SessionLive do
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
       evaluation_start: info.evaluation_start,
-      number_of_evaluations: info.number_of_evaluations,
+      evaluation_number: info.evaluation_number,
       reevaluate_automatically: cell.reevaluate_automatically,
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)
@@ -1404,7 +1404,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp cell_to_output_views(cell, info) do
-    id = "output-#{cell.id}-#{info.evaluation_id}"
+    id = "output-#{cell.id}-#{info.evaluation_number}"
 
     cell.outputs
     |> Enum.reverse()
