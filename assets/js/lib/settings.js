@@ -5,17 +5,16 @@ export const EDITOR_FONT_SIZE = {
   large: 16,
 };
 
-export const EDITOR_BACKGROUND_COLOR = {
-  normal: "#282c34",
-  highConstrast: "#060708",
+export const EDITOR_THEME = {
+  default: { name: "custom", backgroundColor: "#282c34" },
+  highContrast: { name: "highContrast", backgroundColor: "#060708" },
 };
 
 const DEFAULT_SETTINGS = {
   editor_auto_completion: true,
   editor_auto_signature: true,
-  editor_high_contrast: false,
   editor_font_size: EDITOR_FONT_SIZE.normal,
-  editor_background_color: EDITOR_BACKGROUND_COLOR.normal,
+  editor_theme: EDITOR_THEME.default,
 };
 
 /**

@@ -2,7 +2,7 @@ import {
   loadLocalSettings,
   storeLocalSettings,
   EDITOR_FONT_SIZE,
-  EDITOR_BACKGROUND_COLOR,
+  EDITOR_THEME,
 } from "../lib/settings";
 
 /**
@@ -33,7 +33,10 @@ const EditorSettings = {
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
     editorFontSizeCheckbox.checked =
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
-    editorHighContrastCheckbox.checked = settings.editor_high_contrast;
+    editorHighContrastCheckbox.checked =
+      settings.editor_theme.name === EDITOR_THEME.highContrast.name
+        ? true
+        : false;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({ editor_auto_completion: event.target.checked });
@@ -53,10 +56,9 @@ const EditorSettings = {
 
     editorHighContrastCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({
-        editor_high_contrast: event.target.checked,
-        editor_background_color: event.target.checked
-          ? EDITOR_BACKGROUND_COLOR.highConstrast
-          : EDITOR_BACKGROUND_COLOR.normal,
+        editor_theme: event.target.checked
+          ? EDITOR_THEME.highContrast
+          : EDITOR_THEME.default,
       });
     });
   },
