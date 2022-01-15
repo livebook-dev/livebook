@@ -42,7 +42,7 @@ defmodule Livebook.Utils.ANSI do
   """
   @spec parse_ansi_string(String.t(), keyword()) :: {list({modifiers(), String.t()}), modifiers()}
   def parse_ansi_string(string, opts \\ []) do
-    modifiers = opts |> Keyword.get(:modifiers, []) |> Map.new()
+    modifiers = Keyword.get(opts, :modifiers, [])
 
     [head | ansi_prefixed_strings] = String.split(string, "\e")
 
@@ -59,7 +59,7 @@ defmodule Livebook.Utils.ANSI do
               {modifiers, "\e" <> string}
           end
 
-        {{Map.to_list(modifiers), rest}, modifiers}
+        {{modifiers, rest}, modifiers}
       end)
 
     parts = [{[], head} | tail_parts]
@@ -69,7 +69,7 @@ defmodule Livebook.Utils.ANSI do
       |> Enum.reject(fn {_modifiers, string} -> string == "" end)
       |> merge_adjacent_parts([])
 
-    {parts, Map.to_list(modifiers)}
+    {parts, modifiers}
   end
 
   defp merge_adjacent_parts([], acc), do: Enum.reverse(acc)
@@ -238,7 +238,7 @@ defmodule Livebook.Utils.ANSI do
   end
 
   defp apply_modifier(modifiers, :ignored), do: modifiers
-  defp apply_modifier(_modifiers, :reset), do: %{}
-  defp apply_modifier(modifiers, {key, :reset}), do: Map.delete(modifiers, key)
-  defp apply_modifier(modifiers, {key, value}), do: Map.put(modifiers, key, value)
+  defp apply_modifier(_modifiers, :reset), do: []
+  defp apply_modifier(modifiers, {key, :reset}), do: Keyword.delete(modifiers, key)
+  defp apply_modifier(modifiers, {key, value}), do: Keyword.put(modifiers, key, value)
 end

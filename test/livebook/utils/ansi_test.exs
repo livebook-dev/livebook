@@ -41,7 +41,7 @@ defmodule Livebook.Utils.ANSITest do
     test "modifiers have effect until reset" do
       assert {[
                 {[foreground_color: :blue], "cool"},
-                {[foreground_color: :blue, text_decoration: :underline], "cats"}
+                {[text_decoration: :underline, foreground_color: :blue], "cats"}
               ], _modifiers} = ANSI.parse_ansi_string("\e[34mcool\e[4mcats\e[0m")
     end
 
