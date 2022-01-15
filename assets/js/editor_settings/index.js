@@ -34,9 +34,7 @@ const EditorSettings = {
     editorFontSizeCheckbox.checked =
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
     editorHighContrastCheckbox.checked =
-      settings.editor_theme.name === EDITOR_THEME.highContrast.name
-        ? true
-        : false;
+      settings.editor_theme === EDITOR_THEME.highContrast ? true : false;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       storeLocalSettings({ editor_auto_completion: event.target.checked });

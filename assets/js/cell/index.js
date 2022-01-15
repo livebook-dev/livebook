@@ -5,6 +5,7 @@ import { globalPubSub } from "../lib/pub_sub";
 import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
 import { loadLocalSettings } from "../lib/settings";
+import { THEME_BACKGROUND_COLOR } from "./live_editor/theme";
 
 /**
  * A hook managing a single cell.
@@ -45,8 +46,7 @@ const Cell = {
         // Adjust the background color based on local settings
         const settings = loadLocalSettings();
         editorContainer.parentElement.style.backgroundColor =
-          settings.editor_theme.backgroundColor;
-        console.log(settings.editor_theme.backgroundColor);
+          THEME_BACKGROUND_COLOR[settings.editor_theme];
         // Setup the editor instance.
         this.state.liveEditor = new LiveEditor(
           this,

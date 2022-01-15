@@ -6,8 +6,8 @@ export const EDITOR_FONT_SIZE = {
 };
 
 export const EDITOR_THEME = {
-  default: { name: "custom", backgroundColor: "#282c34" },
-  highContrast: { name: "highContrast", backgroundColor: "#060708" },
+  default: "default",
+  highContrast: "highContrast",
 };
 
 const DEFAULT_SETTINGS = {

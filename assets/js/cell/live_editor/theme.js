@@ -11,6 +11,8 @@ const colors = {
   peach: "#d19a66",
 };
 
+const THEME_BACKGROUND_COLOR = { default: "#282c34", highContrast: "#060708" }
+
 const theme = {
   base: "vs-dark",
   inherit: false,
@@ -53,7 +55,7 @@ const theme = {
   ],
 
   colors: {
-    "editor.background": "#282c34",
+    "editor.background": THEME_BACKGROUND_COLOR.default,
     "editor.foreground": colors.default,
     "editorLineNumber.foreground": "#636d83",
     "editorCursor.foreground": "#636d83",
@@ -69,6 +71,6 @@ const theme = {
   },
 };
 
-const highContrast = {...theme, colors : {...theme.colors, "editor.background": "#060708"}}
+const highContrast = {...theme, colors : {...theme.colors, "editor.background": THEME_BACKGROUND_COLOR.highContrast}};
 
-export { theme, highContrast };
+export { theme, highContrast, THEME_BACKGROUND_COLOR };

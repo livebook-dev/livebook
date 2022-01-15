@@ -9,7 +9,7 @@ monaco.languages.registerOnTypeFormattingEditProvider(
 );
 
 // Define custom theme
-monaco.editor.defineTheme("custom", theme);
+monaco.editor.defineTheme("default", theme);
 monaco.editor.defineTheme("highContrast", highContrast);
 
 // See https://github.com/microsoft/monaco-editor/issues/648#issuecomment-564978560
