@@ -5,10 +5,16 @@ export const EDITOR_FONT_SIZE = {
   large: 16,
 };
 
+export const EDITOR_THEME = {
+  default: "default",
+  highContrast: "highContrast",
+};
+
 const DEFAULT_SETTINGS = {
   editor_auto_completion: true,
   editor_auto_signature: true,
   editor_font_size: EDITOR_FONT_SIZE.normal,
+  editor_theme: EDITOR_THEME.default,
 };
 
 /**

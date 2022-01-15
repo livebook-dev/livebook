@@ -160,7 +160,7 @@ class LiveEditor {
       },
       occurrencesHighlight: false,
       renderLineHighlight: "none",
-      theme: "custom",
+      theme: settings.editor_theme,
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: settings.editor_font_size,
       tabIndex: -1,

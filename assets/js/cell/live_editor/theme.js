@@ -1,5 +1,4 @@
 // This is a port of the One Dark theme to the Monaco editor.
-
 const colors = {
   default: "#abb2bf",
   lightRed: "#e06c75",
@@ -11,6 +10,8 @@ const colors = {
   teal: "#56b6c2",
   peach: "#d19a66",
 };
+
+const THEME_BACKGROUND_COLOR = { default: "#282c34", highContrast: "#060708" };
 
 const theme = {
   base: "vs-dark",
@@ -54,7 +55,7 @@ const theme = {
   ],
 
   colors: {
-    "editor.background": "#282c34",
+    "editor.background": THEME_BACKGROUND_COLOR.default,
     "editor.foreground": colors.default,
     "editorLineNumber.foreground": "#636d83",
     "editorCursor.foreground": "#636d83",
@@ -70,4 +71,12 @@ const theme = {
   },
 };
 
-export default theme;
+const highContrast = {
+  ...theme,
+  colors: {
+    ...theme.colors,
+    "editor.background": THEME_BACKGROUND_COLOR.highContrast,
+  },
+};
+
+export { theme, highContrast, THEME_BACKGROUND_COLOR };
