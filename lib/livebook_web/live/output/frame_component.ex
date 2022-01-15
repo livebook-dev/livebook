@@ -42,7 +42,7 @@ defmodule LivebookWeb.Output.FrameComponent do
           runtime={nil}
           cell_validity_status={nil} />
       <% else %>
-        <div class="text-gray-300">
+        <div class="text-gray-300 p-4 rounded-lg border border-gray-200">
           Empty output frame
         </div>
       <% end %>
