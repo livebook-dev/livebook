@@ -212,13 +212,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp editor(assigns) do
     ~H"""
-    <div class="py-3 rounded-lg bg-editor relative">
-      <div
-        id={"editor-container-#{@cell_view.id}"}
-        data-element="editor-container"
-        phx-update="ignore">
-        <div class="px-8">
-          <.content_placeholder bg_class="bg-gray-500" empty={@cell_view.empty?} />
+    <div class="relative">
+      <div id={"editor-#{@cell_view.id}"} phx-update="ignore">
+        <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
+          <div class="px-8">
+            <.content_placeholder bg_class="bg-gray-500" empty={@cell_view.empty?} />
+          </div>
         </div>
       </div>
 
