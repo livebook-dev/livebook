@@ -332,6 +332,8 @@ defmodule Livebook.Utils do
   @doc ~S"""
   Finds CR characters and removes leading text in the same line.
 
+  Note that trailing CRs are kept.
+
   ## Examples
 
       iex> Livebook.Utils.apply_rewind("Hola\nHmm\rHey")
@@ -339,6 +341,9 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.apply_rewind("\rHey")
       "Hey"
+
+      iex> Livebook.Utils.apply_rewind("Hola\r\nHey\r")
+      "Hola\r\nHey\r"
   """
   @spec apply_rewind(String.t()) :: String.t()
   def apply_rewind(string) when is_binary(string) do
