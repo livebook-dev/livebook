@@ -16,7 +16,7 @@ import { toText } from "hast-util-to-text";
 import { removePosition } from "unist-util-remove-position";
 
 import { highlight } from "./live_editor/monaco";
-import { renderMermaid } from "../mermaid";
+import { renderMermaid } from "./markdown/mermaid";
 
 /**
  * Renders markdown content in the given container.
