@@ -14,10 +14,12 @@ defmodule Livebook.Notebook.Cell.Elixir do
   @type t :: %__MODULE__{
           id: Cell.id(),
           source: String.t(),
-          outputs: list(output()),
+          outputs: list(indexed_output()),
           disable_formatting: boolean(),
           reevaluate_automatically: boolean()
         }
+
+  @type indexed_output :: {non_neg_integer(), output()}
 
   @typedoc """
   For more details on output types see `t:Kino.Output.t/0`.
@@ -68,18 +70,18 @@ defmodule Livebook.Notebook.Cell.Elixir do
   @doc """
   Extracts all inputs from the given output.
   """
-  @spec find_inputs_in_output(output()) :: list(input_attrs :: map())
+  @spec find_inputs_in_output(indexed_output()) :: list(input_attrs :: map())
   def find_inputs_in_output(output)
 
-  def find_inputs_in_output({:input, attrs}) do
+  def find_inputs_in_output({_idx, {:input, attrs}}) do
     [attrs]
   end
 
-  def find_inputs_in_output({:control, %{type: :form, fields: fields}}) do
+  def find_inputs_in_output({_idx, {:control, %{type: :form, fields: fields}}}) do
     Keyword.values(fields)
   end
 
-  def find_inputs_in_output({:frame, outputs, _}) do
+  def find_inputs_in_output({_idx, {:frame, outputs, _}}) do
     Enum.flat_map(outputs, &find_inputs_in_output/1)
   end
 

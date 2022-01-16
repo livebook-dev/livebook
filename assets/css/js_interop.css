@@ -136,7 +136,8 @@ solely client-side operations.
   @apply rounded-t-lg border-t;
 }
 
-[data-element="output"]:not([data-border]) + [data-element="output"][data-border] {
+[data-element="output"]:not([data-border])
+  + [data-element="output"][data-border] {
   @apply rounded-t-lg border-t;
 }
 
@@ -150,6 +151,10 @@ solely client-side operations.
 
 [data-element="output"][data-border] + [data-element="output"][data-border] {
   @apply mt-0;
+}
+
+[data-element="outputs-container"] > [data-element="output"]:first-child {
+  @apply mt-2;
 }
 
 [data-element="session"]:not([data-js-side-panel-content])

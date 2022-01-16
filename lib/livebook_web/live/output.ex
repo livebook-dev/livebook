@@ -6,23 +6,21 @@ defmodule LivebookWeb.Output do
   """
   def outputs(assigns) do
     ~H"""
-    <div class="flex flex-col" id={"outputs-#{@id}"} phx-update="append">
-      <%= for output_view <- @output_views, not skip_render?(output_view.output) do %>
-        <div class="max-w-full" id={"outputs-#{@id}-#{output_view.id}"}
-          data-element="output"
-          data-border={border?(output_view.output)}
-          data-wrapper={wrapper?(output_view.output)}>
-          <%= render_output(output_view.output, %{
-                id: output_view.id,
-                socket: @socket,
-                session_id: @session_id,
-                runtime: @runtime,
-                cell_validity_status: @cell_validity_status,
-                input_values: @input_values
-              }) %>
-        </div>
-      <% end %>
-    </div>
+    <%= for {idx, output} <- Enum.reverse(@outputs) do %>
+      <div class="max-w-full" id={"output-wrapper-#{idx}"}
+        data-element="output"
+        data-border={border?(output)}
+        data-wrapper={wrapper?(output)}>
+        <%= render_output(output, %{
+              id: "output-#{idx}",
+              socket: @socket,
+              session_id: @session_id,
+              runtime: @runtime,
+              cell_validity_status: @cell_validity_status,
+              input_values: @input_values
+            }) %>
+      </div>
+    <% end %>
     """
   end
 
@@ -33,12 +31,6 @@ defmodule LivebookWeb.Output do
 
   defp wrapper?({:frame, _outputs, _info}), do: true
   defp wrapper?(_output), do: false
-
-  defp skip_render?({:stdout, :__pruned__}), do: true
-  defp skip_render?({:text, :__pruned__}), do: true
-  defp skip_render?({:image, :__pruned__, :__pruned__}), do: true
-  defp skip_render?({:markdown, :__pruned__}), do: true
-  defp skip_render?(_output), do: false
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)

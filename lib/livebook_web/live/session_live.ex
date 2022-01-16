@@ -1058,7 +1058,10 @@ defmodule LivebookWeb.SessionLive do
       {:ok, data, actions} ->
         socket
         |> assign_private(data: data)
-        |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
+        |> assign(
+          data_view:
+            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
+        )
         |> after_operation(socket, operation)
         |> handle_actions(actions)
 
@@ -1381,7 +1384,7 @@ defmodule LivebookWeb.SessionLive do
       # Note: we need this during initial loading,
       # at which point we still have the source
       empty?: cell.source == "",
-      output_views: cell_to_output_views(cell, info),
+      outputs: cell.outputs,
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
@@ -1403,18 +1406,6 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp cell_to_output_views(cell, info) do
-    id = "output-#{cell.id}-#{info.evaluation_number}"
-
-    cell.outputs
-    |> Enum.reverse()
-    |> Enum.with_index()
-    |> Enum.reverse()
-    |> Enum.map(fn {output, idx} ->
-      %{id: "#{id}-#{idx}", output: output}
-    end)
-  end
-
   defp input_values_for_cell(cell, data) do
     input_ids =
       for output <- cell.outputs,
@@ -1427,7 +1418,7 @@ defmodule LivebookWeb.SessionLive do
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
   # most common ones we only update the relevant parts.
-  defp update_data_view(data_view, data, operation) do
+  defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       {:report_cell_revision, _pid, _cell_id, _revision} ->
         data_view
@@ -1440,14 +1431,12 @@ defmodule LivebookWeb.SessionLive do
       # For outputs that update existing outputs we send the update directly
       # to the corresponding component, so the DOM patch is isolated and fast.
       # This is important for intensive output updates
-      {:add_cell_evaluation_output, _client_pid, _id,
-       {:frame, frame_outputs, %{type: type, ref: ref}}}
+      {:add_cell_evaluation_output, _client_pid, _cell_id,
+       {:frame, _outputs, %{type: type, ref: ref}}}
       when type != :default ->
-        for section_view <- data_view.section_views,
-            %{output_views: output_views} <- section_view.cell_views,
-            %{id: id, output: {:frame, _, %{ref: ^ref}}} <- output_views do
+        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
           send_update(LivebookWeb.Output.FrameComponent,
-            id: id,
+            id: "output-#{idx}",
             outputs: frame_outputs,
             update_type: type
           )
@@ -1455,26 +1444,14 @@ defmodule LivebookWeb.SessionLive do
 
         data_view
 
-      {:add_cell_evaluation_output, _client_pid, id, {:stdout, text}} ->
-        data_view.section_views
-        |> Enum.find_value(:error, fn section_view ->
-          Enum.find_value(section_view.cell_views, fn
-            %{id: ^id, output_views: [%{id: output_id, output: {:stdout, _}} | _]} ->
-              {:ok, output_id}
-
-            %{id: ^id} ->
-              :error
-
-            _output_view ->
-              nil
-          end)
-        end)
-        |> case do
-          {:ok, output_id} ->
-            send_update(LivebookWeb.Output.StdoutComponent, id: output_id, text: text)
+      {:add_cell_evaluation_output, _client_pid, cell_id, {:stdout, text}} ->
+        # Lookup in previous data to see if the output is already there
+        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
+          {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->
+            send_update(LivebookWeb.Output.StdoutComponent, id: "output-#{idx}", text: text)
             data_view
 
-          :error ->
+          _ ->
             data_to_view(data)
         end
 
@@ -1500,7 +1477,7 @@ defmodule LivebookWeb.SessionLive do
       | notebook:
           Notebook.update_cells(data.notebook, fn
             %Cell.Elixir{} = cell ->
-              %{cell | outputs: Enum.map(cell.outputs, &prune_output/1)}
+              %{cell | outputs: prune_outputs(cell.outputs)}
 
             cell ->
               cell
@@ -1508,16 +1485,32 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp prune_output({:stdout, _}), do: {:stdout, :__pruned__}
-  defp prune_output({:text, _}), do: {:text, :__pruned__}
-  defp prune_output({:image, _, _}), do: {:image, :__pruned__, :__pruned__}
-  defp prune_output({:markdown, _}), do: {:markdown, :__pruned__}
-
-  defp prune_output({:frame, outputs, info}) do
-    {:frame, Enum.map(outputs, &prune_output/1), info}
+  defp prune_outputs(outputs) do
+    outputs
+    |> Enum.reverse()
+    |> do_prune_outputs()
+    |> Enum.reverse()
   end
 
-  defp prune_output(output), do: output
+  defp do_prune_outputs([]), do: []
+
+  # Keep the last stdout, so that we know to message updates directly
+  defp do_prune_outputs([{idx, {:stdout, _}}]), do: [{idx, {:stdout, :__pruned__}}]
+
+  # Keep frame and its relevant contents
+  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs]) do
+    [{idx, {:frame, prune_outputs(frame_outputs), info}} | do_prune_outputs(outputs)]
+  end
+
+  # Keep outputs that get re-rendered
+  defp do_prune_outputs([{idx, output} | outputs])
+       when elem(output, 0) in [:input, :control, :error] do
+    [{idx, output} | do_prune_outputs(outputs)]
+  end
+
+  defp do_prune_outputs([_output | outputs]) do
+    do_prune_outputs(outputs)
+  end
 
   # Changes that affect only a single cell are still likely to
   # have impact on dirtiness, so we need to always mirror it

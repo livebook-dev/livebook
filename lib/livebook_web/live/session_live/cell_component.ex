@@ -113,19 +113,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     <.cell_body>
       <.editor cell_view={@cell_view} />
-
-      <%= if @cell_view.output_views != [] do %>
-        <div class="mt-2" data-element="outputs-container">
-          <LivebookWeb.Output.outputs
-            id={"outputs-#{@cell_view.id}-#{@cell_view.evaluation_number}"}
-            output_views={@cell_view.output_views}
-            socket={@socket}
-            session_id={@session_id}
-            runtime={@runtime}
-            cell_validity_status={@cell_view.validity_status}
-            input_values={@cell_view.input_values} />
-        </div>
-      <% end %>
+      <div class="flex flex-col"
+        data-element="outputs-container"
+        id={"output-#{@cell_view.id}-#{@cell_view.evaluation_number}"}
+        phx-update="append">
+        <LivebookWeb.Output.outputs
+          outputs={@cell_view.outputs}
+          socket={@socket}
+          session_id={@session_id}
+          runtime={@runtime}
+          cell_validity_status={@cell_view.validity_status}
+          input_values={@cell_view.input_values} />
+      </div>
     </.cell_body>
     """
   end

@@ -844,64 +844,14 @@ defmodule Livebook.Session.Data do
   defp add_cell_output({data, _} = data_actions, cell, output) do
     data_actions
     |> set!(
-      notebook: add_output_to_notebook(data.notebook, cell, output),
+      notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
       input_values:
-        output
+        {-1, output}
         |> Cell.Elixir.find_inputs_in_output()
         |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
         |> Map.merge(data.input_values)
     )
   end
-
-  defp add_output_to_notebook(notebook, _cell, {:frame, _outputs, %{type: type}} = frame)
-       when type != :default do
-    Notebook.update_cells(notebook, fn
-      %Cell.Elixir{} = cell ->
-        %{cell | outputs: update_frames(cell.outputs, frame)}
-
-      cell ->
-        cell
-    end)
-  end
-
-  defp add_output_to_notebook(notebook, cell, output) do
-    Notebook.update_cell(notebook, cell.id, fn cell ->
-      %{cell | outputs: add_output(cell.outputs, output)}
-    end)
-  end
-
-  defp update_frames(outputs, {:frame, new_outputs, %{ref: ref, type: type}} = frame) do
-    Enum.map(outputs, fn
-      {:frame, outputs, %{ref: ^ref} = info} ->
-        {:frame, apply_frame_update(outputs, new_outputs, type), info}
-
-      {:frame, outputs, info} ->
-        {:frame, update_frames(outputs, frame), info}
-
-      output ->
-        output
-    end)
-  end
-
-  defp apply_frame_update(_outputs, new_outputs, :replace), do: new_outputs
-  defp apply_frame_update(outputs, new_outputs, :append), do: outputs ++ new_outputs
-
-  defp add_output([], {:stdout, text}), do: [{:stdout, Livebook.Utils.apply_rewind(text)}]
-
-  defp add_output([], output), do: [output]
-
-  defp add_output(outputs, :ignored), do: outputs
-
-  defp add_output([{:stdout, :__pruned__} | _] = outputs, {:stdout, _text}) do
-    outputs
-  end
-
-  defp add_output([{:stdout, text} | tail], {:stdout, cont}) do
-    # Merge consecutive stdout outputs
-    [{:stdout, Livebook.Utils.apply_rewind(text <> cont)} | tail]
-  end
-
-  defp add_output(outputs, output), do: [output | outputs]
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
     data_actions

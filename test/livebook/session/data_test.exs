@@ -1783,110 +1783,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{:stdout, "Hello!"}]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "merges consecutive stdout results" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hola"}}
-        ])
-
-      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, " amigo!"}}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{outputs: [{:stdout, "Hola amigo!"}]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "normalizes individual stdout results to respect CR" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1"]}
-        ])
-
-      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hola\rHey"}}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{outputs: [{:stdout, "Hey"}]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "normalizes consecutive stdout results to respect CR" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hola"}}
-        ])
-
-      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "\ramigo!\r"}}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{outputs: [{:stdout, "amigo!\r"}]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "updates existing frames on frame update ouptut" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1", "c2"]},
-          {:add_cell_evaluation_response, self(), "c1", {:frame, [], %{ref: "1", type: :default}},
-           @eval_meta},
-          {:add_cell_evaluation_output, self(), "c2", {:frame, [], %{ref: "1", type: :default}}}
-        ])
-
-      operation =
-        {:add_cell_evaluation_output, self(), "c2",
-         {:frame, [{:text, "hola"}], %{ref: "1", type: :replace}}}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [
-                        %{outputs: [{:frame, [{:text, "hola"}], %{ref: "1", type: :default}}]},
-                        %{outputs: [{:frame, [{:text, "hola"}], %{ref: "1", type: :default}}]}
-                      ]
+                      cells: [%{outputs: [{0, {:stdout, "Hello!"}}]}]
                     }
                   ]
                 }
@@ -1910,7 +1807,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{:stdout, "Hello!"}, _result]}]
+                      cells: [%{outputs: [{1, {:stdout, "Hello!"}}, _result]}]
                     }
                   ]
                 }
@@ -1952,7 +1849,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{:ok, [1, 2, 3]}]}]
+                      cells: [%{outputs: [{0, {:ok, [1, 2, 3]}}]}]
                     }
                   ]
                 }
