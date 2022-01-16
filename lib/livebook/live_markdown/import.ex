@@ -203,7 +203,9 @@ defmodule Livebook.LiveMarkdown.Import do
   # Note that the list of elements is reversed:
   # first we group elements by traversing Earmark AST top-down
   # and then aggregate elements into data strictures going bottom-up.
-  defp build_notebook(elems, cells \\ [], sections \\ [], messages \\ [], output_counter \\ 0)
+  defp build_notebook(elems) do
+    build_notebook(elems, _cells = [], _sections = [], _messages = [], _output_counter = 0)
+  end
 
   defp build_notebook(
          [{:cell, :elixir, source, outputs} | elems],
