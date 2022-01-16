@@ -19,34 +19,55 @@ defmodule LivebookWeb.SessionController do
       {:ok, session} ->
         notebook = Session.get_notebook(session.pid)
 
-        send_notebook_source(conn, notebook, format)
+        name =
+          case session.file do
+            nil -> parse_notebook_name(notebook.name)
+            _ -> get_file_path_name(session.file.path)
+          end
+
+        send_notebook_source(conn, notebook, %{file_name: name, format: format})
 
       :error ->
         send_resp(conn, 404, "Not found")
     end
   end
 
-  defp send_notebook_source(conn, notebook, "livemd") do
+  defp send_notebook_source(conn, notebook, %{format: "livemd"} = file_opts) do
     opts = [include_outputs: conn.params["include_outputs"] == "true"]
     source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook, opts)
 
     send_download(conn, {:binary, source},
-      filename: "notebook.livemd",
+      filename: file_opts.file_name <> "." <> file_opts.format,
       content_type: "text/plain"
     )
   end
 
-  defp send_notebook_source(conn, notebook, "exs") do
+  defp send_notebook_source(conn, notebook, %{format: "exs"} = file_opts) do
     source = Livebook.Notebook.Export.Elixir.notebook_to_elixir(notebook)
 
     send_download(conn, {:binary, source},
-      filename: "notebook.exs",
+      filename: file_opts.file_name <> "." <> file_opts.format,
       content_type: "text/plain"
     )
   end
 
   defp send_notebook_source(conn, _notebook, _format) do
     send_resp(conn, 400, "Invalid format, supported formats: livemd, exs")
+  end
+
+  defp get_file_path_name(file_path) do
+    file_path
+    |> String.split("/")
+    |> List.last()
+    |> String.split(".")
+    |> List.first()
+  end
+
+  defp parse_notebook_name(notebook_name) do
+    notebook_name
+    |> String.trim()
+    |> String.downcase()
+    |> String.replace(" ", "_")
   end
 
   defp serve_static(conn, file) do
