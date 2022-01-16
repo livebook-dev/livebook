@@ -1,9 +1,11 @@
 // This is a port of the One Dark theme to the Monaco editor.
+// We color graded the comment so it has AA accessibility and
+// then similarly scaled the default font.
 const colors = {
-  default: "#abb2bf",
+  default: "#c4cad6",
   lightRed: "#e06c75",
   blue: "#61afef",
-  gray: "#737a8c",
+  gray: "#8c92a3",
   green: "#98c379",
   purple: "#c678dd",
   red: "#be5046",
