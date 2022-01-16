@@ -122,10 +122,8 @@
 }
 
 .markdown pre > code {
-  @apply p-4 rounded-lg text-sm align-middle font-mono flex-1 overflow-auto;
   /* Match the editor colors */
-  background-color: #282c34;
-  color: #c4cad6;
+  @apply p-4 rounded-lg align-middle flex-1 overflow-auto bg-editor text-editor font-editor;
 }
 
 .markdown kbd {

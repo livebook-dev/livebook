@@ -1,9 +1,4 @@
-import {
-  loadLocalSettings,
-  storeLocalSettings,
-  EDITOR_FONT_SIZE,
-  EDITOR_THEME,
-} from "../lib/settings";
+import { settingsStore, EDITOR_FONT_SIZE, EDITOR_THEME } from "../lib/settings";
 
 /**
  * A hook for the editor settings.
@@ -14,7 +9,7 @@ import {
  */
 const EditorSettings = {
   mounted() {
-    const settings = loadLocalSettings();
+    const settings = settingsStore.get();
 
     const editorAutoCompletionCheckbox = this.el.querySelector(
       `[name="editor_auto_completion"][value="true"]`
@@ -37,15 +32,15 @@ const EditorSettings = {
       settings.editor_theme === EDITOR_THEME.highContrast ? true : false;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({ editor_auto_completion: event.target.checked });
+      settingsStore.update({ editor_auto_completion: event.target.checked });
     });
 
     editorAutoSignatureCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({ editor_auto_signature: event.target.checked });
+      settingsStore.update({ editor_auto_signature: event.target.checked });
     });
 
     editorFontSizeCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({
+      settingsStore.update({
         editor_font_size: event.target.checked
           ? EDITOR_FONT_SIZE.large
           : EDITOR_FONT_SIZE.normal,
@@ -53,7 +48,7 @@ const EditorSettings = {
     });
 
     editorHighContrastCheckbox.addEventListener("change", (event) => {
-      storeLocalSettings({
+      settingsStore.update({
         editor_theme: event.target.checked
           ? EDITOR_THEME.highContrast
           : EDITOR_THEME.default,
