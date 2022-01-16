@@ -610,12 +610,14 @@ defmodule Livebook.Notebook do
 
   defp add_output(outputs, {_idx, :ignored}), do: outputs
 
+  # Session clients prune stdout content and handle subsequent
+  # ones by directly appending page content to the previous one
   defp add_output([{_idx1, {:stdout, :__pruned__}} | _] = outputs, {_idx2, {:stdout, _text}}) do
     outputs
   end
 
+  # Session server keeps all outputs, so we merge consecutive stdouts
   defp add_output([{idx, {:stdout, text}} | tail], {_idx, {:stdout, cont}}) do
-    # Merge consecutive stdout outputs
     [{idx, {:stdout, Livebook.Utils.apply_rewind(text <> cont)}} | tail]
   end
 
@@ -661,5 +663,45 @@ defmodule Livebook.Notebook do
 
   defp do_find_frame_outputs(_output, _ref) do
     []
+  end
+
+  @doc """
+  Removes outputs that get rendered only once.
+  """
+  @spec prune_cell_outputs(t()) :: t()
+  def prune_cell_outputs(notebook) do
+    update_cells(notebook, fn
+      %Cell.Elixir{} = cell -> %{cell | outputs: prune_outputs(cell.outputs)}
+      cell -> cell
+    end)
+  end
+
+  defp prune_outputs(outputs) do
+    outputs
+    |> Enum.reverse()
+    |> do_prune_outputs([])
+  end
+
+  defp do_prune_outputs([], acc), do: acc
+
+  # Keep the last stdout, so that we know to message it directly, but remove its contents
+  defp do_prune_outputs([{idx, {:stdout, _}}], acc) do
+    [{idx, {:stdout, :__pruned__}} | acc]
+  end
+
+  # Keep frame and its relevant contents
+  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs], acc) do
+    do_prune_outputs(outputs, [{idx, {:frame, prune_outputs(frame_outputs), info}} | acc])
+  end
+
+  # Keep outputs that get re-rendered
+  defp do_prune_outputs([{idx, output} | outputs], acc)
+       when elem(output, 0) in [:input, :control, :error] do
+    do_prune_outputs(outputs, [{idx, output} | acc])
+  end
+
+  # Remove everything else
+  defp do_prune_outputs([_output | outputs], acc) do
+    do_prune_outputs(outputs, acc)
   end
 end

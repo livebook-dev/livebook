@@ -41,7 +41,8 @@ defmodule LivebookWeb.SessionLive do
            page_title: get_page_title(data.notebook.name),
            empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
          )
-         |> assign_private(data: prune_outputs_in_data(data))
+         |> assign_private(data: data)
+         |> prune_outputs()
          |> allow_upload(:cell_image,
            accept: ~w(.jpg .jpeg .png .gif),
            max_entries: 1,
@@ -1183,7 +1184,7 @@ defmodule LivebookWeb.SessionLive do
          _prev_socket,
          {:add_cell_evaluation_output, _client_pid, _cell_id, _output}
        ) do
-    assign_private(socket, data: prune_outputs_in_data(socket.private.data))
+    prune_outputs(socket)
   end
 
   defp after_operation(
@@ -1191,7 +1192,7 @@ defmodule LivebookWeb.SessionLive do
          _prev_socket,
          {:add_cell_evaluation_response, _client_pid, _id, _output, _metadata}
        ) do
-    assign_private(socket, data: prune_outputs_in_data(socket.private.data))
+    prune_outputs(socket)
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
@@ -1471,45 +1472,11 @@ defmodule LivebookWeb.SessionLive do
     )
   end
 
-  defp prune_outputs_in_data(data) do
-    %{
-      data
-      | notebook:
-          Notebook.update_cells(data.notebook, fn
-            %Cell.Elixir{} = cell ->
-              %{cell | outputs: prune_outputs(cell.outputs)}
-
-            cell ->
-              cell
-          end)
-    }
-  end
-
-  defp prune_outputs(outputs) do
-    outputs
-    |> Enum.reverse()
-    |> do_prune_outputs()
-    |> Enum.reverse()
-  end
-
-  defp do_prune_outputs([]), do: []
-
-  # Keep the last stdout, so that we know to message updates directly
-  defp do_prune_outputs([{idx, {:stdout, _}}]), do: [{idx, {:stdout, :__pruned__}}]
-
-  # Keep frame and its relevant contents
-  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs]) do
-    [{idx, {:frame, prune_outputs(frame_outputs), info}} | do_prune_outputs(outputs)]
-  end
-
-  # Keep outputs that get re-rendered
-  defp do_prune_outputs([{idx, output} | outputs])
-       when elem(output, 0) in [:input, :control, :error] do
-    [{idx, output} | do_prune_outputs(outputs)]
-  end
-
-  defp do_prune_outputs([_output | outputs]) do
-    do_prune_outputs(outputs)
+  defp prune_outputs(%{private: %{data: data}} = socket) do
+    assign_private(
+      socket,
+      data: update_in(data.notebook, &Notebook.prune_cell_outputs/1)
+    )
   end
 
   # Changes that affect only a single cell are still likely to
