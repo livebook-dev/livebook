@@ -18,32 +18,69 @@ const DEFAULT_SETTINGS = {
 };
 
 /**
- * Stores the given settings in local storage.
- *
- * The given attributes are merged into the current settings.
+ * Stores local configuration and persists it across browser sessions.
  */
-export function storeLocalSettings(settings) {
-  const prevSettings = loadLocalSettings();
-  const newSettings = { ...prevSettings, ...settings };
+class SettingsStore {
+  constructor() {
+    this._subscribers = [];
+    this._settings = DEFAULT_SETTINGS;
 
-  try {
-    const json = JSON.stringify(newSettings);
-    localStorage.setItem(SETTINGS_KEY, json);
-  } catch (error) {
-    console.error(`Failed to store local settings, reason: ${error.message}`);
+    this._loadSettings();
+  }
+
+  /**
+   * Returns the current settings.
+   */
+  get() {
+    return this._settings;
+  }
+
+  /**
+   * Stores new settings.
+   *
+   * The given attributes are merged into the current settings.
+   */
+  update(newSettings) {
+    const prevSettings = this._settings;
+    this._settings = { ...this._settings, ...newSettings };
+    this._subscribers.forEach((callback) =>
+      callback(this._settings, prevSettings)
+    );
+    this._storeSettings();
+  }
+
+  /**
+   * Registers to settings changes.
+   *
+   * The given function is called immediately with the current
+   * settings and then on every change.
+   */
+  getAndSubscribe(callback) {
+    this._subscribers.push(callback);
+    callback(this._settings);
+  }
+
+  _loadSettings() {
+    try {
+      const json = localStorage.getItem(SETTINGS_KEY);
+
+      if (json) {
+        const settings = JSON.parse(json);
+        this._settings = { ...this._settings, ...settings };
+      }
+    } catch (error) {
+      console.error(`Failed to load local settings, reason: ${error.message}`);
+    }
+  }
+
+  _storeSettings() {
+    try {
+      const json = JSON.stringify(this._settings);
+      localStorage.setItem(SETTINGS_KEY, json);
+    } catch (error) {
+      console.error(`Failed to store local settings, reason: ${error.message}`);
+    }
   }
 }
 
-/**
- * Loads settings from local storage.
- */
-export function loadLocalSettings() {
-  try {
-    const json = localStorage.getItem(SETTINGS_KEY);
-    const settings = json ? JSON.parse(json) : {};
-    return { ...DEFAULT_SETTINGS, ...settings };
-  } catch (error) {
-    console.error(`Failed to load local settings, reason: ${error.message}`);
-    return DEFAULT_SETTINGS;
-  }
-}
+export const settingsStore = new SettingsStore();

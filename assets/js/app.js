@@ -29,6 +29,7 @@ import KeyboardControl from "./keyboard_control";
 import morphdomCallbacks from "./morphdom_callbacks";
 import JSOutput from "./js_output";
 import { loadUserData } from "./lib/user";
+import { settingsStore } from "./lib/settings";
 
 const hooks = {
   Headline,
@@ -108,4 +109,10 @@ window.addEventListener("contextmenu", (event) => {
     event.preventDefault();
     target.dispatchEvent(new Event("click", { bubbles: true }));
   }
+});
+
+// Global configuration
+
+settingsStore.getAndSubscribe((settings) => {
+  document.body.setAttribute("data-editor-theme", settings.editor_theme);
 });
