@@ -117,7 +117,7 @@ defmodule LivebookWeb.SettingsLive do
                   checked={false} />
                 <.switch_checkbox
                   name="editor_high_contrast"
-                  label="High contrast editor"
+                  label="Use high contrast theme"
                   checked={false} />
               </div>
             </div>
