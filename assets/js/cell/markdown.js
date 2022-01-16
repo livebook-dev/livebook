@@ -7,12 +7,16 @@ import remarkMath from "remark-math";
 import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
 import rehypeKatex from "rehype-katex";
+import rehypeParse from "rehype-parse";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
 
 import { visit } from "unist-util-visit";
+import { toText } from "hast-util-to-text";
+import { removePosition } from "unist-util-remove-position";
 
 import { highlight } from "./live_editor/monaco";
+import { renderMermaid } from "../mermaid";
 
 /**
  * Renders markdown content in the given container.
@@ -47,6 +51,7 @@ class Markdown {
         .use(remarkParse)
         .use(remarkGfm)
         .use(remarkMath)
+        .use(remarkPrepareMermaid)
         .use(remarkSyntaxHiglight, { highlight })
         .use(remarkExpandUrls, { baseUrl: this.baseUrl })
         // We keep the HTML nodes, parse with rehype-raw and then sanitize
@@ -54,6 +59,7 @@ class Markdown {
         .use(rehypeRaw)
         .use(rehypeSanitize, sanitizeSchema())
         .use(rehypeKatex)
+        .use(rehypeMermaid)
         .use(rehypeExternalLinks)
         .use(rehypeStringify)
         .process(this.content)
@@ -147,6 +153,47 @@ function remarkExpandUrls(options) {
           .join("/");
       }
     });
+  };
+}
+
+const parseHtml = unified().use(rehypeParse, { fragment: true });
+
+function remarkPrepareMermaid(options) {
+  return (ast) => {
+    visit(ast, "code", (node, index, parent) => {
+      if (node.lang === "mermaid") {
+        node.type = "html";
+        node.value = `<div class="mermaid">${node.value}</div>`;
+      }
+    });
+  };
+}
+
+function rehypeMermaid(options) {
+  return (ast) => {
+    const promises = [];
+
+    visit(ast, "element", (element) => {
+      const classes =
+        element.properties && Array.isArray(element.properties.className)
+          ? element.properties.className
+          : [];
+
+      if (classes.includes("mermaid")) {
+        function updateNode(html) {
+          element.children = removePosition(
+            parseHtml.parse(html),
+            true
+          ).children;
+        }
+
+        const value = toText(element, { whitespace: "pre" });
+        const promise = renderMermaid(value).then(updateNode);
+        promises.push(promise);
+      }
+    });
+
+    return Promise.all(promises).then(() => null);
   };
 }
 
