@@ -6,69 +6,43 @@ defmodule LivebookWeb.Output do
   """
   def outputs(assigns) do
     ~H"""
-    <div class="flex flex-col space-y-2">
-      <%= for {{outputs, standalone?}, group_idx} <- @outputs |> group_outputs() |> Enum.with_index() do %>
-        <div class={"flex flex-col #{if not standalone?, do: "rounded-lg border border-gray-200 divide-y divide-gray-200"}"}>
-          <%= for {output, idx} <- Enum.with_index(outputs) do %>
-            <div class={"max-w-full #{if not standalone?, do: "px-4"} #{if not composite?(output), do: "py-4"}"}>
-              <%= render_output(output, %{
-                    id: "#{@id}-output#{group_idx}_#{idx}",
-                    socket: @socket,
-                    session_id: @session_id,
-                    runtime: @runtime,
-                    cell_validity_status: @cell_validity_status,
-                    input_values: @input_values
-                  }) %>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
+    <%= for {idx, output} <- Enum.reverse(@outputs) do %>
+      <div class="max-w-full" id={"output-wrapper-#{idx}"}
+        data-element="output"
+        data-border={border?(output)}
+        data-wrapper={wrapper?(output)}>
+        <%= render_output(output, %{
+              id: "output-#{idx}",
+              socket: @socket,
+              session_id: @session_id,
+              runtime: @runtime,
+              cell_validity_status: @cell_validity_status,
+              input_values: @input_values
+            }) %>
+      </div>
+    <% end %>
     """
   end
 
-  defp group_outputs(outputs) do
-    outputs = Enum.filter(outputs, &(&1 != :ignored))
-    group_outputs(outputs, [])
-  end
+  defp border?({:stdout, _text}), do: true
+  defp border?({:text, _text}), do: true
+  defp border?({:error, _message, _type}), do: true
+  defp border?(_output), do: false
 
-  defp group_outputs([], groups), do: groups
+  defp wrapper?({:frame, _outputs, _info}), do: true
+  defp wrapper?(_output), do: false
 
-  defp group_outputs([output | outputs], []) do
-    group_outputs(outputs, [{[output], standalone?(output)}])
-  end
-
-  defp group_outputs([output | outputs], [{group_outputs, group_standalone?} | groups]) do
-    case standalone?(output) do
-      ^group_standalone? ->
-        group_outputs(outputs, [{[output | group_outputs], group_standalone?} | groups])
-
-      standalone? ->
-        group_outputs(
-          outputs,
-          [{[output], standalone?}, {group_outputs, group_standalone?} | groups]
-        )
-    end
-  end
-
-  defp standalone?(:ignored), do: false
-  defp standalone?(text) when is_binary(text), do: false
-  defp standalone?({:text, _text}), do: false
-  defp standalone?({:error, _message, _type}), do: false
-  defp standalone?(_output), do: true
-
-  defp composite?({:frame_dynamic, _}), do: true
-  defp composite?(_output), do: false
-
-  defp render_output(text, %{id: id}) when is_binary(text) do
-    # Captured output usually has a trailing newline that we can ignore,
-    # because each line is itself an HTML block anyway.
-    text = String.replace_suffix(text, "\n", "")
-    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: true)
+  defp render_output({:stdout, text}, %{id: id}) do
+    text = if(text == :__pruned__, do: nil, else: text)
+    live_component(LivebookWeb.Output.StdoutComponent, id: id, text: text, follow: true)
   end
 
   defp render_output({:text, text}, %{id: id}) do
-    live_component(LivebookWeb.Output.TextComponent, id: id, content: text, follow: false)
+    assigns = %{id: id, text: text}
+
+    ~H"""
+    <LivebookWeb.Output.TextComponent.render id={@id} content={@text} follow={false} />
+    """
   end
 
   defp render_output({:markdown, markdown}, %{id: id}) do
@@ -76,11 +50,11 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:image, content, mime_type}, %{id: id}) do
-    live_component(LivebookWeb.Output.ImageComponent,
-      id: id,
-      content: content,
-      mime_type: mime_type
-    )
+    assigns = %{id: id, content: content, mime_type: mime_type}
+
+    ~H"""
+    <LivebookWeb.Output.ImageComponent.render content={@content} mime_type={@mime_type} />
+    """
   end
 
   defp render_output({:vega_lite_static, spec}, %{id: id}) do
@@ -124,6 +98,19 @@ defmodule LivebookWeb.Output do
     )
   end
 
+  defp render_output({:frame, outputs, _info}, %{
+         id: id,
+         input_values: input_values,
+         session_id: session_id
+       }) do
+    live_component(LivebookWeb.Output.FrameComponent,
+      id: id,
+      outputs: outputs,
+      session_id: session_id,
+      input_values: input_values
+    )
+  end
+
   defp render_output({:input, attrs}, %{id: id, input_values: input_values}) do
     live_component(LivebookWeb.Output.InputComponent,
       id: id,
@@ -149,20 +136,20 @@ defmodule LivebookWeb.Output do
 
     ~H"""
     <div class="flex flex-col space-y-4">
-    <%= render_error_message_output(@formatted) %>
-    <%= if @is_standalone do %>
-      <div>
-        <button class="button-base button-gray" phx-click="restart_runtime">
-          Reconnect runtime
-        </button>
-      </div>
-    <% else %>
-      <div class="text-red-600">
-        <span class="font-semibold">Note:</span>
-        This operation requires restarting the runtime, but we cannot
-        do it automatically for the current runtime
-      </div>
-    <% end %>
+      <%= render_error_message_output(@formatted) %>
+      <%= if @is_standalone do %>
+        <div>
+          <button class="button-base button-gray" phx-click="restart_runtime">
+            Reconnect runtime
+          </button>
+        </div>
+      <% else %>
+        <div class="text-red-600">
+          <span class="font-semibold">Note:</span>
+          This operation requires restarting the runtime, but we cannot
+          do it automatically for the current runtime
+        </div>
+      <% end %>
     </div>
     """
   end

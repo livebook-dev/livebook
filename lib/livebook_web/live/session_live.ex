@@ -42,6 +42,7 @@ defmodule LivebookWeb.SessionLive do
            empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
          )
          |> assign_private(data: data)
+         |> prune_outputs()
          |> allow_upload(:cell_image,
            accept: ~w(.jpg .jpeg .png .gif),
            max_entries: 1,
@@ -1056,7 +1057,10 @@ defmodule LivebookWeb.SessionLive do
       {:ok, data, actions} ->
         socket
         |> assign_private(data: data)
-        |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
+        |> assign(
+          data_view:
+            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
+        )
         |> after_operation(socket, operation)
         |> handle_actions(actions)
 
@@ -1171,6 +1175,22 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "evaluation_started:#{cell_id}", %{
       evaluation_digest: encode_digest(evaluation_digest)
     })
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_output, _client_pid, _cell_id, _output}
+       ) do
+    prune_outputs(socket)
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_pid, _id, _output, _metadata}
+       ) do
+    prune_outputs(socket)
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
@@ -1368,7 +1388,7 @@ defmodule LivebookWeb.SessionLive do
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
       evaluation_start: info.evaluation_start,
-      number_of_evaluations: info.number_of_evaluations,
+      evaluation_number: info.evaluation_number,
       reevaluate_automatically: cell.reevaluate_automatically,
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)
@@ -1397,7 +1417,7 @@ defmodule LivebookWeb.SessionLive do
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
   # most common ones we only update the relevant parts.
-  defp update_data_view(data_view, data, operation) do
+  defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       {:report_cell_revision, _pid, _cell_id, _revision} ->
         data_view
@@ -1406,6 +1426,33 @@ defmodule LivebookWeb.SessionLive do
         data_view
         |> update_cell_view(data, cell_id)
         |> update_dirty_status(data)
+
+      # For outputs that update existing outputs we send the update directly
+      # to the corresponding component, so the DOM patch is isolated and fast.
+      # This is important for intensive output updates
+      {:add_cell_evaluation_output, _client_pid, _cell_id,
+       {:frame, _outputs, %{type: type, ref: ref}}}
+      when type != :default ->
+        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
+          send_update(LivebookWeb.Output.FrameComponent,
+            id: "output-#{idx}",
+            outputs: frame_outputs,
+            update_type: type
+          )
+        end
+
+        data_view
+
+      {:add_cell_evaluation_output, _client_pid, cell_id, {:stdout, text}} ->
+        # Lookup in previous data to see if the output is already there
+        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
+          {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->
+            send_update(LivebookWeb.Output.StdoutComponent, id: "output-#{idx}", text: text)
+            data_view
+
+          _ ->
+            data_to_view(data)
+        end
 
       _ ->
         data_to_view(data)
@@ -1420,6 +1467,13 @@ defmodule LivebookWeb.SessionLive do
       data_view,
       [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
       cell_view
+    )
+  end
+
+  defp prune_outputs(%{private: %{data: data}} = socket) do
+    assign_private(
+      socket,
+      data: update_in(data.notebook, &Notebook.prune_cell_outputs/1)
     )
   end
 

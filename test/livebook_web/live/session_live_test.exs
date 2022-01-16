@@ -292,14 +292,57 @@ defmodule LivebookWeb.SessionLiveTest do
 
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :elixir)
-      # Evaluate the cell
+
       Session.queue_cell_evaluation(session.pid, cell_id)
-      # Send an additional output
+
       send(session.pid, {:evaluation_output, cell_id, frame_output})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       assert render(view) =~ "Dynamic output in frame"
+    end
+
+    test "stdout output update", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      send(session.pid, {:evaluation_output, cell_id, {:stdout, "line 1\n"}})
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      assert render(view) =~ "line 1"
+
+      send(session.pid, {:evaluation_output, cell_id, {:stdout, "line 2\n"}})
+      wait_for_session_update(session.pid)
+      assert render(view) =~ "line 2"
+    end
+
+    test "frame output update", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+
+      send(
+        session.pid,
+        {:evaluation_output, cell_id,
+         {:frame, [{:text, "In frame"}], %{ref: "1", type: :default}}}
+      )
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+      assert render(view) =~ "In frame"
+
+      send(
+        session.pid,
+        {:evaluation_output, cell_id,
+         {:frame, [{:text, "Updated frame"}], %{ref: "1", type: :replace}}}
+      )
+
+      wait_for_session_update(session.pid)
+
+      assert render(view) =~ "Updated frame"
+      refute render(view) =~ "In frame"
     end
   end
 

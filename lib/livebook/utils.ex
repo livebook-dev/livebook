@@ -303,4 +303,55 @@ defmodule Livebook.Utils do
     data = Base.encode64(content)
     "data:#{mime};base64,#{data}"
   end
+
+  @doc """
+  Splits the given string at the last occurrence of `pattern`.
+
+  ## Examples
+
+      iex> Livebook.Utils.split_at_last_occurrence("1,2,3", ",")
+      {:ok, "1,2", "3"}
+
+      iex> Livebook.Utils.split_at_last_occurrence("123", ",")
+      :error
+  """
+  @spec split_at_last_occurrence(String.t(), String.pattern()) ::
+          {:ok, left :: String.t(), right :: String.t()} | :error
+  def split_at_last_occurrence(string, pattern) when is_binary(string) do
+    case :binary.matches(string, pattern) do
+      [] ->
+        :error
+
+      parts ->
+        {start, _} = List.last(parts)
+        size = byte_size(string)
+        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+    end
+  end
+
+  @doc ~S"""
+  Finds CR characters and removes leading text in the same line.
+
+  Note that trailing CRs are kept.
+
+  ## Examples
+
+      iex> Livebook.Utils.apply_rewind("Hola\nHmm\rHey")
+      "Hola\nHey"
+
+      iex> Livebook.Utils.apply_rewind("\rHey")
+      "Hey"
+
+      iex> Livebook.Utils.apply_rewind("Hola\r\nHey\r")
+      "Hola\r\nHey\r"
+  """
+  @spec apply_rewind(String.t()) :: String.t()
+  def apply_rewind(string) when is_binary(string) do
+    string
+    |> String.split("\n")
+    |> Enum.map(fn line ->
+      String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
+    end)
+    |> Enum.join("\n")
+  end
 end

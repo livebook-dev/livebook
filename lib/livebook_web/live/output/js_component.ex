@@ -4,7 +4,7 @@ defmodule LivebookWeb.Output.JSComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"js-output-#{@id}"}
+    <div id={"js-output-#{@id}-#{@info.ref}"}
       phx-hook="JSOutput"
       phx-update="ignore"
       data-ref={@info.ref}

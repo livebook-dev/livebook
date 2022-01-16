@@ -28,7 +28,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp collect_js_output_data(notebook) do
     for section <- notebook.sections,
         %Cell.Elixir{} = cell <- section.cells,
-        {:js, %{export: %{}, ref: ref, pid: pid}} <- cell.outputs do
+        {_idx, {:js, %{export: %{}, ref: ref, pid: pid}}} <- cell.outputs do
       Task.async(fn ->
         {ref, get_js_output_data(pid, ref)}
       end)
@@ -152,12 +152,12 @@ defmodule Livebook.LiveMarkdown.Export do
   defp render_outputs(cell, ctx) do
     cell.outputs
     |> Enum.reverse()
-    |> Enum.map(&render_output(&1, ctx))
+    |> Enum.map(fn {_idx, output} -> render_output(output, ctx) end)
     |> Enum.reject(&(&1 == :ignored))
     |> Enum.intersperse("\n\n")
   end
 
-  defp render_output(text, _ctx) when is_binary(text) do
+  defp render_output({:stdout, text}, _ctx) do
     text = String.replace_suffix(text, "\n", "")
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
@@ -267,6 +267,7 @@ defmodule Livebook.LiveMarkdown.Export do
   defp strip_ansi(string) do
     string
     |> Livebook.Utils.ANSI.parse_ansi_string()
+    |> elem(0)
     |> Enum.map(fn {_modifiers, string} -> string end)
   end
 end

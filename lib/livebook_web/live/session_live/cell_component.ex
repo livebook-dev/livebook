@@ -113,20 +113,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     <.cell_body>
       <.editor cell_view={@cell_view} />
-
-      <%= if @cell_view.outputs != [] do %>
-        <div class="mt-2" data-element="outputs-container">
-          <%# There is an akin render in LivebookWeb.Output.FrameDynamicLive %>
-          <LivebookWeb.Output.outputs
-            outputs={@cell_view.outputs}
-            id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
-            socket={@socket}
-            session_id={@session_id}
-            runtime={@runtime}
-            cell_validity_status={@cell_view.validity_status}
-            input_values={@cell_view.input_values} />
-        </div>
-      <% end %>
+      <div class="flex flex-col"
+        data-element="outputs-container"
+        id={"output-#{@cell_view.id}-#{@cell_view.evaluation_number}"}
+        phx-update="append">
+        <LivebookWeb.Output.outputs
+          outputs={@cell_view.outputs}
+          socket={@socket}
+          session_id={@session_id}
+          runtime={@runtime}
+          cell_validity_status={@cell_view.validity_status}
+          input_values={@cell_view.input_values} />
+      </div>
     </.cell_body>
     """
   end
@@ -254,7 +252,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
       <span class="font-mono"
-        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
+        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.evaluation_number}"}
         phx-hook="Timer"
         phx-update="ignore"
         data-start={DateTime.to_iso8601(@cell_view.evaluation_start)}>
@@ -340,7 +338,4 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
-
-  defp evaluation_number(:evaluating, number_of_evaluations), do: number_of_evaluations + 1
-  defp evaluation_number(_evaluation_status, number_of_evaluations), do: number_of_evaluations
 end

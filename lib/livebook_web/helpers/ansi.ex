@@ -11,6 +11,7 @@ defmodule LivebookWeb.Helpers.ANSI do
   def ansi_string_to_html(string) do
     string
     |> Livebook.Utils.ANSI.parse_ansi_string()
+    |> elem(0)
     |> parts_to_html()
   end
 
@@ -89,6 +90,7 @@ defmodule LivebookWeb.Helpers.ANSI do
   def ansi_string_to_html_lines(string) do
     string
     |> Livebook.Utils.ANSI.parse_ansi_string()
+    |> elem(0)
     |> split_parts_into_lines()
     |> Enum.map(&parts_to_html/1)
   end
@@ -105,5 +107,24 @@ defmodule LivebookWeb.Helpers.ANSI do
     [line | lines] = String.split(string, "\n")
     new_groups = lines |> Enum.map(&[{modifiers, &1}]) |> Enum.reverse()
     split_parts_into_lines(parts, new_groups ++ [[{modifiers, line} | group] | groups])
+  end
+
+  @doc """
+  Converts a string with ANSI escape codes into HTML lines.
+
+  Same as `ansi_string_to_html_lines_step/1`, but allows
+  for keeping track of modifiers for stream usage.
+  """
+  @spec ansi_string_to_html_lines_step(String.t(), Livebook.Utils.ANSI.modifiers()) ::
+          {list(Phoenix.HTML.safe()), Livebook.Utils.ANSI.modifiers()}
+  def ansi_string_to_html_lines_step(string, modifiers) do
+    {parts, modifiers} = Livebook.Utils.ANSI.parse_ansi_string(string, modifiers: modifiers)
+
+    lines =
+      parts
+      |> split_parts_into_lines()
+      |> Enum.map(&parts_to_html/1)
+
+    {lines, modifiers}
   end
 end

@@ -203,24 +203,39 @@ defmodule Livebook.LiveMarkdown.Import do
   # Note that the list of elements is reversed:
   # first we group elements by traversing Earmark AST top-down
   # and then aggregate elements into data strictures going bottom-up.
-  defp build_notebook(elems, cells \\ [], sections \\ [], messages \\ [])
-
-  defp build_notebook([{:cell, :elixir, source, outputs} | elems], cells, sections, messages) do
-    {metadata, elems} = grab_metadata(elems)
-    attrs = cell_metadata_to_attrs(:elixir, metadata)
-    cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
-    build_notebook(elems, [cell | cells], sections, messages)
+  defp build_notebook(elems) do
+    build_notebook(elems, _cells = [], _sections = [], _messages = [], _output_counter = 0)
   end
 
-  defp build_notebook([{:cell, :markdown, md_ast} | elems], cells, sections, messages) do
+  defp build_notebook(
+         [{:cell, :elixir, source, outputs} | elems],
+         cells,
+         sections,
+         messages,
+         output_counter
+       ) do
+    {metadata, elems} = grab_metadata(elems)
+    attrs = cell_metadata_to_attrs(:elixir, metadata)
+    {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
+    cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
+    build_notebook(elems, [cell | cells], sections, messages, output_counter)
+  end
+
+  defp build_notebook(
+         [{:cell, :markdown, md_ast} | elems],
+         cells,
+         sections,
+         messages,
+         output_counter
+       ) do
     {metadata, elems} = grab_metadata(elems)
     attrs = cell_metadata_to_attrs(:markdown, metadata)
     source = md_ast |> Enum.reverse() |> MarkdownHelpers.markdown_from_ast()
     cell = %{Notebook.Cell.new(:markdown) | source: source} |> Map.merge(attrs)
-    build_notebook(elems, [cell | cells], sections, messages)
+    build_notebook(elems, [cell | cells], sections, messages, output_counter)
   end
 
-  defp build_notebook([{:cell, :input, data} | elems], cells, sections, messages) do
+  defp build_notebook([{:cell, :input, data} | elems], cells, sections, messages, output_counter) do
     warning =
       "found an input cell, but those are no longer supported, please use Kino.Input instead"
 
@@ -232,31 +247,43 @@ defmodule Livebook.LiveMarkdown.Import do
         warning
       end
 
-    build_notebook(elems, cells, sections, messages ++ [warning])
+    build_notebook(elems, cells, sections, messages ++ [warning], output_counter)
   end
 
-  defp build_notebook([{:section_name, content} | elems], cells, sections, messages) do
+  defp build_notebook(
+         [{:section_name, content} | elems],
+         cells,
+         sections,
+         messages,
+         output_counter
+       ) do
     name = text_from_markdown(content)
     {metadata, elems} = grab_metadata(elems)
     attrs = section_metadata_to_attrs(metadata)
     section = %{Notebook.Section.new() | name: name, cells: cells} |> Map.merge(attrs)
-    build_notebook(elems, [], [section | sections], messages)
+    build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
   # If there are section-less cells, put them in a default one.
-  defp build_notebook([{:notebook_name, _content} | _] = elems, cells, sections, messages)
+  defp build_notebook(
+         [{:notebook_name, _content} | _] = elems,
+         cells,
+         sections,
+         messages,
+         output_counter
+       )
        when cells != [] do
     section = %{Notebook.Section.new() | cells: cells}
-    build_notebook(elems, [], [section | sections], messages)
+    build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
   # If there are section-less cells, put them in a default one.
-  defp build_notebook([] = elems, cells, sections, messages) when cells != [] do
+  defp build_notebook([] = elems, cells, sections, messages, output_counter) when cells != [] do
     section = %{Notebook.Section.new() | cells: cells}
-    build_notebook(elems, [], [section | sections], messages)
+    build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
-  defp build_notebook([{:notebook_name, content} | elems], [], sections, messages) do
+  defp build_notebook([{:notebook_name, content} | elems], [], sections, messages, output_counter) do
     name = text_from_markdown(content)
     {metadata, elems} = grab_metadata(elems)
     # If there are any non-metadata comments we keep them
@@ -275,15 +302,21 @@ defmodule Livebook.LiveMarkdown.Import do
     attrs = notebook_metadata_to_attrs(metadata)
 
     notebook =
-      %{Notebook.new() | name: name, sections: sections, leading_comments: comments}
+      %{
+        Notebook.new()
+        | name: name,
+          sections: sections,
+          leading_comments: comments,
+          output_counter: output_counter
+      }
       |> Map.merge(attrs)
 
     {notebook, messages}
   end
 
   # If there's no explicit notebook heading, use the defaults.
-  defp build_notebook([], [], sections, messages) do
-    notebook = %{Notebook.new() | sections: sections}
+  defp build_notebook([], [], sections, messages, output_counter) do
+    notebook = %{Notebook.new() | sections: sections, output_counter: output_counter}
     {notebook, messages}
   end
 
