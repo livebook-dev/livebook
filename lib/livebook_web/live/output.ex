@@ -1,6 +1,8 @@
 defmodule LivebookWeb.Output do
   use Phoenix.Component
 
+  alias LivebookWeb.Output
+
   @doc """
   Renders a list of cell outputs.
   """
@@ -34,68 +36,31 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(LivebookWeb.Output.StdoutComponent, id: id, text: text, follow: true)
+    live_component(Output.StdoutComponent, id: id, text: text, follow: true)
   end
 
   defp render_output({:text, text}, %{id: id}) do
     assigns = %{id: id, text: text}
 
     ~H"""
-    <LivebookWeb.Output.TextComponent.render id={@id} content={@text} follow={false} />
+    <Output.TextComponent.render id={@id} content={@text} follow={false} />
     """
   end
 
   defp render_output({:markdown, markdown}, %{id: id}) do
-    live_component(LivebookWeb.Output.MarkdownComponent, id: id, content: markdown)
+    live_component(Output.MarkdownComponent, id: id, content: markdown)
   end
 
   defp render_output({:image, content, mime_type}, %{id: id}) do
     assigns = %{id: id, content: content, mime_type: mime_type}
 
     ~H"""
-    <LivebookWeb.Output.ImageComponent.render content={@content} mime_type={@mime_type} />
+    <Output.ImageComponent.render content={@content} mime_type={@mime_type} />
     """
   end
 
-  defp render_output({:vega_lite_static, spec}, %{id: id}) do
-    live_component(LivebookWeb.Output.VegaLiteStaticComponent, id: id, spec: spec)
-  end
-
-  defp render_output({:vega_lite_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.VegaLiteDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
-  end
-
   defp render_output({:js, info}, %{id: id, session_id: session_id}) do
-    live_component(LivebookWeb.Output.JSComponent, id: id, info: info, session_id: session_id)
-  end
-
-  defp render_output({:table_dynamic, pid}, %{id: id, socket: socket}) do
-    live_render(socket, LivebookWeb.Output.TableDynamicLive,
-      id: id,
-      session: %{"id" => id, "pid" => pid}
-    )
-  end
-
-  defp render_output({:frame_dynamic, pid}, %{
-         id: id,
-         socket: socket,
-         session_id: session_id,
-         input_values: input_values,
-         cell_validity_status: cell_validity_status
-       }) do
-    live_render(socket, LivebookWeb.Output.FrameDynamicLive,
-      id: id,
-      session: %{
-        "id" => id,
-        "pid" => pid,
-        "session_id" => session_id,
-        "input_values" => input_values,
-        "cell_validity_status" => cell_validity_status
-      }
-    )
+    live_component(Output.JSComponent, id: id, info: info, session_id: session_id)
   end
 
   defp render_output({:frame, outputs, _info}, %{
@@ -103,7 +68,7 @@ defmodule LivebookWeb.Output do
          input_values: input_values,
          session_id: session_id
        }) do
-    live_component(LivebookWeb.Output.FrameComponent,
+    live_component(Output.FrameComponent,
       id: id,
       outputs: outputs,
       session_id: session_id,
@@ -112,19 +77,11 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:input, attrs}, %{id: id, input_values: input_values}) do
-    live_component(LivebookWeb.Output.InputComponent,
-      id: id,
-      attrs: attrs,
-      input_values: input_values
-    )
+    live_component(Output.InputComponent, id: id, attrs: attrs, input_values: input_values)
   end
 
   defp render_output({:control, attrs}, %{id: id, input_values: input_values}) do
-    live_component(LivebookWeb.Output.ControlComponent,
-      id: id,
-      attrs: attrs,
-      input_values: input_values
-    )
+    live_component(Output.ControlComponent, id: id, attrs: attrs, input_values: input_values)
   end
 
   defp render_output({:error, formatted, :runtime_restart_required}, %{
@@ -156,6 +113,20 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:error, formatted, _type}, %{}) do
     render_error_message_output(formatted)
+  end
+
+  # TODO: remove on Livebook v0.7
+  defp render_output(output, %{})
+       when elem(output, 0) in [
+              :vega_lite_static,
+              :vega_lite_dynamic,
+              :table_dynamic,
+              :frame_dynamic
+            ] do
+    render_error_message_output("""
+    Legacy output format: #{inspect(output)}. Please update Kino to
+    the latest version.
+    """)
   end
 
   defp render_output(output, %{}) do

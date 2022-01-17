@@ -201,7 +201,7 @@ install the [Kino](https://github.com/livebook-dev/kino) library:
 ```elixir
 Mix.install(
   [
-    {:kino, "~> 0.4.1"}
+    {:kino, github: "livebook-dev/kino"}
   ],
   consolidate_protocols: false
 )

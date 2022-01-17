@@ -53,7 +53,7 @@ instance, otherwise the command below will fail.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.4.1"}
+  {:kino, github: "livebook-dev/kino"}
 ])
 ```
 
