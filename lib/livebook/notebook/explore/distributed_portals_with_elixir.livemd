@@ -194,35 +194,11 @@ Date.from_iso8601("2020-02-30")
 
 Now, what happens if we want our code to behave differently depending
 if the date is valid or not? We can use `case` to pattern match on
-the different tuples. This is also a good opportunity to use Livebook's
-inputs to pass different values to our code. To render inputs, we need to
-install the [Kino](https://github.com/livebook-dev/kino) library:
+the different tuples:
 
 ```elixir
-Mix.install(
-  [
-    {:kino, github: "livebook-dev/kino"}
-  ],
-  consolidate_protocols: false
-)
-```
-
-> Note: the `consolidate_protocols: false` option is not usually
-> given, but it will be handy when we discuss protocols later
-> in this notebook.
-
-Kino allows our code notebooks to control Livebook itself. Let's render
-an input by evaluating the cell below:
-
-```elixir
-date_input = Kino.Input.text("Date")
-```
-
-Now we can read its value and parse it:
-
-```elixir
-# Read the date input, which returns something like "2020-02-30"
-input = Kino.Input.read(date_input)
+# Give a random date as input
+input = "2020-02-30"
 
 # And then match on the return value
 case Date.from_iso8601(input) do
@@ -234,12 +210,11 @@ case Date.from_iso8601(input) do
 end
 ```
 
-Now try adding a date to the input above, such as `2020-02-30` and
-reevaluate the cell accordingly. In this example, we are using `case`
-to pattern match on the different outcomes of the `Date.from_iso8601`
-function. We say the `case` above has two clauses, one matching on
-`{:ok, date}` and another on `{:error, reason}`. Try changing the input
-and re-executing the cell to see how the outcome changes.
+In this example, we are using `case` to pattern match on the different
+outcomes of the `Date.from_iso8601`. We say the `case` above has two
+clauses, one matching on `{:ok, date}` and another on `{:error, reason}`.
+Now try changing the `input` variable above and reevaluate the cell
+accordingly. What happens when you give it an invalid date?
 
 Finally, we can also pattern match on maps. This is used to extract the
 values for the given keys:

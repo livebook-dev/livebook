@@ -1,0 +1,153 @@
+# Building a chat app with Kino.Control
+
+## Setup
+
+In this guide, we will build a chat application using
+[`kino`](https://github.com/livebook-dev/kino). Let's
+install it and get started:
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"}
+])
+```
+
+## Kino.Control
+
+In our [introduction to Kino](/explore/notebooks/intro_to_kino),
+we learned about inputs and several different outputs, such as
+tables, frames, and more. In particular, we learned how to use
+inputs to capture values directly into our notebooks:
+
+```elixir
+name = Kino.Input.text("Your name")
+```
+
+and use them to print something back:
+
+```elixir
+IO.puts("Hello, #{Kino.Input.read(name)}!")
+```
+
+Inputs have one special power: they are shared across all users
+accessing the notebook. For example, if you copy and paste the
+URL of this notebook into another tab, the input will share the
+same value. This plays into Livebook's strengths of being an
+interactive and collaborative tool.
+
+Sometimes, however, you don't want the input to be shared.
+You want each different user to get their own inputs and perform
+individual actions. That's exactly how
+[`Kino.Control`](https://hexdocs.pm/kino/Kino.Control.html) works.
+Each control is specific to each user on the page. You then receive
+each user interaction as a message.
+
+## The button control
+
+The simplest control is `Kino.Control.button/1`. Let's give it a try:
+
+```elixir
+click_me = Kino.Control.button("Click me!")
+```
+
+Execute the cell above and the button will be rendered. You can click
+it, but nothing will happen. Luckily, we can subscribe to the button
+events:
+
+```elixir
+Kino.Control.subscribe(click_me, :click_me)
+```
+
+Now that we have subscribed, every time the button is clicked, we will
+receive a message tagged with `:click_me`. Let's print all messages
+in our inbox:
+
+```elixir
+Process.info(self(), :messages)
+```
+
+Now execute the cell above, click the button a couple times, and
+re-execute the cell above. For each click, there is a new message in
+our inbox. There are several ways we can consume this message.
+Let's see a different one in the next example.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## The form control
+
+Whenever we want to submit multiple inputs at once, we can use
+`Kino.Control.form/2`.
+
+```elixir
+inputs = [
+  first_name: Kino.Input.text("First name"),
+  last_name: Kino.Input.text("Last name")
+]
+
+form = Kino.Control.form(inputs, submit: "Greet")
+```
+
+Execute the cell above and you will see a form rendered.
+You can now fill in the form and press the submit button.
+Each submission will trigger a new event. Let's consume
+them as a stream. Elixir streams are lazy collections that
+are consumed as they happen:
+
+```elixir
+for event <- Kino.Control.stream(form) do
+  IO.inspect(event)
+end
+```
+
+Now, as you submit the form, you should see a new event
+printed. However, there is a downside: we are now stuck
+inside this infinite loop of events. Luckily, we started
+this particular section as a branched section, which means
+the main execution flow will not be interrupted. But it
+is something you should keep in mind in the future. You
+can also stop it by pressing the "Stop" button above the
+Elixir cell.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## The chat application
+
+We are now equipped with all knowledge necessary to build
+our chat application. First, we will need a frame. Every
+time a new message is received, we will append it to the
+frame:
+
+```elixir
+frame = Kino.Frame.new()
+```
+
+Now we need a form with the user name and their message:
+
+```elixir
+inputs = [
+  name: Kino.Input.text("Name"),
+  message: Kino.Input.text("Message")
+]
+
+form = Kino.Control.form(inputs, submit: "Send", reset_on_submit: [:message])
+```
+
+Notice we used a new option, called `:reset_on_submit`,
+that automatically clears the input once submitted.
+Finally, let's stream the form events and post each
+message to the frame:
+
+```elixir
+for %{data: %{name: name, message: message}} <- Kino.Control.stream(form) do
+  content = Kino.Markdown.new("**#{name}**: #{message}")
+  Kino.Frame.append(frame, content)
+end
+```
+
+Execute the cell above and your chat app should be
+fully operational. Open up this same notebook across
+on different tabs and each different user can post
+their messages.
+
+In the next guide we will go one step further and
+[develop a multiplayer pong game](/explore/notebooks/pong)!

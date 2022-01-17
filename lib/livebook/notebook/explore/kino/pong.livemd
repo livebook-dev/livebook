@@ -1,4 +1,4 @@
-# Building multiplayer Pong
+# Multiplayer pong game from scratch
 
 ## Introduction
 

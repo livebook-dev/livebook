@@ -6,92 +6,118 @@ In this notebook we will explore the possibilities that
 [`kino`](https://github.com/elixir-nx/kino) brings
 into your notebooks. Kino can be thought of as Livebook's
 friend that instructs it how to render certain widgets
-and interact with them.
+and interact with them. Let's install it:
 
 ```elixir
 Mix.install([
-  {:kino, github: "livebook-dev/kino"},
-  {:vega_lite, "~> 0.1.2"}
+  {:kino, github: "livebook-dev/kino"}
 ])
-```
-
-```elixir
-alias VegaLite, as: Vl
 ```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## Kino.VegaLite
+## Kino.Input
 
-In the [Plotting with VegaLite](/explore/notebooks/intro-to-vega-lite) notebook we show
-numerous ways in which you can visualize your data. However, all of the plots
-there are static.
-
-Using Kino, we can dynamically stream data to the plot, so that it keeps updating!
-To do that, all you need is a regular VegaLite specification that you then pass
-to `Kino.VegaLite.new/1`. You don't have to specify any data up-front.
+The [`Kino.Input`](https://hexdocs.pm/kino/Kino.Input.html)
+module contains the most common kinos you will use. They are
+used to define inputs in one cell, which you can read in a
+future cell:
 
 ```elixir
-widget =
-  Vl.new(width: 400, height: 400)
-  |> Vl.mark(:line)
-  |> Vl.encode_field(:x, "x", type: :quantitative)
-  |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.new()
+name = Kino.Input.text("Your name")
 ```
 
-Then you can push data to the plot widget at any point and see it update dynamically:
+and now we can greet the user back:
 
 ```elixir
-for i <- 1..300 do
-  point = %{x: i / 10, y: :math.sin(i / 10)}
-
-  # The :window option ensures we only show the latest
-  # 100 data points on the plot
-  Kino.VegaLite.push(widget, point, window: 100)
-
-  Process.sleep(25)
-end
+IO.puts("Hello, #{Kino.Input.read(name)}!")
 ```
 
-You can also explicitly clear the data:
+There are multiple types of inputs, such as text areas,
+color dialogs, selects, and more. Feel free to explore them.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.Markdown
+
+Given our notebooks already know how to render Markdown,
+you won't be surprised to find we can also render Markdown
+directly from our Elixir cells. This is done by wrapping
+the Markdown contents in [`Kino.Markdown.new/1`](https://hexdocs.pm/kino/Kino.Markdown.html):
+
+````elixir
+Kino.Markdown.new("""
+# Example
+
+A regular Markdown file.
+
+## Code
 
 ```elixir
-Kino.VegaLite.clear(widget)
+"Elixir" |> String.graphemes() |> Enum.frequencies()
 ```
 
-### Periodical updates
+## Table
 
-You may want to have a plot running forever and updating in the background.
-There is a dedicated `Kino.VegaLite.periodically/4` function that allows you do do just that!
-You just need to specify the interval and the reducer callback like this,
-then you interact with the widget as usually.
+| ID | Name   | Website                 |
+| -- | ------ | ----------------------- |
+| 1  | Elixir | https://elixir-lang.org |
+| 2  | Erlang | https://www.erlang.org  |
+""")
+````
+
+The way it works is that Livebook automatically detects
+the output is a kino and renders it in Markdown. That's
+the first of many kinos we will learn today. Let's move
+forward.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.DataTable
+
+You can render arbitrary tabular data using [`Kino.DataTable.new/1`](https://hexdocs.pm/kino/Kino.DataTable.html), let's have a look:
 
 ```elixir
-widget =
-  Vl.new(width: 400, height: 400)
-  |> Vl.mark(:line)
-  |> Vl.encode_field(:x, "x", type: :quantitative)
-  |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.new()
-  |> Kino.render()
+data = [
+  %{id: 1, name: "Elixir", website: "https://elixir-lang.org"},
+  %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
+]
 
-# Add a callback to run every 25ms
-Kino.VegaLite.periodically(widget, 25, 0, fn i ->
-  point = %{x: i / 10, y: :math.sin(i / 10)}
-  # Interacting with the widget is as usual
-  Kino.VegaLite.push(widget, point, window: 100)
-  # Continue with the new accumulator value
-  {:cont, i + 1}
-end)
+Kino.DataTable.new(data)
 ```
+
+The data must be an enumerable, with records being maps or
+keyword lists.
+
+Now, let's get some more realistic data. Whenever you run
+Elixir code, you have several lightweight processes running
+side-by-side. We can actually gather information about these
+processes and render it as a table:
+
+```elixir
+processes = Process.list() |> Enum.map(&Process.info/1)
+```
+
+We can pick the data keys that are relevant for us:
+
+```elixir
+Kino.DataTable.new(
+  processes,
+  keys: [:registered_name, :initial_call, :reductions, :stack_size]
+)
+```
+
+Now you can use the table above to sort by the number of
+reductions and identify the most busy processes!
 
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## Kino.ETS
 
-You can use `Kino.ETS.new/1` to render ETS tables and easily
-browse their contents. Let's first create our own table:
+Kino supports multiple other data structures to be rendered
+as tables. For example, you can use [`Kino.ETS`](https://hexdocs.pm/kino/Kino.ETS.html)
+to render ETS tables and easily browse their contents.
+Let's first create our own table:
 
 ```elixir
 tid = :ets.new(:users, [:set, :public])
@@ -116,73 +142,7 @@ end
 Having the rows inserted, click on the "Refetch" icon in the table output
 above to see them.
 
-<!-- livebook:{"branch_parent_index":0} -->
-
-## Kino.DataTable
-
-When it comes to tables, we are not limited to ETS! You can render
-arbitrary tabular data using `Kino.DataTable.new/1`, let's have
-a look:
-
-```elixir
-data = [
-  %{id: 1, name: "Elixir", website: "https://elixir-lang.org"},
-  %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
-]
-
-Kino.DataTable.new(data)
-```
-
-The data must be an enumerable, with records being maps,
-keyword lists or tuples.
-
-Now, let's get some more realistic data:
-
-```elixir
-processes = Process.list() |> Enum.map(&Process.info/1)
-```
-
-We can easily pick only the data keys that are relevant
-for us:
-
-```elixir
-Kino.DataTable.new(
-  processes,
-  keys: [:registered_name, :initial_call, :reductions, :stack_size]
-)
-```
-
-We can sort by the number of reductions to identify the
-most busy processes!
-
-<!-- livebook:{"branch_parent_index":0} -->
-
-## Kino.Markdown
-
-Sometimes you may want to render arbitrary content as rich-text,
-that's when `Kino.Markdown.new/1` comes into play:
-
-````elixir
-"""
-# Example
-
-A regular Markdown file.
-
-## Code
-
-```elixir
-"Elixir" |> String.graphemes() |> Enum.frequencies()
-```
-
-## Table
-
-| ID | Name   | Website                 |
-| -- | ------ | ----------------------- |
-| 1  | Elixir | https://elixir-lang.org |
-| 2  | Erlang | https://www.erlang.org  |
-"""
-|> Kino.Markdown.new()
-````
+Similar functionality is available for database queries via [Ecto](https://github.com/elixir-ecto/ecto) and the [`Kino.Ecto`](https://hexdocs.pm/kino/Kino.Ecto.html) module.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -191,56 +151,53 @@ A regular Markdown file.
 As we saw, Livebook automatically recognises widgets returned
 from each cell and renders them accordingly. However, sometimes
 it's useful to explicitly render a widget in the middle of the cell,
-similarly to `IO.puts/1` and that's exactly what `Kino.render/1`
+similarly to `IO.puts/1`, and that's exactly what `Kino.render/1`
 does! It works with any type and tells Livebook to render the value
 in its special manner.
 
 ```elixir
 # Arbitrary data structures
 Kino.render([%{name: "Ada Lovelace"}, %{name: "Alan Turing"}])
-
-# Static plots
-vl =
-  Vl.new(width: 400, height: 400)
-  |> Vl.data_from_series(x: 1..100, y: 1..100)
-  |> Vl.mark(:line)
-  |> Vl.encode_field(:x, "x", type: :quantitative)
-  |> Vl.encode_field(:y, "y", type: :quantitative)
-
-Kino.render(vl)
-Kino.render(vl)
-
 Kino.render("Plain text")
+
+# Some kinos
+Kino.render(Kino.Markdown.new("**Hello world**"))
 
 "Cell result 🚀"
 ```
 
-Before we saw how you can render and stream data to the plot
-from a separate cell, the same could be rewritten in one go
-like this:
-
-```elixir
-widget =
-  Vl.new(width: 400, height: 400)
-  |> Vl.mark(:line)
-  |> Vl.encode_field(:x, "x", type: :quantitative)
-  |> Vl.encode_field(:y, "y", type: :quantitative)
-  |> Kino.VegaLite.new()
-  |> Kino.render()
-
-for i <- 1..300 do
-  point = %{x: i / 10, y: :math.sin(i / 10)}
-  Kino.VegaLite.push(widget, point, window: 100)
-  Process.sleep(25)
-end
-```
-
 <!-- livebook:{"branch_parent_index":0} -->
 
-## Kino.animate/3
+## Kino.Frame and animations
 
-If you want to continuously update the output as time passes,
-you can use `Kino.animate/3`:
+`Kino.Frame` allows us to render an empty frame and update it
+as we progress. Let's render an empty frame:
+
+```elixir
+frame = Kino.Frame.new()
+```
+
+Now, let's render a random number between 1 and 100 directly
+in the frame:
+
+```elixir
+Kino.Frame.render(frame, "Got: #{Enum.random(1..100)}")
+```
+
+Notice how every time you reevaluate the cell above it updates
+the frame. You can also use `Kino.Frame.append/2` to append to
+the frame:
+
+```elixir
+Kino.Frame.append(frame, "Got: #{Enum.random(1..100)}")
+```
+
+Appending multiple times will always add new contents. The content
+can be reset by calling `Kino.Frame.render/2` or `Kino.Frame.clear/1`.
+
+By using loops, you can use `Kino.Frame` to dynamically add contents
+or animate your livebooks. In fact, there is a convenience function
+called `Kino.animate/3` to be used exactly for this purpose:
 
 ```elixir
 Kino.animate(100, 0, fn i ->
@@ -251,6 +208,9 @@ end)
 
 The above example renders new Markdown output every 100ms.
 You can use the same approach to render regular output
-or images too! Also note some elements may have specific
-functions for periodic updates, such as `Kino.VegaLite.periodically/4`
-seen in previous sections.
+or images too!
+
+With this, we finished our introduction to Kino. Now we are
+ready to bring two concepts we have already learned together:
+`Kino` and `VegaLite`. [Let's use them to introspect the Elixir
+runtime your livebooks run on](/explore/notebooks/vm-introspection).

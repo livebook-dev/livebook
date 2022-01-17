@@ -1,15 +1,15 @@
-# Fun with VM introspection
+# Runtime introspection with VegaLite
 
 ## Introduction
 
-In this notebook we manually establish connection to a running node,
-and then we try to retrieve and plot some interesting information
-about the system.
+In this chapter we will use `Kino` and `VegaLite`
+to introspect and plot how our system behaves over
+time. If you are not familiar with VegaLite, [read
+our introductory chapter](/explore/notebooks/intro-to-vega-lite).
 
 ## Setup
 
-We are definitely gonna plot some data in this notebook,
-so let's add `:vega_lite` and `:kino` for that.
+Let's add `:vega_lite` and `:kino` as dependencies:
 
 ```elixir
 Mix.install([
@@ -18,46 +18,53 @@ Mix.install([
 ])
 ```
 
+Let's also define a convenience shortcut for the
+VegaLite module:
+
 ```elixir
 alias VegaLite, as: Vl
 ```
 
 ## Connecting to a remote node
 
-The first thing we need is a separate Elixir node. In practice,
-you would start an external Elixir system, such as by running the
-following in your production app:
+Our goal is to introspect an Elixir node. The code we will
+write in this notebook can be used to introspect any running
+Elixir node. It can be a development environment that you would
+start with:
 
 ```
 iex --name my_app@IP -S mix TASK
 ```
 
-Or by connecting to a production node assembled via
+Or a production node assembled via
 [`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html).
 
-For convenience, however, you can simply start [a new notebook](/explore/notebooks/new),
-since Livebook automatically starts each notebook as a remote node.
-
-Once you start a new notebook, you can find its node name and
-cookie by running the following inside an Elixir cell:
-
-<!-- livebook:{"force_markdown":true} -->
+In order to connect two nodes, we need to know their node name
+and their cookie. We can get this information for the Livebook
+runtime like this:
 
 ```elixir
 IO.puts node()
 IO.puts Node.get_cookie()
 ```
 
-Now render the inputs below:
+We will capture this information using Kino inputs. However,
+for convenience, we will use the node and cookie of the current
+notebook as default values. This means that, if you don't have
+a separate Elixir, the runtime will connect and introspect itself.
+Let's render the inputs:
 
 ```elixir
-node_input = Kino.Input.text("Node")
-cookie_input = Kino.Input.text("Cookie")
+node_input = Kino.Input.text("Node", default: node())
+cookie_input = Kino.Input.text("Cookie", default: Node.get_cookie())
+
+Kino.render(node_input)
+Kino.render(cookie_input)
+:ok
 ```
 
-And paste the node name and the cookie value from the other node inside.
-
-Now let's read the inputs, configure the cookie, and connect to the other notebook:
+Now let's read the inputs, configure the cookie, and connect to the
+other node:
 
 ```elixir
 node =
@@ -82,9 +89,6 @@ Node.spawn(node, fn ->
   IO.inspect(node())
 end)
 ```
-
-From the result of `node/1` it's clear that the function was evaluated
-remotely, but note that we still get the standard output back.
 
 ## Inspecting processes
 
@@ -127,7 +131,8 @@ processes =
   end)
 ```
 
-Having all that data, we can now visualize it on a scatter plot!
+Having all that data, we can now visualize it on a scatter plot
+using VegaLite:
 
 ```elixir
 Vl.new(width: 600, height: 400)
@@ -144,17 +149,22 @@ and take the most memory.
 
 ## Tracking memory usage
 
+So far we have used VegaLite to draw static plots. However, we can
+Kino to dynamically push data to VegaLite. Let's use them together
+to plot the runtime memory usage over time.
+
 There's a very simple way to determine current memory usage in the VM:
 
 ```elixir
 :erlang.memory()
 ```
 
-We can use `Kino.VegaLite.periodically/4` to create a self-updating
-plot of memory usage over time on the remote node!
+Now let's build a dynamic VegaLite graph. Instead of returning the
+VegaLite specification as is, we will wrap it in `Kino.VegaLite.new/1`
+to make it dynamic:
 
 ```elixir
-widget =
+memory_plot =
   Vl.new(width: 600, height: 400, padding: 20)
   |> Vl.repeat(
     [layer: ["total", "processes", "atom", "binary", "code", "ets"]],
@@ -165,37 +175,37 @@ widget =
     |> Vl.encode(:color, datum: [repeat: :layer], type: :nominal)
   )
   |> Kino.VegaLite.new()
-  |> Kino.render()
+```
 
-Kino.VegaLite.periodically(widget, 200, 1, fn i ->
+Now we can use `Kino.VegaLite.periodically/4` to create a self-updating
+plot of memory usage over time on the remote node:
+
+```elixir
+Kino.VegaLite.periodically(memory_plot, 200, 1, fn i ->
   point =
     :rpc.call(node, :erlang, :memory, [])
     |> Enum.map(fn {type, bytes} -> {type, bytes / 1_000_000} end)
     |> Map.new()
     |> Map.put(:iter, i)
 
-  Kino.VegaLite.push(widget, point, window: 1000)
+  Kino.VegaLite.push(memory_plot, point, window: 1000)
   {:cont, i + 1}
 end)
 ```
 
 Unless you connected to a production node, the memory usage
 most likely doesn't change, so to emulate some spikes you can
-run the following code in the remote node:
+run the following code:
 
 **Binary usage**
 
-<!-- livebook:{"force_markdown":true} -->
-
 ```elixir
-x = Enum.reduce(1..10_000, [], fn i, acc ->
-  [String.duplicate("cat", i) | acc]
-end)
+for i <- 1..10_000 do
+  String.duplicate("cat", i)
+end
 ```
 
 **ETS usage**
-
-<!-- livebook:{"force_markdown":true} -->
 
 ```elixir
 tid = :ets.new(:users, [:set, :public])
@@ -204,3 +214,6 @@ for i <- 1..1_000_000 do
   :ets.insert(tid, {i, "User #{i}"})
 end
 ```
+
+In the next chapter, we will learn [how to use `Kino.Control`
+to build a chat app](/explore/notebooks/chat-app)!

@@ -9,9 +9,11 @@ and more.
 If you are not familiar with Elixir, there is a fast paced
 introduction to the language in the [Distributed portals with
 Elixir](/explore/notebooks/distributed-portals-with-elixir)
-notebook.
+notebook. For a more structured introduction to the language,
+see [Elixir's Getting Started guide](https://elixir-lang.org/getting-started/introduction.html)
+and [the many learning resources available](https://elixir-lang.org/learning.html).
 
-Let's move on.
+Let's move forward.
 
 ## Autocompletion
 
@@ -70,10 +72,10 @@ data = [
 Kino.DataTable.new(data)
 ```
 
-See the [Interactions with Kino](/explore/notebooks/intro-to-kino) notebook
-to learn all the ways you can interact with Livebook from Kino.
+There is much more to `Kino` and we have [a series of Kino guides
+in the Explore section to teach you more](/explore).
 
-It is a good idea to specify versions of the installed packages,
+Note that it is a good idea to specify versions of the installed packages,
 so that the notebook is easily reproducible later on. The install
 command goes beyond simply installing dependencies, it also caches
 them, consolidates protocols, and more. Check
