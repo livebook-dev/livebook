@@ -30,7 +30,7 @@ COPY lib lib
 # We need README.md during compilation
 # (look for @external_resource "README.md")
 COPY README.md README.md
-RUN mix do compile, release
+RUN mix do compile, release livebook
 
 # Stage 2
 # Prepares the runtime environment and copies over the relase.
