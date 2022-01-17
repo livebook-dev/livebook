@@ -213,4 +213,4 @@ or images too!
 With this, we finished our introduction to Kino. Now we are
 ready to bring two concepts we have already learned together:
 `Kino` and `VegaLite`. [Let's use them to introspect the Elixir
-runtime your Livebooks run on](/explore/notebooks/vm-introspection).
+runtime your livebooks run on](/explore/notebooks/vm-introspection).

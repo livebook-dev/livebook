@@ -32,7 +32,7 @@ IO.puts("Hello, #{Kino.Input.read(name)}!")
 Inputs have one special power: they are shared across all users
 accessing the notebook. For example, if you copy and paste the
 URL of this notebook into another tab, the input will share the
-same value. This plays into Livebook's strenghts of being an
+same value. This plays into Livebook's strengths of being an
 interactive and collaborative tool.
 
 Sometimes, however, you don't want the input to be shared.
@@ -88,7 +88,7 @@ form = Kino.Control.form(inputs, submit: "Greet")
 ```
 
 Execute the cell above and you will see a form rendered.
-You can now full in the form and press the submit button.
+You can now fill in the form and press the submit button.
 Each submission will trigger a new event. Let's consume
 them as a stream. Elixir streams are lazy collections that
 are consumed as they happen:
