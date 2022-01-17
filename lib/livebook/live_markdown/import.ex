@@ -187,16 +187,6 @@ defmodule Livebook.LiveMarkdown.Import do
     take_outputs(ast, [{:text, output} | outputs])
   end
 
-  defp take_outputs(
-         [{"pre", _, [{"code", [{"class", "vega-lite"}], [output], %{}}], %{}} | ast],
-         outputs
-       ) do
-    case Jason.decode(output) do
-      {:ok, spec} -> take_outputs(ast, [{:vega_lite_static, spec} | outputs])
-      _ -> take_outputs(ast, outputs)
-    end
-  end
-
   defp take_outputs(ast, outputs), do: {outputs, ast}
 
   # Builds a notebook from the list of elements obtained in the previous step.

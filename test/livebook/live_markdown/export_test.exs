@@ -531,12 +531,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [
-                        {0, {:stdout, "hey"}},
-                        {1,
-                         {:vega_lite_static,
-                          %{
-                            "$schema" => "https://vega.github.io/schema/vega-lite/v5.json"
-                          }}}
+                        {0, {:stdout, "hey"}}
                       ]
                   }
                 ]
@@ -657,7 +652,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{0, {:table_dynamic, self()}}]
+                      outputs: [{0, {:markdown, "some **Markdown**"}}]
                   }
                 ]
             }

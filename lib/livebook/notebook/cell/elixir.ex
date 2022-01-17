@@ -34,16 +34,8 @@ defmodule Livebook.Notebook.Cell.Elixir do
           | {:markdown, binary()}
           # A raw image in the given format
           | {:image, content :: binary(), mime_type :: binary()}
-          # Vega-Lite graphic
-          | {:vega_lite_static, spec :: map()}
-          # Vega-Lite graphic with dynamic data
-          | {:vega_lite_dynamic, widget_process :: pid()}
           # JavaScript powered output
           | {:js, info :: map()}
-          # Interactive data table
-          | {:table_dynamic, widget_process :: pid()}
-          # Dynamic wrapper for static output
-          | {:frame_dynamic, widget_process :: pid()}
           # Outputs placeholder
           | {:frame, outputs :: list(output()), info :: map()}
           # An input field
