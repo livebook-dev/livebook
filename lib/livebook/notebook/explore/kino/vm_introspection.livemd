@@ -29,7 +29,7 @@ alias VegaLite, as: Vl
 
 Our goal is to introspect an Elixir node. The code we will
 write in this notebook can be used to introspect any running
-Elixir node. It can a development environment that you would
+Elixir node. It can be a development environment that you would
 start with:
 
 ```

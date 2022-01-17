@@ -124,7 +124,9 @@ You can explore all supported expressions [here](https://katex.org/docs/supporte
 
 ### Mermaid diagrams
 
-[Mermaid](https://mermaid-js.github.io/) is a library for creating diagrams and visualizations using text and code. You can define those diagrams in your Markdown cells via ```` ```mermaid ```` blocks. Let's see an example:
+[Mermaid](https://mermaid-js.github.io/) is a library for creating diagrams
+and visualizations using text and code. You can define those diagrams in
+your Markdown cells via ```` ```mermaid ```` blocks. Let's see an example:
 
 ```mermaid
 graph TD;

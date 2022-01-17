@@ -184,7 +184,7 @@ in the frame:
 Kino.Frame.render(frame, "Got: #{Enum.random(1..100)}")
 ```
 
-Notice how every time you re-render the cell above it updates
+Notice how every time you reevaluate the cell above it updates
 the frame. You can also use `Kino.Frame.append/2` to append to
 the frame:
 
