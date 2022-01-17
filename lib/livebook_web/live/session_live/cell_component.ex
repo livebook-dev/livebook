@@ -2,6 +2,29 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, initialized: false)}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
+    socket =
+      if not connected?(socket) or socket.assigns.initialized do
+        socket
+      else
+        %{id: id, source_info: info} = socket.assigns.cell_view
+
+        socket
+        |> push_event("cell_init:#{id}", info)
+        |> assign(initialized: true)
+      end
+
+    {:ok, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
@@ -52,7 +75,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-element="markdown-container"
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore">
-        <.content_placeholder bg_class="bg-gray-200" empty={@cell_view.empty?} />
+        <.content_placeholder bg_class="bg-gray-200" empty={empty?(@cell_view.source_info)} />
       </div>
     </.cell_body>
     """
@@ -214,7 +237,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div id={"editor-#{@cell_view.id}"} phx-update="ignore">
         <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
           <div class="px-8">
-            <.content_placeholder bg_class="bg-gray-500" empty={@cell_view.empty?} />
+            <.content_placeholder bg_class="bg-gray-500" empty={empty?(@cell_view.source_info)} />
           </div>
         </div>
       </div>
@@ -234,7 +257,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp content_placeholder(assigns) do
     ~H"""
-    <%= if @empty  do %>
+    <%= if @empty do %>
       <div class="h-4"></div>
     <% else %>
       <div class="max-w-2xl w-full animate-pulse">
@@ -247,6 +270,9 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <% end %>
     """
   end
+
+  defp empty?(%{source: ""} = _source_info), do: true
+  defp empty?(_source_info), do: false
 
   defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
     ~H"""

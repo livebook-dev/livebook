@@ -1165,10 +1165,12 @@ defmodule Livebook.Session.Data do
         Delta.transform(delta_ahead, transformed_new_delta, :left)
       end)
 
-    # Note: the session LV drops cell's source once it's no longer needed
+    # Note: the clients drop cell's source once it's no longer needed
     new_source =
-      Map.get(cell, :source) &&
-        JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
+      case cell.source do
+        :__pruned__ -> :__pruned__
+        source -> JSInterop.apply_delta_to_string(transformed_new_delta, source)
+      end
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
