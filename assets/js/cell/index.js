@@ -4,7 +4,6 @@ import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
-import { loadLocalSettings } from "../lib/settings";
 
 /**
  * A hook managing a single cell.
@@ -14,7 +13,6 @@ import { loadLocalSettings } from "../lib/settings";
  *
  * Configuration:
  *
- *   * `data-focusable-id` - an identifier for the focus/insert navigation
  *   * `data-cell-id` - id of the cell being edited
  *   * `data-type` - type of the cell
  *   * `data-session-path` - root path to the current session
@@ -27,13 +25,38 @@ const Cell = {
       insertMode: false,
       // For text cells (markdown or elixir)
       liveEditor: null,
+      markdown: null,
       evaluationDigest: null,
     };
 
-    if (["markdown", "elixir"].includes(this.props.type)) {
-      this.pushEvent("cell_init", { cell_id: this.props.cellId }, (payload) => {
-        const { source, revision, evaluation_digest } = payload;
+    this.handleEvent(`cell_init:${this.props.cellId}`, (payload) => {
+      const { source, revision, evaluation_digest } = payload;
 
+      // Setup markdown rendering
+      if (this.props.type === "markdown") {
+        const markdownContainer = this.el.querySelector(
+          `[data-element="markdown-container"]`
+        );
+        this.state.markdown = new Markdown(markdownContainer, source, {
+          baseUrl: this.props.sessionPath,
+          emptyText: "Empty markdown cell",
+        });
+      }
+
+      // Setup action handlers
+      if (this.props.type === "elixir") {
+        const amplifyButton = this.el.querySelector(
+          `[data-element="amplify-outputs-button"]`
+        );
+        amplifyButton.addEventListener("click", (event) => {
+          this.el.toggleAttribute("data-js-amplified");
+        });
+      }
+
+      // Setting up an editor takes relatively much synchronous time,
+      // so we postpone it, so that other immediate initializations
+      // are done first. This is relevant if there are a lot of cells
+      setTimeout(() => {
         const editorContainer = this.el.querySelector(
           `[data-element="editor-container"]`
         );
@@ -51,16 +74,6 @@ const Cell = {
           source,
           revision
         );
-
-        // Setup action handlers
-        if (this.props.type === "elixir") {
-          const amplifyButton = this.el.querySelector(
-            `[data-element="amplify-outputs-button"]`
-          );
-          amplifyButton.addEventListener("click", (event) => {
-            this.el.toggleAttribute("data-js-amplified");
-          });
-        }
 
         // Setup change indicator
         if (this.props.type === "elixir") {
@@ -97,19 +110,10 @@ const Cell = {
           });
         }
 
-        // Setup markdown rendering
+        // Setup markdown updates
         if (this.props.type === "markdown") {
-          const markdownContainer = this.el.querySelector(
-            `[data-element="markdown-container"]`
-          );
-          const baseUrl = this.props.sessionPath;
-          const markdown = new Markdown(markdownContainer, source, {
-            baseUrl,
-            emptyText: "Empty markdown cell",
-          });
-
           this.state.liveEditor.onChange((newSource) => {
-            markdown.setContent(newSource);
+            this.state.markdown.setContent(newSource);
           });
         }
 
@@ -135,8 +139,8 @@ const Cell = {
         this.state.liveEditor.onCursorSelectionChange((selection) => {
           broadcastSelection(this, selection);
         });
-      });
-    }
+      }, 0);
+    });
 
     this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
       "navigation",
