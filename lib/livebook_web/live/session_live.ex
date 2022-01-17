@@ -1362,6 +1362,7 @@ defmodule LivebookWeb.SessionLive do
       evaluation_time_ms: info.evaluation_time_ms,
       evaluation_start: info.evaluation_start,
       evaluation_number: info.evaluation_number,
+      outputs_batch_number: info.outputs_batch_number,
       reevaluate_automatically: cell.reevaluate_automatically,
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)

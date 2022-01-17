@@ -64,6 +64,7 @@ defmodule Livebook.Session.Data do
           evaluation_time_ms: integer() | nil,
           evaluation_start: DateTime.t() | nil,
           evaluation_number: non_neg_integer(),
+          outputs_batch_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
           bound_input_readings: input_reading()
         }
@@ -965,6 +966,7 @@ defmodule Livebook.Session.Data do
               # :start_evaluation action
               evaluation_status: :evaluating,
               evaluation_number: info.evaluation_number + 1,
+              outputs_batch_number: info.outputs_batch_number + 1,
               evaluation_digest: nil,
               evaluation_snapshot: info.snapshot,
               bound_to_input_ids: MapSet.new(),
@@ -1107,6 +1109,9 @@ defmodule Livebook.Session.Data do
           cell -> cell
         end)
     )
+    |> update_every_cell_info(fn info ->
+      %{info | outputs_batch_number: info.outputs_batch_number + 1}
+    end)
   end
 
   defp set_notebook_name({data, _} = data_actions, name) do
@@ -1287,6 +1292,7 @@ defmodule Livebook.Session.Data do
       evaluation_time_ms: nil,
       evaluation_start: nil,
       evaluation_number: 0,
+      outputs_batch_number: 0,
       bound_to_input_ids: MapSet.new(),
       bound_input_readings: [],
       snapshot: {nil, nil},
