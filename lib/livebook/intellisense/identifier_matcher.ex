@@ -24,7 +24,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           | {:in_struct_field, module(), name(), default :: value()}
           | {:module, module(), display_name(), Docs.documentation()}
           | {:function, module(), name(), arity(), function_type(), display_name(),
-             Docs.documentation(), list(Docs.signature()), list(Docs.spec())}
+             Docs.documentation(), list(Docs.signature()), list(Docs.spec()), Docs.meta()}
           | {:type, module(), name(), arity(), Docs.documentation()}
           | {:module_attribute, name(), Docs.documentation()}
 
@@ -316,12 +316,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp match_sigil(hint, ctx) do
     for {:function, module, name, arity, type, "sigil_" <> sigil_name, documentation, signatures,
-         specs} <-
+         specs,
+         meta} <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
         do:
           {:function, module, name, arity, type, "~" <> sigil_name, documentation, signatures,
-           specs}
+           specs, meta}
   end
 
   defp match_erlang_module(hint, ctx) do
@@ -467,12 +468,16 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
       Enum.map(matching_funs, fn {name, arity, type} ->
         doc_item =
-          Enum.find(doc_items, %{documentation: nil, signatures: [], specs: []}, fn doc_item ->
-            doc_item.name == name && doc_item.arity == arity
-          end)
+          Enum.find(
+            doc_items,
+            %{documentation: nil, signatures: [], specs: [], meta: %{}},
+            fn doc_item ->
+              doc_item.name == name && doc_item.arity == arity
+            end
+          )
 
-        {:function, mod, name, arity, type, Atom.to_string(name),
-         doc_item && doc_item.documentation, doc_item.signatures, doc_item.specs}
+        {:function, mod, name, arity, type, Atom.to_string(name), doc_item.documentation,
+         doc_item.signatures, doc_item.specs, doc_item.meta}
       end)
     else
       []

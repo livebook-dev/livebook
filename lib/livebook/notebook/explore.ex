@@ -87,23 +87,24 @@ defmodule Livebook.Notebook.Explore do
     #   }
     # },
     %{
-      path: Path.join(__DIR__, "explore/vm_introspection.livemd"),
-      details: %{
-        description: "Extract and visualize information about a remote running node.",
-        cover_url: "/images/vm_introspection.png"
-      }
-    },
-    %{
       ref: :kino_intro,
       path: Path.join(__DIR__, "explore/kino/intro_to_kino.livemd")
+    },
+    %{
+      ref: :kino_vm_introspection,
+      path: Path.join(__DIR__, "explore/kino/vm_introspection.livemd")
+    },
+    %{
+      ref: :kino_chat_app,
+      path: Path.join(__DIR__, "explore/kino/chat_app.livemd")
     },
     %{
       ref: :kino_pong,
       path: Path.join(__DIR__, "explore/kino/pong.livemd")
     },
     %{
-      ref: :kino_custom_widgets,
-      path: Path.join(__DIR__, "explore/kino/creating_custom_widgets.livemd")
+      ref: :kino_custom_kinos,
+      path: Path.join(__DIR__, "explore/kino/custom_kinos.livemd")
     }
   ]
 
@@ -202,9 +203,15 @@ defmodule Livebook.Notebook.Explore do
     %{
       title: "Interactions with Kino",
       description:
-        "Kino is an Elixir package that allows for displaying and controlling rich, interactieve widgets in Livebook. Learn how to make your notebooks more engaging with inputs, plots, tables, and much more!",
+        "Kino is an Elixir package for displaying and controlling rich, interactive widgets in Livebook. Learn how to make your notebooks more engaging with inputs, plots, tables, and much more!",
       cover_url: "/images/kino.png",
-      notebook_refs: [:kino_intro, :kino_pong, :kino_custom_widgets]
+      notebook_refs: [
+        :kino_intro,
+        :kino_vm_introspection,
+        :kino_chat_app,
+        :kino_pong,
+        :kino_custom_kinos
+      ]
     }
   ]
 

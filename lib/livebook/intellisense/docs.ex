@@ -10,7 +10,8 @@ defmodule Livebook.Intellisense.Docs do
           arity: non_neg_integer(),
           documentation: documentation(),
           signatures: list(signature()),
-          specs: list(spec())
+          specs: list(spec()),
+          meta: meta()
         }
 
   @type member_kind :: :function | :macro | :type
@@ -18,6 +19,8 @@ defmodule Livebook.Intellisense.Docs do
   @type documentation :: {format :: String.t(), content :: String.t()} | :hidden | nil
 
   @type signature :: String.t()
+
+  @type meta :: map()
 
   @typedoc """
   A single spec annotation in the Erlang Abstract Format.
@@ -88,7 +91,8 @@ defmodule Livebook.Intellisense.Docs do
               arity: arity,
               documentation: documentation(doc, format),
               signatures: signatures,
-              specs: Map.get(specs, {name, base_arity}, [])
+              specs: Map.get(specs, {name, base_arity}, []),
+              meta: meta
             }
 
       _ ->

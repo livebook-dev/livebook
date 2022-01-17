@@ -54,7 +54,7 @@
   }
 
   .icon-button {
-    @apply p-1 flex items-center justify-center text-gray-400 hover:text-gray-800 rounded-full;
+    @apply p-1 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-full;
   }
 
   .icon-button:focus {
@@ -209,7 +209,7 @@
   }
 
   .menu-item {
-    @apply w-full flex space-x-3 px-5 py-2 items-center hover:bg-gray-50 focus:bg-gray-50 whitespace-nowrap;
+    @apply w-full flex space-x-3 px-5 py-2 items-center hover:bg-gray-100 focus:bg-gray-100 whitespace-nowrap;
   }
 
   /* Boxes */

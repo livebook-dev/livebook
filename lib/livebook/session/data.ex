@@ -63,7 +63,8 @@ defmodule Livebook.Session.Data do
           evaluation_snapshot: snapshot() | nil,
           evaluation_time_ms: integer() | nil,
           evaluation_start: DateTime.t() | nil,
-          number_of_evaluations: non_neg_integer(),
+          evaluation_number: non_neg_integer(),
+          outputs_batch_number: non_neg_integer(),
           bound_to_input_ids: MapSet.t(input_id()),
           bound_input_readings: input_reading()
         }
@@ -422,6 +423,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> add_cell_evaluation_output(cell, output)
+      |> garbage_collect_input_values()
       |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
@@ -493,6 +495,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> erase_outputs()
+    |> garbage_collect_input_values()
     |> wrap_ok()
   end
 
@@ -842,38 +845,13 @@ defmodule Livebook.Session.Data do
   defp add_cell_output({data, _} = data_actions, cell, output) do
     data_actions
     |> set!(
-      notebook:
-        Notebook.update_cell(data.notebook, cell.id, fn cell ->
-          %{cell | outputs: add_output(cell.outputs, output)}
-        end),
+      notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
       input_values:
-        output
+        {-1, output}
         |> Cell.Elixir.find_inputs_in_output()
         |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
         |> Map.merge(data.input_values)
     )
-  end
-
-  defp add_output([], output) when is_binary(output), do: [apply_rewind(output)]
-
-  defp add_output([], output), do: [output]
-
-  defp add_output([head | tail], output) when is_binary(head) and is_binary(output) do
-    # Merge consecutive string outputs
-    [apply_rewind(head <> output) | tail]
-  end
-
-  defp add_output(outputs, output), do: [output | outputs]
-
-  # Respect \r indicating a line should be cleared,
-  # so we ignore unnecessary text fragments
-  defp apply_rewind(text) do
-    text
-    |> String.split("\n")
-    |> Enum.map(fn line ->
-      String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
-    end)
-    |> Enum.join("\n")
   end
 
   defp finish_cell_evaluation(data_actions, cell, section, metadata) do
@@ -883,7 +861,6 @@ defmodule Livebook.Session.Data do
         info
         | evaluation_status: :ready,
           evaluation_time_ms: metadata.evaluation_time_ms,
-          number_of_evaluations: info.number_of_evaluations + 1,
           # After finished evaluation, take the snapshot of read inputs
           evaluation_snapshot:
             {elem(info.evaluation_snapshot, 0),
@@ -988,6 +965,8 @@ defmodule Livebook.Session.Data do
               # so that another queue operation doesn't cause duplicated
               # :start_evaluation action
               evaluation_status: :evaluating,
+              evaluation_number: info.evaluation_number + 1,
+              outputs_batch_number: info.outputs_batch_number + 1,
               evaluation_digest: nil,
               evaluation_snapshot: info.snapshot,
               bound_to_input_ids: MapSet.new(),
@@ -1130,6 +1109,9 @@ defmodule Livebook.Session.Data do
           cell -> cell
         end)
     )
+    |> update_every_cell_info(fn info ->
+      %{info | outputs_batch_number: info.outputs_batch_number + 1}
+    end)
   end
 
   defp set_notebook_name({data, _} = data_actions, name) do
@@ -1188,10 +1170,12 @@ defmodule Livebook.Session.Data do
         Delta.transform(delta_ahead, transformed_new_delta, :left)
       end)
 
-    # Note: the session LV drops cell's source once it's no longer needed
+    # Note: the clients drop cell's source once it's no longer needed
     new_source =
-      Map.get(cell, :source) &&
-        JSInterop.apply_delta_to_string(transformed_new_delta, cell.source)
+      case cell.source do
+        :__pruned__ -> :__pruned__
+        source -> JSInterop.apply_delta_to_string(transformed_new_delta, source)
+      end
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, &%{&1 | source: new_source}))
@@ -1307,7 +1291,8 @@ defmodule Livebook.Session.Data do
       evaluation_digest: nil,
       evaluation_time_ms: nil,
       evaluation_start: nil,
-      number_of_evaluations: 0,
+      evaluation_number: 0,
+      outputs_batch_number: 0,
       bound_to_input_ids: MapSet.new(),
       bound_input_readings: [],
       snapshot: {nil, nil},
@@ -1423,7 +1408,7 @@ defmodule Livebook.Session.Data do
             {
               prev_cell_id,
               cell_snapshots[prev_cell_id],
-              data.cell_infos[prev_cell_id].number_of_evaluations
+              number_of_evaluations(data.cell_infos[prev_cell_id])
             }
 
         deps = {is_branch?, parent_deps}
@@ -1449,6 +1434,12 @@ defmodule Livebook.Session.Data do
       end)
     end)
   end
+
+  defp number_of_evaluations(%{evaluation_status: :evaluating} = info) do
+    info.evaluation_number - 1
+  end
+
+  defp number_of_evaluations(info), do: info.evaluation_number
 
   defp bound_inputs_snapshot(data, cell) do
     %{bound_to_input_ids: bound_to_input_ids} = data.cell_infos[cell.id]

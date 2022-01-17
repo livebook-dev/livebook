@@ -238,6 +238,10 @@ defmodule Livebook.Evaluator.IOProxy do
     {reply, state}
   end
 
+  defp io_request(:livebook_get_broadcast_target, state) do
+    {{:ok, state.target}, state}
+  end
+
   defp io_request(_, state) do
     {{:error, :request}, state}
   end
@@ -293,7 +297,7 @@ defmodule Livebook.Evaluator.IOProxy do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.target != nil and string != "" do
-      send(state.target, {:evaluation_output, state.ref, string})
+      send(state.target, {:evaluation_output, state.ref, {:stdout, string}})
     end
 
     %{state | buffer: []}

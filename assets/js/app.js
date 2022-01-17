@@ -19,7 +19,6 @@ import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
 import UserForm from "./user_form";
 import EditorSettings from "./editor_settings";
-import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
@@ -29,6 +28,7 @@ import KeyboardControl from "./keyboard_control";
 import morphdomCallbacks from "./morphdom_callbacks";
 import JSOutput from "./js_output";
 import { loadUserData } from "./lib/user";
+import { settingsStore } from "./lib/settings";
 
 const hooks = {
   Headline,
@@ -39,7 +39,6 @@ const hooks = {
   VirtualizedLines,
   UserForm,
   EditorSettings,
-  VegaLite,
   Timer,
   MarkdownRenderer,
   Highlight,
@@ -108,4 +107,10 @@ window.addEventListener("contextmenu", (event) => {
     event.preventDefault();
     target.dispatchEvent(new Event("click", { bubbles: true }));
   }
+});
+
+// Global configuration
+
+settingsStore.getAndSubscribe((settings) => {
+  document.body.setAttribute("data-editor-theme", settings.editor_theme);
 });

@@ -12,7 +12,9 @@ defmodule LivebookWeb.ExploreLive do
     [lead_notebook_info | notebook_infos] = Explore.visible_notebook_infos()
 
     {:ok,
-     assign(socket,
+     socket
+     |> SidebarHelpers.shared_home_handlers()
+     |> assign(
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
        page_title: "Livebook - Explore"
@@ -25,13 +27,10 @@ defmodule LivebookWeb.ExploreLive do
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.break_item />
-        <SidebarHelpers.link_item
-          icon="settings-3-fill"
-          label="Settings"
-          path={Routes.settings_path(@socket, :page)}
-          active={false} />
-        <SidebarHelpers.user_item current_user={@current_user} path={Routes.explore_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer
+          socket={@socket}
+          current_user={@current_user}
+          user_path={Routes.explore_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
@@ -91,7 +90,7 @@ defmodule LivebookWeb.ExploreLive do
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
             <%= length(@group_info.notebook_infos) %> notebooks
           </div>
-          <h3 class="mt-1 text-2xl text-gray-800 font-semibold">
+          <h3 class="mt-1 text-xl text-gray-800 font-semibold">
             <%= @group_info.title %>
           </h3>
           <p class="mt-2 text-gray-700">
@@ -106,7 +105,7 @@ defmodule LivebookWeb.ExploreLive do
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
-              <div class="grow text-lg text-gray-800 font-semibold">
+              <div class="grow text-gray-800 font-semibold">
                 <%= notebook_info.title %>
               </div>
               <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),

@@ -42,6 +42,8 @@ defmodule LivebookWeb.SessionLive do
            empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
          )
          |> assign_private(data: data)
+         |> prune_outputs()
+         |> prune_cell_sources()
          |> allow_upload(:cell_image,
            accept: ~w(.jpg .jpeg .png .gif),
            max_entries: 1,
@@ -389,8 +391,7 @@ defmodule LivebookWeb.SessionLive do
           Runtime
         </h3>
         <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-              class: "icon-button",
-              type: "button" do  %>
+              class: "icon-button" do  %>
           <.remix_icon icon="settings-3-line text-xl" />
         <% end %>
       </div>
@@ -423,8 +424,7 @@ defmodule LivebookWeb.SessionLive do
               <span>Connect</span>
             </button>
             <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button-base button-outlined-gray bg-transparent",
-                  type: "button" do  %>
+                  class: "button-base button-outlined-gray bg-transparent" do  %>
               Configure
             <% end %>
           </div>
@@ -451,7 +451,7 @@ defmodule LivebookWeb.SessionLive do
   defp session_status(%{status: :stale} = assigns) do
     ~H"""
     <button data-element="focus-cell-button" data-target={@cell_id}>
-      <.status_indicator circle_class="bg-yellow-200">
+      <.status_indicator circle_class="bg-yellow-bright-200">
       </.status_indicator>
     </button>
     """
@@ -533,30 +533,6 @@ defmodule LivebookWeb.SessionLive do
     }
 
     {:reply, payload, socket}
-  end
-
-  def handle_event("cell_init", %{"cell_id" => cell_id}, socket) do
-    data = socket.private.data
-
-    case Notebook.fetch_cell_and_section(data.notebook, cell_id) do
-      {:ok, cell, _section} ->
-        info = data.cell_infos[cell.id]
-
-        payload = %{
-          source: cell.source,
-          revision: info.revision,
-          evaluation_digest: encode_digest(info.evaluation_digest)
-        }
-
-        # From this point on we don't need cell source in the LV,
-        # so we are going to drop it altogether
-        socket = remove_cell_source(socket, cell_id)
-
-        {:reply, payload, socket}
-
-      :error ->
-        {:noreply, socket}
-    end
   end
 
   def handle_event("append_section", %{}, socket) do
@@ -1058,7 +1034,10 @@ defmodule LivebookWeb.SessionLive do
       {:ok, data, actions} ->
         socket
         |> assign_private(data: data)
-        |> assign(data_view: update_data_view(socket.assigns.data_view, data, operation))
+        |> assign(
+          data_view:
+            update_data_view(socket.assigns.data_view, socket.private.data, data, operation)
+        )
         |> after_operation(socket, operation)
         |> handle_actions(actions)
 
@@ -1117,6 +1096,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
+    socket = prune_cell_sources(socket)
+
     if client_pid == self() do
       push_event(socket, "cell_inserted", %{cell_id: cell_id})
     else
@@ -1142,6 +1123,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp after_operation(socket, _prev_socket, {:restore_cell, client_pid, cell_id}) do
+    socket = prune_cell_sources(socket)
+
     if client_pid == self() do
       push_event(socket, "cell_restored", %{cell_id: cell_id})
     else
@@ -1173,6 +1156,22 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "evaluation_started:#{cell_id}", %{
       evaluation_digest: encode_digest(evaluation_digest)
     })
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_output, _client_pid, _cell_id, _output}
+       ) do
+    prune_outputs(socket)
+  end
+
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:add_cell_evaluation_response, _client_pid, _id, _output, _metadata}
+       ) do
+    prune_outputs(socket)
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket
@@ -1230,12 +1229,6 @@ defmodule LivebookWeb.SessionLive do
 
   defp encode_digest(nil), do: nil
   defp encode_digest(digest), do: Base.encode64(digest)
-
-  defp remove_cell_source(socket, cell_id) do
-    update_in(socket.private.data.notebook, fn notebook ->
-      Notebook.update_cell(notebook, cell_id, &%{&1 | source: nil})
-    end)
-  end
 
   defp process_intellisense_response(
          %{range: %{from: from, to: to}} = response,
@@ -1362,28 +1355,39 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :elixir,
-      # Note: we need this during initial loading,
-      # at which point we still have the source
-      empty?: cell.source == "",
+      source_info: cell_source_info(cell, info),
       outputs: cell.outputs,
       validity_status: info.validity_status,
       evaluation_status: info.evaluation_status,
       evaluation_time_ms: info.evaluation_time_ms,
       evaluation_start: info.evaluation_start,
-      number_of_evaluations: info.number_of_evaluations,
+      evaluation_number: info.evaluation_number,
+      outputs_batch_number: info.outputs_batch_number,
       reevaluate_automatically: cell.reevaluate_automatically,
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)
     }
   end
 
-  defp cell_to_view(%Cell.Markdown{} = cell, _data) do
+  defp cell_to_view(%Cell.Markdown{} = cell, data) do
+    info = data.cell_infos[cell.id]
+
     %{
       id: cell.id,
       type: :markdown,
-      # Note: we need this during initial loading,
-      # at which point we still have the source
-      empty?: cell.source == ""
+      source_info: cell_source_info(cell, info)
+    }
+  end
+
+  defp cell_source_info(%{source: :__pruned__}, _info) do
+    :__pruned__
+  end
+
+  defp cell_source_info(cell, info) do
+    %{
+      source: cell.source,
+      revision: info.revision,
+      evaluation_digest: encode_digest(info.evaluation_digest)
     }
   end
 
@@ -1399,7 +1403,7 @@ defmodule LivebookWeb.SessionLive do
   # Updates current data_view in response to an operation.
   # In most cases we simply recompute data_view, but for the
   # most common ones we only update the relevant parts.
-  defp update_data_view(data_view, data, operation) do
+  defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
       {:report_cell_revision, _pid, _cell_id, _revision} ->
         data_view
@@ -1408,6 +1412,33 @@ defmodule LivebookWeb.SessionLive do
         data_view
         |> update_cell_view(data, cell_id)
         |> update_dirty_status(data)
+
+      # For outputs that update existing outputs we send the update directly
+      # to the corresponding component, so the DOM patch is isolated and fast.
+      # This is important for intensive output updates
+      {:add_cell_evaluation_output, _client_pid, _cell_id,
+       {:frame, _outputs, %{type: type, ref: ref}}}
+      when type != :default ->
+        for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
+          send_update(LivebookWeb.Output.FrameComponent,
+            id: "output-#{idx}",
+            outputs: frame_outputs,
+            update_type: type
+          )
+        end
+
+        data_view
+
+      {:add_cell_evaluation_output, _client_pid, cell_id, {:stdout, text}} ->
+        # Lookup in previous data to see if the output is already there
+        case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
+          {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->
+            send_update(LivebookWeb.Output.StdoutComponent, id: "output-#{idx}", text: text)
+            data_view
+
+          _ ->
+            data_to_view(data)
+        end
 
       _ ->
         data_to_view(data)
@@ -1422,6 +1453,27 @@ defmodule LivebookWeb.SessionLive do
       data_view,
       [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
       cell_view
+    )
+  end
+
+  defp prune_outputs(%{private: %{data: data}} = socket) do
+    assign_private(
+      socket,
+      data: update_in(data.notebook, &Notebook.prune_cell_outputs/1)
+    )
+  end
+
+  defp prune_cell_sources(%{private: %{data: data}} = socket) do
+    assign_private(
+      socket,
+      data:
+        update_in(
+          data.notebook,
+          &Notebook.update_cells(&1, fn
+            %{source: _} = cell -> %{cell | source: :__pruned__}
+            cell -> cell
+          end)
+        )
     )
   end
 

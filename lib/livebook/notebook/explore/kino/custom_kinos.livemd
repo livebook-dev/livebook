@@ -1,9 +1,9 @@
-# Creating custom widgets
+# Custom kinos with JavaScript
 
 ## Introduction
 
 The `Kino.JS` and `Kino.JS.Live` docs outline the API that enables
-developing custom JavaScript powered widgets. The examples discussed
+developing custom JavaScript powered kinos. The examples discussed
 there are kept minimal to introduce the basic concepts without much
 overhead. In this notebook we take things a bit further and showcase
 a couple more elaborate use cases.
@@ -14,7 +14,7 @@ Mix.install([
 ])
 ```
 
-## Diagrams with Mermaid
+## HTML rendering
 
 As a quick recap let's define a widget for rendering diagrams
 from text specification using [Mermaid](https://mermaid-js.github.io/mermaid/#/).

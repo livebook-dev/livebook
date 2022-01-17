@@ -11,7 +11,9 @@ defmodule LivebookWeb.SettingsLive do
     file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
 
     {:ok,
-     assign(socket,
+     socket
+     |> SidebarHelpers.shared_home_handlers()
+     |> assign(
        file_systems: file_systems,
        file_systems_env: file_systems_env,
        page_title: "Livebook - Settings"
@@ -24,13 +26,10 @@ defmodule LivebookWeb.SettingsLive do
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.break_item />
-        <SidebarHelpers.link_item
-          icon="settings-3-fill"
-          label="Settings"
-          path={Routes.settings_path(@socket, :page)}
-          active={false} />
-        <SidebarHelpers.user_item current_user={@current_user} path={Routes.settings_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer
+          socket={@socket}
+          current_user={@current_user}
+          user_path={Routes.settings_path(@socket, :user)} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-16">
@@ -44,8 +43,27 @@ defmodule LivebookWeb.SettingsLive do
                 soon as you stop the application.
               </p>
             </div>
+
+          <!-- System details -->
+          <div class="flex flex-col space-y-4">
+            <h1 class="text-xl text-gray-800 font-semibold">
+              About
+            </h1>
+            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center space-x-12">
+                <.labeled_text label="Livebook" text={"v#{Application.spec(:livebook, :vsn)}"} />
+                <.labeled_text label="Elixir" text={"v#{System.version()}"} />
+              </div>
+
+              <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
+                                class: "button-base button-outlined-gray" do %>
+                <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+                <span>Open dashboard</span>
+              <% end %>
+            </div>
+          </div>
           <!-- File systems configuration -->
-            <div class="flex flex-col space-y-4">
+          <div class="flex flex-col space-y-4">
             <div class="flex justify-between items-center">
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
@@ -92,6 +110,14 @@ defmodule LivebookWeb.SettingsLive do
                 <.switch_checkbox
                   name="editor_auto_signature"
                   label="Show function signature while typing"
+                  checked={false} />
+                <.switch_checkbox
+                  name="editor_font_size"
+                  label="Increase font size"
+                  checked={false} />
+                <.switch_checkbox
+                  name="editor_high_contrast"
+                  label="Use high contrast theme"
                   checked={false} />
               </div>
             </div>

@@ -1776,85 +1776,14 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hello!"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hello!"]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "merges consecutive stdout results" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_output, self(), "c1", "Hola"}
-        ])
-
-      operation = {:add_cell_evaluation_output, self(), "c1", " amigo!"}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{outputs: ["Hola amigo!"]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "normalizes individual stdout results to respect CR" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1"]}
-        ])
-
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hola\rHey"}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{outputs: ["Hey"]}]
-                    }
-                  ]
-                }
-              }, []} = Data.apply_operation(data, operation)
-    end
-
-    test "normalizes consecutive stdout results to respect CR" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
-          {:queue_cells_evaluation, self(), ["c1"]},
-          {:add_cell_evaluation_output, self(), "c1", "Hola"}
-        ])
-
-      operation = {:add_cell_evaluation_output, self(), "c1", "\ramigo!\r"}
-
-      assert {:ok,
-              %{
-                notebook: %{
-                  sections: [
-                    %{
-                      cells: [%{outputs: ["amigo!\r"]}]
+                      cells: [%{outputs: [{0, {:stdout, "Hello!"}}]}]
                     }
                   ]
                 }
@@ -1871,14 +1800,14 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hello!"}}
 
       assert {:ok,
               %{
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: ["Hello!", _result]}]
+                      cells: [%{outputs: [{1, {:stdout, "Hello!"}}, _result]}]
                     }
                   ]
                 }
@@ -1896,7 +1825,7 @@ defmodule Livebook.Session.DataTest do
           {:mark_as_not_dirty, self()}
         ])
 
-      operation = {:add_cell_evaluation_output, self(), "c1", "Hello!"}
+      operation = {:add_cell_evaluation_output, self(), "c1", {:stdout, "Hello!"}}
 
       assert {:ok, %{dirty: true}, []} = Data.apply_operation(data, operation)
     end
@@ -1920,7 +1849,7 @@ defmodule Livebook.Session.DataTest do
                 notebook: %{
                   sections: [
                     %{
-                      cells: [%{outputs: [{:ok, [1, 2, 3]}]}]
+                      cells: [%{outputs: [{0, {:ok, [1, 2, 3]}}]}]
                     }
                   ]
                 }

@@ -1,11 +1,15 @@
 defmodule LivebookWeb.JSOutputChannelTest do
-  use LivebookWeb.ChannelCase
+  use LivebookWeb.ChannelCase, async: true
 
   setup do
+    session_id = Livebook.Utils.random_node_aware_id()
+
     {:ok, _, socket} =
       LivebookWeb.Socket
       |> socket()
-      |> subscribe_and_join(LivebookWeb.JSOutputChannel, "js_output")
+      |> subscribe_and_join(LivebookWeb.JSOutputChannel, "js_output", %{
+        "session_id" => session_id
+      })
 
     %{socket: socket}
   end

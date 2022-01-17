@@ -782,6 +782,12 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:runtime_broadcast, topic, subtopic, message}, state) do
+    full_topic = runtime_messages_topic(state.session_id, topic, subtopic)
+    Phoenix.PubSub.broadcast(Livebook.PubSub, full_topic, message)
+    {:noreply, state}
+  end
+
   def handle_info({:container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
@@ -1219,6 +1225,30 @@ defmodule Livebook.Session do
 
   defp extract_archive!(binary, path) do
     :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, path}])
+  end
+
+  @doc """
+  Subscribes the caller to runtime messages under the given topic.
+  """
+  @spec subscribe_to_runtime_events(id(), String.t(), String.t()) :: :ok | {:error, term()}
+  def subscribe_to_runtime_events(session_id, topic, subtopic) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, runtime_messages_topic(session_id, topic, subtopic))
+  end
+
+  @doc """
+  Unsubscribes the caller from runtime messages subscribed earlier
+  with `subscribe_to_runtime_events/3`.
+  """
+  @spec unsubscribe_from_runtime_events(id(), String.t(), String.t()) :: :ok | {:error, term()}
+  def unsubscribe_from_runtime_events(session_id, topic, subtopic) do
+    Phoenix.PubSub.unsubscribe(
+      Livebook.PubSub,
+      runtime_messages_topic(session_id, topic, subtopic)
+    )
+  end
+
+  defp runtime_messages_topic(session_id, topic, subtopic) do
+    "sessions:#{session_id}:runtime_messages:#{topic}:#{subtopic}"
   end
 
   @doc """

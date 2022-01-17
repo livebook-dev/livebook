@@ -19,7 +19,8 @@ defmodule Livebook.Notebook do
     :sections,
     :leading_comments,
     :persist_outputs,
-    :autosave_interval_s
+    :autosave_interval_s,
+    :output_counter
   ]
 
   alias Livebook.Notebook.{Section, Cell}
@@ -32,7 +33,8 @@ defmodule Livebook.Notebook do
           sections: list(Section.t()),
           leading_comments: list(list(line :: String.t())),
           persist_outputs: boolean(),
-          autosave_interval_s: non_neg_integer() | nil
+          autosave_interval_s: non_neg_integer() | nil,
+          output_counter: non_neg_integer()
         }
 
   @version "1.0"
@@ -48,7 +50,8 @@ defmodule Livebook.Notebook do
       sections: [],
       leading_comments: [],
       persist_outputs: default_persist_outputs(),
-      autosave_interval_s: default_autosave_interval_s()
+      autosave_interval_s: default_autosave_interval_s(),
+      output_counter: 0
     }
   end
 
@@ -218,6 +221,21 @@ defmodule Livebook.Notebook do
       [Access.key(:sections), Access.all(), Access.key(:cells), Access.all()],
       fun
     )
+  end
+
+  @doc """
+  Updates cells as `update_cells/2`, but carries an accumulator.
+  """
+  @spec update_reduce_cells(t(), acc, ({Cell.t(), acc} -> {Cell.t(), acc})) :: t()
+        when acc: term()
+  def update_reduce_cells(notebook, acc, fun) do
+    {sections, acc} =
+      Enum.map_reduce(notebook.sections, acc, fn section, acc ->
+        {cells, acc} = Enum.map_reduce(section.cells, acc, fun)
+        {%{section | cells: cells}, acc}
+      end)
+
+    {%{notebook | sections: sections}, acc}
   end
 
   @doc """
@@ -518,12 +536,172 @@ defmodule Livebook.Notebook do
   def find_asset_info(notebook, hash) do
     Enum.find_value(notebook.sections, fn section ->
       Enum.find_value(section.cells, fn cell ->
-        is_struct(cell, Cell.Elixir) &&
-          Enum.find_value(cell.outputs, fn
-            {:js, %{assets: %{hash: ^hash} = assets_info}} -> assets_info
-            _ -> nil
-          end)
+        is_struct(cell, Cell.Elixir) && find_assets_info_in_outputs(cell.outputs, hash)
       end)
     end)
+  end
+
+  defp find_assets_info_in_outputs(outputs, hash) do
+    Enum.find_value(outputs, fn
+      {_idx, {:js, %{assets: %{hash: ^hash} = assets_info}}} -> assets_info
+      {_idx, {:frame, outputs, _}} -> find_assets_info_in_outputs(outputs, hash)
+      _ -> nil
+    end)
+  end
+
+  @doc """
+  Adds new output to the given Elixir cell.
+
+  Automatically merges stdout outputs and updates frames.
+  """
+  @spec add_cell_output(t(), Cell.id(), Cell.Elixir.output()) :: t()
+  def add_cell_output(notebook, cell_id, output) do
+    {notebook, counter} = do_add_cell_output(notebook, cell_id, notebook.output_counter, output)
+    %{notebook | output_counter: counter}
+  end
+
+  defp do_add_cell_output(notebook, _cell_id, counter, {:frame, _outputs, %{type: type}} = frame)
+       when type != :default do
+    update_reduce_cells(notebook, counter, fn
+      %Cell.Elixir{} = cell, counter ->
+        {outputs, counter} = update_frames(cell.outputs, counter, frame)
+        {%{cell | outputs: outputs}, counter}
+
+      cell, counter ->
+        {cell, counter}
+    end)
+  end
+
+  defp do_add_cell_output(notebook, cell_id, counter, output) do
+    {output, counter} = index_output(output, counter)
+
+    notebook =
+      update_cell(notebook, cell_id, fn cell ->
+        %{cell | outputs: add_output(cell.outputs, output)}
+      end)
+
+    {notebook, counter}
+  end
+
+  defp update_frames(outputs, counter, {:frame, new_outputs, %{ref: ref, type: type}} = frame) do
+    Enum.map_reduce(outputs, counter, fn
+      {idx, {:frame, outputs, %{ref: ^ref} = info}}, counter ->
+        {new_outputs, counter} = index_outputs(new_outputs, counter)
+        output = {idx, {:frame, apply_frame_update(outputs, new_outputs, type), info}}
+        {output, counter}
+
+      {idx, {:frame, outputs, info}}, counter ->
+        {outputs, counter} = update_frames(outputs, counter, frame)
+        output = {idx, {:frame, outputs, info}}
+        {output, counter}
+
+      output, counter ->
+        {output, counter}
+    end)
+  end
+
+  defp apply_frame_update(_outputs, new_outputs, :replace), do: new_outputs
+  defp apply_frame_update(outputs, new_outputs, :append), do: new_outputs ++ outputs
+
+  defp add_output([], {idx, {:stdout, text}}),
+    do: [{idx, {:stdout, Livebook.Utils.apply_rewind(text)}}]
+
+  defp add_output([], output), do: [output]
+
+  defp add_output(outputs, {_idx, :ignored}), do: outputs
+
+  # Session clients prune stdout content and handle subsequent
+  # ones by directly appending page content to the previous one
+  defp add_output([{_idx1, {:stdout, :__pruned__}} | _] = outputs, {_idx2, {:stdout, _text}}) do
+    outputs
+  end
+
+  # Session server keeps all outputs, so we merge consecutive stdouts
+  defp add_output([{idx, {:stdout, text}} | tail], {_idx, {:stdout, cont}}) do
+    [{idx, {:stdout, Livebook.Utils.apply_rewind(text <> cont)}} | tail]
+  end
+
+  defp add_output(outputs, output), do: [output | outputs]
+
+  @doc """
+  Recursively adds index to all outputs, including frames.
+  """
+  @spec index_outputs(list(Cell.Elixir.output()), non_neg_integer()) ::
+          {list(Cell.Elixir.index_output()), non_neg_integer()}
+  def index_outputs(outputs, counter) do
+    Enum.map_reduce(outputs, counter, &index_output/2)
+  end
+
+  defp index_output({:frame, outputs, info}, counter) do
+    {outputs, counter} = index_outputs(outputs, counter)
+    {{counter, {:frame, outputs, info}}, counter + 1}
+  end
+
+  defp index_output(output, counter) do
+    {{counter, output}, counter + 1}
+  end
+
+  @doc """
+  Finds frame outputs matching the given ref.
+  """
+  @spec find_frame_outputs(t(), String.t()) :: list(Cell.Elixir.indexed_output())
+  def find_frame_outputs(notebook, frame_ref) do
+    for section <- notebook.sections,
+        %{outputs: outputs} <- section.cells,
+        output <- outputs,
+        frame_output <- do_find_frame_outputs(output, frame_ref),
+        do: frame_output
+  end
+
+  defp do_find_frame_outputs({_idx, {:frame, _outputs, %{ref: ref}}} = output, ref) do
+    [output]
+  end
+
+  defp do_find_frame_outputs({_idx, {:frame, outputs, _info}}, ref) do
+    Enum.flat_map(outputs, &find_frame_outputs(&1, ref))
+  end
+
+  defp do_find_frame_outputs(_output, _ref) do
+    []
+  end
+
+  @doc """
+  Removes outputs that get rendered only once.
+  """
+  @spec prune_cell_outputs(t()) :: t()
+  def prune_cell_outputs(notebook) do
+    update_cells(notebook, fn
+      %Cell.Elixir{} = cell -> %{cell | outputs: prune_outputs(cell.outputs)}
+      cell -> cell
+    end)
+  end
+
+  defp prune_outputs(outputs) do
+    outputs
+    |> Enum.reverse()
+    |> do_prune_outputs([])
+  end
+
+  defp do_prune_outputs([], acc), do: acc
+
+  # Keep the last stdout, so that we know to message it directly, but remove its contents
+  defp do_prune_outputs([{idx, {:stdout, _}}], acc) do
+    [{idx, {:stdout, :__pruned__}} | acc]
+  end
+
+  # Keep frame and its relevant contents
+  defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs], acc) do
+    do_prune_outputs(outputs, [{idx, {:frame, prune_outputs(frame_outputs), info}} | acc])
+  end
+
+  # Keep outputs that get re-rendered
+  defp do_prune_outputs([{idx, output} | outputs], acc)
+       when elem(output, 0) in [:input, :control, :error] do
+    do_prune_outputs(outputs, [{idx, output} | acc])
+  end
+
+  # Remove everything else
+  defp do_prune_outputs([_output | outputs], acc) do
+    do_prune_outputs(outputs, acc)
   end
 end

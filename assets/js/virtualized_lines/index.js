@@ -19,7 +19,7 @@ import { findChildOrThrow, getLineHeight } from "../lib/utils";
  * The element should have two children:
  *
  *   * one annotated with `data-template` attribute, it should be hidden
- *     and contain all the line elements as its children
+ *     and contain all the line elements, each with a data-line attribute
  *
  *   * one annotated with `data-content` where the visible elements are rendered,
  *     it should contain any styling relevant for the container
@@ -84,7 +84,8 @@ function hyperListConfig(
   maxHeight,
   lineHeight
 ) {
-  const numberOfLines = templateElement.childElementCount;
+  const lineElements = templateElement.querySelectorAll("[data-line]");
+  const numberOfLines = lineElements.length;
   const height = Math.min(maxHeight, lineHeight * numberOfLines);
 
   return {
@@ -92,8 +93,9 @@ function hyperListConfig(
     total: numberOfLines,
     itemHeight: lineHeight,
     generate: (index) => {
-      // Clone n-th child of the template container.
-      return templateElement.children.item(index).cloneNode(true);
+      const node = lineElements[index].cloneNode(true);
+      node.removeAttribute("id");
+      return node;
     },
     afterRender: () => {
       // The content element has a fixed height and when the horizontal

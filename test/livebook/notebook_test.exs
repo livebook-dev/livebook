@@ -263,7 +263,7 @@ defmodule Livebook.NotebookTest do
 
       notebook = %{
         Notebook.new()
-        | sections: [%{Section.new() | cells: [%{Cell.new(:elixir) | outputs: [output]}]}]
+        | sections: [%{Section.new() | cells: [%{Cell.new(:elixir) | outputs: [{0, output}]}]}]
       }
 
       assert ^assets_info = Notebook.find_asset_info(notebook, "abcd")
@@ -272,6 +272,129 @@ defmodule Livebook.NotebookTest do
     test "returns nil if no matching info is found" do
       notebook = Notebook.new()
       assert Notebook.find_asset_info(notebook, "abcd") == nil
+    end
+  end
+
+  describe "add_cell_output/3" do
+    test "merges consecutive stdout results" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                ]
+            }
+          ],
+          output_counter: 1
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [%{outputs: [{0, {:stdout, "Hola amigo!"}}]}]
+                 }
+               ]
+             } = Notebook.add_cell_output(notebook, "c1", {:stdout, " amigo!"})
+    end
+
+    test "normalizes individual stdout results to respect CR" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1", outputs: []}
+                ]
+            }
+          ],
+          output_counter: 0
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [%{outputs: [{0, {:stdout, "Hey"}}]}]
+                 }
+               ]
+             } = Notebook.add_cell_output(notebook, "c1", {:stdout, "Hola\rHey"})
+    end
+
+    test "normalizes consecutive stdout results to respect CR" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{Cell.new(:elixir) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                ]
+            }
+          ],
+          output_counter: 1
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [%{outputs: [{0, {:stdout, "amigo!\r"}}]}]
+                 }
+               ]
+             } = Notebook.add_cell_output(notebook, "c1", {:stdout, "\ramigo!\r"})
+    end
+
+    test "updates existing frames on frame update ouptut" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [
+                  %{
+                    Cell.new(:elixir)
+                    | id: "c1",
+                      outputs: [{0, {:frame, [], %{ref: "1", type: :default}}}]
+                  },
+                  %{
+                    Cell.new(:elixir)
+                    | id: "c2",
+                      outputs: [{1, {:frame, [], %{ref: "1", type: :default}}}]
+                  }
+                ]
+            }
+          ],
+          output_counter: 2
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [
+                     %{
+                       outputs: [
+                         {0, {:frame, [{2, {:text, "hola"}}], %{ref: "1", type: :default}}}
+                       ]
+                     },
+                     %{
+                       outputs: [
+                         {1, {:frame, [{3, {:text, "hola"}}], %{ref: "1", type: :default}}}
+                       ]
+                     }
+                   ]
+                 }
+               ]
+             } =
+               Notebook.add_cell_output(
+                 notebook,
+                 "c2",
+                 {:frame, [{:text, "hola"}], %{ref: "1", type: :replace}}
+               )
     end
   end
 end

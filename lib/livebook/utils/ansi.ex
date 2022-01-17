@@ -1,6 +1,8 @@
 defmodule Livebook.Utils.ANSI do
   @moduledoc false
 
+  @type modifiers :: list(modifier())
+
   @type modifier ::
           {:font_weight, :bold | :light}
           | {:font_style, :italic}
@@ -31,14 +33,22 @@ defmodule Livebook.Utils.ANSI do
   @doc """
   Takes a string with ANSI escape codes and parses it
   into a list of `{modifiers, string}` parts.
+
+  Also returns the final modifiers.
+
+  ## Options
+
+    * `:modifiers` - a list with initial modifiers
   """
-  @spec parse_ansi_string(String.t()) :: list({list(modifier()), String.t()})
-  def parse_ansi_string(string) do
+  @spec parse_ansi_string(String.t(), keyword()) :: {list({modifiers(), String.t()}), modifiers()}
+  def parse_ansi_string(string, opts \\ []) do
+    modifiers = Keyword.get(opts, :modifiers, [])
+
     [head | ansi_prefixed_strings] = String.split(string, "\e")
 
     # Each part has the form of {modifiers, string}
-    {tail_parts, _} =
-      Enum.map_reduce(ansi_prefixed_strings, %{}, fn string, modifiers ->
+    {tail_parts, modifiers} =
+      Enum.map_reduce(ansi_prefixed_strings, modifiers, fn string, modifiers ->
         {modifiers, rest} =
           case ansi_prefix_to_modifiers(string) do
             {:ok, new_modifiers, rest} ->
@@ -49,14 +59,17 @@ defmodule Livebook.Utils.ANSI do
               {modifiers, "\e" <> string}
           end
 
-        {{Map.to_list(modifiers), rest}, modifiers}
+        {{modifiers, rest}, modifiers}
       end)
 
     parts = [{[], head} | tail_parts]
 
-    parts
-    |> Enum.reject(fn {_modifiers, string} -> string == "" end)
-    |> merge_adjacent_parts([])
+    parts =
+      parts
+      |> Enum.reject(fn {_modifiers, string} -> string == "" end)
+      |> merge_adjacent_parts([])
+
+    {parts, modifiers}
   end
 
   defp merge_adjacent_parts([], acc), do: Enum.reverse(acc)
@@ -225,7 +238,7 @@ defmodule Livebook.Utils.ANSI do
   end
 
   defp apply_modifier(modifiers, :ignored), do: modifiers
-  defp apply_modifier(_modifiers, :reset), do: %{}
-  defp apply_modifier(modifiers, {key, :reset}), do: Map.delete(modifiers, key)
-  defp apply_modifier(modifiers, {key, value}), do: Map.put(modifiers, key, value)
+  defp apply_modifier(_modifiers, :reset), do: []
+  defp apply_modifier(modifiers, {key, :reset}), do: Keyword.delete(modifiers, key)
+  defp apply_modifier(modifiers, {key, value}), do: Keyword.put(modifiers, key, value)
 end

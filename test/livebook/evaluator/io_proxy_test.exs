@@ -17,17 +17,17 @@ defmodule Livebook.Evaluator.IOProxyTest do
   describe ":stdio interoperability" do
     test "IO.puts", %{io: io} do
       IO.puts(io, "hey")
-      assert_receive {:evaluation_output, :ref, "hey\n"}
+      assert_receive {:evaluation_output, :ref, {:stdout, "hey\n"}}
     end
 
     test "IO.write", %{io: io} do
       IO.write(io, "hey")
-      assert_receive {:evaluation_output, :ref, "hey"}
+      assert_receive {:evaluation_output, :ref, {:stdout, "hey"}}
     end
 
     test "IO.inspect", %{io: io} do
       IO.inspect(io, %{}, [])
-      assert_receive {:evaluation_output, :ref, "%{}\n"}
+      assert_receive {:evaluation_output, :ref, {:stdout, "%{}\n"}}
     end
 
     test "IO.read", %{io: io} do
@@ -71,19 +71,19 @@ defmodule Livebook.Evaluator.IOProxyTest do
   test "buffers rapid output", %{io: io} do
     IO.puts(io, "hey")
     IO.puts(io, "hey")
-    assert_receive {:evaluation_output, :ref, "hey\nhey\n"}
+    assert_receive {:evaluation_output, :ref, {:stdout, "hey\nhey\n"}}
   end
 
   test "respects CR as line cleaner", %{io: io} do
     IO.write(io, "hey")
     IO.write(io, "\roverride\r")
-    assert_receive {:evaluation_output, :ref, "\roverride\r"}
+    assert_receive {:evaluation_output, :ref, {:stdout, "\roverride\r"}}
   end
 
   test "flush/1 synchronously sends buffer contents", %{io: io} do
     IO.puts(io, "hey")
     IOProxy.flush(io)
-    assert_received {:evaluation_output, :ref, "hey\n"}
+    assert_received {:evaluation_output, :ref, {:stdout, "hey\n"}}
   end
 
   test "supports direct livebook output forwarding", %{io: io} do

@@ -4,13 +4,14 @@ defmodule LivebookWeb.Output.JSComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"js-output-#{@id}"}
+    <div id={"js-output-#{@id}-#{@info.ref}"}
       phx-hook="JSOutput"
       phx-update="ignore"
       data-ref={@info.ref}
       data-assets-base-url={Routes.session_url(@socket, :show_asset, @session_id, @info.assets.hash, [])}
       data-js-path={@info.assets.js_path}
-      data-session-token={session_token(@info.pid)}>
+      data-session-token={session_token(@info.pid)}
+      data-session-id={@session_id}>
     </div>
     """
   end

@@ -2,16 +2,20 @@
 
 ## Setup
 
-To render graphs in Livebook, we need the
-[`vega_lite`](https://github.com/elixir-nx/vega_lite) package
-for defining our graph specification and
-[`kino`](https://github.com/elixir-nx/kino). We won't use Kino
-directly, but it is required to render VegaLite:
+We need two libraries for plotting in Livebook:
+
+  * The [`vega_lite`](https://github.com/elixir-nx/vega_lite)
+    package allows us to define our graph specifications
+
+  * The [`kino`](https://github.com/elixir-nx/kino) package
+    renders our specifications
+
+Let's install them:
 
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.2"},
-  {:kino, "~> 0.4.1"}
+  {:kino, github: "livebook-dev/kino"}
 ])
 ```
 

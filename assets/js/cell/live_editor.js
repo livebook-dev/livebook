@@ -4,7 +4,7 @@ import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../lib/text_utils";
-import { loadLocalSettings } from "../lib/settings";
+import { settingsStore } from "../lib/settings";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -141,7 +141,7 @@ class LiveEditor {
   }
 
   __mountEditor() {
-    const settings = loadLocalSettings();
+    const settings = settingsStore.get();
 
     this.editor = monaco.editor.create(this.container, {
       language: this.type,
@@ -160,9 +160,9 @@ class LiveEditor {
       },
       occurrencesHighlight: false,
       renderLineHighlight: "none",
-      theme: "custom",
+      theme: settings.editor_theme,
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
-      fontSize: 14,
+      fontSize: settings.editor_font_size,
       tabIndex: -1,
       tabSize: 2,
       autoIndent: true,
@@ -219,7 +219,7 @@ class LiveEditor {
    * Defines cell-specific providers for various editor features.
    */
   __setupIntellisense() {
-    const settings = loadLocalSettings();
+    const settings = settingsStore.get();
 
     this.handlerByRef = {};
 

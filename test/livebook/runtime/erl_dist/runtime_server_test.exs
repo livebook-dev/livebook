@@ -59,7 +59,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :e1, "error\n"}
+      assert_receive {:evaluation_output, :e1, {:stdout, "error\n"}}
     end
 
     @tag capture_log: true
@@ -71,7 +71,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
       RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :e1, log_message}
+      assert_receive {:evaluation_output, :e1, {:stdout, log_message}}
       assert log_message =~ "[error] hey"
     end
 

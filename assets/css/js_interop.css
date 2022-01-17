@@ -124,6 +124,39 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-element="output"]:not([data-wrapper]) {
+  @apply py-4;
+}
+
+[data-element="output"][data-border] {
+  @apply px-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
+}
+
+[data-element="output"][data-border]:first-child {
+  @apply rounded-t-lg border-t;
+}
+
+[data-element="output"]:not([data-border])
+  + [data-element="output"][data-border] {
+  @apply border-t;
+}
+
+[data-element="output"][data-border]:last-child {
+  @apply rounded-b-lg border-b;
+}
+
+[data-element="output"]:not(:first-child) {
+  @apply mt-2;
+}
+
+[data-element="output"][data-border] + [data-element="output"][data-border] {
+  @apply mt-0;
+}
+
+[data-element="outputs-container"] > [data-element="output"]:first-child {
+  @apply mt-2;
+}
+
 [data-element="session"]:not([data-js-side-panel-content])
   [data-element="side-panel"] {
   @apply hidden;

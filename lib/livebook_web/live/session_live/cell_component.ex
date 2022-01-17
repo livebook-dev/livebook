@@ -2,6 +2,29 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
   @impl true
+  def mount(socket) do
+    {:ok, assign(socket, initialized: false)}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
+    socket =
+      if not connected?(socket) or socket.assigns.initialized do
+        socket
+      else
+        %{id: id, source_info: info} = socket.assigns.cell_view
+
+        socket
+        |> push_event("cell_init:#{id}", info)
+        |> assign(initialized: true)
+      end
+
+    {:ok, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
@@ -52,7 +75,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-element="markdown-container"
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore">
-        <.content_placeholder bg_class="bg-gray-200" empty={@cell_view.empty?} />
+        <.content_placeholder bg_class="bg-gray-200" empty={empty?(@cell_view.source_info)} />
       </div>
     </.cell_body>
     """
@@ -113,20 +136,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     <.cell_body>
       <.editor cell_view={@cell_view} />
-
-      <%= if @cell_view.outputs != [] do %>
-        <div class="mt-2" data-element="outputs-container">
-          <%# There is an akin render in LivebookWeb.Output.FrameDynamicLive %>
-          <LivebookWeb.Output.outputs
-            outputs={@cell_view.outputs}
-            id={"cell-#{@cell_view.id}-evaluation#{evaluation_number(@cell_view.evaluation_status, @cell_view.number_of_evaluations)}-outputs"}
-            socket={@socket}
-            session_id={@session_id}
-            runtime={@runtime}
-            cell_validity_status={@cell_view.validity_status}
-            input_values={@cell_view.input_values} />
-        </div>
-      <% end %>
+      <div class="flex flex-col"
+        data-element="outputs-container"
+        id={"outputs-#{@cell_view.id}-#{@cell_view.outputs_batch_number}"}
+        phx-update="append">
+        <LivebookWeb.Output.outputs
+          outputs={@cell_view.outputs}
+          socket={@socket}
+          session_id={@session_id}
+          runtime={@runtime}
+          cell_validity_status={@cell_view.validity_status}
+          input_values={@cell_view.input_values} />
+      </div>
     </.cell_body>
     """
   end
@@ -212,13 +233,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp editor(assigns) do
     ~H"""
-    <div class="py-3 rounded-lg bg-editor relative">
-      <div
-        id={"editor-container-#{@cell_view.id}"}
-        data-element="editor-container"
-        phx-update="ignore">
-        <div class="px-8">
-          <.content_placeholder bg_class="bg-gray-500" empty={@cell_view.empty?} />
+    <div class="relative">
+      <div id={"editor-#{@cell_view.id}"} phx-update="ignore">
+        <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
+          <div class="px-8">
+            <.content_placeholder bg_class="bg-gray-500" empty={empty?(@cell_view.source_info)} />
+          </div>
         </div>
       </div>
 
@@ -237,7 +257,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp content_placeholder(assigns) do
     ~H"""
-    <%= if @empty  do %>
+    <%= if @empty do %>
       <div class="h-4"></div>
     <% else %>
       <div class="max-w-2xl w-full animate-pulse">
@@ -251,11 +271,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp empty?(%{source: ""} = _source_info), do: true
+  defp empty?(_source_info), do: false
+
   defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
     ~H"""
     <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
       <span class="font-mono"
-        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.number_of_evaluations}"}
+        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.evaluation_number}"}
         phx-hook="Timer"
         phx-update="ignore"
         data-start={DateTime.to_iso8601(@cell_view.evaluation_start)}>
@@ -275,7 +298,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
     ~H"""
     <.status_indicator
-      circle_class="bg-green-400"
+      circle_class="bg-green-bright-400"
       change_indicator={true}
       tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
       Evaluated
@@ -285,7 +308,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
     ~H"""
-    <.status_indicator circle_class="bg-yellow-200" change_indicator={true}>
+    <.status_indicator circle_class="bg-yellow-bright-200" change_indicator={true}>
       Stale
     </.status_indicator>
     """
@@ -341,7 +364,4 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
-
-  defp evaluation_number(:evaluating, number_of_evaluations), do: number_of_evaluations + 1
-  defp evaluation_number(_evaluation_status, number_of_evaluations), do: number_of_evaluations
 end
