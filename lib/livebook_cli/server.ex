@@ -118,13 +118,13 @@ defmodule LivebookCLI.Server do
 
   defp open_from_options(base_url, opts) do
     if opts[:open] do
-      browser_open(base_url)
+      Livebook.Utils.browser_open(base_url)
     end
 
     if opts[:open_new] do
       base_url
       |> append_path("/explore/notebooks/new")
-      |> browser_open()
+      |> Livebook.Utils.browser_open()
     end
   end
 
@@ -212,17 +212,6 @@ defmodule LivebookCLI.Server do
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
-
-  defp browser_open(url) do
-    {cmd, args} =
-      case :os.type() do
-        {:win32, _} -> {"cmd", ["/c", "start", url]}
-        {:unix, :darwin} -> {"open", [url]}
-        {:unix, _} -> {"xdg-open", [url]}
-      end
-
-    System.cmd(cmd, args)
-  end
 
   defp append_path(url, path) do
     url

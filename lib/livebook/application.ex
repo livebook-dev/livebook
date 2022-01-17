@@ -10,24 +10,25 @@ defmodule Livebook.Application do
     validate_hostname_resolution!()
     set_cookie()
 
-    children = [
-      # Start the Telemetry supervisor
-      LivebookWeb.Telemetry,
-      # Start the PubSub system
-      {Phoenix.PubSub, name: Livebook.PubSub},
-      # Start the tracker server on this node
-      {Livebook.Tracker, pubsub_server: Livebook.PubSub},
-      # Start the supervisor dynamically managing sessions
-      {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
-      # Start the server responsible for associating files with sessions
-      Livebook.Session.FileGuard,
-      # Start the Node Pool for managing node names
-      Livebook.Runtime.NodePool,
-      # Start the unique task dependencies
-      Livebook.UniqueTask,
-      # Start the Endpoint (http/https)
-      LivebookWeb.Endpoint
-    ]
+    children =
+      [
+        # Start the Telemetry supervisor
+        LivebookWeb.Telemetry,
+        # Start the PubSub system
+        {Phoenix.PubSub, name: Livebook.PubSub},
+        # Start the tracker server on this node
+        {Livebook.Tracker, pubsub_server: Livebook.PubSub},
+        # Start the supervisor dynamically managing sessions
+        {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
+        # Start the server responsible for associating files with sessions
+        Livebook.Session.FileGuard,
+        # Start the Node Pool for managing node names
+        Livebook.Runtime.NodePool,
+        # Start the unique task dependencies
+        Livebook.UniqueTask,
+        # Start the Endpoint (http/https)
+        LivebookWeb.Endpoint
+      ] ++ app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -157,4 +158,10 @@ defmodule Livebook.Application do
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
   defp config_env_var?(_), do: false
+
+  if Mix.target() == :app do
+    defp app_specs, do: [LivebookApp]
+  else
+    defp app_specs, do: []
+  end
 end

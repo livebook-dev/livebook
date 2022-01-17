@@ -1,0 +1,1 @@
+set RELEASE_MODE=interactive
