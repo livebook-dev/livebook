@@ -1,5 +1,5 @@
 if Mix.target() == :app do
-  defmodule Livebook.App do
+  defmodule LivebookApp do
     @moduledoc false
 
     @behaviour :wx_object

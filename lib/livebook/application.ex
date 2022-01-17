@@ -160,7 +160,7 @@ defmodule Livebook.Application do
   defp config_env_var?(_), do: false
 
   if Mix.target() == :app do
-    defp app_specs, do: [Livebook.App]
+    defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
   end
