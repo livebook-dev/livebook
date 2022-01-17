@@ -422,6 +422,17 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Retreives the file name for download.
+
+  If the notebook was imported from a file, then use the file name.
+  Else, use the title of the notebook for the file name.
+  """
+  @spec file_name_for_download(pid()) :: :ok
+  def file_name_for_download(pid) do
+    GenServer.call(pid, :infer_file_name)
+  end
+
+  @doc """
   Sends a close request to the server.
 
   This results in saving the file and broadcasting
@@ -506,6 +517,21 @@ defmodule Livebook.Session do
     else
       %{state | autosave_timer_ref: nil}
     end
+  end
+
+  @impl true
+  def handle_call(:infer_file_name, _from, state) do
+    name =
+      if state.data.file do
+        FileSystem.File.name(state.data.file)
+        |> Path.rootname()
+      else
+        state.data.notebook.name
+        |> String.downcase()
+        |> String.replace(" ", "-")
+      end
+
+    {:reply, name, state}
   end
 
   @impl true
