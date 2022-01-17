@@ -1,13 +1,13 @@
 #!/bin/bash
 # Usage:
 #
-#     $ sh .github/scripts/build_mac.sh
+#     $ sh .github/scripts/app/build_mac.sh
 #     $ open _build/app_prod/rel/Livebook.app
 #     $ open livebook://github.com/livebook-dev/livebook/blob/main/test/support/notebooks/basic.livemd
 #     $ open ./test/support/notebooks/basic.livemd
 set -e
 
-sh .github/scripts/bootstrap-mac.sh
+sh .github/scripts/bootstrap_mac.sh
 . tmp/bootstrap_env.sh
 
 # If CODESIGN_IDENITY is set, let's build the .dmg which would also notarize it.
