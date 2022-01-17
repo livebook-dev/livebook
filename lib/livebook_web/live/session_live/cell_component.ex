@@ -138,7 +138,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <.editor cell_view={@cell_view} />
       <div class="flex flex-col"
         data-element="outputs-container"
-        id={"output-#{@cell_view.id}-#{@cell_view.evaluation_number}"}
+        id={"outputs-#{@cell_view.id}-#{@cell_view.outputs_batch_number}"}
         phx-update="append">
         <LivebookWeb.Output.outputs
           outputs={@cell_view.outputs}
