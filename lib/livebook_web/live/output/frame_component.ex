@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.FrameComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, counter: 0, output_count: 0, idx_map: %{})}
+    {:ok, assign(socket, counter: 0, output_count: 0, persistent_idx_map: %{})}
   end
 
   @impl true
@@ -18,7 +18,7 @@ defmodule LivebookWeb.Output.FrameComponent do
         assign(socket,
           counter: 1,
           output_count: length(outputs),
-          idx_map: append_idx_map(%{}, outputs)
+          persistent_idx_map: idx_map(outputs)
         )
       else
         socket
@@ -31,13 +31,24 @@ defmodule LivebookWeb.Output.FrameComponent do
 
         :replace ->
           prev_output_count = socket.assigns.output_count
+          prev_persistent_idx_map = socket.assigns.persistent_idx_map
+
           output_count = length(outputs)
-          idx_map = append_idx_map(%{}, outputs)
+          persistent_idx_map = idx_map(outputs)
 
-          socket = assign(socket, outputs: outputs, output_count: output_count, idx_map: idx_map)
+          socket =
+            assign(socket,
+              outputs: outputs,
+              output_count: output_count,
+              persistent_idx_map: persistent_idx_map
+            )
 
-          # If there are less outputs we reset the counter to remove DOM elements
-          if output_count < prev_output_count do
+          less_outputs? = prev_output_count > output_count
+          appended_outputs? = prev_output_count > map_size(prev_persistent_idx_map)
+
+          # If there are outputs that we need to remove, increase the counter.
+          # Otherwise we reuse DOM element ids via persistent_idx_map
+          if less_outputs? or appended_outputs? do
             update(socket, :counter, &(&1 + 1))
           else
             socket
@@ -45,7 +56,6 @@ defmodule LivebookWeb.Output.FrameComponent do
 
         :append ->
           socket
-          |> update(:idx_map, &append_idx_map(&1, outputs))
           |> update(:outputs, &(outputs ++ &1))
           |> update(:output_count, &(length(outputs) + &1))
       end
@@ -53,13 +63,10 @@ defmodule LivebookWeb.Output.FrameComponent do
     {:ok, socket}
   end
 
-  defp append_idx_map(idx_map, outputs) do
-    next_idx = map_size(idx_map)
-
+  defp idx_map(outputs) do
     outputs
-    |> Enum.with_index(next_idx)
+    |> Enum.with_index()
     |> Map.new(fn {{output_idx, _}, idx} -> {output_idx, idx} end)
-    |> Map.merge(idx_map)
   end
 
   @impl true
@@ -74,7 +81,7 @@ defmodule LivebookWeb.Output.FrameComponent do
         <div id={"frame-outputs-#{@id}-#{@counter}"} phx-update="append">
           <LivebookWeb.Output.outputs
             outputs={@outputs}
-            dom_id_map={@idx_map}
+            dom_id_map={@persistent_idx_map}
             socket={@socket}
             session_id={@session_id}
             input_values={@input_values}
