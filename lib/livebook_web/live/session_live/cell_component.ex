@@ -142,6 +142,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         phx-update="append">
         <LivebookWeb.Output.outputs
           outputs={@cell_view.outputs}
+          dom_id_map={%{}}
           socket={@socket}
           session_id={@session_id}
           runtime={@runtime}
