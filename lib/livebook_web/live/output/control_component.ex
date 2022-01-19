@@ -61,10 +61,19 @@ defmodule LivebookWeb.Output.ControlComponent do
   @impl true
   def handle_event("toggle_keyboard", %{}, socket) do
     socket = update(socket, :keyboard_enabled, &not/1)
+    maybe_report_status(socket)
+    {:noreply, socket}
+  end
 
-    if :status in socket.assigns.attrs.events do
-      report_event(socket, %{type: :status, enabled: socket.assigns.keyboard_enabled})
-    end
+  def handle_event("disable_keyboard", %{}, socket) do
+    socket =
+      if socket.assigns.keyboard_enabled do
+        socket = assign(socket, keyboard_enabled: false)
+        maybe_report_status(socket)
+        socket
+      else
+        socket
+      end
 
     {:noreply, socket}
   end
@@ -82,6 +91,12 @@ defmodule LivebookWeb.Output.ControlComponent do
   def handle_event("keyup", %{"key" => key}, socket) do
     report_event(socket, %{type: :keyup, key: key})
     {:noreply, socket}
+  end
+
+  defp maybe_report_status(socket) do
+    if :status in socket.assigns.attrs.events do
+      report_event(socket, %{type: :status, enabled: socket.assigns.keyboard_enabled})
+    end
   end
 
   defp report_event(socket, attrs) do
