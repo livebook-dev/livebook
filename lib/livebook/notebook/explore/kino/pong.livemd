@@ -35,7 +35,7 @@ defmodule Scene do
 
   defstruct [:width, :height, :objects]
 
-  def new(width, height, opts \\ []) do
+  def new(width, height) do
     %__MODULE__{width: width, height: height, objects: []}
   end
 
@@ -207,7 +207,7 @@ ball = Game.Ball.new(2, 2, 4, dx: 1, dy: 1)
 ```
 
 Now we will instantiate a `Kino.Control.interval/1` and use it to
-generate a stream of events every 33ms (which is 30 frames per second).
+generate a stream of events, one every 33ms (which gives 30 frames per second).
 We will take 20 of those events. On each events, we will paint the
 scene, update the frame, and then animate the ball for the next event:
 
@@ -280,7 +280,7 @@ the event stream. Click on the keyboard icon and watch it
 print keyboard events as you press different keys. When
 you are done, **disable the keyboard control**. Now we know
 how to capture keyboard events and how they look like, we are
-to implement the paddles.
+ready to implement the paddles.
 
 ## Controlling the paddle with keypresses
 
@@ -469,7 +469,7 @@ defmodule Game.Collision do
 end
 ```
 
-To ensure we got the difference scenarios right, let's add some tests:
+To ensure we got the different scenarios right, let's add some tests:
 
 ```elixir
 ExUnit.start(autorun: false)
@@ -727,7 +727,7 @@ end
 ```
 
 The most complex function above is `Game.State.step/1`. It
-animates the ball and the paddles. Then it check for collisions.
+animates the ball and the paddles. Then it checks for collisions.
 Depending on the result of the collision, it resets the game
 state and bumps the relevant score.
 
@@ -916,8 +916,8 @@ defmodule Game.Server do
 end
 ```
 
-The server is in place! Let's start the keyboard and the frame,
-and start a `Game.Server` passing them as arguments:
+The server is in place! Let's show the keyboard and the frame,
+then start a `Game.Server` passing them as arguments:
 
 ```elixir
 keyboard = Kino.Control.keyboard([:status, :keydown, :keyup]) |> Kino.render()
