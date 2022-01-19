@@ -27,11 +27,10 @@ defmodule Scene do
   The scene for the game objects.
   """
 
-  defstruct [:width, :height, :scale, :objects]
+  defstruct [:width, :height, :objects]
 
   def new(width, height, opts \\ []) do
-    scale = opts[:scale] || 10
-    %__MODULE__{width: width, height: height, scale: scale, objects: []}
+    %__MODULE__{width: width, height: height, objects: []}
   end
 
   def add(scene, object) do
@@ -39,11 +38,10 @@ defmodule Scene do
   end
 
   def to_svg(scene) do
-    scale = scene.scale
-    svgs = Enum.map(scene.objects, &Scene.Renderer.to_svg(&1, scale))
+    svgs = Enum.map(scene.objects, &Scene.Renderer.to_svg(&1))
 
     """
-    <svg viewBox="0 0 #{scene.width * scale} #{scene.height * scale}"
+    <svg viewBox="0 0 #{scene.width} #{scene.height}"
          xmlns="http://www.w3.org/2000/svg">
       #{svgs}
     </svg>
@@ -66,7 +64,7 @@ a handful of shapes.
 
 ```elixir
 defprotocol Scene.Renderer do
-  def to_svg(object, scale)
+  def to_svg(object)
 end
 
 defmodule Scene.Rect do
@@ -77,13 +75,9 @@ defmodule Scene.Rect do
   end
 
   defimpl Scene.Renderer do
-    def to_svg(%Scene.Rect{x: x, y: y, width: width, height: height, fill: fill}, scale) do
+    def to_svg(%Scene.Rect{x: x, y: y, width: width, height: height, fill: fill}) do
       """
-      <rect x="#{x * scale}"
-            y="#{y * scale}"
-            width="#{width * scale}"
-            height="#{height * scale}"
-            fill="#{fill}" />
+      <rect x="#{x}" y="#{y}" width="#{width}" height="#{height}" fill="#{fill}" />
       """
     end
   end
@@ -97,12 +91,12 @@ defmodule Scene.Text do
   end
 
   defimpl Scene.Renderer do
-    def to_svg(%Scene.Text{x: x, y: y, text: text, fill: fill, font_size: font_size}, scale) do
+    def to_svg(%Scene.Text{x: x, y: y, text: text, fill: fill, font_size: font_size}) do
       """
-      <text x="#{x * scale}"
-            y="#{y * scale}"
+      <text x="#{x}"
+            y="#{y}"
             fill="#{fill}"
-            font-size="#{font_size * scale}px"
+            font-size="#{font_size}px"
             text-anchor="middle"
             dominant-baseline="hanging">#{text}</text>
       """
@@ -150,9 +144,9 @@ defmodule Game.Ball do
   end
 
   defimpl Scene.Renderer do
-    def to_svg(%Game.Ball{x: x, y: y, r: r}, scale) do
+    def to_svg(%Game.Ball{x: x, y: y, r: r}) do
       """
-      <circle cx="#{x * scale}" cy="#{y * scale}" r="#{r * scale}" fill="tomato" />
+      <circle cx="#{x}" cy="#{y}" r="#{r}" fill="tomato" />
       """
     end
   end
@@ -291,13 +285,9 @@ render the paddle as a rectangle:
 
 ```elixir
 defimpl Scene.Renderer, for: Game.Paddle do
-  def to_svg(%Game.Paddle{x: x, y: y, width: width, height: height}, scale) do
+  def to_svg(%Game.Paddle{x: x, y: y, width: width, height: height}) do
     """
-    <rect x="#{x * scale}"
-          y="#{y * scale}"
-          width="#{width * scale}"
-          height="#{height * scale}"
-          fill="black" />
+    <rect x="#{x}" y="#{y}" width="#{width}" height="#{height}" fill="black" />
     """
   end
 end
