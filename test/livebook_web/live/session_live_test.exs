@@ -36,6 +36,9 @@ defmodule LivebookWeb.SessionLiveTest do
       Session.set_notebook_name(session.pid, "My notebook")
       wait_for_session_update(session.pid)
 
+      # Wait for LV to update
+      render(view)
+
       assert page_title(view) =~ "My notebook"
     end
 
