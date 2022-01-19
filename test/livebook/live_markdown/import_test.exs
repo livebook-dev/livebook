@@ -340,6 +340,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Enum.to_list(1..10)
     ```
 
+    <!-- livebook:{"force_markdown":true} -->
+
     ```erlang
     spawn_link(fun() -> io:format("Hiya") end).
     ```
@@ -566,11 +568,15 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       hey
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       :ok
       ```
       """
@@ -593,6 +599,63 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  }
                ],
                output_counter: 2
+             } = notebook
+    end
+
+    test "discards other output snippets" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```elixir
+      plot()
+      ```
+
+      <!-- livebook:{"output":true} -->
+
+      ```vega-lite
+      {}
+      ```
+
+      ```elixir
+      :ok
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Elixir{
+                       source: """
+                       IO.puts("hey")\
+                       """,
+                       outputs: []
+                     },
+                     %Cell.Elixir{
+                       source: """
+                       plot()\
+                       """,
+                       outputs: []
+                     },
+                     %Cell.Elixir{
+                       source: """
+                       :ok\
+                       """,
+                       outputs: []
+                     }
+                   ]
+                 }
+               ]
              } = notebook
     end
 
@@ -653,6 +716,50 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                "found an input cell, but those are no longer supported, please use Kino.Input instead." <>
                  " Also, to make the input reactive you can use an automatically reevaluating cell"
              ] == messages
+    end
+
+    test "imports snippets with output info string" do
+      # We now explicitly mark every output sinppet with <!-- livebook:{"output":true} -->
+      # and use empty snippets for textual outputs, however previously
+      # we supported ```output too, so let's ensure they still work
+
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```output
+      hey
+      ```
+
+      ```output
+      :ok
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Elixir{
+                       source: """
+                       IO.puts("hey")\
+                       """,
+                       outputs: [{0, {:text, ":ok"}}, {1, {:text, "hey"}}]
+                     }
+                   ]
+                 }
+               ],
+               output_counter: 2
+             } = notebook
     end
   end
 end

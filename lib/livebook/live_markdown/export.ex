@@ -161,13 +161,17 @@ defmodule Livebook.LiveMarkdown.Export do
     text = String.replace_suffix(text, "\n", "")
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
-    [delimiter, "output\n", text, "\n", delimiter]
+
+    [delimiter, "\n", text, "\n", delimiter]
+    |> prepend_metadata(%{output: true})
   end
 
   defp render_output({:text, text}, _ctx) do
     delimiter = MarkdownHelpers.code_block_delimiter(text)
     text = strip_ansi(text)
-    [delimiter, "output\n", text, "\n", delimiter]
+
+    [delimiter, "\n", text, "\n", delimiter]
+    |> prepend_metadata(%{output: true})
   end
 
   defp render_output(
@@ -180,7 +184,10 @@ defmodule Livebook.LiveMarkdown.Export do
 
     case encode_js_data(payload) do
       {:ok, binary} ->
-        ["```", info_string, "\n", binary, "\n", "```"]
+        delimiter = MarkdownHelpers.code_block_delimiter(binary)
+
+        [delimiter, info_string, "\n", binary, "\n", delimiter]
+        |> prepend_metadata(%{output: true})
 
       _ ->
         :ignored

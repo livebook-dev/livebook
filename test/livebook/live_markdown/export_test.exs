@@ -584,7 +584,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       IO.puts("hey")
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       hey
       ```
       """
@@ -624,11 +626,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       IO.puts("hey")
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       hey
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       :ok
       ```
       """
@@ -754,6 +760,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       :ok
       ```
 
+      <!-- livebook:{"output":true} -->
+
       ```mermaid
       graph TD;
       A-->B;
@@ -801,6 +809,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```elixir
       :ok
       ```
+
+      <!-- livebook:{"output":true} -->
 
       ```box
       {"height":50,"width":50}
@@ -853,6 +863,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       :ok
       ```
 
+      <!-- livebook:{"output":true} -->
+
       ```vega-lite
       {"height":50,"width":50}
       ```
@@ -897,7 +909,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     IO.puts("hey")
     ```
 
-    ```output
+    <!-- livebook:{"output":true} -->
+
+    ```
     hey
     ```
     """
