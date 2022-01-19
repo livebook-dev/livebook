@@ -31,7 +31,7 @@ or later. We also recommend reading the corresponding [Kino changelog](https://g
 - Added shutdown button to the sidebar ([#862](https://github.com/livebook-dev/livebook/pull/862))
 - An option to increase the font size in the editor ([#860](https://github.com/livebook-dev/livebook/pull/860))
 - An option to use a high-contrast editor theme ([#868](https://github.com/livebook-dev/livebook/pull/868) and [#871](https://github.com/livebook-dev/livebook/pull/871))
-- Support for rendering mermaid.js graphs in Markdown cells ([#874](https://github.com/livebook-dev/livebook/pull/874))
+- Support for rendering mermaid.js graphs in Markdown cells ([#816](https://github.com/livebook-dev/livebook/pull/816))
 - Introduced desktop app packaging for macOS ([#865](https://github.com/livebook-dev/livebook/pull/865))
 
 ### Changed
