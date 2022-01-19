@@ -7,7 +7,7 @@
 #     $ open ./test/support/notebooks/basic.livemd
 set -e
 
-sh .github/scripts/bootstrap_mac.sh
+sh .github/scripts/app/bootstrap_mac.sh
 . tmp/bootstrap_env.sh
 
 # If CODESIGN_IDENITY is set, let's build the .dmg which would also notarize it.
