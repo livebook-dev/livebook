@@ -68,7 +68,7 @@ defmodule Livebook.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
-      {:app_builder, path: "app_builder", targets: [:app]}
+      {:app_builder, path: "app_builder", targets: [:app], only: :dev}
     ]
   end
 
