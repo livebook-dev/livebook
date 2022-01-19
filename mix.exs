@@ -14,7 +14,7 @@ defmodule Livebook.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: with_lock(deps()),
+      deps: with_lock(target_deps(Mix.target()) ++ deps()),
       escript: escript(),
       releases: releases(),
       package: package()
@@ -71,6 +71,9 @@ defmodule Livebook.MixProject do
       {:app_builder, path: "app_builder", targets: [:app], only: :dev}
     ]
   end
+
+  defp target_deps(:app), do: [{:app_builder, path: "app_builder"}]
+  defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
               {:ok, quoted} <- Code.string_to_quoted(contents, warn_on_unnecessary_quotes: false),
