@@ -368,4 +368,50 @@ defmodule Livebook.Utils do
     end)
     |> Enum.join("\n")
   end
+
+  # Fetches and formats system and node memory usage
+  def fetch_memory(node) do
+    node_memory = fetch_node_memory(node)
+    system_memory = fetch_system_memory()
+    Map.merge(system_memory, node_memory)
+  end
+
+  def fetch_node_memory(node) do
+    memory =
+      :rpc.call(node, :erlang, :memory, [])
+      |> Enum.into(%{})
+      |> Map.drop([:processes_used, :atom_used])
+
+    other =
+      memory.total - memory.processes - memory.atom - memory.binary - memory.code - memory.ets
+
+    Map.put(memory, :other, other)
+  end
+
+  def fetch_system_memory() do
+    memory = :memsup.get_system_memory_data()
+    %{free_memory: memory[:free_memory], total: 0}
+  end
+
+  def format_bytes(bytes) when is_integer(bytes) do
+    cond do
+      bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
+      bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
+      bytes >= memory_unit(:MB) -> format_bytes(bytes, :MB)
+      bytes >= memory_unit(:KB) -> format_bytes(bytes, :KB)
+      true -> format_bytes(bytes, :B)
+    end
+  end
+
+  defp format_bytes(bytes, :B) when is_integer(bytes), do: "#{bytes} B"
+
+  defp format_bytes(bytes, unit) when is_integer(bytes) do
+    value = bytes / memory_unit(unit)
+    "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
+  end
+
+  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
+  defp memory_unit(:GB), do: 1024 * 1024 * 1024
+  defp memory_unit(:MB), do: 1024 * 1024
+  defp memory_unit(:KB), do: 1024
 end
