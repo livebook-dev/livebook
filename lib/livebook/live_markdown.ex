@@ -36,6 +36,8 @@ defmodule Livebook.LiveMarkdown do
   #        - `{"break_markdown":true}` - an annotation splitting the markdown content
   #          into separate Markdown cells
   #
+  #        - `{"output":true}` - an annotation marking a code snippet as cell output
+  #
   #        - section metadata, recognised keys `branch_parent_index`
   #
   #        - cell metadata, recognised keys: `disable_formatting`
