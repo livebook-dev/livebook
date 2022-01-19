@@ -1,1 +1,2 @@
 set RELEASE_MODE=interactive
+set LIVEBOOK_ROOT_PATH=%USERPROFILE%
