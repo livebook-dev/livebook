@@ -142,7 +142,7 @@ defmodule AppBuilder.MacOS do
     #!/bin/sh
     set -e
     root=$(dirname $(dirname "$0"))
-    LIVEBOOK_ROOT_PATH=$HOME $root/Resources/rel/bin/#{release_name} start \
+    $root/Resources/rel/bin/#{release_name} start \
       1>> ~/Library/Logs/#{app_name}.stdout.log \
       2>> ~/Library/Logs/#{app_name}.stderr.log
     """
