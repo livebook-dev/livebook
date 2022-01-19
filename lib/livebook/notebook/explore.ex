@@ -108,7 +108,7 @@ defmodule Livebook.Notebook.Explore do
     }
   ]
 
-  user_configs = Application.fetch_env!(:livebook, :explore_notebooks)
+  user_configs = Application.compile_env(:livebook, :explore_notebooks, [])
 
   notebook_configs = [welcome_config] ++ user_configs ++ other_configs
 
