@@ -720,7 +720,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     test "imports snippets with output info string" do
       # We now explicitly mark every output sinppet with <!-- livebook:{"output":true} -->
-      # and use emty snippets for textual outputs, however previously
+      # and use empty snippets for textual outputs, however previously
+      # we supported ```output too, so let's ensure they still work
 
       markdown = """
       # My Notebook
