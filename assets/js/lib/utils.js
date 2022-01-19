@@ -6,7 +6,9 @@ export function isMacOS() {
 }
 
 export function isEditableElement(element) {
-  return element.matches("input, textarea, [contenteditable]");
+  return (
+    element.matches && element.matches("input, textarea, [contenteditable]")
+  );
 }
 
 export function clamp(n, x, y) {
