@@ -1,6 +1,8 @@
 defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
+  import Livebook.Utils, only: [format_bytes: 1]
+
   @impl true
   def mount(socket) do
     {:ok, assign(socket, order_by: "date")}
@@ -34,6 +36,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="mb-4 uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
+        <span> <%= memory_info(@sessions) %> / <%= system_memory() %></span>
         <.menu id="sessions-order-menu">
           <:toggle>
             <button class="button-base button-outlined-gray px-4 py-1">
@@ -42,7 +45,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </button>
           </:toggle>
           <:content>
-            <%= for order_by <- ["date", "title"] do %>
+            <%= for order_by <- ["date", "title", "memory"] do %>
               <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
                 role="menuitem"
                 phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
@@ -96,6 +99,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </div>
             <div class="mt-2 text-gray-600 text-sm">
               Created <%= format_creation_date(session.created_at) %>
+              <span class="px-4"><%= format_bytes(session.memory_usage.total) %></span>
             </div>
           </div>
           <.menu id={"session-#{session.id}-menu"}>
@@ -146,9 +150,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp order_by_label("date"), do: "Date"
   defp order_by_label("title"), do: "Title"
+  defp order_by_label("memory"), do: "Memory"
 
   defp order_by_icon("date"), do: "calendar-2-line"
   defp order_by_icon("title"), do: "text"
+  defp order_by_icon("memory"), do: "cpu-line"
 
   defp sort_sessions(sessions, "date") do
     Enum.sort_by(sessions, & &1.created_at, {:desc, DateTime})
@@ -158,5 +164,22 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     Enum.sort_by(sessions, fn session ->
       {session.notebook_name, -DateTime.to_unix(session.created_at)}
     end)
+  end
+
+  defp sort_sessions(sessions, "memory") do
+    Enum.sort_by(sessions, & &1.memory_usage.total, :desc)
+  end
+
+  defp memory_info(sessions) do
+    sessions
+    |> Enum.map(& &1.memory_usage.total)
+    |> Enum.sum()
+    |> format_bytes()
+  end
+
+  defp system_memory() do
+    :memsup.get_system_memory_data()
+    |> Keyword.get(:free_memory)
+    |> format_bytes()
   end
 end
