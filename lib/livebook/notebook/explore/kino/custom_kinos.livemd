@@ -55,7 +55,7 @@ asset-aware. In particular, it allows us to use the `asset/2`
 macro to define arbitrary files directly in the module source.
 
 All custom kinos require a `main.js` file that defines a JavaScript
-module and  becomes the entrypoint on the client side. The
+module and becomes the entrypoint on the client side. The
 JavaScript module is expected to export the `init(ctx, data)`
 function, where `ctx` is a special object and `data` is the
 data passed from the Elixir side. In our example the `init`
