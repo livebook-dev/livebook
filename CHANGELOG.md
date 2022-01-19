@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased](https://github.com/livebook-dev/livebook)
+
+This release comes with a number of exciting features, in particular it adds
+support for extending Livebook with custom-built widgets via `Kino.JS`. It also
+includes several new guides discussing how to make your notebooks more interactive
+with Kino.
+
+Furthermore, starting this version, we provide a Livebook desktop application,
+with the hope to lower the barrier for people jumping into Elixir and programming
+in general.
+
+Apart from multiple UI and intellisense improvements, there was a number of breaking
+changes and optimisations with regard to outputs, please make sure to use Kino 0.5.0
+or later. We also recommend reading the corresponding [Kino changelog](https://github.com/livebook-dev/kino/blob/main/CHANGELOG.md#v050-2022-01-19).
+
+### Added
+
+- Support for input forms ([#790](https://github.com/livebook-dev/livebook/pull/790))
+- Completion for struct keys ([#793](https://github.com/livebook-dev/livebook/pull/793))
+- Support for custom JavaScript widgets ([#826](https://github.com/livebook-dev/livebook/pull/826))
+- Introduced a dedicated Explore subsection for Kino guides ([#830](https://github.com/livebook-dev/livebook/pull/830))
+- Added notebook name to page title ([#844](https://github.com/livebook-dev/livebook/pull/844))
+- Added `@deprecated` and `@since` documentation metadata on mouse over ([#852](https://github.com/livebook-dev/livebook/pull/852))
+- Added Livebook and Elixir version information to the Settings page ([#851](https://github.com/livebook-dev/livebook/pull/851))
+- Added shutdown button to the sidebar ([#862](https://github.com/livebook-dev/livebook/pull/862))
+- An option to increase the font size in the editor ([#860](https://github.com/livebook-dev/livebook/pull/860))
+- An option to use a high-contrast editor theme ([#868](https://github.com/livebook-dev/livebook/pull/868) and [#871](https://github.com/livebook-dev/livebook/pull/871))
+- Support for rendering mermaid.js graphs in Markdown cells ([#874](https://github.com/livebook-dev/livebook/pull/874))
+- Introduced desktop app packaging for macOS ([#865](https://github.com/livebook-dev/livebook/pull/865))
+
+### Changed
+
+- Removed confirmation step when deleting an empty section ([#829](https://github.com/livebook-dev/livebook/pull/829))
+- Applied several design improvements ([#858](https://github.com/livebook-dev/livebook/pull/858), [#859](https://github.com/livebook-dev/livebook/pull/859) and [#882](https://github.com/livebook-dev/livebook/pull/882))
+- Changed the color scheme in text outputs to improve contrast ([#864](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/864))
+- Reworked Kino guides in the Explore section ([#879](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/879))
+
+### Fixed
+
+- Disallowed saving notebooks with empty file name ([#823](https://github.com/livebook-dev/livebook/pull/823))
+- Fixed unexpected focus behaviour in large editors ([#831](https://github.com/livebook-dev/livebook/pull/831))
+- Fixed Escape key to exit multi-cursor mode ([#833](https://github.com/livebook-dev/livebook/pull/833))
+- Improved error reports when reconnecting Mix runtime fails ([#837](https://github.com/livebook-dev/livebook/pull/837))
+- Fixed code blocks in Markdown to use monospaced font for all characters ([#855](https://github.com/livebook-dev/livebook/pull/855))
+
 ## [v0.4.1](https://github.com/livebook-dev/livebook/tree/v0.4.1) (2021-12-09)
 
 ### Added
