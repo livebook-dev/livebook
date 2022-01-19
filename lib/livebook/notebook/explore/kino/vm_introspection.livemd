@@ -2,10 +2,10 @@
 
 ## Introduction
 
-In this chapter we will use `Kino` and `VegaLite`
+In this notebook, we will use `Kino` and `VegaLite`
 to introspect and plot how our system behaves over
 time. If you are not familiar with VegaLite, [read
-our introductory chapter](/explore/notebooks/intro-to-vega-lite).
+its introductory notebook](/explore/notebooks/intro-to-vega-lite).
 
 ## Setup
 
@@ -215,5 +215,5 @@ for i <- 1..1_000_000 do
 end
 ```
 
-In the next chapter, we will learn [how to use `Kino.Control`
+In the next notebook, we will learn [how to use `Kino.Control`
 to build a chat app](/explore/notebooks/chat-app)!
