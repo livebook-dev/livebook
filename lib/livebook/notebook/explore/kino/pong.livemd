@@ -2,16 +2,14 @@
 
 ## Setup
 
-In the [Interactions with Kino](/explore/notebooks/intro-to-kino) notebook
-we discussed various ways of rendering your data in Livebook, including
-dynamically updating content. This time we will take this further and showcase
-how we can capture user interactions.
-
+In this notebook, we are going to learn more about
+[`Kino.Control`](https://hexdocs.pm/kino/Kino.Control.html)
+and [`Kino.Image`](https://hexdocs.pm/kino/Kino.Image.html).
 Specifically, we will be building the the [Pong](https://en.wikipedia.org/wiki/Pong)
-game directly in Livebook. Not only that, we will actually make it multiplayer!
+game directly in Livebook. Not only that, we will actually
+make it multiplayer!
 
-Since we are going to code everything from, all we need is `kino` for
-the visualization and interactions.
+Let's get started and install `kino`:
 
 ```elixir
 Mix.install([
@@ -20,6 +18,14 @@ Mix.install([
 ```
 
 ## Painting the scene
+
+The first step in our game is to define our scene. The
+scene has a `width`, `height`, and several game objects
+that we want to render into the scene. For rendering
+the objects, we will use a custom protocol function,
+called `Scene.Renderer.to_svg/1`. This will allow us
+to define as many game objects as we want and teach the
+scene how to render them, without changing the scene code:
 
 ```elixir
 defmodule Scene do
@@ -50,7 +56,8 @@ defmodule Scene do
 end
 ```
 
-Let's render the scene:
+To render the scene, we will convert it to `svg` and
+use `Kino.Image.new/1` to render it in Livebook:
 
 ```elixir
 Scene.new(80, 10)
@@ -59,14 +66,20 @@ Scene.new(80, 10)
 ```
 
 Since our scene has no objects, we only see an empty white canvas.
-To address this, let's define the `Scene.Renderer` protocol and define
-a handful of shapes.
+To address this, let's define two shapes and alongside the
+`Scene.Renderer` protocol for them.
+
+Let's first define the protocol:
 
 ```elixir
 defprotocol Scene.Renderer do
   def to_svg(object)
 end
+```
 
+Our first shape is a rectangle:
+
+```elixir
 defmodule Scene.Rect do
   defstruct [:x, :y, :width, :height, fill: "black"]
 
@@ -82,7 +95,11 @@ defmodule Scene.Rect do
     end
   end
 end
+```
 
+Our second shape is text:
+
+```elixir
 defmodule Scene.Text do
   defstruct [:x, :y, :text, font_size: 1, fill: "black"]
 
@@ -105,6 +122,8 @@ defmodule Scene.Text do
 end
 ```
 
+Now let's paint a new scene with the rectangle and some text:
+
 ```elixir
 Scene.new(80, 10)
 |> Scene.add(Scene.Rect.new(0, 0, 80, 10, fill: "#d4f1f477"))
@@ -112,6 +131,8 @@ Scene.new(80, 10)
 |> Scene.to_svg()
 |> Kino.Image.new(:svg)
 ```
+
+Perfect.
 
 ## Animating scene objects
 
@@ -130,9 +151,9 @@ defprotocol Animation do
 end
 ```
 
-We will also define the `Game.Ball` struct, which is our first actual
-game object. The ball will have a radius `r`, coordinates `x` and `y`,
-velocities `dx` and `dy`, and implement both `Scene.Renderer` and `Animation`
+Now let's define our first game object, the `Game.Ball` struct.
+The ball will have a radius `r`, coordinates `x` and `y`, velocities
+`dx` and `dy`, and implement both `Scene.Renderer` and `Animation`
 protocols.
 
 ```elixir
@@ -152,6 +173,7 @@ defmodule Game.Ball do
   end
 
   defimpl Animation do
+    # On each step, increase x by dx, and y by dy.
     def step(ball, _scene) do
       %{ball | x: ball.x + ball.dx, y: ball.y + ball.dy}
     end
@@ -168,8 +190,8 @@ Scene.new(80, 10)
 |> Kino.Image.new(:svg)
 ```
 
-However, we can also animate the ball over the scene using a frame.
-For 10 iterations, we will draw the ball, then compute the next step
+However, we can also animate the ball over the scene using `Kino.Frame`.
+Let's define the frame, the scene, and the ball:
 
 ```elixir
 # The frame we will render scene images on top of
@@ -182,9 +204,14 @@ scene =
 
 # The ball which we will animate
 ball = Game.Ball.new(2, 2, 4, dx: 1, dy: 1)
+```
 
-# Every 33ms (30fps), for 20 entries,
-# paint the scene and compute the new ball position
+Now we will instantiate a `Kino.Control.interval/1` and use it to
+generate a stream of events every 33ms (which is 30 frames per second).
+We will take 20 of those events. On each events, we will paint the
+scene, update the frame, and then animate the ball for the next event:
+
+```elixir
 Kino.Control.interval(33)
 |> Kino.Control.stream()
 |> Stream.take(20)
@@ -213,15 +240,16 @@ the paddles.
 
 ## Capturing the user keyboard
 
-We want to use the keyword to control the paddle.
-To do so, we will use `Kino.Control.keyboard/1`:
+Each player in a Pong game must use the arrow up and arrow down
+keys to control the paddle. We can achieve this by using
+`Kino.Control.keyboard/1`. Let's instantiate it:
 
 ```elixir
 keyboard = Kino.Control.keyboard([:status, :keyup, :keydown])
 ```
 
 The above renders a keyboard icon. Once you click it, Livebook
-will start capturing keyboard events. We are subscribing to three
+will start capturing keyboard events. We are interested in three
 different events:
 
 * `:status` - it is emitted whenever the keyboard is activated/deactivated
@@ -230,8 +258,8 @@ different events:
 
 Let's use `Kino.Control.stream/1` to capture and print those events.
 In particular, we want to stream while the keyboard is enabled. Once
-the keyboard is disabled (i.e. the event has the `enabled` key set to
-`false`), the stream stops:
+the keyboard is disabled (i.e. we get a `:status` event with the
+`:enabled` key set to `false`), the stream stops:
 
 ```elixir
 stream =
@@ -249,18 +277,19 @@ end
 
 Once you execute the cell above, it will start consuming
 the event stream. Click on the keyboard icon and watch it
-print keyboard events, as you press different keys. When
-you are done, **disable the keyboard control**. Now we are
-to implement the paddle object.
+print keyboard events as you press different keys. When
+you are done, **disable the keyboard control**. Now we know
+how to capture keyboard events and how they look like, we are
+to implement the paddles.
 
 ## Controlling the paddle with keypresses
 
-The paddle object will be similar to the ball, it can be rendered
-and animated. However, the paddle should also be able to handle
-keyboard events. In particular, a paddle only moves up or
-down, and only while a key is being pressed. Since there is
-additional logic here, let's first define `Game.Paddle` and
-the implement the protocols later.
+The paddle will be similar to the ball: it is its own struct
+that can be rendered and animated. However, the paddle should
+also be able to handle keyboard events. In particular, a paddle
+only moves up or down, and only while a key is pressed. Since
+there is additional logic here, let's first define `Game.Paddle`
+and the implement the protocols later:
 
 ```elixir
 defmodule Game.Paddle do
@@ -279,8 +308,8 @@ defmodule Game.Paddle do
 end
 ```
 
-The paddle moves up while the arrow up key is pressed,
-and down while the arror down key is pressed. We will
+The paddle moves up while the "ArrowUp" key is pressed,
+and down while the "ArrowDown" key is pressed. We will
 render the paddle as a rectangle:
 
 ```elixir
@@ -315,7 +344,7 @@ We are ready to give it a try!
 To animate the paddle, we will need two control streams:
 the keyboard control and an interval to refresh
 the paddle as we keep holding the arrow keys up
-and down.
+and down. Let's put the relevant pieces in place:
 
 ```elixir
 # The frame we will render scene images on top of
@@ -326,18 +355,27 @@ scene =
   Scene.new(200, 50)
   |> Scene.add(Scene.Rect.new(0, 0, 200, 50, fill: "#d4f1f477"))
 
-# The paddle which we will animate
-paddle = Game.Paddle.new(0, 21, 2, 8)
-
 # The keyboard control
 keyboard = Kino.Control.keyboard([:status, :keyup, :keydown]) |> Kino.render()
 
-# For each keyboard every and on every 33ms,
-# emit an event while the keyboard is enabled.
-[keyboard, Kino.Control.interval(33)]
+# The refresh interval
+interval = Kino.Control.interval(33)
+
+# The paddle which we will animate
+paddle = Game.Paddle.new(0, 21, 2, 8)
+```
+
+Now we want to capture all keyboard events plus animate
+the paddle every 33ms. We can do this by passing a list
+of controls to `Kino.Control.stream/1`. As before, we
+still want to stop the stream as soon as the keyboard is
+disabled:
+
+```elixir
+[keyboard, interval]
 |> Kino.Control.stream()
 |> Stream.take_while(fn
-  event when event.enabled == false -> false
+  %{type: :status, enabled: false} -> false
   _event -> true
 end)
 |> Enum.reduce(paddle, fn event, paddle ->
@@ -347,7 +385,7 @@ end)
   # Update the frame
   Kino.Frame.render(frame, image)
 
-  # Animate the paddle
+  # Input the event into the paddle and animate it
   paddle
   |> Game.Paddle.on_key(event)
   |> Animation.step(scene)
@@ -356,11 +394,10 @@ end)
 
 Press the keyboard icon and you should be able to control
 the paddle. In particular, as long as you hold the arrow
-up or arrow down keys, the paddle should move but without
-exiting the scene. Once you are done, disable the keyboard
-for evaluation to finish.
+up or arrow down keys, the paddle should move, without exiting
+the scene. Once you are done, disable the keyboard.
 
-Now with all of the game objects in place, let's implement
+With all of the game objects in place, let's implement
 collision detection between the scene, the ball, and the
 paddles.
 
@@ -370,10 +407,10 @@ As the ball moves around, it may collide with different elements.
 Let's describe those scenarios below:
 
 * If the ball hits either the top or the bottom of the scene,
-  it should reverse its y direction
+  it should reverse its `y` direction
 
 * If the ball hits any of the paddles, it should reverse its
-  x direction
+  `x` direction
 
 * If the ball hits either the left or right side of the scene,
   it means the opposite paddle won
@@ -387,8 +424,8 @@ For simplicity, we will assume that:
   ball is a square. In practice this is enough unless the ball
   is much bigger than the paddle
 
-With this in mind, let's see the code. Our function will either
-return `{:cont, ball}` or `{:won, :left | :right}`.
+With this in mind, let's see the collision code. Our function
+will either return `{:cont, ball}` or `{:won, :left | :right}`:
 
 ```elixir
 defmodule Game.Collision do
@@ -432,7 +469,7 @@ defmodule Game.Collision do
 end
 ```
 
-To ensure we got every right, let's see some tests:
+To ensure we got the difference scenarios right, let's add some tests:
 
 ```elixir
 ExUnit.start(autorun: false)
@@ -555,11 +592,20 @@ ExUnit.run()
 
 All tests should pass! We are now ready to put all pieces
 together. We will do so in two steps. First we will create
-the `Game.State`, which will keep all objects and now how
+the `Game.State`, which will keep all objects and know how
 to dispatch events to them. Then we will create the
-`Game.Server` that will control the frame, keyboards, etc.
+`Game.Server` that will hold the state, control the frame,
+keyboards, and refresh rate.
 
 ## Encapsulating the game state
+
+The `Game.State` is a module with functions to start a new
+game, receive paddle events, and animate its objects.
+The `Game.State` itself should hold the scene, the ball,
+and both paddles. It should also hold the score and a
+status which control if the game is running or idle.
+The game is idle before it starts and also after each
+player scores.
 
 ```elixir
 defmodule Game.State do
@@ -598,11 +644,11 @@ defmodule Game.State do
   end
 
   defp new_ball() do
-    # Each new ball gets a random direction.
     Game.Ball.new(
       @ball_r,
       div(@w, 2),
       div(@h, 2),
+      # Each new ball goes in a random direction
       dx: Enum.random([3, -3]),
       dy: Enum.random([2, -2])
     )
@@ -680,7 +726,12 @@ defmodule Game.State do
 end
 ```
 
-We can now render the static game state:
+The most complex function above is `Game.State.step/1`. It
+animates the ball and the paddles. Then it check for collisions.
+Depending on the result of the collision, it resets the game
+state and bumps the relevant score.
+
+Let's render the game statically and verify everything is in place:
 
 ```elixir
 Game.State.new()
@@ -688,7 +739,7 @@ Game.State.new()
 |> Kino.Image.new(:svg)
 ```
 
-As well as animate it over a frame until one of the paddles score:
+Looks good! Now let's animate it over a frame until one of the paddles score:
 
 ```elixir
 # The frame we will render scene images on top of
@@ -697,7 +748,7 @@ frame = Kino.Frame.new() |> Kino.render()
 # The scene with a static background
 game = Game.State.new()
 
-# Every 33ms (30fps), paint a new frame until it completes a round.
+# Every 33ms, paint a new frame until it completes a round
 Kino.Control.interval(33)
 |> Kino.Control.stream()
 |> Enum.reduce_while(Game.State.start(game), fn _, game ->
@@ -715,6 +766,33 @@ Perfect. Now we are ready to wrap it all up with the `Game.Server`.
 
 ## Running the game server
 
+The job of the `Game.Server` is to wire everything together.
+It will render the keyboard and the frame. However, there is
+one important difference. So far, we have been using streams
+to drive our objects and animations. Streams are fine for quick
+examples but, now that we have both `state` and `events`, our
+code will be cleaner if we organize it inside an Elixir process.
+
+In Elixir, we often implement those processes using an abstraction
+called [`GenServer`](https://hexdocs.pm/elixir/GenServer.html).
+So that's what we will use below. We won't explain all parts that
+make a `GenServer`, but here are the relevant bits:
+
+  * A `GenServer` is typically started via its `start_link/2` function.
+    This function will spawn a new process and then invoke the `init/1`
+    function as a callback
+
+  * On `init`, we should receive both `frame` and `keyboard` control as
+    options. Then, instead of using `Kino.Control.stream/1`, we will use
+    `Kino.Control.subscribe/2` to receive the control events as messages
+
+  * Each message the process receives will be handled by `handle_info/2`
+
+  * To implement the tick, we will configure the process to send itself a
+    message every 33 milliseconds
+
+Let's see those concepts in place:
+
 ```elixir
 defmodule Game.Server do
   @moduledoc """
@@ -727,34 +805,20 @@ defmodule Game.Server do
   @doc """
   Starts the server and renders the initial UI.
   """
-  def start!() do
-    keyboard = Kino.Control.keyboard([:status, :keydown, :keyup])
-    frame = Kino.Frame.new()
-
-    # Render the Kino widgets
-    Kino.render(keyboard)
-    Kino.render(frame)
-
-    # Start the process by calling start_link/1
-    {:ok, _} = Kino.start_child({__MODULE__, keyboard: keyboard, frame: frame})
-    Kino.nothing()
-  end
-
-  @doc false
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
   end
 
   @impl true
   def init(opts) do
-    # Subscribe to keyboard events
+    # Subscribe to keyboard events. All events will be
+    # wrapped in a tuple with :keyboard as key
     Kino.Control.subscribe(opts[:keyboard], :keyboard)
 
     state = %{
       frame: opts[:frame],
       game: nil,
-      players: [],
-      timer_ref: nil
+      players: []
     }
 
     {:ok, render(state)}
@@ -778,25 +842,31 @@ defmodule Game.Server do
     {:noreply, render(state)}
   end
 
-  # A player clicked the keyboard
+  # A player enabled the keyboard
   defp handle_keyboard(state, %{type: :status, enabled: true, origin: origin}) do
     case state.players do
+      # First player joined
       [] ->
-        %{state | players: [%{side: :left, origin: origin}]} |> render()
+        %{state | players: [%{side: :left, origin: origin}]}
+        |> render()
 
-      [%{origin: ^origin}] ->
-        state
-
+      # Second player joined
       [player] ->
         %{state | players: [player, %{side: :right, origin: origin}], game: Game.State.new()}
         |> render()
 
+      # Someone else tried to join, ignore them!
       _ ->
         state
     end
   end
 
-  # The game is idle, any keypress will start the game
+  # There is a keyboard event but no game yet, ignore it
+  defp handle_keyboard(state, _event) when state.game == nil do
+    state
+  end
+
+  # There is a game and it is idle, a keypress from a player will start the game
   defp handle_keyboard(state, %{type: :keydown, origin: origin})
        when state.game.status == :idle do
     if Enum.any?(state.players, &(&1.origin == origin)) do
@@ -809,18 +879,21 @@ defmodule Game.Server do
 
   # All other keypress go to one of the paddles based on the player
   defp handle_keyboard(state, %{origin: origin} = event) do
-    player = Enum.find(state.players, &(&1.origin == origin))
-    
-    if state.game && player do
+    if player = Enum.find(state.players, &(&1.origin == origin)) do
       update_in(state.game, &Game.State.on_key(&1, player.side, event))
     else
       state
     end
   end
 
+  # Ignore any event that does not match the clauses above
+  defp handle_keyboard(state, _event) do
+    state
+  end
+
   defp schedule_tick(state) do
-    ref = Process.send_after(self(), :tick, @tick_time_ms)
-    %{state | timer_ref: ref}
+    Process.send_after(self(), :tick, @tick_time_ms)
+    state
   end
 
   defp render(state) do
@@ -843,16 +916,22 @@ defmodule Game.Server do
 end
 ```
 
-With all that, we are ready to play!
-
-To verify it for yourself, open this session in a separate browser tab
-and toggle the keyboard mode in both tabs. It may be challenging to act
-as two players at the same time, but let's say it's a part of the game!
-Once you are done, remember to toggle off the keyboard mode.
+The server is in place! Let's start the keyboard and the frame,
+and start a `Game.Server` passing them as arguments:
 
 ```elixir
-Game.Server.start!()
+keyboard = Kino.Control.keyboard([:status, :keydown, :keyup]) |> Kino.render()
+frame = Kino.Frame.new() |> Kino.render()
+
+Kino.start_child({Game.Server, keyboard: keyboard, frame: frame})
+Kino.nothing() # Do not print anything after
 ```
+
+We are ready to play! To verify it for yourself, copy and paste
+this URL in a separate browser tab and toggle the keyboard mode in
+both tabs. It may be challenging to act as two players at the same
+time, but let's say it's a part of the game! Once you are done,
+remember to toggle off the keyboard mode.
 
 If you want one additional challenge, you will notice that, once you
 disable the keyboard, the game continues running. Could you change the
