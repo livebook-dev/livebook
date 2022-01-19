@@ -145,11 +145,8 @@ defmodule Kino.Leaflet do
 
   @impl true
   def handle_cast({:add_marker, location}, ctx) do
-    ctx =
-      ctx
-      |> broadcast_event("add_marker", location)
-      |> update(:locations, &[location | &1])
-
+    broadcast_event(ctx, "add_marker", location)
+    ctx = update(ctx, :locations, &[location | &1])
     {:noreply, ctx}
   end
 
@@ -264,6 +261,7 @@ defmodule Kino.Counter do
   defp bump_count(ctx) do
     ctx = update(ctx, :count, &(&1 + 1))
     broadcast_event(ctx, "update", ctx.assigns.count)
+    ctx
   end
 
   asset "main.js" do
