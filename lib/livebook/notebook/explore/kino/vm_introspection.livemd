@@ -14,7 +14,7 @@ Let's add `:vega_lite` and `:kino` as dependencies:
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.2"},
-  {:kino, github: "livebook-dev/kino"}
+  {:kino, "~> 0.5.0"}
 ])
 ```
 

@@ -15,7 +15,7 @@ Let's install them:
 ```elixir
 Mix.install([
   {:vega_lite, "~> 0.1.2"},
-  {:kino, github: "livebook-dev/kino"}
+  {:kino, "~> 0.5.0"}
 ])
 ```
 
