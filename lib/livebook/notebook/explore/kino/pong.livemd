@@ -146,8 +146,7 @@ defmodule Game.Ball do
   defstruct [:r, :x, :y, :dx, :dy]
 
   def new(r, x, y, opts \\ []) do
-    %Game.Ball{r: r, x: x, y: y}
-    |> struct!(opts)
+    struct!(%Game.Ball{r: r, x: x, y: y}, opts)
   end
 
   defimpl Scene.Renderer do
@@ -245,7 +244,7 @@ stream =
   keyboard
   |> Kino.Control.stream()
   |> Stream.take_while(fn
-    event when event.enabled == false -> false
+    %{type: :status, enabled: false} -> false
     _event -> true
   end)
 
@@ -358,7 +357,7 @@ end)
   # Update the frame
   Kino.Frame.render(frame, image)
 
-  # Animate the ball
+  # Animate the paddle
   paddle
   |> Game.Paddle.on_key(event)
   |> Animation.step(scene)
@@ -778,7 +777,7 @@ defmodule Game.Server do
 
   @impl true
   def handle_info(:tick, state) do
-    state = update_in(state.game, &Game.State.step(&1))
+    state = update_in(state.game, &Game.State.step/1)
 
     state =
       case state.game.status do
@@ -811,7 +810,7 @@ defmodule Game.Server do
   defp handle_keyboard(state, %{type: :keydown, origin: origin})
        when state.game.status == :idle do
     if Enum.any?(state.players, &(&1.origin == origin)) do
-      update_in(state.game, &Game.State.start(&1))
+      update_in(state.game, &Game.State.start/1)
       |> schedule_tick()
     else
       state
@@ -820,7 +819,9 @@ defmodule Game.Server do
 
   # All other keypress go to one of the paddles based on the player
   defp handle_keyboard(state, %{origin: origin} = event) do
-    if player = Enum.find(state.players, &(&1.origin == origin)) do
+    player = Enum.find(state.players, &(&1.origin == origin))
+    
+    if state.game && player do
       update_in(state.game, &Game.State.on_key(&1, player.side, event))
     else
       state
