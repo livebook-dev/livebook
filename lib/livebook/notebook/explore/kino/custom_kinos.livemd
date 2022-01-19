@@ -1,12 +1,15 @@
-# Custom kinos with JavaScript
+# Custom Kinos with Elixir and JavaScript
 
-## Introduction
+## Setup
 
-The `Kino.JS` and `Kino.JS.Live` docs outline the API that enables
-developing custom JavaScript powered kinos. The examples discussed
-there are kept minimal to introduce the basic concepts without much
-overhead. In this notebook we take things a bit further and showcase
-a couple more elaborate use cases.
+Starting from version v0.5, Livebook allows developers to implement
+their own kinos. This allows developers to bring their own ideas to
+life and extend Livebook in unexpected ways.
+
+There are two types of custom kinos: static, via `Kino.JS`, and dynamic,
+via `Kino.JS.Live`. We will learn to implement both in this notebook.
+
+First, let's install `kino`:
 
 ```elixir
 Mix.install([
@@ -14,74 +17,102 @@ Mix.install([
 ])
 ```
 
-## HTML rendering
+## HTML rendering with Kino.JS
 
-As a quick recap let's define a widget for rendering diagrams
-from text specification using [Mermaid](https://mermaid-js.github.io/mermaid/#/).
+The "hello world" of custom kinos is one that embeds and
+renders a given HTML string directly on the page.
+
+We can implement it using [`Kino.JS`](https://hexdocs.pm/kino/Kino.JS.html)
+in less than 15 LOC:
 
 ```elixir
-defmodule Kino.Mermaid do
+defmodule Kino.HTML do
   use Kino.JS
 
-  def new(graph) do
-    Kino.JS.new(__MODULE__, graph)
+  def new(html) when is_binary(html) do
+    Kino.JS.new(__MODULE__, html)
   end
 
   asset "main.js" do
     """
-    import "https://cdn.jsdelivr.net/npm/mermaid@8.13.3/dist/mermaid.min.js";
-
-    mermaid.initialize({ startOnLoad: false });
-
-    export function init(ctx, graph) {
-      mermaid.render("graph1", graph, (svgSource, bindListeners) => {
-        ctx.root.innerHTML = svgSource;
-        bindListeners && bindListeners(ctx.root);
-      });
+    export function init(ctx, html) {
+      ctx.root.innerHTML = html;
     }
     """
   end
 end
 ```
 
-In this case we pass the graph specification to Mermaid, which
-generates an SVG image for us and we embed it directly into the
-page. Note how we import the package directly from a CDN. Using
-this approach we can quickly create widgets without setting up
-a whole JavaScript bundling system.
+Let's break it down.
 
-Let's celebate our new widget with a couple graphs. Feel free
-to try out other examples from the Mermaid website!
+To define a custom kino we need to create a new module,
+conventionally under the `Kino.` prefix, so that the end
+user can easily autocomplete all available kinos. In
+this case we went with `Kino.HTML`.
+
+We start by adding `use Kino.JS`, which makes our module
+asset-aware. In particular, it allows us to use the `asset/2`
+macro to define arbitrary files directly in the module source.
+
+All custom kinos require a `main.js` file that defines a JavaScript
+module and becomes the entrypoint on the client side. The
+JavaScript module is expected to export the `init(ctx, data)`
+function, where `ctx` is a special object and `data` is the
+data passed from the Elixir side. In our example the `init`
+function accesses the root element with `ctx.root` and overrides
+its content with the given HTML string.
+
+Finally, we define the `new(html)` function that builds our kino
+with the given HTML. Underneath we call `Kino.JS.new/2`
+specifying our module and the data available in the JavaScript
+`init` function later. Again, it's a convention for each kino
+module to define a `new` function to provide uniform experience
+for the end user.
+
+Let's give our Kino a try:
 
 ```elixir
-Kino.Mermaid.new("""
-graph TD;
-  A-->B;
-  A-->C;
-  B-->D;
-  C-->D;
+Kino.HTML.new("""
+<h3>Look!</h3>
+
+<p>I wrote this HTML from <strong>Kino</strong>!</p>
 """)
 ```
 
-```elixir
-Kino.Mermaid.new("""
-erDiagram
-  CUSTOMER ||--o{ ORDER : places
-  ORDER ||--|{ LINE-ITEM : contains
-  CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
-""")
-```
+It works!
+
+To learn more about other features provided by `Kino.JS`,
+including persisting the output of your custom kinos to `.livemd` files,
+[check out the documentation](https://hexdocs.pm/kino/Kino.JS.html).
 
 ## Dynamic maps with Leaflet
 
-Widgets with static data are useful, but they really come down
-to a piece of JavaScript. This time we will try out something
-more exciting. We will set up a simple map and then push points
-directly from the Elixir code!
+Kinos with static data are useful, but they offer just a small peek
+into what can be achieved with custom kinos. This time we will try out
+something more exciting. We will set up a simple map and then push points
+directly from the Elixir code with [`Kino.JS.Live`](https://hexdocs.pm/kino/Kino.JS.Live.html).
 
 There is a number of different JavaScript packages to pick from
 when dealing with maps, for our purpose we will use [Leaflet](https://leafletjs.com),
 which is an established solution in this area.
+
+Our custom kino must use both `Kino.JS` (for the assets)
+and `Kino.JS.Live`. `Kino.JS.Live` works under the client-server
+paradigm, where the client is the JavaScript code, and the server
+is your ELixir code. Your Elixir code has to define a series of
+callbacks (similar to a [`GenServer`](https://hexdocs.pm/elixir/GenServer.html)
+and other Elixir behaviours). In particular, we need to define:
+
+* A `init/2` callback, that receives the argument and the "server" `ctx`
+  (in contrast to the `ctx` in JavaScript, which is the client context)
+
+* A `handle_connect/1` callback, which is invoked whenever a new
+  client connects. In here you must return the initial state of
+  the new client
+
+You can also optionally define a `handle_cast/2` callback, responsible
+for handling any messages sent via `Kino.JS.Live.cast/2`. Here is how
+the code will look like:
 
 ```elixir
 defmodule Kino.Leaflet do
@@ -92,8 +123,8 @@ defmodule Kino.Leaflet do
     Kino.JS.Live.new(__MODULE__, {normalize_location(center), zoom})
   end
 
-  def add_marker(widget, location) do
-    Kino.JS.Live.cast(widget, {:add_marker, normalize_location(location)})
+  def add_marker(kino, location) do
+    Kino.JS.Live.cast(kino, {:add_marker, normalize_location(location)})
   end
 
   @impl true
@@ -186,7 +217,7 @@ Kino.Leaflet.add_marker(map, {51.505 + delta.(), -0.09 + delta.()})
 
 We barely scratched the surface of maps, the Leaflet API alone is extremely
 extensive and there are other packages worth exploring. However, even with
-this simple widget we could already visualize some geographic data in real-time!
+this simple kino we could already visualize some geographic data in real-time!
 
 ## Bidirectional live counter
 
@@ -206,8 +237,8 @@ defmodule Kino.Counter do
     Kino.JS.Live.new(__MODULE__, count)
   end
 
-  def bump(widget) do
-    Kino.JS.Live.cast(widget, :bump)
+  def bump(kino) do
+    Kino.JS.Live.cast(kino, :bump)
   end
 
   @impl true
@@ -261,11 +292,11 @@ defmodule Kino.Counter do
 end
 ```
 
-At this point the server mechanics should be clear. On the
-client side we listen to button clicks and whenever it happens
-we send the `"bump"` event to the server. This event gets
-handled by the `handle_event` callback, similarly to other
-message types.
+The server mechanics are quite similar to the Leaflet example.
+The only difference is that we have a new callback, `handle_event/3`,
+for handling events sent from the client. On the client side,
+this is done by listening to button clicks and dispatching them
+to the server via `pushEvent`.
 
 Let's render our counter!
 
@@ -285,6 +316,10 @@ Kino.Counter.bump(counter)
 
 ## Final words
 
-Hopefully these futher examples give you a better idea of the
-possibilities enabled by custom JavaScript widgets. We would
-love to see what cool stuff you can build with it! 🚀
+Congratulations, you finished our "course" on Kino! Throughout
+those guides, you mastered Kino's API and learned how to use its
+building blocks to build a chat app and a multiplayer pong game.
+
+Then, in this notebook, you learned how you can take Kino anywhere
+you want by implementing your own kinos with Elixir and JavaScript.
+We are looking forward to see what you can build with it! 🚀

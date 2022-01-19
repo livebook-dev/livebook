@@ -2,7 +2,7 @@
 
 ## Setup
 
-In this guide, we will build a chat application using
+In this notebook, we will build a chat application using
 [`kino`](https://github.com/livebook-dev/kino). Let's
 install it and get started:
 
@@ -149,5 +149,5 @@ fully operational. Open up this same notebook across
 on different tabs and each different user can post
 their messages.
 
-In the next guide we will go one step further and
+In the next notebook we will go one step further and
 [develop a multiplayer pong game](/explore/notebooks/pong)!
