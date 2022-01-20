@@ -167,9 +167,9 @@ The following environment variables configure Livebook:
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
 
-  * LIVEBOOK_PORT - sets the port Livebook runs on. If you want multiple instances
-    to run on the same domain but different ports, you also need to set LIVEBOOK_SECRET_KEY_BASE.
-    Defaults to 8080.
+  * LIVEBOOK_PORT - sets the port Livebook runs on. If you want to run multiple
+    instances on the same domain with the same credentials but on different ports,
+    you also need to set LIVEBOOK_SECRET_KEY_BASE. Defaults to 8080.
 
   * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection. This does
     not restrict access to upper directories unless the operating system user is
@@ -181,7 +181,8 @@ The following environment variables configure Livebook:
     Defaults to a random secret on every boot.
 
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
-    Enabled by default unless `LIVEBOOK_PASSWORD` is set.
+    Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
+    disable it.
 
 <!-- Environment variables -->
 
