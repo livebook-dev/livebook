@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
-  import Livebook.Utils, only: [format_bytes: 1]
+  import Livebook.Utils, only: [format_bytes: 1, fetch_system_memory: 0]
 
   @impl true
   def mount(socket) do
@@ -36,15 +36,17 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="mb-4 uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
+        <% memory = memory_info(@sessions) %>
+        <span class="tooltip top" data-tooltip={"This machine has #{memory.system.system_total_memory.unit}"}>
         <div class="-mt-6 text-md text-gray-500 font-medium">
-          <% memory = memory_info(@sessions) %>
-          <span> <%= memory.session.unit %> / <%= memory.system.unit %></span>
+          <span> <%= memory.session.unit %> / <%= memory.system.free_memory.unit %></span>
             <div class="w-64 h-4 bg-gray-200">
             <div class="h-4 bg-blue-600"
             style={"width: #{memory.percentage}%"}>
             </div>
           </div>
         </div>
+        </span>
         <.menu id="sessions-order-menu">
           <:toggle>
             <button class="button-base button-outlined-gray px-4 py-1">
@@ -105,9 +107,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <div class="text-gray-600 text-sm">
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
-            <div class="mt-2 text-gray-600 text-sm">
+            <div class="mt-2 text-gray-600 text-sm flex flex-row items-center">
+            <%= if session.memory_usage.total > 0 do %>
+              <div class="h-3 w-3 mr-1 rounded-full bg-green-500"></div>
+              <span class="pr-4"><%= format_bytes(session.memory_usage.total) %></span>
+            <% else %>
+              <div class="h-3 w-3 mr-1 rounded-full bg-gray-300"></div>
+              <span class="pr-4">disconnected</span>
+            <% end %>
               Created <%= format_creation_date(session.created_at) %>
-              <span class="px-4"><%= format_bytes(session.memory_usage.total) %></span>
             </div>
           </div>
           <.menu id={"session-#{session.id}-menu"}>
@@ -186,11 +194,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       |> then(&%{unit: format_bytes(&1), value: &1})
 
     system_info =
-      :memsup.get_system_memory_data()
-      |> Keyword.get(:free_memory)
-      |> then(&%{unit: format_bytes(&1), value: &1})
+      fetch_system_memory()
+      |> Enum.map(fn {k, v} ->
+        {k, %{unit: format_bytes(v), value: v}}
+      end)
+      |> Enum.into(%{})
 
-    percentage = Float.round(session_info.value / system_info.value * 100, 2)
+    percentage = Float.round(session_info.value / system_info.free_memory.value * 100, 2)
 
     %{session: session_info, system: system_info, percentage: percentage}
   end
