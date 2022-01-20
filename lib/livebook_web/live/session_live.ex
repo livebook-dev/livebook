@@ -429,22 +429,22 @@ defmodule LivebookWeb.SessionLive do
             <% end %>
           </div>
         <% end %>
-
         <%= if @session.memory_usage.total > 0 do %>
-          <div class="py-6 flex flex-col justify-center relative overflow-hidden py-12">
+          <% memory = @session.memory_usage %>
+          <div class="py-6 flex flex-col justify-center relative overflow-hidden">
             <div class="mb-1 text-lg font-medium text-gray-800 flex flex-row justify-between">
               <span>Memory:</span>
               <span>
-                <%= format_bytes(@session.memory_usage.total) %> / <%= format_bytes(@session.memory_usage.free_memory) %>
+                <%= format_bytes(memory.total) %> / <%= format_bytes(memory.free_memory) %>
               </span>
             </div>
             <div class="w-full h-6 flex flex-row gap-1">
-              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
+              <%= for {type, memory} <- node_memory(memory) do %>
                 <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
               <% end %>
             </div>
-            <div class="flex flex-col py-8">
-              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
+            <div class="flex flex-col py-4">
+              <%= for {type, memory} <- node_memory(memory) do %>
                 <div class="flex flex-row items-center">
                   <span class={"w-4 h-4 mr-2 #{memory_color(type)}"}></span>
                   <span class="text-gray-600"><%= type %></span>
@@ -454,11 +454,10 @@ defmodule LivebookWeb.SessionLive do
             </div>
           </div>
         <% else %>
-          <div class="mb-1 text-lg font-medium text-gray-800">
+          <div class="mb-1 text-lg font-medium text-gray-800 py-4">
             Available memory: <%= format_bytes(@session.memory_usage.free_memory) %>
           </div>
         <% end %>
-
       </div>
     </div>
     """

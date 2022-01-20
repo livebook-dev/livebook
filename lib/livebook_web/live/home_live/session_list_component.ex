@@ -36,7 +36,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="mb-4 uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <div class="mb-1 text-md text-gray-500 font-medium">
+        <div class="-mt-6 text-md text-gray-500 font-medium">
           <% memory = memory_info(@sessions) %>
           <span> <%= memory.session.unit %> / <%= memory.system.unit %></span>
             <div class="w-64 h-4 bg-gray-200">
