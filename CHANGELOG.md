@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.5.1](https://github.com/livebook-dev/livebook/tree/v0.5.1) (2022-01-20)
+
+## Changed
+
+- Changed the file system root path to $HOME in the desktop app [#887](https://github.com/livebook-dev/livebook/pull/887)
+
+### Fixed
+
+- Loading JavaScript widgets when running behind a domain ([#902](https://github.com/livebook-dev/livebook/pull/902))
+
 ## [v0.5.0](https://github.com/livebook-dev/livebook/tree/v0.5.0) (2022-01-19)
 
 This release comes with a number of exciting features, in particular it adds
