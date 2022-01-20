@@ -108,6 +108,7 @@ defmodule AppBuilder.MacOS do
     options =
       Keyword.validate!(options, [
         :name,
+        :version,
         :launcher_script,
         :logo_path,
         :info_plist,
@@ -116,6 +117,7 @@ defmodule AppBuilder.MacOS do
       ])
 
     app_name = Keyword.fetch!(options, :name)
+    app_version = Keyword.fetch!(options, :version)
 
     app_bundle_path = Path.join([Mix.Project.build_path(), "rel", "#{app_name}.app"])
     File.rm_rf!(app_bundle_path)
@@ -161,6 +163,10 @@ defmodule AppBuilder.MacOS do
           <dict>
             <key>CFBundleURLName</key>
             <string>#{app_name}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>#{app_version}</string>
+            <key>CFBundleVersion</key>
+            <string>#{app_version}</string>
             <key>CFBundleURLSchemes</key>
             <array>
               <string>#{scheme}</string>
