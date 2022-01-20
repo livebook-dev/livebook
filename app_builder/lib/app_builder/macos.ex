@@ -94,7 +94,6 @@ defmodule AppBuilder.MacOS do
       Keyword.validate!(options, [
         :name,
         :version,
-        :launcher_script,
         :logo_path,
         :info_plist,
         :url_schemes,
@@ -108,11 +107,19 @@ defmodule AppBuilder.MacOS do
     File.mkdir_p!(Path.join([app_bundle_path, "Contents", "Resources"]))
     File.rename!(release.path, Path.join([app_bundle_path, "Contents", "Resources", "rel"]))
 
-    launcher_script = options[:launcher_script] || launcher_script(release.name, app_name)
-    launcher_script_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name])
-    File.mkdir_p!(Path.dirname(launcher_script_path))
-    File.write!(launcher_script_path, launcher_script)
-    File.chmod!(launcher_script_path, 0o700)
+    launcher_src_path = "tmp/Launcher.swift"
+    File.write!(launcher_src_path, launcher())
+    launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
+    File.mkdir_p!(Path.dirname(launcher_path))
+
+    cmd!("swiftc", [
+      "-warnings-as-errors",
+      "-target",
+      swiftc_target(),
+      "-o",
+      launcher_path,
+      launcher_src_path
+    ])
 
     logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     create_logo(app_bundle_path, logo_path)
@@ -123,14 +130,33 @@ defmodule AppBuilder.MacOS do
     release
   end
 
-  defp launcher_script(release_name, app_name) do
+  defp launcher do
     """
-    #!/bin/sh
-    set -e
-    root=$(dirname $(dirname "$0"))
-    $root/Resources/rel/bin/#{release_name} start \\
-      1>> ~/Library/Logs/#{app_name}.stdout.log \\
-      2>> ~/Library/Logs/#{app_name}.stderr.log
+    import Foundation
+
+    let fm = FileManager.default
+    let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as! String
+    let home = NSHomeDirectory()
+
+    let stdoutPath = "\\(home)/Library/Logs/\\(appName).stdout.log"
+    if !fm.fileExists(atPath: stdoutPath) { fm.createFile(atPath: stdoutPath, contents: Data()) }
+    let stdoutFile = FileHandle(forUpdatingAtPath: stdoutPath)
+    stdoutFile?.seekToEndOfFile()
+
+    let stderrPath = "\\(home)/Library/Logs/\\(appName).stderr.log"
+    if !fm.fileExists(atPath: stderrPath) { fm.createFile(atPath: stderrPath, contents: Data()) }
+    let stderrFile = FileHandle(forUpdatingAtPath: stderrPath)
+    stderrFile?.seekToEndOfFile()
+
+    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/mac_app", ofType: "")!
+
+    let task = Process()
+    task.launchPath = releaseScriptPath
+    task.arguments = ["start"]
+    task.standardOutput = stdoutFile
+    task.standardError = stderrFile
+    try task.run()
+    task.waitUntilExit()
     """
   end
 
@@ -160,6 +186,16 @@ defmodule AppBuilder.MacOS do
 
       cmd!("iconutil", ~w(-c icns #{logo_dest_tmp_path} -o #{logo_dest_path}))
       File.rm_rf!(logo_dest_tmp_path)
+    end
+  end
+
+  defp swiftc_target do
+    case :erlang.system_info(:system_architecture) do
+      'x86_64' ++ _ ->
+        "x86_64-apple-macosx10.15"
+
+      'aarch64' ++ _ ->
+        "arm64-apple-macosx12"
     end
   end
 
@@ -195,6 +231,8 @@ defmodule AppBuilder.MacOS do
   <dict>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string><%= app_name %>Launcher</string>
     <key>CFBundleName</key>
     <string><%= app_name %></string>
     <key>CFBundleDisplayName</key>
