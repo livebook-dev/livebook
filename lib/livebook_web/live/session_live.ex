@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
-  import Livebook.Utils, only: [access_by_id: 1]
+  import Livebook.Utils, only: [access_by_id: 1, format_bytes: 1]
 
   alias LivebookWeb.SidebarHelpers
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
@@ -429,6 +429,36 @@ defmodule LivebookWeb.SessionLive do
             <% end %>
           </div>
         <% end %>
+
+        <%= if @session.memory_usage.total > 0 do %>
+          <div class="py-6 flex flex-col justify-center relative overflow-hidden py-12">
+            <div class="mb-1 text-lg font-medium text-gray-800 flex flex-row justify-between">
+              <span>Memory:</span>
+              <span>
+                <%= format_bytes(@session.memory_usage.total) %> / <%= format_bytes(@session.memory_usage.free_memory) %>
+              </span>
+            </div>
+            <div class="w-full h-6 flex flex-row gap-1">
+              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
+                <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
+              <% end %>
+            </div>
+            <div class="flex flex-col py-8">
+              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
+                <div class="flex flex-row items-center">
+                  <span class={"w-4 h-4 mr-2 #{memory_color(type)}"}></span>
+                  <span class="text-gray-600"><%= type %></span>
+                  <span class="text-gray-600 ml-auto"><%= memory.unit %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="mb-1 text-lg font-medium text-gray-800">
+            Available memory: <%= format_bytes(@session.memory_usage.free_memory) %>
+          </div>
+        <% end %>
+
       </div>
     </div>
     """
@@ -1485,5 +1515,23 @@ defmodule LivebookWeb.SessionLive do
 
   defp get_page_title(notebook_name) do
     "Livebook - #{notebook_name}"
+  end
+
+  # TODO: Maybe move to sidebar helpers
+  defp memory_color(:atom), do: "bg-green-500"
+  defp memory_color(:code), do: "bg-blue-700"
+  defp memory_color(:processes), do: "bg-red-500"
+  defp memory_color(:binary), do: "bg-blue-500"
+  defp memory_color(:ets), do: "bg-yellow-600"
+  defp memory_color(:other), do: "bg-gray-400"
+  defp memory_color(:system), do: "bg-gray-400"
+  defp memory_color(:total), do: "bg-gray-400"
+
+  defp node_memory(memory) do
+    memory
+    |> Map.drop([:total, :system, :free_memory])
+    |> Enum.map(fn {k, v} ->
+      {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2)}}
+    end)
   end
 end
