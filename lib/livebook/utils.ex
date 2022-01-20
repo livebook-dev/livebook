@@ -390,7 +390,12 @@ defmodule Livebook.Utils do
 
   def fetch_system_memory() do
     memory = :memsup.get_system_memory_data()
-    %{free_memory: memory[:free_memory], total: 0}
+
+    %{
+      free_memory: memory[:free_memory],
+      system_total_memory: memory[:system_total_memory],
+      total: 0
+    }
   end
 
   def format_bytes(bytes) when is_integer(bytes) do
