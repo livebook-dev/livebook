@@ -373,10 +373,26 @@ defmodule Livebook.Utils do
   def fetch_memory(node) do
     node_memory = fetch_node_memory(node)
     system_memory = fetch_system_memory()
-    Map.merge(system_memory, node_memory)
+
+    %{node: node_memory, system: system_memory}
   end
 
-  def fetch_node_memory(node) do
+  def fetch_memory() do
+    node_memory = %{total: %{value: 0}}
+    system_memory = fetch_system_memory()
+
+    %{node: node_memory, system: system_memory}
+  end
+
+  defp fetch_system_memory() do
+    :memsup.get_system_memory_data()
+    |> Enum.map(fn {k, v} ->
+      {k, %{unit: format_bytes(v), value: v}}
+    end)
+    |> Enum.into(%{})
+  end
+
+  defp fetch_node_memory(node) do
     memory =
       :rpc.call(node, :erlang, :memory, [])
       |> Enum.into(%{})
@@ -386,16 +402,10 @@ defmodule Livebook.Utils do
       memory.total - memory.processes - memory.atom - memory.binary - memory.code - memory.ets
 
     Map.put(memory, :other, other)
-  end
-
-  def fetch_system_memory() do
-    memory = :memsup.get_system_memory_data()
-
-    %{
-      free_memory: memory[:free_memory],
-      system_total_memory: memory[:system_total_memory],
-      total: 0
-    }
+    |> Enum.map(fn {k, v} ->
+      {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2), value: v}}
+    end)
+    |> Enum.into(%{})
   end
 
   def format_bytes(bytes) when is_integer(bytes) do

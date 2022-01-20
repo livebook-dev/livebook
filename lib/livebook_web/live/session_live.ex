@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
-  import Livebook.Utils, only: [access_by_id: 1, format_bytes: 1]
+  import Livebook.Utils, only: [access_by_id: 1]
 
   alias LivebookWeb.SidebarHelpers
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
@@ -429,25 +429,28 @@ defmodule LivebookWeb.SessionLive do
             <% end %>
           </div>
         <% end %>
-        <%= if @session.memory_usage.total > 0 do %>
-          <% memory = @session.memory_usage %>
+        <%= if node_memory(@session.memory_usage) do %>
           <div class="py-6 flex flex-col justify-center relative overflow-hidden">
             <div class="mb-1 uppercase text-sm font-semibold text-gray-800 flex flex-row justify-between">
               <span class="text-gray-500">Memory:</span>
               <div class="basis-3/4">
                 <span class="tooltip bottom"
-                data-tooltip={"This machine has #{format_bytes(@session.memory_usage.system_total_memory)}"}>
-                  <span class="w-full text-right"><%= format_bytes(memory.total) %> / <%= format_bytes(memory.free_memory) %></span>
+                data-tooltip={"This machine has #{@session.memory_usage.system.system_total_memory.unit}"}>
+                  <span class="w-full text-right">
+                    <%= @session.memory_usage.node.total.unit %>
+                    /
+                    <%= @session.memory_usage.system.free_memory.unit %>
+                  </span>
                 </span>
               </div>
             </div>
             <div class="w-full h-6 flex flex-row gap-1">
-              <%= for {type, memory} <- node_memory(memory) do %>
+              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
                 <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
               <% end %>
             </div>
             <div class="flex flex-col py-4">
-              <%= for {type, memory} <- node_memory(memory) do %>
+              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
                 <div class="flex flex-row items-center">
                   <span class={"w-4 h-4 mr-2 rounded #{memory_color(type)}"}></span>
                   <span class="capitalize text-gray-700"><%= type %></span>
@@ -459,9 +462,9 @@ defmodule LivebookWeb.SessionLive do
         <% else %>
           <div class="mb-1 text-sm font-semibold text-gray-800 py-4 flex flex-col">
             <span class="w-full uppercase text-gray-500">Memory</span>
-            <%= format_bytes(@session.memory_usage.free_memory) %>
+            <%= @session.memory_usage.system.free_memory.unit %>
             available out of
-            <%= format_bytes(@session.memory_usage.system_total_memory) %>
+            <%= @session.memory_usage.system.system_total_memory.unit %>
           </div>
         <% end %>
       </div>
@@ -1532,11 +1535,9 @@ defmodule LivebookWeb.SessionLive do
   defp memory_color(:system), do: "bg-gray-400"
   defp memory_color(:total), do: "bg-gray-400"
 
-  defp node_memory(memory) do
-    memory
-    |> Map.drop([:total, :system, :free_memory, :system_total_memory])
-    |> Enum.map(fn {k, v} ->
-      {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2)}}
-    end)
+  defp node_memory(%{node: %{total: %{value: 0}}}), do: false
+
+  defp node_memory(%{node: memory}) do
+    Map.drop(memory, [:total, :system])
   end
 end

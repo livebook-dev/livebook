@@ -1294,7 +1294,7 @@ defmodule Livebook.Session do
   end
 
   def update_memory_usage(state) do
-    state = %{state | memory_usage: Utils.fetch_system_memory()}
+    state = %{state | memory_usage: Utils.fetch_memory()}
     notify_update(state)
     state
   end
