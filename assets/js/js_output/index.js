@@ -42,7 +42,7 @@ export function leaveChannel() {
  *
  *   * `data-ref` - a unique identifier used as messages scope
  *
- *   * `data-assets-base-url` - the URL to resolve all relative paths
+ *   * `data-assets-base-path` - the path to resolve all relative paths
  *     against in the iframe
  *
  *   * `data-js-path` - a relative path for the initial output-specific
@@ -88,10 +88,12 @@ const JSOutput = {
 
       const handleChildMessage = (message) => {
         if (message.type === "ready" && !this.state.childReady) {
+          const assetsBaseUrl =
+            window.location.origin + this.props.assetsBasePath;
           postMessage({
             type: "readyReply",
             token: this.state.childToken,
-            baseUrl: this.props.assetsBaseUrl,
+            baseUrl: assetsBaseUrl,
             jsPath: this.props.jsPath,
           });
           this.state.childReady = true;
@@ -261,7 +263,7 @@ const JSOutput = {
 function getProps(hook) {
   return {
     ref: getAttributeOrThrow(hook.el, "data-ref"),
-    assetsBaseUrl: getAttributeOrThrow(hook.el, "data-assets-base-url"),
+    assetsBasePath: getAttributeOrThrow(hook.el, "data-assets-base-path"),
     jsPath: getAttributeOrThrow(hook.el, "data-js-path"),
     sessionToken: getAttributeOrThrow(hook.el, "data-session-token"),
     sessionId: getAttributeOrThrow(hook.el, "data-session-id"),
