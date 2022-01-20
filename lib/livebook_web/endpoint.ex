@@ -78,14 +78,41 @@ defmodule LivebookWeb.Endpoint do
 
   plug LivebookWeb.Router
 
-  def access_url() do
-    root_url = url()
+  def access_struct_url() do
+    base =
+      case struct_url() do
+        %URI{scheme: "https", port: 0} = uri ->
+          %{uri | port: get_port(__MODULE__.HTTPS, 433)}
+
+        %URI{scheme: "http", port: 0} = uri ->
+          %{uri | port: get_port(__MODULE__.HTTP, 80)}
+
+        %URI{} = uri ->
+          uri
+      end
+
+    base = update_in(base.path, &(&1 || "/"))
 
     if Livebook.Config.auth_mode() == :token do
       token = Application.fetch_env!(:livebook, :token)
-      root_url <> "/?token=" <> token
+      %{base | query: "token=" <> token}
     else
-      root_url
+      base
+    end
+  end
+
+  def access_url do
+    URI.to_string(access_struct_url())
+  end
+
+  defp get_port(ref, default) do
+    try do
+      :ranch.get_addr(ref)
+    rescue
+      _ -> default
+    else
+      {_, port} when is_integer(port) -> port
+      _ -> default
     end
   end
 end

@@ -78,10 +78,8 @@ if Mix.target() == :app do
     end
 
     defp import_livebook(url) do
-      %{
-        URI.parse(LivebookWeb.Endpoint.access_url())
-        | path: "/import"
-      }
+      LivebookWeb.Endpoint.access_struct_url()
+      |> Map.replace!(:path, "/import")
       |> append_query("url=#{URI.encode_www_form(url)}")
       |> URI.to_string()
       |> Livebook.Utils.browser_open()

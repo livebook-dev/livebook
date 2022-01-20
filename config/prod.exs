@@ -5,8 +5,8 @@ config :livebook, LivebookWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 8080],
   server: true
 
-# Start log-level in notice by default to reduce output
-config :logger, level: :notice
+# Set log level to warning by default to reduce output
+config :logger, level: :warning
 
 # ## SSL Support
 #
