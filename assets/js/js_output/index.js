@@ -88,7 +88,8 @@ const JSOutput = {
 
       const handleChildMessage = (message) => {
         if (message.type === "ready" && !this.state.childReady) {
-          const assetsBaseUrl = window.location.origin + this.props.assetsBasePath;
+          const assetsBaseUrl =
+            window.location.origin + this.props.assetsBasePath;
           postMessage({
             type: "readyReply",
             token: this.state.childToken,
