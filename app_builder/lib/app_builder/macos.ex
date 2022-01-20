@@ -157,6 +157,7 @@ defmodule AppBuilder.MacOS do
 
     if task.terminationStatus != 0 {
       let alert = NSAlert()
+      alert.alertStyle = .critical
       alert.messageText = "\\(appName) exited with error status \\(task.terminationStatus)."
       alert.informativeText = "Logs available at \\(logPath)."
       alert.runModal()
