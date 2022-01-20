@@ -108,6 +108,7 @@ defmodule AppBuilder.MacOS do
     options =
       Keyword.validate!(options, [
         :name,
+        :version,
         :launcher_script,
         :logo_path,
         :info_plist,
@@ -150,6 +151,7 @@ defmodule AppBuilder.MacOS do
 
   defp build_info_plist(options) do
     app_name = Keyword.fetch!(options, :name)
+    app_version = Keyword.fetch!(options, :version)
 
     url_schemes =
       """
@@ -202,6 +204,10 @@ defmodule AppBuilder.MacOS do
     <string>#{app_name}</string>
     <key>CFBundleDisplayName</key>
     <string>#{app_name}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>#{app_version}</string>
+    <key>CFBundleVersion</key>
+    <string>#{app_version}</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIconName</key>

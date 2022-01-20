@@ -127,6 +127,7 @@ defmodule Livebook.MixProject do
 
   @app_options [
     name: "Livebook",
+    version: @version,
     logo_path: "static/images/logo.png",
     url_schemes: ["livebook"],
     document_types: [
