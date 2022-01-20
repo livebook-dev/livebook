@@ -16,6 +16,7 @@ defmodule Livebook.MixProject do
       aliases: aliases(),
       deps: with_lock(target_deps(Mix.target()) ++ deps()),
       escript: escript(),
+      default_release: :livebook,
       releases: releases(),
       package: package()
     ]
