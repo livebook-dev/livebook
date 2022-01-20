@@ -6,7 +6,7 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
 
-  * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with annotations and [KaTex](https://katex.org/) for mathematical formulas. This means your notebooks can be saved, easily shared, and play well with version control.
+  * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with support for diagrams via [Mermaid](https://mermaid-js.github.io/mermaid) and for mathematical formulas via [KaTex](https://katex.org/). `.livemd` files can be easily shared and play well with version control.
 
   * Interactive widgets via [Kino](https://github.com/elixir-nx/kino): manipulate [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, and more.
 
