@@ -133,30 +133,34 @@ defmodule AppBuilder.MacOS do
   defp launcher do
     """
     import Foundation
+    import Cocoa
 
     let fm = FileManager.default
     let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as! String
     let home = NSHomeDirectory()
 
-    let stdoutPath = "\\(home)/Library/Logs/\\(appName).stdout.log"
-    if !fm.fileExists(atPath: stdoutPath) { fm.createFile(atPath: stdoutPath, contents: Data()) }
-    let stdoutFile = FileHandle(forUpdatingAtPath: stdoutPath)
-    stdoutFile?.seekToEndOfFile()
-
-    let stderrPath = "\\(home)/Library/Logs/\\(appName).stderr.log"
-    if !fm.fileExists(atPath: stderrPath) { fm.createFile(atPath: stderrPath, contents: Data()) }
-    let stderrFile = FileHandle(forUpdatingAtPath: stderrPath)
-    stderrFile?.seekToEndOfFile()
+    let logPath = "\\(home)/Library/Logs/\\(appName).log"
+    if !fm.fileExists(atPath: logPath) { fm.createFile(atPath: logPath, contents: Data()) }
+    let logFile = FileHandle(forUpdatingAtPath: logPath)
+    logFile?.seekToEndOfFile()
 
     let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/mac_app", ofType: "")!
 
     let task = Process()
     task.launchPath = releaseScriptPath
     task.arguments = ["start"]
-    task.standardOutput = stdoutFile
-    task.standardError = stderrFile
+    task.standardOutput = logFile
+    task.standardError = logFile
     try task.run()
+
     task.waitUntilExit()
+
+    if task.terminationStatus != 0 {
+      let alert = NSAlert()
+      alert.messageText = "\\(appName) exited with error status \\(task.terminationStatus)."
+      alert.informativeText = "Logs available at \\(logPath)."
+      alert.runModal()
+    }
     """
   end
 
