@@ -113,7 +113,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <span class="pr-4"><%= session.memory_usage.node.total.unit %></span>
             <% else %>
               <div class="h-3 w-3 mr-1 rounded-full bg-gray-300"></div>
-              <span class="pr-4">disconnected</span>
+              <span class="pr-4">0 MB</span>
             <% end %>
               Created <%= format_creation_date(session.created_at) %>
             </div>
