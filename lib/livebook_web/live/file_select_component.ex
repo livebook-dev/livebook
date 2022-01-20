@@ -86,7 +86,7 @@ defmodule LivebookWeb.FileSelectComponent do
               autocomplete="off" />
           </form>
         </div>
-        <span class="tooltip top" data-tooltip="New directory">
+        <span class={"tooltip #{if(@inner_block, do: "top", else: "left")}"} data-tooltip="New directory">
           <button class="icon-button"
             tabindex="-1"
             aria-label="new directory"
