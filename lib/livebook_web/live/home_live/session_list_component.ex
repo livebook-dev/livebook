@@ -36,7 +36,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="mb-4 uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <span> <%= memory_info(@sessions) %> / <%= system_memory() %></span>
+        <div class="mb-1 text-md text-gray-500 font-medium">
+          <% memory = memory_info(@sessions) %>
+          <span> <%= memory.session.unit %> / <%= memory.system.unit %></span>
+            <div class="w-64 h-4 bg-gray-200">
+            <div class="h-4 bg-blue-600"
+            style={"width: #{memory.percentage}%"}>
+            </div>
+          </div>
+        </div>
         <.menu id="sessions-order-menu">
           <:toggle>
             <button class="button-base button-outlined-gray px-4 py-1">
@@ -171,15 +179,19 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   defp memory_info(sessions) do
-    sessions
-    |> Enum.map(& &1.memory_usage.total)
-    |> Enum.sum()
-    |> format_bytes()
-  end
+    session_info =
+      sessions
+      |> Enum.map(& &1.memory_usage.total)
+      |> Enum.sum()
+      |> then(&%{unit: format_bytes(&1), value: &1})
 
-  defp system_memory() do
-    :memsup.get_system_memory_data()
-    |> Keyword.get(:free_memory)
-    |> format_bytes()
+    system_info =
+      :memsup.get_system_memory_data()
+      |> Keyword.get(:free_memory)
+      |> then(&%{unit: format_bytes(&1), value: &1})
+
+    percentage = Float.round(session_info.value / system_info.value * 100, 2)
+
+    %{session: session_info, system: system_info, percentage: percentage}
   end
 end
