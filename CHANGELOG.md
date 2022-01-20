@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [v0.5.1](https://github.com/livebook-dev/livebook/tree/v0.5.1) (2022-01-20)
 
-## Changed
+### Changed
 
-- Changed the file system root path to $HOME in the desktop app [#887](https://github.com/livebook-dev/livebook/pull/887)
+- Changed the file system root path to $HOME in the desktop app ([#887](https://github.com/livebook-dev/livebook/pull/887))
 
 ### Fixed
 
