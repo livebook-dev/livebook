@@ -31,22 +31,7 @@ defmodule AppBuilder.MacOS do
 
     if codesign do
       entitlements_path = "tmp/entitlements.plist"
-
-      File.write!(entitlements_path, """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-      <plist version="1.0">
-        <dict>
-        <key>com.apple.security.cs.allow-jit</key>
-        <true/>
-        <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-        <true/>
-        <key>com.apple.security.cs.allow-dyld-environment-variables</key>
-        <true/>
-      </dict>
-      </plist>
-      """)
-
+      File.write!(entitlements_path, entitlements())
       codesign(to_sign, "--options=runtime --entitlements=#{entitlements_path}", codesign)
     end
 
@@ -132,7 +117,7 @@ defmodule AppBuilder.MacOS do
     logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     create_logo(app_bundle_path, logo_path)
 
-    info_plist = options[:info_plist] || build_info_plist(options)
+    info_plist = options[:info_plist] || info_plist(options)
     File.write!(Path.join([app_bundle_path, "Contents", "Info.plist"]), info_plist)
 
     release
@@ -146,74 +131,6 @@ defmodule AppBuilder.MacOS do
     $root/Resources/rel/bin/#{release_name} start \\
       1>> ~/Library/Logs/#{app_name}.stdout.log \\
       2>> ~/Library/Logs/#{app_name}.stderr.log
-    """
-  end
-
-  defp build_info_plist(options) do
-    app_name = Keyword.fetch!(options, :name)
-    app_version = Keyword.fetch!(options, :version)
-
-    url_schemes =
-      """
-      \n<key>CFBundleURLTypes</key>
-      <array>
-      """ <>
-        for scheme <- options[:url_schemes] || [], into: "" do
-          """
-          <dict>
-            <key>CFBundleURLName</key>
-            <string>#{app_name}</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-              <string>#{scheme}</string>
-            </array>
-          </dict>
-          """
-        end <>
-        "</array>"
-
-    document_types =
-      """
-      \n<key>CFBundleDocumentTypes</key>
-      <array>
-      """ <>
-        for type <- options[:document_types] || [], into: "" do
-          """
-          <dict>
-            <key>CFBundleTypeName</key>
-            <string>#{type.name}</string>
-            <key>CFBundleTypeRole</key>
-            <string>#{type.role}</string>
-            <key>CFBundleTypeExtensions</key>
-            <array>
-              #{for ext <- type.extensions, do: "<string>#{ext}</string>"}
-            </array>
-          </dict>
-          """
-        end <>
-        "</array>"
-
-    """
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleName</key>
-    <string>#{app_name}</string>
-    <key>CFBundleDisplayName</key>
-    <string>#{app_name}</string>
-    <key>CFBundleShortVersionString</key>
-    <string>#{app_version}</string>
-    <key>CFBundleVersion</key>
-    <string>#{app_version}</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
-    <key>CFBundleIconName</key>
-    <string>AppIcon</string>#{url_schemes}#{document_types}
-    </dict>
-    </plist>
     """
   end
 
@@ -245,4 +162,91 @@ defmodule AppBuilder.MacOS do
       File.rm_rf!(logo_dest_tmp_path)
     end
   end
+
+  ## Templates
+
+  require EEx
+
+  defp entitlements do
+    """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+      <dict>
+      <key>com.apple.security.cs.allow-jit</key>
+      <true/>
+      <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+      <true/>
+      <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+      <true/>
+    </dict>
+    </plist>
+    """
+  end
+
+  code = """
+  <%
+    app_name = Keyword.fetch!(options, :name)
+    app_version = Keyword.fetch!(options, :version)
+  %>
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleName</key>
+    <string><%= app_name %></string>
+    <key>CFBundleDisplayName</key>
+    <string><%= app_name %></string>
+    <key>CFBundleShortVersionString</key>
+    <string><%= app_version %>on}</string>
+    <key>CFBundleVersion</key>
+    <string><%= app_version %>on}</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+
+  <%= if schemes = options[:url_schemes] do %>
+    <key>CFBundleURLTypes</key>
+    <array>
+    <%= for scheme <- schemes do %>
+      <dict>
+        <key>CFBundleURLName</key>
+        <string><%= app_name %></string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string><%= scheme %></string>
+        </array>
+      </dict>
+    <% end %>
+    </array>
+  <% end %>
+
+  <%= if types = options[:document_types] do %>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+    <%= for type <- types do %>
+      <dict>
+        <key>CFBundleTypeName</key>
+        <string><%= type.name %></string>
+        <key>CFBundleTypeRole</key>
+        <string><%= type.role %></string>
+        <key>CFBundleTypeExtensions</key>
+        <array>
+        <%= for ext <- type.extensions do %>
+          <string><%= ext %></string>
+        <% end %>
+        </array>
+      </dict>
+    <% end %>
+    </array>
+  <% end %>
+
+    </dict>
+  </plist>
+  """
+
+  EEx.function_from_string(:defp, :info_plist, code, [:options], trim: true)
 end
