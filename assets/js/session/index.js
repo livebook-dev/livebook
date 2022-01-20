@@ -446,6 +446,11 @@ function handleDocumentMouseDown(hook, event) {
     return;
   }
 
+  // When clicking an insert button, keep focus and insert mode as is
+  if (event.target.closest(`[data-element="insert-buttons"] button`)) {
+    return;
+  }
+
   // Find the focusable element, if one was clicked
   const focusableEl = event.target.closest(`[data-focusable-id]`);
   const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;

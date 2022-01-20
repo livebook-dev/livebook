@@ -43,11 +43,13 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                       <span class="font-medium"><%= parent.name %></span>
                     </button>
                   <% else %>
-                    <button class="menu-item text-gray-500"
+                    <button class="menu-item text-gray-500 bg-gray-50"
                       phx-click="set_section_parent"
                       phx-value-section_id={@section_view.id}
                       phx-value-parent_id={parent.id}>
-                      <.remix_icon icon="arrow-right-s-line" />
+                      <%= if @section_view.parent && @section_view.parent.id do %>
+                        <.remix_icon icon="arrow-right-s-line" class="invisible" />
+                      <% end %>
                       <span class="font-medium"><%= parent.name %></span>
                     </button>
                   <% end %>

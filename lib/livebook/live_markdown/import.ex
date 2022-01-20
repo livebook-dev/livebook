@@ -180,11 +180,35 @@ defmodule Livebook.LiveMarkdown.Import do
     end
   end
 
+  # Import ```output snippets for backward compatibility
   defp take_outputs(
          [{"pre", _, [{"code", [{"class", "output"}], [output], %{}}], %{}} | ast],
          outputs
        ) do
     take_outputs(ast, [{:text, output} | outputs])
+  end
+
+  defp take_outputs(
+         [
+           {:comment, _, [~s/livebook:{"output":true}/], %{comment: true}},
+           {"pre", _, [{"code", [], [output], %{}}], %{}}
+           | ast
+         ],
+         outputs
+       ) do
+    take_outputs(ast, [{:text, output} | outputs])
+  end
+
+  # Ignore other exported outputs
+  defp take_outputs(
+         [
+           {:comment, _, [~s/livebook:{"output":true}/], %{comment: true}},
+           {"pre", _, [{"code", [{"class", _info_string}], [_output], %{}}], %{}}
+           | ast
+         ],
+         outputs
+       ) do
+    take_outputs(ast, outputs)
   end
 
   defp take_outputs(ast, outputs), do: {outputs, ast}

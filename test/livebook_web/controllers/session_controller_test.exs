@@ -114,7 +114,9 @@ defmodule LivebookWeb.SessionControllerTest do
              IO.puts("hey")
              ```
 
-             ```output
+             <!-- livebook:{"output":true} -->
+
+             ```
              hey
              ```
              """
