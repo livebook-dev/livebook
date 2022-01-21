@@ -20,6 +20,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   alias Livebook.Runtime.ErlDist
 
   @await_owner_timeout 5_000
+  @memory_usage_interval 15_000
 
   @doc """
   Starts the manager.
@@ -142,7 +143,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
        task_supervisor: task_supervisor,
-       object_tracker: object_tracker
+       object_tracker: object_tracker,
+       memory_timer_ref: nil
      }}
   end
 
@@ -177,12 +179,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  def handle_info({:evaluation_finished, _ref}, state) do
+    send_memory_usage(state)
+    Process.cancel_timer(state.memory_timer_ref)
+    {:noreply, schedule_memory_usage(state)}
+  end
+
+  def handle_info(:memory_usage, state) do
+    send_memory_usage(state)
+    {:noreply, schedule_memory_usage(state)}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
   def handle_cast({:set_owner, owner}, state) do
     Process.monitor(owner)
-
+    send(self(), :memory_usage)
     {:noreply, %{state | owner: owner}}
   end
 
@@ -191,6 +204,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         state
       ) do
     state = ensure_evaluator(state, container_ref)
+    opts = Keyword.put(opts, :notify_to, self())
 
     prev_evaluation_ref =
       case prev_locator do
@@ -296,5 +310,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       :error ->
         state
     end
+  end
+
+  defp schedule_memory_usage(state) do
+    ref = Process.send_after(self(), :memory_usage, @memory_usage_interval)
+    %{state | memory_timer_ref: ref}
+  end
+
+  defp send_memory_usage(state) do
+    memory =
+      :erlang.memory()
+      |> Enum.into(%{})
+      |> Map.drop([:processes_used, :atom_used])
+
+    other =
+      memory.total - memory.processes - memory.atom - memory.binary - memory.code - memory.ets
+
+    memory = Map.put(memory, :other, other)
+    send(state.owner, {:memory_usage, memory})
   end
 end

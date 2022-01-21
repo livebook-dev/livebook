@@ -115,6 +115,22 @@ defprotocol Livebook.Runtime do
           code: String.t()
         }
 
+  @typedoc """
+  The runtime memory usage for each type in bytes.
+
+  The runtime may periodically send messages of type {:memory_usage, runtime_memory()}
+  """
+  @type runtime_memory :: %{
+          atom: non_neg_integer(),
+          binary: non_neg_integer(),
+          code: non_neg_integer(),
+          ets: non_neg_integer(),
+          other: non_neg_integer(),
+          processes: non_neg_integer(),
+          system: non_neg_integer(),
+          total: non_neg_integer()
+        }
+
   @doc """
   Sets the caller as runtime owner.
 

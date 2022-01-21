@@ -84,6 +84,9 @@ defmodule Livebook.Evaluator do
 
     * `:file` - file to which the evaluated code belongs. Most importantly,
       this has an impact on the value of `__DIR__`.
+
+    * `:notify_to` - a pid to be notified when an evaluation is finished.
+       The process should expect a `{:evaluation_finished, ref}` message.
   """
   @spec evaluate_code(t(), pid(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
@@ -232,6 +235,7 @@ defmodule Livebook.Evaluator do
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()
+    notify_to = Keyword.get(opts, :notify_to)
 
     {result_context, response} =
       case eval(code, context.binding, context.env) do
@@ -255,6 +259,7 @@ defmodule Livebook.Evaluator do
     output = state.formatter.format_response(response)
     metadata = %{evaluation_time_ms: evaluation_time_ms}
     send(send_to, {:evaluation_response, ref, output, metadata})
+    if notify_to, do: send(notify_to, {:evaluation_finished, ref})
 
     :erlang.garbage_collect(self())
     {:noreply, state}

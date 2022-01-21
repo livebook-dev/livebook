@@ -46,7 +46,7 @@ defmodule Livebook.Session do
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at]
+  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at, :memory_usage]
 
   use GenServer, restart: :temporary
 
@@ -55,6 +55,8 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
+  @memory_usage_interval 15_000
+
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
@@ -62,7 +64,8 @@ defmodule Livebook.Session do
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
-          created_at: DateTime.t()
+          created_at: DateTime.t(),
+          memory_usage: memory_usage()
         }
 
   @type state :: %{
@@ -72,8 +75,16 @@ defmodule Livebook.Session do
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
-          saved_default_file: FileSystem.File.t() | nil
+          saved_default_file: FileSystem.File.t() | nil,
+          system_memory_timer_ref: reference() | nil,
+          memory_usage: memory_usage()
         }
+
+  @type memory_usage ::
+          %{
+            runtime: Livebook.Runtime.runtime_memory() | nil,
+            system: Livebook.Utils.system_memory()
+          }
 
   @typedoc """
   An id assigned to every running session process.
@@ -447,7 +458,7 @@ defmodule Livebook.Session do
              do: dump_images(state, images),
              else: :ok
            ) do
-      state = schedule_autosave(state)
+      state = state |> schedule_autosave() |> schedule_system_memory_update()
       {:ok, state}
     else
       {:error, error} ->
@@ -467,7 +478,9 @@ defmodule Livebook.Session do
         autosave_timer_ref: nil,
         autosave_path: opts[:autosave_path],
         save_task_pid: nil,
-        saved_default_file: nil
+        saved_default_file: nil,
+        system_memory_timer_ref: nil,
+        memory_usage: %{runtime: nil, system: Utils.fetch_system_memory()}
       }
 
       {:ok, state}
@@ -506,6 +519,11 @@ defmodule Livebook.Session do
     else
       %{state | autosave_timer_ref: nil}
     end
+  end
+
+  defp schedule_system_memory_update(state) do
+    ref = Process.send_after(self(), :system_memory, @memory_usage_interval)
+    %{state | system_memory_timer_ref: ref}
   end
 
   @impl true
@@ -814,6 +832,19 @@ defmodule Livebook.Session do
     {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
+  def handle_info(:system_memory, state) do
+    {:noreply, state |> update_system_memory_usage() |> schedule_system_memory_update()}
+  end
+
+  def handle_info({:memory_usage, runtime_memory}, state) do
+    Process.cancel_timer(state.system_memory_timer_ref)
+    system_memory = Utils.fetch_system_memory()
+    memory = %{runtime: runtime_memory, system: system_memory}
+    state = %{state | memory_usage: memory}
+    notify_update(state)
+    {:noreply, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -832,7 +863,8 @@ defmodule Livebook.Session do
       notebook_name: state.data.notebook.name,
       file: state.data.file,
       images_dir: images_dir_from_state(state),
-      created_at: state.created_at
+      created_at: state.created_at,
+      memory_usage: state.memory_usage
     }
   end
 
@@ -979,6 +1011,16 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:set_notebook_name, _pid, _name}) do
     notify_update(state)
     state
+  end
+
+  defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
+    if runtime do
+      state
+    else
+      put_in(state.memory_usage.runtime, nil)
+      |> update_system_memory_usage()
+      |> schedule_system_memory_update()
+    end
   end
 
   defp after_operation(state, prev_state, {:set_file, _pid, _file}) do
@@ -1268,4 +1310,10 @@ defmodule Livebook.Session do
 
   defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
   defp container_ref_for_section(section), do: section.id
+
+  defp update_system_memory_usage(state) do
+    state = put_in(state.memory_usage.system, Utils.fetch_system_memory())
+    notify_update(state)
+    state
+  end
 end

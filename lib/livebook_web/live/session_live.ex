@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
-  import Livebook.Utils, only: [access_by_id: 1]
+  import Livebook.Utils, only: [access_by_id: 1, format_bytes: 1]
 
   alias LivebookWeb.SidebarHelpers
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
@@ -427,6 +427,44 @@ defmodule LivebookWeb.SessionLive do
                   class: "button-base button-outlined-gray bg-transparent" do  %>
               Configure
             <% end %>
+          </div>
+        <% end %>
+        <%= if uses_memory?(@session.memory_usage) do %>
+          <div class="py-6 flex flex-col justify-center relative overflow-hidden">
+            <div class="mb-1 text-sm font-semibold text-gray-800 flex flex-row justify-between">
+              <span class="text-gray-500 uppercase">Memory:</span>
+              <div class="basis-3/4">
+                <span class="tooltip bottom"
+                data-tooltip={"This machine has #{format_bytes(@session.memory_usage.system.total)}"}>
+                  <span class="w-full text-right">
+                    <%= format_bytes(@session.memory_usage.runtime.total) %>
+                    /
+                    <%= format_bytes(@session.memory_usage.system.free) %>
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div class="w-full h-6 flex flex-row gap-1">
+              <%= for {type, memory} <- runtime_memory(@session.memory_usage) do %>
+                <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
+              <% end %>
+            </div>
+            <div class="flex flex-col py-4">
+              <%= for {type, memory} <- runtime_memory(@session.memory_usage) do %>
+                <div class="flex flex-row items-center">
+                  <span class={"w-4 h-4 mr-2 rounded #{memory_color(type)}"}></span>
+                  <span class="capitalize text-gray-700"><%= type %></span>
+                  <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="mb-1 text-sm font-semibold text-gray-800 py-4 flex flex-col">
+            <span class="w-full uppercase text-gray-500">Memory</span>
+            <%= format_bytes(@session.memory_usage.system.free) %>
+            available out of
+            <%= format_bytes(@session.memory_usage.system.total) %>
           </div>
         <% end %>
       </div>
@@ -1485,5 +1523,25 @@ defmodule LivebookWeb.SessionLive do
 
   defp get_page_title(notebook_name) do
     "Livebook - #{notebook_name}"
+  end
+
+  defp memory_color(:atom), do: "bg-green-500"
+  defp memory_color(:code), do: "bg-blue-700"
+  defp memory_color(:processes), do: "bg-red-500"
+  defp memory_color(:binary), do: "bg-blue-500"
+  defp memory_color(:ets), do: "bg-yellow-600"
+  defp memory_color(:other), do: "bg-gray-400"
+
+  defp runtime_memory(%{runtime: memory}) do
+    memory
+    |> Map.drop([:total, :system])
+    |> Enum.map(fn {type, bytes} ->
+      {type,
+       %{
+         unit: format_bytes(bytes),
+         percentage: Float.round(bytes / memory.total * 100, 2),
+         value: bytes
+       }}
+    end)
   end
 end

@@ -163,6 +163,16 @@ defmodule Livebook.EvaluatorTest do
                       %{evaluation_time_ms: _time_ms}}
     end
 
+    test "given a :notify_to option to the evaluator", %{evaluator: evaluator} do
+      code = """
+      IO.puts("CatOps")
+      """
+
+      opts = [notify_to: self()]
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, opts)
+      assert_receive {:evaluation_finished, :code_1}
+    end
+
     test "kills widgets that that no evaluation points to", %{evaluator: evaluator} do
       # Evaluate the code twice, each time a new widget is spawned.
       # The evaluation reference is the same, so the second one overrides

@@ -1,6 +1,9 @@
 defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
+  import Livebook.Utils, only: [format_bytes: 1, fetch_system_memory: 0]
+  import LivebookWeb.SessionHelpers, only: [uses_memory?: 1]
+
   @impl true
   def mount(socket) do
     {:ok, assign(socket, order_by: "date")}
@@ -22,6 +25,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       socket
       |> assign(assigns)
       |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
+      |> assign(memory: memory_info(sessions))
 
     {:ok, socket}
   end
@@ -30,10 +34,20 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <div class="flex items-center justify-between">
-        <h2 class="mb-4 uppercase font-semibold text-gray-500">
+      <div class="mb-4 flex items-end justify-between">
+        <h2 class="uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
+        <span class="tooltip top" data-tooltip={"This machine has #{format_bytes(@memory.system.total)}"}>
+        <div class="text-md text-gray-500 font-medium">
+          <span> <%= format_bytes(@memory.sessions) %> / <%= format_bytes(@memory.system.free) %></span>
+            <div class="w-64 h-4 bg-gray-200">
+            <div class="h-4 bg-blue-600"
+            style={"width: #{@memory.percentage}%"}>
+            </div>
+          </div>
+        </div>
+        </span>
         <.menu id="sessions-order-menu">
           <:toggle>
             <button class="button-base button-outlined-gray px-4 py-1">
@@ -42,7 +56,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </button>
           </:toggle>
           <:content>
-            <%= for order_by <- ["date", "title"] do %>
+            <%= for order_by <- ["date", "title", "memory"] do %>
               <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
                 role="menuitem"
                 phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
@@ -94,7 +108,14 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <div class="text-gray-600 text-sm">
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
-            <div class="mt-2 text-gray-600 text-sm">
+            <div class="mt-2 text-gray-600 text-sm flex flex-row items-center">
+            <%= if uses_memory?(session.memory_usage) do %>
+              <div class="h-3 w-3 mr-1 rounded-full bg-green-500"></div>
+              <span class="pr-4"><%= format_bytes(session.memory_usage.runtime.total) %></span>
+            <% else %>
+              <div class="h-3 w-3 mr-1 rounded-full bg-gray-300"></div>
+              <span class="pr-4">0 MB</span>
+            <% end %>
               Created <%= format_creation_date(session.created_at) %>
             </div>
           </div>
@@ -146,9 +167,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp order_by_label("date"), do: "Date"
   defp order_by_label("title"), do: "Title"
+  defp order_by_label("memory"), do: "Memory"
 
   defp order_by_icon("date"), do: "calendar-2-line"
   defp order_by_icon("title"), do: "text"
+  defp order_by_icon("memory"), do: "cpu-line"
 
   defp sort_sessions(sessions, "date") do
     Enum.sort_by(sessions, & &1.created_at, {:desc, DateTime})
@@ -159,4 +182,23 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       {session.notebook_name, -DateTime.to_unix(session.created_at)}
     end)
   end
+
+  defp sort_sessions(sessions, "memory") do
+    Enum.sort_by(sessions, &total_runtime_memory/1, :desc)
+  end
+
+  defp memory_info(sessions) do
+    sessions_memory =
+      sessions
+      |> Enum.map(&total_runtime_memory/1)
+      |> Enum.sum()
+
+    system_memory = fetch_system_memory()
+    percentage = Float.round(sessions_memory / system_memory.free * 100, 2)
+
+    %{sessions: sessions_memory, system: system_memory, percentage: percentage}
+  end
+
+  defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
+  defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
 end

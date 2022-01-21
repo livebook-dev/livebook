@@ -3,6 +3,8 @@ defmodule Livebook.Utils do
 
   @type id :: binary()
 
+  @type system_memory :: %{total: non_neg_integer(), free: non_neg_integer()}
+
   @doc """
   Generates a random binary id.
   """
@@ -368,4 +370,35 @@ defmodule Livebook.Utils do
     end)
     |> Enum.join("\n")
   end
+
+  @doc """
+  Fetches the total and free memory of the system
+  """
+  @spec fetch_system_memory() :: system_memory()
+  def fetch_system_memory() do
+    memory = :memsup.get_system_memory_data()
+    %{total: memory[:total_memory], free: memory[:free_memory]}
+  end
+
+  def format_bytes(bytes) when is_integer(bytes) do
+    cond do
+      bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
+      bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
+      bytes >= memory_unit(:MB) -> format_bytes(bytes, :MB)
+      bytes >= memory_unit(:KB) -> format_bytes(bytes, :KB)
+      true -> format_bytes(bytes, :B)
+    end
+  end
+
+  defp format_bytes(bytes, :B) when is_integer(bytes), do: "#{bytes} B"
+
+  defp format_bytes(bytes, unit) when is_integer(bytes) do
+    value = bytes / memory_unit(unit)
+    "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
+  end
+
+  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
+  defp memory_unit(:GB), do: 1024 * 1024 * 1024
+  defp memory_unit(:MB), do: 1024 * 1024
+  defp memory_unit(:KB), do: 1024
 end
