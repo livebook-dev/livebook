@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
-  import Livebook.Utils, only: [access_by_id: 1]
+  import Livebook.Utils, only: [access_by_id: 1, format_bytes: 1]
 
   alias LivebookWeb.SidebarHelpers
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
@@ -429,17 +429,17 @@ defmodule LivebookWeb.SessionLive do
             <% end %>
           </div>
         <% end %>
-        <%= if node_memory(@session.memory_usage) do %>
+        <%= if @session.memory_usage.node.total > 0 do %>
           <div class="py-6 flex flex-col justify-center relative overflow-hidden">
             <div class="mb-1 uppercase text-sm font-semibold text-gray-800 flex flex-row justify-between">
               <span class="text-gray-500">Memory:</span>
               <div class="basis-3/4">
                 <span class="tooltip bottom"
-                data-tooltip={"This machine has #{@session.memory_usage.system.system_total_memory.unit}"}>
+                data-tooltip={"This machine has #{format_bytes(@session.memory_usage.system.total)}"}>
                   <span class="w-full text-right">
-                    <%= @session.memory_usage.node.total.unit %>
+                    <%= format_bytes(@session.memory_usage.node.total) %>
                     /
-                    <%= @session.memory_usage.system.free_memory.unit %>
+                    <%= format_bytes(@session.memory_usage.system.free) %>
                   </span>
                 </span>
               </div>
@@ -462,9 +462,9 @@ defmodule LivebookWeb.SessionLive do
         <% else %>
           <div class="mb-1 text-sm font-semibold text-gray-800 py-4 flex flex-col">
             <span class="w-full uppercase text-gray-500">Memory</span>
-            <%= @session.memory_usage.system.free_memory.unit %>
+            <%= format_bytes(@session.memory_usage.system.free) %>
             available out of
-            <%= @session.memory_usage.system.system_total_memory.unit %>
+            <%= format_bytes(@session.memory_usage.system.total) %>
           </div>
         <% end %>
       </div>
@@ -1525,19 +1525,17 @@ defmodule LivebookWeb.SessionLive do
     "Livebook - #{notebook_name}"
   end
 
-  # TODO: Maybe move to sidebar helpers
   defp memory_color(:atom), do: "bg-green-500"
   defp memory_color(:code), do: "bg-blue-700"
   defp memory_color(:processes), do: "bg-red-500"
   defp memory_color(:binary), do: "bg-blue-500"
   defp memory_color(:ets), do: "bg-yellow-600"
   defp memory_color(:other), do: "bg-gray-400"
-  defp memory_color(:system), do: "bg-gray-400"
-  defp memory_color(:total), do: "bg-gray-400"
-
-  defp node_memory(%{node: %{total: %{value: 0}}}), do: false
 
   defp node_memory(%{node: memory}) do
     Map.drop(memory, [:total, :system])
+    |> Enum.map(fn {k, v} ->
+      {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2), value: v}}
+    end)
   end
 end

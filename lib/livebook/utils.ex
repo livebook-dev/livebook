@@ -378,18 +378,15 @@ defmodule Livebook.Utils do
   end
 
   def fetch_memory() do
-    node_memory = %{total: %{value: 0}}
+    node_memory = %{total: 0}
     system_memory = fetch_system_memory()
 
     %{node: node_memory, system: system_memory}
   end
 
   defp fetch_system_memory() do
-    :memsup.get_system_memory_data()
-    |> Enum.map(fn {k, v} ->
-      {k, %{unit: format_bytes(v), value: v}}
-    end)
-    |> Enum.into(%{})
+    memory = :memsup.get_system_memory_data()
+    %{total: memory[:total_memory], free: memory[:free_memory]}
   end
 
   defp fetch_node_memory(node) do
@@ -402,10 +399,6 @@ defmodule Livebook.Utils do
       memory.total - memory.processes - memory.atom - memory.binary - memory.code - memory.ets
 
     Map.put(memory, :other, other)
-    |> Enum.map(fn {k, v} ->
-      {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2), value: v}}
-    end)
-    |> Enum.into(%{})
   end
 
   def format_bytes(bytes) when is_integer(bytes) do

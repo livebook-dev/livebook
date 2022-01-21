@@ -37,9 +37,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="mb-4 uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <span class="tooltip top" data-tooltip={"This machine has #{@memory.system.system_total_memory.unit}"}>
+        <span class="tooltip top" data-tooltip={"This machine has #{format_bytes(@memory.system.total)}"}>
         <div class="-mt-6 text-md text-gray-500 font-medium">
-          <span> <%= @memory.session.unit %> / <%= @memory.system.free_memory.unit %></span>
+          <span> <%= format_bytes(@memory.sessions) %> / <%= format_bytes(@memory.system.free) %></span>
             <div class="w-64 h-4 bg-gray-200">
             <div class="h-4 bg-blue-600"
             style={"width: #{@memory.percentage}%"}>
@@ -108,9 +108,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
             <div class="mt-2 text-gray-600 text-sm flex flex-row items-center">
-            <%= if connected(session) do %>
+            <%= if session.memory_usage.node.total > 0 do %>
               <div class="h-3 w-3 mr-1 rounded-full bg-green-500"></div>
-              <span class="pr-4"><%= session.memory_usage.node.total.unit %></span>
+              <span class="pr-4"><%= format_bytes(session.memory_usage.node.total) %></span>
             <% else %>
               <div class="h-3 w-3 mr-1 rounded-full bg-gray-300"></div>
               <span class="pr-4">0 MB</span>
@@ -183,23 +183,18 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   defp sort_sessions(sessions, "memory") do
-    Enum.sort_by(sessions, & &1.memory_usage.node.total.value, :desc)
+    Enum.sort_by(sessions, & &1.memory_usage.node.total, :desc)
   end
 
   defp memory_info(sessions) do
-    session_info =
+    sessions_memory =
       sessions
-      |> Enum.map(& &1.memory_usage.node.total.value)
+      |> Enum.map(& &1.memory_usage.node.total)
       |> Enum.sum()
-      |> then(&%{unit: format_bytes(&1), value: &1})
 
-    system_info = fetch_memory().system
+    system_memory = fetch_memory().system
+    percentage = Float.round(sessions_memory / system_memory.free * 100, 2)
 
-    percentage = Float.round(session_info.value / system_info.free_memory.value * 100, 2)
-
-    %{session: session_info, system: system_info, percentage: percentage}
+    %{sessions: sessions_memory, system: system_memory, percentage: percentage}
   end
-
-  defp connected(%{memory_usage: %{node: %{total: %{value: 0}}}}), do: false
-  defp connected(%{memory_usage: %{node: _}}), do: true
 end
