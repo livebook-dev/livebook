@@ -1533,9 +1533,15 @@ defmodule LivebookWeb.SessionLive do
   defp memory_color(:other), do: "bg-gray-400"
 
   defp runtime_memory(%{runtime: memory}) do
-    Map.drop(memory, [:total, :system])
-    |> Enum.map(fn {k, v} ->
-      {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2), value: v}}
+    memory
+    |> Map.drop([:total, :system])
+    |> Enum.map(fn {type, bytes} ->
+      {type,
+       %{
+         unit: format_bytes(bytes),
+         percentage: Float.round(bytes / memory.total * 100, 2),
+         value: bytes
+       }}
     end)
   end
 
