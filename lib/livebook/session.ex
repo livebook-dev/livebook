@@ -458,7 +458,7 @@ defmodule Livebook.Session do
              do: dump_images(state, images),
              else: :ok
            ) do
-      state = schedule_autosave(state) |> schedule_system_memory_update()
+      state = state |> schedule_autosave() |> schedule_system_memory_update()
       {:ok, state}
     else
       {:error, error} ->
@@ -1312,7 +1312,7 @@ defmodule Livebook.Session do
   defp container_ref_for_section(section), do: section.id
 
   defp update_system_memory_usage(state) do
-    put_in(state.memory_usage.system, Utils.fetch_system_memory())
+    state = put_in(state.memory_usage.system, Utils.fetch_system_memory())
     notify_update(state)
     state
   end

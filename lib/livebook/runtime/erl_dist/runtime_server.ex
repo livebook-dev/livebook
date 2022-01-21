@@ -182,13 +182,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_info({:evaluation_finished, _ref}, state) do
     send_memory_usage(state)
     Process.cancel_timer(state.memory_timer_ref)
-    schedule_memory_usage(state)
-    {:noreply, state}
+    {:noreply, schedule_memory_usage(state)}
   end
 
   def handle_info(:memory_usage, state) do
     send_memory_usage(state)
-    {:noreply, state |> schedule_memory_usage()}
+    {:noreply, schedule_memory_usage(state)}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
