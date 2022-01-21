@@ -232,6 +232,7 @@ defmodule Livebook.Evaluator do
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()
+    notify_to = Keyword.get(opts, :notify_to)
 
     {result_context, response} =
       case eval(code, context.binding, context.env) do
@@ -248,7 +249,6 @@ defmodule Livebook.Evaluator do
     evaluation_time_ms = get_execution_time_delta(start_time)
 
     state = put_in(state.contexts[ref], result_context)
-    notify_to = Keyword.get(opts, :notify_to)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
@@ -256,7 +256,7 @@ defmodule Livebook.Evaluator do
     output = state.formatter.format_response(response)
     metadata = %{evaluation_time_ms: evaluation_time_ms}
     send(send_to, {:evaluation_response, ref, output, metadata})
-    send(notify_to, {:evaluation_finished, ref})
+    if notify_to, do: send(notify_to, {:evaluation_finished, ref})
 
     :erlang.garbage_collect(self())
     {:noreply, state}
