@@ -462,9 +462,9 @@ defmodule LivebookWeb.SessionLive do
         <% else %>
           <div class="mb-1 text-sm font-semibold text-gray-800 py-4 flex flex-col">
             <span class="w-full uppercase text-gray-500">Memory</span>
-            <%= format_bytes(@session.memory_usage.free) %>
+            <%= format_bytes(@session.memory_usage.system.free) %>
             available out of
-            <%= format_bytes(@session.memory_usage.total) %>
+            <%= format_bytes(@session.memory_usage.system.total) %>
           </div>
         <% end %>
       </div>
@@ -1539,6 +1539,7 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
+  defp uses_memory?(%{runtime: nil}), do: false
   defp uses_memory?(%{runtime: _}), do: true
   defp uses_memory?(_), do: false
 end

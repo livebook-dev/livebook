@@ -65,7 +65,7 @@ defmodule Livebook.Session do
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: memory_usage() | Livebook.Utils.system_memory() | nil
+          memory_usage: memory_usage()
         }
 
   @type state :: %{
@@ -82,11 +82,9 @@ defmodule Livebook.Session do
 
   @type memory_usage ::
           %{
-            runtime: Livebook.Runtime.runtime_memory(),
+            runtime: Livebook.Runtime.runtime_memory() | nil,
             system: Livebook.Utils.system_memory()
           }
-          | Livebook.Utils.system_memory()
-          | nil
 
   @typedoc """
   An id assigned to every running session process.
@@ -1306,7 +1304,8 @@ defmodule Livebook.Session do
   defp container_ref_for_section(section), do: section.id
 
   defp system_memory_usage(state) do
-    state = %{state | memory_usage: Utils.fetch_system_memory()}
+    memory = %{runtime: nil, system: Utils.fetch_system_memory()}
+    state = %{state | memory_usage: memory}
     notify_update(state)
     state
   end

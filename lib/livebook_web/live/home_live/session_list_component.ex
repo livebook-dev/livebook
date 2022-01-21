@@ -201,14 +201,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     %{sessions: sessions_memory, system: system_memory, percentage: percentage}
   end
 
-  defp uses_memory?(%{runtime: %{total: 0}}), do: false
-  defp uses_memory?(%{runtime: _}), do: true
+  defp uses_memory?(%{runtime: %{total: total}}) when total > 0, do: true
   defp uses_memory?(_), do: false
 
-  defp standardize(session = %{memory_usage: %{runtime: _}}), do: session
-
-  defp standardize(session) do
-    memory = Map.put_new(session.memory_usage, :runtime, %{total: 0})
+  defp standardize(session = %{memory_usage: %{runtime: nil}}) do
+    memory = Map.put(session.memory_usage, :runtime, %{total: 0})
     %{session | memory_usage: memory}
   end
+
+  defp standardize(session), do: session
 end
