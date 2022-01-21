@@ -248,6 +248,7 @@ defmodule Livebook.Evaluator do
     evaluation_time_ms = get_execution_time_delta(start_time)
 
     state = put_in(state.contexts[ref], result_context)
+    notify_to = Keyword.get(opts, :notify_to)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
@@ -255,6 +256,7 @@ defmodule Livebook.Evaluator do
     output = state.formatter.format_response(response)
     metadata = %{evaluation_time_ms: evaluation_time_ms}
     send(send_to, {:evaluation_response, ref, output, metadata})
+    send(notify_to, {:evaluation_finished, ref})
 
     :erlang.garbage_collect(self())
     {:noreply, state}
