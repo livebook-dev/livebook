@@ -3,6 +3,8 @@ defmodule Livebook.Utils do
 
   @type id :: binary()
 
+  @type system_memory :: %{total: non_neg_integer(), free: non_neg_integer()}
+
   @doc """
   Generates a random binary id.
   """
@@ -384,7 +386,7 @@ defmodule Livebook.Utils do
     %{node: node_memory, system: system_memory}
   end
 
-  defp fetch_system_memory() do
+  def fetch_system_memory() do
     memory = :memsup.get_system_memory_data()
     %{total: memory[:total_memory], free: memory[:free_memory]}
   end

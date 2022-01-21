@@ -55,6 +55,8 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
+  @memory_usage_interval 15_000
+
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
@@ -63,7 +65,7 @@ defmodule Livebook.Session do
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: map() | nil
+          memory_usage: memory_usage() | Livebook.Utils.system_memory() | nil
         }
 
   @type state :: %{
@@ -74,8 +76,13 @@ defmodule Livebook.Session do
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          memory_usage_timer_ref: reference() | nil,
-          memory_usage: map() | nil
+          system_memory_timer_ref: reference() | nil,
+          memory_usage: memory_usage() | Livebook.Utils.system_memory() | nil
+        }
+
+  @type memory_usage :: %{
+          node: Livebook.Runtime.node_memory(),
+          system: Livebook.Utils.system_memory()
         }
 
   @typedoc """
@@ -450,7 +457,7 @@ defmodule Livebook.Session do
              do: dump_images(state, images),
              else: :ok
            ) do
-      state = schedule_autosave(state) |> schedule_memory_usage_update()
+      state = schedule_autosave(state) |> schedule_system_memory()
       {:ok, state}
     else
       {:error, error} ->
@@ -471,11 +478,11 @@ defmodule Livebook.Session do
         autosave_path: opts[:autosave_path],
         save_task_pid: nil,
         saved_default_file: nil,
-        memory_usage_timer_ref: nil,
+        system_memory_timer_ref: nil,
         memory_usage: nil
       }
 
-      {:ok, state |> update_memory_usage()}
+      {:ok, state |> system_memory_usage()}
     end
   end
 
@@ -513,9 +520,9 @@ defmodule Livebook.Session do
     end
   end
 
-  defp schedule_memory_usage_update(state) do
-    ref = Process.send_after(self(), :memory_usage, 15000)
-    %{state | memory_usage_timer_ref: ref}
+  defp schedule_system_memory(state) do
+    ref = Process.send_after(self(), :system_memory, @memory_usage_interval)
+    %{state | system_memory_timer_ref: ref}
   end
 
   @impl true
@@ -702,7 +709,6 @@ defmodule Livebook.Session do
     end
 
     runtime_monitor_ref = Runtime.connect(runtime)
-    send(self(), :memory_usage)
 
     {:noreply,
      %{state | runtime_monitor_ref: runtime_monitor_ref}
@@ -711,7 +717,7 @@ defmodule Livebook.Session do
 
   def handle_cast({:disconnect_runtime, client_pid}, state) do
     Runtime.disconnect(state.data.runtime)
-    send(self(), :memory_usage)
+    send(self(), :system_memory)
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
@@ -776,7 +782,6 @@ defmodule Livebook.Session do
 
   def handle_info({:evaluation_response, cell_id, response, metadata}, state) do
     operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
-    send(self(), :memory_usage)
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -827,8 +832,18 @@ defmodule Livebook.Session do
     {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
-  def handle_info(:memory_usage, state) do
-    {:noreply, state |> update_memory_usage() |> schedule_memory_usage_update()}
+  def handle_info(:system_memory, state) do
+    {:noreply, state |> system_memory_usage() |> schedule_system_memory()}
+  end
+
+  def handle_info({:memory_usage, memory_usage}, state) do
+    Process.cancel_timer(state.system_memory_timer_ref)
+    node_memory = memory_usage
+    system_memory = Utils.fetch_system_memory()
+    memory = %{node: node_memory, system: system_memory}
+    state = %{state | memory_usage: memory}
+    notify_update(state)
+    {:noreply, state}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -1287,13 +1302,7 @@ defmodule Livebook.Session do
   defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
   defp container_ref_for_section(section), do: section.id
 
-  def update_memory_usage(state = %{data: %{runtime: %{node: node}}}) do
-    state = %{state | memory_usage: Utils.fetch_memory(node)}
-    notify_update(state)
-    state
-  end
-
-  def update_memory_usage(state) do
+  defp system_memory_usage(state) do
     state = %{state | memory_usage: Utils.fetch_memory()}
     notify_update(state)
     state

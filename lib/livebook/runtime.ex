@@ -115,6 +115,17 @@ defprotocol Livebook.Runtime do
           code: String.t()
         }
 
+  @type node_memory :: %{
+          atom: non_neg_integer(),
+          binary: non_neg_integer(),
+          code: non_neg_integer(),
+          ets: non_neg_integer(),
+          other: non_neg_integer(),
+          processes: non_neg_integer(),
+          system: non_neg_integer(),
+          total: non_neg_integer()
+        }
+
   @doc """
   Sets the caller as runtime owner.
 
