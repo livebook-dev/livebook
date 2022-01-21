@@ -181,6 +181,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   def handle_info({:evaluation_finished, _ref}, state) do
     send_memory_usage(state)
+    Process.cancel_timer(state.memory_timer_ref)
+    schedule_memory_usage(state)
     {:noreply, state}
   end
 
@@ -203,7 +205,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         state
       ) do
     state = ensure_evaluator(state, container_ref)
-    opts = Keyword.put_new(opts, :notify_to, self())
+    opts = Keyword.put(opts, :notify_to, self())
 
     prev_evaluation_ref =
       case prev_locator do

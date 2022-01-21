@@ -116,7 +116,9 @@ defprotocol Livebook.Runtime do
         }
 
   @typedoc """
-  The runtime memory usage for each type in bytes
+  The runtime memory usage for each type in bytes.
+
+  The runtime may periodically send messages of type {:memory_usage, runtime_memory()}
   """
   @type runtime_memory :: %{
           atom: non_neg_integer(),
