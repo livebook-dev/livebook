@@ -191,7 +191,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp memory_info(sessions) do
     sessions_memory =
       sessions
-      |> Enum.filter(&Map.has_key?(&1.memory_usage, :node))
+      |> Enum.map(&standardize/1)
       |> Enum.map(& &1.memory_usage.runtime.total)
       |> Enum.sum()
 
