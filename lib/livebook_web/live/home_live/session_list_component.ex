@@ -110,7 +110,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <div class="mt-2 text-gray-600 text-sm flex flex-row items-center">
             <%= if uses_memory?(session.memory_usage) do %>
               <div class="h-3 w-3 mr-1 rounded-full bg-green-500"></div>
-              <span class="pr-4"><%= format_bytes(session.memory_usage.node.total) %></span>
+              <span class="pr-4"><%= format_bytes(session.memory_usage.runtime.total) %></span>
             <% else %>
               <div class="h-3 w-3 mr-1 rounded-full bg-gray-300"></div>
               <span class="pr-4">0 MB</span>
@@ -185,14 +185,14 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp sort_sessions(sessions, "memory") do
     sessions
     |> Enum.map(&standardize/1)
-    |> Enum.sort_by(& &1.memory_usage.node.total, :desc)
+    |> Enum.sort_by(& &1.memory_usage.runtime.total, :desc)
   end
 
   defp memory_info(sessions) do
     sessions_memory =
       sessions
       |> Enum.filter(&Map.has_key?(&1.memory_usage, :node))
-      |> Enum.map(& &1.memory_usage.node.total)
+      |> Enum.map(& &1.memory_usage.runtime.total)
       |> Enum.sum()
 
     system_memory = fetch_system_memory()
@@ -201,14 +201,14 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     %{sessions: sessions_memory, system: system_memory, percentage: percentage}
   end
 
-  defp uses_memory?(%{node: %{total: 0}}), do: false
-  defp uses_memory?(%{node: _}), do: true
+  defp uses_memory?(%{runtime: %{total: 0}}), do: false
+  defp uses_memory?(%{runtime: _}), do: true
   defp uses_memory?(_), do: false
 
-  defp standardize(session = %{memory_usage: %{node: _}}), do: session
+  defp standardize(session = %{memory_usage: %{runtime: _}}), do: session
 
   defp standardize(session) do
-    memory = Map.put_new(session.memory_usage, :node, %{total: 0})
+    memory = Map.put_new(session.memory_usage, :runtime, %{total: 0})
     %{session | memory_usage: memory}
   end
 end

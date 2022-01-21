@@ -437,7 +437,7 @@ defmodule LivebookWeb.SessionLive do
                 <span class="tooltip bottom"
                 data-tooltip={"This machine has #{format_bytes(@session.memory_usage.system.total)}"}>
                   <span class="w-full text-right">
-                    <%= format_bytes(@session.memory_usage.node.total) %>
+                    <%= format_bytes(@session.memory_usage.runtime.total) %>
                     /
                     <%= format_bytes(@session.memory_usage.system.free) %>
                   </span>
@@ -445,12 +445,12 @@ defmodule LivebookWeb.SessionLive do
               </div>
             </div>
             <div class="w-full h-6 flex flex-row gap-1">
-              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
+              <%= for {type, memory} <- runtime_memory(@session.memory_usage) do %>
                 <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
               <% end %>
             </div>
             <div class="flex flex-col py-4">
-              <%= for {type, memory} <- node_memory(@session.memory_usage) do %>
+              <%= for {type, memory} <- runtime_memory(@session.memory_usage) do %>
                 <div class="flex flex-row items-center">
                   <span class={"w-4 h-4 mr-2 rounded #{memory_color(type)}"}></span>
                   <span class="capitalize text-gray-700"><%= type %></span>
@@ -1532,13 +1532,13 @@ defmodule LivebookWeb.SessionLive do
   defp memory_color(:ets), do: "bg-yellow-600"
   defp memory_color(:other), do: "bg-gray-400"
 
-  defp node_memory(%{node: memory}) do
+  defp runtime_memory(%{runtime: memory}) do
     Map.drop(memory, [:total, :system])
     |> Enum.map(fn {k, v} ->
       {k, %{unit: format_bytes(v), percentage: Float.round(v / memory.total * 100, 2), value: v}}
     end)
   end
 
-  defp uses_memory?(%{node: _}), do: true
+  defp uses_memory?(%{runtime: _}), do: true
   defp uses_memory?(_), do: false
 end

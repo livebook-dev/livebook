@@ -115,7 +115,10 @@ defprotocol Livebook.Runtime do
           code: String.t()
         }
 
-  @type node_memory :: %{
+  @typedoc """
+  The runtime memory usage for each type in bytes
+  """
+  @type runtime_memory :: %{
           atom: non_neg_integer(),
           binary: non_neg_integer(),
           code: non_neg_integer(),

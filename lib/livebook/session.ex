@@ -77,13 +77,16 @@ defmodule Livebook.Session do
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           system_memory_timer_ref: reference() | nil,
-          memory_usage: memory_usage() | Livebook.Utils.system_memory() | nil
+          memory_usage: memory_usage()
         }
 
-  @type memory_usage :: %{
-          node: Livebook.Runtime.node_memory(),
-          system: Livebook.Utils.system_memory()
-        }
+  @type memory_usage ::
+          %{
+            runtime: Livebook.Runtime.runtime_memory(),
+            system: Livebook.Utils.system_memory()
+          }
+          | Livebook.Utils.system_memory()
+          | nil
 
   @typedoc """
   An id assigned to every running session process.
@@ -838,9 +841,9 @@ defmodule Livebook.Session do
 
   def handle_info({:memory_usage, memory_usage}, state) do
     Process.cancel_timer(state.system_memory_timer_ref)
-    node_memory = memory_usage
+    runtime_memory = memory_usage
     system_memory = Utils.fetch_system_memory()
-    memory = %{node: node_memory, system: system_memory}
+    memory = %{runtime: runtime_memory, system: system_memory}
     state = %{state | memory_usage: memory}
     notify_update(state)
     {:noreply, state}
