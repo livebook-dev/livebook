@@ -371,7 +371,10 @@ defmodule Livebook.Utils do
     |> Enum.join("\n")
   end
 
-  # Fetches and formats system and node memory usage
+  @doc """
+  Fetches the total and free memory of the system
+  """
+  @spec fetch_system_memory() :: system_memory()
   def fetch_system_memory() do
     memory = :memsup.get_system_memory_data()
     %{total: memory[:total_memory], free: memory[:free_memory]}
