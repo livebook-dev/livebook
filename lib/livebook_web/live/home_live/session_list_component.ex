@@ -184,16 +184,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   defp sort_sessions(sessions, "memory") do
-    sessions
-    |> Enum.map(&standardize/1)
-    |> Enum.sort_by(& &1.memory_usage.runtime.total, :desc)
+    Enum.sort_by(sessions, &total_runtime_memory/1, :desc)
   end
 
   defp memory_info(sessions) do
     sessions_memory =
       sessions
-      |> Enum.map(&standardize/1)
-      |> Enum.map(& &1.memory_usage.runtime.total)
+      |> Enum.map(&total_runtime_memory/1)
       |> Enum.sum()
 
     system_memory = fetch_system_memory()
@@ -202,10 +199,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     %{sessions: sessions_memory, system: system_memory, percentage: percentage}
   end
 
-  defp standardize(session = %{memory_usage: %{runtime: nil}}) do
-    memory = Map.put(session.memory_usage, :runtime, %{total: 0})
-    %{session | memory_usage: memory}
-  end
-
-  defp standardize(session), do: session
+  defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
+  defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
 end
