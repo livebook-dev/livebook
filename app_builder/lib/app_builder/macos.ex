@@ -107,6 +107,7 @@ defmodule AppBuilder.MacOS do
     File.mkdir_p!(Path.join([app_bundle_path, "Contents", "Resources"]))
     File.rename!(release.path, Path.join([app_bundle_path, "Contents", "Resources", "rel"]))
 
+    File.mkdir_p!("tmp")
     launcher_src_path = "tmp/Launcher.swift"
     File.write!(launcher_src_path, launcher())
     launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
