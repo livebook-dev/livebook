@@ -34,12 +34,12 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <div class="flex items-center justify-between">
-        <h2 class="mb-4 uppercase font-semibold text-gray-500">
+      <div class="mb-4 flex items-end justify-between">
+        <h2 class="uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
         <span class="tooltip top" data-tooltip={"This machine has #{format_bytes(@memory.system.total)}"}>
-        <div class="-mt-6 text-md text-gray-500 font-medium">
+        <div class="text-md text-gray-500 font-medium">
           <span> <%= format_bytes(@memory.sessions) %> / <%= format_bytes(@memory.system.free) %></span>
             <div class="w-64 h-4 bg-gray-200">
             <div class="h-4 bg-blue-600"
