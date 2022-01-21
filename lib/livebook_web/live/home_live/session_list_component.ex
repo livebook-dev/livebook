@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
-  import Livebook.Utils, only: [format_bytes: 1, fetch_memory: 0]
+  import Livebook.Utils, only: [format_bytes: 1, fetch_system_memory: 0]
 
   @impl true
   def mount(socket) do
@@ -108,7 +108,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <%= if session.file, do: session.file.path, else: "No file" %>
             </div>
             <div class="mt-2 text-gray-600 text-sm flex flex-row items-center">
-            <%= if session.memory_usage.node.total > 0 do %>
+            <%= if uses_memory?(session.memory_usage) do %>
               <div class="h-3 w-3 mr-1 rounded-full bg-green-500"></div>
               <span class="pr-4"><%= format_bytes(session.memory_usage.node.total) %></span>
             <% else %>
@@ -183,18 +183,32 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   defp sort_sessions(sessions, "memory") do
-    Enum.sort_by(sessions, & &1.memory_usage.node.total, :desc)
+    sessions
+    |> Enum.map(&standardize/1)
+    |> Enum.sort_by(& &1.memory_usage.node.total, :desc)
   end
 
   defp memory_info(sessions) do
     sessions_memory =
       sessions
+      |> Enum.filter(&Map.has_key?(&1.memory_usage, :node))
       |> Enum.map(& &1.memory_usage.node.total)
       |> Enum.sum()
 
-    system_memory = fetch_memory().system
+    system_memory = fetch_system_memory()
     percentage = Float.round(sessions_memory / system_memory.free * 100, 2)
 
     %{sessions: sessions_memory, system: system_memory, percentage: percentage}
+  end
+
+  defp uses_memory?(%{node: %{total: 0}}), do: false
+  defp uses_memory?(%{node: _}), do: true
+  defp uses_memory?(_), do: false
+
+  defp standardize(session = %{memory_usage: %{node: _}}), do: session
+
+  defp standardize(session) do
+    memory = Map.put_new(session.memory_usage, :node, %{total: 0})
+    %{session | memory_usage: memory}
   end
 end

@@ -1303,7 +1303,7 @@ defmodule Livebook.Session do
   defp container_ref_for_section(section), do: section.id
 
   defp system_memory_usage(state) do
-    state = %{state | memory_usage: Utils.fetch_memory()}
+    state = %{state | memory_usage: Utils.fetch_system_memory()}
     notify_update(state)
     state
   end

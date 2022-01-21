@@ -372,35 +372,9 @@ defmodule Livebook.Utils do
   end
 
   # Fetches and formats system and node memory usage
-  def fetch_memory(node) do
-    node_memory = fetch_node_memory(node)
-    system_memory = fetch_system_memory()
-
-    %{node: node_memory, system: system_memory}
-  end
-
-  def fetch_memory() do
-    node_memory = %{total: 0}
-    system_memory = fetch_system_memory()
-
-    %{node: node_memory, system: system_memory}
-  end
-
   def fetch_system_memory() do
     memory = :memsup.get_system_memory_data()
     %{total: memory[:total_memory], free: memory[:free_memory]}
-  end
-
-  defp fetch_node_memory(node) do
-    memory =
-      :rpc.call(node, :erlang, :memory, [])
-      |> Enum.into(%{})
-      |> Map.drop([:processes_used, :atom_used])
-
-    other =
-      memory.total - memory.processes - memory.atom - memory.binary - memory.code - memory.ets
-
-    Map.put(memory, :other, other)
   end
 
   def format_bytes(bytes) when is_integer(bytes) do
