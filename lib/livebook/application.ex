@@ -27,7 +27,8 @@ defmodule Livebook.Application do
         # Start the unique task dependencies
         Livebook.UniqueTask,
         # Start the Endpoint (http/https)
-        LivebookWeb.Endpoint
+        # We skip the access url as we do our own logging below
+        {LivebookWeb.Endpoint, log_access_url: false}
       ] ++ app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]

@@ -169,7 +169,8 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_PORT - sets the port Livebook runs on. If you want to run multiple
     instances on the same domain with the same credentials but on different ports,
-    you also need to set LIVEBOOK_SECRET_KEY_BASE. Defaults to 8080.
+    you also need to set LIVEBOOK_SECRET_KEY_BASE. Defaults to 8080. If set to 0,
+    a random port will be picked.
 
   * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection. This does
     not restrict access to upper directories unless the operating system user is
