@@ -458,7 +458,7 @@ defmodule Livebook.Session do
              do: dump_images(state, images),
              else: :ok
            ) do
-      state = schedule_autosave(state) |> schedule_system_memory()
+      state = schedule_autosave(state) |> schedule_system_memory_update()
       {:ok, state}
     else
       {:error, error} ->
@@ -480,10 +480,10 @@ defmodule Livebook.Session do
         save_task_pid: nil,
         saved_default_file: nil,
         system_memory_timer_ref: nil,
-        memory_usage: nil
+        memory_usage: %{runtime: nil, system: Utils.fetch_system_memory()}
       }
 
-      {:ok, state |> system_memory_usage()}
+      {:ok, state}
     end
   end
 
@@ -521,7 +521,7 @@ defmodule Livebook.Session do
     end
   end
 
-  defp schedule_system_memory(state) do
+  defp schedule_system_memory_update(state) do
     ref = Process.send_after(self(), :system_memory, @memory_usage_interval)
     %{state | system_memory_timer_ref: ref}
   end
@@ -718,7 +718,6 @@ defmodule Livebook.Session do
 
   def handle_cast({:disconnect_runtime, client_pid}, state) do
     Runtime.disconnect(state.data.runtime)
-    send(self(), :system_memory)
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
@@ -834,12 +833,11 @@ defmodule Livebook.Session do
   end
 
   def handle_info(:system_memory, state) do
-    {:noreply, state |> system_memory_usage() |> schedule_system_memory()}
+    {:noreply, state |> update_system_memory_usage() |> schedule_system_memory_update()}
   end
 
-  def handle_info({:memory_usage, memory_usage}, state) do
+  def handle_info({:memory_usage, runtime_memory}, state) do
     Process.cancel_timer(state.system_memory_timer_ref)
-    runtime_memory = memory_usage
     system_memory = Utils.fetch_system_memory()
     memory = %{runtime: runtime_memory, system: system_memory}
     state = %{state | memory_usage: memory}
@@ -1013,6 +1011,16 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:set_notebook_name, _pid, _name}) do
     notify_update(state)
     state
+  end
+
+  defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
+    if runtime do
+      state
+    else
+      put_in(state.memory_usage.runtime, nil)
+      |> update_system_memory_usage()
+      |> schedule_system_memory_update()
+    end
   end
 
   defp after_operation(state, prev_state, {:set_file, _pid, _file}) do
@@ -1303,9 +1311,8 @@ defmodule Livebook.Session do
   defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
   defp container_ref_for_section(section), do: section.id
 
-  defp system_memory_usage(state) do
-    memory = %{runtime: nil, system: Utils.fetch_system_memory()}
-    state = %{state | memory_usage: memory}
+  defp update_system_memory_usage(state) do
+    put_in(state.memory_usage.system, Utils.fetch_system_memory())
     notify_update(state)
     state
   end
