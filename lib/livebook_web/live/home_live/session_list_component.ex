@@ -2,6 +2,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
   import Livebook.Utils, only: [format_bytes: 1, fetch_system_memory: 0]
+  import LivebookWeb.SessionHelpers, only: [uses_memory?: 1]
 
   @impl true
   def mount(socket) do
@@ -200,9 +201,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
     %{sessions: sessions_memory, system: system_memory, percentage: percentage}
   end
-
-  defp uses_memory?(%{runtime: %{total: total}}) when total > 0, do: true
-  defp uses_memory?(_), do: false
 
   defp standardize(session = %{memory_usage: %{runtime: nil}}) do
     memory = Map.put(session.memory_usage, :runtime, %{total: 0})

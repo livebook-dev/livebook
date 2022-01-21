@@ -1544,8 +1544,4 @@ defmodule LivebookWeb.SessionLive do
        }}
     end)
   end
-
-  defp uses_memory?(%{runtime: nil}), do: false
-  defp uses_memory?(%{runtime: _}), do: true
-  defp uses_memory?(_), do: false
 end
