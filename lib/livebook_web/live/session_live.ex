@@ -431,8 +431,8 @@ defmodule LivebookWeb.SessionLive do
         <% end %>
         <%= if uses_memory?(@session.memory_usage) do %>
           <div class="py-6 flex flex-col justify-center relative overflow-hidden">
-            <div class="mb-1 uppercase text-sm font-semibold text-gray-800 flex flex-row justify-between">
-              <span class="text-gray-500">Memory:</span>
+            <div class="mb-1 text-sm font-semibold text-gray-800 flex flex-row justify-between">
+              <span class="text-gray-500 uppercase">Memory:</span>
               <div class="basis-3/4">
                 <span class="tooltip bottom"
                 data-tooltip={"This machine has #{format_bytes(@session.memory_usage.system.total)}"}>
