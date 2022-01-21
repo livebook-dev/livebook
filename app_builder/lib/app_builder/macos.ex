@@ -128,8 +128,6 @@ defmodule AppBuilder.MacOS do
     info_plist = options[:info_plist] || info_plist(options)
     File.write!(Path.join([app_bundle_path, "Contents", "Info.plist"]), info_plist)
 
-    File.rm_rf!("tmp/")
-
     release
   end
 
