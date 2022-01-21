@@ -84,6 +84,8 @@ defmodule Livebook.Evaluator do
 
     * `:file` - file to which the evaluated code belongs. Most importantly,
       this has an impact on the value of `__DIR__`.
+      
+    * `:notify_to` - the runtime pid() to be notified when an evaluation is finished.
   """
   @spec evaluate_code(t(), pid(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
