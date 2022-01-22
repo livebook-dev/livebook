@@ -20,10 +20,13 @@ function importMermaid() {
 
 const maybeInjectFontAwesome = (value) => {
   const fontAwesomeUrl = `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/${fontAwesomeVersion}/css/all.min.css`;
-  if (value.includes("fa:") && !document.querySelector(`link[href="${fontAwesomeUrl}"]`)) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
+  if (
+    value.includes("fa:") &&
+    !document.querySelector(`link[href="${fontAwesomeUrl}"]`)
+  ) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.type = "text/css";
     link.href = fontAwesomeUrl;
     document.head.appendChild(link);
   }
