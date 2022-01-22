@@ -24,11 +24,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(
-        sessions: sessions,
-        show_autosave_note?: show_autosave_note?,
-        memory: memory_info()
-      )
+      |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
 
     {:ok, socket}
   end
@@ -41,16 +37,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <span class="tooltip top" data-tooltip={"#{format_bytes(@memory.free)} available"}>
-          <div class="text-md text-gray-500 font-medium">
-            <span> <%= format_bytes(@memory.used) %> / <%= format_bytes(@memory.total) %></span>
-              <div class="w-64 h-4 bg-gray-200">
-              <div class="h-4 bg-blue-600"
-              style={"width: #{@memory.percentage}%"}>
-              </div>
-            </div>
-          </div>
-        </span>
+        <.memory_info />
         <.menu id="sessions-order-menu">
           <:toggle>
             <button class="button-base button-outlined-gray px-4 py-1">
@@ -157,6 +144,24 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     """
   end
 
+  defp memory_info(assigns) do
+    %{free: free, total: total} = Livebook.SystemResources.memory()
+    used = total - free
+    percentage = Float.round(used / total * 100, 2)
+    assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
+
+    ~H"""
+    <span class="tooltip top" data-tooltip={"#{format_bytes(@free)} available"}>
+      <div class="text-sm text-gray-500 font-medium">
+        <span><%= format_bytes(@used) %> / <%= format_bytes(@total) %></span>
+        <div class="w-32 md:w-64 h-4 bg-gray-200">
+          <div class="h-4 bg-blue-600" style={"width: #{@percentage}%"}></div>
+        </div>
+      </div>
+    </span>
+    """
+  end
+
   @impl true
   def handle_event("set_order", %{"order_by" => order_by}, socket) do
     sessions = sort_sessions(socket.assigns.sessions, order_by)
@@ -188,13 +193,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp sort_sessions(sessions, "memory") do
     Enum.sort_by(sessions, &total_runtime_memory/1, :desc)
-  end
-
-  defp memory_info() do
-    %{free: free, total: total} = Livebook.SystemResources.memory()
-    used = total - free
-    percentage = Float.round(used / total * 100, 2)
-    %{free: free, used: used, total: total, percentage: percentage}
   end
 
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
