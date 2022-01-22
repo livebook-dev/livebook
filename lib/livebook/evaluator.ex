@@ -71,6 +71,7 @@ defmodule Livebook.Evaluator do
   @doc """
   Computes the memory usage from this evaluator node.
   """
+  @spec memory :: Livebook.Runtime.runtime_memory()
   def memory do
     %{
       total: total,
@@ -278,7 +279,7 @@ defmodule Livebook.Evaluator do
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
 
     output = state.formatter.format_response(response)
-    metadata = %{evaluation_time_ms: evaluation_time_ms, memory: L}
+    metadata = %{evaluation_time_ms: evaluation_time_ms, memory: memory()}
     send(send_to, {:evaluation_response, ref, output, metadata})
 
     :erlang.garbage_collect(self())

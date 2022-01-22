@@ -127,7 +127,6 @@ defprotocol Livebook.Runtime do
           ets: non_neg_integer(),
           other: non_neg_integer(),
           processes: non_neg_integer(),
-          system: non_neg_integer(),
           total: non_neg_integer()
         }
 
