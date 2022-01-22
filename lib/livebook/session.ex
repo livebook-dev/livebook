@@ -774,7 +774,12 @@ defmodule Livebook.Session do
   def handle_info({:evaluation_response, cell_id, response, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
-    {:noreply, state |> put_memory_usage(memory_usage) |> handle_operation(operation)}
+
+    {:noreply,
+     state
+     |> put_memory_usage(memory_usage)
+     |> handle_operation(operation)
+     |> notify_update()}
   end
 
   def handle_info({:evaluation_input, cell_id, reply_to, input_id}, state) do

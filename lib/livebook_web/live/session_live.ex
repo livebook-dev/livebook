@@ -470,7 +470,7 @@ defmodule LivebookWeb.SessionLive do
             <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
           </div>
         <% end %>
-        <div class="flex justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
+        <div class="flex rounded justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
           Total: <%= format_bytes(@memory_usage.runtime.total) %>
         </div>
       </div>
