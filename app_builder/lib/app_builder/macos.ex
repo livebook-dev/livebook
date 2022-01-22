@@ -244,9 +244,9 @@ defmodule AppBuilder.MacOS do
     <key>CFBundleDisplayName</key>
     <string><%= app_name %></string>
     <key>CFBundleShortVersionString</key>
-    <string><%= app_version %>on}</string>
+    <string><%= app_version %></string>
     <key>CFBundleVersion</key>
-    <string><%= app_version %>on}</string>
+    <string><%= app_version %></string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIconName</key>
