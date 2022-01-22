@@ -47,7 +47,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
 
   def disconnect(runtime) do
     ErlDist.RuntimeServer.stop(runtime.server_pid)
-    
+
     if Node.disconnect(runtime.node) do
       :ok
     end
