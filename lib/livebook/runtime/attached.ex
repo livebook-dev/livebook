@@ -47,7 +47,10 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
 
   def disconnect(runtime) do
     ErlDist.RuntimeServer.stop(runtime.server_pid)
-    Node.disconnect(runtime.node)
+    
+    if Node.disconnect(runtime.node) do
+      :ok
+    end
   end
 
   def evaluate_code(runtime, code, locator, prev_locator, opts \\ []) do
