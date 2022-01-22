@@ -11,7 +11,7 @@ defmodule Livebook.EvaluatorTest do
 
   defmacrop metadata do
     quote do
-      %{evaluation_time_ms: _, memory: %{}}
+      %{evaluation_time_ms: _, memory_usage: %{}}
     end
   end
 
@@ -29,7 +29,7 @@ defmodule Livebook.EvaluatorTest do
       assert metadata.evaluation_time_ms >= 0
 
       assert %{atom: _, binary: _, code: _, ets: _, other: _, processes: _, total: _} =
-               metadata.memory
+               metadata.memory_usage
     end
 
     test "given no prev_ref does not see previous evaluation context", %{evaluator: evaluator} do

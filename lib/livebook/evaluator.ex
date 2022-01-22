@@ -279,7 +279,7 @@ defmodule Livebook.Evaluator do
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
 
     output = state.formatter.format_response(response)
-    metadata = %{evaluation_time_ms: evaluation_time_ms, memory: memory()}
+    metadata = %{evaluation_time_ms: evaluation_time_ms, memory_usage: memory()}
     send(send_to, {:evaluation_response, ref, output, metadata})
 
     :erlang.garbage_collect(self())

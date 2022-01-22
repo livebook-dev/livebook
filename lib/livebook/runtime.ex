@@ -173,7 +173,7 @@ defprotocol Livebook.Runtime do
 
     * `{:evaluation_response, ref, output, metadata}` - final
       result of the evaluation. Recognised metadata entries
-      are: `evaluation_time_ms` and `memory`
+      are: `evaluation_time_ms` and `memory_usage`
 
   The output may include input fields. The evaluation may then
   request the current value of a previously rendered input by
