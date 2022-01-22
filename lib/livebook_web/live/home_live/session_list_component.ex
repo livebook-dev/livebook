@@ -33,10 +33,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <div class="mb-4 flex items-end justify-between">
-        <h2 class="uppercase font-semibold text-gray-500">
+      <div class="mb-4 flex items-center md:items-end justify-between">
+        <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
           Running sessions (<%= length(@sessions) %>)
         </h2>
+        <div class="flex flex-row">
         <.memory_info />
         <.menu id="sessions-order-menu">
           <:toggle>
@@ -56,6 +57,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <% end %>
           </:content>
         </.menu>
+        </div>
       </div>
       <.session_list sessions={@sessions} socket={@socket} show_autosave_note?={@show_autosave_note?} />
     </div>
@@ -151,14 +153,21 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
 
     ~H"""
-    <span class="tooltip top" data-tooltip={"#{format_bytes(@free)} available"}>
-      <div class="text-sm text-gray-500 font-medium">
-        <span><%= format_bytes(@used) %> / <%= format_bytes(@total) %></span>
-        <div class="w-32 md:w-64 h-4 bg-gray-200">
-          <div class="h-4 bg-blue-600" style={"width: #{@percentage}%"}></div>
-        </div>
+    <div class="pr-4">
+      <span class="tooltip top" data-tooltip={"#{format_bytes(@free)} available"}>
+      <svg viewbox="-10 5 50 25" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16.91549431" cy="16.91549431" r="15.91549431"
+          stroke="#E0E8F0" stroke-width="13" fill="none" />
+        <circle cx="16.91549431" cy="16.91549431" r="15.91549431"
+          stroke="#3E64FF" stroke-dasharray={"#{@percentage},100"} stroke-width="13" fill="none" />
+      </svg>
+      <div class="hidden md:flex">
+        <span class="px-2 py-1 text-sm text-gray-500 font-medium">
+          <%= format_bytes(@used) %> / <%= format_bytes(@total) %>
+        </span>
       </div>
-    </span>
+      </span>
+    </div>
     """
   end
 
