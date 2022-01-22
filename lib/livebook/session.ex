@@ -517,7 +517,6 @@ defmodule Livebook.Session do
     end
   end
 
-
   @impl true
   def handle_call(:describe_self, _from, state) do
     {:reply, self_from_state(state), state}
