@@ -370,7 +370,7 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Format bytes
+  Formats the given number of bytes into a human-friendly text.
 
   ## Examples
 
