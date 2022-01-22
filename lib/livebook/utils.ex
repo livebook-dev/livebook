@@ -369,6 +369,29 @@ defmodule Livebook.Utils do
     |> Enum.join("\n")
   end
 
+  @doc """
+  Formats the given number of bytes into a human-friendly text.
+
+  ## Examples
+
+      iex> Livebook.Utils.format_bytes(0)
+      "0 B"
+
+      iex> Livebook.Utils.format_bytes(1000)
+      "1000 B"
+
+      iex> Livebook.Utils.format_bytes(1100)
+      "1.1 KB"
+
+      iex> Livebook.Utils.format_bytes(1_228_800)
+      "1.2 MB"
+
+      iex> Livebook.Utils.format_bytes(1_363_148_800)
+      "1.3 GB"
+
+      iex> Livebook.Utils.format_bytes(1_503_238_553_600)
+      "1.4 TB"
+  """
   def format_bytes(bytes) when is_integer(bytes) do
     cond do
       bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
