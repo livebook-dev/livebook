@@ -470,7 +470,7 @@ defmodule LivebookWeb.SessionLive do
             <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
           </div>
         <% end %>
-        <div class="flex justify-center my-2 text-gray-500 bg-gray-200">
+        <div class="flex justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
           Total: <%= format_bytes(@memory_usage.runtime.total) %>
         </div>
       </div>
@@ -1531,11 +1531,11 @@ defmodule LivebookWeb.SessionLive do
     "Livebook - #{notebook_name}"
   end
 
-  defp memory_color(:atom), do: "bg-green-500"
-  defp memory_color(:code), do: "bg-blue-700"
-  defp memory_color(:processes), do: "bg-red-500"
-  defp memory_color(:binary), do: "bg-blue-500"
-  defp memory_color(:ets), do: "bg-yellow-600"
+  defp memory_color(:atom), do: "bg-blue-500"
+  defp memory_color(:code), do: "bg-yellow-600"
+  defp memory_color(:processes), do: "bg-blue-700"
+  defp memory_color(:binary), do: "bg-green-500"
+  defp memory_color(:ets), do: "bg-red-500"
   defp memory_color(:other), do: "bg-gray-400"
 
   defp runtime_memory(%{runtime: memory}) do
