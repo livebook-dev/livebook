@@ -19,23 +19,19 @@ defmodule Livebook.SystemResources do
   @impl true
   def init(:ok) do
     :ets.new(@name, [:set, :named_table, :protected])
-    measure()
+    measure_and_schedule()
     {:ok, %{}}
   end
 
   @impl true
   def handle_info(:measure, state) do
-    measure()
-    schedule_measurement()
+    measure_and_schedule()
     {:noreply, state}
   end
 
-  defp schedule_measurement() do
-    Process.send_after(self(), :measure, 15000)
-  end
-
-  defp measure() do
+  defp measure_and_schedule() do
     memory = :memsup.get_system_memory_data()
     :ets.insert(@name, {:memory, %{total: memory[:total_memory], free: memory[:free_memory]}})
+    Process.send_after(self(), :measure, 15000)
   end
 end
