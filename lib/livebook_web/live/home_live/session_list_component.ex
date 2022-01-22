@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
-  import Livebook.Utils, only: [format_bytes: 1, fetch_system_memory: 0]
+  import Livebook.Utils, only: [format_bytes: 1]
   import LivebookWeb.SessionHelpers, only: [uses_memory?: 1]
 
   @impl true
@@ -24,8 +24,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
-      |> assign(memory: memory_info(sessions))
+      |> assign(
+        sessions: sessions,
+        show_autosave_note?: show_autosave_note?,
+        memory: memory_info()
+      )
 
     {:ok, socket}
   end
@@ -38,15 +41,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="uppercase font-semibold text-gray-500">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <span class="tooltip top" data-tooltip={"This machine has #{format_bytes(@memory.system.total)}"}>
-        <div class="text-md text-gray-500 font-medium">
-          <span> <%= format_bytes(@memory.sessions) %> / <%= format_bytes(@memory.system.free) %></span>
-            <div class="w-64 h-4 bg-gray-200">
-            <div class="h-4 bg-blue-600"
-            style={"width: #{@memory.percentage}%"}>
+        <span class="tooltip top" data-tooltip={"#{format_bytes(@memory.free)} available"}>
+          <div class="text-md text-gray-500 font-medium">
+            <span> <%= format_bytes(@memory.used) %> / <%= format_bytes(@memory.total) %></span>
+              <div class="w-64 h-4 bg-gray-200">
+              <div class="h-4 bg-blue-600"
+              style={"width: #{@memory.percentage}%"}>
+              </div>
             </div>
           </div>
-        </div>
         </span>
         <.menu id="sessions-order-menu">
           <:toggle>
@@ -187,16 +190,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     Enum.sort_by(sessions, &total_runtime_memory/1, :desc)
   end
 
-  defp memory_info(sessions) do
-    sessions_memory =
-      sessions
-      |> Enum.map(&total_runtime_memory/1)
-      |> Enum.sum()
-
-    system_memory = fetch_system_memory()
-    percentage = Float.round(sessions_memory / system_memory.free * 100, 2)
-
-    %{sessions: sessions_memory, system: system_memory, percentage: percentage}
+  defp memory_info() do
+    %{free: free, total: total} = Livebook.SystemResources.memory()
+    used = total - free
+    percentage = Float.round(used / total * 100, 2)
+    %{free: free, used: used, total: total, percentage: percentage}
   end
 
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0

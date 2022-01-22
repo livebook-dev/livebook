@@ -3,8 +3,6 @@ defmodule Livebook.Utils do
 
   @type id :: binary()
 
-  @type system_memory :: %{total: non_neg_integer(), free: non_neg_integer()}
-
   @doc """
   Generates a random binary id.
   """
@@ -369,15 +367,6 @@ defmodule Livebook.Utils do
       String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
     end)
     |> Enum.join("\n")
-  end
-
-  @doc """
-  Fetches the total and free memory of the system
-  """
-  @spec fetch_system_memory() :: system_memory()
-  def fetch_system_memory() do
-    memory = :memsup.get_system_memory_data()
-    %{total: memory[:total_memory], free: memory[:free_memory]}
   end
 
   def format_bytes(bytes) when is_integer(bytes) do

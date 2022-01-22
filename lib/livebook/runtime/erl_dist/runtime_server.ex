@@ -179,14 +179,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  def handle_info({:evaluation_finished, _ref}, state) do
-    send_memory_usage(state)
-    Process.cancel_timer(state.memory_timer_ref)
-    {:noreply, schedule_memory_usage(state)}
-  end
-
   def handle_info(:memory_usage, state) do
-    send_memory_usage(state)
+    send(state.owner, {:memory_usage, Evaluator.memory()})
     {:noreply, schedule_memory_usage(state)}
   end
 
@@ -204,7 +198,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         state
       ) do
     state = ensure_evaluator(state, container_ref)
-    opts = Keyword.put(opts, :notify_to, self())
 
     prev_evaluation_ref =
       case prev_locator do
@@ -315,18 +308,5 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   defp schedule_memory_usage(state) do
     ref = Process.send_after(self(), :memory_usage, @memory_usage_interval)
     %{state | memory_timer_ref: ref}
-  end
-
-  defp send_memory_usage(state) do
-    memory =
-      :erlang.memory()
-      |> Enum.into(%{})
-      |> Map.drop([:processes_used, :atom_used])
-
-    other =
-      memory.total - memory.processes - memory.atom - memory.binary - memory.code - memory.ets
-
-    memory = Map.put(memory, :other, other)
-    send(state.owner, {:memory_usage, memory})
   end
 end

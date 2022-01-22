@@ -16,6 +16,8 @@ defmodule Livebook.Application do
         LivebookWeb.Telemetry,
         # Start the PubSub system
         {Phoenix.PubSub, name: Livebook.PubSub},
+        # Periodid measurement of system resources
+        Livebook.SystemResources,
         # Start the tracker server on this node
         {Livebook.Tracker, pubsub_server: Livebook.PubSub},
         # Start the supervisor dynamically managing sessions
