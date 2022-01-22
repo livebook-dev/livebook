@@ -517,6 +517,18 @@ defmodule Livebook.Session do
     end
   end
 
+  defp unschedule_autosave(%{autosave_timer_ref: nil} = state), do: state
+
+  defp unschedule_autosave(state) do
+    if Process.cancel_timer(state.autosave_timer_ref) == false do
+      receive do
+        :autosave -> :ok
+      end
+    end
+
+    %{state | autosave_timer_ref: nil}
+  end
+
   @impl true
   def handle_call(:describe_self, _from, state) do
     {:reply, self_from_state(state), state}
@@ -1034,11 +1046,9 @@ defmodule Livebook.Session do
          _prev_state,
          {:set_notebook_attributes, _client_pid, %{autosave_interval_s: _}}
        ) do
-    if ref = state.autosave_timer_ref do
-      Process.cancel_timer(ref)
-    end
-
-    schedule_autosave(state)
+    state
+    |> unschedule_autosave()
+    |> schedule_autosave()
   end
 
   defp after_operation(state, prev_state, {:client_join, _client_pid, user}) do

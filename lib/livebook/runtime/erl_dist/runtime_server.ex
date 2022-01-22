@@ -132,6 +132,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @impl true
   def init(_opts) do
     Process.send_after(self(), :check_owner, @await_owner_timeout)
+    schedule_memory_usage_report()
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, task_supervisor} = Task.Supervisor.start_link()
@@ -180,8 +181,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_info(:memory_usage, state) do
-    send(state.owner, {:memory_usage, Evaluator.memory()})
-    {:noreply, schedule_memory_usage(state)}
+    report_memory_usage(state)
+    schedule_memory_usage_report()
+    {:noreply, state}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -189,8 +191,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @impl true
   def handle_cast({:set_owner, owner}, state) do
     Process.monitor(owner)
-    send(self(), :memory_usage)
-    {:noreply, %{state | owner: owner}}
+    state = %{state | owner: owner}
+    report_memory_usage(state)
+    {:noreply, state}
   end
 
   def handle_cast(
@@ -305,8 +308,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  defp schedule_memory_usage(state) do
-    ref = Process.send_after(self(), :memory_usage, @memory_usage_interval)
-    %{state | memory_timer_ref: ref}
+  defp schedule_memory_usage_report() do
+    Process.send_after(self(), :memory_usage, @memory_usage_interval)
+  end
+
+  defp report_memory_usage(%{owner: nil}), do: :ok
+
+  defp report_memory_usage(state) do
+    send(state.owner, {:memory_usage, Evaluator.memory()})
   end
 end
