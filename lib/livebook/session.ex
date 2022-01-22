@@ -71,13 +71,11 @@ defmodule Livebook.Session do
           data: Data.t(),
           created_at: DateTime.t(),
           runtime_monitor_ref: reference() | nil,
-          autosave_timer: timer() | nil,
+          autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           memory_usage: memory_usage()
         }
-
-  @type timer :: %{ref: reference(), message_ref: reference()}
 
   @type memory_usage ::
           %{
@@ -474,7 +472,7 @@ defmodule Livebook.Session do
         data: data,
         created_at: DateTime.utc_now(),
         runtime_monitor_ref: nil,
-        autosave_timer: nil,
+        autosave_timer_ref: nil,
         autosave_path: opts[:autosave_path],
         save_task_pid: nil,
         saved_default_file: nil,
@@ -512,11 +510,10 @@ defmodule Livebook.Session do
 
   defp schedule_autosave(state) do
     if interval_s = state.data.notebook.autosave_interval_s do
-      message_ref = make_ref()
-      ref = Process.send_after(self(), {:autosave, message_ref}, interval_s * 1000)
-      %{state | autosave_timer: %{ref: ref, message_ref: message_ref}}
+      ref = Process.send_after(self(), :autosave, interval_s * 1000)
+      %{state | autosave_timer_ref: ref}
     else
-      %{state | autosave_timer: nil}
+      %{state | autosave_timer_ref: nil}
     end
   end
 
@@ -818,12 +815,8 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:autosave, ref}, %{autosave_timer: %{message_ref: ref}} = state) do
+  def handle_info(:autosave, state) do
     {:noreply, state |> maybe_save_notebook_async() |> schedule_autosave()}
-  end
-
-  def handle_info({:autosave, _ref}, state) do
-    {:noreply, state}
   end
 
   def handle_info({:user_change, user}, state) do
@@ -1041,8 +1034,12 @@ defmodule Livebook.Session do
          _prev_state,
          {:set_notebook_attributes, _client_pid, %{autosave_interval_s: _}}
        ) do
-    if timer = state.autosave_timer do
-      Process.cancel_timer(timer.ref)
+    if ref = state.autosave_timer_ref do
+      if Process.cancel_timer(ref) == false do
+        receive do
+          :autosave -> :ok
+        end
+      end
     end
 
     schedule_autosave(state)
