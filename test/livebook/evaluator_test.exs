@@ -9,6 +9,12 @@ defmodule Livebook.EvaluatorTest do
     %{evaluator: evaluator, object_tracker: object_tracker}
   end
 
+  defmacrop metadata do
+    quote do
+      %{evaluation_time_ms: _, memory_usage: %{}}
+    end
+  end
+
   describe "evaluate_code/6" do
     test "given a valid code returns evaluation result", %{evaluator: evaluator} do
       code = """
@@ -19,12 +25,16 @@ defmodule Livebook.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, 3}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, 3}, metadata() = metadata}
+      assert metadata.evaluation_time_ms >= 0
+
+      assert %{atom: _, binary: _, code: _, ets: _, other: _, processes: _, total: _} =
+               metadata.memory_usage
     end
 
     test "given no prev_ref does not see previous evaluation context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
-      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       ignore_warnings(fn ->
         Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
@@ -33,23 +43,23 @@ defmodule Livebook.EvaluatorTest do
                         {:error, _kind,
                          %CompileError{
                            description: "undefined function x/0 (there is no such import)"
-                         }, _stacktrace}, %{evaluation_time_ms: _time_ms}}
+                         }, _stacktrace}, metadata()}
       end)
     end
 
     test "given prev_ref sees previous evaluation context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
-      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
 
-      assert_receive {:evaluation_response, :code_2, {:ok, 1}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
 
     test "given invalid prev_ref just uses default context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, self(), ":hey", :code_1, :code_nonexistent)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, :hey}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, :hey}, metadata()}
     end
 
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
@@ -73,8 +83,7 @@ defmodule Livebook.EvaluatorTest do
       assert_receive {:evaluation_input, :code_1, reply_to, "input1"}
       send(reply_to, {:evaluation_input_reply, {:ok, :value}})
 
-      assert_receive {:evaluation_response, :code_1, {:ok, :value},
-                      %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, :value}, metadata()}
     end
 
     test "returns error along with its kind and stacktrace", %{evaluator: evaluator} do
@@ -86,7 +95,7 @@ defmodule Livebook.EvaluatorTest do
 
       assert_receive {:evaluation_response, :code_1,
                       {:error, :error, %FunctionClauseError{},
-                       [{List, :first, _arity, _location}]}, %{evaluation_time_ms: _time_ms}}
+                       [{List, :first, _arity, _location}]}, metadata()}
     end
 
     test "in case of an error returns only the relevant part of stacktrace",
@@ -119,8 +128,7 @@ defmodule Livebook.EvaluatorTest do
 
         # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.
         assert_receive {:evaluation_response, :code_1,
-                        {:error, _kind, _error, ^expected_stacktrace},
-                        %{evaluation_time_ms: _time_ms}},
+                        {:error, _kind, _error, ^expected_stacktrace}, metadata()},
                        2_000
       end)
     end
@@ -140,15 +148,14 @@ defmodule Livebook.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, self(), code1, :code_1)
-      assert_receive {:evaluation_response, :code_1, {:ok, _}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, _}, metadata()}
 
       Evaluator.evaluate_code(evaluator, self(), code2, :code_2, :code_1)
 
-      assert_receive {:evaluation_response, :code_2, {:error, _, _, _},
-                      %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_2, {:error, _, _, _}, metadata()}
 
       Evaluator.evaluate_code(evaluator, self(), code3, :code_3, :code_2)
-      assert_receive {:evaluation_response, :code_3, {:ok, 4}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_3, {:ok, 4}, metadata()}
     end
 
     test "given file option sets it in evaluation environment", %{evaluator: evaluator} do
@@ -159,18 +166,7 @@ defmodule Livebook.EvaluatorTest do
       opts = [file: "/path/dir/file"]
       Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, opts)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"},
-                      %{evaluation_time_ms: _time_ms}}
-    end
-
-    test "given a :notify_to option to the evaluator", %{evaluator: evaluator} do
-      code = """
-      IO.puts("CatOps")
-      """
-
-      opts = [notify_to: self()]
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, opts)
-      assert_receive {:evaluation_finished, :code_1}
+      assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"}, metadata()}
     end
 
     test "kills widgets that that no evaluation points to", %{evaluator: evaluator} do
@@ -180,15 +176,13 @@ defmodule Livebook.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1},
-                      %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}, metadata()}
 
       ref = Process.monitor(widget_pid1)
 
       Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2},
-                      %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2}, metadata()}
 
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
 
@@ -206,8 +200,7 @@ defmodule Livebook.EvaluatorTest do
         :code_1
       )
 
-      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1},
-                      %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}, metadata()}
 
       refute Process.alive?(widget_pid1)
     end
@@ -216,7 +209,7 @@ defmodule Livebook.EvaluatorTest do
   describe "forget_evaluation/2" do
     test "invalidates the given reference", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
-      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.forget_evaluation(evaluator, :code_1)
 
@@ -227,15 +220,14 @@ defmodule Livebook.EvaluatorTest do
                         {:error, _kind,
                          %CompileError{
                            description: "undefined function x/0 (there is no such import)"
-                         }, _stacktrace}, %{evaluation_time_ms: _time_ms}}
+                         }, _stacktrace}, metadata()}
       end)
     end
 
     test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
 
-      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1},
-                      %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}, metadata()}
 
       ref = Process.monitor(widget_pid1)
       Evaluator.forget_evaluation(evaluator, :code_1)
@@ -260,7 +252,7 @@ defmodule Livebook.EvaluatorTest do
       """
 
       Evaluator.evaluate_code(evaluator, self(), code, :code_1)
-      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       request = {:completion, "num"}
       Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
@@ -287,23 +279,23 @@ defmodule Livebook.EvaluatorTest do
     test "copies the given context and sets as the initial one",
          %{evaluator: evaluator, parent_evaluator: parent_evaluator} do
       Evaluator.evaluate_code(parent_evaluator, self(), "x = 1", :code_1)
-      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.initialize_from(evaluator, parent_evaluator, :code_1)
 
       Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
-      assert_receive {:evaluation_response, :code_2, {:ok, 1}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
 
     test "mirrors process dictionary of the given evaluator",
          %{evaluator: evaluator, parent_evaluator: parent_evaluator} do
       Evaluator.evaluate_code(parent_evaluator, self(), "Process.put(:data, 1)", :code_1)
-      assert_receive {:evaluation_response, :code_1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.initialize_from(evaluator, parent_evaluator, :code_1)
 
       Evaluator.evaluate_code(evaluator, self(), "Process.get(:data)", :code_2)
-      assert_receive {:evaluation_response, :code_2, {:ok, 1}, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
   end
 

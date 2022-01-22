@@ -55,8 +55,6 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
-  @memory_usage_interval 15_000
-
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
@@ -76,14 +74,13 @@ defmodule Livebook.Session do
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          system_memory_timer_ref: reference() | nil,
           memory_usage: memory_usage()
         }
 
   @type memory_usage ::
           %{
             runtime: Livebook.Runtime.runtime_memory() | nil,
-            system: Livebook.Utils.system_memory()
+            system: Livebook.SystemResources.memory()
           }
 
   @typedoc """
@@ -458,7 +455,7 @@ defmodule Livebook.Session do
              do: dump_images(state, images),
              else: :ok
            ) do
-      state = state |> schedule_autosave() |> schedule_system_memory_update()
+      state = schedule_autosave(state)
       {:ok, state}
     else
       {:error, error} ->
@@ -479,8 +476,7 @@ defmodule Livebook.Session do
         autosave_path: opts[:autosave_path],
         save_task_pid: nil,
         saved_default_file: nil,
-        system_memory_timer_ref: nil,
-        memory_usage: %{runtime: nil, system: Utils.fetch_system_memory()}
+        memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()}
       }
 
       {:ok, state}
@@ -519,11 +515,6 @@ defmodule Livebook.Session do
     else
       %{state | autosave_timer_ref: nil}
     end
-  end
-
-  defp schedule_system_memory_update(state) do
-    ref = Process.send_after(self(), :system_memory, @memory_usage_interval)
-    %{state | system_memory_timer_ref: ref}
   end
 
   @impl true
@@ -781,8 +772,14 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:evaluation_response, cell_id, response, metadata}, state) do
+    {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
-    {:noreply, handle_operation(state, operation)}
+
+    {:noreply,
+     state
+     |> put_memory_usage(memory_usage)
+     |> handle_operation(operation)
+     |> notify_update()}
   end
 
   def handle_info({:evaluation_input, cell_id, reply_to, input_id}, state) do
@@ -832,17 +829,8 @@ defmodule Livebook.Session do
     {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
-  def handle_info(:system_memory, state) do
-    {:noreply, state |> update_system_memory_usage() |> schedule_system_memory_update()}
-  end
-
   def handle_info({:memory_usage, runtime_memory}, state) do
-    Process.cancel_timer(state.system_memory_timer_ref)
-    system_memory = Utils.fetch_system_memory()
-    memory = %{runtime: runtime_memory, system: system_memory}
-    state = %{state | memory_usage: memory}
-    notify_update(state)
-    {:noreply, state}
+    {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -1010,16 +998,15 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_notebook_name, _pid, _name}) do
     notify_update(state)
-    state
   end
 
   defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
     if runtime do
       state
     else
-      put_in(state.memory_usage.runtime, nil)
-      |> update_system_memory_usage()
-      |> schedule_system_memory_update()
+      state
+      |> put_memory_usage(nil)
+      |> notify_update()
     end
   end
 
@@ -1040,8 +1027,6 @@ defmodule Livebook.Session do
     end
 
     notify_update(state)
-
-    state
   end
 
   defp after_operation(
@@ -1166,10 +1151,15 @@ defmodule Livebook.Session do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
 
+  defp put_memory_usage(state, runtime) do
+    put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
+  end
+
   defp notify_update(state) do
     session = self_from_state(state)
     Livebook.Sessions.update_session(session)
     broadcast_message(state.session_id, {:session_updated, session})
+    state
   end
 
   defp maybe_save_notebook_async(state) do
@@ -1310,10 +1300,4 @@ defmodule Livebook.Session do
 
   defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
   defp container_ref_for_section(section), do: section.id
-
-  defp update_system_memory_usage(state) do
-    state = put_in(state.memory_usage.system, Utils.fetch_system_memory())
-    notify_update(state)
-    state
-  end
 end

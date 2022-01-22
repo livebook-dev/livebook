@@ -395,7 +395,7 @@ defmodule LivebookWeb.SessionLive do
           <.remix_icon icon="settings-3-line text-xl" />
         <% end %>
       </div>
-      <div class="flex flex-col mt-4 space-y-4">
+      <div class="flex flex-col mt-2 space-y-4">
         <%= if @data_view.runtime do %>
           <div class="flex flex-col space-y-3">
             <.labeled_text label="Type" text={runtime_type_label(@data_view.runtime)} />
@@ -430,43 +430,49 @@ defmodule LivebookWeb.SessionLive do
           </div>
         <% end %>
         <%= if uses_memory?(@session.memory_usage) do %>
-          <div class="py-6 flex flex-col justify-center relative overflow-hidden">
-            <div class="mb-1 text-sm font-semibold text-gray-800 flex flex-row justify-between">
-              <span class="text-gray-500 uppercase">Memory:</span>
-              <div class="basis-3/4">
-                <span class="tooltip bottom"
-                data-tooltip={"This machine has #{format_bytes(@session.memory_usage.system.total)}"}>
-                  <span class="w-full text-right">
-                    <%= format_bytes(@session.memory_usage.runtime.total) %>
-                    /
-                    <%= format_bytes(@session.memory_usage.system.free) %>
-                  </span>
-                </span>
-              </div>
-            </div>
-            <div class="w-full h-6 flex flex-row gap-1">
-              <%= for {type, memory} <- runtime_memory(@session.memory_usage) do %>
-                <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
-              <% end %>
-            </div>
-            <div class="flex flex-col py-4">
-              <%= for {type, memory} <- runtime_memory(@session.memory_usage) do %>
-                <div class="flex flex-row items-center">
-                  <span class={"w-4 h-4 mr-2 rounded #{memory_color(type)}"}></span>
-                  <span class="capitalize text-gray-700"><%= type %></span>
-                  <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
-                </div>
-              <% end %>
-            </div>
-          </div>
+          <.memory_info memory_usage={@session.memory_usage} />
         <% else %>
-          <div class="mb-1 text-sm font-semibold text-gray-800 py-4 flex flex-col">
-            <span class="w-full uppercase text-gray-500">Memory</span>
-            <%= format_bytes(@session.memory_usage.system.free) %>
-            available out of
-            <%= format_bytes(@session.memory_usage.system.total) %>
+          <div class="mb-1 text-sm text-gray-800 py-6 flex flex-col">
+            <span class="w-full uppercase font-semibold text-gray-500">Memory</span>
+            <p class="py-1">
+              <%= format_bytes(@session.memory_usage.system.free) %>
+              available out of
+              <%= format_bytes(@session.memory_usage.system.total) %>
+            </p>
           </div>
         <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp memory_info(assigns) do
+    assigns = assign(assigns, :runtime_memory, runtime_memory(assigns.memory_usage))
+
+    ~H"""
+    <div class="py-6 flex flex-col justify-center">
+      <div class="mb-1 text-sm font-semibold text-gray-800 flex flex-row justify-between">
+        <span class="text-gray-500 uppercase">Memory</span>
+        <span class="text-right">
+          <%= format_bytes(@memory_usage.system.free) %> available
+        </span>
+      </div>
+      <div class="w-full h-8 flex flex-row py-1 gap-0.5">
+        <%= for {type, memory} <- @runtime_memory  do %>
+          <div class={"h-6 #{memory_color(type)}"} style={"width: #{memory.percentage}%"}></div>
+        <% end %>
+      </div>
+      <div class="flex flex-col py-1">
+        <%= for {type, memory} <- @runtime_memory do %>
+          <div class="flex flex-row items-center">
+            <span class={"w-4 h-4 mr-2 rounded #{memory_color(type)}"}></span>
+            <span class="capitalize text-gray-700"><%= type %></span>
+            <span class="text-gray-500 ml-auto"><%= memory.unit %></span>
+          </div>
+        <% end %>
+        <div class="flex rounded justify-center my-2 py-0.5 text-sm text-gray-800 bg-gray-200">
+          Total: <%= format_bytes(@memory_usage.runtime.total) %>
+        </div>
       </div>
     </div>
     """
@@ -1525,11 +1531,11 @@ defmodule LivebookWeb.SessionLive do
     "Livebook - #{notebook_name}"
   end
 
-  defp memory_color(:atom), do: "bg-green-500"
-  defp memory_color(:code), do: "bg-blue-700"
-  defp memory_color(:processes), do: "bg-red-500"
-  defp memory_color(:binary), do: "bg-blue-500"
-  defp memory_color(:ets), do: "bg-yellow-600"
+  defp memory_color(:atom), do: "bg-blue-500"
+  defp memory_color(:code), do: "bg-yellow-600"
+  defp memory_color(:processes), do: "bg-blue-700"
+  defp memory_color(:binary), do: "bg-green-500"
+  defp memory_color(:ets), do: "bg-red-500"
   defp memory_color(:other), do: "bg-gray-400"
 
   defp runtime_memory(%{runtime: memory}) do
