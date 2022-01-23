@@ -129,7 +129,7 @@ defmodule Livebook.MixProject do
   @app_options [
     name: "Livebook",
     version: @version,
-    logo_path: "static/images/logo.png",
+    logo_path: "rel/app/mac-icon.png",
     url_schemes: ["livebook"],
     document_types: [
       %{name: "LiveMarkdown", role: "Editor", extensions: ["livemd"]}
