@@ -78,6 +78,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   def init(opts) do
     unload_modules_on_termination = Keyword.get(opts, :unload_modules_on_termination, true)
     auto_termination = Keyword.get(opts, :auto_termination, true)
+    parent_node = Keyword.get(opts, :parent_node)
 
     ## Initialize the node
 
@@ -105,7 +106,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        server_supevisor: server_supevisor,
        runtime_servers: [],
        initial_ignore_module_conflict: initial_ignore_module_conflict,
-       original_standard_error: original_standard_error
+       original_standard_error: original_standard_error,
+       parent_node: parent_node
      }}
   end
 
@@ -120,6 +122,10 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
 
     if state.unload_modules_on_termination do
       ErlDist.unload_required_modules()
+    end
+
+    if state.parent_node != nil do
+      Node.disconnect(state.parent_node)
     end
 
     :ok

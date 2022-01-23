@@ -28,7 +28,8 @@ defmodule Livebook.Runtime.Attached do
 
     case Node.ping(node) do
       :pong ->
-        server_pid = Livebook.Runtime.ErlDist.initialize(node)
+        opts = [parent_node: node()]
+        server_pid = Livebook.Runtime.ErlDist.initialize(node, opts)
         {:ok, %__MODULE__{node: node, cookie: cookie, server_pid: server_pid}}
 
       :pang ->
@@ -47,8 +48,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
 
   def disconnect(runtime) do
     ErlDist.RuntimeServer.stop(runtime.server_pid)
-    _ = Node.disconnect(runtime.node)
-    :ok
   end
 
   def evaluate_code(runtime, code, locator, prev_locator, opts \\ []) do
