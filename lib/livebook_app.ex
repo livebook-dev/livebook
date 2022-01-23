@@ -71,6 +71,12 @@ if Mix.target() == :app do
       {:noreply, state}
     end
 
+    @impl true
+    def handle_info({:reopen_app, _}, state) do
+      Livebook.Utils.browser_open(LivebookWeb.Endpoint.access_url())
+      {:noreply, state}
+    end
+
     # ignore other events
     @impl true
     def handle_info(_event, state) do
