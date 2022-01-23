@@ -147,7 +147,16 @@ defmodule AppBuilder.MacOS do
 
     let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/mac_app", ofType: "")!
 
+    let resourcePath = Bundle.main.resourcePath ?? ""
+
+    var environment = ProcessInfo.processInfo.environment
+    let path = environment["PATH"] ?? ""
+    let elixirBinPath = "\\(resourcePath)/rel/elixir/bin"
+
+    environment["PATH"] = "\\(elixirBinPath):\\(path)"
+
     let task = Process()
+    task.environment = environment
     task.launchPath = releaseScriptPath
     task.arguments = ["start"]
     task.standardOutput = logFile
