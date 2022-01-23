@@ -32,7 +32,7 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp extra_applications(:app), do: [:wx, :inets]
+  defp extra_applications(:app), do: [:wx]
   defp extra_applications(_), do: []
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -139,9 +139,11 @@ defmodule Livebook.MixProject do
   ]
 
   defp standalone_erlang_elixir(release) do
+    Code.require_file("rel/app/standalone.exs")
+
     release
-    |> AppBuilder.copy_erlang()
-    |> AppBuilder.copy_elixir()
+    |> Standalone.copy_erlang()
+    |> Standalone.copy_elixir("1.13.2")
   end
 
   defp build_mac_app(release) do
