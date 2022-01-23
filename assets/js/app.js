@@ -91,12 +91,14 @@ window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
 });
 
-if ("clipboard" in navigator) {
-  window.addEventListener("lb:clipcopy", (event) => {
+window.addEventListener("lb:clipcopy", (event) => {
+  if ("clipboard" in navigator) {
     const text = event.target.textContent;
     navigator.clipboard.writeText(text);
-  });
-}
+  } else {
+    alert('Sorry, your browser does not support clipboard copy.');
+  }
+});
 
 // Other global handlers
 
