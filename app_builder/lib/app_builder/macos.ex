@@ -109,7 +109,7 @@ defmodule AppBuilder.MacOS do
 
     File.mkdir_p!("tmp")
     launcher_src_path = "tmp/Launcher.swift"
-    File.write!(launcher_src_path, launcher(["/rel/elixir/bin"]))
+    File.write!(launcher_src_path, launcher(["/rel/vendor/bin"]))
     launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
     File.mkdir_p!(Path.dirname(launcher_path))
 

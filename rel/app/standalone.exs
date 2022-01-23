@@ -78,7 +78,7 @@ defmodule Standalone do
     File.mkdir_p!(bin_path)
 
     # download and unzip
-    standalone_destination = Path.join(release.path, "elixir")
+    standalone_destination = Path.join(release.path, "vendor")
     download_elixir_at_destination(standalone_destination, elixir_version)
 
     # patch elixir file to look for the right erts <resource_path>/rel/releases/#{release.version}/elixir
@@ -91,7 +91,7 @@ defmodule Standalone do
       end
     )
 
-    # patch elixir file to look for the right erts <resource_path>/rel/elixir/bin/elixir
+    # patch elixir file to look for the right erts <resource_path>/rel/vendor/bin/elixir
     patch_elixir(include_executables_for, release,
       fn filename ->
         Path.join([standalone_destination, "bin", filename])
