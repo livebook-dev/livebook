@@ -64,8 +64,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp platform_from_socket(socket) do
-    with connect_info when connect_info != nil <- get_connect_info(socket),
-         {:ok, user_agent} <- Map.fetch(connect_info, :user_agent) do
+    with user_agent when is_binary(user_agent) <- get_connect_info(socket, :user_agent) do
       platform_from_user_agent(user_agent)
     else
       _ -> nil
