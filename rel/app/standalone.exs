@@ -7,9 +7,9 @@ defmodule Standalone do
   """
   @spec copy_erlang(Mix.Release.t()) :: Mix.Release.t()
   def copy_erlang(release) do
-    {erts_source, erts_bin_dir, erts_lib_dir, erts_version} = erts_data()
+    {erts_source, erts_bin_dir, erts_lib_dir, _erts_version} = erts_data()
 
-    erts_destination_source = Path.join(release.path, "erts-#{erts_version}/bin")
+    erts_destination_source = Path.join(release.path, "vendor/erts/bin")
     File.mkdir_p!(erts_destination_source)
 
     erts_source
@@ -38,14 +38,14 @@ defmodule Standalone do
     executable!(Path.join(erts_destination_source, "erl"))
 
     # Copy lib
-    erts_destination_lib = Path.join(release.path, "lib")
+    erts_destination_lib = Path.join(release.path, "/vendor/lib")
     File.mkdir_p!(erts_destination_lib)
 
     erts_lib_dir
     |> File.cp_r!(erts_destination_lib, fn _, _ -> false end)
 
     # copy start.boot to <resource_path>/rel/bin
-    erts_destination_bin =  Path.join(release.path, "/bin")
+    erts_destination_bin =  Path.join(release.path, "/vendor/bin")
     start_boot_file = Path.join(erts_destination_bin, "start.boot")
     File.mkdir_p!(erts_destination_bin)
 
@@ -73,23 +73,9 @@ defmodule Standalone do
   def copy_elixir(release, elixir_version) do
     include_executables_for = Keyword.get(release.options, :include_executables_for, [:unix])
 
-    elixir_bin_path = Application.app_dir(:elixir, "../../bin")
-    bin_path = Path.join(release.path, "bin")
-    File.mkdir_p!(bin_path)
-
     # download and unzip
-    standalone_destination = Path.join(release.path, "vendor")
+    standalone_destination = Path.join(release.path, "vendor/elixir")
     download_elixir_at_destination(standalone_destination, elixir_version)
-
-    # patch elixir file to look for the right erts <resource_path>/rel/releases/#{release.version}/elixir
-    patch_elixir(include_executables_for, release,
-      fn filename ->
-        Path.join(elixir_bin_path, filename)
-      end,
-      fn filename ->
-        Path.join(release.version_path, filename)
-      end
-    )
 
     # patch elixir file to look for the right erts <resource_path>/rel/vendor/bin/elixir
     patch_elixir(include_executables_for, release,
@@ -134,8 +120,7 @@ defmodule Standalone do
       {"elixir",
        &(&1
          |> File.read!()
-         |> String.replace(~s[ -pa "$SCRIPT_PATH"/../lib/*/ebin], "")
-         |> replace_erts_bin(release, ~s["$SCRIPT_PATH"/../../erts-#{release.erts_version}/bin/]))},
+         |> replace_erts_bin(release, ~s["$SCRIPT_PATH"/../../erts/bin/]))},
       {"iex", &File.read!/1}
     ]
   end
@@ -145,8 +130,7 @@ defmodule Standalone do
       {"elixir.bat",
        &(&1
          |> File.read!()
-         |> String.replace(~s[goto expand_erl_libs], ~s[goto run])
-         |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts-#{release.erts_version}\\bin\\]))},
+         |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts\\bin\\]))},
       {"iex.bat", &File.read!/1}
     ]
   end
@@ -158,7 +142,7 @@ defmodule Standalone do
 
   defp fetch_body!(url) do
     Logger.debug("Downloading elixir from #{url}")
-    case Livebook.Utils.HTTP.request(:get, url, [timeout: 15_000]) do
+    case Livebook.Utils.HTTP.request(:get, url, [timeout: :infinity]) do
       {:ok, 200, _headers, body} ->
         body
 
