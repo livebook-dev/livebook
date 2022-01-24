@@ -6,7 +6,7 @@ main() {
 
   wxwidgets_vsn="3.1.5"
   otp_vsn="24.2"
-  elixir_vsn="1.13.1"
+  elixir_vsn="1.13.2"
 
   target=$(target)
 
