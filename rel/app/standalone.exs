@@ -46,24 +46,16 @@ defmodule Standalone do
 
     # copy start.boot to <resource_path>/rel/bin
     erts_destination_bin =  Path.join(release.path, "/vendor/bin")
-    start_boot_file = Path.join(erts_destination_bin, "start.boot")
+
+    boot_files = erts_bin_dir |> Path.join("*.boot") |> Path.wildcard() |> Enum.map(& String.split(&1, "/") |> List.last())
+
     File.mkdir_p!(erts_destination_bin)
 
-    erts_bin_dir
-    |> Path.join("start.boot")
-    |> File.cp!(start_boot_file, fn _, _ -> false end)
+    for boot_file <- boot_files do
+      erts_bin_dir |> Path.join(boot_file) |> File.cp!(Path.join(erts_destination_bin, boot_file))
+    end
 
     %{release | erts_source: erts_source}
-  end
-
-  @erts_bin [~s[ERTS_BIN="$ERTS_BIN"], ~s[ERTS_BIN=!ERTS_BIN!]]
-
-  defp replace_erts_bin(contents, release, new_path) do
-    if release.erts_source do
-      String.replace(contents, @erts_bin, ~s[ERTS_BIN=#{new_path}])
-    else
-      contents
-    end
   end
 
   @doc """
@@ -71,21 +63,13 @@ defmodule Standalone do
   """
   @spec copy_elixir(Mix.Release.t(), elixir_version :: String.t()) :: Mix.Release.t()
   def copy_elixir(release, elixir_version) do
-    include_executables_for = Keyword.get(release.options, :include_executables_for, [:unix])
-
     # download and unzip
     standalone_destination = Path.join(release.path, "vendor/elixir")
     download_elixir_at_destination(standalone_destination, elixir_version)
 
-    # patch elixir file to look for the right erts <resource_path>/rel/vendor/bin/elixir
-    patch_elixir(include_executables_for, release,
-      fn filename ->
-        Path.join([standalone_destination, "bin", filename])
-      end,
-      fn filename ->
-        Path.join([standalone_destination, "bin", filename])
-      end
-    )
+    # make executable
+    ["elixir", "elixirc", "mix", "iex"]
+    |> Enum.map(&(executable!(Path.join(standalone_destination, "bin/#{&1}"))))
 
     release
   end
@@ -95,44 +79,6 @@ defmodule Standalone do
     binary = fetch_body!(url)
     File.write!("/tmp/elixir_#{elixir_version}.zip", binary, [:binary])
     :zip.unzip('/tmp/elixir_#{elixir_version}.zip', cwd: destination)
-  end
-
-  defp patch_elixir(include_executables_for, release, fn_source, fn_target) do
-    for os <- include_executables_for do
-      for {filename, contents_fun} <- elixir_cli_for(os, release) do
-        source = fn_source.(filename)
-
-        if File.regular?(source) do
-          target = fn_target.(filename)
-
-          File.write!(target, contents_fun.(source))
-          executable!(target)
-
-        else
-          skipping("#{filename} for #{os} (bin/#{filename} not found in the Elixir installation)")
-        end
-      end
-    end
-  end
-
-  defp elixir_cli_for(:unix, release) do
-    [
-      {"elixir",
-       &(&1
-         |> File.read!()
-         |> replace_erts_bin(release, ~s["$SCRIPT_PATH"/../../erts/bin/]))},
-      {"iex", &File.read!/1}
-    ]
-  end
-
-  defp elixir_cli_for(:windows, release) do
-    [
-      {"elixir.bat",
-       &(&1
-         |> File.read!()
-         |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts\\bin\\]))},
-      {"iex.bat", &File.read!/1}
-    ]
   end
 
   defp erts_data do
@@ -149,10 +95,6 @@ defmodule Standalone do
       {:error, error}  ->
         raise "couldn't fetch #{url}: #{inspect(error)}"
     end
-  end
-
-  defp skipping(message) do
-    Mix.shell().info([:yellow, "* skipping ", :reset, message])
   end
 
   defp executable!(path), do: File.chmod!(path, 0o755)
