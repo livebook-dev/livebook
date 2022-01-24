@@ -16,19 +16,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [v0.5.0](https://github.com/livebook-dev/livebook/tree/v0.5.0) (2022-01-19)
 
-This release comes with a number of exciting features, in particular it adds
-support for extending Livebook with custom-built widgets via `Kino.JS`. It also
-includes several new guides discussing how to make your notebooks more interactive
-with Kino.
-
-Furthermore, starting this version, we provide a Livebook desktop application,
-with the hope to lower the barrier for people jumping into Elixir and programming
-in general.
-
-Apart from multiple UI and intellisense improvements, there was a number of breaking
-changes and optimisations with regard to outputs, please make sure to use Kino 0.5.0
-or later. We also recommend reading the corresponding [Kino changelog](https://github.com/livebook-dev/kino/blob/main/CHANGELOG.md#v050-2022-01-19).
-
 ### Added
 
 - Support for input forms ([#790](https://github.com/livebook-dev/livebook/pull/790))
