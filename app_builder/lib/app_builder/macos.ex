@@ -97,10 +97,12 @@ defmodule AppBuilder.MacOS do
         :logo_path,
         :info_plist,
         :url_schemes,
-        :document_types
+        :document_types,
+        :additional_paths
       ])
 
     app_name = Keyword.fetch!(options, :name)
+    additional_paths = Keyword.get(options, :additional_paths, [])
 
     app_bundle_path = Path.join([Mix.Project.build_path(), "rel", "#{app_name}.app"])
     File.rm_rf!(app_bundle_path)
@@ -109,7 +111,7 @@ defmodule AppBuilder.MacOS do
 
     File.mkdir_p!("tmp")
     launcher_src_path = "tmp/Launcher.swift"
-    File.write!(launcher_src_path, launcher())
+    File.write!(launcher_src_path, launcher(additional_paths))
     launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
     File.mkdir_p!(Path.dirname(launcher_path))
 
@@ -131,7 +133,11 @@ defmodule AppBuilder.MacOS do
     release
   end
 
-  defp launcher do
+  defp launcher(additional_paths) do
+    additional_paths = additional_paths
+      |> Enum.map(&("\\(resourcePath)#{&1}"))
+      |> Enum.join(":")
+
     """
     import Foundation
     import Cocoa
@@ -147,7 +153,16 @@ defmodule AppBuilder.MacOS do
 
     let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/mac_app", ofType: "")!
 
+    let resourcePath = Bundle.main.resourcePath ?? ""
+    let additionalPaths = "#{additional_paths}"
+
+    var environment = ProcessInfo.processInfo.environment
+    let path = environment["PATH"] ?? ""
+
+    environment["PATH"] = "\\(additionalPaths):\\(path)"
+
     let task = Process()
+    task.environment = environment
     task.launchPath = releaseScriptPath
     task.arguments = ["start"]
     task.standardOutput = logFile

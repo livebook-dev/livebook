@@ -115,13 +115,15 @@ defmodule Livebook.MixProject do
       ],
       mac_app: [
         include_executables_for: [:unix],
+        include_erts: false,
         rel_templates_path: "rel/app",
-        steps: [:assemble, &build_mac_app/1]
+        steps: [:assemble, &standalone_erlang_elixir/1, &build_mac_app/1]
       ],
       mac_app_dmg: [
         include_executables_for: [:unix],
+        include_erts: false,
         rel_templates_path: "rel/app",
-        steps: [:assemble, &build_mac_app_dmg/1]
+        steps: [:assemble, &standalone_erlang_elixir/1, &build_mac_app_dmg/1]
       ]
     ]
   end
@@ -131,10 +133,19 @@ defmodule Livebook.MixProject do
     version: @version,
     logo_path: "rel/app/mac-icon.png",
     url_schemes: ["livebook"],
+    additional_paths: ["/rel/vendor/bin", "/rel/vendor/elixir/bin"],
     document_types: [
       %{name: "LiveMarkdown", role: "Editor", extensions: ["livemd"]}
     ]
   ]
+
+  defp standalone_erlang_elixir(release) do
+    Code.require_file("rel/app/standalone.exs")
+
+    release
+    |> Standalone.copy_erlang()
+    |> Standalone.copy_elixir("1.13.2")
+  end
 
   defp build_mac_app(release) do
     AppBuilder.build_mac_app(release, @app_options)
