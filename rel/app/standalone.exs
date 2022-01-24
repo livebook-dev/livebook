@@ -9,7 +9,7 @@ defmodule Standalone do
   def copy_erlang(release) do
     {erts_source, erts_bin_dir, erts_lib_dir, _erts_version} = erts_data()
 
-    erts_destination_source = Path.join(release.path, "vendor/erts/bin")
+    erts_destination_source = Path.join(release.path, "vendor/bin")
     File.mkdir_p!(erts_destination_source)
 
     erts_source
@@ -38,14 +38,14 @@ defmodule Standalone do
     executable!(Path.join(erts_destination_source, "erl"))
 
     # Copy lib
-    erts_destination_lib = Path.join(release.path, "/vendor/lib")
+    erts_destination_lib = Path.join(release.path, "lib")
     File.mkdir_p!(erts_destination_lib)
 
     erts_lib_dir
     |> File.cp_r!(erts_destination_lib, fn _, _ -> false end)
 
-    # copy start.boot to <resource_path>/rel/bin
-    erts_destination_bin =  Path.join(release.path, "/vendor/bin")
+    # copy *.boot files to <resource_path>/bin
+    erts_destination_bin =  Path.join(release.path, "bin")
 
     boot_files = erts_bin_dir |> Path.join("*.boot") |> Path.wildcard() |> Enum.map(& String.split(&1, "/") |> List.last())
 
