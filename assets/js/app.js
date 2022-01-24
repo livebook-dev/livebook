@@ -96,7 +96,9 @@ window.addEventListener("lb:clipcopy", (event) => {
     const text = event.target.textContent;
     navigator.clipboard.writeText(text);
   } else {
-    alert('Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost.');
+    alert(
+      "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost."
+    );
   }
 });
 
