@@ -133,6 +133,7 @@ defmodule Livebook.MixProject do
     version: @version,
     logo_path: "static/images/logo.png",
     url_schemes: ["livebook"],
+    additional_paths: ["/rel/vendor/erts/bin", "/rel/vendor/elixir/bin"],
     document_types: [
       %{name: "LiveMarkdown", role: "Editor", extensions: ["livemd"]}
     ]

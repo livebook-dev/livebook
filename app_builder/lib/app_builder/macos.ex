@@ -97,10 +97,12 @@ defmodule AppBuilder.MacOS do
         :logo_path,
         :info_plist,
         :url_schemes,
-        :document_types
+        :document_types,
+        :additional_paths
       ])
 
     app_name = Keyword.fetch!(options, :name)
+    additional_paths = Keyword.get(options, :additional_paths, [])
 
     app_bundle_path = Path.join([Mix.Project.build_path(), "rel", "#{app_name}.app"])
     File.rm_rf!(app_bundle_path)
@@ -109,7 +111,7 @@ defmodule AppBuilder.MacOS do
 
     File.mkdir_p!("tmp")
     launcher_src_path = "tmp/Launcher.swift"
-    File.write!(launcher_src_path, launcher(["/rel/vendor/bin"]))
+    File.write!(launcher_src_path, launcher(additional_paths))
     launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
     File.mkdir_p!(Path.dirname(launcher_path))
 
