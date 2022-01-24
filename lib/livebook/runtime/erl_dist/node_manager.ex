@@ -129,7 +129,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
       ErlDist.unload_required_modules()
     end
 
-    if state.parent_node != nil do
+    if state.parent_node do
       Node.disconnect(state.parent_node)
     end
 
