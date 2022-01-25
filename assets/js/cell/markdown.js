@@ -17,6 +17,7 @@ import { removePosition } from "unist-util-remove-position";
 
 import { highlight } from "./live_editor/monaco";
 import { renderMermaid } from "./markdown/mermaid";
+import { escapeHtml } from "../lib/utils";
 
 /**
  * Renders markdown content in the given container.
@@ -163,7 +164,7 @@ function remarkPrepareMermaid(options) {
     visit(ast, "code", (node, index, parent) => {
       if (node.lang === "mermaid") {
         node.type = "html";
-        node.value = `<div class="mermaid">${node.value}</div>`;
+        node.value = `<div class="mermaid">${escapeHtml(node.value)}</div>`;
       }
     });
   };

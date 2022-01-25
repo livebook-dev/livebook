@@ -34,13 +34,13 @@ const maybeInjectFontAwesome = (value) => {
 
 export function renderMermaid(value) {
   return importMermaid().then((mermaid) => {
-    try {
-      // Inject font-awesome when fa: prefix is used
-      maybeInjectFontAwesome(value);
+    // Inject font-awesome when fa: prefix is used
+    maybeInjectFontAwesome(value);
 
+    try {
       return mermaid.render(getId(), value);
     } catch (e) {
-      return `<pre><code>${e.message}</code></pre>`;
+      return `<div class="error-box whitespace-pre-wrap"><span class="font-semibold">Mermaid</span>\n${e.message}</div>`;
     }
   });
 }
