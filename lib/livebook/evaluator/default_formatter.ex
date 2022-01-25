@@ -35,14 +35,13 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   defp to_output(value) do
     # Kino is a "client side" extension for Livebook that may be
     # installed into the runtime node. If it is installed we use
-    # its more precies output rendering rules.
+    # its more precise output rendering rules.
     if Code.ensure_loaded?(Kino.Render) do
       try do
         Kino.Render.to_livebook(value)
       catch
         kind, error ->
-          {error, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
-          formatted = Exception.format(kind, error, stacktrace)
+          formatted = format_error(kind, error, __STACKTRACE__)
           Logger.error(formatted)
           to_inspect_output(value)
       end
@@ -52,8 +51,19 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   end
 
   defp to_inspect_output(value, opts \\ []) do
-    inspected = inspect(value, inspect_opts(opts))
-    {:text, inspected}
+    try do
+      inspected = inspect(value, inspect_opts(opts))
+      {:text, inspected}
+    catch
+      kind, error ->
+        formatted = format_error(kind, error, __STACKTRACE__)
+        {:error, formatted, :other}
+    end
+  end
+
+  defp format_error(kind, error, stacktrace) do
+    {error, stacktrace} = Exception.blame(kind, error, stacktrace)
+    Exception.format(kind, error, stacktrace)
   end
 
   defp inspect_opts(opts) do
