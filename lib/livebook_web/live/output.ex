@@ -1,6 +1,8 @@
 defmodule LivebookWeb.Output do
   use Phoenix.Component
 
+  import LivebookWeb.Helpers
+
   alias LivebookWeb.Output
 
   @doc """
@@ -93,7 +95,7 @@ defmodule LivebookWeb.Output do
 
     ~H"""
     <div class="flex flex-col space-y-4">
-      <%= render_error_message_output(@formatted) %>
+      <%= render_error(@formatted) %>
       <%= if @is_standalone do %>
         <div>
           <button class="button-base button-gray" phx-click="restart_runtime">
@@ -112,7 +114,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:error, formatted, _type}, %{}) do
-    render_error_message_output(formatted)
+    render_error(formatted)
   end
 
   # TODO: remove on Livebook v0.7
@@ -123,24 +125,32 @@ defmodule LivebookWeb.Output do
               :table_dynamic,
               :frame_dynamic
             ] do
-    render_error_message_output("""
+    render_error_message("""
     Legacy output format: #{inspect(output)}. Please update Kino to
     the latest version.
     """)
   end
 
   defp render_output(output, %{}) do
-    render_error_message_output("""
+    render_error_message("""
     Unknown output format: #{inspect(output)}. If you're using Kino,
     you may want to update Kino and Livebook to the latest version.
     """)
   end
 
-  defp render_error_message_output(message) do
+  defp render_error(message) do
     assigns = %{message: message}
 
     ~H"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
+    <div class="whitespace-pre-wrap font-editor text-gray-500"><%= ansi_string_to_html(@message) %></div>
+    """
+  end
+
+  defp render_error_message(message) do
+    assigns = %{message: message}
+
+    ~H"""
+    <div class="whitespace-pre-wrap font-editor text-red-600"><%= @message %></div>
     """
   end
 end

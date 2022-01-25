@@ -94,8 +94,8 @@ defmodule Livebook.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, self(), code, :code_1)
 
       assert_receive {:evaluation_response, :code_1,
-                      {:error, :error, %FunctionClauseError{},
-                       [{List, :first, _arity, _location}]}, metadata()}
+                      {:error, :error, :function_clause, [{List, :first, _arity, _location}]},
+                      metadata()}
     end
 
     test "in case of an error returns only the relevant part of stacktrace",
