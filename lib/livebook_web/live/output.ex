@@ -140,7 +140,7 @@ defmodule LivebookWeb.Output do
     assigns = %{message: message}
 
     ~H"""
-    <div class="overflow-auto whitespace-pre text-red-600 tiny-scrollbar"><%= @message %></div>
+    <div class="overflow-auto whitespace-pre-wrap font-editor text-red-600 tiny-scrollbar"><%= @message %></div>
     """
   end
 end
