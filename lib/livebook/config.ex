@@ -1,7 +1,19 @@
+defprotocol Livebook.ConfigBackend do
+  @spec put(t(), atom(), any()) :: t()
+  def put(config, key, value)
+
+  @spec get(t(), atom()) :: any()
+  def get(config, key)
+
+  @spec load(t()) :: t()
+  def load(config)
+end
+
 defmodule Livebook.Config do
   @moduledoc false
 
   alias Livebook.FileSystem
+  alias Livebook.ConfigBackend
 
   @type auth_mode() :: :token | :password | :disabled
 
@@ -23,7 +35,8 @@ defmodule Livebook.Config do
   """
   @spec default_runtime() :: {Livebook.Runtime.t(), list()}
   def default_runtime() do
-    Application.fetch_env!(:livebook, :default_runtime)
+    fetch_config_backend()
+    |> ConfigBackend.get(:default_runtime)
   end
 
   @doc """
@@ -31,7 +44,35 @@ defmodule Livebook.Config do
   """
   @spec auth_mode() :: auth_mode()
   def auth_mode() do
-    Application.fetch_env!(:livebook, :authentication_mode)
+    fetch_config_backend()
+    |> ConfigBackend.get(:authentication_mode)
+    |> case do
+      :disabled -> :disabled
+      {type, _value} -> type
+    end
+  end
+
+  @doc """
+  Returns secret for a given auth mode (either token or a password).
+  """
+  @spec auth_mode_secret(:token | :password) :: any()
+  def auth_mode_secret(mode) do
+    fetch_config_backend()
+    |> ConfigBackend.get(:authentication_mode)
+    |> case do
+      {^mode, value} ->
+        value
+    end
+  end
+
+  @doc """
+  Sets livebook's authentication to either token or password with given value or disables it completely.
+  """
+  @spec set_auth_mode(:token | :password | :disabled, value :: any()) :: :ok
+  def set_auth_mode(type, value \\ nil) when type in [:disabled, :token, :password] do
+    fetch_config_backend()
+    |> ConfigBackend.put(:authentication_mode, {type, value})
+    |> persist_config_backend()
   end
 
   @doc """
@@ -39,7 +80,8 @@ defmodule Livebook.Config do
   """
   @spec file_systems() :: list(FileSystem.t())
   def file_systems() do
-    Application.fetch_env!(:livebook, :file_systems)
+    fetch_config_backend()
+    |> ConfigBackend.get(:file_systems)
   end
 
   @doc """
@@ -48,7 +90,11 @@ defmodule Livebook.Config do
   @spec append_file_system(FileSystem.t()) :: list(FileSystem.t())
   def append_file_system(file_system) do
     file_systems = Enum.uniq(file_systems() ++ [file_system])
-    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
+
+    fetch_config_backend()
+    |> ConfigBackend.put(:file_systems, file_systems)
+    |> persist_config_backend()
+
     file_systems
   end
 
@@ -58,7 +104,11 @@ defmodule Livebook.Config do
   @spec remove_file_system(FileSystem.t()) :: list(FileSystem.t())
   def remove_file_system(file_system) do
     file_systems = List.delete(file_systems(), file_system)
-    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
+
+    fetch_config_backend()
+    |> ConfigBackend.put(:file_systems, file_systems)
+    |> persist_config_backend()
+
     file_systems
   end
 
@@ -77,6 +127,9 @@ defmodule Livebook.Config do
   @spec autosave_path() :: String.t() | nil
   def autosave_path() do
     Application.fetch_env!(:livebook, :autosave_path)
+
+    fetch_config_backend()
+    |> ConfigBackend.get(:autosave_path)
   end
 
   ## Parsing
@@ -378,5 +431,14 @@ defmodule Livebook.Config do
   def abort!(message) do
     IO.puts("\nERROR!!! [Livebook] " <> message)
     System.halt(1)
+  end
+
+  def fetch_config_backend() do
+    Application.get_env(:livebook, :config_backend, %Livebook.Config.FileBackend{})
+    |> ConfigBackend.load()
+  end
+
+  def persist_config_backend(backend) do
+    Application.put_env(:livebook, :config_backend, backend, persistent: true)
   end
 end
