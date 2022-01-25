@@ -33,3 +33,6 @@ npm-debug.log
 
 # The built Escript
 /livebook
+
+# The output of elixir's lsp
+/.elixir_ls

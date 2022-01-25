@@ -433,12 +433,12 @@ defmodule Livebook.Config do
     System.halt(1)
   end
 
-  def fetch_config_backend() do
+  defp fetch_config_backend() do
     Application.get_env(:livebook, :config_backend, %Livebook.Config.FileBackend{})
     |> ConfigBackend.load()
   end
 
-  def persist_config_backend(backend) do
+  defp persist_config_backend(backend) do
     Application.put_env(:livebook, :config_backend, backend, persistent: true)
   end
 end
