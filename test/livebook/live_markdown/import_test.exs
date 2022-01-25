@@ -202,21 +202,25 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert ["Downgrading all headings, because 2 instances of heading 1 were found"] == messages
   end
 
-  test "ignores markdown modifiers in notebok/section names" do
+  test "preserves markdown modifiers in notebok/section names" do
     markdown = """
     # My *Notebook*
 
     ## [Section 1](https://example.com)
+
+    ## ---
+
+    ## # Section
     """
 
     {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
-             name: "My Notebook",
+             name: "My *Notebook*",
              sections: [
-               %Notebook.Section{
-                 name: "Section 1"
-               }
+               %Notebook.Section{name: "[Section 1](https://example.com)"},
+               %Notebook.Section{name: "---"},
+               %Notebook.Section{name: "# Section"}
              ]
            } = notebook
   end

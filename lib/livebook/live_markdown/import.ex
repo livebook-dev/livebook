@@ -108,11 +108,11 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp group_elements([], elems), do: elems
 
-  defp group_elements([{"h1", _, content, %{}} | ast], elems) do
+  defp group_elements([{"h1", _, [content], %{}} | ast], elems) do
     group_elements(ast, [{:notebook_name, content} | elems])
   end
 
-  defp group_elements([{"h2", _, content, %{}} | ast], elems) do
+  defp group_elements([{"h2", _, [content], %{}} | ast], elems) do
     group_elements(ast, [{:section_name, content} | elems])
   end
 
@@ -265,13 +265,12 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook(
-         [{:section_name, content} | elems],
+         [{:section_name, name} | elems],
          cells,
          sections,
          messages,
          output_counter
        ) do
-    name = text_from_markdown(content)
     {metadata, elems} = grab_metadata(elems)
     attrs = section_metadata_to_attrs(metadata)
     section = %{Notebook.Section.new() | name: name, cells: cells} |> Map.merge(attrs)
@@ -280,7 +279,7 @@ defmodule Livebook.LiveMarkdown.Import do
 
   # If there are section-less cells, put them in a default one.
   defp build_notebook(
-         [{:notebook_name, _content} | _] = elems,
+         [{:notebook_name, _name} | _] = elems,
          cells,
          sections,
          messages,
@@ -297,8 +296,7 @@ defmodule Livebook.LiveMarkdown.Import do
     build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
-  defp build_notebook([{:notebook_name, content} | elems], [], sections, messages, output_counter) do
-    name = text_from_markdown(content)
+  defp build_notebook([{:notebook_name, name} | elems], [], sections, messages, output_counter) do
     {metadata, elems} = grab_metadata(elems)
     # If there are any non-metadata comments we keep them
     {comments, elems} = grab_leading_comments(elems)
@@ -332,13 +330,6 @@ defmodule Livebook.LiveMarkdown.Import do
   defp build_notebook([], [], sections, messages, output_counter) do
     notebook = %{Notebook.new() | sections: sections, output_counter: output_counter}
     {notebook, messages}
-  end
-
-  defp text_from_markdown(markdown) do
-    markdown
-    |> MarkdownHelpers.markdown_to_ast()
-    |> elem(1)
-    |> MarkdownHelpers.text_from_ast()
   end
 
   # Takes optional leading metadata JSON object and returns {metadata, rest}.
