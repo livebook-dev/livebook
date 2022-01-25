@@ -349,22 +349,16 @@ defmodule Livebook.Evaluator do
 
   defp eval(code, binding, env) do
     try do
-      quoted = Code.string_to_quoted!(code)
+      quoted = Code.string_to_quoted!(code, file: env.file)
       # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
       {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
 
       {:ok, result, binding, env}
     catch
       kind, error ->
-        {kind, error, stacktrace} = prepare_error(kind, error, __STACKTRACE__)
+        stacktrace = prune_stacktrace(__STACKTRACE__)
         {:error, kind, error, stacktrace}
     end
-  end
-
-  defp prepare_error(kind, error, stacktrace) do
-    {error, stacktrace} = Exception.blame(kind, error, stacktrace)
-    stacktrace = prune_stacktrace(stacktrace)
-    {kind, error, stacktrace}
   end
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
