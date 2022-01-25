@@ -162,7 +162,7 @@ const JSOutput = {
     // Note that we use `srcdoc`, so the iframe has the same origin as the
     // parent. For this reason we intentionally don't use allow-same-origin,
     // as it would allow the iframe to effectively access the parent window.
-    iframe.sandbox = "allow-scripts";
+    iframe.sandbox = "allow-scripts allow-downloads";
     iframe.srcdoc = iframeHtml;
 
     iframesEl.appendChild(iframe);
