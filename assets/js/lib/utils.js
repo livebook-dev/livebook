@@ -144,3 +144,18 @@ export function cancelEvent(event) {
   // Stop event propagation (e.g. so it doesn't reach the editor).
   event.stopPropagation();
 }
+
+const htmlEscapes = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39",
+};
+
+/**
+ * Transforms the given string to a HTML-safe value.
+ */
+export function escapeHtml(string) {
+  return (string || "").replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+}
