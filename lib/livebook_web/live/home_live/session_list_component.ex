@@ -212,7 +212,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <span class="font-medium"><%= action_label(action) %></span>
             </a>
             <% end %>
-            <%= for action <- ["close_all", "disconnect"] do %>
+            <%= for action <- ["disconnect", "close_all"] do %>
               <%= live_patch to: Routes.home_path(@socket, :edit_sessions, action),
               class: "menu-item
                 #{if length(@selected_sessions) == 0, do: "opacity-50 pointer-events-none"}

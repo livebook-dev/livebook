@@ -23,8 +23,13 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp message(%{action: "close_all"} = assigns) do
     ~H"""
     <p class="text-gray-700">
-      Are you sure you want to close <%= length(assigns.selected_sessions) %> sections?
-      <%= if not_persisted(assigns) > 0 do %>
+      Are you sure you want to close <%= maybe_pluralize(length(@selected_sessions), "session") %>?
+      <%= if not_persisted(assigns) == 1 do %>
+      <br/>
+        <span class="font-medium">Important:</span>
+        1 notebook is not persisted and its content will be lost.
+      <% end %>
+      <%= if not_persisted(assigns) > 1 do %>
       <br/>
         <span class="font-medium">Important:</span>
         <%= not_persisted(assigns) %> notebooks are not persisted and their content will be lost.
@@ -36,7 +41,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp message(%{action: "disconnect"} = assigns) do
     ~H"""
     <p class="text-gray-700">
-      Are you sure you want to disconnect <%= length(@selected_sessions) %> sections?
+      Are you sure you want to disconnect <%= maybe_pluralize(length(@selected_sessions), "session") %>?
     </p>
     """
   end
@@ -74,5 +79,9 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
     assigns
     |> selected_sessions()
     |> Enum.count(&(!&1.file))
+  end
+
+  defp maybe_pluralize(number, text) do
+    if number > 1, do: "#{number} #{text}s", else: "#{number} #{text}"
   end
 end
