@@ -244,11 +244,11 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, socket}
   end
 
-  def handle_event("editing?", _, socket) do
+  def handle_event("toggle_bulk_edit", _, socket) do
     {:noreply, update(socket, :editing?, &(!&1))}
   end
 
-  def handle_event("cancel", _, socket) do
+  def handle_event("cancel_bulk_edit", _, socket) do
     {:noreply, clean_selected(socket)}
   end
 

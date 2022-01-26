@@ -198,7 +198,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </button>
           </:toggle>
           <:content>
-            <%= for action <- ["cancel", "select_all"] do %>
+            <%= for action <- ["cancel_bulk_edit", "select_all"] do %>
             <a href="#" class="menu-item text-gray-600" phx-click={action}>
               <.remix_icon icon={action_icon(action)} />
               <span class="font-medium"><%= action_label(action) %></span>
@@ -217,7 +217,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </:content>
         </.menu>
       <% else %>
-        <button class="button-base button-outlined-gray px-4 pl-0 py-1" phx-click="editing?">
+        <button class="button-base button-outlined-gray px-4 pl-0 py-1" phx-click="toggle_bulk_edit">
           <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
           <span> Edit sessions </span>
         </button>
@@ -266,11 +266,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp action_label("close_all"), do: "Close sessions"
   defp action_label("disconnect"), do: "Disconnect runtime"
-  defp action_label("cancel"), do: "Cancel"
+  defp action_label("cancel_bulk_edit"), do: "Cancel"
   defp action_label("select_all"), do: "Select all"
 
   defp action_icon("close_all"), do: "close-circle-line"
   defp action_icon("disconnect"), do: "shut-down-line"
-  defp action_icon("cancel"), do: "close-line"
+  defp action_icon("cancel_bulk_edit"), do: "close-line"
   defp action_icon("select_all"), do: "checkbox-multiple-line"
 end
