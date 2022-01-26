@@ -38,7 +38,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <.edit_sessions sessions={@sessions} socket={@socket} editing?={@editing?}/>
+        <%= if length(@sessions) > 0 do %>
+          <.edit_sessions sessions={@sessions} socket={@socket} editing?={@editing?}/>
+        <% end %>
         </div>
         <div class="flex flex-row">
         <.memory_info />
@@ -99,7 +101,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           data-test-session-id={session.id}>
           <%= if @editing? do %>
             <input
-            class="text-blue-500 w-6 h-6 mx-1 focus:ring-blue-400 focus:ring-opacity-25 border border-gray-300 rounded-lg"
+            class="text-blue-500 mx-1 mr-3 focus:ring-blue-400 focus:ring-opacity-25 border border-gray-300 rounded-lg"
             type="checkbox"
             phx-click="select_session"
             phx-value-id={session.id}
@@ -185,18 +187,34 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp edit_sessions(assigns) do
     ~H"""
-    <div class="mx-5 text-gray-600">
+    <div class="mx-5 text-gray-600 flex flex-row gap-1">
       <%= if @editing? do %>
-        <button class="button-base p-0" phx-click="cancel">
-          Cancel
+        <button class="button-base button-outlined-gray px-4 pl-0 py-1" phx-click="cancel">
+          <.remix_icon icon="close-line" class="text-lg leading-none align-middle ml-1" />
+          <span>Cancel</span>
         </button>
-        |
-        <button class="button-base p-0" phx-click="close_all_selected">
-          Close all selected
-        </button>
+        <.menu id="edit-sessions">
+          <:toggle>
+            <button class="button-base button-outlined-gray px-4 py-1">
+              <span>Actions</span>
+              <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
+            </button>
+          </:toggle>
+          <:content>
+            <%= for action <- ["close_all", "disconnect"] do %>
+              <%= live_patch to: Routes.home_path(@socket, :edit_sessions, action),
+              class: "menu-item #{if action == "close_all", do: "text-red-600", else: "text-gray-600"}",
+              role: "menuitem" do %>
+              <.remix_icon icon={action_icon(action)} />
+                <span class="font-medium"><%= action_label(action) %></span>
+              <% end %>
+            <% end %>
+          </:content>
+        </.menu>
       <% else %>
-        <button class="button-base p-0" phx-click="editing?">
-          <i class="ri-edit-box-line ri-xl"></i>
+        <button class="button-base button-outlined-gray px-4 pl-0 py-1" phx-click="editing?">
+          <.remix_icon icon="edit-box-line" class="text-lg leading-none align-middle ml-1" />
+          <span> Edit sessions </span>
         </button>
       <% end %>
     </div>
@@ -240,4 +258,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
 
   defp selected?(session, selected_sessions), do: session in selected_sessions
+
+  defp action_label("close_all"), do: "Close sessions"
+  defp action_label("disconnect"), do: "Disconnect sessions"
+
+  defp action_icon("close_all"), do: "close-circle-line"
+  defp action_icon("disconnect"), do: "shut-down-line"
 end

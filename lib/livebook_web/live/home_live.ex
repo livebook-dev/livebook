@@ -140,6 +140,17 @@ defmodule LivebookWeb.HomeLive do
           import_opts={@import_opts} />
       </.modal>
     <% end %>
+
+    <%= if @live_action == :edit_sessions do %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.EditSessionsComponent}
+          id="edit-sessions"
+          action={@action}
+          return_to={Routes.home_path(@socket, :page)}
+          sessions={@sessions}
+          selected_sessions={@selected_sessions} />
+      </.modal>
+    <% end %>
     """
   end
 
@@ -155,6 +166,14 @@ defmodule LivebookWeb.HomeLive do
   def handle_params(%{"session_id" => session_id}, _url, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     {:noreply, assign(socket, session: session)}
+  end
+
+  def handle_params(
+        %{"action" => action},
+        _url,
+        %{assigns: %{live_action: :edit_sessions}} = socket
+      ) do
+    {:noreply, assign(socket, action: action)}
   end
 
   def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do
@@ -177,7 +196,7 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  def handle_params(_params, _url, socket), do: {:noreply, socket}
+  def handle_params(_params, _url, socket), do: {:noreply, clean_selected(socket)}
 
   @impl true
   def handle_event("new", %{}, socket) do
@@ -230,7 +249,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("cancel", _, socket) do
-    {:noreply, assign(socket, editing?: false, selected_sessions: [])}
+    {:noreply, clean_selected(socket)}
   end
 
   def handle_event("select_session", %{"id" => session_id}, socket) do
@@ -243,14 +262,6 @@ defmodule LivebookWeb.HomeLive do
       selected_sessions = [session_id | selected_sessions]
       {:noreply, assign(socket, selected_sessions: selected_sessions)}
     end
-  end
-
-  def handle_event("close_all_selected", %{}, socket) do
-    socket.assigns.sessions
-    |> Enum.filter(&(&1.id in socket.assigns.selected_sessions))
-    |> Enum.map(&Livebook.Session.close(&1.pid))
-
-    {:noreply, assign(socket, editing?: false, selected_sessions: [])}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
@@ -377,4 +388,6 @@ defmodule LivebookWeb.HomeLive do
       {:error, _} -> :none
     end
   end
+
+  defp clean_selected(socket), do: assign(socket, editing?: false, selected_sessions: [])
 end

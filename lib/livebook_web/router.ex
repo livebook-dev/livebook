@@ -35,6 +35,7 @@ defmodule LivebookWeb.Router do
       live "/home/user-profile", HomeLive, :user
       live "/home/import/:tab", HomeLive, :import
       live "/home/sessions/:session_id/close", HomeLive, :close_session
+      live "/home/sessions/edit_sessions/:action", HomeLive, :edit_sessions
 
       live "/settings", SettingsLive, :page
       live "/settings/user-profile", SettingsLive, :user
