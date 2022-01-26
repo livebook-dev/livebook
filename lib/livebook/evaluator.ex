@@ -37,6 +37,11 @@ defmodule Livebook.Evaluator do
   @type context :: %{binding: Code.binding(), env: Macro.Env.t(), id: binary()}
 
   @typedoc """
+  A truncated `t:context/0`, without the actual binding values.
+  """
+  @type brief_context :: %{env: Macro.Env.t(), binding_keys: list(atom() | tuple())}
+
+  @typedoc """
   A term used to identify evaluation.
   """
   @type ref :: term()
@@ -47,6 +52,9 @@ defmodule Livebook.Evaluator do
   """
   @type evaluation_response ::
           {:ok, any()} | {:error, Exception.kind(), any(), Exception.stacktrace()}
+
+  @brief_context_key :brief_context
+  @brief_initial_context_key :brief_initial_context
 
   ## API
 
@@ -154,21 +162,41 @@ defmodule Livebook.Evaluator do
   end
 
   @doc """
-  Asynchronously handles the given intellisense request.
-
-  If `evaluation_ref` is given, its binding and environment are also
-  used as context for the intellisense. Response is sent to the `send_to`
-  process as `{:intellisense_response, ref, response}`.
+  Returns an empty intellisense context.
   """
-  @spec handle_intellisense(
-          t(),
-          pid(),
-          term(),
-          Livebook.Runtime.intellisense_request(),
-          ref() | nil
-        ) :: :ok
-  def handle_intellisense(evaluator, send_to, ref, request, evaluation_ref \\ nil) do
-    cast(evaluator, {:handle_intellisense, send_to, ref, request, evaluation_ref})
+  @spec intellisense_context() :: Livebook.Intellisense.intellisense_context()
+  def intellisense_context() do
+    env = :elixir.env_for_eval([])
+    map_binding = fn fun -> fun.([]) end
+    %{env: env, binding_keys: [], map_binding: map_binding}
+  end
+
+  @doc """
+  Builds intellisense context from the given evaluation.
+  """
+  @spec intellisense_context(t(), ref()) :: Livebook.Intellisense.intellisense_context()
+  def intellisense_context(evaluator, ref) do
+    {:dictionary, dictionary} = Process.info(evaluator.pid, :dictionary)
+
+    %{env: env, binding_keys: binding_keys} =
+      find_in_dictionary(dictionary, {@brief_context_key, ref}) ||
+        find_in_dictionary(dictionary, @brief_initial_context_key)
+
+    map_binding = fn fun -> map_binding(evaluator, ref, fun) end
+
+    %{env: env, binding_keys: binding_keys, map_binding: map_binding}
+  end
+
+  defp find_in_dictionary(dictionary, key) do
+    Enum.find_value(dictionary, fn
+      {^key, value} -> value
+      _pair -> nil
+    end)
+  end
+
+  # Applies the given function to evaluation binding
+  defp map_binding(evaluator, ref, fun) do
+    call(evaluator, {:map_binding, ref, fun})
   end
 
   defp cast(evaluator, message) do
@@ -221,13 +249,16 @@ defmodule Livebook.Evaluator do
   end
 
   defp initial_state(evaluator_ref, formatter, io_proxy, object_tracker) do
+    context = initial_context()
+    Process.put(@brief_initial_context_key, context_to_brief(context))
+
     %{
       evaluator_ref: evaluator_ref,
       formatter: formatter,
       io_proxy: io_proxy,
       object_tracker: object_tracker,
       contexts: %{},
-      initial_context: initial_context()
+      initial_context: context
     }
   end
 
@@ -273,7 +304,7 @@ defmodule Livebook.Evaluator do
 
     evaluation_time_ms = get_execution_time_delta(start_time)
 
-    state = put_in(state.contexts[ref], result_context)
+    state = put_context(state, ref, result_context)
 
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
@@ -287,25 +318,8 @@ defmodule Livebook.Evaluator do
   end
 
   defp handle_cast({:forget_evaluation, ref}, state) do
-    state = Map.update!(state, :contexts, &Map.delete(&1, ref))
+    state = delete_context(state, ref)
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
-
-    :erlang.garbage_collect(self())
-    {:noreply, state}
-  end
-
-  defp handle_cast({:handle_intellisense, send_to, ref, request, evaluation_ref}, state) do
-    context = get_context(state, evaluation_ref)
-
-    # Safely rescue from intellisense errors
-    response =
-      try do
-        Livebook.Intellisense.handle_request(request, context.binding, context.env)
-      rescue
-        error -> Logger.error(Exception.format(:error, error, __STACKTRACE__))
-      end
-
-    send(send_to, {:intellisense_response, ref, request, response})
 
     :erlang.garbage_collect(self())
     {:noreply, state}
@@ -334,6 +348,8 @@ defmodule Livebook.Evaluator do
         {:ok, context} ->
           # If the context changed, mirror the process dictionary again
           copy_process_dictionary_from(source_evaluator)
+
+          Process.put(@brief_initial_context_key, context_to_brief(context))
           put_in(state.initial_context, context)
 
         {:error, :not_modified} ->
@@ -341,6 +357,30 @@ defmodule Livebook.Evaluator do
       end
 
     {:reply, :ok, state}
+  end
+
+  defp handle_call({:map_binding, ref, fun}, _from, state) do
+    context = get_context(state, ref)
+    result = fun.(context.binding)
+    {:reply, result, state}
+  end
+
+  defp put_context(state, ref, context) do
+    Process.put({@brief_context_key, ref}, context_to_brief(context))
+    put_in(state.contexts[ref], context)
+  end
+
+  defp delete_context(state, ref) do
+    Process.delete({@brief_context_key, ref})
+    {_, state} = pop_in(state.contexts[ref])
+    state
+  end
+
+  defp context_to_brief(context) do
+    %{
+      env: context.env,
+      binding_keys: Enum.map(context.binding, &elem(&1, 0))
+    }
   end
 
   defp get_context(state, ref) do
@@ -396,6 +436,8 @@ defmodule Livebook.Evaluator do
   end
 
   defp internal_dictionary_key?("$" <> _), do: true
+  defp internal_dictionary_key?({@brief_context_key, _ref}), do: true
+  defp internal_dictionary_key?(@brief_initial_context_key), do: true
   defp internal_dictionary_key?(_), do: false
 
   defp get_execution_time_delta(started_at) do
