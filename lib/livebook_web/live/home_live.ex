@@ -252,6 +252,11 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, clean_selected(socket)}
   end
 
+  def handle_event("select_all", _, socket) do
+    selected_sessions = Enum.map(socket.assigns.sessions, & &1.id)
+    {:noreply, assign(socket, selected_sessions: selected_sessions)}
+  end
+
   def handle_event("select_session", %{"id" => session_id}, socket) do
     selected_sessions = socket.assigns.selected_sessions
 
