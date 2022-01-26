@@ -6,7 +6,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, order_by: "date", editing?: false)}
+    {:ok, assign(socket, order_by: "date", editing_sessions?: false)}
   end
 
   @impl true
@@ -61,12 +61,12 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </.menu>
         <%= if length(@sessions) > 0 do %>
           <.edit_sessions sessions={@sessions} socket={@socket}
-            editing?={@editing?} selected_sessions={@selected_sessions} />
+            editing_sessions?={@editing_sessions?} selected_session_ids={@selected_session_ids} />
         <% end %>
         </div>
       </div>
       <.session_list sessions={@sessions} socket={@socket}
-        show_autosave_note?={@show_autosave_note?} editing?={@editing?} selected_sessions={@selected_sessions} />
+        show_autosave_note?={@show_autosave_note?} editing_sessions?={@editing_sessions?} selected_session_ids={@selected_session_ids} />
     </div>
     """
   end
@@ -100,13 +100,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <%= for session <- @sessions do %>
         <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
-          <%= if @editing? do %>
+          <%= if @editing_sessions? do %>
             <input
             class="checkbox-base mr-3"
             type="checkbox"
             phx-click="select_session"
             phx-value-id={session.id}
-            checked={selected?(session.id, @selected_sessions)} />
+            checked={session.id in @selected_session_ids} />
           <% end %>
           <div class="grow flex flex-col items-start">
             <%= live_redirect session.notebook_name,
@@ -197,7 +197,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp edit_sessions(assigns) do
     ~H"""
     <div class="mx-4 mr-0 text-gray-600 flex flex-row gap-1">
-      <%= if @editing? do %>
+      <%= if @editing_sessions? do %>
         <.menu id="edit-sessions">
           <:toggle>
             <button class="button-base button-outlined-gray px-4 py-1">
@@ -215,7 +215,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <%= for action <- ["disconnect", "close_all"] do %>
               <%= live_patch to: Routes.home_path(@socket, :edit_sessions, action),
               class: "menu-item
-                #{if length(@selected_sessions) == 0, do: "opacity-50 pointer-events-none"}
+                #{if length(@selected_session_ids) == 0, do: "opacity-50 pointer-events-none"}
                 #{if action == "close_all", do: "text-red-600", else: "text-gray-600"}",
               role: "menuitem" do %>
               <.remix_icon icon={action_icon(action)} />
@@ -270,8 +270,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
   defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
-
-  defp selected?(session, selected_sessions), do: session in selected_sessions
 
   defp action_label("close_all"), do: "Close sessions"
   defp action_label("disconnect"), do: "Disconnect runtime"

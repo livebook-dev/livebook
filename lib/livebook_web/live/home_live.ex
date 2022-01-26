@@ -24,8 +24,8 @@ defmodule LivebookWeb.HomeLive do
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
-       editing?: false,
-       selected_sessions: [],
+       editing_sessions?: false,
+       selected_session_ids: [],
        page_title: "Livebook"
      )}
   end
@@ -110,8 +110,8 @@ defmodule LivebookWeb.HomeLive do
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
               sessions={@sessions}
-              editing?={@editing?}
-              selected_sessions={@selected_sessions} />
+              editing_sessions?={@editing_sessions?}
+              selected_session_ids={@selected_session_ids} />
           </div>
         </div>
       </div>
@@ -148,7 +148,7 @@ defmodule LivebookWeb.HomeLive do
           action={@action}
           return_to={Routes.home_path(@socket, :page)}
           sessions={@sessions}
-          selected_sessions={@selected_sessions} />
+          selected_session_ids={@selected_session_ids} />
       </.modal>
     <% end %>
     """
@@ -245,7 +245,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("toggle_bulk_edit", _, socket) do
-    {:noreply, update(socket, :editing?, &(!&1))}
+    {:noreply, update(socket, :editing_sessions?, &not/1)}
   end
 
   def handle_event("cancel_bulk_edit", _, socket) do
@@ -253,19 +253,19 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("select_all", _, socket) do
-    selected_sessions = Enum.map(socket.assigns.sessions, & &1.id)
-    {:noreply, assign(socket, selected_sessions: selected_sessions)}
+    selected_session_ids = Enum.map(socket.assigns.sessions, & &1.id)
+    {:noreply, assign(socket, selected_session_ids: selected_session_ids)}
   end
 
   def handle_event("select_session", %{"id" => session_id}, socket) do
-    selected_sessions =
-      if session_id in socket.assigns.selected_sessions do
-        List.delete(socket.assigns.selected_sessions, session_id)
+    selected_session_ids =
+      if session_id in socket.assigns.selected_session_ids do
+        List.delete(socket.assigns.selected_session_ids, session_id)
       else
-        [session_id | socket.assigns.selected_sessions]
+        [session_id | socket.assigns.selected_session_ids]
       end
 
-    {:noreply, assign(socket, selected_sessions: selected_sessions)}
+    {:noreply, assign(socket, selected_session_ids: selected_session_ids)}
   end
 
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
@@ -399,5 +399,6 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp clean_selected(socket), do: assign(socket, editing?: false, selected_sessions: [])
+  defp clean_selected(socket),
+    do: assign(socket, editing_sessions?: false, selected_session_ids: [])
 end
