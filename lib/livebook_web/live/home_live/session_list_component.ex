@@ -38,10 +38,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
           Running sessions (<%= length(@sessions) %>)
         </h2>
-        <%= if length(@sessions) > 0 do %>
-          <.edit_sessions sessions={@sessions} socket={@socket}
-            editing?={@editing?} selected_sessions={@selected_sessions} />
-        <% end %>
         </div>
         <div class="flex flex-row">
         <.memory_info />
@@ -63,6 +59,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <% end %>
           </:content>
         </.menu>
+        <%= if length(@sessions) > 0 do %>
+          <.edit_sessions sessions={@sessions} socket={@socket}
+            editing?={@editing?} selected_sessions={@selected_sessions} />
+        <% end %>
         </div>
       </div>
       <.session_list sessions={@sessions} socket={@socket}
@@ -196,7 +196,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp edit_sessions(assigns) do
     ~H"""
-    <div class="mx-5 text-gray-600 flex flex-row gap-1">
+    <div class="mx-4 mr-0 text-gray-600 flex flex-row gap-1">
       <%= if @editing? do %>
         <.menu id="edit-sessions">
           <:toggle>
@@ -225,10 +225,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </:content>
         </.menu>
       <% else %>
-        <button class="button-base button-outlined-gray px-4 pl-0 py-1" phx-click="toggle_bulk_edit">
-          <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
-          <span> Edit sessions </span>
+        <span class="tooltip top" data-tooltip="Edit sessions">
+        <button class="button-base button-outlined-gray px-2 pl-0 py-1" phx-click="toggle_bulk_edit">
+          <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-2" />
         </button>
+        </span>
       <% end %>
     </div>
     """
