@@ -24,6 +24,8 @@ defmodule LivebookWeb.HomeLive do
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
+       editing?: false,
+       selected_sessions: [],
        page_title: "Livebook"
      )}
   end
@@ -107,7 +109,9 @@ defmodule LivebookWeb.HomeLive do
           <div class="py-12">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
-              sessions={@sessions} />
+              sessions={@sessions}
+              editing?={@editing?}
+              selected_sessions={@selected_sessions} />
           </div>
         </div>
       </div>
@@ -219,6 +223,34 @@ defmodule LivebookWeb.HomeLive do
       end
 
     {:noreply, socket}
+  end
+
+  def handle_event("editing?", _, socket) do
+    {:noreply, update(socket, :editing?, &(!&1))}
+  end
+
+  def handle_event("cancel", _, socket) do
+    {:noreply, assign(socket, editing?: false, selected_sessions: [])}
+  end
+
+  def handle_event("select_session", %{"id" => session_id}, socket) do
+    selected_sessions = socket.assigns.selected_sessions
+
+    if session_id in selected_sessions do
+      selected_sessions = List.delete(selected_sessions, session_id)
+      {:noreply, assign(socket, selected_sessions: selected_sessions)}
+    else
+      selected_sessions = [session_id | selected_sessions]
+      {:noreply, assign(socket, selected_sessions: selected_sessions)}
+    end
+  end
+
+  def handle_event("close_all_selected", %{}, socket) do
+    socket.assigns.sessions
+    |> Enum.filter(&(&1.id in socket.assigns.selected_sessions))
+    |> Enum.map(&Livebook.Session.close(&1.pid))
+
+    {:noreply, assign(socket, editing?: false, selected_sessions: [])}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do

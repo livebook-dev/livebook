@@ -6,7 +6,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, order_by: "date")}
+    {:ok, assign(socket, order_by: "date", editing?: false)}
   end
 
   @impl true
@@ -34,9 +34,12 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     ~H"""
     <div>
       <div class="mb-4 flex items-center md:items-end justify-between">
+      <div class="flex flex-row">
         <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
           Running sessions (<%= length(@sessions) %>)
         </h2>
+        <.edit_sessions sessions={@sessions} socket={@socket} editing?={@editing?}/>
+        </div>
         <div class="flex flex-row">
         <.memory_info />
         <.menu id="sessions-order-menu">
@@ -59,7 +62,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </.menu>
         </div>
       </div>
-      <.session_list sessions={@sessions} socket={@socket} show_autosave_note?={@show_autosave_note?} />
+      <.session_list sessions={@sessions} socket={@socket}
+        show_autosave_note?={@show_autosave_note?} editing?={@editing?} selected_sessions={@selected_sessions} />
     </div>
     """
   end
@@ -93,6 +97,14 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <%= for session <- @sessions do %>
         <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
+          <%= if @editing? do %>
+            <input
+            class="text-blue-500 w-6 h-6 mx-1 focus:ring-blue-400 focus:ring-opacity-25 border border-gray-300 rounded-lg"
+            type="checkbox"
+            phx-click="select_session"
+            phx-value-id={session.id}
+            checked={selected?(session.id, @selected_sessions)} />
+          <% end %>
           <div class="grow flex flex-col items-start">
             <%= live_redirect session.notebook_name,
                   to: Routes.session_path(@socket, :page, session.id),
@@ -171,6 +183,26 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     """
   end
 
+  defp edit_sessions(assigns) do
+    ~H"""
+    <div class="mx-5 text-gray-600">
+      <%= if @editing? do %>
+        <button class="button-base p-0" phx-click="cancel">
+          Cancel
+        </button>
+        |
+        <button class="button-base p-0" phx-click="close_all_selected">
+          Close all selected
+        </button>
+      <% else %>
+        <button class="button-base p-0" phx-click="editing?">
+          <i class="ri-edit-box-line ri-xl"></i>
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
   @impl true
   def handle_event("set_order", %{"order_by" => order_by}, socket) do
     sessions = sort_sessions(socket.assigns.sessions, order_by)
@@ -206,4 +238,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
   defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
+
+  defp selected?(session, selected_sessions), do: session in selected_sessions
 end
