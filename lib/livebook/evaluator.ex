@@ -37,11 +37,6 @@ defmodule Livebook.Evaluator do
   @type context :: %{binding: Code.binding(), env: Macro.Env.t(), id: binary()}
 
   @typedoc """
-  A truncated `t:context/0`, without the actual binding values.
-  """
-  @type brief_context :: %{env: Macro.Env.t(), binding_keys: list(atom() | tuple())}
-
-  @typedoc """
   A term used to identify evaluation.
   """
   @type ref :: term()
@@ -53,8 +48,10 @@ defmodule Livebook.Evaluator do
   @type evaluation_response ::
           {:ok, any()} | {:error, Exception.kind(), any(), Exception.stacktrace()}
 
-  @brief_context_key :brief_context
-  @brief_initial_context_key :brief_initial_context
+  # We store evaluation envs in process dictionary, so that we can
+  # build intellisense context without asking the evaluator
+  @env_key :evaluation_env
+  @initial_env_key :initial_env
 
   ## API
 
@@ -166,9 +163,10 @@ defmodule Livebook.Evaluator do
   """
   @spec intellisense_context() :: Livebook.Intellisense.intellisense_context()
   def intellisense_context() do
+    # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
     env = :elixir.env_for_eval([])
     map_binding = fn fun -> fun.([]) end
-    %{env: env, binding_keys: [], map_binding: map_binding}
+    %{env: env, map_binding: map_binding}
   end
 
   @doc """
@@ -178,13 +176,13 @@ defmodule Livebook.Evaluator do
   def intellisense_context(evaluator, ref) do
     {:dictionary, dictionary} = Process.info(evaluator.pid, :dictionary)
 
-    %{env: env, binding_keys: binding_keys} =
-      find_in_dictionary(dictionary, {@brief_context_key, ref}) ||
-        find_in_dictionary(dictionary, @brief_initial_context_key)
+    env =
+      find_in_dictionary(dictionary, {@env_key, ref}) ||
+        find_in_dictionary(dictionary, @initial_env_key)
 
     map_binding = fn fun -> map_binding(evaluator, ref, fun) end
 
-    %{env: env, binding_keys: binding_keys, map_binding: map_binding}
+    %{env: env, map_binding: map_binding}
   end
 
   defp find_in_dictionary(dictionary, key) do
@@ -250,7 +248,7 @@ defmodule Livebook.Evaluator do
 
   defp initial_state(evaluator_ref, formatter, io_proxy, object_tracker) do
     context = initial_context()
-    Process.put(@brief_initial_context_key, context_to_brief(context))
+    Process.put(@initial_env_key, context.env)
 
     %{
       evaluator_ref: evaluator_ref,
@@ -276,6 +274,7 @@ defmodule Livebook.Evaluator do
   end
 
   defp initial_context() do
+    # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
     env = :elixir.env_for_eval([])
     %{binding: [], env: env, id: random_id()}
   end
@@ -349,7 +348,7 @@ defmodule Livebook.Evaluator do
           # If the context changed, mirror the process dictionary again
           copy_process_dictionary_from(source_evaluator)
 
-          Process.put(@brief_initial_context_key, context_to_brief(context))
+          Process.put(@initial_env_key, context.env)
           put_in(state.initial_context, context)
 
         {:error, :not_modified} ->
@@ -366,21 +365,14 @@ defmodule Livebook.Evaluator do
   end
 
   defp put_context(state, ref, context) do
-    Process.put({@brief_context_key, ref}, context_to_brief(context))
+    Process.put({@env_key, ref}, context.env)
     put_in(state.contexts[ref], context)
   end
 
   defp delete_context(state, ref) do
-    Process.delete({@brief_context_key, ref})
+    Process.delete({@env_key, ref})
     {_, state} = pop_in(state.contexts[ref])
     state
-  end
-
-  defp context_to_brief(context) do
-    %{
-      env: context.env,
-      binding_keys: Enum.map(context.binding, &elem(&1, 0))
-    }
   end
 
   defp get_context(state, ref) do
@@ -392,6 +384,8 @@ defmodule Livebook.Evaluator do
       quoted = Code.string_to_quoted!(code, file: env.file)
       # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
       {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
+      # Propagate variables from binding to env
+      {_, binding, env} = :elixir.eval_forms([], binding, env)
 
       {:ok, result, binding, env}
     catch
@@ -436,8 +430,8 @@ defmodule Livebook.Evaluator do
   end
 
   defp internal_dictionary_key?("$" <> _), do: true
-  defp internal_dictionary_key?({@brief_context_key, _ref}), do: true
-  defp internal_dictionary_key?(@brief_initial_context_key), do: true
+  defp internal_dictionary_key?({@env_key, _ref}), do: true
+  defp internal_dictionary_key?(@initial_env_key), do: true
   defp internal_dictionary_key?(_), do: false
 
   defp get_execution_time_delta(started_at) do

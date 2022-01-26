@@ -22,7 +22,6 @@ defmodule Livebook.Intellisense do
   """
   @type context :: %{
           env: Macro.Env.t(),
-          binding_keys: list(atom() | tuple()),
           map_binding: (Code.binding() -> any())
         }
 

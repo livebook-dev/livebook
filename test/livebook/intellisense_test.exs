@@ -9,13 +9,14 @@ defmodule Livebook.IntellisenseTest.Utils do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
-      # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
+      # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
       env = :elixir.env_for_eval([])
       {_, binding, env} = :elixir.eval_quoted(block, binding, env)
+      # Propagate variables from binding to env
+      {_, binding, env} = :elixir.eval_forms([], binding, env)
 
       %{
         env: env,
-        binding_keys: Enum.map(binding, &elem(&1, 0)),
         map_binding: fn fun -> fun.(binding) end
       }
     end

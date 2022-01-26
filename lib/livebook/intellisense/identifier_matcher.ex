@@ -201,7 +201,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp value_from_binding([var | map_path], ctx) do
-    if var in ctx.intellisense_context.binding_keys do
+    if Macro.Env.has_var?(ctx.intellisense_context.env, {var, nil}) do
       ctx.intellisense_context.map_binding.(fn binding ->
         value = Keyword.fetch(binding, var)
 
@@ -318,11 +318,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_variable(hint, ctx) do
-    for key <- ctx.intellisense_context.binding_keys,
-        is_atom(key),
-        name = Atom.to_string(key),
+    for {var, nil} <- Macro.Env.vars(ctx.intellisense_context.env),
+        name = Atom.to_string(var),
         ctx.matcher.(name, hint),
-        do: {:variable, key}
+        do: {:variable, var}
   end
 
   defp match_map_field(map, hint, ctx) do
@@ -356,7 +355,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   defp expand_alias(alias, ctx) do
     [name | rest] = alias |> String.split(".") |> Enum.map(&String.to_atom/1)
 
-    case Keyword.fetch(ctx.intellisense_context.env.aliases, Module.concat(Elixir, name)) do
+    case Macro.Env.fetch_alias(ctx.intellisense_context.env, name) do
       {:ok, name} when rest == [] -> name
       {:ok, name} -> Module.concat([name | rest])
       :error -> Module.concat([name | rest])

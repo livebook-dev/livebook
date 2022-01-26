@@ -208,7 +208,7 @@ defmodule Livebook.Intellisense.SignatureMatcher do
   end
 
   defp function_from_binding(var, intellisense_context) do
-    if var in intellisense_context.binding_keys do
+    if Macro.Env.has_var?(intellisense_context.env, {var, nil}) do
       intellisense_context.map_binding.(fn binding ->
         case Keyword.fetch(binding, var) do
           {:ok, fun} when is_function(fun) -> {:ok, fun}
