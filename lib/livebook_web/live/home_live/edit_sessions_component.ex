@@ -8,13 +8,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= title(@action) %>
       </h3>
-      <p class="text-gray-700">
-        Are you sure you want to <%= message(@action) %> all selected sessions?
-        <%= for session <- selected_sessions(assigns) do %>
-          <br/>
-          <span class="font-semibold">“<%= session.notebook_name %>”</span>
-        <% end %>
-      </p>
+      <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions}/>
       <div class="mt-8 flex justify-end space-x-2">
         <button class="button-base button-red" phx-click={@action} phx-target={@myself}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
@@ -23,6 +17,27 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
         <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
       </div>
     </div>
+    """
+  end
+
+  defp message(%{action: "close_all"} = assigns) do
+    ~H"""
+    <p class="text-gray-700">
+      Are you sure you want to close <%= length(assigns.selected_sessions) %> sections?
+      <%= if not_persisted(assigns) > 0 do %>
+      <br/>
+        <span class="font-medium">Important:</span>
+        <%= not_persisted(assigns) %> notebooks are not persisted and their content will be lost.
+      <% end %>
+    </p>
+    """
+  end
+
+  defp message(%{action: "disconnect"} = assigns) do
+    ~H"""
+    <p class="text-gray-700">
+      Are you sure you want to disconnect <%= length(@selected_sessions) %> sections?
+    </p>
     """
   end
 
@@ -55,6 +70,9 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp title("close_all"), do: "Close sessions"
   defp title("disconnect"), do: "Disconnect runtime"
 
-  defp message("close_all"), do: "close"
-  defp message("disconnect"), do: "disconnect"
+  defp not_persisted(assigns) do
+    assigns
+    |> selected_sessions()
+    |> Enum.count(&(!&1.file))
+  end
 end

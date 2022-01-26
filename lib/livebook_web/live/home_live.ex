@@ -258,15 +258,14 @@ defmodule LivebookWeb.HomeLive do
   end
 
   def handle_event("select_session", %{"id" => session_id}, socket) do
-    selected_sessions = socket.assigns.selected_sessions
+    selected_sessions =
+      if session_id in socket.assigns.selected_sessions do
+        List.delete(socket.assigns.selected_sessions, session_id)
+      else
+        [session_id | socket.assigns.selected_sessions]
+      end
 
-    if session_id in selected_sessions do
-      selected_sessions = List.delete(selected_sessions, session_id)
-      {:noreply, assign(socket, selected_sessions: selected_sessions)}
-    else
-      selected_sessions = [session_id | selected_sessions]
-      {:noreply, assign(socket, selected_sessions: selected_sessions)}
-    end
+    {:noreply, assign(socket, selected_sessions: selected_sessions)}
   end
 
   def handle_event("fork_session", %{"id" => session_id}, socket) do
