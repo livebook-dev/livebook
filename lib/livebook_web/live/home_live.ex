@@ -268,6 +268,12 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, selected_sessions: selected_sessions)}
   end
 
+  def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    Session.disconnect_runtime(session.pid)
+    {:noreply, socket}
+  end
+
   def handle_event("fork_session", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     %{images_dir: images_dir} = session

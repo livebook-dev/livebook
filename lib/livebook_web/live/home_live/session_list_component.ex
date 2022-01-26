@@ -147,6 +147,14 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 <.remix_icon icon="dashboard-2-line" />
                 <span class="font-medium">See on Dashboard</span>
               </a>
+              <button class={"menu-item text-gray-500
+                #{if !session.memory_usage.runtime, do: "opacity-50 pointer-events-none"}"}
+                role="menuitem"
+                phx-click="disconnect_runtime"
+                phx-value-id={session.id}>
+                <.remix_icon icon="shut-down-line" />
+                <span class="font-medium">Disconnect runtime</span>
+              </button>
               <%= live_patch to: Routes.home_path(@socket, :close_session, session.id),
                     class: "menu-item text-red-600",
                     role: "menuitem" do %>
