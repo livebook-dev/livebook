@@ -206,21 +206,27 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             </button>
           </:toggle>
           <:content>
-            <%= for action <- ["cancel_bulk_edit", "select_all"] do %>
-            <a href="#" class="menu-item text-gray-600" phx-click={action}>
-              <.remix_icon icon={action_icon(action)} />
-              <span class="font-medium"><%= action_label(action) %></span>
+            <a href="#" class="menu-item text-gray-600" phx-click="cancel_bulk_edit">
+              <.remix_icon icon="close-line" />
+              <span class="font-medium">Cancel</span>
             </a>
-            <% end %>
-            <%= for action <- ["disconnect", "close_all"] do %>
-              <%= live_patch to: Routes.home_path(@socket, :edit_sessions, action),
-              class: "menu-item
-                #{if length(@selected_session_ids) == 0, do: "opacity-50 pointer-events-none"}
-                #{if action == "close_all", do: "text-red-600", else: "text-gray-600"}",
+            <a href="#" class="menu-item text-gray-600" phx-click="select_all">
+              <.remix_icon icon="checkbox-multiple-line" />
+              <span class="font-medium">Select all</span>
+            </a>
+            <%= live_patch to: Routes.home_path(@socket, :edit_sessions, "disconnect"),
+              class: "menu-item text-gray-600
+                #{if length(@selected_session_ids) == 0, do: "opacity-50 pointer-events-none"}",
               role: "menuitem" do %>
-              <.remix_icon icon={action_icon(action)} />
-                <span class="font-medium"><%= action_label(action) %></span>
-              <% end %>
+              <.remix_icon icon="shut-down-line" />
+                <span class="font-medium">Disconnect runtime</span>
+            <% end %>
+            <%= live_patch to: Routes.home_path(@socket, :edit_sessions, "close_all"),
+              class: "menu-item text-red-600
+                #{if length(@selected_session_ids) == 0, do: "opacity-50 pointer-events-none"}",
+              role: "menuitem" do %>
+              <.remix_icon icon="shut-down-line" />
+                <span class="font-medium">Close sessions</span>
             <% end %>
           </:content>
         </.menu>
@@ -270,14 +276,4 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
   defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
-
-  defp action_label("close_all"), do: "Close sessions"
-  defp action_label("disconnect"), do: "Disconnect runtime"
-  defp action_label("cancel_bulk_edit"), do: "Cancel"
-  defp action_label("select_all"), do: "Select all"
-
-  defp action_icon("close_all"), do: "close-circle-line"
-  defp action_icon("disconnect"), do: "shut-down-line"
-  defp action_icon("cancel_bulk_edit"), do: "close-line"
-  defp action_icon("select_all"), do: "checkbox-multiple-line"
 end
