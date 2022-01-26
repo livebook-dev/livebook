@@ -260,7 +260,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp selected?(session, selected_sessions), do: session in selected_sessions
 
   defp action_label("close_all"), do: "Close sessions"
-  defp action_label("disconnect"), do: "Disconnect sessions"
+  defp action_label("disconnect"), do: "Disconnect runtime"
 
   defp action_icon("close_all"), do: "close-circle-line"
   defp action_icon("disconnect"), do: "shut-down-line"

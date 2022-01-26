@@ -50,10 +50,10 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   end
 
   defp button_label("close_all"), do: "Close sessions"
-  defp button_label("disconnect"), do: "Disconnect sessions"
+  defp button_label("disconnect"), do: "Disconnect runtime"
 
   defp title("close_all"), do: "Close sessions"
-  defp title("disconnect"), do: "Disconnect sessions"
+  defp title("disconnect"), do: "Disconnect runtime"
 
   defp message("close_all"), do: "close"
   defp message("disconnect"), do: "disconnect"
