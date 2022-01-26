@@ -41,9 +41,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </div>
         <div class="flex flex-row">
         <.memory_info />
+        <%= if length(@sessions) > 0 do %>
+          <.edit_sessions sessions={@sessions} socket={@socket}
+            editing_sessions?={@editing_sessions?} selected_session_ids={@selected_session_ids} />
+        <% end %>
         <.menu id="sessions-order-menu">
           <:toggle>
-            <button class="button-base button-outlined-gray px-4 py-1">
+            <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center">
               <span><%= order_by_label(@order_by) %></span>
               <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
             </button>
@@ -59,10 +63,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <% end %>
           </:content>
         </.menu>
-        <%= if length(@sessions) > 0 do %>
-          <.edit_sessions sessions={@sessions} socket={@socket}
-            editing_sessions?={@editing_sessions?} selected_session_ids={@selected_session_ids} />
-        <% end %>
         </div>
       </div>
       <.session_list sessions={@sessions} socket={@socket}
@@ -196,11 +196,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp edit_sessions(assigns) do
     ~H"""
-    <div class="mx-4 mr-0 text-gray-600 flex flex-row gap-1">
+    <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
       <%= if @editing_sessions? do %>
         <.menu id="edit-sessions">
           <:toggle>
-            <button class="button-base button-outlined-gray px-4 py-1">
+            <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center">
               <span>Actions</span>
               <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
             </button>
@@ -232,8 +232,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </.menu>
       <% else %>
         <span class="tooltip top" data-tooltip="Edit sessions">
-        <button class="button-base button-outlined-gray px-2 pl-0 py-1" phx-click="toggle_bulk_edit">
-          <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-2" />
+        <button class="w-28 button-base button-outlined-gray px-4 pl-2 py-1" phx-click="toggle_bulk_edit">
+          <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
+          <span>Edit</span>
         </button>
         </span>
       <% end %>
