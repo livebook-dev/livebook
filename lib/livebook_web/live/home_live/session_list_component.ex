@@ -102,7 +102,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           data-test-session-id={session.id}>
           <%= if @editing? do %>
             <input
-            class="text-blue-500 mx-1 mr-3 focus:ring-blue-400 focus:ring-opacity-25 border border-gray-300 rounded-lg"
+            class="checkbox-base mr-3"
             type="checkbox"
             phx-click="select_session"
             phx-value-id={session.id}
