@@ -384,8 +384,8 @@ defmodule Livebook.Evaluator do
       quoted = Code.string_to_quoted!(code, file: env.file)
       # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
       {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
-      # Propagate variables from binding to env
-      {_, binding, env} = :elixir.eval_forms([], binding, env)
+      # TODO: Remove this line on Elixir v1.14 as binding propagates to env correctly
+      {_, binding, env} = :elixir.eval_forms(:ok, binding, env)
 
       {:ok, result, binding, env}
     catch

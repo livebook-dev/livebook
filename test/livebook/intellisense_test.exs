@@ -12,8 +12,8 @@ defmodule Livebook.IntellisenseTest.Utils do
       # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
       env = :elixir.env_for_eval([])
       {_, binding, env} = :elixir.eval_quoted(block, binding, env)
-      # Propagate variables from binding to env
-      {_, binding, env} = :elixir.eval_forms([], binding, env)
+      # TODO: Remove this line on Elixir v1.14 as binding propagates to env correctly
+      {_, binding, env} = :elixir.eval_forms(:ok, binding, env)
 
       %{
         env: env,
