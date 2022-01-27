@@ -378,6 +378,14 @@ defmodule LivebookWeb.Helpers do
 
   @doc """
   Returns the text in singular or plural depending on the quantity
+
+  ## Examples
+
+      iex> LivebookWeb.Helpers.pluralize(1, "notebook is not persisted", "notebooks are not persisted")
+      "1 notebook is not persisted"
+
+      iex> LivebookWeb.Helpers.pluralize(3, "notebook is not persisted", "notebooks are not persisted")
+      "3 notebooks are not persisted"
   """
   def pluralize(1, singular, _plural), do: "1 #{singular}"
   def pluralize(count, _singular, plural), do: "#{count} #{plural}"
