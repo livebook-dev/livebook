@@ -14,8 +14,8 @@ jobs:
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '24.0'
-          elixir-version: '1.13.0'
+          otp-version: "24.0"
+          elixir-version: "1.13.0"
       - name: Cache Mix
         uses: actions/cache@v2
         with:
@@ -36,7 +36,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v2
         with:
-          node-version: '14.x'
+          node-version: "14.x"
       - name: Cache npm dependencies
         uses: actions/cache@v2
         with:
@@ -50,3 +50,23 @@ jobs:
         run: npm run format-check --prefix assets
       - name: Run assets tests
         run: npm test --prefix assets
+  # Verify that the app build builds as expected
+  app:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+      - run: brew install elixir
+      - run: mix local.hex --force
+      - name: Cache Mix
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
+      - name: Install mix dependencies
+        run: mix deps.get
+      - name: Build the app
+        run: .github/scripts/app/build_mac.sh
