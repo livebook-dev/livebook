@@ -101,9 +101,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <%= for session <- @sessions do %>
         <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
-          <div phx-update="ignore">
+          <div id={"#{session.id}-checkbox"} phx-update="ignore">
             <input type="checkbox" name="session_ids[]" value={session.id}
-              class="checkbox-base hidden bulk-actions mr-3">
+              class="checkbox-base hidden bulk-actions mr-3" phx-click={JS.dispatch("bulk-actions-state")}>
           </div>
           <div class="grow flex flex-col items-start">
             <%= live_redirect session.notebook_name,
@@ -211,15 +211,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <.remix_icon icon="close-line" />
             <span class="font-medium">Cancel</span>
           </button>
-          <button class="menu-item text-gray-600" phx-click={JS.dispatch("lb:check", to: "[name='session_ids[]']")}>
+          <button class="menu-item text-gray-600" phx-click={select_all()}>
             <.remix_icon icon="checkbox-multiple-line" />
             <span class="font-medium">Select all</span>
           </button>
-          <button class="menu-item text-gray-600" name="disconnect" type="submit">
+          <button class="menu-item text-gray-600" name="disconnect" type="submit" disabled={true}>
             <.remix_icon icon="shut-down-line" />
             <span class="font-medium">Disconnect runtime</span>
           </button>
-          <button class="menu-item text-red-600" name="close_all" type="submit">
+          <button class="menu-item text-red-600" name="close_all" type="submit" disabled={true}>
             <.remix_icon icon="close-circle-line" />
             <span class="font-medium">Close sessions</span>
           </button>
@@ -238,6 +238,18 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def format_creation_date(created_at) do
     time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
     time_words <> " ago"
+  end
+
+  def toggle_edit(:on) do
+    JS.remove_class("hidden", to: ".bulk-actions")
+    |> JS.add_class("hidden", to: "#edit-toogle")
+  end
+
+  def toggle_edit(:off) do
+    JS.add_class("hidden", to: ".bulk-actions")
+    |> JS.remove_class("hidden", to: "#edit-toogle")
+    |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
+    |> JS.dispatch("bulk-actions-state")
   end
 
   defp order_by_label("date"), do: "Date"
@@ -265,14 +277,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
   defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
 
-  defp toggle_edit(:on) do
-    JS.remove_class("hidden", to: ".bulk-actions")
-    |> JS.add_class("hidden", to: "#edit-toogle")
-  end
-
-  defp toggle_edit(:off) do
-    JS.add_class("hidden", to: ".bulk-actions")
-    |> JS.remove_class("hidden", to: "#edit-toogle")
-    |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
+  defp select_all() do
+    JS.dispatch("lb:check", to: "[name='session_ids[]']")
+    |> JS.dispatch("bulk-actions-state")
   end
 end
