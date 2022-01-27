@@ -139,13 +139,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
 
     test "provides extended completion when previous evaluation reference is given", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "number = 10", {:c1, :e1}, {:c1, nil})
+      code = """
+      alias IO.ANSI
+      number = 10
+      """
+
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
       assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       request = {:completion, "num"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
 
       assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}}
+
+      request = {:completion, "ANSI.brigh"}
+      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
+
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}}
     end
   end
 

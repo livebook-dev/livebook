@@ -246,17 +246,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {container_ref, evaluation_ref} = locator
     evaluator = state.evaluators[container_ref]
 
-    if evaluator != nil and elem(request, 0) not in [:format] do
-      Evaluator.handle_intellisense(evaluator, send_to, ref, request, evaluation_ref)
-    else
-      # Handle the request in a temporary process using an empty evaluation context
-      Task.Supervisor.start_child(state.task_supervisor, fn ->
-        binding = []
-        env = :elixir.env_for_eval([])
-        response = Livebook.Intellisense.handle_request(request, binding, env)
-        send(send_to, {:intellisense_response, ref, request, response})
-      end)
-    end
+    intellisense_context =
+      if evaluator == nil or elem(request, 0) in [:format] do
+        Evaluator.intellisense_context()
+      else
+        Evaluator.intellisense_context(evaluator, evaluation_ref)
+      end
+
+    Task.Supervisor.start_child(state.task_supervisor, fn ->
+      response = Livebook.Intellisense.handle_request(request, intellisense_context)
+      send(send_to, {:intellisense_response, ref, request, response})
+    end)
 
     {:noreply, state}
   end

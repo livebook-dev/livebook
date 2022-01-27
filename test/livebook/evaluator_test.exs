@@ -236,38 +236,6 @@ defmodule Livebook.EvaluatorTest do
     end
   end
 
-  describe "handle_intellisense/5 given completion request" do
-    test "sends completion response to the given process", %{evaluator: evaluator} do
-      request = {:completion, "System.ver"}
-      Evaluator.handle_intellisense(evaluator, self(), :ref, request)
-
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "version/0"}]}},
-                     2_000
-    end
-
-    test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
-      code = """
-      alias IO.ANSI
-      number = 10
-      """
-
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
-      assert_receive {:evaluation_response, :code_1, _, metadata()}
-
-      request = {:completion, "num"}
-      Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
-
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}},
-                     2_000
-
-      request = {:completion, "ANSI.brigh"}
-      Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
-
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}},
-                     2_000
-    end
-  end
-
   describe "initialize_from/3" do
     setup %{object_tracker: object_tracker} do
       {:ok, _pid, parent_evaluator} =
