@@ -29,7 +29,7 @@ defmodule LivebookWeb.HomeLiveTest do
       path = Path.expand("../../../lib", __DIR__) <> "/"
 
       view
-      |> element("form")
+      |> element("form.grow")
       |> render_change(%{path: path})
 
       # Render the view separately to make sure it received the :set_file event
@@ -42,7 +42,7 @@ defmodule LivebookWeb.HomeLiveTest do
       path = test_notebook_path("basic")
 
       view
-      |> element("form")
+      |> element("form.grow")
       |> render_change(%{path: Path.dirname(path) <> "/"})
 
       view
@@ -62,7 +62,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, view, _} = live(conn, "/")
 
       view
-      |> element("form")
+      |> element("form.grow")
       |> render_change(%{path: tmp_dir <> "/"})
 
       assert view
@@ -76,7 +76,7 @@ defmodule LivebookWeb.HomeLiveTest do
       path = File.cwd!() |> Path.join("nonexistent.livemd")
 
       view
-      |> element("form")
+      |> element("form.grow")
       |> render_change(%{path: path})
 
       assert view
@@ -94,7 +94,7 @@ defmodule LivebookWeb.HomeLiveTest do
       File.chmod!(path, 0o444)
 
       view
-      |> element("form")
+      |> element("form.grow")
       |> render_change(%{path: tmp_dir <> "/"})
 
       view
@@ -165,7 +165,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_click()
 
       view
-      |> element(~s{button}, "Close session")
+      |> element(~s{button.button-red}, "Close session")
       |> render_click()
 
       refute render(view) =~ session.id
