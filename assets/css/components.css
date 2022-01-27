@@ -225,6 +225,14 @@
     @apply w-full flex space-x-3 px-5 py-2 items-center hover:bg-gray-100 focus:bg-gray-100 whitespace-nowrap;
   }
 
+  .menu-item:disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
+  .menu-item--disabled {
+    @apply pointer-events-none opacity-50;
+  }
+
   /* Boxes */
 
   .error-box {

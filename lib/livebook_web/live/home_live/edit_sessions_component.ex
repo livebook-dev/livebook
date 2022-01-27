@@ -8,7 +8,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= title(@action) %>
       </h3>
-      <.message action={@action} selected_session_ids={@selected_session_ids} sessions={@sessions}/>
+      <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions}/>
       <div class="mt-8 flex justify-end space-x-2">
         <button class="button-base button-red" phx-click={@action} phx-target={@myself}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
@@ -23,16 +23,16 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp message(%{action: "close_all"} = assigns) do
     ~H"""
     <p class="text-gray-700">
-      Are you sure you want to close <%= maybe_pluralize(length(@selected_session_ids), "session") %>?
-      <%= if not_persisted(assigns) == 1 do %>
+      Are you sure you want to close <%= maybe_pluralize(length(@selected_sessions), "session") %>?
+      <%= if not_persisted(@selected_sessions) == 1 do %>
       <br/>
         <span class="font-medium">Important:</span>
         1 notebook is not persisted and its content will be lost.
       <% end %>
-      <%= if not_persisted(assigns) > 1 do %>
+      <%= if not_persisted(@selected_sessions) > 1 do %>
       <br/>
         <span class="font-medium">Important:</span>
-        <%= not_persisted(assigns) %> notebooks are not persisted and their content will be lost.
+        <%= not_persisted(@selected_sessions) %> notebooks are not persisted and their content will be lost.
       <% end %>
     </p>
     """
@@ -41,32 +41,25 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp message(%{action: "disconnect"} = assigns) do
     ~H"""
     <p class="text-gray-700">
-      Are you sure you want to disconnect <%= maybe_pluralize(length(@selected_session_ids), "session") %>?
+      Are you sure you want to disconnect <%= maybe_pluralize(length(@selected_sessions), "session") %>?
     </p>
     """
   end
 
   @impl true
   def handle_event("close_all", %{}, socket) do
-    socket.assigns
-    |> selected_session_ids()
+    socket.assigns.selected_sessions
     |> Enum.map(&Livebook.Session.close(&1.pid))
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 
   def handle_event("disconnect", %{}, socket) do
-    socket.assigns
-    |> selected_session_ids()
+    socket.assigns.selected_sessions
     |> Enum.reject(&(&1.memory_usage.runtime == nil))
     |> Enum.map(&Livebook.Session.disconnect_runtime(&1.pid))
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
-  end
-
-  defp selected_session_ids(assigns) do
-    assigns.sessions
-    |> Enum.filter(&(&1.id in assigns.selected_session_ids))
   end
 
   defp button_label("close_all"), do: "Close sessions"
@@ -75,10 +68,8 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp title("close_all"), do: "Close sessions"
   defp title("disconnect"), do: "Disconnect runtime"
 
-  defp not_persisted(assigns) do
-    assigns
-    |> selected_session_ids()
-    |> Enum.count(&(!&1.file))
+  defp not_persisted(selected_sessions) do
+    Enum.count(selected_sessions, &(!&1.file))
   end
 
   defp maybe_pluralize(number, text) do

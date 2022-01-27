@@ -148,7 +148,7 @@ defmodule LivebookWeb.HomeLive do
           action={@action}
           return_to={Routes.home_path(@socket, :page)}
           sessions={@sessions}
-          selected_session_ids={@selected_session_ids} />
+          selected_sessions={selected_sessions(@sessions, @selected_session_ids)} />
       </.modal>
     <% end %>
     """
@@ -399,6 +399,11 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp clean_selected(socket),
-    do: assign(socket, editing_sessions?: false, selected_session_ids: [])
+  defp clean_selected(socket) do
+    assign(socket, editing_sessions?: false, selected_session_ids: [])
+  end
+
+  defp selected_sessions(sessions, selected_session_ids) do
+    Enum.filter(sessions, &(&1.id in selected_session_ids))
+  end
 end
