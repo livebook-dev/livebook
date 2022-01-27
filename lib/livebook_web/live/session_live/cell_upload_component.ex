@@ -91,7 +91,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
     end)
     |> case do
       [{:ok, filename}] ->
-        src_path = "images/#{filename}"
+        src_path = "images/#{URI.encode(filename, &URI.char_unreserved?/1)}"
 
         {:noreply,
          socket
