@@ -82,9 +82,12 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       filename = name <> ext
       destination_file = FileSystem.File.resolve(images_dir, filename)
 
-      with :ok <- FileSystem.File.copy(upload_file, destination_file) do
-        {:ok, filename}
-      end
+      result =
+        with :ok <- FileSystem.File.copy(upload_file, destination_file) do
+          {:ok, filename}
+        end
+
+      {:ok, result}
     end)
     |> case do
       [{:ok, filename}] ->
