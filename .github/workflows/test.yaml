@@ -50,3 +50,7 @@ jobs:
         run: npm run format-check --prefix assets
       - name: Run assets tests
         run: npm test --prefix assets
+      - name: Check app build warnings
+        env:
+          MIX_TARGET: app
+        run: mix compile --warnings-as-errors
