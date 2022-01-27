@@ -197,7 +197,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <.menu id="edit-sessions">
         <:toggle>
           <button id="edit-toogle" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
-            phx-click={toggle_edit(:on)}>
+            phx-click={toggle_edit("on")}>
             <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
             <span>Edit</span>
           </button>
@@ -207,7 +207,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </button>
         </:toggle>
         <:content>
-          <button class="menu-item text-gray-600" phx-click={toggle_edit(:off)}>
+          <button class="menu-item text-gray-600" phx-click={toggle_edit("off")}>
             <.remix_icon icon="close-line" />
             <span class="font-medium">Cancel</span>
           </button>
@@ -240,13 +240,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     time_words <> " ago"
   end
 
-  def toggle_edit(:on) do
+  def toggle_edit("on") do
     JS.remove_class("hidden", to: ".bulk-actions")
     |> JS.add_class("hidden", to: "#edit-toogle")
     |> JS.dispatch("bulk-actions-state")
   end
 
-  def toggle_edit(:off) do
+  def toggle_edit("off") do
     JS.add_class("hidden", to: ".bulk-actions")
     |> JS.remove_class("hidden", to: "#edit-toogle")
     |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
