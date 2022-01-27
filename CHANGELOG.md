@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.5.2](https://github.com/livebook-dev/livebook/tree/v0.5.1) (2022-01-27)
+
+### Added
+
+- Allowed Livebook port to be set to 0 for a random port ([#906](https://github.com/livebook-dev/livebook/pull/906))
+- Added memory usage information to runtime panel and sessions list ([#898](https://github.com/livebook-dev/livebook/pull/898), [#917](https://github.com/livebook-dev/livebook/pull/917) and [#918](https://github.com/livebook-dev/livebook/pull/918))
+- Added support for font-awesome in mermaid.js diagrams ([#913](https://github.com/livebook-dev/livebook/pull/913))
+- Support for reopening the desktop app ([#928](https://github.com/livebook-dev/livebook/pull/928))
+- Added a warning when copying to clipboard fails ([#922](https://github.com/livebook-dev/livebook/pull/922))
+
+### Changed
+
+- App icon on macOS to look more native ([#924](https://github.com/livebook-dev/livebook/pull/924))
+- Improved errors formatting ([#926](https://github.com/livebook-dev/livebook/pull/926))
+- Improved intellisense to work while code is evaluating ([#941](https://github.com/livebook-dev/livebook/pull/941))
+- Updated the release to run in interactive mode, hence using less memory ([#944](https://github.com/livebook-dev/livebook/pull/944))
+- Updated the release to use a random cookie on every startup ([#944](https://github.com/livebook-dev/livebook/pull/944))
+
+### Fixed
+
+- Favicon rendering in Safari ([#920](https://github.com/livebook-dev/livebook/pull/920))
+- Fixed code evaluation in the desktop app to work without Elixir installed globally ([929](https://github.com/livebook-dev/livebook/pull/929))
+- Fixed line break support in Mermaid diagram definition ([932](https://github.com/livebook-dev/livebook/pull/932))
+- Improved error handling in case of erroneous implementations of the `Inspect` protocol ([934](https://github.com/livebook-dev/livebook/pull/934))
+- Fixed image insertion in Markdown cells when the image name includes special characters ([945](https://github.com/livebook-dev/livebook/pull/945))
+
 ## [v0.5.1](https://github.com/livebook-dev/livebook/tree/v0.5.1) (2022-01-20)
 
 ### Changed
