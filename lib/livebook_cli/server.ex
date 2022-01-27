@@ -35,6 +35,7 @@ defmodule LivebookCLI.Server do
       --name               Set a name for the app distributed node
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
+      --notebook           Open browser window pointing to notebook specified
       --open               Open browser window pointing to the application
       --open-new           Open browser window pointing to a new notebook
       -p, --port           The port to start the web application on, defaults to 8080
@@ -126,6 +127,10 @@ defmodule LivebookCLI.Server do
       |> append_path("/explore/notebooks/new")
       |> Livebook.Utils.browser_open()
     end
+    
+    if opts[:notebook] do
+      #add code here
+    end
   end
 
   @switches [
@@ -134,6 +139,7 @@ defmodule LivebookCLI.Server do
     default_runtime: :string,
     ip: :string,
     name: :string,
+    notebook: string,
     open: :boolean,
     open_new: :boolean,
     port: :integer,
