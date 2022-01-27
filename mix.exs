@@ -147,7 +147,7 @@ defmodule Livebook.MixProject do
   end
 
   defp remove_cookie(release) do
-    :ok = File.rm(Path.join(release.path, "releases/COOKIE"))
+    File.rm!(Path.join(release.path, "releases/COOKIE"))
     release
   end
 
