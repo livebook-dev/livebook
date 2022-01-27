@@ -1,6 +1,8 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
+  @elixir_requirement "~> 1.13"
+  @elixir_app_version "1.13.2"
   @version "0.5.1"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
@@ -8,7 +10,7 @@ defmodule Livebook.MixProject do
     [
       app: :livebook,
       version: @version,
-      elixir: "~> 1.13",
+      elixir: @elixir_requirement,
       name: "Livebook",
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -16,9 +18,9 @@ defmodule Livebook.MixProject do
       aliases: aliases(),
       deps: with_lock(target_deps(Mix.target()) ++ deps()),
       escript: escript(),
+      package: package(),
       default_release: :livebook,
-      releases: releases(),
-      package: package()
+      releases: releases()
     ]
   end
 
@@ -37,6 +39,33 @@ defmodule Livebook.MixProject do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp package do
+    [
+      licenses: ["Apache-2.0"],
+      links: %{
+        "GitHub" => "https://github.com/livebook-dev/livebook"
+      },
+      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+    ]
+  end
+
+  defp aliases do
+    [
+      "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
+      "dev.build": ["cmd npm run deploy --prefix ./assets"],
+      "format.all": ["format", "cmd npm run format --prefix ./assets"]
+    ]
+  end
+
+  defp escript do
+    [
+      main_module: LivebookCLI,
+      app: nil
+    ]
+  end
+
+  ## Dependencies
 
   # Although we use requirements here, the with_lock() function
   # below ensures we only use the locked versions. This is important
@@ -92,40 +121,42 @@ defmodule Livebook.MixProject do
     end
   end
 
-  defp aliases do
-    [
-      "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
-      "dev.build": ["cmd npm run deploy --prefix ./assets"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"]
-    ]
-  end
-
-  defp escript do
-    [
-      main_module: LivebookCLI,
-      app: nil
-    ]
-  end
+  ## Releases
 
   defp releases do
     [
       livebook: [
         include_executables_for: [:unix],
-        include_erts: false
+        include_erts: false,
+        rel_templates_path: "rel/server",
+        steps: [:assemble, &remove_cookie/1]
       ],
       mac_app: [
         include_executables_for: [:unix],
         include_erts: false,
         rel_templates_path: "rel/app",
-        steps: [:assemble, &standalone_erlang_elixir/1, &build_mac_app/1]
+        steps: [:assemble, &remove_cookie/1, &standalone_erlang_elixir/1, &build_mac_app/1]
       ],
       mac_app_dmg: [
         include_executables_for: [:unix],
         include_erts: false,
         rel_templates_path: "rel/app",
-        steps: [:assemble, &standalone_erlang_elixir/1, &build_mac_app_dmg/1]
+        steps: [:assemble, &remove_cookie/1, &standalone_erlang_elixir/1, &build_mac_app_dmg/1]
       ]
     ]
+  end
+
+  defp remove_cookie(release) do
+    File.rm!(Path.join(release.path, "releases/COOKIE"))
+    release
+  end
+
+  defp standalone_erlang_elixir(release) do
+    Code.require_file("rel/app/standalone.exs")
+
+    release
+    |> Standalone.copy_erlang()
+    |> Standalone.copy_elixir(@elixir_app_version)
   end
 
   @app_options [
@@ -138,14 +169,6 @@ defmodule Livebook.MixProject do
       %{name: "LiveMarkdown", role: "Editor", extensions: ["livemd"]}
     ]
   ]
-
-  defp standalone_erlang_elixir(release) do
-    Code.require_file("rel/app/standalone.exs")
-
-    release
-    |> Standalone.copy_erlang()
-    |> Standalone.copy_elixir("1.13.2")
-  end
 
   defp build_mac_app(release) do
     AppBuilder.build_mac_app(release, @app_options)
@@ -165,15 +188,5 @@ defmodule Livebook.MixProject do
       ] ++ @app_options
 
     AppBuilder.build_mac_app_dmg(release, options)
-  end
-
-  def package do
-    [
-      licenses: ["Apache-2.0"],
-      links: %{
-        "GitHub" => "https://github.com/livebook-dev/livebook"
-      },
-      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
-    ]
   end
 end

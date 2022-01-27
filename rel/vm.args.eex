@@ -1,3 +1,0 @@
-# Disable busy waiting, so that we don't waste
-# resources when running in the cloud
-+sbwt none +sbwtdcpu none +sbwtdio none
