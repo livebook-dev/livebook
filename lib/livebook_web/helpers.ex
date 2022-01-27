@@ -375,4 +375,10 @@ defmodule LivebookWeb.Helpers do
 
   def file_system_label(%FileSystem.Local{}), do: "Local disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
+
+  @doc """
+  Returns the text in singular or plural depending on the quantity
+  """
+  def pluralize(1, singular, _plural), do: "#{1} #{singular}"
+  def pluralize(count, _singular, plural), do: "#{count} #{plural}"
 end
