@@ -1,6 +1,8 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
+  @elixir_requirement "~> 1.13"
+  @elixir_app_version "1.13.2"
   @version "0.5.1"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
@@ -8,7 +10,7 @@ defmodule Livebook.MixProject do
     [
       app: :livebook,
       version: @version,
-      elixir: "~> 1.13",
+      elixir: @elixir_requirement,
       name: "Livebook",
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -154,7 +156,7 @@ defmodule Livebook.MixProject do
 
     release
     |> Standalone.copy_erlang()
-    |> Standalone.copy_elixir("1.13.2")
+    |> Standalone.copy_elixir(@elixir_app_version)
   end
 
   @app_options [
