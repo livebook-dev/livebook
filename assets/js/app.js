@@ -124,12 +124,12 @@ window.addEventListener("contextmenu", (event) => {
 window.addEventListener("bulk-actions-state", () => {
   const checkboxes = document.querySelectorAll("[name='session_ids[]']");
   const disconnect = document.querySelector("[name='disconnect']");
-  const close_all = document.querySelector("[name='close_all']")
+  const close_all = document.querySelector("[name='close_all']");
   const empty = [...checkboxes].every((el) => {
-    return !el.checked
+    return !el.checked;
   });
-  disconnect.disabled = empty
-  close_all.disabled = empty
+  disconnect.disabled = empty;
+  close_all.disabled = empty;
 });
 
 // Global configuration
