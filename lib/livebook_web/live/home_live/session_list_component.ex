@@ -215,11 +215,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <.remix_icon icon="checkbox-multiple-line" />
             <span class="font-medium">Select all</span>
           </button>
-          <button class="menu-item text-gray-600" name="disconnect" type="submit" disabled={true}>
+          <button class="menu-item text-gray-600" name="disconnect" type="submit">
             <.remix_icon icon="shut-down-line" />
             <span class="font-medium">Disconnect runtime</span>
           </button>
-          <button class="menu-item text-red-600" name="close_all" type="submit" disabled={true}>
+          <button class="menu-item text-red-600" name="close_all" type="submit">
             <.remix_icon icon="close-circle-line" />
             <span class="font-medium">Close sessions</span>
           </button>
@@ -243,6 +243,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def toggle_edit(:on) do
     JS.remove_class("hidden", to: ".bulk-actions")
     |> JS.add_class("hidden", to: "#edit-toogle")
+    |> JS.dispatch("bulk-actions-state")
   end
 
   def toggle_edit(:off) do
