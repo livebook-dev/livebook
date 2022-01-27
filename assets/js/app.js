@@ -91,6 +91,14 @@ window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
 });
 
+window.addEventListener("lb:check", (event) => {
+  event.target.checked = true;
+});
+
+window.addEventListener("lb:uncheck", (event) => {
+  event.target.checked = false;
+});
+
 window.addEventListener("lb:clipcopy", (event) => {
   if ("clipboard" in navigator) {
     const text = event.target.textContent;

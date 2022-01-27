@@ -10,7 +10,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
       </h3>
       <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions}/>
       <div class="mt-8 flex justify-end space-x-2">
-        <button class="button-base button-red" phx-click={@action} phx-target={@myself}>
+        <button class="button-base button-red" phx-click={clear_edit() |> JS.push(@action, target: @myself)}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           <%= button_label(@action) %>
         </button>
@@ -69,5 +69,11 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
 
   defp not_persisted(selected_sessions) do
     Enum.count(selected_sessions, &(!&1.file))
+  end
+
+  def clear_edit() do
+    JS.add_class("hidden", to: ".bulk-actions")
+    |> JS.remove_class("hidden", to: "#edit-toogle")
+    |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
   end
 end

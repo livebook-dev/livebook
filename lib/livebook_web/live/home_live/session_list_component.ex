@@ -6,7 +6,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, order_by: "date", editing_sessions?: false)}
+    {:ok, assign(socket, order_by: "date")}
   end
 
   @impl true
@@ -32,6 +32,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   @impl true
   def render(assigns) do
     ~H"""
+    <form id="bulk-actions-form" phx-submit="bulk_actions">
     <div>
       <div class="mb-4 flex items-center md:items-end justify-between">
       <div class="flex flex-row">
@@ -41,9 +42,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </div>
         <div class="flex flex-row">
         <.memory_info />
-        <%= if length(@sessions) > 0 do %>
-          <.edit_sessions sessions={@sessions} socket={@socket}
-            editing_sessions?={@editing_sessions?} selected_session_ids={@selected_session_ids} />
+        <%= if @sessions != [] do %>
+          <.edit_sessions sessions={@sessions} socket={@socket}/>
         <% end %>
         <.menu id="sessions-order-menu">
           <:toggle>
@@ -66,8 +66,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </div>
       </div>
       <.session_list sessions={@sessions} socket={@socket}
-        show_autosave_note?={@show_autosave_note?} editing_sessions?={@editing_sessions?} selected_session_ids={@selected_session_ids} />
+        show_autosave_note?={@show_autosave_note?} />
     </div>
+    </form>
     """
   end
 
@@ -100,14 +101,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <%= for session <- @sessions do %>
         <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
-          <%= if @editing_sessions? do %>
-            <input
-            class="checkbox-base mr-3"
-            type="checkbox"
-            phx-click="select_session"
-            phx-value-id={session.id}
-            checked={session.id in @selected_session_ids} />
-          <% end %>
+          <div phx-update="ignore">
+            <input type="checkbox" name="session_ids[]" value={session.id}
+              class="checkbox-base hidden bulk-actions mr-3">
+          </div>
           <div class="grow flex flex-col items-start">
             <%= live_redirect session.notebook_name,
                   to: Routes.session_path(@socket, :page, session.id),
@@ -197,45 +194,37 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp edit_sessions(assigns) do
     ~H"""
     <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
-      <%= if @editing_sessions? do %>
-        <.menu id="edit-sessions">
-          <:toggle>
-            <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center">
-              <span>Actions</span>
-              <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
-            </button>
-          </:toggle>
-          <:content>
-            <a href="#" class="menu-item text-gray-600" phx-click="cancel_bulk_edit">
-              <.remix_icon icon="close-line" />
-              <span class="font-medium">Cancel</span>
-            </a>
-            <a href="#" class="menu-item text-gray-600" phx-click="select_all">
-              <.remix_icon icon="checkbox-multiple-line" />
-              <span class="font-medium">Select all</span>
-            </a>
-            <%= live_patch to: Routes.home_path(@socket, :edit_sessions, "disconnect"),
-              class: "menu-item text-gray-600 #{if length(@selected_session_ids) == 0, do: "menu-item--disabled"}",
-              role: "menuitem" do %>
-              <.remix_icon icon="shut-down-line" />
-                <span class="font-medium">Disconnect runtime</span>
-            <% end %>
-            <%= live_patch to: Routes.home_path(@socket, :edit_sessions, "close_all"),
-              class: "menu-item text-red-600 #{if length(@selected_session_ids) == 0, do: "menu-item--disabled"}",
-              role: "menuitem" do %>
-              <.remix_icon icon="shut-down-line" />
-                <span class="font-medium">Close sessions</span>
-            <% end %>
-          </:content>
-        </.menu>
-      <% else %>
-        <span class="tooltip top" data-tooltip="Edit sessions">
-        <button class="w-28 button-base button-outlined-gray px-4 pl-2 py-1" phx-click="toggle_bulk_edit">
-          <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
-          <span>Edit</span>
-        </button>
-        </span>
-      <% end %>
+      <.menu id="edit-sessions">
+        <:toggle>
+          <button id="edit-toogle" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
+            phx-click={toggle_edit(:on)}>
+            <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
+            <span>Edit</span>
+          </button>
+          <button class="hidden bulk-actions w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center">
+            <span>Actions</span>
+            <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
+          </button>
+        </:toggle>
+        <:content>
+          <button class="menu-item text-gray-600" phx-click={toggle_edit(:off)}>
+            <.remix_icon icon="close-line" />
+            <span class="font-medium">Cancel</span>
+          </button>
+          <button class="menu-item text-gray-600" phx-click={JS.dispatch("lb:check", to: "[name='session_ids[]']")}>
+            <.remix_icon icon="checkbox-multiple-line" />
+            <span class="font-medium">Select all</span>
+          </button>
+          <button class="menu-item text-gray-600" name="disconnect" type="submit">
+            <.remix_icon icon="shut-down-line" />
+            <span class="font-medium">Disconnect runtime</span>
+          </button>
+          <button class="menu-item text-red-600" name="close_all" type="submit">
+            <.remix_icon icon="close-circle-line" />
+            <span class="font-medium">Close sessions</span>
+          </button>
+        </:content>
+      </.menu>
     </div>
     """
   end
@@ -275,4 +264,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp total_runtime_memory(%{memory_usage: %{runtime: nil}}), do: 0
   defp total_runtime_memory(%{memory_usage: %{runtime: %{total: total}}}), do: total
+
+  defp toggle_edit(:on) do
+    JS.remove_class("hidden", to: ".bulk-actions")
+    |> JS.add_class("hidden", to: "#edit-toogle")
+  end
+
+  defp toggle_edit(:off) do
+    JS.add_class("hidden", to: ".bulk-actions")
+    |> JS.remove_class("hidden", to: "#edit-toogle")
+    |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
+  end
 end
