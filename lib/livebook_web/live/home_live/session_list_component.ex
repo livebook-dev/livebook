@@ -231,7 +231,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <.remix_icon icon="close-circle-line" />
             <span class="font-medium">Close sessions</span>
           </button>
-          <input id="bulk-action-input" type="hidden" name="action" />
+          <input id="bulk-action-input" class="hidden" type="text" name="action"/>
         </:content>
       </.menu>
     </div>

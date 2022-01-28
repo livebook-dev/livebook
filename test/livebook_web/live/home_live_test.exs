@@ -170,6 +170,35 @@ defmodule LivebookWeb.HomeLiveTest do
 
       refute render(view) =~ session.id
     end
+
+    test "close all selected sessions using bulk action", %{conn: conn} do
+      {:ok, session1} = Sessions.create_session()
+      {:ok, session2} = Sessions.create_session()
+      {:ok, session3} = Sessions.create_session()
+
+      {:ok, view, _} = live(conn, "/")
+
+      assert render(view) =~ session1.id
+      assert render(view) =~ session2.id
+      assert render(view) =~ session3.id
+
+      view
+      |> form("#bulk-action-form", %{
+        "action" => "close_all",
+        "session_ids" => [session1.id, session2.id, session3.id]
+      })
+      |> render_submit()
+
+      assert render(view) =~ "Are you sure you want to close 3 sessions?"
+
+      view
+      |> element(~s{button[role="button"]}, "Close sessions")
+      |> render_click()
+
+      refute render(view) =~ session1.id
+      refute render(view) =~ session2.id
+      refute render(view) =~ session3.id
+    end
   end
 
   test "link to introductory notebook correctly creates a new session", %{conn: conn} do
