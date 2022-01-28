@@ -128,6 +128,9 @@ defmodule LivebookCLI.Server do
       |> Livebook.Utils.browser_open()
     end
     
+    if Keyword.has_key?(opts, :notebook) do
+      LivebookApp.import_livebook("file://" <> File.cwd!() <> Keyword.fetch!(opts, :notebook))
+    end
   end
 
   @switches [
@@ -212,10 +215,6 @@ defmodule LivebookCLI.Server do
   defp opts_to_config([{:autosave_path, path} | opts], config) do
     autosave_path = Livebook.Config.autosave_path!("--autosave-path", path)
     opts_to_config(opts, [{:livebook, :autosave_path, autosave_path} | config])
-  end
-  
-  defp opts_to_config([{:notebook, notebook_path} | opts], config) do
-    opts_to_config([{:open, true} | opts], [{:livebook, :root_path, File.cwd!() <> notebook_path} | config])
   end
   
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
