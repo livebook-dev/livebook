@@ -319,8 +319,12 @@ defmodule LivebookWeb.SessionLiveTest do
 
       wait_for_session_update(session.pid)
 
-      assert render(view) =~ "Updated frame"
-      refute render(view) =~ "In frame"
+      # Wait for the send_update to be applied
+      Process.sleep(10)
+
+      content = render(view)
+      assert content =~ "Updated frame"
+      refute content =~ "In frame"
     end
   end
 
