@@ -107,7 +107,7 @@ defmodule LivebookWeb.HomeLive do
           <div class="py-12">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
-              sessions={@sessions} />
+              sessions={@sessions}/>
           </div>
         </div>
       </div>
@@ -136,6 +136,17 @@ defmodule LivebookWeb.HomeLive do
           import_opts={@import_opts} />
       </.modal>
     <% end %>
+
+    <%= if @live_action == :edit_sessions do %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.EditSessionsComponent}
+          id="edit-sessions"
+          action={@bulk_action}
+          return_to={Routes.home_path(@socket, :page)}
+          sessions={@sessions}
+          selected_sessions={selected_sessions(@sessions, @selected_session_ids)} />
+      </.modal>
+    <% end %>
     """
   end
 
@@ -151,6 +162,14 @@ defmodule LivebookWeb.HomeLive do
   def handle_params(%{"session_id" => session_id}, _url, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     {:noreply, assign(socket, session: session)}
+  end
+
+  def handle_params(
+        %{"action" => action},
+        _url,
+        %{assigns: %{live_action: :edit_sessions}} = socket
+      ) do
+    {:noreply, assign(socket, bulk_action: action)}
   end
 
   def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do
@@ -218,6 +237,22 @@ defmodule LivebookWeb.HomeLive do
           put_flash(socket, :error, Livebook.Utils.upcase_first(error))
       end
 
+    {:noreply, socket}
+  end
+
+  def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
+    socket = assign(socket, selected_session_ids: params["session_ids"])
+    {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "disconnect"))}
+  end
+
+  def handle_event("bulk_action", %{"action" => "close_all"} = params, socket) do
+    socket = assign(socket, selected_session_ids: params["session_ids"])
+    {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "close_all"))}
+  end
+
+  def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    Session.disconnect_runtime(session.pid)
     {:noreply, socket}
   end
 
@@ -344,5 +379,9 @@ defmodule LivebookWeb.HomeLive do
       {:ok, access} -> access
       {:error, _} -> :none
     end
+  end
+
+  defp selected_sessions(sessions, selected_session_ids) do
+    Enum.filter(sessions, &(&1.id in selected_session_ids))
   end
 end

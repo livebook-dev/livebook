@@ -1,6 +1,8 @@
 defmodule LivebookWeb.HomeLive.CloseSessionComponent do
   use LivebookWeb, :live_component
 
+  import LivebookWeb.HomeLive.SessionListComponent, only: [toggle_edit: 1]
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -14,10 +16,11 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
         <br/>
         <%= if @session.file,
               do: "This won't delete any persisted files.",
-              else: "The notebook is not persisted and all content will be lost." %>
+              else: "The notebook is not persisted and content may be lost." %>
       </p>
       <div class="mt-8 flex justify-end space-x-2">
-        <button class="button-base button-red" phx-click="close" phx-target={@myself}>
+        <button class="button-base button-red" role="button"
+          phx-click={toggle_edit(:off) |> JS.push("close", target: @myself)}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           Close session
         </button>
