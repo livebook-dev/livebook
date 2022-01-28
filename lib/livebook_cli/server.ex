@@ -215,7 +215,7 @@ defmodule LivebookCLI.Server do
   end
   
   defp opts_to_config([{:notebook, notebook_path} | opts], config) do
-    opts_to_config([{:open, true} | opts], [{:livebook, :root_path, File.cwd() <> notebook_path} | config])
+    opts_to_config([{:open, true} | opts], [{:livebook, :root_path, File.cwd!() <> notebook_path} | config])
   end
   
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
