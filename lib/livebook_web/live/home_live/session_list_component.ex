@@ -32,7 +32,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <form id="bulk-actions-form" phx-submit="bulk_action">
+    <form id="bulk-action-form" phx-submit="bulk_action">
       <div class="mb-4 flex items-center md:items-end justify-between">
         <div class="flex flex-row">
           <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
@@ -232,9 +232,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <span class="font-medium">Close sessions</span>
           </button>
           <input id="bulk-action-input" type="hidden" name="action" />
-          <button id="bulk-action-submit" class="hidden"
-            name="submit" type="submit" form="bulk-actions-form">
-          </button>
         </:content>
       </.menu>
     </div>
@@ -297,6 +294,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
-    |> JS.dispatch("lb:click", to: "#bulk-action-submit")
+    |> JS.dispatch("submit", to: "#bulk-action-form")
   end
 end
