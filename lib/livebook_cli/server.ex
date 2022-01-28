@@ -128,8 +128,9 @@ defmodule LivebookCLI.Server do
       |> Livebook.Utils.browser_open()
     end
     
-    if Keyword.has_key?(opts, :notebook) do
-      LivebookApp.import_livebook("file://" <> File.cwd!() <> Keyword.fetch!(opts, :notebook))
+    if notebook = opts[:notebook] do
+      url = LivebookWeb.Helpers.notebook_import_url("file://" <> File.cwd!() <> Keyword.fetch!(opts, :notebook))
+      Livebook.Utils.browser_open(url)      
     end
   end
 
