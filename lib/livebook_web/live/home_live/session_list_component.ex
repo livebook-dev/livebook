@@ -221,13 +221,19 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <.remix_icon icon="checkbox-multiple-line" />
             <span class="font-medium">Select all</span>
           </button>
-          <button class="menu-item text-gray-600" name="disconnect" type="submit">
+          <button class="menu-item text-gray-600" name="disconnect" type="button"
+            phx-click={set_action("disconnect")}>
             <.remix_icon icon="shut-down-line" />
             <span class="font-medium">Disconnect runtime</span>
           </button>
-          <button class="menu-item text-red-600" name="close_all" type="submit">
+          <button class="menu-item text-red-600" name="close_all" type="button"
+            phx-click={set_action("close_all")}>
             <.remix_icon icon="close-circle-line" />
             <span class="font-medium">Close sessions</span>
+          </button>
+          <input id="bulk-action-input" type="hidden" name="action" />
+          <button id="bulk-action-submit" class="hidden"
+            name="submit" type="submit" form="bulk-actions-form">
           </button>
         </:content>
       </.menu>
@@ -287,5 +293,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp select_all() do
     JS.dispatch("lb:check", to: "[name='session_ids[]']")
     |> JS.dispatch("lb:session_list:on_selection_change")
+  end
+
+  defp set_action(action) do
+    JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
+    |> JS.dispatch("lb:click", to: "#bulk-action-submit")
   end
 end
