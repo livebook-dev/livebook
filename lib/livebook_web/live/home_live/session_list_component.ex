@@ -38,8 +38,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
             Running sessions (<%= length(@sessions) %>)
           </h2>
-          </div>
-          <div class="flex flex-row">
+        </div>
+        <div class="flex flex-row">
           <.memory_info />
           <%= if @sessions != [] do %>
             <.edit_sessions sessions={@sessions} socket={@socket}/>
@@ -64,8 +64,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
               <% end %>
             </:content>
           </.menu>
-          </div>
         </div>
+      </div>
       <.session_list sessions={@sessions} socket={@socket}
         show_autosave_note?={@show_autosave_note?} />
     </form>
