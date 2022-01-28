@@ -32,7 +32,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <form id="bulk-actions-form" phx-submit="bulk_actions">
+    <form id="bulk-actions-form" phx-submit="bulk_action">
     <div>
       <div class="mb-4 flex items-center md:items-end justify-between">
       <div class="flex flex-row">
@@ -47,7 +47,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         <% end %>
         <.menu id="sessions-order-menu">
           <:toggle>
-            <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center">
+            <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
+              type="button">
               <span><%= order_by_label(@order_by) %></span>
               <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
             </button>
@@ -55,6 +56,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           <:content>
             <%= for order_by <- ["date", "title", "memory"] do %>
               <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
+                type="button"
                 role="menuitem"
                 phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
                 <.remix_icon icon={order_by_icon(order_by)} />
@@ -103,7 +105,9 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           data-test-session-id={session.id}>
           <div id={"#{session.id}-checkbox"} phx-update="ignore">
             <input type="checkbox" name="session_ids[]" value={session.id}
-              class="checkbox-base hidden bulk-actions mr-3" phx-click={JS.dispatch("bulk-actions-state")}>
+              class="checkbox-base hidden mr-3"
+              data-element="bulk-edit-member"
+              phx-click={JS.dispatch("lb:session_list:on_selection_change")}>
           </div>
           <div class="grow flex flex-col items-start">
             <%= live_redirect session.notebook_name,
@@ -125,12 +129,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </div>
           <.menu id={"session-#{session.id}-menu"}>
             <:toggle>
-              <button class="icon-button" aria-label="open session menu">
+              <button class="icon-button" aria-label="open session menu" type="button">
                 <.remix_icon icon="more-2-fill" class="text-xl" />
               </button>
             </:toggle>
             <:content>
               <button class="menu-item text-gray-500"
+                type="button"
                 role="menuitem"
                 phx-click="fork_session"
                 phx-value-id={session.id}>
@@ -145,6 +150,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 <span class="font-medium">See on Dashboard</span>
               </a>
               <button class="menu-item text-gray-500"
+                type="button"
                 disabled={!session.memory_usage.runtime}
                 role="menuitem"
                 phx-click="disconnect_runtime"
@@ -196,22 +202,24 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
       <.menu id="edit-sessions">
         <:toggle>
-          <button id="edit-toogle" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
-            phx-click={toggle_edit("on")}>
+          <button id="toggle-edit" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
+            phx-click={toggle_edit(:on)} type="button">
             <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
             <span>Edit</span>
           </button>
-          <button class="hidden bulk-actions w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center">
+          <button class="hidden w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
+            data-element="bulk-edit-member"
+            type="button">
             <span>Actions</span>
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
           </button>
         </:toggle>
         <:content>
-          <button class="menu-item text-gray-600" phx-click={toggle_edit("off")}>
+          <button class="menu-item text-gray-600" phx-click={toggle_edit(:off)} type="button">
             <.remix_icon icon="close-line" />
             <span class="font-medium">Cancel</span>
           </button>
-          <button class="menu-item text-gray-600" phx-click={select_all()}>
+          <button class="menu-item text-gray-600" phx-click={select_all()} type="button">
             <.remix_icon icon="checkbox-multiple-line" />
             <span class="font-medium">Select all</span>
           </button>
@@ -240,17 +248,17 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     time_words <> " ago"
   end
 
-  def toggle_edit("on") do
-    JS.remove_class("hidden", to: ".bulk-actions")
-    |> JS.add_class("hidden", to: "#edit-toogle")
-    |> JS.dispatch("bulk-actions-state")
+  def toggle_edit(:on) do
+    JS.remove_class("hidden", to: "[data-element='bulk-edit-member']")
+    |> JS.add_class("hidden", to: "#toggle-edit")
+    |> JS.dispatch("lb:session_list:on_selection_change")
   end
 
-  def toggle_edit("off") do
-    JS.add_class("hidden", to: ".bulk-actions")
-    |> JS.remove_class("hidden", to: "#edit-toogle")
+  def toggle_edit(:off) do
+    JS.add_class("hidden", to: "[data-element='bulk-edit-member']")
+    |> JS.remove_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
-    |> JS.dispatch("bulk-actions-state")
+    |> JS.dispatch("lb:session_list:on_selection_change")
   end
 
   defp order_by_label("date"), do: "Date"
@@ -280,6 +288,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp select_all() do
     JS.dispatch("lb:check", to: "[name='session_ids[]']")
-    |> JS.dispatch("bulk-actions-state")
+    |> JS.dispatch("lb:session_list:on_selection_change")
   end
 end

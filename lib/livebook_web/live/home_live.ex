@@ -240,18 +240,14 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, socket}
   end
 
-  def handle_event("bulk_actions", %{"disconnect" => ""} = params, socket) do
+  def handle_event("bulk_action", %{"disconnect" => ""} = params, socket) do
     socket = assign(socket, selected_session_ids: params["session_ids"])
     {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "disconnect"))}
   end
 
-  def handle_event("bulk_actions", %{"close_all" => ""} = params, socket) do
+  def handle_event("bulk_action", %{"close_all" => ""} = params, socket) do
     socket = assign(socket, selected_session_ids: params["session_ids"])
     {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "close_all"))}
-  end
-
-  def handle_event("bulk_actions", _, socket) do
-    {:noreply, socket}
   end
 
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do

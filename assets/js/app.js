@@ -121,15 +121,16 @@ window.addEventListener("contextmenu", (event) => {
   }
 });
 
-window.addEventListener("bulk-actions-state", () => {
-  const checkboxes = document.querySelectorAll("[name='session_ids[]']");
-  const disconnect = document.querySelector("[name='disconnect']");
-  const close_all = document.querySelector("[name='close_all']");
-  const empty = [...checkboxes].every((el) => {
-    return !el.checked;
-  });
-  disconnect.disabled = empty;
-  close_all.disabled = empty;
+window.addEventListener("lb:session_list:on_selection_change", () => {
+  const anySessionSelected = !!document.querySelector(
+    "[name='session_ids[]']:checked"
+  );
+  const disconnect = document.querySelector(
+    "#edit-sessions [name='disconnect']"
+  );
+  const closeAll = document.querySelector("#edit-sessions [name='close_all']");
+  disconnect.disabled = !anySessionSelected;
+  closeAll.disabled = !anySessionSelected;
 });
 
 // Global configuration

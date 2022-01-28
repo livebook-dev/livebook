@@ -12,7 +12,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
       </h3>
       <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions}/>
       <div class="mt-8 flex justify-end space-x-2">
-        <button class="button-base button-red" phx-click={toggle_edit("off") |> JS.push(@action, target: @myself)}>
+        <button class="button-base button-red" phx-click={toggle_edit(:off) |> JS.push(@action, target: @myself)}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           <%= button_label(@action) %>
         </button>
