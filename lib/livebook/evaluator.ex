@@ -289,16 +289,16 @@ defmodule Livebook.Evaluator do
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()
 
-    {result_context, response} =
+    {result_context, response, code_error} =
       case eval(code, context.binding, context.env) do
         {:ok, result, binding, env} ->
           result_context = %{binding: binding, env: env, id: random_id()}
           response = {:ok, result}
-          {result_context, response}
+          {result_context, response, nil}
 
-        {:error, kind, error, stacktrace} ->
+        {:error, kind, error, stacktrace, code_error} ->
           response = {:error, kind, error, stacktrace}
-          {context, response}
+          {context, response, code_error}
       end
 
     evaluation_time_ms = get_execution_time_delta(start_time)
@@ -309,7 +309,13 @@ defmodule Livebook.Evaluator do
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
 
     output = state.formatter.format_response(response)
-    metadata = %{evaluation_time_ms: evaluation_time_ms, memory_usage: memory()}
+
+    metadata = %{
+      evaluation_time_ms: evaluation_time_ms,
+      memory_usage: memory(),
+      code_error: code_error
+    }
+
     send(send_to, {:evaluation_response, ref, output, metadata})
 
     :erlang.garbage_collect(self())
@@ -391,9 +397,22 @@ defmodule Livebook.Evaluator do
     catch
       kind, error ->
         stacktrace = prune_stacktrace(__STACKTRACE__)
-        {:error, kind, error, stacktrace}
+
+        code_error =
+          if code_error?(error) and (error.file == env.file and error.file != "nofile") do
+            %{line: error.line, description: error.description}
+          else
+            nil
+          end
+
+        {:error, kind, error, stacktrace, code_error}
     end
   end
+
+  defp code_error?(%SyntaxError{}), do: true
+  defp code_error?(%TokenMissingError{}), do: true
+  defp code_error?(%CompileError{}), do: true
+  defp code_error?(_error), do: false
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
 

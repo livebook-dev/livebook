@@ -30,6 +30,22 @@ defmodule Livebook.IntellisenseTest do
 
   alias Livebook.Intellisense
 
+  describe "format_code/1" do
+    test "formats valid code" do
+      assert %{code: "1 + 1", code_error: nil} = Intellisense.format_code("1+1")
+    end
+
+    test "returns a syntax error when invalid code is given" do
+      assert %{
+               code: nil,
+               code_error: %{
+                 line: 1,
+                 description: "syntax error: expression is incomplete"
+               }
+             } = Intellisense.format_code("1+")
+    end
+  end
+
   describe "get_completion_items/3" do
     test "completion when no hint given" do
       context = eval(do: nil)

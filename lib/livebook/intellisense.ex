@@ -51,16 +51,13 @@ defmodule Livebook.Intellisense do
   end
 
   def handle_request({:format, code}, _context) do
-    case format_code(code) do
-      {:ok, code} -> %{code: code}
-      :error -> nil
-    end
+    format_code(code)
   end
 
   @doc """
   Formats Elixir code.
   """
-  @spec format_code(String.t()) :: {:ok, String.t()} | :error
+  @spec format_code(String.t()) :: Runtime.format_response()
   def format_code(code) do
     try do
       formatted =
@@ -68,9 +65,11 @@ defmodule Livebook.Intellisense do
         |> Code.format_string!()
         |> IO.iodata_to_binary()
 
-      {:ok, formatted}
+      %{code: formatted, code_error: nil}
     rescue
-      _ -> :error
+      error ->
+        code_error = %{line: error.line, description: error.description}
+        %{code: nil, code_error: code_error}
     end
   end
 
