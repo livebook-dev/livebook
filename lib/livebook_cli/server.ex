@@ -128,9 +128,6 @@ defmodule LivebookCLI.Server do
       |> Livebook.Utils.browser_open()
     end
     
-    if opts[:notebook] do
-      #add code here
-    end
   end
 
   @switches [
@@ -139,7 +136,7 @@ defmodule LivebookCLI.Server do
     default_runtime: :string,
     ip: :string,
     name: :string,
-    notebook: string,
+    notebook: :string,
     open: :boolean,
     open_new: :boolean,
     port: :integer,
@@ -216,7 +213,11 @@ defmodule LivebookCLI.Server do
     autosave_path = Livebook.Config.autosave_path!("--autosave-path", path)
     opts_to_config(opts, [{:livebook, :autosave_path, autosave_path} | config])
   end
-
+  
+  defp opts_to_config([{:notebook, notebook_path} | opts], config) do
+    opts_to_config([{:open, true} | opts], [{:livebook, root_path, File.cwd() <> notebook_path} | config])
+  end
+  
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
 
   defp append_path(url, path) do
