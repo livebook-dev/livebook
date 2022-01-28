@@ -216,7 +216,6 @@ defmodule LivebookCLI.Server do
     autosave_path = Livebook.Config.autosave_path!("--autosave-path", path)
     opts_to_config(opts, [{:livebook, :autosave_path, autosave_path} | config])
   end
-  
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
 
   defp append_path(url, path) do
