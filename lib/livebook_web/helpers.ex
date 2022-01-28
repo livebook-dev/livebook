@@ -375,4 +375,20 @@ defmodule LivebookWeb.Helpers do
 
   def file_system_label(%FileSystem.Local{}), do: "Local disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
+  
+  def notebook_import_url(url) do
+    LivebookWeb.Endpoint.access_struct_url()
+      |> Map.replace!(:path, "/import")
+      |> append_query("url=#{URI.encode_www_form(url)}")
+      |> URI.to_string()
+  end
+  
+  # TODO: On Elixir v1.14, use URI.append_query/2
+    defp append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
+      %{uri | query: query_to_add}
+    end
+
+    defp append_query(%URI{} = uri, query) do
+      %{uri | query: uri.query <> "&" <> query}
+    end
 end
