@@ -141,7 +141,7 @@ defmodule LivebookWeb.HomeLive do
       <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
         <.live_component module={LivebookWeb.HomeLive.EditSessionsComponent}
           id="edit-sessions"
-          action={@action}
+          action={@bulk_action}
           return_to={Routes.home_path(@socket, :page)}
           sessions={@sessions}
           selected_sessions={selected_sessions(@sessions, @selected_session_ids)} />
@@ -169,7 +169,7 @@ defmodule LivebookWeb.HomeLive do
         _url,
         %{assigns: %{live_action: :edit_sessions}} = socket
       ) do
-    {:noreply, assign(socket, action: action)}
+    {:noreply, assign(socket, bulk_action: action)}
   end
 
   def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do

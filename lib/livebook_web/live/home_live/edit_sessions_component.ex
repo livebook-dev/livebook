@@ -31,8 +31,8 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
         <span class="font-medium">Important:</span>
         <%= pluralize(
           not_persisted_count(@selected_sessions),
-          "notebook is not persisted and its content will be lost.",
-          "notebooks are not persisted and their content will be lost."
+          "notebook is not persisted and its content may be lost.",
+          "notebooks are not persisted and their content may be lost."
         ) %>
       <% end %>
     </p>
@@ -50,7 +50,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   @impl true
   def handle_event("close_all", %{}, socket) do
     socket.assigns.selected_sessions
-    |> Enum.map(&Livebook.Session.close(&1.pid))
+    |> Enum.each(&Livebook.Session.close(&1.pid))
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
@@ -58,7 +58,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   def handle_event("disconnect", %{}, socket) do
     socket.assigns.selected_sessions
     |> Enum.reject(&(&1.memory_usage.runtime == nil))
-    |> Enum.map(&Livebook.Session.disconnect_runtime(&1.pid))
+    |> Enum.each(&Livebook.Session.disconnect_runtime(&1.pid))
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end

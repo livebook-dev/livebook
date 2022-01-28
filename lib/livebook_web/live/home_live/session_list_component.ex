@@ -33,43 +33,41 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def render(assigns) do
     ~H"""
     <form id="bulk-actions-form" phx-submit="bulk_action">
-    <div>
       <div class="mb-4 flex items-center md:items-end justify-between">
-      <div class="flex flex-row">
-        <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
-          Running sessions (<%= length(@sessions) %>)
-        </h2>
-        </div>
         <div class="flex flex-row">
-        <.memory_info />
-        <%= if @sessions != [] do %>
-          <.edit_sessions sessions={@sessions} socket={@socket}/>
-        <% end %>
-        <.menu id="sessions-order-menu">
-          <:toggle>
-            <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
-              type="button">
-              <span><%= order_by_label(@order_by) %></span>
-              <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
-            </button>
-          </:toggle>
-          <:content>
-            <%= for order_by <- ["date", "title", "memory"] do %>
-              <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
-                type="button"
-                role="menuitem"
-                phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
-                <.remix_icon icon={order_by_icon(order_by)} />
-                <span class="font-medium"><%= order_by_label(order_by) %></span>
+          <h2 class="uppercase font-semibold text-gray-500 text-sm md:text-base">
+            Running sessions (<%= length(@sessions) %>)
+          </h2>
+          </div>
+          <div class="flex flex-row">
+          <.memory_info />
+          <%= if @sessions != [] do %>
+            <.edit_sessions sessions={@sessions} socket={@socket}/>
+          <% end %>
+          <.menu id="sessions-order-menu">
+            <:toggle>
+              <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
+                type="button">
+                <span><%= order_by_label(@order_by) %></span>
+                <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
               </button>
-            <% end %>
-          </:content>
-        </.menu>
+            </:toggle>
+            <:content>
+              <%= for order_by <- ["date", "title", "memory"] do %>
+                <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
+                  type="button"
+                  role="menuitem"
+                  phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
+                  <.remix_icon icon={order_by_icon(order_by)} />
+                  <span class="font-medium"><%= order_by_label(order_by) %></span>
+                </button>
+              <% end %>
+            </:content>
+          </.menu>
+          </div>
         </div>
-      </div>
       <.session_list sessions={@sessions} socket={@socket}
         show_autosave_note?={@show_autosave_note?} />
-    </div>
     </form>
     """
   end
