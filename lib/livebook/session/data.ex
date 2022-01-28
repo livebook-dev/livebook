@@ -847,7 +847,7 @@ defmodule Livebook.Session.Data do
     |> set!(
       notebook: Notebook.add_cell_output(data.notebook, cell.id, output),
       input_values:
-        {-1, output}
+        {0, output}
         |> Cell.Elixir.find_inputs_in_output()
         |> Map.new(fn attrs -> {attrs.id, attrs.default} end)
         |> Map.merge(data.input_values)
@@ -1521,7 +1521,7 @@ defmodule Livebook.Session.Data do
           uniq: true,
           do: cell.id
 
-    cell_ids = Notebook.cell_ids_with_children(data, evaluable_cell_ids)
+    cell_ids = Notebook.cell_ids_with_children(data.notebook, evaluable_cell_ids)
 
     for {cell, _} <- elixir_cells_with_section,
         cell.id in cell_ids,
