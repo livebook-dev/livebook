@@ -108,6 +108,13 @@ const Cell = {
           this.state.liveEditor.onChange((newSource) => {
             updateChangeIndicator();
           });
+
+          this.handleEvent(
+            `evaluation_finished:${this.props.cellId}`,
+            ({ code_error }) => {
+              this.state.liveEditor.setCodeErrorMarker(code_error);
+            }
+          );
         }
 
         // Setup markdown updates
