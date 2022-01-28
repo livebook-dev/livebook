@@ -129,7 +129,8 @@ defmodule LivebookCLI.Server do
     end
     
     if notebook = opts[:notebook] do
-      url = LivebookWeb.Helpers.notebook_import_url("file://" <> File.cwd!() <> Keyword.fetch!(opts, :notebook))
+      path = Path.expand(notebook)
+      url = LivebookWeb.Helpers.notebook_import_url("file://" <> path)
       Livebook.Utils.browser_open(url)      
     end
   end
