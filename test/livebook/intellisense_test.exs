@@ -1,11 +1,11 @@
-defmodule Livebook.IntellisenseTest.Utils do
-  @moduledoc false
+defmodule Livebook.IntellisenseTest do
+  use ExUnit.Case, async: true
 
-  @doc """
-  Returns intellisense context resulting from evaluating
-  the given block of code in a fresh context.
-  """
-  defmacro eval(do: block) do
+  alias Livebook.Intellisense
+
+  # Returns intellisense context resulting from evaluating
+  # the given block of code in a fresh context.
+  defmacrop eval(do: block) do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
@@ -21,14 +21,6 @@ defmodule Livebook.IntellisenseTest.Utils do
       }
     end
   end
-end
-
-defmodule Livebook.IntellisenseTest do
-  use ExUnit.Case, async: true
-
-  import Livebook.IntellisenseTest.Utils
-
-  alias Livebook.Intellisense
 
   describe "format_code/1" do
     test "formats valid code" do
