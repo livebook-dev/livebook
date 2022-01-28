@@ -153,7 +153,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 type="button"
                 disabled={!session.memory_usage.runtime}
                 role="menuitem"
-                phx-click="disconnect_runtime"
+                phx-click={toggle_edit(:off) |> JS.push("disconnect_runtime")}
                 phx-value-id={session.id}>
                 <.remix_icon icon="shut-down-line" />
                 <span class="font-medium">Disconnect runtime</span>

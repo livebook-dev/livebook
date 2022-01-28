@@ -165,7 +165,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_click()
 
       view
-      |> element(~s{button[phx-click="close"]}, "Close session")
+      |> element(~s{button[role=button]}, "Close session")
       |> render_click()
 
       refute render(view) =~ session.id
