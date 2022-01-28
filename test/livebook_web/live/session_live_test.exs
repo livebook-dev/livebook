@@ -1,5 +1,5 @@
 defmodule LivebookWeb.SessionLiveTest do
-  use LivebookWeb.ConnCase
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
