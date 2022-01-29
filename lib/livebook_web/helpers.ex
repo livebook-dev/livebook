@@ -379,8 +379,9 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Returns a URL (including localhost) to import the given `url` as a notebook.
   """
-  def notebook_import_url(url) do
-    LivebookWeb.Endpoint.access_struct_url()
+  def notebook_import_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
+    base_url
+    |> URI.parse()
     |> Map.replace!(:path, "/import")
     |> append_query("url=#{URI.encode_www_form(url)}")
     |> URI.to_string()
