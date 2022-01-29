@@ -15,9 +15,14 @@ defmodule LivebookCLI.Server do
   @impl true
   def usage() do
     """
-    Usage: livebook server [options]
+    Usage: livebook server [url] [options]
 
-    Available options:
+    An optional url can be given as argument. If one is given,
+    a browser window will open importing the given url as a notebook:
+
+        livebook server https://example.com/my-notebook.livemd
+
+    ## Available options
 
       --autosave-path      The directory where notebooks with no file are persisted.
                            Defaults to livebook/notebooks/ under the default user cache
@@ -77,6 +82,7 @@ defmodule LivebookCLI.Server do
           {:ok, _} ->
             open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
             Process.sleep(:infinity)
+
           {:error, error} ->
             print_error("Livebook failed to start with reason: #{inspect(error)}")
         end
@@ -127,10 +133,10 @@ defmodule LivebookCLI.Server do
     end
   end
   
-  defp open_from_options(base_url, opts, [path])
-    path = Path.expand(path)
-    url = LivebookWeb.Helpers.notebook_import_url("file://" <> path)
-    Livebook.Utils.browser_open(url)
+  defp open_from_options(_base_url, _opts, [url])
+    url
+    |> LivebookWeb.Helpers.notebook_import_url()
+    |> Livebook.Utils.browser_open()
   end
   
   defp open_from_options(_base_url, _opts, _extra_args) do
