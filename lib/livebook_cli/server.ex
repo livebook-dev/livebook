@@ -128,8 +128,8 @@ defmodule LivebookCLI.Server do
     end
   end
   
-  defp open_from_options(base_url, opts, extra_args)
-    path = Path.expand(Enum.fetch!(extra_args, 0))
+  defp open_from_options(base_url, opts, [path])
+    path = Path.expand(path)
     url = LivebookWeb.Helpers.notebook_import_url("file://" <> path)
     Livebook.Utils.browser_open(url)
   end
