@@ -376,6 +376,9 @@ defmodule LivebookWeb.Helpers do
   def file_system_label(%FileSystem.Local{}), do: "Local disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
   
+  @doc """
+  Returns a URL (including localhost) to import the given `url` as a notebook.
+  """
   def notebook_import_url(url) do
     LivebookWeb.Endpoint.access_struct_url()
     |> Map.replace!(:path, "/import")
