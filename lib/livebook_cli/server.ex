@@ -133,9 +133,9 @@ defmodule LivebookCLI.Server do
     end
   end
   
-  defp open_from_options(_base_url, _opts, [url])
-    url
-    |> LivebookWeb.Helpers.notebook_import_url()
+  defp open_from_options(base_url, _opts, [url])
+    base_url
+    |> LivebookWeb.Helpers.notebook_import_url(url)
     |> Livebook.Utils.browser_open()
   end
   
