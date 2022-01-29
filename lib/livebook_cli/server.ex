@@ -77,7 +77,6 @@ defmodule LivebookCLI.Server do
           {:ok, _} ->
             open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
             Process.sleep(:infinity)
-            
           {:error, error} ->
             print_error("Livebook failed to start with reason: #{inspect(error)}")
         end
@@ -134,7 +133,7 @@ defmodule LivebookCLI.Server do
     Livebook.Utils.browser_open(url)
   end
   
-  defp open_from_options(base_url, opts, extra_args) do
+  defp open_from_options(_base_url, _opts, _extra_args) do
     print_error("Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
   end
 
@@ -220,6 +219,7 @@ defmodule LivebookCLI.Server do
     autosave_path = Livebook.Config.autosave_path!("--autosave-path", path)
     opts_to_config(opts, [{:livebook, :autosave_path, autosave_path} | config])
   end
+
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
 
   defp append_path(url, path) do
