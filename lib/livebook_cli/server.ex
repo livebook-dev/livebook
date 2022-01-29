@@ -132,15 +132,17 @@ defmodule LivebookCLI.Server do
       |> Livebook.Utils.browser_open()
     end
   end
-  
+
   defp open_from_options(base_url, _opts, [url]) do
     base_url
     |> LivebookWeb.Helpers.notebook_import_url(url)
     |> Livebook.Utils.browser_open()
   end
-  
+
   defp open_from_options(_base_url, _opts, _extra_args) do
-    print_error("Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
+    print_error(
+      "Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch"
+    )
   end
 
   @switches [
