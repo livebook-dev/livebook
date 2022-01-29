@@ -11,7 +11,7 @@ defmodule Livebook.EvaluatorTest do
 
   defmacrop metadata do
     quote do
-      %{evaluation_time_ms: _, memory_usage: %{}}
+      %{evaluation_time_ms: _, memory_usage: %{}, code_error: _}
     end
   end
 
@@ -91,11 +91,52 @@ defmodule Livebook.EvaluatorTest do
       List.first(%{})
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
 
       assert_receive {:evaluation_response, :code_1,
                       {:error, :error, :function_clause, [{List, :first, _arity, _location}]},
                       metadata()}
+    end
+
+    test "returns additional metadata when there is a syntax error", %{evaluator: evaluator} do
+      code = "1+"
+
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+
+      assert_receive {:evaluation_response, :code_1, {:error, :error, %TokenMissingError{}, []},
+                      %{
+                        code_error: %{
+                          line: 1,
+                          description: "syntax error: expression is incomplete"
+                        }
+                      }}
+    end
+
+    test "returns additional metadata when there is a compilation error", %{evaluator: evaluator} do
+      code = "x"
+
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+
+      assert_receive {:evaluation_response, :code_1, {:error, :error, %CompileError{}, []},
+                      %{
+                        code_error: %{
+                          line: 1,
+                          description: "undefined function x/0 (there is no such import)"
+                        }
+                      }}
+    end
+
+    test "ignores code errors when they happen in the actual evaluation", %{evaluator: evaluator} do
+      code = """
+      Code.eval_string("x")
+      """
+
+      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+
+      expected_stacktrace = [{Code, :validated_eval_string, 3, [file: 'lib/code.ex', line: 404]}]
+
+      assert_receive {:evaluation_response, :code_1,
+                      {:error, :error, %CompileError{}, ^expected_stacktrace}, %{code_error: nil}}
     end
 
     test "in case of an error returns only the relevant part of stacktrace",
@@ -233,38 +274,6 @@ defmodule Livebook.EvaluatorTest do
       Evaluator.forget_evaluation(evaluator, :code_1)
 
       assert_receive {:DOWN, ^ref, :process, ^widget_pid1, _reason}
-    end
-  end
-
-  describe "handle_intellisense/5 given completion request" do
-    test "sends completion response to the given process", %{evaluator: evaluator} do
-      request = {:completion, "System.ver"}
-      Evaluator.handle_intellisense(evaluator, self(), :ref, request)
-
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "version/0"}]}},
-                     2_000
-    end
-
-    test "given evaluation reference uses its bindings and env", %{evaluator: evaluator} do
-      code = """
-      alias IO.ANSI
-      number = 10
-      """
-
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
-      assert_receive {:evaluation_response, :code_1, _, metadata()}
-
-      request = {:completion, "num"}
-      Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
-
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}},
-                     2_000
-
-      request = {:completion, "ANSI.brigh"}
-      Evaluator.handle_intellisense(evaluator, self(), :ref, request, :code_1)
-
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}},
-                     2_000
     end
   end
 

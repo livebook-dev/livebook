@@ -29,7 +29,7 @@ defmodule LivebookWeb.HomeLiveTest do
       path = Path.expand("../../../lib", __DIR__) <> "/"
 
       view
-      |> element("form")
+      |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: path})
 
       # Render the view separately to make sure it received the :set_file event
@@ -42,7 +42,7 @@ defmodule LivebookWeb.HomeLiveTest do
       path = test_notebook_path("basic")
 
       view
-      |> element("form")
+      |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: Path.dirname(path) <> "/"})
 
       view
@@ -62,7 +62,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, view, _} = live(conn, "/")
 
       view
-      |> element("form")
+      |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: tmp_dir <> "/"})
 
       assert view
@@ -76,7 +76,7 @@ defmodule LivebookWeb.HomeLiveTest do
       path = File.cwd!() |> Path.join("nonexistent.livemd")
 
       view
-      |> element("form")
+      |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: path})
 
       assert view
@@ -94,7 +94,7 @@ defmodule LivebookWeb.HomeLiveTest do
       File.chmod!(path, 0o444)
 
       view
-      |> element("form")
+      |> element(~s{form[phx-change="set_path"]})
       |> render_change(%{path: tmp_dir <> "/"})
 
       view
@@ -165,10 +165,39 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_click()
 
       view
-      |> element(~s{button}, "Close session")
+      |> element(~s{button[role=button]}, "Close session")
       |> render_click()
 
       refute render(view) =~ session.id
+    end
+
+    test "close all selected sessions using bulk action", %{conn: conn} do
+      {:ok, session1} = Sessions.create_session()
+      {:ok, session2} = Sessions.create_session()
+      {:ok, session3} = Sessions.create_session()
+
+      {:ok, view, _} = live(conn, "/")
+
+      assert render(view) =~ session1.id
+      assert render(view) =~ session2.id
+      assert render(view) =~ session3.id
+
+      view
+      |> form("#bulk-action-form", %{
+        "action" => "close_all",
+        "session_ids" => [session1.id, session2.id, session3.id]
+      })
+      |> render_submit()
+
+      assert render(view) =~ "Are you sure you want to close 3 sessions?"
+
+      view
+      |> element(~s{button[role="button"]}, "Close sessions")
+      |> render_click()
+
+      refute render(view) =~ session1.id
+      refute render(view) =~ session2.id
+      refute render(view) =~ session3.id
     end
   end
 

@@ -1,0 +1,2 @@
+# Disable busy waiting so that we don't waste resources
++sbwt none +sbwtdcpu none +sbwtdio none

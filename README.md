@@ -38,7 +38,7 @@ From time to time, we also publish some videos for new Livebook releases:
 
 ## Usage
 
-We provide several distinct methods of running Livebook,
+We provide several methods for running Livebook,
 pick the one that best fits your use case.
 
 ### Running on the cloud
@@ -52,7 +52,7 @@ You can run Livebook on your own machine. You will need
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
 with most Erlang distributions but certain package managers may split
-them apart. For example, on Ubuntu, these Erlang applications could
+them apart. For example, on Ubuntu, these Erlang applications can
 be installed as follows:
 
 ```shell
@@ -232,6 +232,12 @@ MIX_ENV=prod mix escript.build
 Livebook development is sponsored by:
 
 <a href="https://fly.io"><img src="https://fly.io/public/images/brand/logo.svg" width="320" /></a>
+
+## Continuous Integration
+
+Our CI servers and desktop app for macOS are powered by:
+
+<a href="https://www.macstadium.com"><img src="https://user-images.githubusercontent.com/9582/151619816-b7794798-8261-46c8-bb88-d12108e3ff12.png" width="320" /></a>
 
 ## License
 

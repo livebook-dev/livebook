@@ -91,6 +91,14 @@ window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
 });
 
+window.addEventListener("lb:check", (event) => {
+  event.target.checked = true;
+});
+
+window.addEventListener("lb:uncheck", (event) => {
+  event.target.checked = false;
+});
+
 window.addEventListener("lb:clipcopy", (event) => {
   if ("clipboard" in navigator) {
     const text = event.target.textContent;
@@ -111,6 +119,18 @@ window.addEventListener("contextmenu", (event) => {
     event.preventDefault();
     target.dispatchEvent(new Event("click", { bubbles: true }));
   }
+});
+
+window.addEventListener("lb:session_list:on_selection_change", () => {
+  const anySessionSelected = !!document.querySelector(
+    "[name='session_ids[]']:checked"
+  );
+  const disconnect = document.querySelector(
+    "#edit-sessions [name='disconnect']"
+  );
+  const closeAll = document.querySelector("#edit-sessions [name='close_all']");
+  disconnect.disabled = !anySessionSelected;
+  closeAll.disabled = !anySessionSelected;
 });
 
 // Global configuration

@@ -3,6 +3,8 @@ defmodule LivebookWeb.HelpersTest do
 
   alias LivebookWeb.Helpers
 
+  doctest Helpers
+
   describe "names_to_html_ids/1" do
     test "title case" do
       assert(Helpers.names_to_html_ids(["Title of a Section"]) == ["title-of-a-section"])

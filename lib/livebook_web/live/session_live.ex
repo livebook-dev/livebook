@@ -1212,9 +1212,11 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:add_cell_evaluation_response, _client_pid, _id, _output, _metadata}
+         {:add_cell_evaluation_response, _client_pid, cell_id, _output, metadata}
        ) do
-    prune_outputs(socket)
+    socket
+    |> prune_outputs()
+    |> push_event("evaluation_finished:#{cell_id}", %{code_error: metadata.code_error})
   end
 
   defp after_operation(socket, _prev_socket, _operation), do: socket

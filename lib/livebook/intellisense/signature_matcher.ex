@@ -15,10 +15,12 @@ defmodule Livebook.Intellisense.SignatureMatcher do
   Evaluation binding and environment is used to expand aliases,
   imports, access variable values, etc.
   """
-  @spec get_matching_signatures(String.t(), Code.binding(), Macro.Env.t()) ::
+  @spec get_matching_signatures(String.t(), Livebook.Intellisense.intellisense_context()) ::
           {:ok, list(signature_info()), active_argument :: non_neg_integer()} | :error
-  def get_matching_signatures(hint, binding, env) do
-    case matching_call(hint, binding, env) do
+  def get_matching_signatures(hint, intellisense_context) do
+    %{env: env} = intellisense_context
+
+    case matching_call(hint, intellisense_context) do
       {:ok, {:remote, mod, fun}, maybe_arity, active_argument} ->
         funs = [{fun, maybe_arity || :any}]
         signature_infos = signature_infos_for_members(mod, funs, active_argument)
@@ -107,34 +109,30 @@ defmodule Livebook.Intellisense.SignatureMatcher do
   end
 
   # Returns {:ok, call, exact_arity_or_nil, active_argument} or :error
-  defp matching_call(hint, binding, env) do
+  defp matching_call(hint, intellisense_context) do
     with {:ok, call_target, active_argument} <- call_target_and_argument(hint) do
       case call_target do
         local when is_atom(local) ->
           {:ok, {:local, local}, nil, active_argument}
 
         {:., _, [{:__aliases__, _, _} = alias, fun]} when is_atom(fun) ->
-          alias = Macro.expand(alias, env)
+          alias = Macro.expand(alias, intellisense_context.env)
           {:ok, {:remote, alias, fun}, nil, active_argument}
 
         {:., _, [mod, fun]} when is_atom(mod) and is_atom(fun) ->
           {:ok, {:remote, mod, fun}, nil, active_argument}
 
         {:., _, [{var, _, context}]} when is_atom(var) and is_atom(context) ->
-          case Keyword.fetch(binding, var) do
-            {:ok, fun} when is_function(fun) ->
-              info = :erlang.fun_info(fun)
+          with {:ok, fun} <- function_from_binding(var, intellisense_context) do
+            info = :erlang.fun_info(fun)
 
-              case info[:type] do
-                :external ->
-                  {:ok, {:remote, info[:module], info[:name]}, info[:arity], active_argument}
+            case info[:type] do
+              :external ->
+                {:ok, {:remote, info[:module], info[:name]}, info[:arity], active_argument}
 
-                :local ->
-                  {:ok, {:anonymous, var}, info[:arity], active_argument}
-              end
-
-            :error ->
-              :error
+              :local ->
+                {:ok, {:anonymous, var}, info[:arity], active_argument}
+            end
           end
 
         _ ->
@@ -207,5 +205,18 @@ defmodule Livebook.Intellisense.SignatureMatcher do
       |> List.last()
       |> Macro.prewalker()
       |> Enum.any?(&match?({:__cursor__, _, []}, &1))
+  end
+
+  defp function_from_binding(var, intellisense_context) do
+    if Macro.Env.has_var?(intellisense_context.env, {var, nil}) do
+      intellisense_context.map_binding.(fn binding ->
+        case Keyword.fetch(binding, var) do
+          {:ok, fun} when is_function(fun) -> {:ok, fun}
+          _ -> :error
+        end
+      end)
+    else
+      :error
+    end
   end
 end

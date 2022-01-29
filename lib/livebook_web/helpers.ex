@@ -375,7 +375,7 @@ defmodule LivebookWeb.Helpers do
 
   def file_system_label(%FileSystem.Local{}), do: "Local disk"
   def file_system_label(%FileSystem.S3{} = fs), do: fs.bucket_url
-  
+
   @doc """
   Returns a URL (including localhost) to import the given `url` as a notebook.
   """
@@ -385,7 +385,7 @@ defmodule LivebookWeb.Helpers do
     |> append_query("url=#{URI.encode_www_form(url)}")
     |> URI.to_string()
   end
-  
+
   # TODO: On Elixir v1.14, use URI.append_query/2
   defp append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
     %{uri | query: query_to_add}
@@ -394,4 +394,18 @@ defmodule LivebookWeb.Helpers do
   defp append_query(%URI{} = uri, query) do
     %{uri | query: uri.query <> "&" <> query}
   end
+
+  @doc """
+  Returns the text in singular or plural depending on the quantity
+
+  ## Examples
+
+      iex> LivebookWeb.Helpers.pluralize(1, "notebook is not persisted", "notebooks are not persisted")
+      "1 notebook is not persisted"
+
+      iex> LivebookWeb.Helpers.pluralize(3, "notebook is not persisted", "notebooks are not persisted")
+      "3 notebooks are not persisted"
+  """
+  def pluralize(1, singular, _plural), do: "1 #{singular}"
+  def pluralize(count, _singular, plural), do: "#{count} #{plural}"
 end

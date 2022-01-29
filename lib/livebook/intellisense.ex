@@ -8,48 +8,56 @@ defmodule Livebook.Intellisense do
   # language server that Livebook uses.
 
   alias Livebook.Intellisense.{IdentifierMatcher, SignatureMatcher, Docs}
+  alias Livebook.Runtime
 
   # Configures width used for inspect and specs formatting.
   @line_length 45
   @extended_line_length 80
 
+  @typedoc """
+  Evaluation state to consider for intellisense.
+
+  The `:map_binding` is only called when a value needs to
+  be extracted from binding.
+  """
+  @type context :: %{
+          env: Macro.Env.t(),
+          map_binding: (Code.binding() -> any())
+        }
+
   @doc """
-  Resolves an intellisense request as defined by `Livebook.Runtime`.
+  Resolves an intellisense request as defined by `Runtime`.
 
   In practice this function simply dispatches the request to one of
   the other public functions in this module.
   """
   @spec handle_request(
-          Livebook.Runtime.intellisense_request(),
-          Code.binding(),
-          Macro.Env.t()
-        ) :: Livebook.Runtime.intellisense_response()
-  def handle_request(request, env, binding)
+          Runtime.intellisense_request(),
+          context()
+        ) :: Runtime.intellisense_response()
+  def handle_request(request, context)
 
-  def handle_request({:completion, hint}, binding, env) do
-    items = get_completion_items(hint, binding, env)
+  def handle_request({:completion, hint}, context) do
+    items = get_completion_items(hint, context)
     %{items: items}
   end
 
-  def handle_request({:details, line, column}, binding, env) do
-    get_details(line, column, binding, env)
+  def handle_request({:details, line, column}, context) do
+    get_details(line, column, context)
   end
 
-  def handle_request({:signature, hint}, binding, env) do
-    get_signature_items(hint, binding, env)
+  def handle_request({:signature, hint}, context) do
+    get_signature_items(hint, context)
   end
 
-  def handle_request({:format, code}, _binding, _env) do
-    case format_code(code) do
-      {:ok, code} -> %{code: code}
-      :error -> nil
-    end
+  def handle_request({:format, code}, _context) do
+    format_code(code)
   end
 
   @doc """
   Formats Elixir code.
   """
-  @spec format_code(String.t()) :: {:ok, String.t()} | :error
+  @spec format_code(String.t()) :: Runtime.format_response()
   def format_code(code) do
     try do
       formatted =
@@ -57,19 +65,20 @@ defmodule Livebook.Intellisense do
         |> Code.format_string!()
         |> IO.iodata_to_binary()
 
-      {:ok, formatted}
+      %{code: formatted, code_error: nil}
     rescue
-      _ -> :error
+      error ->
+        code_error = %{line: error.line, description: error.description}
+        %{code: nil, code_error: code_error}
     end
   end
 
   @doc """
   Returns information about signatures matching the given `hint`.
   """
-  @spec get_signature_items(String.t(), Code.binding(), Macro.Env.t()) ::
-          Runtime.signature_response() | nil
-  def get_signature_items(hint, binding, env) do
-    case SignatureMatcher.get_matching_signatures(hint, binding, env) do
+  @spec get_signature_items(String.t(), context()) :: Runtime.signature_response() | nil
+  def get_signature_items(hint, context) do
+    case SignatureMatcher.get_matching_signatures(hint, context) do
       {:ok, [], _active_argument} ->
         nil
 
@@ -108,10 +117,9 @@ defmodule Livebook.Intellisense do
   @doc """
   Returns a list of completion suggestions for the given `hint`.
   """
-  @spec get_completion_items(String.t(), Code.binding(), Macro.Env.t()) ::
-          list(Livebook.Runtime.completion_item())
-  def get_completion_items(hint, binding, env) do
-    IdentifierMatcher.completion_identifiers(hint, binding, env)
+  @spec get_completion_items(String.t(), context()) :: list(Runtime.completion_item())
+  def get_completion_items(hint, context) do
+    IdentifierMatcher.completion_identifiers(hint, context)
     |> Enum.filter(&include_in_completion?/1)
     |> Enum.map(&format_completion_item/1)
     |> Enum.concat(extra_completion_items(hint))
@@ -128,7 +136,7 @@ defmodule Livebook.Intellisense do
 
   defp include_in_completion?(_), do: true
 
-  defp format_completion_item({:variable, name, _value}),
+  defp format_completion_item({:variable, name}),
     do: %{
       label: Atom.to_string(name),
       kind: :variable,
@@ -137,7 +145,7 @@ defmodule Livebook.Intellisense do
       insert_text: Atom.to_string(name)
     }
 
-  defp format_completion_item({:map_field, name, _value}),
+  defp format_completion_item({:map_field, name}),
     do: %{
       label: Atom.to_string(name),
       kind: :field,
@@ -340,10 +348,9 @@ defmodule Livebook.Intellisense do
   Returns detailed information about an identifier located
   in `column` in `line`.
   """
-  @spec get_details(String.t(), pos_integer(), Code.binding(), Macro.Env.t()) ::
-          Livebook.Runtime.details_response() | nil
-  def get_details(line, column, binding, env) do
-    case IdentifierMatcher.locate_identifier(line, column, binding, env) do
+  @spec get_details(String.t(), pos_integer(), context()) :: Runtime.details_response() | nil
+  def get_details(line, column, context) do
+    case IdentifierMatcher.locate_identifier(line, column, context) do
       %{matches: []} ->
         nil
 
@@ -357,9 +364,9 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp format_details_item({:variable, name, _value}), do: code(name)
+  defp format_details_item({:variable, name}), do: code(name)
 
-  defp format_details_item({:map_field, name, _value}), do: code(name)
+  defp format_details_item({:map_field, name}), do: code(name)
 
   defp format_details_item({:in_struct_field, _struct, name, default}) do
     join_with_divider([
