@@ -14,7 +14,7 @@ Mix.install([
 
 ## Kino.Control
 
-In our [introduction to Kino](/explore/notebooks/intro_to_kino),
+In our [introduction to Kino](/explore/notebooks/intro-to-kino),
 we learned about inputs and several different outputs, such as
 tables, frames, and more. In particular, we learned how to use
 inputs to capture values directly into our notebooks:
