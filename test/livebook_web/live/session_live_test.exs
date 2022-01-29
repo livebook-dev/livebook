@@ -319,8 +319,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       wait_for_session_update(session.pid)
 
-      # Wait for the send_update to be applied
-      Process.sleep(10)
+      # Render once, so that frame send_update is processed
+      render(view)
 
       content = render(view)
       assert content =~ "Updated frame"
