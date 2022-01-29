@@ -35,7 +35,6 @@ defmodule LivebookCLI.Server do
       --name               Set a name for the app distributed node
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
-      --notebook           Open browser window pointing to notebook specified
       --open               Open browser window pointing to the application
       --open-new           Open browser window pointing to a new notebook
       -p, --port           The port to start the web application on, defaults to 8080
@@ -53,7 +52,7 @@ defmodule LivebookCLI.Server do
 
   @impl true
   def call(args) do
-    opts = args_to_options(args)
+    {opts, extra_args} = args_to_options(args)
     config_entries = opts_to_config(opts, [])
     put_config_entries(config_entries)
 
@@ -63,7 +62,7 @@ defmodule LivebookCLI.Server do
     case check_endpoint_availability(base_url) do
       :livebook_running ->
         IO.puts("Livebook already running on #{base_url}")
-        open_from_options(base_url, opts)
+        open_from_options(base_url, opts, extra_args)
 
       :taken ->
         print_error(
@@ -76,7 +75,7 @@ defmodule LivebookCLI.Server do
         # so it's gonna start listening
         case Application.ensure_all_started(:livebook) do
           {:ok, _} ->
-            open_from_options(LivebookWeb.Endpoint.access_url(), opts)
+            open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
             Process.sleep(:infinity)
 
           {:error, error} ->
@@ -117,7 +116,7 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_options(base_url, opts) do
+  defp open_from_options(base_url, opts, []) do
     if opts[:open] do
       Livebook.Utils.browser_open(base_url)
     end
@@ -127,12 +126,12 @@ defmodule LivebookCLI.Server do
       |> append_path("/explore/notebooks/new")
       |> Livebook.Utils.browser_open()
     end
-    
-    if notebook = opts[:notebook] do
-      path = Path.expand(notebook)
-      url = LivebookWeb.Helpers.notebook_import_url("file://" <> path)
-      Livebook.Utils.browser_open(url)      
-    end
+  end
+  
+  defp open_from_options(base_url, opts, extra_args)
+    path = Path.expand(Enum.fetch!(extra_args, 0))
+    url = LivebookWeb.Helpers.notebook_import_url("file://" <> path)
+    Livebook.Utils.browser_open(url)
   end
 
   @switches [
@@ -141,7 +140,6 @@ defmodule LivebookCLI.Server do
     default_runtime: :string,
     ip: :string,
     name: :string,
-    notebook: :string,
     open: :boolean,
     open_new: :boolean,
     port: :integer,
@@ -155,9 +153,9 @@ defmodule LivebookCLI.Server do
   ]
 
   defp args_to_options(args) do
-    {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
+    {opts, extra_args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     validate_options!(opts)
-    opts
+    {opts, extra_args}
   end
 
   defp validate_options!(opts) do
