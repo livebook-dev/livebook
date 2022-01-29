@@ -706,6 +706,12 @@ IO.puts Node.get_cookie()
 Now paste the result of the other node name and its cookie in the inputs below:
 
 ```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+```elixir
 node_input = Kino.Input.text("Other node")
 ```
 
