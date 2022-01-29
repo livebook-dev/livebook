@@ -1,5 +1,5 @@
 defmodule LivebookWeb.SessionLiveTest do
-  use LivebookWeb.ConnCase
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLiveTest do
       wait_for_session_update(session.pid)
 
       # Wait for LV to update
-      render(view)
+      _ = render(view)
 
       assert page_title(view) =~ "My notebook"
     end
@@ -319,8 +319,12 @@ defmodule LivebookWeb.SessionLiveTest do
 
       wait_for_session_update(session.pid)
 
-      assert render(view) =~ "Updated frame"
-      refute render(view) =~ "In frame"
+      # Render once, so that frame send_update is processed
+      _ = render(view)
+
+      content = render(view)
+      assert content =~ "Updated frame"
+      refute content =~ "In frame"
     end
   end
 

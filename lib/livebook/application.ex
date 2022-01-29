@@ -119,6 +119,7 @@ defmodule Livebook.Application do
     end
   end
 
+  @spec invalid_hostname!(String.t()) :: no_return()
   defp invalid_hostname!(prelude) do
     Livebook.Config.abort!("""
     #{prelude}, which indicates something wrong in your OS configuration.

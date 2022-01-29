@@ -226,7 +226,7 @@ defmodule Livebook.Notebook do
   @doc """
   Updates cells as `update_cells/2`, but carries an accumulator.
   """
-  @spec update_reduce_cells(t(), acc, ({Cell.t(), acc} -> {Cell.t(), acc})) :: t()
+  @spec update_reduce_cells(t(), acc, (Cell.t(), acc -> {Cell.t(), acc})) :: {t(), acc}
         when acc: term()
   def update_reduce_cells(notebook, acc, fun) do
     {sections, acc} =
@@ -441,8 +441,8 @@ defmodule Livebook.Notebook do
   The cells are not ordered in any secific way.
   """
   @spec cell_ids_with_children(t(), list(Cell.id())) :: list(Cell.id())
-  def cell_ids_with_children(data, parent_cell_ids) do
-    graph = cell_dependency_graph(data.notebook)
+  def cell_ids_with_children(notebook, parent_cell_ids) do
+    graph = cell_dependency_graph(notebook)
 
     for parent_id <- parent_cell_ids,
         leaf_id <- Graph.leaves(graph),

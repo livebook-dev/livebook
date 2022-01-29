@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLive do
 
   import LivebookWeb.UserHelpers
   import LivebookWeb.SessionHelpers
-  import Livebook.Utils, only: [access_by_id: 1, format_bytes: 1]
+  import Livebook.Utils, only: [format_bytes: 1]
 
   alias LivebookWeb.SidebarHelpers
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
@@ -1453,10 +1453,8 @@ defmodule LivebookWeb.SessionLive do
       {:report_cell_revision, _pid, _cell_id, _revision} ->
         data_view
 
-      {:apply_cell_delta, _pid, cell_id, _delta, _revision} ->
-        data_view
-        |> update_cell_view(data, cell_id)
-        |> update_dirty_status(data)
+      {:apply_cell_delta, _pid, _cell_id, _delta, _revision} ->
+        update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly
       # to the corresponding component, so the DOM patch is isolated and fast.
@@ -1488,17 +1486,6 @@ defmodule LivebookWeb.SessionLive do
       _ ->
         data_to_view(data)
     end
-  end
-
-  defp update_cell_view(data_view, data, cell_id) do
-    {:ok, cell, section} = Notebook.fetch_cell_and_section(data.notebook, cell_id)
-    cell_view = cell_to_view(cell, data)
-
-    put_in(
-      data_view,
-      [:section_views, access_by_id(section.id), :cell_views, access_by_id(cell.id)],
-      cell_view
-    )
   end
 
   defp prune_outputs(%{private: %{data: data}} = socket) do

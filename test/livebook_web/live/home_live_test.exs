@@ -1,5 +1,5 @@
 defmodule LivebookWeb.HomeLiveTest do
-  use LivebookWeb.ConnCase
+  use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
@@ -206,7 +206,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s{a}, "Welcome to Livebook")
+             |> element(~s{[data-element="explore-section"] a}, "Welcome to Livebook")
              |> render_click()
              |> follow_redirect(conn)
 

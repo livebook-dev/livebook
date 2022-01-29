@@ -114,7 +114,7 @@ defmodule LivebookWeb.SessionController do
     # The request comes from a cross-origin iframe
     conn = allow_cors(conn)
 
-    case lookup_asset(hash, file_parts) do
+    case lookup_asset(hash, asset_path) do
       {:ok, local_asset_path} ->
         conn
         |> put_content_type(asset_path)

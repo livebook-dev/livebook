@@ -1266,7 +1266,7 @@ defmodule Livebook.Session do
   end
 
   defp extract_archive!(binary, path) do
-    :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, path}])
+    :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, String.to_charlist(path)}])
   end
 
   @doc """
