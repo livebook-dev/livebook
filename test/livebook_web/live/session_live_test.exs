@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLiveTest do
       wait_for_session_update(session.pid)
 
       # Wait for LV to update
-      render(view)
+      _ = render(view)
 
       assert page_title(view) =~ "My notebook"
     end
@@ -320,7 +320,7 @@ defmodule LivebookWeb.SessionLiveTest do
       wait_for_session_update(session.pid)
 
       # Render once, so that frame send_update is processed
-      render(view)
+      _ = render(view)
 
       content = render(view)
       assert content =~ "Updated frame"
