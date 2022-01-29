@@ -699,34 +699,20 @@ and execute it:
 <!-- livebook:{"force_markdown":true} -->
 
 ```elixir
-IO.puts node()
-IO.puts Node.get_cookie()
+IO.inspect node()
+IO.inspect Node.get_cookie()
 ```
 
-Now paste the result of the other node name and its cookie in the inputs below:
+Now paste the result of the other node name and its cookie in the variables below:
 
 ```elixir
-node_input = Kino.Input.text("Other node")
+other_node = :"name-of-the@other-node"
+other_cookie = :"value-of-the-other-cookie"
 ```
 
-```elixir
-cookie_input = Kino.Input.text("Other cookie")
-```
-
-And now execute the code cell below, which will read the inputs, configure the
-cookie, and connect to the other notebook:
+With both variables defined, let's connect to the other node with the given cookie:
 
 ```elixir
-other_node =
-  node_input
-  |> Kino.Input.read()
-  |> String.to_atom()
-
-other_cookie =
-  cookie_input
-  |> Kino.Input.read()
-  |> String.to_atom()
-
 Node.set_cookie(other_node, other_cookie)
 Node.connect(other_node)
 ```
