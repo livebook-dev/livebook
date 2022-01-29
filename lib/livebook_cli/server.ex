@@ -62,11 +62,7 @@ defmodule LivebookCLI.Server do
     case check_endpoint_availability(base_url) do
       :livebook_running ->
         IO.puts("Livebook already running on #{base_url}")
-        if length(exta_args) > 1 do
-          print_error("Too many arguments entered. Please ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
-        else
-          open_from_options(base_url, opts, extra_args)
-        end
+        open_from_options(base_url, opts, extra_args)
 
       :taken ->
         print_error(
@@ -79,12 +75,8 @@ defmodule LivebookCLI.Server do
         # so it's gonna start listening
         case Application.ensure_all_started(:livebook) do
           {:ok, _} ->
-            if length(exta_args) > 1 do
-              print_error("Too many arguments entered. Please ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
-            else
-              open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
-              Process.sleep(:infinity)
-            end
+            open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
+            Process.sleep(:infinity)
             
           {:error, error} ->
             print_error("Livebook failed to start with reason: #{inspect(error)}")
@@ -140,6 +132,10 @@ defmodule LivebookCLI.Server do
     path = Path.expand(path)
     url = LivebookWeb.Helpers.notebook_import_url("file://" <> path)
     Livebook.Utils.browser_open(url)
+  end
+  
+  defp open_from_options(base_url, opts, extra_args) do
+    print_error("Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
   end
 
   @switches [
