@@ -15,9 +15,14 @@ defmodule LivebookCLI.Server do
   @impl true
   def usage() do
     """
-    Usage: livebook server [options]
+    Usage: livebook server [url] [options]
 
-    Available options:
+    An optional url can be given as argument. If one is given,
+    a browser window will open importing the given url as a notebook:
+
+        livebook server https://example.com/my-notebook.livemd
+
+    ## Available options
 
       --autosave-path      The directory where notebooks with no file are persisted.
                            Defaults to livebook/notebooks/ under the default user cache
