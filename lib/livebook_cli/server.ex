@@ -15,14 +15,9 @@ defmodule LivebookCLI.Server do
   @impl true
   def usage() do
     """
-    Usage: livebook server [url] [options]
+    Usage: livebook server [options]
 
-    An optional url can be given as argument. If one is given,
-    a browser window will open importing the given url as a notebook:
-
-        livebook server https://example.com/my-notebook.livemd
-
-    ## Available options
+    Available options:
 
       --autosave-path      The directory where notebooks with no file are persisted.
                            Defaults to livebook/notebooks/ under the default user cache
@@ -67,7 +62,11 @@ defmodule LivebookCLI.Server do
     case check_endpoint_availability(base_url) do
       :livebook_running ->
         IO.puts("Livebook already running on #{base_url}")
-        open_from_options(base_url, opts, extra_args)
+        if length(exta_args) > 1 do
+          print_error("Too many arguments entered. Please ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
+        else
+          open_from_options(base_url, opts, extra_args)
+        end
 
       :taken ->
         print_error(
@@ -80,9 +79,13 @@ defmodule LivebookCLI.Server do
         # so it's gonna start listening
         case Application.ensure_all_started(:livebook) do
           {:ok, _} ->
-            open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
-            Process.sleep(:infinity)
-
+            if length(exta_args) > 1 do
+              print_error("Too many arguments entered. Please ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch")
+            else
+              open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
+              Process.sleep(:infinity)
+            end
+            
           {:error, error} ->
             print_error("Livebook failed to start with reason: #{inspect(error)}")
         end
