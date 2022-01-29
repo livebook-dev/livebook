@@ -370,6 +370,33 @@ defmodule Livebook.Utils do
   end
 
   @doc """
+  Returns a URL (including localhost) to import the given `url` as a notebook.
+
+      iex> Livebook.Utils.notebook_import_url("https://example.com/foo.livemd")
+      "http://localhost:4002/import?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+
+      iex> Livebook.Utils.notebook_import_url("https://my_host", "https://example.com/foo.livemd")
+      "https://my_host/import?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+
+  """
+  def notebook_import_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
+    base_url
+    |> URI.parse()
+    |> Map.replace!(:path, "/import")
+    |> append_query("url=#{URI.encode_www_form(url)}")
+    |> URI.to_string()
+  end
+
+  # TODO: On Elixir v1.14, use URI.append_query/2
+  defp append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
+    %{uri | query: query_to_add}
+  end
+
+  defp append_query(%URI{} = uri, query) do
+    %{uri | query: uri.query <> "&" <> query}
+  end
+
+  @doc """
   Formats the given number of bytes into a human-friendly text.
 
   ## Examples

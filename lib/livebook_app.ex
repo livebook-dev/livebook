@@ -84,7 +84,8 @@ if Mix.target() == :app do
     end
 
     defp import_livebook(url) do
-      LivebookWeb.Helpers.notebook_import_url(url)
+      url
+      |> Livebook.Utils.notebook_import_url()
       |> Livebook.Utils.browser_open()
     end
 
