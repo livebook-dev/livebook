@@ -84,10 +84,7 @@ if Mix.target() == :app do
     end
 
     defp import_livebook(url) do
-      LivebookWeb.Endpoint.access_struct_url()
-      |> Map.replace!(:path, "/import")
-      |> append_query("url=#{URI.encode_www_form(url)}")
-      |> URI.to_string()
+      LivebookWeb.Helpers.notebook_import_url(url)
       |> Livebook.Utils.browser_open()
     end
 
@@ -110,15 +107,6 @@ if Mix.target() == :app do
 
     defp macos?() do
       :os.type() == {:unix, :darwin}
-    end
-
-    # TODO: On Elixir v1.14, use URI.append_query/2
-    defp append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
-      %{uri | query: query_to_add}
-    end
-
-    defp append_query(%URI{} = uri, query) do
-      %{uri | query: uri.query <> "&" <> query}
     end
   end
 end
