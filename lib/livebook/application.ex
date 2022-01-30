@@ -17,7 +17,7 @@ defmodule Livebook.Application do
         # Start the PubSub system
         {Phoenix.PubSub, name: Livebook.PubSub},
         # Start the storage module
-        storage_spec(),
+        Livebook.Storage.current(),
         # Periodid measurement of system resources
         Livebook.SystemResources,
         # Start the tracker server on this node
@@ -169,9 +169,5 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
-  end
-
-  defp storage_spec() do
-    Application.fetch_env!(:livebook, :storage)
   end
 end

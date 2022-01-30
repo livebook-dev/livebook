@@ -327,7 +327,7 @@ defmodule Livebook.Config do
   end
 
   defp storage() do
-    Application.fetch_env!(:livebook, :storage)
+    Livebook.Storage.current()
   end
 
   defp storage_to_fs(%{type: "s3"} = config) do

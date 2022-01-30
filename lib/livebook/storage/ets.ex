@@ -3,9 +3,9 @@ defmodule Livebook.Storage.Ets do
   Ets implementation of `Livebook.Storage` behaviour.
 
   The module is supposed to be started just once as it
-  is responsible for managing a single global named ets table.
+  is responsible for managing a named ets table.
 
-  `insert` and `delete` operations are supposed to be called using the genserver
+  `insert` and `delete` operations are supposed to be called using a GenServer
   while all the lookups can be performed by directly accessing the named table.
   """
   @behaviour Livebook.Storage
@@ -88,9 +88,7 @@ defmodule Livebook.Storage.Ets do
 
     :ets.insert(table, attributes)
 
-    {:ok, entity} = fetch(namespace, entity_id)
-
-    {:reply, entity, state}
+    {:reply, :ok, state}
   end
 
   @impl GenServer

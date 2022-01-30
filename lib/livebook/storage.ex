@@ -33,10 +33,13 @@ defmodule Livebook.Storage do
   @doc """
   Inserts given list of attribute-value paris to a entity belonging to specified namespace.
   """
-  @callback insert(namespace(), entity_id(), [{attribute(), value()}]) :: entity()
+  @callback insert(namespace(), entity_id(), [{attribute(), value()}]) :: :ok
 
   @doc """
   Deletes an entity of given id from given namespace.
   """
   @callback delete(namespace(), entity_id()) :: :ok
+
+  @spec current() :: module()
+  def current(), do: Application.fetch_env!(:livebook, :storage)
 end

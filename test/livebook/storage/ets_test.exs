@@ -3,37 +3,37 @@ defmodule Livebook.Storage.EtsTest do
 
   alias Livebook.Storage.Ets
 
-  setup_all do
-    Ets.start_link([])
-
-    :ok
-  end
-
-  describe "insert/3" do
+  describe "insert/3 and fetch/2" do
     test "properly inserts a new key-value attribute" do
-      assert %{
+      assert :ok = Ets.insert(:insert, "test", key1: "val1", key2: "val2")
+
+      assert {:ok, %{
                id: "test",
                key1: "val1",
                key2: "val2"
-             } = Ets.insert(:insert, "test", key1: "val1", key2: "val2")
+             }} = Ets.fetch(:insert, "test")
     end
 
     test "replaces already existing attributes with new values" do
-      assert %{
+      assert :ok = Ets.insert(:insert, "replace", key1: "val1", key2: "val2")
+
+      assert {:ok, %{
                key1: "val1",
                key2: "val2"
-             } = Ets.insert(:insert, "replace", key1: "val1", key2: "val2")
+             }} = Ets.fetch(:insert, "replace")
 
-      assert %{
+      assert :ok = Ets.insert(:insert, "replace", key1: "updated_val1", key2: "val2", key3: "val3")
+
+      assert {:ok, %{
                key1: "updated_val1",
                key2: "val2",
                key3: "val3"
-             } = Ets.insert(:insert, "replace", key1: "updated_val1", key2: "val2", key3: "val3")
+             }} =  Ets.fetch(:insert, "replace")
     end
   end
 
   test "fetch/2" do
-    _entity = Ets.insert(:fetch, "test", key1: "val1")
+    :ok = Ets.insert(:fetch, "test", key1: "val1")
 
     assert {:ok,
             %{
@@ -45,7 +45,7 @@ defmodule Livebook.Storage.EtsTest do
   end
 
   test "delete/2" do
-    _entity = Ets.insert(:delete, "test", key1: "val1")
+    :ok = Ets.insert(:delete, "test", key1: "val1")
 
     assert {:ok, _entity} = Ets.fetch(:delete, "test")
 

@@ -46,7 +46,7 @@ defmodule Livebook.FileSystem.S3 do
 
   @spec to_config(t()) :: map()
   def to_config(%__MODULE__{} = s3) do
-    Map.from_struct(s3)
+    Map.take(s3, [:bucket_url, :access_key_id, :secret_access_key])
   end
 end
 
