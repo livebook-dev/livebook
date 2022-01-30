@@ -60,8 +60,11 @@ defmodule Livebook.Storage.EtsTest do
 
   describe "all/1" do
     test "returns all inserted entities for given namespace" do
-      entity1 = Ets.insert(:all, "test1", key1: "val1")
-      entity2 = Ets.insert(:all, "test2", key1: "val1")
+      :ok = Ets.insert(:all, "test1", key1: "val1")
+      :ok = Ets.insert(:all, "test2", key1: "val1")
+
+      {:ok, entity1} = Ets.fetch(:all, "test1")
+      {:ok, entity2} = Ets.fetch(:all, "test2")
 
       assert [^entity1, ^entity2] = Ets.all(:all)
     end
