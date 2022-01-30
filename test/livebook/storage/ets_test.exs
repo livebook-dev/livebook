@@ -7,28 +7,32 @@ defmodule Livebook.Storage.EtsTest do
     test "properly inserts a new key-value attribute" do
       assert :ok = Ets.insert(:insert, "test", key1: "val1", key2: "val2")
 
-      assert {:ok, %{
-               id: "test",
-               key1: "val1",
-               key2: "val2"
-             }} = Ets.fetch(:insert, "test")
+      assert {:ok,
+              %{
+                id: "test",
+                key1: "val1",
+                key2: "val2"
+              }} = Ets.fetch(:insert, "test")
     end
 
     test "replaces already existing attributes with new values" do
       assert :ok = Ets.insert(:insert, "replace", key1: "val1", key2: "val2")
 
-      assert {:ok, %{
-               key1: "val1",
-               key2: "val2"
-             }} = Ets.fetch(:insert, "replace")
+      assert {:ok,
+              %{
+                key1: "val1",
+                key2: "val2"
+              }} = Ets.fetch(:insert, "replace")
 
-      assert :ok = Ets.insert(:insert, "replace", key1: "updated_val1", key2: "val2", key3: "val3")
+      assert :ok =
+               Ets.insert(:insert, "replace", key1: "updated_val1", key2: "val2", key3: "val3")
 
-      assert {:ok, %{
-               key1: "updated_val1",
-               key2: "val2",
-               key3: "val3"
-             }} =  Ets.fetch(:insert, "replace")
+      assert {:ok,
+              %{
+                key1: "updated_val1",
+                key2: "val2",
+                key3: "val3"
+              }} = Ets.fetch(:insert, "replace")
     end
   end
 
