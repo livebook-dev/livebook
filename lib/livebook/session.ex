@@ -422,7 +422,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Close one or more sessions.
+  Closes one or more sessions.
 
   This results in saving the file and broadcasting
   a :closed message to the session topic.
