@@ -15,7 +15,7 @@ defmodule LivebookCLI.Server do
   @impl true
   def usage() do
     """
-    Usage: livebook server [open-command] [--options]
+    Usage: livebook server [options] [open-command]
 
     An optional open-command can be given as argument. It will open
     up a browser window according these rules:
