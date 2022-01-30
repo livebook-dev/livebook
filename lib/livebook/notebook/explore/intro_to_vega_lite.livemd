@@ -77,7 +77,7 @@ Vl.new(width: 400, height: 300)
 ### Stacked bar chart
 
 A stacked bar chart contains multi-color bars to represent
-several quantitive values at once.
+several quantitative values at once.
 
 ```elixir
 # Source: https://vega.github.io/vega-lite/examples/stacked_bar_weather.html
@@ -376,7 +376,7 @@ Vl.new(width: 400, height: 300)
 
 ### Streamgraph
 
-A streamgraph is a type of area chart which is displaced around a centerl axis.
+A streamgraph is a type of area chart which is displaced around a central axis.
 
 ```elixir
 Vl.new(width: 400, height: 300)
@@ -564,7 +564,7 @@ Vl.new(width: 400, height: 300)
 ### Trellis bar chart
 
 Trellis display is a series of graphs with the same scale and axes
-split according to some criteria, so that they are easily to compare.
+split according to some criteria, so that they are easy to compare.
 
 ```elixir
 # Source: https://vega.github.io/vega-lite/examples/trellis_bar.html
