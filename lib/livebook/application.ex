@@ -16,6 +16,8 @@ defmodule Livebook.Application do
         LivebookWeb.Telemetry,
         # Start the PubSub system
         {Phoenix.PubSub, name: Livebook.PubSub},
+        # Start the storage module
+        storage_spec(),
         # Periodid measurement of system resources
         Livebook.SystemResources,
         # Start the tracker server on this node
@@ -32,8 +34,7 @@ defmodule Livebook.Application do
         # We skip the access url as we do our own logging below
         {LivebookWeb.Endpoint, log_access_url: false}
       ] ++
-        app_specs() ++
-        storage_specs()
+        app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -170,11 +171,7 @@ defmodule Livebook.Application do
     defp app_specs, do: []
   end
 
-  defp storage_specs() do
-    if Mix.env() == :test do
-      []
-    else
-      [Application.fetch_env!(:livebook, :storage)]
-    end
+  defp storage_spec() do
+    Application.fetch_env!(:livebook, :storage)
   end
 end

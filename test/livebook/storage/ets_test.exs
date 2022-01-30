@@ -4,9 +4,9 @@ defmodule Livebook.Storage.EtsTest do
   alias Livebook.Storage.Ets
 
   setup_all do
-    {:ok, _pid} = Ets.start_link()
+    Ets.start_link([])
 
-    []
+    :ok
   end
 
   describe "insert/3" do
@@ -54,10 +54,16 @@ defmodule Livebook.Storage.EtsTest do
     assert :error = Ets.fetch(:delete, "test")
   end
 
-  test "all/1" do
-    entity1 = Ets.insert(:all, "test1", key1: "val1")
-    entity2 = Ets.insert(:all, "test2", key1: "val1")
+  describe "all/1" do
+    test "returns all inserted entities for given namespace" do
+      entity1 = Ets.insert(:all, "test1", key1: "val1")
+      entity2 = Ets.insert(:all, "test2", key1: "val1")
 
-    assert [^entity1, ^entity2] = Ets.all(:all)
+      assert [^entity1, ^entity2] = Ets.all(:all)
+    end
+
+    test "returns an empty list if no entities exist for given namespace" do
+      assert [] = Ets.all(:unknown_namespace)
+    end
   end
 end

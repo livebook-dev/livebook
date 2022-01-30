@@ -14,6 +14,7 @@ defmodule Livebook.Storage do
 
   @doc """
   Returns a map identified by `entity_id` in `namespace`.
+
       fetch(:filesystem, "rand-id")
       #=> {:ok, %{id: "rand-id", type: "s3", bucket_url: "/...", secret: "abc", access_key: "xyz"}}
 

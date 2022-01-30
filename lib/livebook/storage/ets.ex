@@ -10,7 +10,7 @@ defmodule Livebook.Storage.Ets do
   """
   @behaviour Livebook.Storage
 
-  @table_name :__livebook_storage__
+  @table_name __MODULE__
 
   use GenServer
 
@@ -24,9 +24,7 @@ defmodule Livebook.Storage.Ets do
 
       entries ->
         entries
-        |> Enum.map(fn {_key, attr, val, _timestamp} ->
-          {attr, val}
-        end)
+        |> Enum.map(fn {_key, attr, val, _timestamp} -> {attr, val} end)
         |> Map.new()
         |> Map.put(:id, entity_id)
         |> then(&{:ok, &1})
@@ -58,9 +56,9 @@ defmodule Livebook.Storage.Ets do
     GenServer.call(__MODULE__, {:delete, namespace, entity_id})
   end
 
-  @spec start_link() :: GenServer.on_start()
-  def start_link() do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @impl GenServer
@@ -72,29 +70,23 @@ defmodule Livebook.Storage.Ets do
 
   @impl GenServer
   def handle_call({:insert, namespace, entity_id, attributes}, _from, %{table: table} = state) do
-    new_attributes =
-      attributes
-      |> Map.new(fn {key, value} ->
-        {key, {value, System.os_time(:millisecond)}}
+    match_head = {{namespace, entity_id}, :"$1", :_, :_}
+
+    guards =
+      Enum.map(attributes, fn {key, _val} ->
+        {:==, :"$1", key}
       end)
 
-    old_attributes =
-      table
-      |> :ets.lookup({{namespace, entity_id}, :"$1", :"$2", :"$3"})
-      |> Map.new(fn [key, value, timestamp] ->
-        {key, {value, timestamp}}
+    :ets.select_delete(table, [{match_head, guards, [true]}])
+
+    timestamp = System.os_time(:millisecond)
+
+    attributes =
+      Enum.map(attributes, fn {attr, val} ->
+        {{namespace, entity_id}, attr, val, timestamp}
       end)
 
-    # delete the whole entity to insert all its entries once again
-    # it is due to a limitation of duplicate bag where a single value can't be deleted nor updated
-    # therefore we are basically reinserting all attributes
-    :ets.delete(table, {namespace, entity_id})
-
-    old_attributes
-    |> Map.merge(new_attributes)
-    |> Enum.map(fn {key, {value, timestamp}} ->
-      :ets.insert(table, {{namespace, entity_id}, key, value, timestamp})
-    end)
+    :ets.insert(table, attributes)
 
     {:ok, entity} = fetch(namespace, entity_id)
 
