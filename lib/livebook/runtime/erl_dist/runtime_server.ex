@@ -161,7 +161,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_info({:DOWN, _, :process, owner, _}, %{owner: owner} = state) do
-    {:stop, :normal, state}
+    {:stop, :shutdown, state}
   end
 
   def handle_info({:DOWN, _, :process, pid, reason}, state) do

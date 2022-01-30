@@ -57,13 +57,13 @@ defmodule WxDemo.Window do
   @impl true
   def handle_event({:wx, @wx_id_exit, _, _, _}, state) do
     :init.stop()
-    {:stop, :normal, state}
+    {:stop, :shutdown, state}
   end
 
   @impl true
   def handle_event({:wx, _, _, _, {:wxClose, :close_window}}, state) do
     :init.stop()
-    {:stop, :normal, state}
+    {:stop, :shutdown, state}
   end
 
   @impl true
