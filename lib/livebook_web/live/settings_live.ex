@@ -8,14 +8,12 @@ defmodule LivebookWeb.SettingsLive do
   @impl true
   def mount(_params, _session, socket) do
     file_systems = Livebook.Config.file_systems()
-    file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
 
     {:ok,
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
        file_systems: file_systems,
-       file_systems_env: file_systems_env,
        page_title: "Livebook - Settings"
      )}
   end
@@ -68,15 +66,6 @@ defmodule LivebookWeb.SettingsLive do
               <h2 class="text-xl text-gray-800 font-semibold">
                 File systems
               </h2>
-              <span class="tooltip top" data-tooltip="Copy as environment variables">
-                <button class="icon-button"
-                  aria-label="copy as environment variables"
-                  phx-click={JS.dispatch("lb:clipcopy", to: "#file-systems-env-source")}
-                  disabled={@file_systems_env == ""}>
-                  <.remix_icon icon="clipboard-line" class="text-lg" />
-                </button>
-                <span class="hidden" id="file-systems-env-source"><%= @file_systems_env %></span>
-              </span>
             </div>
               <LivebookWeb.SettingsLive.FileSystemsComponent.render
                 file_systems={@file_systems}
@@ -162,8 +151,7 @@ defmodule LivebookWeb.SettingsLive do
 
   @impl true
   def handle_info({:file_systems_updated, file_systems}, socket) do
-    file_systems_env = Livebook.Config.file_systems_as_env(file_systems)
-    {:noreply, assign(socket, file_systems: file_systems, file_systems_env: file_systems_env)}
+    {:noreply, assign(socket, file_systems: file_systems)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

@@ -39,17 +39,23 @@ defmodule Livebook.Config do
   """
   @spec file_systems() :: list(FileSystem.t())
   def file_systems() do
-    Application.fetch_env!(:livebook, :file_systems)
+    Application.fetch_env!(:livebook, :default_file_systems) ++
+      Enum.map(storage().all(:filesystem), &storage_to_fs/1)
   end
 
   @doc """
   Appends a new file system to the configured ones.
   """
   @spec append_file_system(FileSystem.t()) :: list(FileSystem.t())
-  def append_file_system(file_system) do
-    file_systems = Enum.uniq(file_systems() ++ [file_system])
-    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
-    file_systems
+  def append_file_system(%FileSystem.S3{} = file_system) do
+    attributes =
+      file_system
+      |> FileSystem.S3.to_config()
+      |> Map.to_list()
+
+    storage().insert(:filesystem, generate_filesystem_id(), [{:type, "s3"} | attributes])
+
+    file_systems()
   end
 
   @doc """
@@ -57,9 +63,13 @@ defmodule Livebook.Config do
   """
   @spec remove_file_system(FileSystem.t()) :: list(FileSystem.t())
   def remove_file_system(file_system) do
-    file_systems = List.delete(file_systems(), file_system)
-    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
-    file_systems
+    storage().all(:filesystem)
+    |> Enum.find(&(storage_to_fs(&1) == file_system))
+    |> case do
+      %{id: id} -> storage().delete(:filesystem, id)
+    end
+
+    file_systems()
   end
 
   @doc """
@@ -316,59 +326,24 @@ defmodule Livebook.Config do
     }
   end
 
-  @doc """
-  Parses file systems list.
-
-  Appends subsequent numbers to the given env prefix (starting from 1)
-  and parses the env variables until `nil` is encountered.
-  """
-  def file_systems!(env_prefix) do
-    Stream.iterate(1, &(&1 + 1))
-    |> Stream.map(fn n ->
-      env = env_prefix <> Integer.to_string(n)
-      System.get_env(env)
-    end)
-    |> Stream.take_while(& &1)
-    |> Enum.map(&parse_file_system!/1)
+  defp storage() do
+    Livebook.Storage.current()
   end
 
-  defp parse_file_system!(string) do
-    case string do
-      "s3 " <> config ->
-        FileSystem.S3.from_config_string(config)
+  defp storage_to_fs(%{type: "s3"} = config) do
+    case FileSystem.S3.from_config(config) do
+      {:ok, fs} ->
+        fs
 
-      _ ->
+      {:error, message} ->
         abort!(
-          ~s{unrecognised file system, expected "s3 BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY", got: #{inspect(string)}}
+          ~s{unrecognised file system, expected "s3 BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY", got: #{inspect(message)}}
         )
     end
-    |> case do
-      {:ok, file_system} -> file_system
-      {:error, message} -> abort!(message)
-    end
   end
 
-  @doc """
-  Returns environment variables configuration corresponding
-  to the given file systems.
-
-  The first (default) file system is ignored.
-  """
-  def file_systems_as_env(file_systems)
-
-  def file_systems_as_env([_ | additional_file_systems]) do
-    additional_file_systems
-    |> Enum.with_index(1)
-    |> Enum.map(fn {file_system, n} ->
-      config = file_system_to_config_string(file_system)
-      ["LIVEBOOK_FILE_SYSTEM_", Integer.to_string(n), "=", ?", config, ?"]
-    end)
-    |> Enum.intersperse(" ")
-    |> IO.iodata_to_binary()
-  end
-
-  defp file_system_to_config_string(%FileSystem.S3{} = file_system) do
-    ["s3 ", FileSystem.S3.to_config_string(file_system)]
+  defp generate_filesystem_id() do
+    :crypto.strong_rand_bytes(6) |> Base.url_encode64()
   end
 
   @doc """

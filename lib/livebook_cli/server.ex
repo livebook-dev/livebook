@@ -220,7 +220,7 @@ defmodule LivebookCLI.Server do
       |> Livebook.FileSystem.Utils.ensure_dir_path()
 
     local_file_system = Livebook.FileSystem.Local.new(default_path: root_path)
-    opts_to_config(opts, [{:livebook, :file_systems, [local_file_system]} | config])
+    opts_to_config(opts, [{:livebook, :default_file_systems, [local_file_system]} | config])
   end
 
   defp opts_to_config([{:sname, sname} | opts], config) do
