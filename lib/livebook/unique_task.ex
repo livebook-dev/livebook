@@ -74,7 +74,9 @@ defmodule Livebook.UniqueTask do
     receive do
       {:DOWN, ^ref, :process, ^pid, reason} ->
         case reason do
+          :normal -> :ok
           :shutdown -> :ok
+          {:shutdown, _} -> :ok
           :noproc -> :ok
           _ -> :error
         end
