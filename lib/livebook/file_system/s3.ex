@@ -398,7 +398,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
   end
 
-  defp encode({:ok, status, headers, body}) do
+  defp encode({:ok, status, headers, body}) when body != "" do
     case HTTP.fetch_content_type(headers) do
       {:ok, content_type} when content_type in ["text/xml", "application/xml"] ->
         {:ok, status, headers, XML.decode!(body)}
