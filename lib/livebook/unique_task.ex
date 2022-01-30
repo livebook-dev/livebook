@@ -17,7 +17,7 @@ defmodule Livebook.UniqueTask.Task do
   @impl true
   def handle_continue(fun, state) do
     fun.()
-    {:stop, :normal, state}
+    {:stop, :shutdown, state}
   end
 end
 
@@ -75,6 +75,8 @@ defmodule Livebook.UniqueTask do
       {:DOWN, ^ref, :process, ^pid, reason} ->
         case reason do
           :normal -> :ok
+          :shutdown -> :ok
+          {:shutdown, _} -> :ok
           :noproc -> :ok
           _ -> :error
         end
