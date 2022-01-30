@@ -59,7 +59,6 @@ defmodule Livebook.Config do
   def remove_file_system(file_system) do
     file_systems = List.delete(file_systems(), file_system)
     Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
-
     file_systems
   end
 
