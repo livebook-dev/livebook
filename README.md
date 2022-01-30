@@ -157,10 +157,6 @@ The following environment variables configure Livebook:
     "attached:NODE:COOKIE" (Attached node) or "embedded" (Embedded).
     Defaults to "standalone".
 
-  * LIVEBOOK_FILE_SYSTEM_1, LIVEBOOK_FILE_SYSTEM_2, ... - configures additional
-    file systems. Each variable should hold a configuration string, which must
-    be of the form: "s3 BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY".
-
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
 
