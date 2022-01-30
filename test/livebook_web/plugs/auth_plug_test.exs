@@ -9,13 +9,13 @@ defmodule LivebookWeb.AuthPlugTest do
         true -> {:disabled, ""}
       end
 
-    Livebook.Config.set_auth_mode(:disabled)
-
     unless type == :disabled do
-      Livebook.Config.set_auth_mode(type, value)
+      Application.put_env(:livebook, :authentication_mode, type)
+      Application.put_env(:livebook, type, value)
 
       on_exit(fn ->
-        Livebook.Config.set_auth_mode(:disabled)
+        Application.put_env(:livebook, :authentication_mode, :disabled)
+        Application.delete_env(:livebook, type)
       end)
     end
 

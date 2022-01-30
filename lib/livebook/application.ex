@@ -31,7 +31,9 @@ defmodule Livebook.Application do
         # Start the Endpoint (http/https)
         # We skip the access url as we do our own logging below
         {LivebookWeb.Endpoint, log_access_url: false}
-      ] ++ app_specs()
+      ] ++
+        app_specs() ++
+        storage_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -166,5 +168,13 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  defp storage_specs() do
+    if Mix.env() == :test do
+      []
+    else
+      [Application.fetch_env!(:livebook, :storage)]
+    end
   end
 end

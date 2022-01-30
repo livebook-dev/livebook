@@ -19,6 +19,9 @@ config :mime, :types, %{
   "text/plain" => ["livemd"]
 }
 
+# Sets the default storage backend
+config :livebook, :storage, Livebook.Storage.Ets
+
 # Sets the default authentication mode to token
 config :livebook, :authentication_mode, :token
 

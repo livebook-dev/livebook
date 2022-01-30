@@ -75,6 +75,6 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp key(port, mode), do: "#{port}:#{mode}"
-  defp expected(mode), do: hash(Livebook.Config.auth_mode_secret(mode))
+  defp expected(mode), do: hash(Application.fetch_env!(:livebook, mode))
   defp hash(value), do: :crypto.hash(:sha256, value)
 end
