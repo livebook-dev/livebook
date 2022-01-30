@@ -55,6 +55,8 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
+  @timeout :infinity
+
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
@@ -122,7 +124,7 @@ defmodule Livebook.Session do
   """
   @spec get_by_pid(pid()) :: Session.t()
   def get_by_pid(pid) do
-    GenServer.call(pid, :describe_self)
+    GenServer.call(pid, :describe_self, @timeout)
   end
 
   @doc """
@@ -136,7 +138,7 @@ defmodule Livebook.Session do
   """
   @spec register_client(pid(), pid(), User.t()) :: Data.t()
   def register_client(pid, client_pid, user) do
-    GenServer.call(pid, {:register_client, client_pid, user})
+    GenServer.call(pid, {:register_client, client_pid, user}, @timeout)
   end
 
   @doc """
@@ -144,7 +146,7 @@ defmodule Livebook.Session do
   """
   @spec get_data(pid()) :: Data.t()
   def get_data(pid) do
-    GenServer.call(pid, :get_data)
+    GenServer.call(pid, :get_data, @timeout)
   end
 
   @doc """
@@ -152,7 +154,7 @@ defmodule Livebook.Session do
   """
   @spec get_notebook(pid()) :: Notebook.t()
   def get_notebook(pid) do
-    GenServer.call(pid, :get_notebook)
+    GenServer.call(pid, :get_notebook, @timeout)
   end
 
   @doc """
@@ -171,7 +173,7 @@ defmodule Livebook.Session do
       :ok
     else
       with {:ok, runtime, archive_path} <-
-             GenServer.call(pid, {:get_runtime_and_archive_path, hash}) do
+             GenServer.call(pid, {:get_runtime_and_archive_path, hash}, @timeout) do
         fun = fn ->
           # Make sure the file hasn't been fetched by this point
           unless File.exists?(local_assets_path) do
@@ -391,16 +393,6 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Disconnects from the current runtime.
-
-  Note that this results in clearing the evaluation state.
-  """
-  @spec disconnect_runtime(pid()) :: :ok
-  def disconnect_runtime(pid) do
-    GenServer.cast(pid, {:disconnect_runtime, self()})
-  end
-
-  @doc """
   Sends file location update request to the server.
   """
   @spec set_file(pid(), FileSystem.File.t() | nil) :: :ok
@@ -426,18 +418,38 @@ defmodule Livebook.Session do
   """
   @spec save_sync(pid()) :: :ok
   def save_sync(pid) do
-    GenServer.call(pid, :save_sync)
+    GenServer.call(pid, :save_sync, @timeout)
   end
 
   @doc """
-  Sends a close request to the server.
+  Closes one or more sessions.
 
   This results in saving the file and broadcasting
   a :closed message to the session topic.
   """
-  @spec close(pid()) :: :ok
+  @spec close(pid() | [pid()]) :: :ok
   def close(pid) do
-    GenServer.cast(pid, :close)
+    _ = call_many(List.wrap(pid), :close)
+    Livebook.SystemResources.update()
+    :ok
+  end
+
+  @doc """
+  Disconnects one or more sessions from the current runtime.
+
+  Note that this results in clearing the evaluation state.
+  """
+  @spec disconnect_runtime(pid() | [pid()]) :: :ok
+  def disconnect_runtime(pid) do
+    _ = call_many(List.wrap(pid), {:disconnect_runtime, self()})
+    Livebook.SystemResources.update()
+    :ok
+  end
+
+  defp call_many(list, request) do
+    list
+    |> Enum.map(&:gen_server.send_request(&1, request))
+    |> Enum.map(&:gen_server.wait_response(&1, :infinity))
   end
 
   ## Callbacks
@@ -571,6 +583,23 @@ defmodule Livebook.Session do
 
   def handle_call(:save_sync, _from, state) do
     {:reply, :ok, maybe_save_notebook_sync(state)}
+  end
+
+  def handle_call(:close, _from, state) do
+    maybe_save_notebook_sync(state)
+    broadcast_message(state.session_id, :session_closed)
+
+    {:stop, :shutdown, :ok, state}
+  end
+
+  def handle_call({:disconnect_runtime, client_pid}, _from, state) do
+    if old_runtime = state.data.runtime do
+      Runtime.disconnect(old_runtime)
+    end
+
+    {:reply, :ok,
+     %{state | runtime_monitor_ref: nil}
+     |> handle_operation({:set_runtime, client_pid, nil})}
   end
 
   @impl true
@@ -708,8 +737,8 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:connect_runtime, client_pid, runtime}, state) do
-    if state.data.runtime do
-      Runtime.disconnect(state.data.runtime)
+    if old_runtime = state.data.runtime do
+      Runtime.disconnect(old_runtime)
     end
 
     runtime_monitor_ref = Runtime.connect(runtime)
@@ -717,14 +746,6 @@ defmodule Livebook.Session do
     {:noreply,
      %{state | runtime_monitor_ref: runtime_monitor_ref}
      |> handle_operation({:set_runtime, client_pid, runtime})}
-  end
-
-  def handle_cast({:disconnect_runtime, client_pid}, state) do
-    Runtime.disconnect(state.data.runtime)
-
-    {:noreply,
-     %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, client_pid, nil})}
   end
 
   def handle_cast({:set_file, client_pid, file}, state) do
@@ -749,13 +770,6 @@ defmodule Livebook.Session do
 
   def handle_cast(:save, state) do
     {:noreply, maybe_save_notebook_async(state)}
-  end
-
-  def handle_cast(:close, state) do
-    maybe_save_notebook_sync(state)
-    broadcast_message(state.session_id, :session_closed)
-
-    {:stop, :normal, state}
   end
 
   @impl true

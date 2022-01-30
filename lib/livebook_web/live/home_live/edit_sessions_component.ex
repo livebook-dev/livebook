@@ -51,7 +51,8 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   @impl true
   def handle_event("close_all", %{}, socket) do
     socket.assigns.selected_sessions
-    |> Enum.each(&Livebook.Session.close(&1.pid))
+    |> Enum.map(& &1.pid)
+    |> Livebook.Session.close()
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
@@ -59,7 +60,8 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   def handle_event("disconnect", %{}, socket) do
     socket.assigns.selected_sessions
     |> Enum.reject(&(&1.memory_usage.runtime == nil))
-    |> Enum.each(&Livebook.Session.disconnect_runtime(&1.pid))
+    |> Enum.map(& &1.pid)
+    |> Livebook.Session.disconnect_runtime()
 
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
