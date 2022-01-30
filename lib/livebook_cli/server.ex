@@ -15,12 +15,20 @@ defmodule LivebookCLI.Server do
   @impl true
   def usage() do
     """
-    Usage: livebook server [url] [options]
+    Usage: livebook server [open-command] [--options]
 
-    An optional url can be given as argument. If one is given,
-    a browser window will open importing the given url as a notebook:
+    An optional open-command can be given as argument. It will open
+    up a browser window according these rules:
 
-        livebook server https://example.com/my-notebook.livemd
+      * If the open-command is "new", the browser window will point
+        to a new notebook
+
+      * If the open-command is a URL, the notebook at the given URL
+        will be imported
+
+    The open-command runs after the server is started. If a server is
+    already running, the browser window will point to the server
+    currently running.
 
     ## Available options
 
@@ -41,7 +49,6 @@ defmodule LivebookCLI.Server do
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
       --open               Open browser window pointing to the application
-      --open-new           Open browser window pointing to a new notebook
       -p, --port           The port to start the web application on, defaults to 8080
       --root-path          The root path to use for file selection
       --sname              Set a short name for the app distributed node
@@ -51,6 +58,20 @@ defmodule LivebookCLI.Server do
     ## Environment variables
 
     #{@environment_variables}
+
+    ## Examples
+
+    Starts a server:
+
+        livebook server
+
+    Starts a server and opens up a browser at a new notebook:
+
+        livebook server new
+
+    Starts a server and imports the notebook at the given URL:
+
+        livebook server https://example.com/my-notebook.livemd
 
     """
   end
@@ -125,12 +146,12 @@ defmodule LivebookCLI.Server do
     if opts[:open] do
       Livebook.Utils.browser_open(base_url)
     end
+  end
 
-    if opts[:open_new] do
-      base_url
-      |> append_path("/explore/notebooks/new")
-      |> Livebook.Utils.browser_open()
-    end
+  defp open_from_options(base_url, _opts, ["new"]) do
+    base_url
+    |> append_path("/explore/notebooks/new")
+    |> Livebook.Utils.browser_open()
   end
 
   defp open_from_options(base_url, _opts, [url]) do
@@ -152,7 +173,6 @@ defmodule LivebookCLI.Server do
     ip: :string,
     name: :string,
     open: :boolean,
-    open_new: :boolean,
     port: :integer,
     root_path: :string,
     sname: :string,
