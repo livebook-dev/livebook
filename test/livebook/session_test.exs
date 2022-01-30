@@ -195,7 +195,9 @@ defmodule Livebook.SessionTest do
       {:ok, runtime} = Livebook.Runtime.Embedded.init()
       Session.connect_runtime(session.pid, runtime)
 
+      # Calling twice can happen in a race, make sure it doesn't crash
       Session.disconnect_runtime(session.pid)
+      Session.disconnect_runtime([session.pid])
 
       assert_receive {:operation, {:set_runtime, ^pid, nil}}
     end
@@ -328,7 +330,10 @@ defmodule Livebook.SessionTest do
       assert {:ok, false} = FileSystem.File.exists?(file)
 
       Process.flag(:trap_exit, true)
+
+      # Calling twice can happen in a race, make sure it doesn't crash
       Session.close(session.pid)
+      Session.close([session.pid])
 
       assert_receive :session_closed
       assert {:ok, "# My notebook\n" <> _rest} = FileSystem.File.read(file)

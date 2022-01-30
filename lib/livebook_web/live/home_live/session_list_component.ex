@@ -6,7 +6,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, order_by: "date")}
+    {:ok, assign(socket, order_by: "date"), temporary_assigns: [memory: nil]}
   end
 
   @impl true
@@ -24,7 +24,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
+      |> assign(
+        sessions: sessions,
+        show_autosave_note?: show_autosave_note?,
+        memory: Livebook.SystemResources.memory()
+      )
 
     {:ok, socket}
   end
@@ -40,7 +44,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </h2>
         </div>
         <div class="flex flex-row">
-          <.memory_info />
+          <.memory_info memory={@memory} />
           <%= if @sessions != [] do %>
             <.edit_sessions sessions={@sessions} socket={@socket}/>
           <% end %>
@@ -170,8 +174,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     """
   end
 
-  defp memory_info(assigns) do
-    %{free: free, total: total} = Livebook.SystemResources.memory()
+  defp memory_info(%{memory: %{free: free, total: total}} = assigns) do
     used = total - free
     percentage = Float.round(used / total * 100, 2)
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)

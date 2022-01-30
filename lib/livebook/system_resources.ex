@@ -6,9 +6,20 @@ defmodule Livebook.SystemResources do
   use GenServer
   @name __MODULE__
 
+  @doc """
+  Returns system memory.
+  """
   @spec memory() :: memory()
   def memory do
     :ets.lookup_element(@name, :memory, 2)
+  end
+
+  @doc """
+  Updates the resources kept by this process.
+  """
+  @spec update() :: :ok
+  def update do
+    GenServer.cast(@name, :update)
   end
 
   @doc false
@@ -19,19 +30,30 @@ defmodule Livebook.SystemResources do
   @impl true
   def init(:ok) do
     :ets.new(@name, [:set, :named_table, :protected])
-    measure_and_schedule()
+    measure()
+    schedule()
     {:ok, %{}}
   end
 
   @impl true
   def handle_info(:measure, state) do
-    measure_and_schedule()
+    measure()
+    schedule()
     {:noreply, state}
   end
 
-  defp measure_and_schedule() do
+  @impl true
+  def handle_cast(:update, state) do
+    measure()
+    {:noreply, state}
+  end
+
+  defp measure() do
     memory = :memsup.get_system_memory_data()
     :ets.insert(@name, {:memory, %{total: memory[:total_memory], free: memory[:free_memory]}})
+  end
+
+  defp schedule() do
     Process.send_after(self(), :measure, 15000)
   end
 end
