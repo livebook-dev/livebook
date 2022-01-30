@@ -15,12 +15,20 @@ defmodule LivebookCLI.Server do
   @impl true
   def usage() do
     """
-    Usage: livebook server [url] [options]
+    Usage: livebook server [open-command] [--options]
 
-    An optional url can be given as argument. If one is given,
-    a browser window will open importing the given url as a notebook:
+    An optional open-command can be given as argument. It will open
+    up a browser window according these rules:
 
-        livebook server https://example.com/my-notebook.livemd
+      * If the open-command is "new", the browser window will point
+        to a new notebook
+
+      * If the open-command is a URL, the notebook at the given URL
+        will be imported
+
+    The open-command runs after the server is started. If a server is
+    already running, the browser window will point to the server
+    currently running.
 
     ## Available options
 
@@ -50,6 +58,20 @@ defmodule LivebookCLI.Server do
     ## Environment variables
 
     #{@environment_variables}
+
+    ## Examples
+
+    Starts a server:
+
+        livebook server
+
+    Starts a server and opens up a browser at a new notebook:
+
+        livebook server new
+
+    Starts a server and imports the notebook at the given URL:
+
+        livebook server https://example.com/my-notebook.livemd
 
     """
   end
