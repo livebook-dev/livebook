@@ -18,7 +18,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     show_autosave_note? =
       case Livebook.Settings.autosave_path() do
         nil -> false
-        path -> File.ls!(path) != []
+        path -> match?({:ok, [_ | _]}, File.ls(path))
       end
 
     socket =
