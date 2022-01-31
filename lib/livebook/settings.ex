@@ -1,6 +1,6 @@
 defmodule Livebook.Settings do
   @moduledoc false
-  
+
   # Keeps all Livebook settings that are backed by storage.
 
   @doc """
