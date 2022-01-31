@@ -155,7 +155,7 @@ defmodule LivebookCLI.Server do
     |> Livebook.Utils.browser_open()
   end
 
-defp open_from_options(base_url, _opts, [file_or_dir_or_url]) do
+  defp open_from_options(base_url, _opts, [file_or_dir_or_url]) do
     cond do
       File.dir?(file_or_dir_or_url) ->
         file_system = FileSystem.Local.new(default_path: Path.expand(file_or_dir_or_url) <> "/")
