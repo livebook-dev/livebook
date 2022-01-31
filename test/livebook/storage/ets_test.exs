@@ -1,5 +1,5 @@
 defmodule Livebook.Storage.EtsTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Livebook.Storage.Ets
 

@@ -35,50 +35,27 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the list of currently available file systems.
+  Returns the local filesystem.
   """
-  @spec file_systems() :: list(FileSystem.t())
-  def file_systems() do
-    Application.fetch_env!(:livebook, :default_file_systems) ++
-      Enum.map(storage().all(:filesystem), &storage_to_fs/1)
+  @spec local_filesystem() :: FileSystem.t()
+  def local_filesystem do
+    :persistent_term.get(:livebook_local_filesystem)
   end
 
   @doc """
-  Appends a new file system to the configured ones.
+  Returns the local filesystem home.
   """
-  @spec append_file_system(FileSystem.t()) :: list(FileSystem.t())
-  def append_file_system(%FileSystem.S3{} = file_system) do
-    attributes =
-      file_system
-      |> FileSystem.S3.to_config()
-      |> Map.to_list()
-
-    storage().insert(:filesystem, generate_filesystem_id(), [{:type, "s3"} | attributes])
-
-    file_systems()
+  @spec local_filesystem_home() :: FileSystem.File.t()
+  def local_filesystem_home do
+    FileSystem.File.new(local_filesystem())
   end
 
   @doc """
-  Removes the given file system from the configured ones.
+  Returns the home path.
   """
-  @spec remove_file_system(FileSystem.t()) :: list(FileSystem.t())
-  def remove_file_system(file_system) do
-    storage().all(:filesystem)
-    |> Enum.find(&(storage_to_fs(&1) == file_system))
-    |> case do
-      %{id: id} -> storage().delete(:filesystem, id)
-    end
-
-    file_systems()
-  end
-
-  @doc """
-  Returns the default directory.
-  """
-  @spec default_dir() :: FileSystem.File.t()
-  def default_dir() do
-    [file_system | _] = Livebook.Config.file_systems()
-    FileSystem.File.new(file_system)
+  @spec home() :: String.t()
+  def home do
+    Application.get_env(:livebook, :home) || System.user_home() || File.cwd!()
   end
 
   @doc """
@@ -90,29 +67,6 @@ defmodule Livebook.Config do
   end
 
   ## Parsing
-
-  @doc """
-  Parses and validates home from env.
-  """
-  def home!(env) do
-    if home = System.get_env(env) do
-      home!(env, home)
-    else
-      System.user_home() || File.cwd!()
-    end
-  end
-
-  @doc """
-  Validates `home` within context.
-  """
-  def home!(context, home) do
-    if File.dir?(home) do
-      Path.expand(home)
-    else
-      IO.warn("ignoring #{context} because it doesn't point to a directory: #{home}")
-      System.user_home() || File.cwd!()
-    end
-  end
 
   @doc """
   Parses and validates dir from env.
@@ -302,26 +256,6 @@ defmodule Livebook.Config do
       binary_part(string, 0, idx),
       binary_part(string, idx + 1, byte_size(string) - idx - 1)
     }
-  end
-
-  defp storage() do
-    Livebook.Storage.current()
-  end
-
-  defp storage_to_fs(%{type: "s3"} = config) do
-    case FileSystem.S3.from_config(config) do
-      {:ok, fs} ->
-        fs
-
-      {:error, message} ->
-        abort!(
-          ~s{unrecognised file system, expected "s3 BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY", got: #{inspect(message)}}
-        )
-    end
-  end
-
-  defp generate_filesystem_id() do
-    :crypto.strong_rand_bytes(6) |> Base.url_encode64()
   end
 
   @doc """

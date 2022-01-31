@@ -40,7 +40,7 @@ defmodule LivebookWeb.FileSelectComponent do
        renaming_file: nil,
        renamed_name: nil,
        error_message: nil,
-       file_systems: Livebook.Config.file_systems()
+       file_systems: Livebook.Settings.file_systems()
      )}
   end
 

@@ -20,7 +20,7 @@ defmodule LivebookWeb.HomeLive do
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
-       file: Livebook.Config.default_dir(),
+       file: Livebook.Config.local_filesystem_home(),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,

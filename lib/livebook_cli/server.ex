@@ -214,12 +214,8 @@ defmodule LivebookCLI.Server do
   end
 
   defp opts_to_config([{:home, home} | opts], config) do
-    home =
-      Livebook.Config.home!("--home", home)
-      |> Livebook.FileSystem.Utils.ensure_dir_path()
-
-    local_file_system = Livebook.FileSystem.Local.new(default_path: home)
-    opts_to_config(opts, [{:livebook, :default_file_systems, [local_file_system]} | config])
+    home = Livebook.Config.writable_dir!("--home", home)
+    opts_to_config(opts, [{:livebook, :home, home} | config])
   end
 
   defp opts_to_config([{:sname, sname} | opts], config) do

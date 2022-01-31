@@ -46,6 +46,10 @@ defmodule Livebook do
       config :livebook, :default_runtime, runtime
     end
 
+    if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do
+      config :livebook, :home, home
+    end
+
     if data_path = Livebook.Config.writable_dir!("LIVEBOOK_DATA_PATH") do
       config :livebook, :data_path, data_path
     end
@@ -55,13 +59,6 @@ defmodule Livebook do
            Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
              Livebook.Config.cookie!("RELEASE_COOKIE") ||
              Livebook.Utils.random_cookie()
-
-    home =
-      Livebook.Config.home!("LIVEBOOK_HOME")
-      |> Livebook.FileSystem.Utils.ensure_dir_path()
-
-    local_file_system = Livebook.FileSystem.Local.new(default_path: home)
-    config :livebook, :default_file_systems, [local_file_system]
   end
 
   @doc """
