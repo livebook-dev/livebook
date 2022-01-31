@@ -3,6 +3,8 @@ defmodule LivebookCLI.Server do
 
   @behaviour LivebookCLI.Task
 
+  alias Livebook.FileSystem
+
   @external_resource "README.md"
 
   [_, environment_variables, _] =
@@ -141,10 +143,8 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_options(base_url, opts, []) do
-    if opts[:open] do
-      Livebook.Utils.browser_open(base_url)
-    end
+  defp open_from_options(base_url, _opts, []) do
+    Livebook.Utils.browser_open(base_url)
   end
 
   defp open_from_options(base_url, _opts, ["new"]) do
@@ -153,9 +153,22 @@ defmodule LivebookCLI.Server do
     |> Livebook.Utils.browser_open()
   end
 
-  defp open_from_options(base_url, _opts, [url]) do
-    base_url
-    |> Livebook.Utils.notebook_import_url(url)
+defp open_from_options(base_url, _opts, [file_or_dir_or_url]) do
+    cond do
+      File.dir?(file_or_dir_or_url) ->
+        file_system = FileSystem.Local.new(default_path: Path.expand(file_or_dir_or_url) <> "/")
+        :persistent_term.put(:livebook_local_filesystem, file_system)
+        base_url
+
+      %{host: nil} = URI.parse(file_or_dir_or_url) ->
+        base_url
+
+      %{host: _host} = URI.parse(file_or_dir_or_url) ->
+        base_url |> Livebook.Utils.notebook_import_url(file_or_dir_or_url)
+
+      true ->
+        base_url
+    end
     |> Livebook.Utils.browser_open()
   end
 
