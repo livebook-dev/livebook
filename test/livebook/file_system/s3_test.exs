@@ -254,6 +254,24 @@ defmodule Livebook.FileSystem.S3Test do
 
       assert :ok = FileSystem.write(file_system, file_path, content)
     end
+
+    # Google Cloud Storage XML API returns this type of response.
+    test "writes contents even if content type is text/html and body is empty", %{bypass: bypass} do
+      content = "content"
+
+      Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
+        assert {:ok, ^content, conn} = Plug.Conn.read_body(conn)
+
+        conn
+        |> Plug.Conn.put_resp_content_type("text/html; charset=UTF-8")
+        |> Plug.Conn.resp(200, "")
+      end)
+
+      file_system = S3.new(bucket_url(bypass.port), "key", "secret")
+      file_path = "/dir/file.txt"
+
+      assert :ok = FileSystem.write(file_system, file_path, content)
+    end
   end
 
   describe "FileSystem.create_dir/2" do
