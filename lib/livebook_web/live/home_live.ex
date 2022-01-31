@@ -8,7 +8,7 @@ defmodule LivebookWeb.HomeLive do
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
     end
@@ -20,7 +20,7 @@ defmodule LivebookWeb.HomeLive do
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
-       file: Livebook.Config.local_filesystem_home(),
+       file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
@@ -384,4 +384,16 @@ defmodule LivebookWeb.HomeLive do
   defp selected_sessions(sessions, selected_session_ids) do
     Enum.filter(sessions, &(&1.id in selected_session_ids))
   end
+
+  defp determine_file(%{"file" => file_path} = _params) do
+    if File.dir?(file_path) do
+      FileSystem.Local.new(default_path: file_path)
+      |> FileSystem.File.new(file_path)
+      |> FileSystem.File.resolve(file_path)
+    else
+      Livebook.Config.local_filesystem_home()
+    end
+  end
+
+  defp determine_file(_params), do: Livebook.Config.local_filesystem_home()
 end
