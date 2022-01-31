@@ -144,18 +144,21 @@ Livebook if said token is supplied as part of the URL.
 
 The following environment variables configure Livebook:
 
-  * LIVEBOOK_AUTOSAVE_PATH - sets the directory where notebooks with no file are
-    saved. Defaults to livebook/notebooks/ under the default user cache location.
-    You can pass "none" to disable this behaviour.
-
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
+
+  * LIVEBOOK_DATA_PATH - the directory to store Livebook configuration.
+    Defaults to "livebook" under the default user data directory.
 
   * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
     "standalone" (Elixir standalone), "mix[:PATH]" (Mix standalone),
     "attached:NODE:COOKIE" (Attached node) or "embedded" (Embedded).
     Defaults to "standalone".
+
+  * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
+    default path used on file selection screens and others. Defaults to the
+    user's operating system home.
 
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
@@ -167,10 +170,6 @@ The following environment variables configure Livebook:
     instances on the same domain with the same credentials but on different ports,
     you also need to set LIVEBOOK_SECRET_KEY_BASE. Defaults to 8080. If set to 0,
     a random port will be picked.
-
-  * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection. This does
-    not restrict access to upper directories unless the operating system user is
-    also restricted.
 
   * LIVEBOOK_SECRET_KEY_BASE - sets a secret key that is used to sign and encrypt
     the session and other payloads used by Livebook. Must be at least 64 characters
@@ -231,7 +230,7 @@ Livebook development is sponsored by:
 
 ## Continuous Integration
 
-Our CI servers and desktop app for macOS are powered by:
+Our CI server and desktop app for macOS are powered by:
 
 <a href="https://www.macstadium.com"><img src="https://user-images.githubusercontent.com/9582/151619816-b7794798-8261-46c8-bb88-d12108e3ff12.png" width="320" /></a>
 

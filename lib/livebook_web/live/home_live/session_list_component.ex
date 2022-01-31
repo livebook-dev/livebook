@@ -16,7 +16,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     sessions = sort_sessions(sessions, socket.assigns.order_by)
 
     show_autosave_note? =
-      case Livebook.Config.autosave_path() do
+      case Livebook.Settings.autosave_path() do
         nil -> false
         path -> File.ls!(path) != []
       end

@@ -15,6 +15,21 @@ defmodule Livebook.Storage.Ets do
   use GenServer
 
   @impl Livebook.Storage
+  def all(namespace) do
+    @table_name
+    |> :ets.match({{namespace, :"$1"}, :"$2", :"$3", :_})
+    |> Enum.group_by(
+      fn [entity_id, _attr, _val] -> entity_id end,
+      fn [_id, attr, val] -> {attr, val} end
+    )
+    |> Enum.map(fn {entity_id, attributes} ->
+      attributes
+      |> Map.new()
+      |> Map.put(:id, entity_id)
+    end)
+  end
+
+  @impl Livebook.Storage
   def fetch(namespace, entity_id) do
     @table_name
     |> :ets.lookup({namespace, entity_id})
@@ -32,18 +47,13 @@ defmodule Livebook.Storage.Ets do
   end
 
   @impl Livebook.Storage
-  def all(namespace) do
+  def fetch_key(namespace, entity_id, key) do
     @table_name
-    |> :ets.match({{namespace, :"$1"}, :"$2", :"$3", :_})
-    |> Enum.group_by(
-      fn [entity_id, _attr, _val] -> entity_id end,
-      fn [_id, attr, val] -> {attr, val} end
-    )
-    |> Enum.map(fn {entity_id, attributes} ->
-      attributes
-      |> Map.new()
-      |> Map.put(:id, entity_id)
-    end)
+    |> :ets.match({{namespace, entity_id}, key, :"$1", :_})
+    |> case do
+      [[value]] -> {:ok, value}
+      [] -> :error
+    end
   end
 
   @impl Livebook.Storage

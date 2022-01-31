@@ -82,81 +82,59 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the directory where notebooks with no file should be persisted.
+  Returns the configuration path.
   """
-  @spec autosave_path() :: String.t() | nil
-  def autosave_path() do
-    Application.fetch_env!(:livebook, :autosave_path)
+  @spec data_path() :: String.t()
+  def data_path() do
+    Application.get_env(:livebook, :data_path) || :filename.basedir(:user_data, "livebook")
   end
 
   ## Parsing
 
   @doc """
-  Parses and validates the root path from env.
+  Parses and validates home from env.
   """
-  def root_path!(env) do
-    if root_path = System.get_env(env) do
-      root_path!(env, root_path)
+  def home!(env) do
+    if home = System.get_env(env) do
+      home!(env, home)
     else
-      File.cwd!()
+      System.user_home() || File.cwd!()
     end
   end
 
   @doc """
-  Validates `root_path` within context.
+  Validates `home` within context.
   """
-  def root_path!(context, root_path) do
-    if File.dir?(root_path) do
-      Path.expand(root_path)
+  def home!(context, home) do
+    if File.dir?(home) do
+      Path.expand(home)
     else
-      IO.warn("ignoring #{context} because it doesn't point to a directory: #{root_path}")
-      File.cwd!()
+      IO.warn("ignoring #{context} because it doesn't point to a directory: #{home}")
+      System.user_home() || File.cwd!()
     end
   end
 
   @doc """
-  Parses and validates the autosave directory from env.
+  Parses and validates dir from env.
   """
-  def autosave_path!(env) do
-    if path = System.get_env(env) do
-      autosave_path!(env, path)
-    else
-      default_autosave_path!()
+  def writable_dir!(env) do
+    if dir = System.get_env(env) do
+      writable_dir!(env, dir)
     end
   end
 
   @doc """
-  Validates `autosave_path` within context.
+  Validates `dir` within context.
   """
-  def autosave_path!(context, path)
-
-  def autosave_path!(_context, "none"), do: nil
-
-  def autosave_path!(context, path) do
-    if writable_directory?(path) do
-      Path.expand(path)
+  def writable_dir!(context, dir) do
+    if writable_dir?(dir) do
+      Path.expand(dir)
     else
-      IO.warn("ignoring #{context} because it doesn't point to a writable directory: #{path}")
-      default_autosave_path!()
+      abort!("expected #{context} to be a writable directory: #{dir}")
     end
   end
 
-  defp default_autosave_path!() do
-    cache_path = :filename.basedir(:user_cache, "livebook")
-
-    path =
-      if writable_directory?(cache_path) do
-        cache_path
-      else
-        System.tmp_dir!() |> Path.expand() |> Path.join("livebook")
-      end
-
-    notebooks_path = Path.join(path, "notebooks")
-    File.mkdir_p!(notebooks_path)
-    notebooks_path
-  end
-
-  defp writable_directory?(path) do
+  defp writable_dir?(path) do
     case File.stat(path) do
       {:ok, %{type: :directory, access: access}} when access in [:read_write, :write] -> true
       _ -> false
