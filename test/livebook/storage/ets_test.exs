@@ -44,9 +44,9 @@ defmodule Livebook.Storage.EtsTest do
     end
 
     test "handles nil accordingly" do
-      assert Ets.fetch_key(:fetch_key, "test", :key1) == {:ok, "val1"}
-      :ok = Ets.insert(:fetch_key, "test", key1: nil)
-      assert Ets.fetch_key(:fetch_key, "test", :key1) == {:ok, nil}
+      assert Ets.fetch_key(:fetch_key, "test_nil", :key1) == :error
+      :ok = Ets.insert(:fetch_key, "test_nil", key1: nil)
+      assert Ets.fetch_key(:fetch_key, "test_nil", :key1) == {:ok, nil}
     end
   end
 
