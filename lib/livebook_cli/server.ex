@@ -32,10 +32,9 @@ defmodule LivebookCLI.Server do
 
     ## Available options
 
-      --autosave-path      The directory where notebooks with no file are persisted.
-                           Defaults to livebook/notebooks/ under the default user cache
-                           location. You can pass "none" to disable this behaviour
       --cookie             Sets a cookie for the app distributed node
+      --data-path          The directory to store Livebook configuration,
+                           defaults to "livebook" under the default user data directory
       --default-runtime    Sets the runtime type that is used by default when none is started
                            explicitly for the given notebook, defaults to standalone
                            Supported options:
@@ -43,6 +42,7 @@ defmodule LivebookCLI.Server do
                              * mix[:PATH] - Mix standalone
                              * attached:NODE:COOKIE - Attached
                              * embedded - Embedded
+      --home               The home path for the Livebook instance
       --ip                 The ip address to start the web application on, defaults to 127.0.0.1
                            Must be a valid IPv4 or IPv6 address
       --name               Set a name for the app distributed node
@@ -50,7 +50,6 @@ defmodule LivebookCLI.Server do
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
       --open               Open browser window pointing to the application
       -p, --port           The port to start the web application on, defaults to 8080
-      --root-path          The root path to use for file selection
       --sname              Set a short name for the app distributed node
 
     The --help option can be given to print this notice.
@@ -167,14 +166,14 @@ defmodule LivebookCLI.Server do
   end
 
   @switches [
-    autosave_path: :string,
+    data_path: :string,
     cookie: :string,
     default_runtime: :string,
     ip: :string,
     name: :string,
     open: :boolean,
     port: :integer,
-    root_path: :string,
+    home: :string,
     sname: :string,
     token: :boolean
   ]
@@ -214,13 +213,9 @@ defmodule LivebookCLI.Server do
     opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [ip: ip]} | config])
   end
 
-  defp opts_to_config([{:root_path, root_path} | opts], config) do
-    root_path =
-      Livebook.Config.root_path!("--root-path", root_path)
-      |> Livebook.FileSystem.Utils.ensure_dir_path()
-
-    local_file_system = Livebook.FileSystem.Local.new(default_path: root_path)
-    opts_to_config(opts, [{:livebook, :default_file_systems, [local_file_system]} | config])
+  defp opts_to_config([{:home, home} | opts], config) do
+    home = Livebook.Config.writable_dir!("--home", home)
+    opts_to_config(opts, [{:livebook, :home, home} | config])
   end
 
   defp opts_to_config([{:sname, sname} | opts], config) do
@@ -243,9 +238,9 @@ defmodule LivebookCLI.Server do
     opts_to_config(opts, [{:livebook, :default_runtime, default_runtime} | config])
   end
 
-  defp opts_to_config([{:autosave_path, path} | opts], config) do
-    autosave_path = Livebook.Config.autosave_path!("--autosave-path", path)
-    opts_to_config(opts, [{:livebook, :autosave_path, autosave_path} | config])
+  defp opts_to_config([{:data_path, path} | opts], config) do
+    data_path = Livebook.Config.writable_dir!("--data-path", path)
+    opts_to_config(opts, [{:livebook, :data_path, data_path} | config])
   end
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)

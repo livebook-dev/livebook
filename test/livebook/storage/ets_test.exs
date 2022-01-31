@@ -1,5 +1,5 @@
 defmodule Livebook.Storage.EtsTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias Livebook.Storage.Ets
 
@@ -36,6 +36,20 @@ defmodule Livebook.Storage.EtsTest do
     end
   end
 
+  describe "fetch_key/3" do
+    test "reads a given key" do
+      :ok = Ets.insert(:fetch_key, "test", key1: "val1")
+      assert Ets.fetch_key(:fetch_key, "test", :key1) == {:ok, "val1"}
+      assert Ets.fetch_key(:fetch_key, "test", :key2) == :error
+    end
+
+    test "handles nil accordingly" do
+      assert Ets.fetch_key(:fetch_key, "test_nil", :key1) == :error
+      :ok = Ets.insert(:fetch_key, "test_nil", key1: nil)
+      assert Ets.fetch_key(:fetch_key, "test_nil", :key1) == {:ok, nil}
+    end
+  end
+
   test "fetch/2" do
     :ok = Ets.insert(:fetch, "test", key1: "val1")
 
@@ -66,7 +80,7 @@ defmodule Livebook.Storage.EtsTest do
       {:ok, entity1} = Ets.fetch(:all, "test1")
       {:ok, entity2} = Ets.fetch(:all, "test2")
 
-      assert [^entity1, ^entity2] = Ets.all(:all)
+      assert [^entity1, ^entity2] = Enum.sort(Ets.all(:all))
     end
 
     test "returns an empty list if no entities exist for given namespace" do

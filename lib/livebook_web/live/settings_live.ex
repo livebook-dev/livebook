@@ -7,7 +7,7 @@ defmodule LivebookWeb.SettingsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    file_systems = Livebook.Config.file_systems()
+    file_systems = Livebook.Settings.file_systems()
 
     {:ok,
      socket

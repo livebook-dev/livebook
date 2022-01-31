@@ -7,10 +7,19 @@ defmodule Livebook.Storage do
   @type namespace :: atom()
   @type entity_id :: binary()
   @type attribute :: atom()
-  @type value :: binary()
+  @type value :: binary() | nil
   @type timestamp :: non_neg_integer()
 
   @type entity :: %{required(:id) => entity_id(), optional(attribute()) => value()}
+
+  @doc """
+  Returns all values in namespace.
+
+      all(:filesystem)
+      [%{id: "rand-id", type: "s3", bucket_url: "/...", secret: "abc", access_key: "xyz"}]
+
+  """
+  @callback all(namespace()) :: [entity()]
 
   @doc """
   Returns a map identified by `entity_id` in `namespace`.
@@ -22,13 +31,13 @@ defmodule Livebook.Storage do
   @callback fetch(namespace(), entity_id()) :: {:ok, entity()} | :error
 
   @doc """
-  Returns all values in namespace.
+  Returns the value for a given `namespace`-`entity_id`-`attribute`.
 
-      all(:filesystem)
-      [%{id: "rand-id", type: "s3", bucket_url: "/...", secret: "abc", access_key: "xyz"}]
+      fetch_key(:filesystem, "rand-id", :type)
+      #=> {:ok, "s3"}
 
   """
-  @callback all(namespace()) :: [entity()]
+  @callback fetch_key(namespace(), entity_id(), attribute()) :: {:ok, value()} | :error
 
   @doc """
   Inserts given list of attribute-value paris to a entity belonging to specified namespace.

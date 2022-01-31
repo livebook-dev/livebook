@@ -112,7 +112,7 @@ defmodule Livebook.Session do
       to `:copy_images_from` when the images are in memory
 
     * `:autosave_path` - a local directory to save notebooks without a file into.
-      Defaults to `Livebook.Config.autosave_path/1`
+      Defaults to `Livebook.Settings.autosave_path/0`
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -1229,7 +1229,7 @@ defmodule Livebook.Session do
   end
 
   defp default_notebook_file(state) do
-    if path = state.autosave_path || Livebook.Config.autosave_path() do
+    if path = state.autosave_path || Livebook.Settings.autosave_path() do
       dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
       notebook_rel_path = default_notebook_path(state)
       FileSystem.File.resolve(dir, notebook_rel_path)

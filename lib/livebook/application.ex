@@ -6,6 +6,7 @@ defmodule Livebook.Application do
   use Application
 
   def start(_type, _args) do
+    ensure_local_filesystem!()
     ensure_distribution!()
     validate_hostname_resolution!()
     set_cookie()
@@ -50,6 +51,15 @@ defmodule Livebook.Application do
   def config_change(changed, _new, removed) do
     LivebookWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp ensure_local_filesystem!() do
+    home =
+      Livebook.Config.home()
+      |> Livebook.FileSystem.Utils.ensure_dir_path()
+
+    local_filesystem = Livebook.FileSystem.Local.new(default_path: home)
+    :persistent_term.put(:livebook_local_filesystem, local_filesystem)
   end
 
   defp ensure_distribution!() do

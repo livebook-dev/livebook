@@ -155,7 +155,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   @impl true
   def handle_event("open_file_select", %{}, socket) do
-    file = socket.assigns.new_attrs.file || Livebook.Config.default_dir()
+    file = socket.assigns.new_attrs.file || Livebook.Config.local_filesystem_home()
     {:noreply, assign(socket, draft_file: file)}
   end
 
