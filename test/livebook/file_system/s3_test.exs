@@ -256,7 +256,7 @@ defmodule Livebook.FileSystem.S3Test do
     end
 
     # Google Cloud Storage XML API returns this type of response.
-    test "writes contents even if content type is text/html and body is empty", %{bypass: bypass} do
+    test "returns success when the status is 200 even if the content type is text/html", %{bypass: bypass} do
       content = "content"
 
       Bypass.expect_once(bypass, "PUT", "/mybucket/dir/file.txt", fn conn ->
