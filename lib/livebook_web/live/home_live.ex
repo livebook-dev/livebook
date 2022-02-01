@@ -320,6 +320,21 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, socket}
   end
 
+  def handle_info({:set_file, file}, socket) do
+    socket =
+      case import_notebook(file) do
+        {:ok, {notebook, messages}} ->
+          socket
+          |> put_import_warnings(messages)
+          |> create_session(notebook: notebook, file: file, origin: {:file, file})
+
+        {:error, error} ->
+          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
+      end
+
+    {:noreply, socket}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp files(sessions) do
@@ -386,12 +401,24 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp determine_file(%{"file" => file_path} = _params) do
-    if File.dir?(file_path) do
-      FileSystem.Local.new(default_path: file_path)
-      |> FileSystem.File.new(file_path)
-      |> FileSystem.File.resolve(file_path)
-    else
-      Livebook.Config.local_filesystem_home()
+    cond do
+      File.dir?(file_path) ->
+        FileSystem.Local.new(default_path: file_path)
+        |> FileSystem.File.new(file_path)
+        |> FileSystem.File.resolve(file_path)
+
+      File.regular?(file_path) ->
+        file =
+          FileSystem.Local.new(default_path: Path.dirname(file_path) <> "/")
+          |> FileSystem.File.new(file_path)
+          |> FileSystem.File.resolve(file_path)
+
+        Process.send(self(), {:set_file, file}, [])
+
+        file
+
+      true ->
+        Livebook.Config.local_filesystem_home()
     end
   end
 
