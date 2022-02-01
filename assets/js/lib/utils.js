@@ -1,4 +1,5 @@
 import md5 from "crypto-js/md5";
+import sha256 from "crypto-js/sha256";
 import encBase64 from "crypto-js/enc-base64";
 
 export function isMacOS() {
@@ -93,6 +94,14 @@ function randomString(byteSize) {
  */
 export function md5Base64(string) {
   return md5(string).toString(encBase64);
+}
+
+/**
+ * Calculates SHA256 of the given string and returns
+ * the base64 encoded binary.
+ */
+export function sha256Base64(string) {
+  return sha256(string).toString(encBase64);
 }
 
 /**
