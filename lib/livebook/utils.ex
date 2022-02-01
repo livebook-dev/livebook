@@ -388,11 +388,11 @@ defmodule Livebook.Utils do
   end
 
   # TODO: On Elixir v1.14, use URI.append_query/2
-  defp append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
+  def append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
     %{uri | query: query_to_add}
   end
 
-  defp append_query(%URI{} = uri, query) do
+  def append_query(%URI{} = uri, query) do
     %{uri | query: uri.query <> "&" <> query}
   end
 

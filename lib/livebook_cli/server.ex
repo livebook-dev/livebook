@@ -92,7 +92,7 @@ defmodule LivebookCLI.Server do
     case check_endpoint_availability(base_url) do
       :livebook_running ->
         IO.puts("Livebook already running on #{base_url}")
-        open_from_options(base_url, opts, extra_args)
+        open_from_args(base_url, extra_args)
 
       :taken ->
         print_error(
@@ -105,7 +105,7 @@ defmodule LivebookCLI.Server do
         # so it's gonna start listening
         case Application.ensure_all_started(:livebook) do
           {:ok, _} ->
-            open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
+            open_from_args(LivebookWeb.Endpoint.access_url(), extra_args)
             Process.sleep(:infinity)
 
           {:error, error} ->
@@ -146,17 +146,17 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_options(base_url, _opts, []) do
+  defp open_from_args(base_url, []) do
     Livebook.Utils.browser_open(base_url)
   end
 
-  defp open_from_options(base_url, _opts, ["new"]) do
+  defp open_from_args(base_url, ["new"]) do
     base_url
     |> append_path("/explore/notebooks/new")
     |> Livebook.Utils.browser_open()
   end
 
-  defp open_from_options(base_url, _opts, [url_or_file_or_dir]) do
+  defp open_from_args(base_url, [url_or_file_or_dir]) do
     cond do
       File.regular?(url_or_file_or_dir) || File.dir?(url_or_file_or_dir) ->
         base_url
@@ -176,7 +176,7 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_options(_base_url, _opts, _extra_args) do
+  defp open_from_args(_base_url, _extra_args) do
     print_error(
       "Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch"
     )
@@ -269,11 +269,9 @@ defmodule LivebookCLI.Server do
   end
 
   defp update_query(url, params) do
-    %{query: query} = URI.parse(url)
-
     url
     |> URI.parse()
-    |> Map.put(:query, URI.decode_query(query) |> Map.merge(params) |> URI.encode_query())
+    |> Livebook.Utils.append_query(URI.encode_query(params))
     |> URI.to_string()
   end
 
