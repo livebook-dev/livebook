@@ -26,6 +26,12 @@ defmodule LivebookCLI.Server do
       * If the open-command is a URL, the notebook at the given URL
         will be imported
 
+      * If the open-command is a directory, the browser window will point
+        to livebook's home with the directory checked out
+
+      * If the open-command is a livebook file, the browser window will point
+        to the file.
+
     The open-command runs after the server is started. If a server is
     already running, the browser window will point to the server
     currently running.
@@ -48,7 +54,6 @@ defmodule LivebookCLI.Server do
       --name               Set a name for the app distributed node
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
-      --open               Open browser window pointing to the application
       -p, --port           The port to start the web application on, defaults to 8080
       --sname              Set a short name for the app distributed node
 
@@ -183,7 +188,6 @@ defmodule LivebookCLI.Server do
     default_runtime: :string,
     ip: :string,
     name: :string,
-    open: :boolean,
     port: :integer,
     home: :string,
     sname: :string,
