@@ -1,28 +1,5 @@
 import { getAttributeOrThrow } from "../lib/attribute";
-import { randomToken } from "../lib/utils";
-
-import iframeHtml from "./iframe.html";
-
-const global = {
-  channel: null,
-};
-
-// Returns channel responsible for JS communication in the current session
-function getChannel(socket, sessionId, { create = true } = {}) {
-  if (!global.channel && create) {
-    global.channel = socket.channel("js_output", { session_id: sessionId });
-    global.channel.join();
-  }
-
-  return global.channel;
-}
-
-export function leaveChannel() {
-  if (global.channel) {
-    global.channel.leave();
-    global.channel = null;
-  }
-}
+import { randomToken, sha256Base64 } from "../lib/utils";
 
 /**
  * A hook used to render JS-enabled cell output.
@@ -69,9 +46,30 @@ const JSOutput = {
       this.props.sessionId
     );
 
+    // When cells/sections are reordered, morphdom detaches and attaches
+    // the relevant elements in the DOM. Consequently the output element
+    // becomes temporarily detached from the DOM and attaching it back
+    // would cause the iframe to reload. This behaviour is expected, see
+    // https://github.com/whatwg/html/issues/5484 for more details. Reloading
+    // that frequently is inefficient and also clears the iframe state,
+    // which makes is very undesired in our case. To solve this, we insert
+    // the iframe higher in the DOM tree, so that it's never affected by
+    // reordering. Then, we insert a placeholder element in the output to
+    // take up the expected space and we use absolute positioning to place
+    // the iframe exactly over that placeholder. We set up observers to
+    // track the changes in placeholder's position/size and we keep the
+    // absolute iframe in sync.
+
     const iframePlaceholder = document.createElement("div");
+    this.el.appendChild(iframePlaceholder);
+
     const iframe = document.createElement("iframe");
+    iframe.className = "w-full h-0 absolute z-[1]";
     this.state.iframe = iframe;
+
+    this.disconnectObservers = bindIframeSize(iframe, iframePlaceholder);
+
+    // Register message chandler to communicate with the iframe
 
     function postMessage(message) {
       iframe.contentWindow.postMessage(message, "*");
@@ -136,65 +134,11 @@ const JSOutput = {
       };
     });
 
-    // When cells/sections are reordered, morphdom detaches and attaches
-    // the relevant elements in the DOM. Consequently the output element
-    // becomes temporarily detached from the DOM and attaching it back
-    // would cause the iframe to reload. This behaviour is expected, see
-    // https://github.com/whatwg/html/issues/5484 for more details. Reloading
-    // that frequently is inefficient and also clears the iframe state,
-    // which makes is very undesired in our case. To solve this, we insert
-    // the iframe higher in the DOM tree, so that it's never affected by
-    // reordering. Then, we insert a placeholder element in the output to
-    // take up the expected space and we use absolute positioning to place
-    // the iframe exactly over that placeholder. We set up observers to
-    // track the changes in placeholder's position/size and we keep the
-    // absolute iframe in sync.
-
-    const notebookEl = document.querySelector(`[data-element="notebook"]`);
-    const notebookContentEl = notebookEl.querySelector([
-      `[data-element="notebook-content"]`,
-    ]);
-    const iframesEl = notebookEl.querySelector(
-      `[data-element="output-iframes"]`
-    );
-
-    iframe.className = "w-full h-0 absolute z-[1]";
-    // Note that we use `srcdoc`, so the iframe has the same origin as the
-    // parent. For this reason we intentionally don't use allow-same-origin,
-    // as it would allow the iframe to effectively access the parent window.
-    iframe.sandbox = "allow-scripts allow-downloads";
-    iframe.srcdoc = iframeHtml;
-
-    iframesEl.appendChild(iframe);
-    this.el.appendChild(iframePlaceholder);
-
-    function repositionIframe() {
-      const notebookBox = notebookEl.getBoundingClientRect();
-      const placeholderBox = iframePlaceholder.getBoundingClientRect();
-      const top = placeholderBox.top - notebookBox.top + notebookEl.scrollTop;
-      iframe.style.top = `${top}px`;
-      const left =
-        placeholderBox.left - notebookBox.left + notebookEl.scrollLeft;
-      iframe.style.left = `${left}px`;
-      iframe.style.height = `${placeholderBox.height}px`;
-      iframe.style.width = `${placeholderBox.width}px`;
-    }
-
-    // Most output position changes are accompanied by changes to the
-    // notebook content element (adding cells, inserting newlines in
-    // the editor, etc)
-    this.resizeObserver = new ResizeObserver((entries) => repositionIframe());
-    this.resizeObserver.observe(notebookContentEl);
-
-    // On lower level cell/section reordering is applied as element
-    // removal followed by insert, consequently the intersection
-    // between the output and notebook content changes (becomes none
-    // for a brief moment)
-    this.intersectionObserver = new IntersectionObserver(
-      (entries) => repositionIframe(),
-      { root: notebookContentEl }
-    );
-    this.intersectionObserver.observe(iframePlaceholder);
+    // Load the iframe content
+    const iframesEl = document.querySelector(`[data-element="output-iframes"]`);
+    initializeIframeSource(iframe).then(() => {
+      iframesEl.appendChild(iframe);
+    });
 
     // Event handlers
 
@@ -241,8 +185,7 @@ const JSOutput = {
 
   destroyed() {
     window.removeEventListener("message", this.handleWindowMessage);
-    this.resizeObserver.disconnect();
-    this.intersectionObserver.disconnect();
+    this.disconnectObservers();
     this.state.iframe.remove();
 
     const channel = getChannel(
@@ -268,6 +211,119 @@ function getProps(hook) {
     sessionToken: getAttributeOrThrow(hook.el, "data-session-token"),
     sessionId: getAttributeOrThrow(hook.el, "data-session-id"),
   };
+}
+
+let channel = null;
+
+/**
+ * Returns channel used for all JS outputs in the current session.
+ */
+function getChannel(socket, sessionId, { create = true } = {}) {
+  if (!channel && create) {
+    channel = socket.channel("js_output", { session_id: sessionId });
+    channel.join();
+  }
+
+  return channel;
+}
+
+/**
+ * Leaves the JS outputs channel tied to the current session.
+ */
+export function leaveChannel() {
+  if (channel) {
+    channel.leave();
+    channel = null;
+  }
+}
+
+/**
+ * Sets up observers to resize and reposition the iframe
+ * whenever the placeholder moves.
+ */
+function bindIframeSize(iframe, iframePlaceholder) {
+  const notebookEl = document.querySelector(`[data-element="notebook"]`);
+  const notebookContentEl = notebookEl.querySelector(
+    `[data-element="notebook-content"]`
+  );
+
+  function repositionIframe() {
+    const notebookBox = notebookEl.getBoundingClientRect();
+    const placeholderBox = iframePlaceholder.getBoundingClientRect();
+    const top = placeholderBox.top - notebookBox.top + notebookEl.scrollTop;
+    iframe.style.top = `${top}px`;
+    const left = placeholderBox.left - notebookBox.left + notebookEl.scrollLeft;
+    iframe.style.left = `${left}px`;
+    iframe.style.height = `${placeholderBox.height}px`;
+    iframe.style.width = `${placeholderBox.width}px`;
+  }
+
+  // Most output position changes are accompanied by changes to the
+  // notebook content element (adding cells, inserting newlines in
+  // the editor, etc)
+  const resizeObserver = new ResizeObserver((entries) => repositionIframe());
+  resizeObserver.observe(notebookContentEl);
+
+  // On lower level cell/section reordering is applied as element
+  // removal followed by insert, consequently the intersection
+  // between the output and notebook content changes (becomes none
+  // for a brief moment)
+  const intersectionObserver = new IntersectionObserver(
+    (entries) => repositionIframe(),
+    { root: notebookContentEl }
+  );
+  intersectionObserver.observe(iframePlaceholder);
+
+  return () => {
+    resizeObserver.disconnect();
+    intersectionObserver.disconnect();
+  };
+}
+
+// Loading iframe using `srcdoc` disables cookies and browser APIs,
+// such as camera and microphone (1), the same applies to `src` with
+// data URL, so we need to load the iframe through a regular request.
+// Since the iframe is sandboxed we also need `allow-same-origin`.
+// Additionally, we cannot load the iframe from the same origin as
+// the app, because using `allow-same-origin` together with `allow-scripts`
+// would be insecure (2). Consequently, we need to load the iframe
+// from a different origin.
+//
+// To ensure integrity of the loaded content we manually verify the
+// checksum against the expected value.
+//
+// (1): https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#document_source_security
+// (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
+
+const IFRAME_SHA256 = "9cYdQb4mocxzFoj1EryzubL1n7P+lQTeEdWAkeV4E0I=";
+const IFRAME_URL = "https://livebook.space/iframe/v1.html";
+
+function initializeIframeSource(iframe) {
+  return verifyIframeSource().then(() => {
+    iframe.sandbox =
+      "allow-scripts allow-same-origin allow-downloads allow-modals";
+    iframe.allow =
+      "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking";
+    iframe.src = IFRAME_URL;
+  });
+}
+
+let iframeVerificationPromise = null;
+
+function verifyIframeSource() {
+  if (!iframeVerificationPromise) {
+    iframeVerificationPromise = fetch(IFRAME_URL)
+      .then((response) => response.text())
+      .then((html) => {
+        if (sha256Base64(html) !== IFRAME_SHA256) {
+          throw new Error(
+            "The loaded iframe content doesn't have the expected checksum"
+          );
+        }
+      });
+  }
+
+  return iframeVerificationPromise;
 }
 
 export default JSOutput;
