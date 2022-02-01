@@ -296,7 +296,7 @@ function bindIframeSize(iframe, iframePlaceholder) {
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
 
 const IFRAME_SHA256 = "9cYdQb4mocxzFoj1EryzubL1n7P+lQTeEdWAkeV4E0I=";
-const IFRAME_URL = "https://static.jonatanklosko.com/tmp/iframe.html";
+const IFRAME_URL = "https://livebook.space/iframe/v1.html";
 
 function initializeIframeSource(iframe) {
   return verifyIframeSource().then(() => {
