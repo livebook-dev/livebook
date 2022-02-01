@@ -403,7 +403,9 @@ defmodule LivebookWeb.HomeLive do
   defp determine_file(%{"file" => file_path} = _params) do
     cond do
       File.dir?(file_path) ->
-        FileSystem.Local.new(default_path: file_path)
+        path = if String.ends_with?(file_path, "/"), do: file_path, else: file_path <> "/"
+
+        FileSystem.Local.new(default_path: path)
         |> FileSystem.File.new(file_path)
         |> FileSystem.File.resolve(file_path)
 

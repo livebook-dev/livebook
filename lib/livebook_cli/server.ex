@@ -141,10 +141,8 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_options(base_url, opts, []) do
-    if opts[:open] do
-      Livebook.Utils.browser_open(base_url)
-    end
+  defp open_from_options(base_url, _opts, []) do
+    Livebook.Utils.browser_open(base_url)
   end
 
   defp open_from_options(base_url, _opts, ["new"]) do
@@ -153,10 +151,24 @@ defmodule LivebookCLI.Server do
     |> Livebook.Utils.browser_open()
   end
 
-  defp open_from_options(base_url, _opts, [url]) do
-    base_url
-    |> Livebook.Utils.notebook_import_url(url)
-    |> Livebook.Utils.browser_open()
+  defp open_from_options(base_url, _opts, [url_or_file_or_dir]) do
+    cond do
+      File.regular?(url_or_file_or_dir) || File.dir?(url_or_file_or_dir) ->
+        base_url
+        |> update_query(%{"file" => url_or_file_or_dir})
+        |> Livebook.Utils.browser_open()
+
+      %{host: nil} = URI.parse(url_or_file_or_dir) ->
+        Livebook.Utils.browser_open(base_url)
+
+      %{host: _host} = URI.parse(url_or_file_or_dir) ->
+        base_url
+        |> Livebook.Utils.notebook_import_url(url_or_file_or_dir)
+        |> Livebook.Utils.browser_open()
+
+      true ->
+        Livebook.Utils.browser_open(base_url)
+    end
   end
 
   defp open_from_options(_base_url, _opts, _extra_args) do
@@ -249,6 +261,15 @@ defmodule LivebookCLI.Server do
     url
     |> URI.parse()
     |> Map.update!(:path, &((&1 || "") <> path))
+    |> URI.to_string()
+  end
+
+  defp update_query(url, params) do
+    %{query: query} = URI.parse(url)
+
+    url
+    |> URI.parse()
+    |> Map.put(:query, URI.decode_query(query) |> Map.merge(params) |> URI.encode_query())
     |> URI.to_string()
   end
 
