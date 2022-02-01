@@ -403,11 +403,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
       {:ok, content_type} when content_type in ["text/xml", "application/xml"] ->
         {:ok, status, headers, XML.decode!(body)}
 
-      # Google Cloud Storage XML API returns this type of response.
-      {:ok, "text/html"} when body == "" ->
-        {:ok, status, headers, body}
-
-      :error ->
+      _ ->
         {:ok, status, headers, body}
     end
   end
