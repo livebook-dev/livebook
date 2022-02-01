@@ -200,7 +200,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
     query = %{"list-type" => "2", "prefix" => prefix, "delimiter" => delimiter}
 
-    case request(file_system, :get, "/", query: query) |> encode() do
+    case request(file_system, :get, "/", query: query) |> decode() do
       {:ok, 200, _headers, %{"ListBucketResult" => result}} ->
         bucket = result["Name"]
         file_keys = result |> xml_get_list("Contents") |> Enum.map(& &1["Key"])
@@ -224,7 +224,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
 
     query = %{"list-type" => "2", "max-keys" => "0"}
 
-    case request(file_system, :get, "/", query: query) |> encode() do
+    case request(file_system, :get, "/", query: query) |> decode() do
       {:ok, 200, _headers, %{"ListBucketResult" => %{"Name" => bucket}}} ->
         {:ok, bucket}
 
@@ -242,7 +242,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp put_object(file_system, key, content) do
-    case request(file_system, :put, "/" <> encode_key(key), body: content) |> encode() do
+    case request(file_system, :put, "/" <> encode_key(key), body: content) |> decode() do
       {:ok, 200, _headers, _body} -> :ok
       other -> request_response_to_error(other)
     end
@@ -268,7 +268,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     headers = [{"x-amz-copy-source", copy_source}]
 
     case request(file_system, :put, "/" <> encode_key(destination_key), headers: headers)
-         |> encode() do
+         |> decode() do
       {:ok, 200, _headers, _body} -> :ok
       {:ok, 404, _headers, _body} -> FileSystem.Utils.posix_error(:enoent)
       other -> request_response_to_error(other)
@@ -276,7 +276,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   end
 
   defp delete_object(file_system, key) do
-    case request(file_system, :delete, "/" <> encode_key(key)) |> encode() do
+    case request(file_system, :delete, "/" <> encode_key(key)) |> decode() do
       {:ok, 204, _headers, _body} -> :ok
       {:ok, 404, _headers, _body} -> :ok
       other -> request_response_to_error(other)
@@ -296,7 +296,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     headers = [{"Content-MD5", body_md5}]
 
     case request(file_system, :post, "/", query: %{"delete" => ""}, headers: headers, body: body)
-         |> encode() do
+         |> decode() do
       {:ok, 200, _headers, %{"Error" => errors}} -> {:error, format_errors(errors)}
       {:ok, 200, _headers, _body} -> :ok
       other -> request_response_to_error(other)
@@ -394,17 +394,17 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
     host |> String.split(".") |> Enum.reverse() |> Enum.at(2, "auto")
   end
 
-  defp encode({:ok, status, headers, body}) do
+  defp decode({:ok, status, headers, body}) do
     case HTTP.fetch_content_type(headers) do
       {:ok, content_type} when content_type in ["text/xml", "application/xml"] ->
         {:ok, status, headers, XML.decode!(body)}
 
-      :error ->
+      _ ->
         {:ok, status, headers, body}
     end
   end
 
-  defp encode(other), do: other
+  defp decode(other), do: other
 
   defp xml_get_list(xml_map, key) do
     case xml_map do
