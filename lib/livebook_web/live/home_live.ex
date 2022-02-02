@@ -194,19 +194,11 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_params(%{"path" => path} = _params, _uri, socket)
       when socket.assigns.live_action == :public_open do
-    if file_running?(socket.assigns.file, socket.assigns.sessions) do
-      {
-        :noreply,
-        socket
-        |> push_redirect(
-          to:
-            Routes.session_path(
-              socket,
-              :page,
-              session_id_by_file(socket.assigns.file, socket.assigns.sessions)
-            )
-        )
-      }
+    file = FileSystem.File.local(path)
+
+    if file_running?(file, socket.assigns.sessions) do
+      session_id = session_id_by_file(file, socket.assigns.sessions)
+      {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, session_id))}
     else
       {:noreply, open_notebook(socket, FileSystem.File.local(path))}
     end
@@ -391,15 +383,15 @@ defmodule LivebookWeb.HomeLive do
     Enum.filter(sessions, &(&1.id in selected_session_ids))
   end
 
-  defp determine_file(%{"path" => file_path} = _params) do
+  defp determine_file(%{"path" => path} = _params) do
     cond do
-      File.dir?(file_path) ->
-        file_path
+      File.dir?(path) ->
+        path
         |> FileSystem.Utils.ensure_dir_path()
         |> FileSystem.File.local()
 
-      File.regular?(file_path) ->
-        FileSystem.File.local(file_path)
+      File.regular?(path) ->
+        FileSystem.File.local(path)
 
       true ->
         Livebook.Config.local_filesystem_home()

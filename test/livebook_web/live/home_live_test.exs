@@ -338,9 +338,13 @@ defmodule LivebookWeb.HomeLiveTest do
     test "opens a file when livebook file is passed", %{conn: conn, tmp_dir: tmp_dir} do
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
 
-      {:ok, view, _} = live(conn, "/open?path=#{notebook_path}")
+      :ok = File.write(notebook_path, "# Notebook OPEN section")
 
-      assert render(view) =~ "My notebook"
+      assert {:error, {:live_redirect, %{flash: %{}, to: to}}} =
+               live(conn, "/open?path=#{notebook_path}")
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "Notebook OPEN section"
     end
   end
 
