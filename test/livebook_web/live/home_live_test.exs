@@ -230,7 +230,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      assert_receive {:session_created, %{id: id}}
+      assert_receive {:session_created, %{id: id, notebook_name: "My notebook"}}
 
       {:ok, view, _} = live(conn, "/sessions/#{id}")
       assert render(view) =~ "My notebook"
