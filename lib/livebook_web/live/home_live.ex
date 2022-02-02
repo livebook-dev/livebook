@@ -200,7 +200,11 @@ defmodule LivebookWeb.HomeLive do
         socket
         |> push_redirect(
           to:
-            Routes.session_path(socket, :page, session_id_by_file(socket.assigns.file, socket.assigns.sessions))
+            Routes.session_path(
+              socket,
+              :page,
+              session_id_by_file(socket.assigns.file, socket.assigns.sessions)
+            )
         )
       }
     else

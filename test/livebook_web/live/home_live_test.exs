@@ -344,7 +344,6 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
-
   # Helpers
 
   defp test_notebook_path(name) do
