@@ -157,18 +157,23 @@ defmodule LivebookCLI.Server do
   end
 
   defp open_from_args(base_url, [url_or_file_or_dir]) do
+    url = URI.parse(url_or_file_or_dir)
+
     cond do
-      File.regular?(url_or_file_or_dir) || File.dir?(url_or_file_or_dir) ->
+      url.scheme in ~w(http https file) ->
         base_url
+        |> Livebook.Utils.notebook_import_url(url_or_file_or_dir)
+        |> Livebook.Utils.browser_open()
+
+      File.regular?(url_or_file_or_dir) ->
+        base_url
+        |> append_path("open")
         |> update_query(%{"file" => url_or_file_or_dir})
         |> Livebook.Utils.browser_open()
 
-      %{host: nil} = URI.parse(url_or_file_or_dir) ->
-        Livebook.Utils.browser_open(base_url)
-
-      %{host: _host} = URI.parse(url_or_file_or_dir) ->
+      File.dir?(url_or_file_or_dir) ->
         base_url
-        |> Livebook.Utils.notebook_import_url(url_or_file_or_dir)
+        |> update_query(%{"file" => url_or_file_or_dir})
         |> Livebook.Utils.browser_open()
 
       true ->

@@ -192,12 +192,19 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  def handle_params(%{"file" => file} = _params, _uri, socket) do
-    if File.regular?(file) do
-      file = FileSystem.File.local(file)
-      {:noreply, open_notebook(socket, file)}
+  def handle_params(%{"file" => file} = _params, _uri, socket)
+      when socket.assigns.live_action == :public_open do
+    if file_running?(socket.assigns.file, socket.assigns.sessions) do
+      {
+        :noreply,
+        socket
+        |> push_redirect(
+          to:
+            Routes.session_path(socket, :page, session_id_by_file(socket.assigns.file, socket.assigns.sessions))
+        )
+      }
     else
-      {:noreply, socket}
+      {:noreply, open_notebook(socket, FileSystem.File.local(file))}
     end
   end
 
