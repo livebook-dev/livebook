@@ -53,6 +53,19 @@ class LiveEditor {
       this._onCursorSelectionChange &&
         this._onCursorSelectionChange(event.selection);
     });
+
+    this.editor.addAction({
+      contextMenuGroupId: "toggle-word-wrapping",
+      id: "toggle-word-wrapping",
+      label: "Toggle word wrapping",
+      run: (editor) => {
+        const wordWrap =
+          editor.getOption(monaco.editor.EditorOption.wordWrap) === "on"
+            ? "off"
+            : "on";
+        editor.updateOptions({ wordWrap });
+      },
+    });
   }
 
   /**
