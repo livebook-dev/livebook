@@ -94,7 +94,7 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <textarea
       data-element="input"
-      class="input h-[200px] resize-none tiny-scrollbar"
+      class="input min-h-[200px] tiny-scrollbar"
       name="value"
       phx-debounce="300"
       phx-blur="blur"
