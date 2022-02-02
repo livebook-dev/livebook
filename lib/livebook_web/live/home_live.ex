@@ -192,7 +192,7 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  def handle_params(%{"file" => file} = _params, _uri, socket)
+  def handle_params(%{"path" => path} = _params, _uri, socket)
       when socket.assigns.live_action == :public_open do
     if file_running?(socket.assigns.file, socket.assigns.sessions) do
       {
@@ -204,7 +204,7 @@ defmodule LivebookWeb.HomeLive do
         )
       }
     else
-      {:noreply, open_notebook(socket, FileSystem.File.local(file))}
+      {:noreply, open_notebook(socket, FileSystem.File.local(path))}
     end
   end
 
@@ -387,7 +387,7 @@ defmodule LivebookWeb.HomeLive do
     Enum.filter(sessions, &(&1.id in selected_session_ids))
   end
 
-  defp determine_file(%{"file" => file_path} = _params) do
+  defp determine_file(%{"path" => file_path} = _params) do
     cond do
       File.dir?(file_path) ->
         file_path

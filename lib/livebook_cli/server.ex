@@ -168,12 +168,12 @@ defmodule LivebookCLI.Server do
       File.regular?(url_or_file_or_dir) ->
         base_url
         |> append_path("open")
-        |> update_query(%{"file" => url_or_file_or_dir})
+        |> update_query(%{"path" => url_or_file_or_dir})
         |> Livebook.Utils.browser_open()
 
       File.dir?(url_or_file_or_dir) ->
         base_url
-        |> update_query(%{"file" => url_or_file_or_dir})
+        |> update_query(%{"path" => url_or_file_or_dir})
         |> Livebook.Utils.browser_open()
 
       true ->
