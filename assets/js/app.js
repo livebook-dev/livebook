@@ -70,17 +70,17 @@ topbar.config({
   shadowColor: "rgba(0, 0, 0, .3)",
 });
 
-let topBarScheduled = undefined;
+let topBarScheduled = null;
 
 window.addEventListener("phx:page-loading-start", () => {
-  if(!topBarScheduled) {
+  if (!topBarScheduled) {
     topBarScheduled = setTimeout(() => topbar.show(), 200);
   };
 });
 
 window.addEventListener("phx:page-loading-stop", () => {
   clearTimeout(topBarScheduled);
-  topBarScheduled = undefined;
+  topBarScheduled = null;
   topbar.hide();
 });
 
