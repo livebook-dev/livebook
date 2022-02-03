@@ -75,7 +75,7 @@ let topBarScheduled = null;
 window.addEventListener("phx:page-loading-start", () => {
   if (!topBarScheduled) {
     topBarScheduled = setTimeout(() => topbar.show(), 200);
-  };
+  }
 });
 
 window.addEventListener("phx:page-loading-stop", () => {
