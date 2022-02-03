@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionLive.ExportElixirComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Session
+
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -28,7 +30,7 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
       <div class="flex flex-col space-y-1">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-700 font-semibold">
-            .exs
+            <%= Session.file_name_for_download(@session) <> ".exs" %>
           </span>
           <div class="flex justify-end space-x-2">
             <span class="tooltip left" data-tooltip="Copy source">
