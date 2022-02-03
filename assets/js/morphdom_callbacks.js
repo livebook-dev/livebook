@@ -8,7 +8,11 @@ const callbacks = {
       }
 
       if (attr.name === "data-keep-attribute") {
-        to.setAttribute(attr.value, from.getAttribute(attr.value));
+        if (from.hasAttribute(attr.value)) {
+          to.setAttribute(attr.value, from.getAttribute(attr.value));
+        } else {
+          to.removeAttribute(attr.value);
+        }
       }
     }
   },
