@@ -8,7 +8,7 @@ defmodule LivebookWeb.HomeLive do
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
     end
@@ -20,7 +20,7 @@ defmodule LivebookWeb.HomeLive do
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
-       file: Livebook.Config.local_filesystem_home(),
+       file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
@@ -192,6 +192,18 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
+  def handle_params(%{"path" => path} = _params, _uri, socket)
+      when socket.assigns.live_action == :public_open do
+    file = FileSystem.File.local(path)
+
+    if file_running?(file, socket.assigns.sessions) do
+      session_id = session_id_by_file(file, socket.assigns.sessions)
+      {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, session_id))}
+    else
+      {:noreply, open_notebook(socket, FileSystem.File.local(path))}
+    end
+  end
+
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
@@ -225,19 +237,7 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_event("open", %{}, socket) do
     file = socket.assigns.file
-
-    socket =
-      case import_notebook(file) do
-        {:ok, {notebook, messages}} ->
-          socket
-          |> put_import_warnings(messages)
-          |> create_session(notebook: notebook, file: file, origin: {:file, file})
-
-        {:error, error} ->
-          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
-      end
-
-    {:noreply, socket}
+    {:noreply, open_notebook(socket, file)}
   end
 
   def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
@@ -320,8 +320,6 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, socket}
   end
 
-  def handle_info(_message, socket), do: {:noreply, socket}
-
   defp files(sessions) do
     Enum.map(sessions, & &1.file)
   end
@@ -383,5 +381,34 @@ defmodule LivebookWeb.HomeLive do
 
   defp selected_sessions(sessions, selected_session_ids) do
     Enum.filter(sessions, &(&1.id in selected_session_ids))
+  end
+
+  defp determine_file(%{"path" => path} = _params) do
+    cond do
+      File.dir?(path) ->
+        path
+        |> FileSystem.Utils.ensure_dir_path()
+        |> FileSystem.File.local()
+
+      File.regular?(path) ->
+        FileSystem.File.local(path)
+
+      true ->
+        Livebook.Config.local_filesystem_home()
+    end
+  end
+
+  defp determine_file(_params), do: Livebook.Config.local_filesystem_home()
+
+  defp open_notebook(socket, file) do
+    case import_notebook(file) do
+      {:ok, {notebook, messages}} ->
+        socket
+        |> put_import_warnings(messages)
+        |> create_session(notebook: notebook, file: file, origin: {:file, file})
+
+      {:error, error} ->
+        put_flash(socket, :error, Livebook.Utils.upcase_first(error))
+    end
   end
 end

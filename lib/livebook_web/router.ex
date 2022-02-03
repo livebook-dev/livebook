@@ -78,6 +78,7 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :auth]
 
       live "/import", HomeLive, :public_import
+      live "/open", HomeLive, :public_open
     end
   end
 

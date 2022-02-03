@@ -26,6 +26,12 @@ defmodule LivebookCLI.Server do
       * If the open-command is a URL, the notebook at the given URL
         will be imported
 
+      * If the open-command is a directory, the browser window will point
+        to the home page with the directory selected
+
+      * If the open-command is a notebook file, the browser window will point
+        to the opened notebook
+
     The open-command runs after the server is started. If a server is
     already running, the browser window will point to the server
     currently running.
@@ -48,7 +54,6 @@ defmodule LivebookCLI.Server do
       --name               Set a name for the app distributed node
       --no-token           Disable token authentication, enabled by default
                            If LIVEBOOK_PASSWORD is set, it takes precedence over token auth
-      --open               Open browser window pointing to the application
       -p, --port           The port to start the web application on, defaults to 8080
       --sname              Set a short name for the app distributed node
 
@@ -87,7 +92,7 @@ defmodule LivebookCLI.Server do
     case check_endpoint_availability(base_url) do
       :livebook_running ->
         IO.puts("Livebook already running on #{base_url}")
-        open_from_options(base_url, opts, extra_args)
+        open_from_args(base_url, extra_args)
 
       :taken ->
         print_error(
@@ -100,7 +105,7 @@ defmodule LivebookCLI.Server do
         # so it's gonna start listening
         case Application.ensure_all_started(:livebook) do
           {:ok, _} ->
-            open_from_options(LivebookWeb.Endpoint.access_url(), opts, extra_args)
+            open_from_args(LivebookWeb.Endpoint.access_url(), extra_args)
             Process.sleep(:infinity)
 
           {:error, error} ->
@@ -141,25 +146,42 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_options(base_url, opts, []) do
-    if opts[:open] do
-      Livebook.Utils.browser_open(base_url)
-    end
+  defp open_from_args(base_url, []) do
+    Livebook.Utils.browser_open(base_url)
   end
 
-  defp open_from_options(base_url, _opts, ["new"]) do
+  defp open_from_args(base_url, ["new"]) do
     base_url
     |> append_path("/explore/notebooks/new")
     |> Livebook.Utils.browser_open()
   end
 
-  defp open_from_options(base_url, _opts, [url]) do
-    base_url
-    |> Livebook.Utils.notebook_import_url(url)
-    |> Livebook.Utils.browser_open()
+  defp open_from_args(base_url, [url_or_file_or_dir]) do
+    url = URI.parse(url_or_file_or_dir)
+
+    cond do
+      url.scheme in ~w(http https file) ->
+        base_url
+        |> Livebook.Utils.notebook_import_url(url_or_file_or_dir)
+        |> Livebook.Utils.browser_open()
+
+      File.regular?(url_or_file_or_dir) ->
+        base_url
+        |> append_path("open")
+        |> update_query(%{"path" => url_or_file_or_dir})
+        |> Livebook.Utils.browser_open()
+
+      File.dir?(url_or_file_or_dir) ->
+        base_url
+        |> update_query(%{"path" => url_or_file_or_dir})
+        |> Livebook.Utils.browser_open()
+
+      true ->
+        Livebook.Utils.browser_open(base_url)
+    end
   end
 
-  defp open_from_options(_base_url, _opts, _extra_args) do
+  defp open_from_args(_base_url, _extra_args) do
     print_error(
       "Too many arguments entered. Ensure only one argument is used to specify the file path and all other arguments are preceded by the relevant switch"
     )
@@ -171,7 +193,6 @@ defmodule LivebookCLI.Server do
     default_runtime: :string,
     ip: :string,
     name: :string,
-    open: :boolean,
     port: :integer,
     home: :string,
     sname: :string,
@@ -249,6 +270,13 @@ defmodule LivebookCLI.Server do
     url
     |> URI.parse()
     |> Map.update!(:path, &((&1 || "") <> path))
+    |> URI.to_string()
+  end
+
+  defp update_query(url, params) do
+    url
+    |> URI.parse()
+    |> Livebook.Utils.append_query(URI.encode_query(params))
     |> URI.to_string()
   end
 
