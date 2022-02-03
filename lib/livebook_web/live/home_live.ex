@@ -164,20 +164,19 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, session: session)}
   end
 
-  def handle_params(
-        %{"action" => action},
-        _url,
-        %{assigns: %{live_action: :edit_sessions}} = socket
-      ) do
+  def handle_params(%{"action" => action}, _url, socket)
+      when socket.assigns.live_action == :edit_sessions do
     {:noreply, assign(socket, bulk_action: action)}
   end
 
-  def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do
+  def handle_params(%{"tab" => tab} = params, _url, socket)
+      when socket.assigns.live_action == :import do
     import_opts = [url: params["url"]]
     {:noreply, assign(socket, tab: tab, import_opts: import_opts)}
   end
 
-  def handle_params(%{"url" => url}, _url, %{assigns: %{live_action: :public_import}} = socket) do
+  def handle_params(%{"url" => url}, _url, socket)
+      when socket.assigns.live_action == :public_import do
     origin = Livebook.ContentLoader.url_to_location(url)
 
     origin
