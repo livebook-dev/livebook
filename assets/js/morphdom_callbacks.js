@@ -7,7 +7,7 @@ const callbacks = {
         to.setAttribute(attr.name, attr.value);
       }
 
-      if (attr.name == "data-keep-attribute") {
+      if (attr.name === "data-keep-attribute") {
         to.setAttribute(attr.value, from.getAttribute(attr.value));
       }
     }
