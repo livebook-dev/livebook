@@ -69,8 +69,20 @@ topbar.config({
   barColors: { 0: "#b2c1ff" },
   shadowColor: "rgba(0, 0, 0, .3)",
 });
-window.addEventListener("phx:page-loading-start", () => topbar.show());
-window.addEventListener("phx:page-loading-stop", () => topbar.hide());
+
+let topBarScheduled = null;
+
+window.addEventListener("phx:page-loading-start", () => {
+  if (!topBarScheduled) {
+    topBarScheduled = setTimeout(() => topbar.show(), 200);
+  }
+});
+
+window.addEventListener("phx:page-loading-stop", () => {
+  clearTimeout(topBarScheduled);
+  topBarScheduled = null;
+  topbar.hide();
+});
 
 // connect if there are any LiveViews on the page
 liveSocket.connect();
