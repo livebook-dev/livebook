@@ -129,7 +129,6 @@ window.addEventListener("lb:session_list:on_selection_change", () => {
     "#edit-sessions [name='disconnect']"
   );
   const closeAll = document.querySelector("#edit-sessions [name='close_all']");
-
   disconnect.disabled = !anySessionSelected;
   closeAll.disabled = !anySessionSelected;
 });
