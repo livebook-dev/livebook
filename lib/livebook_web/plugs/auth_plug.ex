@@ -61,18 +61,21 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp authenticate(conn, :token) do
-    token = Map.get(conn.query_params, "token")
+    {token, query_params} = Map.pop(conn.query_params, "token")
 
     if is_binary(token) and Plug.Crypto.secure_compare(hash(token), expected(:token)) do
       # Redirect to the same path without query params
       conn
       |> store(:token, token)
-      |> redirect(to: conn.request_path)
+      |> redirect(to: path_with_query(conn.request_path, query_params))
       |> halt()
     else
       raise LivebookWeb.InvalidTokenError
     end
   end
+
+  defp path_with_query(path, params) when params == %{}, do: path
+  defp path_with_query(path, params), do: path <> "?" <> URI.encode_query(params)
 
   defp key(port, mode), do: "#{port}:#{mode}"
   defp expected(mode), do: hash(Application.fetch_env!(:livebook, mode))
