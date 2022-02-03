@@ -200,7 +200,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp edit_sessions(assigns) do
     ~H"""
-    <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1" phx-update="ignore">
+    <div id="edit-sessions-wrapper" class="mx-4 mr-2 text-gray-600 flex flex-row gap-1" phx-update="ignore">
       <.menu id="edit-sessions">
         <:toggle>
           <button id="toggle-edit" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
