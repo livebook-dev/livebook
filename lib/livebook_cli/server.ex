@@ -124,7 +124,7 @@ defmodule LivebookCLI.Server do
   defp check_endpoint_availability(base_url) do
     Application.ensure_all_started(:inets)
 
-    health_url = append_path(base_url, "/health")
+    health_url = append_path(base_url, "/public/health")
 
     case Livebook.Utils.HTTP.request(:get, health_url) do
       {:ok, status, _headers, body} ->
