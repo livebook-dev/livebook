@@ -18,18 +18,18 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           <% else %>
             <span class="tooltip left" data-tooltip="No autosave configured, make sure to save manually">
               <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-                    class: "icon-button icon-outlined-button border-yellow-200 hover:bg-red-50 focus:bg-red-50",
+                    class: "icon-button icon-outlined-button border-yellow-bright-200 hover:bg-red-50 focus:bg-red-50",
                     aria_label: "no autosave configured, click to open file settings" do %>
-                <.remix_icon icon="save-line" class="text-xl text-yellow-300" />
+                <.remix_icon icon="save-line" class="text-xl text-yellow-bright-300" />
               <% end %>
             </span>
           <% end %>
         <% else %>
           <span class="tooltip left" data-tooltip="Notebook saved">
             <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-                  class: "icon-button icon-outlined-button border-green-300 hover:bg-green-50 focus:bg-green-50",
+                  class: "icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50",
                   aria_label: "notebook saved, click to open file settings" do %>
-              <.remix_icon icon="save-line" class="text-xl text-green-400" />
+              <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
             <% end %>
           </span>
         <% end %>
@@ -83,11 +83,11 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp global_status(%{status: :evaluated} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to last evaluated cell">
-      <button class="border-green-300 icon-button icon-outlined-button hover:bg-green-50 focus:bg-green-50"
+      <button class="border-green-bright-300 icon-button icon-outlined-button hover:bg-green-bright-50 focus:bg-green-bright-50"
         aria-label="go to last evaluated cell"
         data-element="focus-cell-button"
         data-target={@cell_id}>
-        <.remix_icon icon="loader-3-line" class="text-xl text-green-400" />
+        <.remix_icon icon="loader-3-line" class="text-xl text-green-bright-400" />
       </button>
     </span>
     """
@@ -96,11 +96,11 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   defp global_status(%{status: :stale} = assigns) do
     ~H"""
     <span class="tooltip left" data-tooltip="Go to first stale cell">
-      <button class="border-yellow-200 icon-button icon-outlined-button hover:bg-yellow-50 focus:bg-yellow-50"
+      <button class="border-yellow-bright-200 icon-button icon-outlined-button hover:bg-yellow-bright-50 focus:bg-yellow-bright-50"
         aria-label="go to first stale cell"
         data-element="focus-cell-button"
         data-target={@cell_id}>
-        <.remix_icon icon="loader-3-line" class="text-xl text-yellow-300" />
+        <.remix_icon icon="loader-3-line" class="text-xl text-yellow-bright-300" />
       </button>
     </span>
     """

@@ -1,4 +1,5 @@
 import md5 from "crypto-js/md5";
+import sha256 from "crypto-js/sha256";
 import encBase64 from "crypto-js/enc-base64";
 
 export function isMacOS() {
@@ -6,7 +7,9 @@ export function isMacOS() {
 }
 
 export function isEditableElement(element) {
-  return element.matches("input, textarea, [contenteditable]");
+  return (
+    element.matches && element.matches("input, textarea, [contenteditable]")
+  );
 }
 
 export function clamp(n, x, y) {
@@ -94,6 +97,14 @@ export function md5Base64(string) {
 }
 
 /**
+ * Calculates SHA256 of the given string and returns
+ * the base64 encoded binary.
+ */
+export function sha256Base64(string) {
+  return sha256(string).toString(encBase64);
+}
+
+/**
  * A simple throttle version that ensures
  * the given function is called at most once
  * within the given time window.
@@ -141,4 +152,19 @@ export function cancelEvent(event) {
   event.preventDefault();
   // Stop event propagation (e.g. so it doesn't reach the editor).
   event.stopPropagation();
+}
+
+const htmlEscapes = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39",
+};
+
+/**
+ * Transforms the given string to a HTML-safe value.
+ */
+export function escapeHtml(string) {
+  return (string || "").replace(/[&<>"']/g, (char) => htmlEscapes[char]);
 }

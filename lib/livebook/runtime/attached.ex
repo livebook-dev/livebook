@@ -28,7 +28,8 @@ defmodule Livebook.Runtime.Attached do
 
     case Node.ping(node) do
       :pong ->
-        server_pid = Livebook.Runtime.ErlDist.initialize(node)
+        opts = [parent_node: node()]
+        server_pid = Livebook.Runtime.ErlDist.initialize(node, opts)
         {:ok, %__MODULE__{node: node, cookie: cookie, server_pid: server_pid}}
 
       :pang ->

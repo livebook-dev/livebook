@@ -303,4 +303,141 @@ defmodule Livebook.Utils do
     data = Base.encode64(content)
     "data:#{mime};base64,#{data}"
   end
+
+  @doc """
+  Opens the given `url` in the browser.
+  """
+  def browser_open(url) do
+    {cmd, args} =
+      case :os.type() do
+        {:win32, _} -> {"cmd", ["/c", "start", url]}
+        {:unix, :darwin} -> {"open", [url]}
+        {:unix, _} -> {"xdg-open", [url]}
+      end
+
+    System.cmd(cmd, args)
+  end
+
+  @doc """
+  Splits the given string at the last occurrence of `pattern`.
+
+  ## Examples
+
+      iex> Livebook.Utils.split_at_last_occurrence("1,2,3", ",")
+      {:ok, "1,2", "3"}
+
+      iex> Livebook.Utils.split_at_last_occurrence("123", ",")
+      :error
+  """
+  @spec split_at_last_occurrence(String.t(), String.pattern()) ::
+          {:ok, left :: String.t(), right :: String.t()} | :error
+  def split_at_last_occurrence(string, pattern) when is_binary(string) do
+    case :binary.matches(string, pattern) do
+      [] ->
+        :error
+
+      parts ->
+        {start, _} = List.last(parts)
+        size = byte_size(string)
+        {:ok, binary_part(string, 0, start), binary_part(string, start + 1, size - start - 1)}
+    end
+  end
+
+  @doc ~S"""
+  Finds CR characters and removes leading text in the same line.
+
+  Note that trailing CRs are kept.
+
+  ## Examples
+
+      iex> Livebook.Utils.apply_rewind("Hola\nHmm\rHey")
+      "Hola\nHey"
+
+      iex> Livebook.Utils.apply_rewind("\rHey")
+      "Hey"
+
+      iex> Livebook.Utils.apply_rewind("Hola\r\nHey\r")
+      "Hola\r\nHey\r"
+  """
+  @spec apply_rewind(String.t()) :: String.t()
+  def apply_rewind(string) when is_binary(string) do
+    string
+    |> String.split("\n")
+    |> Enum.map(fn line ->
+      String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
+    end)
+    |> Enum.join("\n")
+  end
+
+  @doc """
+  Returns a URL (including localhost) to import the given `url` as a notebook.
+
+      iex> Livebook.Utils.notebook_import_url("https://example.com/foo.livemd")
+      "http://localhost:4002/import?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+
+      iex> Livebook.Utils.notebook_import_url("https://my_host", "https://example.com/foo.livemd")
+      "https://my_host/import?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+
+  """
+  def notebook_import_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
+    base_url
+    |> URI.parse()
+    |> Map.replace!(:path, "/import")
+    |> append_query("url=#{URI.encode_www_form(url)}")
+    |> URI.to_string()
+  end
+
+  # TODO: On Elixir v1.14, use URI.append_query/2
+  def append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
+    %{uri | query: query_to_add}
+  end
+
+  def append_query(%URI{} = uri, query) do
+    %{uri | query: uri.query <> "&" <> query}
+  end
+
+  @doc """
+  Formats the given number of bytes into a human-friendly text.
+
+  ## Examples
+
+      iex> Livebook.Utils.format_bytes(0)
+      "0 B"
+
+      iex> Livebook.Utils.format_bytes(1000)
+      "1000 B"
+
+      iex> Livebook.Utils.format_bytes(1100)
+      "1.1 KB"
+
+      iex> Livebook.Utils.format_bytes(1_228_800)
+      "1.2 MB"
+
+      iex> Livebook.Utils.format_bytes(1_363_148_800)
+      "1.3 GB"
+
+      iex> Livebook.Utils.format_bytes(1_503_238_553_600)
+      "1.4 TB"
+  """
+  def format_bytes(bytes) when is_integer(bytes) do
+    cond do
+      bytes >= memory_unit(:TB) -> format_bytes(bytes, :TB)
+      bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
+      bytes >= memory_unit(:MB) -> format_bytes(bytes, :MB)
+      bytes >= memory_unit(:KB) -> format_bytes(bytes, :KB)
+      true -> format_bytes(bytes, :B)
+    end
+  end
+
+  defp format_bytes(bytes, :B) when is_integer(bytes), do: "#{bytes} B"
+
+  defp format_bytes(bytes, unit) when is_integer(bytes) do
+    value = bytes / memory_unit(unit)
+    "#{:erlang.float_to_binary(value, decimals: 1)} #{unit}"
+  end
+
+  defp memory_unit(:TB), do: 1024 * 1024 * 1024 * 1024
+  defp memory_unit(:GB), do: 1024 * 1024 * 1024
+  defp memory_unit(:MB), do: 1024 * 1024
+  defp memory_unit(:KB), do: 1024
 end

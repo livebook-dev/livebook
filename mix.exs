@@ -1,36 +1,71 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @version "0.4.1"
+  @elixir_requirement "~> 1.13"
+  @app_elixir_version "1.13.2"
+  @version "0.5.2"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   def project do
     [
       app: :livebook,
       version: @version,
-      elixir: "~> 1.13",
+      elixir: @elixir_requirement,
       name: "Livebook",
       description: @description,
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: with_lock(deps()),
+      deps: with_lock(target_deps(Mix.target()) ++ deps()),
       escript: escript(),
-      releases: releases(),
-      package: package()
+      package: package(),
+      default_release: :livebook,
+      releases: releases()
     ]
   end
 
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
+      extra_applications:
+        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
+          extra_applications(Mix.target()),
       env: Application.get_all_env(:livebook)
     ]
   end
 
+  defp extra_applications(:app), do: [:wx]
+  defp extra_applications(_), do: []
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp package do
+    [
+      licenses: ["Apache-2.0"],
+      links: %{
+        "GitHub" => "https://github.com/livebook-dev/livebook"
+      },
+      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+    ]
+  end
+
+  defp aliases do
+    [
+      "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
+      "dev.build": ["cmd npm run deploy --prefix ./assets"],
+      "format.all": ["format", "cmd npm run format --prefix ./assets"]
+    ]
+  end
+
+  defp escript do
+    [
+      main_module: LivebookCLI,
+      app: nil
+    ]
+  end
+
+  ## Dependencies
 
   # Although we use requirements here, the with_lock() function
   # below ensures we only use the locked versions. This is important
@@ -66,6 +101,9 @@ defmodule Livebook.MixProject do
     ]
   end
 
+  defp target_deps(:app), do: [{:app_builder, path: "app_builder"}]
+  defp target_deps(_), do: []
+
   @lock (with {:ok, contents} <- File.read("mix.lock"),
               {:ok, quoted} <- Code.string_to_quoted(contents, warn_on_unnecessary_quotes: false),
               {%{} = lock, _binding} <- Code.eval_quoted(quoted, []) do
@@ -83,37 +121,72 @@ defmodule Livebook.MixProject do
     end
   end
 
-  defp aliases do
-    [
-      "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
-      "dev.build": ["cmd npm run deploy --prefix ./assets"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"]
-    ]
-  end
-
-  defp escript do
-    [
-      main_module: LivebookCLI,
-      app: nil
-    ]
-  end
+  ## Releases
 
   defp releases do
     [
       livebook: [
         include_executables_for: [:unix],
-        include_erts: false
+        include_erts: false,
+        rel_templates_path: "rel/server",
+        steps: [:assemble, &remove_cookie/1]
+      ],
+      mac_app: [
+        include_executables_for: [:unix],
+        include_erts: false,
+        rel_templates_path: "rel/app",
+        steps: [:assemble, &remove_cookie/1, &standalone_erlang_elixir/1, &build_mac_app/1]
+      ],
+      mac_app_dmg: [
+        include_executables_for: [:unix],
+        include_erts: false,
+        rel_templates_path: "rel/app",
+        steps: [:assemble, &remove_cookie/1, &standalone_erlang_elixir/1, &build_mac_app_dmg/1]
       ]
     ]
   end
 
-  def package do
-    [
-      licenses: ["Apache-2.0"],
-      links: %{
-        "GitHub" => "https://github.com/livebook-dev/livebook"
-      },
-      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+  defp remove_cookie(release) do
+    File.rm!(Path.join(release.path, "releases/COOKIE"))
+    release
+  end
+
+  defp standalone_erlang_elixir(release) do
+    Code.require_file("rel/app/standalone.exs")
+
+    release
+    |> Standalone.copy_erlang()
+    |> Standalone.copy_elixir(@app_elixir_version)
+  end
+
+  @app_options [
+    name: "Livebook",
+    version: @version,
+    logo_path: "rel/app/mac-icon.png",
+    url_schemes: ["livebook"],
+    additional_paths: ["/rel/vendor/bin", "/rel/vendor/elixir/bin"],
+    document_types: [
+      %{name: "LiveMarkdown", role: "Editor", extensions: ["livemd"]}
     ]
+  ]
+
+  defp build_mac_app(release) do
+    AppBuilder.build_mac_app(release, @app_options)
+  end
+
+  defp build_mac_app_dmg(release) do
+    options =
+      [
+        codesign: [
+          identity: System.fetch_env!("CODESIGN_IDENTITY")
+        ],
+        notarize: [
+          team_id: System.fetch_env!("NOTARIZE_TEAM_ID"),
+          apple_id: System.fetch_env!("NOTARIZE_APPLE_ID"),
+          password: System.fetch_env!("NOTARIZE_PASSWORD")
+        ]
+      ] ++ @app_options
+
+    AppBuilder.build_mac_app_dmg(release, options)
   end
 end

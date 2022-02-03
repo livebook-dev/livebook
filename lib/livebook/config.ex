@@ -35,118 +35,60 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the list of currently available file systems.
+  Returns the local filesystem.
   """
-  @spec file_systems() :: list(FileSystem.t())
-  def file_systems() do
-    Application.fetch_env!(:livebook, :file_systems)
+  @spec local_filesystem() :: FileSystem.t()
+  def local_filesystem do
+    :persistent_term.get(:livebook_local_filesystem)
   end
 
   @doc """
-  Appends a new file system to the configured ones.
+  Returns the local filesystem home.
   """
-  @spec append_file_system(FileSystem.t()) :: list(FileSystem.t())
-  def append_file_system(file_system) do
-    file_systems = Enum.uniq(file_systems() ++ [file_system])
-    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
-    file_systems
+  @spec local_filesystem_home() :: FileSystem.File.t()
+  def local_filesystem_home do
+    FileSystem.File.new(local_filesystem())
   end
 
   @doc """
-  Removes the given file system from the configured ones.
+  Returns the home path.
   """
-  @spec remove_file_system(FileSystem.t()) :: list(FileSystem.t())
-  def remove_file_system(file_system) do
-    file_systems = List.delete(file_systems(), file_system)
-    Application.put_env(:livebook, :file_systems, file_systems, persistent: true)
-    file_systems
+  @spec home() :: String.t()
+  def home do
+    Application.get_env(:livebook, :home) || System.user_home() || File.cwd!()
   end
 
   @doc """
-  Returns the default directory.
+  Returns the configuration path.
   """
-  @spec default_dir() :: FileSystem.File.t()
-  def default_dir() do
-    [file_system | _] = Livebook.Config.file_systems()
-    FileSystem.File.new(file_system)
-  end
-
-  @doc """
-  Returns the directory where notebooks with no file should be persisted.
-  """
-  @spec autosave_path() :: String.t() | nil
-  def autosave_path() do
-    Application.fetch_env!(:livebook, :autosave_path)
+  @spec data_path() :: String.t()
+  def data_path() do
+    Application.get_env(:livebook, :data_path) || :filename.basedir(:user_data, "livebook")
   end
 
   ## Parsing
 
   @doc """
-  Parses and validates the root path from env.
+  Parses and validates dir from env.
   """
-  def root_path!(env) do
-    if root_path = System.get_env(env) do
-      root_path!(env, root_path)
-    else
-      File.cwd!()
+  def writable_dir!(env) do
+    if dir = System.get_env(env) do
+      writable_dir!(env, dir)
     end
   end
 
   @doc """
-  Validates `root_path` within context.
+  Validates `dir` within context.
   """
-  def root_path!(context, root_path) do
-    if File.dir?(root_path) do
-      Path.expand(root_path)
+  def writable_dir!(context, dir) do
+    if writable_dir?(dir) do
+      Path.expand(dir)
     else
-      IO.warn("ignoring #{context} because it doesn't point to a directory: #{root_path}")
-      File.cwd!()
+      abort!("expected #{context} to be a writable directory: #{dir}")
     end
   end
 
-  @doc """
-  Parses and validates the autosave directory from env.
-  """
-  def autosave_path!(env) do
-    if path = System.get_env(env) do
-      autosave_path!(env, path)
-    else
-      default_autosave_path!()
-    end
-  end
-
-  @doc """
-  Validates `autosave_path` within context.
-  """
-  def autosave_path!(context, path)
-
-  def autosave_path!(_context, "none"), do: nil
-
-  def autosave_path!(context, path) do
-    if writable_directory?(path) do
-      Path.expand(path)
-    else
-      IO.warn("ignoring #{context} because it doesn't point to a writable directory: #{path}")
-      default_autosave_path!()
-    end
-  end
-
-  defp default_autosave_path!() do
-    cache_path = :filename.basedir(:user_cache, "livebook")
-
-    path =
-      if writable_directory?(cache_path) do
-        cache_path
-      else
-        System.tmp_dir!() |> Path.expand() |> Path.join("livebook")
-      end
-
-    notebooks_path = Path.join(path, "notebooks")
-    File.mkdir_p!(notebooks_path)
-    notebooks_path
-  end
-
-  defp writable_directory?(path) do
+  defp writable_dir?(path) do
     case File.stat(path) do
       {:ok, %{type: :directory, access: access}} when access in [:read_write, :write] -> true
       _ -> false
@@ -314,61 +256,6 @@ defmodule Livebook.Config do
       binary_part(string, 0, idx),
       binary_part(string, idx + 1, byte_size(string) - idx - 1)
     }
-  end
-
-  @doc """
-  Parses file systems list.
-
-  Appends subsequent numbers to the given env prefix (starting from 1)
-  and parses the env variables until `nil` is encountered.
-  """
-  def file_systems!(env_prefix) do
-    Stream.iterate(1, &(&1 + 1))
-    |> Stream.map(fn n ->
-      env = env_prefix <> Integer.to_string(n)
-      System.get_env(env)
-    end)
-    |> Stream.take_while(& &1)
-    |> Enum.map(&parse_file_system!/1)
-  end
-
-  defp parse_file_system!(string) do
-    case string do
-      "s3 " <> config ->
-        FileSystem.S3.from_config_string(config)
-
-      _ ->
-        abort!(
-          ~s{unrecognised file system, expected "s3 BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY", got: #{inspect(string)}}
-        )
-    end
-    |> case do
-      {:ok, file_system} -> file_system
-      {:error, message} -> abort!(message)
-    end
-  end
-
-  @doc """
-  Returns environment variables configuration corresponding
-  to the given file systems.
-
-  The first (default) file system is ignored.
-  """
-  def file_systems_as_env(file_systems)
-
-  def file_systems_as_env([_ | additional_file_systems]) do
-    additional_file_systems
-    |> Enum.with_index(1)
-    |> Enum.map(fn {file_system, n} ->
-      config = file_system_to_config_string(file_system)
-      ["LIVEBOOK_FILE_SYSTEM_", Integer.to_string(n), "=", ?", config, ?"]
-    end)
-    |> Enum.intersperse(" ")
-    |> IO.iodata_to_binary()
-  end
-
-  defp file_system_to_config_string(%FileSystem.S3{} = file_system) do
-    ["s3 ", FileSystem.S3.to_config_string(file_system)]
   end
 
   @doc """

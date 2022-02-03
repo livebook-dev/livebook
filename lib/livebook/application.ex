@@ -6,28 +6,36 @@ defmodule Livebook.Application do
   use Application
 
   def start(_type, _args) do
+    ensure_local_filesystem!()
     ensure_distribution!()
     validate_hostname_resolution!()
     set_cookie()
 
-    children = [
-      # Start the Telemetry supervisor
-      LivebookWeb.Telemetry,
-      # Start the PubSub system
-      {Phoenix.PubSub, name: Livebook.PubSub},
-      # Start the tracker server on this node
-      {Livebook.Tracker, pubsub_server: Livebook.PubSub},
-      # Start the supervisor dynamically managing sessions
-      {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
-      # Start the server responsible for associating files with sessions
-      Livebook.Session.FileGuard,
-      # Start the Node Pool for managing node names
-      Livebook.Runtime.NodePool,
-      # Start the unique task dependencies
-      Livebook.UniqueTask,
-      # Start the Endpoint (http/https)
-      LivebookWeb.Endpoint
-    ]
+    children =
+      [
+        # Start the Telemetry supervisor
+        LivebookWeb.Telemetry,
+        # Start the PubSub system
+        {Phoenix.PubSub, name: Livebook.PubSub},
+        # Start the storage module
+        Livebook.Storage.current(),
+        # Periodid measurement of system resources
+        Livebook.SystemResources,
+        # Start the tracker server on this node
+        {Livebook.Tracker, pubsub_server: Livebook.PubSub},
+        # Start the supervisor dynamically managing sessions
+        {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
+        # Start the server responsible for associating files with sessions
+        Livebook.Session.FileGuard,
+        # Start the Node Pool for managing node names
+        Livebook.Runtime.NodePool,
+        # Start the unique task dependencies
+        Livebook.UniqueTask,
+        # Start the Endpoint (http/https)
+        # We skip the access url as we do our own logging below
+        {LivebookWeb.Endpoint, log_access_url: false}
+      ] ++
+        app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -43,6 +51,15 @@ defmodule Livebook.Application do
   def config_change(changed, _new, removed) do
     LivebookWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp ensure_local_filesystem!() do
+    home =
+      Livebook.Config.home()
+      |> Livebook.FileSystem.Utils.ensure_dir_path()
+
+    local_filesystem = Livebook.FileSystem.Local.new(default_path: home)
+    :persistent_term.put(:livebook_local_filesystem, local_filesystem)
   end
 
   defp ensure_distribution!() do
@@ -115,6 +132,7 @@ defmodule Livebook.Application do
     end
   end
 
+  @spec invalid_hostname!(String.t()) :: no_return()
   defp invalid_hostname!(prelude) do
     Livebook.Config.abort!("""
     #{prelude}, which indicates something wrong in your OS configuration.
@@ -157,4 +175,10 @@ defmodule Livebook.Application do
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
   defp config_env_var?(_), do: false
+
+  if Mix.target() == :app do
+    defp app_specs, do: [LivebookApp]
+  else
+    defp app_specs, do: []
+  end
 end

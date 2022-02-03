@@ -20,7 +20,19 @@ defmodule LivebookWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  scope "/", LivebookWeb do
+  # The /public namespace includes routes with no authentication.
+  # When exposing Livebook through an authentication proxy, this
+  # namespace should be configured as publicly available, in order
+  # for all features to work as expected.
+
+  scope "/public", LivebookWeb do
+    pipe_through :browser
+
+    get "/health", HealthController, :index
+  end
+
+  # The following routes are public, but should be treated as opaque
+  scope "/public", LivebookWeb do
     pipe_through [:js_output_assets]
 
     get "/sessions/assets/:hash/*file_parts", SessionController, :show_cached_asset
@@ -35,6 +47,7 @@ defmodule LivebookWeb.Router do
       live "/home/user-profile", HomeLive, :user
       live "/home/import/:tab", HomeLive, :import
       live "/home/sessions/:session_id/close", HomeLive, :close_session
+      live "/home/sessions/edit_sessions/:action", HomeLive, :edit_sessions
 
       live "/settings", SettingsLive, :page
       live "/settings/user-profile", SettingsLive, :user
@@ -65,6 +78,7 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :auth]
 
       live "/import", HomeLive, :public_import
+      live "/open", HomeLive, :public_open
     end
   end
 
@@ -75,13 +89,6 @@ defmodule LivebookWeb.Router do
       metrics: LivebookWeb.Telemetry,
       home_app: {"Livebook", :livebook},
       ecto_repos: []
-  end
-
-  # Public URLs without authentication
-  scope "/", LivebookWeb do
-    pipe_through :browser
-
-    get "/health", HealthController, :index
   end
 
   scope "/authenticate", LivebookWeb do

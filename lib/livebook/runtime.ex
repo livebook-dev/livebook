@@ -112,7 +112,25 @@ defprotocol Livebook.Runtime do
   @type format_request :: {:format, code :: String.t()}
 
   @type format_response :: %{
-          code: String.t()
+          code: String.t() | nil,
+          code_error: code_error() | nil
+        }
+
+  @type code_error :: %{line: pos_integer(), description: String.t()}
+
+  @typedoc """
+  The runtime memory usage for each type in bytes.
+
+  The runtime may periodically send messages of type {:memory_usage, runtime_memory()}
+  """
+  @type runtime_memory :: %{
+          atom: non_neg_integer(),
+          binary: non_neg_integer(),
+          code: non_neg_integer(),
+          ets: non_neg_integer(),
+          other: non_neg_integer(),
+          processes: non_neg_integer(),
+          total: non_neg_integer()
         }
 
   @doc """
@@ -158,7 +176,7 @@ defprotocol Livebook.Runtime do
 
     * `{:evaluation_response, ref, output, metadata}` - final
       result of the evaluation. Recognised metadata entries
-      are: `evaluation_time_ms`
+      are: `code_error`, `evaluation_time_ms` and `memory_usage`
 
   The output may include input fields. The evaluation may then
   request the current value of a previously rendered input by

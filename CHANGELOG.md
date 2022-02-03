@@ -4,6 +4,74 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.5.2](https://github.com/livebook-dev/livebook/tree/v0.5.1) (2022-01-27)
+
+### Added
+
+- Allowed Livebook port to be set to 0 for a random port ([#906](https://github.com/livebook-dev/livebook/pull/906))
+- Added memory usage information to runtime panel and sessions list ([#898](https://github.com/livebook-dev/livebook/pull/898), [#917](https://github.com/livebook-dev/livebook/pull/917) and [#918](https://github.com/livebook-dev/livebook/pull/918))
+- Added support for font-awesome in mermaid.js diagrams ([#913](https://github.com/livebook-dev/livebook/pull/913))
+- Support for reopening the desktop app ([#928](https://github.com/livebook-dev/livebook/pull/928))
+- Added a warning when copying to clipboard fails ([#922](https://github.com/livebook-dev/livebook/pull/922))
+
+### Changed
+
+- App icon on macOS to look more native ([#924](https://github.com/livebook-dev/livebook/pull/924))
+- Improved errors formatting ([#926](https://github.com/livebook-dev/livebook/pull/926))
+- Improved intellisense to work while code is evaluating ([#941](https://github.com/livebook-dev/livebook/pull/941))
+- Updated the release to run in interactive mode, hence using less memory ([#944](https://github.com/livebook-dev/livebook/pull/944))
+- Updated the release to use a random cookie on every startup ([#944](https://github.com/livebook-dev/livebook/pull/944))
+
+### Fixed
+
+- Favicon rendering in Safari ([#920](https://github.com/livebook-dev/livebook/pull/920))
+- Fixed code evaluation in the desktop app to work without Elixir installed globally ([929](https://github.com/livebook-dev/livebook/pull/929))
+- Fixed line break support in Mermaid diagram definition ([932](https://github.com/livebook-dev/livebook/pull/932))
+- Improved error handling in case of erroneous implementations of the `Inspect` protocol ([934](https://github.com/livebook-dev/livebook/pull/934))
+- Fixed image insertion in Markdown cells when the image name includes special characters ([945](https://github.com/livebook-dev/livebook/pull/945))
+
+## [v0.5.1](https://github.com/livebook-dev/livebook/tree/v0.5.1) (2022-01-20)
+
+### Changed
+
+- Changed the file system root path to $HOME in the desktop app ([#887](https://github.com/livebook-dev/livebook/pull/887))
+
+### Fixed
+
+- Loading JavaScript widgets when running behind a domain ([#902](https://github.com/livebook-dev/livebook/pull/902))
+
+## [v0.5.0](https://github.com/livebook-dev/livebook/tree/v0.5.0) (2022-01-19)
+
+### Added
+
+- Support for input forms ([#790](https://github.com/livebook-dev/livebook/pull/790))
+- Completion for struct keys ([#793](https://github.com/livebook-dev/livebook/pull/793))
+- Support for custom JavaScript widgets ([#826](https://github.com/livebook-dev/livebook/pull/826))
+- Introduced a dedicated Explore subsection for Kino guides ([#830](https://github.com/livebook-dev/livebook/pull/830))
+- Added notebook name to page title ([#844](https://github.com/livebook-dev/livebook/pull/844))
+- Added `@deprecated` and `@since` documentation metadata on mouse over ([#852](https://github.com/livebook-dev/livebook/pull/852))
+- Added Livebook and Elixir version information to the Settings page ([#851](https://github.com/livebook-dev/livebook/pull/851))
+- Added shutdown button to the sidebar ([#862](https://github.com/livebook-dev/livebook/pull/862))
+- An option to increase the font size in the editor ([#860](https://github.com/livebook-dev/livebook/pull/860))
+- An option to use a high-contrast editor theme ([#868](https://github.com/livebook-dev/livebook/pull/868) and [#871](https://github.com/livebook-dev/livebook/pull/871))
+- Support for rendering mermaid.js graphs in Markdown cells ([#816](https://github.com/livebook-dev/livebook/pull/816))
+- Introduced desktop app packaging for macOS ([#865](https://github.com/livebook-dev/livebook/pull/865))
+
+### Changed
+
+- Removed confirmation step when deleting an empty section ([#829](https://github.com/livebook-dev/livebook/pull/829))
+- Applied several design improvements ([#858](https://github.com/livebook-dev/livebook/pull/858), [#859](https://github.com/livebook-dev/livebook/pull/859) and [#882](https://github.com/livebook-dev/livebook/pull/882))
+- Changed the color scheme in text outputs to improve contrast ([#864](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/864))
+- Reworked Kino guides in the Explore section ([#879](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/879))
+
+### Fixed
+
+- Disallowed saving notebooks with empty file name ([#823](https://github.com/livebook-dev/livebook/pull/823))
+- Fixed unexpected focus behaviour in large editors ([#831](https://github.com/livebook-dev/livebook/pull/831))
+- Fixed Escape key to exit multi-cursor mode ([#833](https://github.com/livebook-dev/livebook/pull/833))
+- Improved error reports when reconnecting Mix runtime fails ([#837](https://github.com/livebook-dev/livebook/pull/837))
+- Fixed code blocks in Markdown to use monospaced font for all characters ([#855](https://github.com/livebook-dev/livebook/pull/855))
+
 ## [v0.4.1](https://github.com/livebook-dev/livebook/tree/v0.4.1) (2021-12-09)
 
 ### Added

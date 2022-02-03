@@ -531,11 +531,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                       IO.puts("hey")\
                       """,
                       outputs: [
-                        "hey",
-                        {:vega_lite_static,
-                         %{
-                           "$schema" => "https://vega.github.io/schema/vega-lite/v5.json"
-                         }}
+                        {0, {:stdout, "hey"}}
                       ]
                   }
                 ]
@@ -572,7 +568,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: ["hey"]
+                      outputs: [{0, {:stdout, "hey"}}]
                   }
                 ]
             }
@@ -588,7 +584,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       IO.puts("hey")
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       hey
       ```
       """
@@ -612,7 +610,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{:text, "\e[34m:ok\e[0m"}, "hey"]
+                      outputs: [{0, {:text, "\e[34m:ok\e[0m"}}, {1, {:stdout, "hey"}}]
                   }
                 ]
             }
@@ -628,11 +626,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       IO.puts("hey")
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       hey
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       :ok
       ```
       """
@@ -656,7 +658,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     | source: """
                       IO.puts("hey")\
                       """,
-                      outputs: [{:table_dynamic, self()}]
+                      outputs: [{0, {:markdown, "some **Markdown**"}}]
                   }
                 ]
             }
@@ -691,13 +693,14 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js,
-                         %{
-                           ref: "1",
-                           pid: spawn_widget_with_data("1", "data"),
-                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
-                           export: nil
-                         }}
+                        {0,
+                         {:js,
+                          %{
+                            ref: "1",
+                            pid: spawn_widget_with_data("1", "data"),
+                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            export: nil
+                          }}}
                       ]
                   }
                 ]
@@ -733,13 +736,14 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js,
-                         %{
-                           ref: "1",
-                           pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
-                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
-                           export: %{info_string: "mermaid", key: nil}
-                         }}
+                        {0,
+                         {:js,
+                          %{
+                            ref: "1",
+                            pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
+                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            export: %{info_string: "mermaid", key: nil}
+                          }}}
                       ]
                   }
                 ]
@@ -755,6 +759,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```elixir
       :ok
       ```
+
+      <!-- livebook:{"output":true} -->
 
       ```mermaid
       graph TD;
@@ -780,13 +786,14 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js,
-                         %{
-                           ref: "1",
-                           pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
-                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
-                           export: %{info_string: "box", key: nil}
-                         }}
+                        {0,
+                         {:js,
+                          %{
+                            ref: "1",
+                            pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
+                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            export: %{info_string: "box", key: nil}
+                          }}}
                       ]
                   }
                 ]
@@ -802,6 +809,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```elixir
       :ok
       ```
+
+      <!-- livebook:{"output":true} -->
 
       ```box
       {"height":50,"width":50}
@@ -826,17 +835,18 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     Notebook.Cell.new(:elixir)
                     | source: ":ok",
                       outputs: [
-                        {:js,
-                         %{
-                           ref: "1",
-                           pid:
-                             spawn_widget_with_data("1", %{
-                               spec: %{"height" => 50, "width" => 50},
-                               datasets: []
-                             }),
-                           assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
-                           export: %{info_string: "vega-lite", key: :spec}
-                         }}
+                        {0,
+                         {:js,
+                          %{
+                            ref: "1",
+                            pid:
+                              spawn_widget_with_data("1", %{
+                                spec: %{"height" => 50, "width" => 50},
+                                datasets: []
+                              }),
+                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            export: %{info_string: "vega-lite", key: :spec}
+                          }}}
                       ]
                   }
                 ]
@@ -852,6 +862,8 @@ defmodule Livebook.LiveMarkdown.ExportTest do
       ```elixir
       :ok
       ```
+
+      <!-- livebook:{"output":true} -->
 
       ```vega-lite
       {"height":50,"width":50}
@@ -879,7 +891,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: ["hey"]
+                    outputs: [{0, {:stdout, "hey"}}]
                 }
               ]
           }
@@ -897,7 +909,9 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     IO.puts("hey")
     ```
 
-    ```output
+    <!-- livebook:{"output":true} -->
+
+    ```
     hey
     ```
     """
@@ -922,7 +936,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     IO.puts("hey")\
                     """,
-                    outputs: ["hey"]
+                    outputs: [{0, {:stdout, "hey"}}]
                 }
               ]
           }

@@ -19,7 +19,6 @@ import ScrollOnUpdate from "./scroll_on_update";
 import VirtualizedLines from "./virtualized_lines";
 import UserForm from "./user_form";
 import EditorSettings from "./editor_settings";
-import VegaLite from "./vega_lite";
 import Timer from "./timer";
 import MarkdownRenderer from "./markdown_renderer";
 import Highlight from "./highlight";
@@ -29,6 +28,7 @@ import KeyboardControl from "./keyboard_control";
 import morphdomCallbacks from "./morphdom_callbacks";
 import JSOutput from "./js_output";
 import { loadUserData } from "./lib/user";
+import { settingsStore } from "./lib/settings";
 
 const hooks = {
   Headline,
@@ -39,7 +39,6 @@ const hooks = {
   VirtualizedLines,
   UserForm,
   EditorSettings,
-  VegaLite,
   Timer,
   MarkdownRenderer,
   Highlight,
@@ -70,8 +69,20 @@ topbar.config({
   barColors: { 0: "#b2c1ff" },
   shadowColor: "rgba(0, 0, 0, .3)",
 });
-window.addEventListener("phx:page-loading-start", () => topbar.show());
-window.addEventListener("phx:page-loading-stop", () => topbar.hide());
+
+let topBarScheduled = null;
+
+window.addEventListener("phx:page-loading-start", () => {
+  if (!topBarScheduled) {
+    topBarScheduled = setTimeout(() => topbar.show(), 200);
+  }
+});
+
+window.addEventListener("phx:page-loading-stop", () => {
+  clearTimeout(topBarScheduled);
+  topBarScheduled = null;
+  topbar.hide();
+});
 
 // connect if there are any LiveViews on the page
 liveSocket.connect();
@@ -92,12 +103,24 @@ window.addEventListener("lb:set_value", (event) => {
   event.target.value = event.detail.value;
 });
 
-if ("clipboard" in navigator) {
-  window.addEventListener("lb:clipcopy", (event) => {
+window.addEventListener("lb:check", (event) => {
+  event.target.checked = true;
+});
+
+window.addEventListener("lb:uncheck", (event) => {
+  event.target.checked = false;
+});
+
+window.addEventListener("lb:clipcopy", (event) => {
+  if ("clipboard" in navigator) {
     const text = event.target.textContent;
     navigator.clipboard.writeText(text);
-  });
-}
+  } else {
+    alert(
+      "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost."
+    );
+  }
+});
 
 // Other global handlers
 
@@ -108,4 +131,22 @@ window.addEventListener("contextmenu", (event) => {
     event.preventDefault();
     target.dispatchEvent(new Event("click", { bubbles: true }));
   }
+});
+
+window.addEventListener("lb:session_list:on_selection_change", () => {
+  const anySessionSelected = !!document.querySelector(
+    "[name='session_ids[]']:checked"
+  );
+  const disconnect = document.querySelector(
+    "#edit-sessions [name='disconnect']"
+  );
+  const closeAll = document.querySelector("#edit-sessions [name='close_all']");
+  disconnect.disabled = !anySessionSelected;
+  closeAll.disabled = !anySessionSelected;
+});
+
+// Global configuration
+
+settingsStore.getAndSubscribe((settings) => {
+  document.body.setAttribute("data-editor-theme", settings.editor_theme);
 });

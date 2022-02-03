@@ -20,6 +20,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   alias Livebook.Runtime.ErlDist
 
   @await_owner_timeout 5_000
+  @memory_usage_interval 15_000
 
   @doc """
   Starts the manager.
@@ -131,6 +132,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @impl true
   def init(_opts) do
     Process.send_after(self(), :check_owner, @await_owner_timeout)
+    schedule_memory_usage_report()
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, task_supervisor} = Task.Supervisor.start_link()
@@ -142,7 +144,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
        task_supervisor: task_supervisor,
-       object_tracker: object_tracker
+       object_tracker: object_tracker,
+       memory_timer_ref: nil
      }}
   end
 
@@ -158,7 +161,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_info({:DOWN, _, :process, owner, _}, %{owner: owner} = state) do
-    {:stop, :normal, state}
+    {:stop, :shutdown, state}
   end
 
   def handle_info({:DOWN, _, :process, pid, reason}, state) do
@@ -177,13 +180,20 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  def handle_info(:memory_usage, state) do
+    report_memory_usage(state)
+    schedule_memory_usage_report()
+    {:noreply, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
   def handle_cast({:set_owner, owner}, state) do
     Process.monitor(owner)
-
-    {:noreply, %{state | owner: owner}}
+    state = %{state | owner: owner}
+    report_memory_usage(state)
+    {:noreply, state}
   end
 
   def handle_cast(
@@ -236,17 +246,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {container_ref, evaluation_ref} = locator
     evaluator = state.evaluators[container_ref]
 
-    if evaluator != nil and elem(request, 0) not in [:format] do
-      Evaluator.handle_intellisense(evaluator, send_to, ref, request, evaluation_ref)
-    else
-      # Handle the request in a temporary process using an empty evaluation context
-      Task.Supervisor.start_child(state.task_supervisor, fn ->
-        binding = []
-        env = :elixir.env_for_eval([])
-        response = Livebook.Intellisense.handle_request(request, binding, env)
-        send(send_to, {:intellisense_response, ref, request, response})
-      end)
-    end
+    intellisense_context =
+      if evaluator == nil or elem(request, 0) in [:format] do
+        Evaluator.intellisense_context()
+      else
+        Evaluator.intellisense_context(evaluator, evaluation_ref)
+      end
+
+    Task.Supervisor.start_child(state.task_supervisor, fn ->
+      response = Livebook.Intellisense.handle_request(request, intellisense_context)
+      send(send_to, {:intellisense_response, ref, request, response})
+    end)
 
     {:noreply, state}
   end
@@ -296,5 +306,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       :error ->
         state
     end
+  end
+
+  defp schedule_memory_usage_report() do
+    Process.send_after(self(), :memory_usage, @memory_usage_interval)
+  end
+
+  defp report_memory_usage(%{owner: nil}), do: :ok
+
+  defp report_memory_usage(state) do
+    send(state.owner, {:memory_usage, Evaluator.memory()})
   end
 end

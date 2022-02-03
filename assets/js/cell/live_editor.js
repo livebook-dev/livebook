@@ -4,7 +4,7 @@ import MonacoEditorAdapter from "./live_editor/monaco_editor_adapter";
 import HookServerAdapter from "./live_editor/hook_server_adapter";
 import RemoteUser from "./live_editor/remote_user";
 import { replacedSuffixLength } from "../lib/text_utils";
-import { loadLocalSettings } from "../lib/settings";
+import { settingsStore } from "../lib/settings";
 
 /**
  * Mounts cell source editor with real-time collaboration mechanism.
@@ -140,8 +140,36 @@ class LiveEditor {
     }
   }
 
+  /**
+   * Adds an underline marker for the given syntax error.
+   *
+   * To clear an existing marker `null` error is also supported.
+   */
+  setCodeErrorMarker(error) {
+    const owner = "elixir.error.syntax";
+
+    if (error) {
+      const line = this.editor.getModel().getLineContent(error.line);
+      const [, leadingWhitespace, trailingWhitespace] =
+        line.match(/^(\s*).*?(\s*)$/);
+
+      monaco.editor.setModelMarkers(this.editor.getModel(), owner, [
+        {
+          startLineNumber: error.line,
+          startColumn: leadingWhitespace.length + 1,
+          endLineNumber: error.line,
+          endColumn: line.length + 1 - trailingWhitespace.length,
+          message: error.description,
+          severity: monaco.MarkerSeverity.Error,
+        },
+      ]);
+    } else {
+      monaco.editor.setModelMarkers(this.editor.getModel(), owner, []);
+    }
+  }
+
   __mountEditor() {
-    const settings = loadLocalSettings();
+    const settings = settingsStore.get();
 
     this.editor = monaco.editor.create(this.container, {
       language: this.type,
@@ -160,7 +188,7 @@ class LiveEditor {
       },
       occurrencesHighlight: false,
       renderLineHighlight: "none",
-      theme: "custom",
+      theme: settings.editor_theme,
       fontFamily: "JetBrains Mono, Droid Sans Mono, monospace",
       fontSize: settings.editor_font_size,
       tabIndex: -1,
@@ -178,6 +206,23 @@ class LiveEditor {
       // of the line we would get "defmodule" as a word completion.
       wordBasedSuggestions: this.type !== "elixir",
       parameterHints: this.type === "elixir" && settings.editor_auto_signature,
+    });
+
+    this.editor.addAction({
+      contextMenuGroupId: "word-wrapping",
+      id: "enable-word-wrapping",
+      label: "Enable word wrapping",
+      precondition: "config.editor.wordWrap == off",
+      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+      run: (editor) => editor.updateOptions({ wordWrap: "on" }),
+    });
+    this.editor.addAction({
+      contextMenuGroupId: "word-wrapping",
+      id: "disable-word-wrapping",
+      label: "Disable word wrapping",
+      precondition: "config.editor.wordWrap == on",
+      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
+      run: (editor) => editor.updateOptions({ wordWrap: "off" }),
     });
 
     // Automatically adjust the editor size to fit the container.
@@ -219,7 +264,7 @@ class LiveEditor {
    * Defines cell-specific providers for various editor features.
    */
   __setupIntellisense() {
-    const settings = loadLocalSettings();
+    const settings = settingsStore.get();
 
     this.handlerByRef = {};
 
@@ -347,37 +392,43 @@ class LiveEditor {
 
       return this.__asyncIntellisenseRequest("format", { code: content })
         .then((response) => {
-          /**
-           * We use a single edit replacing the whole editor content,
-           * but the editor itself optimises this into a list of edits
-           * that produce minimal diff using the Myers string difference.
-           *
-           * References:
-           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L324
-           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/common/services/editorSimpleWorker.ts#L489
-           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/base/common/diff/diff.ts#L227-L231
-           *
-           * Eventually the editor will received the optimised list of edits,
-           * which we then convert to Delta and send to the server.
-           * Consequently, the Delta carries only the minimal formatting diff.
-           *
-           * Also, if edits are applied to the editor, either by typing
-           * or receiving remote changes, the formatting is cancelled.
-           * In other words the formatting changes are actually applied
-           * only if the editor stays intact.
-           *
-           * References:
-           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L313
-           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/browser/core/editorState.ts#L137
-           *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L326
-           */
+          this.setCodeErrorMarker(response.code_error);
 
-          const replaceEdit = {
-            range: model.getFullModelRange(),
-            text: response.code,
-          };
+          if (response.code) {
+            /**
+             * We use a single edit replacing the whole editor content,
+             * but the editor itself optimises this into a list of edits
+             * that produce minimal diff using the Myers string difference.
+             *
+             * References:
+             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L324
+             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/common/services/editorSimpleWorker.ts#L489
+             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/base/common/diff/diff.ts#L227-L231
+             *
+             * Eventually the editor will received the optimised list of edits,
+             * which we then convert to Delta and send to the server.
+             * Consequently, the Delta carries only the minimal formatting diff.
+             *
+             * Also, if edits are applied to the editor, either by typing
+             * or receiving remote changes, the formatting is cancelled.
+             * In other words the formatting changes are actually applied
+             * only if the editor stays intact.
+             *
+             * References:
+             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L313
+             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/browser/core/editorState.ts#L137
+             *   * https://github.com/microsoft/vscode/blob/628b4d46357f2420f1dbfcea499f8ff59ee2c251/src/vs/editor/contrib/format/format.ts#L326
+             */
 
-          return [replaceEdit];
+            const replaceEdit = {
+              range: model.getFullModelRange(),
+              text: response.code,
+            };
+
+            return [replaceEdit];
+          } else {
+            return [];
+          }
         })
         .catch(() => null);
     };

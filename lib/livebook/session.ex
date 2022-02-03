@@ -46,7 +46,7 @@ defmodule Livebook.Session do
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at]
+  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at, :memory_usage]
 
   use GenServer, restart: :temporary
 
@@ -55,6 +55,8 @@ defmodule Livebook.Session do
   alias Livebook.Users.User
   alias Livebook.Notebook.{Cell, Section}
 
+  @timeout :infinity
+
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
@@ -62,7 +64,8 @@ defmodule Livebook.Session do
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
-          created_at: DateTime.t()
+          created_at: DateTime.t(),
+          memory_usage: memory_usage()
         }
 
   @type state :: %{
@@ -72,8 +75,15 @@ defmodule Livebook.Session do
           runtime_monitor_ref: reference() | nil,
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
-          saved_default_file: FileSystem.File.t() | nil
+          saved_default_file: FileSystem.File.t() | nil,
+          memory_usage: memory_usage()
         }
+
+  @type memory_usage ::
+          %{
+            runtime: Livebook.Runtime.runtime_memory() | nil,
+            system: Livebook.SystemResources.memory()
+          }
 
   @typedoc """
   An id assigned to every running session process.
@@ -102,7 +112,7 @@ defmodule Livebook.Session do
       to `:copy_images_from` when the images are in memory
 
     * `:autosave_path` - a local directory to save notebooks without a file into.
-      Defaults to `Livebook.Config.autosave_path/1`
+      Defaults to `Livebook.Settings.autosave_path/0`
   """
   @spec start_link(keyword()) :: {:ok, pid} | {:error, any()}
   def start_link(opts) do
@@ -114,7 +124,7 @@ defmodule Livebook.Session do
   """
   @spec get_by_pid(pid()) :: Session.t()
   def get_by_pid(pid) do
-    GenServer.call(pid, :describe_self)
+    GenServer.call(pid, :describe_self, @timeout)
   end
 
   @doc """
@@ -128,7 +138,7 @@ defmodule Livebook.Session do
   """
   @spec register_client(pid(), pid(), User.t()) :: Data.t()
   def register_client(pid, client_pid, user) do
-    GenServer.call(pid, {:register_client, client_pid, user})
+    GenServer.call(pid, {:register_client, client_pid, user}, @timeout)
   end
 
   @doc """
@@ -136,7 +146,7 @@ defmodule Livebook.Session do
   """
   @spec get_data(pid()) :: Data.t()
   def get_data(pid) do
-    GenServer.call(pid, :get_data)
+    GenServer.call(pid, :get_data, @timeout)
   end
 
   @doc """
@@ -144,7 +154,7 @@ defmodule Livebook.Session do
   """
   @spec get_notebook(pid()) :: Notebook.t()
   def get_notebook(pid) do
-    GenServer.call(pid, :get_notebook)
+    GenServer.call(pid, :get_notebook, @timeout)
   end
 
   @doc """
@@ -163,7 +173,7 @@ defmodule Livebook.Session do
       :ok
     else
       with {:ok, runtime, archive_path} <-
-             GenServer.call(pid, {:get_runtime_and_archive_path, hash}) do
+             GenServer.call(pid, {:get_runtime_and_archive_path, hash}, @timeout) do
         fun = fn ->
           # Make sure the file hasn't been fetched by this point
           unless File.exists?(local_assets_path) do
@@ -383,16 +393,6 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Disconnects from the current runtime.
-
-  Note that this results in clearing the evaluation state.
-  """
-  @spec disconnect_runtime(pid()) :: :ok
-  def disconnect_runtime(pid) do
-    GenServer.cast(pid, {:disconnect_runtime, self()})
-  end
-
-  @doc """
   Sends file location update request to the server.
   """
   @spec set_file(pid(), FileSystem.File.t() | nil) :: :ok
@@ -418,7 +418,7 @@ defmodule Livebook.Session do
   """
   @spec save_sync(pid()) :: :ok
   def save_sync(pid) do
-    GenServer.call(pid, :save_sync)
+    GenServer.call(pid, :save_sync, @timeout)
   end
 
   @doc """
@@ -433,14 +433,34 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends a close request to the server.
+  Closes one or more sessions.
 
   This results in saving the file and broadcasting
   a :closed message to the session topic.
   """
-  @spec close(pid()) :: :ok
+  @spec close(pid() | [pid()]) :: :ok
   def close(pid) do
-    GenServer.cast(pid, :close)
+    _ = call_many(List.wrap(pid), :close)
+    Livebook.SystemResources.update()
+    :ok
+  end
+
+  @doc """
+  Disconnects one or more sessions from the current runtime.
+
+  Note that this results in clearing the evaluation state.
+  """
+  @spec disconnect_runtime(pid() | [pid()]) :: :ok
+  def disconnect_runtime(pid) do
+    _ = call_many(List.wrap(pid), {:disconnect_runtime, self()})
+    Livebook.SystemResources.update()
+    :ok
+  end
+
+  defp call_many(list, request) do
+    list
+    |> Enum.map(&:gen_server.send_request(&1, request))
+    |> Enum.map(&:gen_server.wait_response(&1, :infinity))
   end
 
   ## Callbacks
@@ -478,7 +498,8 @@ defmodule Livebook.Session do
         autosave_timer_ref: nil,
         autosave_path: opts[:autosave_path],
         save_task_pid: nil,
-        saved_default_file: nil
+        saved_default_file: nil,
+        memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()}
       }
 
       {:ok, state}
@@ -517,6 +538,18 @@ defmodule Livebook.Session do
     else
       %{state | autosave_timer_ref: nil}
     end
+  end
+
+  defp unschedule_autosave(%{autosave_timer_ref: nil} = state), do: state
+
+  defp unschedule_autosave(state) do
+    if Process.cancel_timer(state.autosave_timer_ref) == false do
+      receive do
+        :autosave -> :ok
+      end
+    end
+
+    %{state | autosave_timer_ref: nil}
   end
 
   @impl true
@@ -576,6 +609,23 @@ defmodule Livebook.Session do
 
   def handle_call(:save_sync, _from, state) do
     {:reply, :ok, maybe_save_notebook_sync(state)}
+  end
+
+  def handle_call(:close, _from, state) do
+    maybe_save_notebook_sync(state)
+    broadcast_message(state.session_id, :session_closed)
+
+    {:stop, :shutdown, :ok, state}
+  end
+
+  def handle_call({:disconnect_runtime, client_pid}, _from, state) do
+    if old_runtime = state.data.runtime do
+      Runtime.disconnect(old_runtime)
+    end
+
+    {:reply, :ok,
+     %{state | runtime_monitor_ref: nil}
+     |> handle_operation({:set_runtime, client_pid, nil})}
   end
 
   @impl true
@@ -713,8 +763,8 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:connect_runtime, client_pid, runtime}, state) do
-    if state.data.runtime do
-      Runtime.disconnect(state.data.runtime)
+    if old_runtime = state.data.runtime do
+      Runtime.disconnect(old_runtime)
     end
 
     runtime_monitor_ref = Runtime.connect(runtime)
@@ -722,14 +772,6 @@ defmodule Livebook.Session do
     {:noreply,
      %{state | runtime_monitor_ref: runtime_monitor_ref}
      |> handle_operation({:set_runtime, client_pid, runtime})}
-  end
-
-  def handle_cast({:disconnect_runtime, client_pid}, state) do
-    Runtime.disconnect(state.data.runtime)
-
-    {:noreply,
-     %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, client_pid, nil})}
   end
 
   def handle_cast({:set_file, client_pid, file}, state) do
@@ -754,13 +796,6 @@ defmodule Livebook.Session do
 
   def handle_cast(:save, state) do
     {:noreply, maybe_save_notebook_async(state)}
-  end
-
-  def handle_cast(:close, state) do
-    maybe_save_notebook_sync(state)
-    broadcast_message(state.session_id, :session_closed)
-
-    {:stop, :normal, state}
   end
 
   @impl true
@@ -789,8 +824,14 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:evaluation_response, cell_id, response, metadata}, state) do
+    {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
-    {:noreply, handle_operation(state, operation)}
+
+    {:noreply,
+     state
+     |> put_memory_usage(memory_usage)
+     |> handle_operation(operation)
+     |> notify_update()}
   end
 
   def handle_info({:evaluation_input, cell_id, reply_to, input_id}, state) do
@@ -840,6 +881,10 @@ defmodule Livebook.Session do
     {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
+  def handle_info({:memory_usage, runtime_memory}, state) do
+    {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -858,7 +903,8 @@ defmodule Livebook.Session do
       notebook_name: state.data.notebook.name,
       file: state.data.file,
       images_dir: images_dir_from_state(state),
-      created_at: state.created_at
+      created_at: state.created_at,
+      memory_usage: state.memory_usage
     }
   end
 
@@ -1004,7 +1050,16 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_notebook_name, _pid, _name}) do
     notify_update(state)
-    state
+  end
+
+  defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
+    if runtime do
+      state
+    else
+      state
+      |> put_memory_usage(nil)
+      |> notify_update()
+    end
   end
 
   defp after_operation(state, prev_state, {:set_file, _pid, _file}) do
@@ -1024,8 +1079,6 @@ defmodule Livebook.Session do
     end
 
     notify_update(state)
-
-    state
   end
 
   defp after_operation(
@@ -1033,11 +1086,9 @@ defmodule Livebook.Session do
          _prev_state,
          {:set_notebook_attributes, _client_pid, %{autosave_interval_s: _}}
        ) do
-    if ref = state.autosave_timer_ref do
-      Process.cancel_timer(ref)
-    end
-
-    schedule_autosave(state)
+    state
+    |> unschedule_autosave()
+    |> schedule_autosave()
   end
 
   defp after_operation(state, prev_state, {:client_join, _client_pid, user}) do
@@ -1150,10 +1201,15 @@ defmodule Livebook.Session do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "sessions:#{session_id}", message)
   end
 
+  defp put_memory_usage(state, runtime) do
+    put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
+  end
+
   defp notify_update(state) do
     session = self_from_state(state)
     Livebook.Sessions.update_session(session)
     broadcast_message(state.session_id, {:session_updated, session})
+    state
   end
 
   defp maybe_save_notebook_async(state) do
@@ -1199,7 +1255,7 @@ defmodule Livebook.Session do
   end
 
   defp default_notebook_file(state) do
-    if path = state.autosave_path || Livebook.Config.autosave_path() do
+    if path = state.autosave_path || Livebook.Settings.autosave_path() do
       dir = path |> FileSystem.Utils.ensure_dir_path() |> FileSystem.File.local()
       notebook_rel_path = default_notebook_path(state)
       FileSystem.File.resolve(dir, notebook_rel_path)
@@ -1250,7 +1306,7 @@ defmodule Livebook.Session do
   end
 
   defp extract_archive!(binary, path) do
-    :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, path}])
+    :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, String.to_charlist(path)}])
   end
 
   @doc """

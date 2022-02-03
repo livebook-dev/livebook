@@ -59,7 +59,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :e1, "error\n"}
+      assert_receive {:evaluation_output, :e1, {:stdout, "error\n"}}
     end
 
     @tag capture_log: true
@@ -71,7 +71,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
       RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :e1, log_message}
+      assert_receive {:evaluation_output, :e1, {:stdout, log_message}}
       assert log_message =~ "[error] hey"
     end
 
@@ -139,13 +139,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
 
     test "provides extended completion when previous evaluation reference is given", %{pid: pid} do
-      RuntimeServer.evaluate_code(pid, "number = 10", {:c1, :e1}, {:c1, nil})
+      code = """
+      alias IO.ANSI
+      number = 10
+      """
+
+      RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
       assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       request = {:completion, "num"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
 
       assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}}
+
+      request = {:completion, "ANSI.brigh"}
+      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
+
+      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}}
     end
   end
 

@@ -202,21 +202,25 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert ["Downgrading all headings, because 2 instances of heading 1 were found"] == messages
   end
 
-  test "ignores markdown modifiers in notebok/section names" do
+  test "preserves markdown modifiers in notebok/section names" do
     markdown = """
     # My *Notebook*
 
     ## [Section 1](https://example.com)
+
+    ## ---
+
+    ## # Section
     """
 
     {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
-             name: "My Notebook",
+             name: "My *Notebook*",
              sections: [
-               %Notebook.Section{
-                 name: "Section 1"
-               }
+               %Notebook.Section{name: "[Section 1](https://example.com)"},
+               %Notebook.Section{name: "---"},
+               %Notebook.Section{name: "# Section"}
              ]
            } = notebook
   end
@@ -339,6 +343,8 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```elixir
     Enum.to_list(1..10)
     ```
+
+    <!-- livebook:{"force_markdown":true} -->
 
     ```erlang
     spawn_link(fun() -> io:format("Hiya") end).
@@ -566,11 +572,15 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       IO.puts("hey")
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       hey
       ```
 
-      ```output
+      <!-- livebook:{"output":true} -->
+
+      ```
       :ok
       ```
       """
@@ -587,7 +597,65 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                        source: """
                        IO.puts("hey")\
                        """,
-                       outputs: [{:text, ":ok"}, {:text, "hey"}]
+                       outputs: [{0, {:text, ":ok"}}, {1, {:text, "hey"}}]
+                     }
+                   ]
+                 }
+               ],
+               output_counter: 2
+             } = notebook
+    end
+
+    test "discards other output snippets" do
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```elixir
+      plot()
+      ```
+
+      <!-- livebook:{"output":true} -->
+
+      ```vega-lite
+      {}
+      ```
+
+      ```elixir
+      :ok
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Elixir{
+                       source: """
+                       IO.puts("hey")\
+                       """,
+                       outputs: []
+                     },
+                     %Cell.Elixir{
+                       source: """
+                       plot()\
+                       """,
+                       outputs: []
+                     },
+                     %Cell.Elixir{
+                       source: """
+                       :ok\
+                       """,
+                       outputs: []
                      }
                    ]
                  }
@@ -618,104 +686,6 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     {notebook, []} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
-  end
-
-  test "imports notebook with valid vega-lite output" do
-    markdown = """
-    # My Notebook
-
-    ## Section 1
-
-    ```elixir
-    Vl.new(width: 500, height: 200)
-    |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
-    |> Vl.mark(:line)
-    |> Vl.encode_field(:x, "in", type: :quantitative)
-    |> Vl.encode_field(:y, "out", type: :quantitative)
-    ```
-
-    ```vega-lite
-    {"$schema":"https://vega.github.io/schema/vega-lite/v5.json","data":{"values":[{"in":1,"out":1},{"in":2,"out":2},{"in":3,"out":3},{"in":4,"out":4},{"in":5,"out":5}]},"encoding":{"x":{"field":"in","type":"quantitative"},"y":{"field":"out","type":"quantitative"}},"height":200,"mark":"line","width":500}
-    ```
-    """
-
-    {notebook, []} = Import.notebook_from_markdown(markdown)
-
-    assert %Notebook{
-             name: "My Notebook",
-             sections: [
-               %Notebook.Section{
-                 name: "Section 1",
-                 cells: [
-                   %Cell.Elixir{
-                     source: """
-                     Vl.new(width: 500, height: 200)
-                     |> Vl.data_from_series(in: [1, 2, 3, 4, 5], out: [1, 2, 3, 4, 5])
-                     |> Vl.mark(:line)
-                     |> Vl.encode_field(:x, \"in\", type: :quantitative)
-                     |> Vl.encode_field(:y, \"out\", type: :quantitative)\
-                     """,
-                     outputs: [
-                       vega_lite_static: %{
-                         "$schema" => "https://vega.github.io/schema/vega-lite/v5.json",
-                         "data" => %{
-                           "values" => [
-                             %{"in" => 1, "out" => 1},
-                             %{"in" => 2, "out" => 2},
-                             %{"in" => 3, "out" => 3},
-                             %{"in" => 4, "out" => 4},
-                             %{"in" => 5, "out" => 5}
-                           ]
-                         },
-                         "encoding" => %{
-                           "x" => %{"field" => "in", "type" => "quantitative"},
-                           "y" => %{"field" => "out", "type" => "quantitative"}
-                         },
-                         "height" => 200,
-                         "mark" => "line",
-                         "width" => 500
-                       }
-                     ]
-                   }
-                 ]
-               }
-             ]
-           } = notebook
-  end
-
-  test "imports notebook with invalid vega-lite output" do
-    markdown = """
-    # My Notebook
-
-    ## Section 1
-
-    ```elixir
-    :ok
-    ```
-
-    ```vega-lite
-    not_a_json
-    ```
-    """
-
-    {notebook, []} = Import.notebook_from_markdown(markdown)
-
-    assert %Notebook{
-             name: "My Notebook",
-             sections: [
-               %Notebook.Section{
-                 name: "Section 1",
-                 cells: [
-                   %Cell.Elixir{
-                     source: """
-                     :ok\
-                     """,
-                     outputs: []
-                   }
-                 ]
-               }
-             ]
-           } = notebook
   end
 
   describe "backward compatibility" do
@@ -750,6 +720,50 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                "found an input cell, but those are no longer supported, please use Kino.Input instead." <>
                  " Also, to make the input reactive you can use an automatically reevaluating cell"
              ] == messages
+    end
+
+    test "imports snippets with output info string" do
+      # We now explicitly mark every output sinppet with <!-- livebook:{"output":true} -->
+      # and use empty snippets for textual outputs, however previously
+      # we supported ```output too, so let's ensure they still work
+
+      markdown = """
+      # My Notebook
+
+      ## Section 1
+
+      ```elixir
+      IO.puts("hey")
+      ```
+
+      ```output
+      hey
+      ```
+
+      ```output
+      :ok
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_markdown(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: [
+                     %Cell.Elixir{
+                       source: """
+                       IO.puts("hey")\
+                       """,
+                       outputs: [{0, {:text, ":ok"}}, {1, {:text, "hey"}}]
+                     }
+                   ]
+                 }
+               ],
+               output_counter: 2
+             } = notebook
     end
   end
 end

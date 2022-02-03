@@ -26,7 +26,7 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   end
 
   def format_response({:error, kind, error, stacktrace}) do
-    formatted = Exception.format(kind, error, stacktrace)
+    formatted = format_error(kind, error, stacktrace)
     {:error, formatted, error_type(error)}
   end
 
@@ -35,14 +35,13 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   defp to_output(value) do
     # Kino is a "client side" extension for Livebook that may be
     # installed into the runtime node. If it is installed we use
-    # its more precies output rendering rules.
+    # its more precise output rendering rules.
     if Code.ensure_loaded?(Kino.Render) do
       try do
         Kino.Render.to_livebook(value)
       catch
         kind, error ->
-          {error, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
-          formatted = Exception.format(kind, error, stacktrace)
+          formatted = format_error(kind, error, __STACKTRACE__)
           Logger.error(formatted)
           to_inspect_output(value)
       end
@@ -52,11 +51,17 @@ defmodule Livebook.Evaluator.DefaultFormatter do
   end
 
   defp to_inspect_output(value, opts \\ []) do
-    inspected = inspect(value, inspect_opts(opts))
-    {:text, inspected}
+    try do
+      inspected = inspect(value, inspect_opts(opts))
+      {:text, inspected}
+    catch
+      kind, error ->
+        formatted = format_error(kind, error, __STACKTRACE__)
+        {:error, formatted, :other}
+    end
   end
 
-  defp inspect_opts(opts) do
+  defp inspect_opts(opts \\ []) do
     default_opts = [pretty: true, width: 100, syntax_colors: syntax_colors()]
     Keyword.merge(default_opts, opts)
   end
@@ -92,5 +97,48 @@ defmodule Livebook.Evaluator.DefaultFormatter do
     is_struct(exception, Mix.Error) and
       Exception.message(exception) =~
         "Mix.install/2 can only be called with the same dependencies"
+  end
+
+  defp format_error(kind, error, stacktrace) do
+    {blamed, stacktrace} = Exception.blame(kind, error, stacktrace)
+
+    banner =
+      case blamed do
+        %FunctionClauseError{} ->
+          banner = Exception.format_banner(kind, error, stacktrace)
+          blame = FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts()), &blame_match/1)
+          [error_color(banner), pad(blame)]
+
+        _ ->
+          banner = Exception.format_banner(kind, blamed, stacktrace)
+          error_color(banner)
+      end
+
+    message =
+      if stacktrace == [] do
+        banner
+      else
+        stacktrace = Exception.format_stacktrace(stacktrace)
+        [banner, "\n", error_color(stacktrace)]
+      end
+
+    IO.iodata_to_binary(message)
+  end
+
+  defp blame_match(%{match?: true, node: node}), do: Macro.to_string(node)
+
+  defp blame_match(%{match?: false, node: node}) do
+    node
+    |> Macro.to_string()
+    |> error_color()
+    |> IO.iodata_to_binary()
+  end
+
+  defp pad(string) do
+    "    " <> String.replace(string, "\n", "\n    ")
+  end
+
+  defp error_color(string) do
+    IO.ANSI.format([:red, string], true)
   end
 end

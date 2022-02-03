@@ -90,7 +90,7 @@ defmodule LivebookWeb.ExploreLive do
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
             <%= length(@group_info.notebook_infos) %> notebooks
           </div>
-          <h3 class="mt-1 text-2xl text-gray-800 font-semibold">
+          <h3 class="mt-1 text-xl text-gray-800 font-semibold">
             <%= @group_info.title %>
           </h3>
           <p class="mt-2 text-gray-700">
@@ -105,7 +105,7 @@ defmodule LivebookWeb.ExploreLive do
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
-              <div class="grow text-lg text-gray-800 font-semibold">
+              <div class="grow text-gray-800 font-semibold">
                 <%= notebook_info.title %>
               </div>
               <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),

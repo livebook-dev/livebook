@@ -5,8 +5,12 @@
     background-color: #282c34;
   }
 
+  body[data-editor-theme="highContrast"] .bg-editor {
+    background-color: #060708;
+  }
+
   .text-editor {
-    color: #abb2bf;
+    color: #c4cad6;
   }
 
   .font-editor {

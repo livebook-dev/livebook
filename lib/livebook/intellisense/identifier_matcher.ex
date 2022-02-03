@@ -13,14 +13,15 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   # which is a very extensive implementation used in the
   # Elixir Language Server.
 
+  alias Livebook.Intellisense
   alias Livebook.Intellisense.Docs
 
   @typedoc """
   A single identifier together with relevant information.
   """
   @type identifier_item ::
-          {:variable, name(), value()}
-          | {:map_field, name(), value()}
+          {:variable, name()}
+          | {:map_field, name()}
           | {:in_struct_field, module(), name(), default :: value()}
           | {:module, module(), display_name(), Docs.documentation()}
           | {:function, module(), name(), arity(), function_type(), display_name(),
@@ -45,15 +46,13 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   `hint` may be a single token or line fragment like `if Enum.m`.
   """
-  @spec completion_identifiers(String.t(), Code.binding(), Macro.Env.t()) ::
-          list(identifier_item())
-  def completion_identifiers(hint, binding, env) do
+  @spec completion_identifiers(String.t(), Intellisense.context()) :: list(identifier_item())
+  def completion_identifiers(hint, intellisense_context) do
     context = Code.Fragment.cursor_context(hint)
 
     ctx = %{
       fragment: hint,
-      binding: binding,
-      env: env,
+      intellisense_context: intellisense_context,
       matcher: @prefix_matcher,
       type: :completion
     }
@@ -68,20 +67,19 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   The function returns range of columns where the identifier
   is located and a list of matching identifier items.
   """
-  @spec locate_identifier(String.t(), pos_integer(), Code.binding(), Macro.Env.t()) ::
+  @spec locate_identifier(String.t(), pos_integer(), Intellisense.context()) ::
           %{
             matches: list(identifier_item()),
             range: nil | %{from: pos_integer(), to: pos_integer()}
           }
-  def locate_identifier(line, column, binding, env) do
+  def locate_identifier(line, column, intellisense_context) do
     case Code.Fragment.surround_context(line, {1, column}) do
       %{context: context, begin: {_, from}, end: {_, to}} ->
         fragment = String.slice(line, 0, to - 1)
 
         ctx = %{
           fragment: fragment,
-          binding: binding,
-          env: env,
+          intellisense_context: intellisense_context,
           matcher: @exact_matcher,
           type: :locate
         }
@@ -172,10 +170,6 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp expand_dot_path({:var, var}, ctx) do
-    Keyword.fetch(ctx.binding, List.to_atom(var))
-  end
-
   defp expand_dot_path({:alias, alias}, ctx) do
     {:ok, expand_alias(List.to_string(alias), ctx)}
   end
@@ -188,10 +182,36 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     :error
   end
 
-  defp expand_dot_path({:dot, parent, call}, ctx) do
-    case expand_dot_path(parent, ctx) do
-      {:ok, %{} = map} -> Map.fetch(map, List.to_atom(call))
-      _ -> :error
+  defp expand_dot_path(path, ctx) do
+    with {:ok, path} <- recur_expand_dot_path(path, []) do
+      value_from_binding(path, ctx)
+    end
+  end
+
+  defp recur_expand_dot_path({:var, var}, path) do
+    {:ok, [List.to_atom(var) | path]}
+  end
+
+  defp recur_expand_dot_path({:dot, parent, call}, path) do
+    recur_expand_dot_path(parent, [List.to_atom(call) | path])
+  end
+
+  defp recur_expand_dot_path(_, _path) do
+    :error
+  end
+
+  defp value_from_binding([var | map_path], ctx) do
+    if Macro.Env.has_var?(ctx.intellisense_context.env, {var, nil}) do
+      ctx.intellisense_context.map_binding.(fn binding ->
+        value = Keyword.fetch(binding, var)
+
+        Enum.reduce(map_path, value, fn
+          key, {:ok, map} when is_map(map) -> Map.fetch(map, key)
+          _key, _acc -> :error
+        end)
+      end)
+    else
+      :error
     end
   end
 
@@ -286,7 +306,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp match_local(hint, ctx) do
     imports =
-      ctx.env
+      ctx.intellisense_context.env
       |> imports_from_env()
       |> Enum.flat_map(fn {mod, funs} ->
         match_module_function(mod, hint, ctx, funs)
@@ -298,20 +318,19 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_variable(hint, ctx) do
-    for {key, value} <- ctx.binding,
-        is_atom(key),
-        name = Atom.to_string(key),
+    for {var, nil} <- Macro.Env.vars(ctx.intellisense_context.env),
+        name = Atom.to_string(var),
         ctx.matcher.(name, hint),
-        do: {:variable, key, value}
+        do: {:variable, var}
   end
 
   defp match_map_field(map, hint, ctx) do
     # Note: we need Map.to_list/1 in case this is a struct
-    for {key, value} <- Map.to_list(map),
+    for {key, _value} <- Map.to_list(map),
         is_atom(key),
         name = Atom.to_string(key),
         ctx.matcher.(name, hint),
-        do: {:map_field, key, value}
+        do: {:map_field, key}
   end
 
   defp match_sigil(hint, ctx) do
@@ -329,14 +348,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
-        do: {:module, mod, name, Livebook.Intellisense.Docs.get_module_documentation(mod)}
+        do: {:module, mod, name, Intellisense.Docs.get_module_documentation(mod)}
   end
 
   # Converts alias string to module atom with regard to the given env
   defp expand_alias(alias, ctx) do
     [name | rest] = alias |> String.split(".") |> Enum.map(&String.to_atom/1)
 
-    case Keyword.fetch(ctx.env.aliases, Module.concat(Elixir, name)) do
+    case Macro.Env.fetch_alias(ctx.intellisense_context.env, name) do
       {:ok, name} when rest == [] -> name
       {:ok, name} -> Module.concat([name | rest])
       :error -> Module.concat([name | rest])
@@ -344,10 +363,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_env_alias(hint, ctx) do
-    for {alias, mod} <- ctx.env.aliases,
+    for {alias, mod} <- ctx.intellisense_context.env.aliases,
         [name] = Module.split(alias),
         ctx.matcher.(name, hint),
-        do: {:module, mod, name, Livebook.Intellisense.Docs.get_module_documentation(mod)}
+        do: {:module, mod, name, Intellisense.Docs.get_module_documentation(mod)}
   end
 
   defp match_module(base_mod, hint, nested?, ctx) do
@@ -396,7 +415,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         valid_alias_piece?("." <> name),
         mod = Module.concat(parent_mod_parts ++ name_parts),
         uniq: true,
-        do: {:module, mod, name, Livebook.Intellisense.Docs.get_module_documentation(mod)}
+        do: {:module, mod, name, Intellisense.Docs.get_module_documentation(mod)}
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -460,7 +479,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         end)
 
       doc_items =
-        Livebook.Intellisense.Docs.lookup_module_members(
+        Intellisense.Docs.lookup_module_members(
           mod,
           Enum.map(matching_funs, &Tuple.delete_at(&1, 2)),
           kinds: [:function, :macro]
@@ -508,8 +527,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         ctx.matcher.(name, hint)
       end)
 
-    doc_items =
-      Livebook.Intellisense.Docs.lookup_module_members(mod, matching_types, kinds: [:type])
+    doc_items = Intellisense.Docs.lookup_module_members(mod, matching_types, kinds: [:type])
 
     Enum.map(matching_types, fn {name, arity} ->
       doc_item =

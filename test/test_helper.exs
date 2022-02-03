@@ -6,6 +6,9 @@ Livebook.Runtime.ErlDist.NodeManager.start(
   unload_modules_on_termination: false
 )
 
+# Disable autosaving
+Livebook.Storage.current().insert(:settings, "global", autosave_path: nil)
+
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
 exclude = []

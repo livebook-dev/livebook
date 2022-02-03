@@ -51,4 +51,7 @@ defmodule LivebookWeb.SessionHelpers do
 
     put_flash(socket, :warning, flash)
   end
+
+  def uses_memory?(%{runtime: %{total: total}}) when total > 0, do: true
+  def uses_memory?(_), do: false
 end

@@ -8,7 +8,7 @@ defmodule LivebookWeb.HomeLive do
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
     end
@@ -20,7 +20,7 @@ defmodule LivebookWeb.HomeLive do
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
-       file: Livebook.Config.default_dir(),
+       file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
@@ -85,7 +85,7 @@ defmodule LivebookWeb.HomeLive do
             </.live_component>
           </div>
 
-          <div class="py-12">
+          <div class="py-12" data-element="explore-section">
             <div class="mb-4 flex justify-between items-center">
               <h2 class="uppercase font-semibold text-gray-500">
                 Explore
@@ -107,7 +107,7 @@ defmodule LivebookWeb.HomeLive do
           <div class="py-12">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
-              sessions={@sessions} />
+              sessions={@sessions}/>
           </div>
         </div>
       </div>
@@ -136,6 +136,17 @@ defmodule LivebookWeb.HomeLive do
           import_opts={@import_opts} />
       </.modal>
     <% end %>
+
+    <%= if @live_action == :edit_sessions do %>
+      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+        <.live_component module={LivebookWeb.HomeLive.EditSessionsComponent}
+          id="edit-sessions"
+          action={@bulk_action}
+          return_to={Routes.home_path(@socket, :page)}
+          sessions={@sessions}
+          selected_sessions={selected_sessions(@sessions, @selected_session_ids)} />
+      </.modal>
+    <% end %>
     """
   end
 
@@ -151,6 +162,14 @@ defmodule LivebookWeb.HomeLive do
   def handle_params(%{"session_id" => session_id}, _url, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     {:noreply, assign(socket, session: session)}
+  end
+
+  def handle_params(
+        %{"action" => action},
+        _url,
+        %{assigns: %{live_action: :edit_sessions}} = socket
+      ) do
+    {:noreply, assign(socket, bulk_action: action)}
   end
 
   def handle_params(%{"tab" => tab} = params, _url, %{assigns: %{live_action: :import}} = socket) do
@@ -170,6 +189,18 @@ defmodule LivebookWeb.HomeLive do
 
       {:error, _message} ->
         {:noreply, push_patch(socket, to: Routes.home_path(socket, :import, "url", url: url))}
+    end
+  end
+
+  def handle_params(%{"path" => path} = _params, _uri, socket)
+      when socket.assigns.live_action == :public_open do
+    file = FileSystem.File.local(path)
+
+    if file_running?(file, socket.assigns.sessions) do
+      session_id = session_id_by_file(file, socket.assigns.sessions)
+      {:noreply, push_redirect(socket, to: Routes.session_path(socket, :page, session_id))}
+    else
+      {:noreply, open_notebook(socket, FileSystem.File.local(path))}
     end
   end
 
@@ -206,18 +237,22 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_event("open", %{}, socket) do
     file = socket.assigns.file
+    {:noreply, open_notebook(socket, file)}
+  end
 
-    socket =
-      case import_notebook(file) do
-        {:ok, {notebook, messages}} ->
-          socket
-          |> put_import_warnings(messages)
-          |> create_session(notebook: notebook, file: file, origin: {:file, file})
+  def handle_event("bulk_action", %{"action" => "disconnect"} = params, socket) do
+    socket = assign(socket, selected_session_ids: params["session_ids"])
+    {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "disconnect"))}
+  end
 
-        {:error, error} ->
-          put_flash(socket, :error, Livebook.Utils.upcase_first(error))
-      end
+  def handle_event("bulk_action", %{"action" => "close_all"} = params, socket) do
+    socket = assign(socket, selected_session_ids: params["session_ids"])
+    {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "close_all"))}
+  end
 
+  def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    Session.disconnect_runtime(session.pid)
     {:noreply, socket}
   end
 
@@ -244,7 +279,7 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_event("open_autosave_directory", %{}, socket) do
     file =
-      Livebook.Config.autosave_path()
+      Livebook.Settings.autosave_path()
       |> FileSystem.Utils.ensure_dir_path()
       |> FileSystem.File.local()
 
@@ -284,8 +319,6 @@ defmodule LivebookWeb.HomeLive do
     socket = import_content(socket, content, session_opts)
     {:noreply, socket}
   end
-
-  def handle_info(_message, socket), do: {:noreply, socket}
 
   defp files(sessions) do
     Enum.map(sessions, & &1.file)
@@ -343,6 +376,39 @@ defmodule LivebookWeb.HomeLive do
     case FileSystem.File.access(file) do
       {:ok, access} -> access
       {:error, _} -> :none
+    end
+  end
+
+  defp selected_sessions(sessions, selected_session_ids) do
+    Enum.filter(sessions, &(&1.id in selected_session_ids))
+  end
+
+  defp determine_file(%{"path" => path} = _params) do
+    cond do
+      File.dir?(path) ->
+        path
+        |> FileSystem.Utils.ensure_dir_path()
+        |> FileSystem.File.local()
+
+      File.regular?(path) ->
+        FileSystem.File.local(path)
+
+      true ->
+        Livebook.Config.local_filesystem_home()
+    end
+  end
+
+  defp determine_file(_params), do: Livebook.Config.local_filesystem_home()
+
+  defp open_notebook(socket, file) do
+    case import_notebook(file) do
+      {:ok, {notebook, messages}} ->
+        socket
+        |> put_import_warnings(messages)
+        |> create_session(notebook: notebook, file: file, origin: {:file, file})
+
+      {:error, error} ->
+        put_flash(socket, :error, Livebook.Utils.upcase_first(error))
     end
   end
 end

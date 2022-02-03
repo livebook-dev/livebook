@@ -1,5 +1,5 @@
 import { getAttributeOrThrow, parseBoolean } from "../lib/attribute";
-import { cancelEvent } from "../lib/utils";
+import { cancelEvent, isEditableElement } from "../lib/utils";
 
 /**
  * A hook for ControlComponent to handle user keyboard interactions.
@@ -30,6 +30,13 @@ const KeyboardControl = {
     };
 
     window.addEventListener("keyup", this.handleDocumentKeyUp, true);
+
+    this.handleDocumentFocus = (event) => {
+      handleDocumentFocus(this, event);
+    };
+
+    // Note: the focus event doesn't bubble, so we register for the capture phase
+    window.addEventListener("focus", this.handleDocumentFocus, true);
   },
 
   updated() {
@@ -39,6 +46,7 @@ const KeyboardControl = {
   destroyed() {
     window.removeEventListener("keydown", this.handleDocumentKeyDown, true);
     window.removeEventListener("keyup", this.handleDocumentKeyUp, true);
+    window.removeEventListener("focus", this.handleDocumentFocus, true);
   },
 };
 
@@ -81,6 +89,12 @@ function handleDocumentKeyUp(hook, event) {
   if (hook.props.isKeyupEnabled) {
     const key = event.key;
     hook.pushEventTo(hook.props.target, "keyup", { key });
+  }
+}
+
+function handleDocumentFocus(hook, event) {
+  if (hook.props.isKeydownEnabled && isEditableElement(event.target)) {
+    hook.pushEventTo(hook.props.target, "disable_keyboard", {});
   }
 }
 

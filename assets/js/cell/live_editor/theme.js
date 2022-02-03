@@ -1,16 +1,19 @@
 // This is a port of the One Dark theme to the Monaco editor.
-
+// We color graded the comment so it has AA accessibility and
+// then similarly scaled the default font.
 const colors = {
-  default: "#abb2bf",
+  default: "#c4cad6",
   lightRed: "#e06c75",
   blue: "#61afef",
-  gray: "#737a8c",
+  gray: "#8c92a3",
   green: "#98c379",
   purple: "#c678dd",
   red: "#be5046",
   teal: "#56b6c2",
   peach: "#d19a66",
 };
+
+const background = { default: "#282c34", highContrast: "#060708" };
 
 const theme = {
   base: "vs-dark",
@@ -54,7 +57,7 @@ const theme = {
   ],
 
   colors: {
-    "editor.background": "#282c34",
+    "editor.background": background.default,
     "editor.foreground": colors.default,
     "editorLineNumber.foreground": "#636d83",
     "editorCursor.foreground": "#636d83",
@@ -70,4 +73,12 @@ const theme = {
   },
 };
 
-export default theme;
+const highContrast = {
+  ...theme,
+  colors: {
+    ...theme.colors,
+    "editor.background": background.highContrast,
+  },
+};
+
+export { theme, highContrast };

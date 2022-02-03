@@ -86,28 +86,17 @@ Process.sleep(300_000)
 Having this cell running, feel free to insert another Elixir cell
 in the section below and see it evaluates immediately.
 
-## Notebook files
+## Saving notebooks
 
 By default notebooks are kept in memory, which is fine for interactive hacking,
 but oftentimes you will want to save your work for later. Fortunately, notebooks
 can be persisted by clicking on the "Disk" icon (<i class="ri-livebook-save"></i>)
 in the bottom-right corner and selecting the file location.
 
-Notebooks are stored in **live markdown** format, which is essentially the markdown you know,
+Notebooks are stored in **live markdown** format, which is the Markdown you know,
 with just a few assumptions on how particular elements are represented. Thanks to this
 approach you can easily keep notebooks under version control and get readable diffs.
 You can also easily preview those files, reuse for blog posts, and even edit in a text editor.
-
-## Math
-
-Livebook uses $\TeX$ syntax for math.
-It supports both inline math like $e^{\pi i} + 1 = 0$, as well as display math:
-
-$$
-S(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{e^{x} + 1}
-$$
-
-You can explore all supported expressions [here](https://katex.org/docs/supported.html).
 
 ## Stepping up your workflow
 
@@ -117,6 +106,35 @@ to optimise how you move around. Livebook leverages the concept of
 Make sure to check out the shortcuts by clicking the "Keyboard" icon
 (<i class="ri-livebook-shortcuts"></i>) in the sidebar or
 by pressing <kbd>?</kbd>.
+
+## Markdown extensions
+
+Livebook also include supports for Math expressions and Mermaid diagrams.
+
+### Math expressions
+
+Livebook uses $\TeX$ syntax for math inside your Markdown cells.
+It supports both inline math, like $e^{\pi i} + 1 = 0$, as well as display math:
+
+$$
+S(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{e^{x} + 1}
+$$
+
+You can explore all supported expressions [here](https://katex.org/docs/supported.html).
+
+### Mermaid diagrams
+
+[Mermaid](https://mermaid-js.github.io/) is a library for creating diagrams
+and visualizations using text and code. You can define those diagrams in
+your Markdown cells via ```` ```mermaid ```` blocks. Let's see an example:
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
 
 ## Next steps
 

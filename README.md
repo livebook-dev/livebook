@@ -6,7 +6,7 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
 
-  * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with annotations and [KaTex](https://katex.org/) for mathematical formulas. This means your notebooks can be saved, easily shared, and play well with version control.
+  * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with support for diagrams via [Mermaid](https://mermaid-js.github.io/mermaid) and for mathematical formulas via [KaTex](https://katex.org/). `.livemd` files can be easily shared and play well with version control.
 
   * Interactive widgets via [Kino](https://github.com/elixir-nx/kino): manipulate [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, and more.
 
@@ -38,7 +38,7 @@ From time to time, we also publish some videos for new Livebook releases:
 
 ## Usage
 
-We provide several distinct methods of running Livebook,
+We provide several methods for running Livebook,
 pick the one that best fits your use case.
 
 ### Running on the cloud
@@ -52,7 +52,7 @@ You can run Livebook on your own machine. You will need
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
 with most Erlang distributions but certain package managers may split
-them apart. For example, on Ubuntu, these Erlang applications could
+them apart. For example, on Ubuntu, these Erlang applications can
 be installed as follows:
 
 ```shell
@@ -144,12 +144,11 @@ Livebook if said token is supplied as part of the URL.
 
 The following environment variables configure Livebook:
 
-  * LIVEBOOK_AUTOSAVE_PATH - sets the directory where notebooks with no file are
-    saved. Defaults to livebook/notebooks/ under the default user cache location.
-    You can pass "none" to disable this behaviour.
-
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
+
+  * LIVEBOOK_DATA_PATH - the directory to store Livebook configuration.
+    Defaults to "livebook" under the default user data directory.
 
   * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
@@ -157,9 +156,9 @@ The following environment variables configure Livebook:
     "attached:NODE:COOKIE" (Attached node) or "embedded" (Embedded).
     Defaults to "standalone".
 
-  * LIVEBOOK_FILE_SYSTEM_1, LIVEBOOK_FILE_SYSTEM_2, ... - configures additional
-    file systems. Each variable should hold a configuration string, which must
-    be of the form: "s3 BUCKET_URL ACCESS_KEY_ID SECRET_ACCESS_KEY".
+  * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
+    default path used on file selection screens and others. Defaults to the
+    user's operating system home.
 
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
@@ -167,13 +166,10 @@ The following environment variables configure Livebook:
   * LIVEBOOK_PASSWORD - sets a password that must be used to access Livebook.
     Must be at least 12 characters. Defaults to token authentication.
 
-  * LIVEBOOK_PORT - sets the port Livebook runs on. If you want multiple instances
-    to run on the same domain but different ports, you also need to set LIVEBOOK_SECRET_KEY_BASE.
-    Defaults to 8080.
-
-  * LIVEBOOK_ROOT_PATH - sets the root path to use for file selection. This does
-    not restrict access to upper directories unless the operating system user is
-    also restricted.
+  * LIVEBOOK_PORT - sets the port Livebook runs on. If you want to run multiple
+    instances on the same domain with the same credentials but on different ports,
+    you also need to set LIVEBOOK_SECRET_KEY_BASE. Defaults to 8080. If set to 0,
+    a random port will be picked.
 
   * LIVEBOOK_SECRET_KEY_BASE - sets a secret key that is used to sign and encrypt
     the session and other payloads used by Livebook. Must be at least 64 characters
@@ -181,7 +177,8 @@ The following environment variables configure Livebook:
     Defaults to a random secret on every boot.
 
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
-    Enabled by default unless `LIVEBOOK_PASSWORD` is set.
+    Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
+    disable it.
 
 <!-- Environment variables -->
 
@@ -230,6 +227,12 @@ MIX_ENV=prod mix escript.build
 Livebook development is sponsored by:
 
 <a href="https://fly.io"><img src="https://fly.io/public/images/brand/logo.svg" width="320" /></a>
+
+## Continuous Integration
+
+Our CI server and desktop app for macOS are powered by:
+
+<a href="https://www.macstadium.com"><img src="https://user-images.githubusercontent.com/9582/151619816-b7794798-8261-46c8-bb88-d12108e3ff12.png" width="320" /></a>
 
 ## License
 

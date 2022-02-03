@@ -113,9 +113,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   end
 
   defp initial_file(_runtime) do
-    Livebook.Config.file_systems()
-    |> Enum.find(&is_struct(&1, FileSystem.Local))
-    |> FileSystem.File.new()
+    Livebook.Config.local_filesystem_home()
   end
 
   defp matching_runtime?(%Runtime.MixStandalone{} = runtime, path) do
