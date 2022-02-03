@@ -107,6 +107,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           data-test-session-id={session.id}>
           <div id={"#{session.id}-checkbox"} phx-update="ignore">
             <input type="checkbox" name="session_ids[]" value={session.id}
+              aria-label={session.notebook_name}
               class="checkbox-base hidden mr-3"
               data-element="bulk-edit-member"
               phx-click={JS.dispatch("lb:session_list:on_selection_change")}>
@@ -201,10 +202,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp edit_sessions(assigns) do
     ~H"""
     <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
-      <.menu id="edit-sessions">
+      <.menu id="edit-sessions" aria-label="bulk actions for sessions">
         <:toggle>
           <button id="toggle-edit" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
-            phx-click={toggle_edit(:on)} type="button">
+            phx-click={toggle_edit(:on)} type="button" aria-label="toggle edit">
             <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
             <span>Edit</span>
           </button>

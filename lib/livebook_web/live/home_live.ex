@@ -41,7 +41,7 @@ defmodule LivebookWeb.HomeLive do
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
-                      sm:flex-row sm:space-y-0 sm:justify-between">
+                      sm:flex-row sm:space-y-0 sm:justify-between" role="heading" aria-level="1">
             <div class="text-2xl text-gray-800 font-semibold">
               <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>

@@ -77,6 +77,7 @@ defmodule LivebookWeb.FileSelectComponent do
             phx-target={@myself}>
             <input class="input"
               id="input-path"
+              aria-label="file path"
               phx-hook="FocusOnUpdate"
               type="text"
               name="path"
@@ -145,6 +146,7 @@ defmodule LivebookWeb.FileSelectComponent do
                 phx-target={@myself}>
                 <input
                   id="new_dir_input"
+                  aria-label="new directory"
                   type="text"
                   spellcheck="false"
                   autocomplete="off"
@@ -267,13 +269,14 @@ defmodule LivebookWeb.FileSelectComponent do
       <:toggle>
         <button class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
           data-toggle
+          aria-label={"path to #{if @file_info.name == "..", do: "parent directory", else: @file_info.name}"}
           phx-click="set_path"
           phx-value-path={@file_info.file.path}
           phx-target={@myself}>
           <span class="block">
             <.remix_icon icon={@icon} class={"text-xl align-middle #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-400")}"} />
           </span>
-          <span class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"}>
+          <span id="file-info-path" class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"}>
             <%= if @file_info.highlighted != "" do %>
               <span class={
                 "font-medium
@@ -292,6 +295,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <%= if @file_info.editable do %>
           <button class="menu-item text-gray-500"
             role="menuitem"
+            aria-label="rename file"
             phx-click="rename_file"
             phx-target={@myself}
             phx-value-path={@file_info.file.path}>
@@ -300,6 +304,7 @@ defmodule LivebookWeb.FileSelectComponent do
           </button>
           <button class="menu-item text-red-600"
             role="menuitem"
+            aria-label="delete file"
             phx-click="delete_file"
             phx-target={@myself}
             phx-value-path={@file_info.file.path}>
