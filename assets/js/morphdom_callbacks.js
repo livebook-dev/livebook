@@ -5,6 +5,10 @@ const callbacks = {
     for (const attr of from.attributes) {
       if (attr.name.startsWith("data-js-")) {
         to.setAttribute(attr.name, attr.value);
+
+        if (attr.name.startsWith("data-js-set-")) {
+          to.setAttribute(attr.name.replace("data-js-set-", ""), attr.value);
+        }
       }
     }
   },
