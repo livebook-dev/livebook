@@ -6,6 +6,10 @@ const callbacks = {
       if (attr.name.startsWith("data-js-")) {
         to.setAttribute(attr.name, attr.value);
       }
+
+      if (attr.name === "data-keep-attribute") {
+        to.setAttribute(attr.value, from.getAttribute(attr.value));
+      }
     }
   },
 
