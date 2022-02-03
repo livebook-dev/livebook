@@ -27,10 +27,10 @@ defmodule LivebookCLI.Server do
         will be imported
 
       * If the open-command is a directory, the browser window will point
-        to livebook's home with the directory checked out
+        to the home page with the directory selected
 
-      * If the open-command is a livebook file, the browser window will point
-        to the file.
+      * If the open-command is a notebook file, the browser window will point
+        to the opened notebook
 
     The open-command runs after the server is started. If a server is
     already running, the browser window will point to the server
