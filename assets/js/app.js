@@ -131,9 +131,7 @@ window.addEventListener("lb:session_list:on_selection_change", () => {
   const closeAll = document.querySelector("#edit-sessions [name='close_all']");
 
   disconnect.disabled = !anySessionSelected;
-  disconnect.setAttribute("data-js-set-disabled", !anySessionSelected);
   closeAll.disabled = !anySessionSelected;
-  closeAll.setAttribute("data-js-set-disabled", !anySessionSelected);
 });
 
 // Global configuration

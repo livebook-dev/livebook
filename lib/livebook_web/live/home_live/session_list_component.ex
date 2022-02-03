@@ -225,11 +225,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <span class="font-medium">Select all</span>
           </button>
           <button class="menu-item text-gray-600" name="disconnect" type="button"
+            data-keep-attribute="disabled"
             phx-click={set_action("disconnect")}>
             <.remix_icon icon="shut-down-line" />
             <span class="font-medium">Disconnect runtime</span>
           </button>
           <button class="menu-item text-red-600" name="close_all" type="button"
+            data-keep-attribute="disabled"
             phx-click={set_action("close_all")}>
             <.remix_icon icon="close-circle-line" />
             <span class="font-medium">Close sessions</span>
