@@ -18,7 +18,7 @@ defmodule LivebookWeb.SessionController do
     case Sessions.fetch_session(id) do
       {:ok, session} ->
         notebook = Session.get_notebook(session.pid)
-        file_name = Session.file_name_for_download(session.pid)
+        file_name = Session.file_name_for_download(session)
 
         send_notebook_source(conn, notebook, file_name, format)
 

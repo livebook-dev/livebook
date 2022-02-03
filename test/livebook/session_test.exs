@@ -9,6 +9,25 @@ defmodule Livebook.SessionTest do
     %{session: session}
   end
 
+  describe "file_name_for_download/1" do
+    @tag :tmp_dir
+    test "uses associated file name if one is attached", %{tmp_dir: tmp_dir} do
+      tmp_dir = FileSystem.File.local(tmp_dir <> "/")
+      file = FileSystem.File.resolve(tmp_dir, "my_notebook.livemd")
+      session = start_session(file: file)
+
+      assert Session.file_name_for_download(session) == "my_notebook"
+    end
+
+    test "defaults to notebook name", %{session: session} do
+      Session.set_notebook_name(session.pid, "Cat's guide to life!")
+      # Get the updated struct
+      session = Session.get_by_pid(session.pid)
+
+      assert Session.file_name_for_download(session) == "cats_guide_to_life"
+    end
+  end
+
   describe "set_notebook_attributes/2" do
     test "sends an attributes update to subscribers", %{session: session} do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")

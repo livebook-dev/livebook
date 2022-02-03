@@ -158,6 +158,27 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Computes the file name for download.
+
+  Note that the name doesn't have any extension.
+
+  If the notebook has an associated file, the same name is used,
+  otherwise it is computed from the notebook title.
+  """
+  @spec file_name_for_download(t()) :: String.t()
+  def file_name_for_download(session)
+
+  def file_name_for_download(%{file: nil} = session) do
+    notebook_name_to_file_name(session.notebook_name)
+  end
+
+  def file_name_for_download(session) do
+    session.file
+    |> FileSystem.File.name()
+    |> Path.rootname()
+  end
+
+  @doc """
   Fetches assets matching the given hash.
 
   The assets are cached locally and fetched from the runtime
@@ -406,7 +427,8 @@ defmodule Livebook.Session do
   If there's a file set and the notebook changed since the last save,
   it will be persisted to said file.
 
-  Note that notebooks are automatically persisted every @autosave_interval milliseconds.
+  Note that notebooks are automatically persisted every @autosave_interval
+  milliseconds.
   """
   @spec save(pid()) :: :ok
   def save(pid) do
@@ -419,17 +441,6 @@ defmodule Livebook.Session do
   @spec save_sync(pid()) :: :ok
   def save_sync(pid) do
     GenServer.call(pid, :save_sync, @timeout)
-  end
-
-  @doc """
-  Retreives the file name for download.
-
-  If the notebook was imported from a file, then use the file name.
-  Else, use the title of the notebook for the file name.
-  """
-  @spec file_name_for_download(pid()) :: :ok
-  def file_name_for_download(pid) do
-    GenServer.call(pid, :infer_file_name)
   end
 
   @doc """
@@ -550,21 +561,6 @@ defmodule Livebook.Session do
     end
 
     %{state | autosave_timer_ref: nil}
-  end
-
-  @impl true
-  def handle_call(:infer_file_name, _from, state) do
-    name =
-      if state.data.file do
-        FileSystem.File.name(state.data.file)
-        |> Path.rootname()
-      else
-        state.data.notebook.name
-        |> String.downcase()
-        |> String.replace(" ", "-")
-      end
-
-    {:reply, name, state}
   end
 
   @impl true
@@ -1263,11 +1259,7 @@ defmodule Livebook.Session do
   end
 
   defp default_notebook_path(state) do
-    title_str =
-      state.data.notebook.name
-      |> String.downcase()
-      |> String.replace(~r/\s+/, "_")
-      |> String.replace(~r/[^\w]/, "")
+    title_str = notebook_name_to_file_name(state.data.notebook.name)
 
     # We want a random, but deterministic part, so we
     # use a few trailing characters from the session id,
@@ -1281,6 +1273,17 @@ defmodule Livebook.Session do
       |> String.split(["T", "."])
 
     "#{date_str}/#{time_str}_#{title_str}_#{random_str}.livemd"
+  end
+
+  defp notebook_name_to_file_name(notebook_name) do
+    notebook_name
+    |> String.downcase()
+    |> String.replace(~r/\s+/, "_")
+    |> String.replace(~r/[^\w]/, "")
+    |> case do
+      "" -> "untitled_notebook"
+      name -> name
+    end
   end
 
   defp handle_save_finished(state, result, file, default?) do
