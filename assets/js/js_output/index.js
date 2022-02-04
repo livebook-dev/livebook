@@ -295,8 +295,8 @@ function bindIframeSize(iframe, iframePlaceholder) {
 // (1): https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#document_source_security
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
 
-const IFRAME_SHA256 = "9cYdQb4mocxzFoj1EryzubL1n7P+lQTeEdWAkeV4E0I=";
-const IFRAME_URL = "https://livebook.space/iframe/v1.html";
+const IFRAME_SHA256 = "+uJyGu0Ey7uVV7WwRwg7GyjwCkMNRBnyNc25iGFpYXc=";
+const IFRAME_URL = "https://livebook.space/iframe/v2.html";
 
 function initializeIframeSource(iframe) {
   return verifyIframeSource().then(() => {

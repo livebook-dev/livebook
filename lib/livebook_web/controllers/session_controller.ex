@@ -18,34 +18,35 @@ defmodule LivebookWeb.SessionController do
     case Sessions.fetch_session(id) do
       {:ok, session} ->
         notebook = Session.get_notebook(session.pid)
+        file_name = Session.file_name_for_download(session)
 
-        send_notebook_source(conn, notebook, format)
+        send_notebook_source(conn, notebook, file_name, format)
 
       :error ->
         send_resp(conn, 404, "Not found")
     end
   end
 
-  defp send_notebook_source(conn, notebook, "livemd") do
+  defp send_notebook_source(conn, notebook, file_name, "livemd" = format) do
     opts = [include_outputs: conn.params["include_outputs"] == "true"]
     source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook, opts)
 
     send_download(conn, {:binary, source},
-      filename: "notebook.livemd",
+      filename: file_name <> "." <> format,
       content_type: "text/plain"
     )
   end
 
-  defp send_notebook_source(conn, notebook, "exs") do
+  defp send_notebook_source(conn, notebook, file_name, "exs" = format) do
     source = Livebook.Notebook.Export.Elixir.notebook_to_elixir(notebook)
 
     send_download(conn, {:binary, source},
-      filename: "notebook.exs",
+      filename: file_name <> "." <> format,
       content_type: "text/plain"
     )
   end
 
-  defp send_notebook_source(conn, _notebook, _format) do
+  defp send_notebook_source(conn, _notebook, _file_name, _format) do
     send_resp(conn, 400, "Invalid format, supported formats: livemd, exs")
   end
 

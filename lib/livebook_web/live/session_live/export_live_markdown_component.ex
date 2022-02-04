@@ -1,6 +1,8 @@
 defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
   use LivebookWeb, :live_component
 
+  alias Livebook.Session
+
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -35,7 +37,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
       <div class="flex flex-col space-y-1">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-700 font-semibold">
-            .livemd
+            <%= Session.file_name_for_download(@session) <> ".livemd" %>
           </span>
           <div class="flex justify-end space-x-2">
             <span class="tooltip left" data-tooltip="Copy source">

@@ -325,6 +325,29 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
+  describe "public open endpoint" do
+    test "checkouts the directory when a directory is passed", %{conn: conn} do
+      directory_path = Path.join(File.cwd!(), "test")
+
+      {:ok, view, _} = live(conn, "/?path=#{directory_path}")
+
+      assert render(view) =~ directory_path
+    end
+
+    @tag :tmp_dir
+    test "opens a file when livebook file is passed", %{conn: conn, tmp_dir: tmp_dir} do
+      notebook_path = Path.join(tmp_dir, "notebook.livemd")
+
+      :ok = File.write(notebook_path, "# Notebook OPEN section")
+
+      assert {:error, {:live_redirect, %{flash: %{}, to: to}}} =
+               live(conn, "/open?path=#{notebook_path}")
+
+      {:ok, view, _} = live(conn, to)
+      assert render(view) =~ "Notebook OPEN section"
+    end
+  end
+
   # Helpers
 
   defp test_notebook_path(name) do
