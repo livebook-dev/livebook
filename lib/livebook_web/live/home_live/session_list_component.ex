@@ -141,7 +141,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 href={Routes.session_path(@socket, :download_source, session.id, "livemd", include_outputs: false)}
                 download>
                 <.remix_icon icon="download-2-line" class="text-lg"/>
-                <span class="font-medium">Download Source</span>
+                <span class="font-medium">Download source</span>
               </a>
               <button class="menu-item text-gray-500"
                 type="button"
