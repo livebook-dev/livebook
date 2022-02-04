@@ -3,7 +3,7 @@ defmodule LivebookWeb.HealthController do
 
   def index(conn, _params) do
     conn
-    |> put_resp_header("Access-Control-Allow-Origin", "*")
+    |> put_resp_header("access-control-allow-origin", "*")
     |> json(%{
       "application" => "livebook"
     })
