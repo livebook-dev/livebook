@@ -136,6 +136,23 @@ defmodule LivebookWeb.HomeLiveTest do
       refute render(view) =~ id
     end
 
+    test "allows download the source of an existing session", %{conn: conn} do
+      {:ok, session} = Sessions.create_session()
+      Session.set_notebook_name(session.pid, "My notebook")
+
+      {:ok, view, _} = live(conn, "/")
+
+      {:error, {:redirect, %{to: to}}} =
+        view
+        |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download source")
+        |> render_click
+
+      assert to ==
+               Routes.session_path(conn, :download_source, session.id, "livemd",
+                 include_outputs: false
+               )
+    end
+
     test "allows forking existing session", %{conn: conn} do
       {:ok, session} = Sessions.create_session()
       Session.set_notebook_name(session.pid, "My notebook")
