@@ -46,7 +46,7 @@ defmodule LivebookWeb.HomeLive do
               <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
               <h1 class="sr-only">Livebook</h1>
             </div>
-            <div class="flex space-x-2 pt-2" role="navigation" aria-label="New notebook">
+            <div class="flex space-x-2 pt-2" role="navigation" aria-label="new notebook">
               <%= live_patch "Import",
                     to: Routes.home_path(@socket, :import, "url"),
                     class: "button-base button-outlined-gray whitespace-nowrap" %>
@@ -86,7 +86,7 @@ defmodule LivebookWeb.HomeLive do
             </.live_component>
           </div>
 
-          <div class="py-12" data-element="explore-section" role="region" aria-label="Explore Section">
+          <div class="py-12" data-element="explore-section" role="region" aria-label="explore section">
             <div class="mb-4 flex justify-between items-center">
               <h2 class="uppercase font-semibold text-gray-500">
                 Explore
@@ -105,7 +105,7 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
           </div>
-          <div class="py-12" role="region" aria-label="Running sessions">
+          <div class="py-12" role="region" aria-label="running sessions">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
               sessions={@sessions}/>

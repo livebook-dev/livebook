@@ -277,7 +277,7 @@ defmodule LivebookWeb.FileSelectComponent do
           <span class="block">
             <.remix_icon icon={@icon} class={"text-xl align-middle #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-400")}"} />
           </span>
-          <span id={"file-info-path-#{@file_info.name}"} class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"}>
+          <span class={"flex font-medium overflow-hidden whitespace-nowrap #{if(@file_info.is_running, do: "text-green-300", else: "text-gray-500")}"}>
             <%= if @file_info.highlighted != "" do %>
               <span class={
                 "font-medium

@@ -51,7 +51,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           <.menu id="sessions-order-menu">
             <:toggle>
               <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
-                type="button" aria-label={"order by - Currently ordered by #{order_by_label(@order_by)}"}>
+                type="button" aria-label={"order by - currently ordered by #{order_by_label(@order_by)}"}>
                 <span><%= order_by_label(@order_by) %></span>
                 <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
               </button>
