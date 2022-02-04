@@ -394,15 +394,26 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp postprocess_notebook(notebook) do
     sections =
-      Enum.map(notebook.sections, fn section ->
+      Enum.with_index(notebook.sections)
+      |> Enum.map(fn {section, section_idx} ->
         # Set parent_id based on the persisted branch_parent_index if present
         case section.parent_id do
           nil ->
             section
 
           {:idx, parent_idx} ->
-            parent = Enum.at(notebook.sections, parent_idx)
-            %{section | parent_id: parent.id}
+            cond do
+              section_idx > parent_idx && Enum.at(notebook.sections, parent_idx) != nil ->
+                parent = Enum.at(notebook.sections, parent_idx)
+                %{section | parent_id: parent.id}
+
+              true ->
+                IO.puts(
+                  "[warning] Section [#{section.name}] has a parent section which is either after the section it self or its parent is a branching section"
+                )
+
+                %{section | parent_id: nil}
+            end
         end
       end)
 

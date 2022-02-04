@@ -1,5 +1,6 @@
 defmodule Livebook.LiveMarkdown.ImportTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
 
   alias Livebook.LiveMarkdown.Import
   alias Livebook.Notebook
@@ -765,5 +766,81 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                output_counter: 2
              } = notebook
     end
+  end
+
+
+  test "import notebook with invalid parent section sets parent_id of section to nil" do
+    markdown = """
+    # My Notebook
+    
+    <!-- livebook:{"branch_parent_index":4} -->
+
+    ## Section 3
+
+    ```elixir
+    Process.info()
+    ```
+
+    ## Section 4
+
+    ```elixir
+    Process.info()
+    ```
+    """
+
+    {notebook, []} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 3",
+                 parent_id: nil,
+                 cells: [
+                   %Cell.Elixir{
+                     source: """
+                     Process.info()\
+                     """
+                   }
+                 ]
+               },
+               %Notebook.Section{
+                 name: "Section 4",
+                 parent_id: _,
+                 cells: [
+                   %Cell.Elixir{
+                     source: """
+                     Process.info()\
+                     """
+                   }
+                 ]
+               }
+             ]
+           } = notebook
+  end
+
+  test "import notebook with invalid parent section produces a warning message" do
+    markdown = """
+    # My Notebook
+    
+    <!-- livebook:{"branch_parent_index":4} -->
+
+    ## Section 3
+
+    ```elixir
+    Process.info()
+    ```
+
+    ## Section 4
+
+    ```elixir
+    Process.info()
+    ```
+    """
+
+    assert capture_io(fn -> 
+      Import.notebook_from_markdown(markdown) 
+    end) == "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section\n"
+
   end
 end
