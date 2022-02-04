@@ -144,7 +144,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:error, {:redirect, %{to: to}}} =
         view
-        |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download Source")
+        |> element(~s{[data-test-session-id="#{session.id}"] a}, "Download source")
         |> render_click
 
       assert to ==
