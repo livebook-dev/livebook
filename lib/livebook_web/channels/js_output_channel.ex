@@ -24,7 +24,8 @@ defmodule LivebookWeb.JSOutputChannel do
     {:noreply, socket}
   end
 
-  def handle_in("event", %{"event" => event, "payload" => payload, "ref" => ref}, socket) do
+  def handle_in("event", raw, socket) do
+    {[event, ref], payload} = transport_decode!(raw)
     pid = socket.assigns.ref_with_pid[ref]
     send(pid, {:event, event, payload, %{origin: self(), ref: ref}})
     {:noreply, socket}
@@ -52,7 +53,7 @@ defmodule LivebookWeb.JSOutputChannel do
 
   @impl true
   def handle_info({:connect_reply, data, %{ref: ref}}, socket) do
-    with {:error, error} <- try_push(socket, "init:#{ref}", %{"data" => data}) do
+    with {:error, error} <- try_push(socket, "init:#{ref}", nil, data) do
       message = "Failed to serialize initial widget data, " <> error
       push(socket, "error:#{ref}", %{"message" => message})
     end
@@ -61,8 +62,7 @@ defmodule LivebookWeb.JSOutputChannel do
   end
 
   def handle_info({:event, event, payload, %{ref: ref}}, socket) do
-    with {:error, error} <-
-           try_push(socket, "event:#{ref}", %{"event" => event, "payload" => payload}) do
+    with {:error, error} <- try_push(socket, "event:#{ref}", [event], payload) do
       message = "Failed to serialize event payload, " <> error
       push(socket, "error:#{ref}", %{"message" => message})
     end
@@ -71,8 +71,9 @@ defmodule LivebookWeb.JSOutputChannel do
   end
 
   # In case the payload fails to encode we catch the error
-  defp try_push(socket, event, payload) do
+  defp try_push(socket, event, meta, payload) do
     try do
+      payload = transport_encode!(meta, payload)
       push(socket, event, payload)
     catch
       :error, %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
@@ -81,5 +82,41 @@ defmodule LivebookWeb.JSOutputChannel do
       :error, error ->
         {:error, Exception.message(error)}
     end
+  end
+
+  # A user payload can be either a JSON-serializable term
+  # or a {:binary, info, binary} tuple, where info is a
+  # JSON-serializable term. The channel allows for sending
+  # either maps or binaries, so we need to translare the
+  # payload accordingly
+
+  defp transport_encode!(meta, {:binary, info, binary}) do
+    {:binary, encode!([meta, info], binary)}
+  end
+
+  defp transport_encode!(meta, payload) do
+    %{"root" => [meta, payload]}
+  end
+
+  defp transport_decode!({:binary, raw}) do
+    {[meta, info], binary} = decode!(raw)
+    {meta, {:binary, info, binary}}
+  end
+
+  defp transport_decode!(raw) do
+    %{"root" => [meta, payload]} = raw
+    {meta, payload}
+  end
+
+  defp encode!(meta, binary) do
+    meta = Jason.encode!(meta)
+    meta_size = byte_size(meta)
+    <<meta_size::size(32), meta::binary, binary::binary>>
+  end
+
+  defp decode!(raw) do
+    <<meta_size::size(32), meta::binary-size(meta_size), binary::binary>> = raw
+    meta = Jason.decode!(meta)
+    {meta, binary}
   end
 end
