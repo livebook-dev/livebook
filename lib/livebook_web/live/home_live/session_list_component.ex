@@ -160,6 +160,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 <.remix_icon icon="shut-down-line" />
                 <span class="font-medium">Disconnect runtime</span>
               </button>
+              <a class="menu-item text-gray-500"
+                role="menuitem"
+                href={Routes.session_path(@socket, :download_source, session.id, "livemd", include_outputs: false)}
+                download>
+                <.remix_icon icon="download-2-line" class="text-lg"/>
+                <span class="font-medium">Download Source</span>
+              </a>
               <%= live_patch to: Routes.home_path(@socket, :close_session, session.id),
                     class: "menu-item text-red-600",
                     role: "menuitem" do %>
