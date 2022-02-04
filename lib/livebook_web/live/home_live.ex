@@ -41,11 +41,11 @@ defmodule LivebookWeb.HomeLive do
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
           <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
-                      sm:flex-row sm:space-y-0 sm:justify-between" role="heading" aria-level="1">
+                      sm:flex-row sm:space-y-0 sm:justify-between">
             <div class="text-2xl text-gray-800 font-semibold">
               <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
             </div>
-            <div class="flex space-x-2 pt-2">
+            <div class="flex space-x-2 pt-2" role="navigation" aria-label="New notebook">
               <%= live_patch "Import",
                     to: Routes.home_path(@socket, :import, "url"),
                     class: "button-base button-outlined-gray whitespace-nowrap" %>
@@ -55,7 +55,7 @@ defmodule LivebookWeb.HomeLive do
             </div>
           </div>
 
-          <div class="h-80">
+          <div class="h-80" role="region" aria-label="file system">
             <.live_component module={LivebookWeb.FileSelectComponent}
                 id="home-file-select"
                 file={@file}
@@ -85,7 +85,7 @@ defmodule LivebookWeb.HomeLive do
             </.live_component>
           </div>
 
-          <div class="py-12" data-element="explore-section">
+          <div class="py-12" data-element="explore-section" role="region" aria-label="Explore Section">
             <div class="mb-4 flex justify-between items-center">
               <h2 class="uppercase font-semibold text-gray-500">
                 Explore
@@ -104,7 +104,7 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
           </div>
-          <div class="py-12">
+          <div class="py-12" role="region" aria-label="Running sessions">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
               sessions={@sessions}/>
