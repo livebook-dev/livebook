@@ -192,7 +192,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <div class="hidden md:flex">
         <span class="px-2 py-1 text-sm text-gray-500 font-medium">
           <%= format_bytes(@used) %> / <%= format_bytes(@total) %>
-          <span class="sr-only"><%= @percentage %> used</span>
+          <span class="sr-only"><%= @percentage %> percent used</span>
         </span>
       </div>
       </span>
