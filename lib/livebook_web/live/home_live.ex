@@ -44,6 +44,7 @@ defmodule LivebookWeb.HomeLive do
                       sm:flex-row sm:space-y-0 sm:justify-between">
             <div class="text-2xl text-gray-800 font-semibold">
               <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
+              <h1 class="sr-only">Livebook</h1>
             </div>
             <div class="flex space-x-2 pt-2" role="navigation" aria-label="New notebook">
               <%= live_patch "Import",

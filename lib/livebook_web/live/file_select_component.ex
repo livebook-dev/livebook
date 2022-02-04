@@ -62,6 +62,7 @@ defmodule LivebookWeb.FileSelectComponent do
   def render(assigns) do
     ~H"""
     <div class="h-full flex flex-col">
+      <h2 class="sr-only">File system</h2>
       <div class="flex space-x-3 items-center mb-4">
         <div class="grow flex space-x-1">
           <.file_system_menu_button
