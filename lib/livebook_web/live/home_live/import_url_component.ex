@@ -26,7 +26,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
           <%= @error_message %>
         </div>
       <% end %>
-      <p class="text-gray-700">
+      <p class="text-gray-700" id="import-from-url">
         Paste the URL to a .livemd file, to a GitHub file, or to a Gist to import it.
       </p>
       <.form let={f} for={:data}
@@ -37,6 +37,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
         <%= text_input f, :url, value: @url, class: "input",
               placeholder: "Notebook URL",
               autofocus: true,
+              aria_labelledby: "import-from-url",
               spellcheck: "false" %>
         <button class="mt-5 button-base button-blue"
           type="submit"

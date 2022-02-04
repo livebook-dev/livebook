@@ -62,6 +62,7 @@ defmodule LivebookWeb.FileSelectComponent do
   def render(assigns) do
     ~H"""
     <div class="h-full flex flex-col">
+      <h2 class="sr-only">File system</h2>
       <div class="flex space-x-3 items-center mb-4">
         <div class="grow flex space-x-1">
           <.file_system_menu_button
@@ -77,6 +78,7 @@ defmodule LivebookWeb.FileSelectComponent do
             phx-target={@myself}>
             <input class="input"
               id="input-path"
+              aria-label="file path"
               phx-hook="FocusOnUpdate"
               type="text"
               name="path"
@@ -145,6 +147,7 @@ defmodule LivebookWeb.FileSelectComponent do
                 phx-target={@myself}>
                 <input
                   id="new_dir_input"
+                  aria-label="new directory"
                   type="text"
                   spellcheck="false"
                   autocomplete="off"
@@ -267,6 +270,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <:toggle>
         <button class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
           data-toggle
+          aria-label={"#{if @file_info.name == "..", do: "parent directory", else: @file_info.name}"}
           phx-click="set_path"
           phx-value-path={@file_info.file.path}
           phx-target={@myself}>
@@ -292,6 +296,7 @@ defmodule LivebookWeb.FileSelectComponent do
         <%= if @file_info.editable do %>
           <button class="menu-item text-gray-500"
             role="menuitem"
+            aria-label="rename file"
             phx-click="rename_file"
             phx-target={@myself}
             phx-value-path={@file_info.file.path}>
@@ -300,6 +305,7 @@ defmodule LivebookWeb.FileSelectComponent do
           </button>
           <button class="menu-item text-red-600"
             role="menuitem"
+            aria-label="delete file"
             phx-click="delete_file"
             phx-target={@myself}
             phx-value-path={@file_info.file.path}>

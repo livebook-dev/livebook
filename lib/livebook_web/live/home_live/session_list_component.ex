@@ -51,7 +51,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           <.menu id="sessions-order-menu">
             <:toggle>
               <button class="w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
-                type="button">
+                type="button" aria-label={"order by - currently ordered by #{order_by_label(@order_by)}"}>
                 <span><%= order_by_label(@order_by) %></span>
                 <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
               </button>
@@ -101,12 +101,13 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp session_list(assigns) do
     ~H"""
-    <div class="flex flex-col">
+    <div class="flex flex-col" role="group" aria-label="running sessions list">
       <%= for session <- @sessions do %>
         <div class="py-4 flex items-center border-b border-gray-300"
           data-test-session-id={session.id}>
           <div id={"#{session.id}-checkbox"} phx-update="ignore">
             <input type="checkbox" name="session_ids[]" value={session.id}
+              aria-label={session.notebook_name}
               class="checkbox-base hidden mr-3"
               data-element="bulk-edit-member"
               phx-click={JS.dispatch("lb:session_list:on_selection_change")}>
@@ -187,7 +188,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
 
     ~H"""
-    <div class="pr-4">
+    <div class="pr-4" role="group" aria-label="memory information">
       <span class="tooltip top" data-tooltip={"#{format_bytes(@free)} available"}>
       <svg viewbox="-10 5 50 25" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
         <circle cx="16.91549431" cy="16.91549431" r="15.91549431"
@@ -198,6 +199,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       <div class="hidden md:flex">
         <span class="px-2 py-1 text-sm text-gray-500 font-medium">
           <%= format_bytes(@used) %> / <%= format_bytes(@total) %>
+          <span class="sr-only"><%= @percentage %> percent used</span>
         </span>
       </div>
       </span>
@@ -207,11 +209,11 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp edit_sessions(assigns) do
     ~H"""
-    <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1">
+    <div class="mx-4 mr-2 text-gray-600 flex flex-row gap-1" role="group" aria-label="bulk actions for sessions">
       <.menu id="edit-sessions">
         <:toggle>
           <button id="toggle-edit" class="w-28 button-base button-outlined-gray px-4 pl-2 py-1"
-            phx-click={toggle_edit(:on)} type="button">
+            phx-click={toggle_edit(:on)} type="button" aria-label="toggle edit">
             <.remix_icon icon="list-check-2" class="text-lg leading-none align-middle ml-1" />
             <span>Edit</span>
           </button>

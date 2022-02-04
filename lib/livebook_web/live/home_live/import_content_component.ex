@@ -10,10 +10,11 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
   def render(assigns) do
     ~H"""
     <div class="flex-col space-y-5">
-      <p class="text-gray-700">
+      <p class="text-gray-700" id="import-from-content">
         Import notebook by directly pasting the <span class="font-semibold">live markdown</span> content.
       </p>
       <.form let={f} for={:data}
+        id="import-content"
         phx-submit="import"
         phx-change="validate"
         phx-target={@myself}
@@ -21,6 +22,7 @@ defmodule LivebookWeb.HomeLive.ImportContentComponent do
         <%= textarea f, :content, value: @content, class: "input resize-none",
               placeholder: "Notebook content",
               autofocus: true,
+              aria_labelledby: "import-from-content",
               spellcheck: "false",
               rows: 5 %>
         <button class="mt-5 button-base button-blue" type="submit" disabled={@content == ""}>
