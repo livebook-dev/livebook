@@ -768,11 +768,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     end
   end
 
-
   test "import notebook with invalid parent section sets parent_id of section to nil" do
     markdown = """
     # My Notebook
-    
+
     <!-- livebook:{"branch_parent_index":4} -->
 
     ## Section 3
@@ -822,7 +821,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
   test "import notebook with invalid parent section produces a warning message" do
     markdown = """
     # My Notebook
-    
+
     <!-- livebook:{"branch_parent_index":4} -->
 
     ## Section 3
@@ -838,9 +837,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    assert capture_io(fn -> 
-      Import.notebook_from_markdown(markdown) 
-    end) == "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section\n"
-
+    assert capture_io(fn ->
+             Import.notebook_from_markdown(markdown)
+           end) ==
+             "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section\n"
   end
 end
