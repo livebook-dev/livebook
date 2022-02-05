@@ -295,8 +295,12 @@ function bindIframeSize(iframe, iframePlaceholder) {
 // (1): https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#document_source_security
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
 
+// When running Livebook on http:// we want to load the iframe from
+// http:// as well, otherwise the browser could block asset requests
+// from the https:// iframe to http:// Livebook. Both protocols are
+// supported by livebook.space
+const IFRAME_URL = `${window.location.protocol}//livebook.space/iframe/v2.html`;
 const IFRAME_SHA256 = "+uJyGu0Ey7uVV7WwRwg7GyjwCkMNRBnyNc25iGFpYXc=";
-const IFRAME_URL = "https://livebook.space/iframe/v2.html";
 
 function initializeIframeSource(iframe) {
   return verifyIframeSource().then(() => {
