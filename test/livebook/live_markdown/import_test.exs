@@ -786,7 +786,10 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook,
+     [
+       "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section"
+     ]} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
