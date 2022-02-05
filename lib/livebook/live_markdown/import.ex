@@ -16,9 +16,9 @@ defmodule Livebook.LiveMarkdown.Import do
     {ast, rewrite_messages} = rewrite_ast(ast)
     elements = group_elements(ast)
     {notebook, build_messages} = build_notebook(elements)
-    notebook = postprocess_notebook(notebook)
+    {notebook, postprocess_messages} = postprocess_notebook(notebook)
 
-    {notebook, earmark_messages ++ rewrite_messages ++ build_messages}
+    {notebook, earmark_messages ++ rewrite_messages ++ build_messages ++ postprocess_messages}
   end
 
   defp earmark_message_to_string({_severity, line_number, message}) do
@@ -393,30 +393,59 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp postprocess_notebook(notebook) do
-    sections =
+    sections_with_parents =
+      Enum.reduce(notebook.sections, %{}, fn section, acc ->
+        case section.parent_id do
+          nil ->
+            acc
+
+          _ ->
+            Map.put(acc, section.id, section.parent_id)
+        end
+      end)
+
+    {sections, warnings} =
       Enum.with_index(notebook.sections)
-      |> Enum.map(fn {section, section_idx} ->
+      |> Enum.map_reduce([], fn {section, section_idx}, warnings ->
         # Set parent_id based on the persisted branch_parent_index if present
         case section.parent_id do
           nil ->
-            section
+            {section, warnings}
 
           {:idx, parent_idx} ->
             cond do
-              section_idx > parent_idx && Enum.at(notebook.sections, parent_idx) != nil ->
+              section_idx > parent_idx &&
+                  !has_parent_section_a_parent?(
+                    sections_with_parents,
+                    notebook.sections,
+                    parent_idx
+                  ) ->
                 parent = Enum.at(notebook.sections, parent_idx)
-                %{section | parent_id: parent.id}
+
+                {%{section | parent_id: parent.id}, warnings}
 
               true ->
-                IO.puts(
+                warning_message =
                   "[warning] Section [#{section.name}] has a parent section which is either after the section it self or its parent is a branching section"
-                )
 
-                %{section | parent_id: nil}
+                {%{section | parent_id: nil}, [warning_message | warnings]}
             end
         end
       end)
 
-    %{notebook | sections: sections}
+    {%{notebook | sections: sections}, warnings}
+  end
+
+  defp has_parent_section_a_parent?(_sections_with_parents, sections, _parent_index)
+       when length(sections) == 0,
+       do: false
+
+  defp has_parent_section_a_parent?(%{}, _sections, _parent_index), do: false
+
+  defp has_parent_section_a_parent?(sections_with_parents, sections, parent_idx) do
+    case Enum.at(sections, parent_idx) do
+      nil -> false
+      parent -> !is_nil(Map.get(sections_with_parents, parent.id))
+    end
   end
 end

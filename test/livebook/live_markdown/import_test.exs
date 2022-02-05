@@ -1,6 +1,5 @@
 defmodule Livebook.LiveMarkdown.ImportTest do
   use ExUnit.Case, async: true
-  import ExUnit.CaptureIO
 
   alias Livebook.LiveMarkdown.Import
   alias Livebook.Notebook
@@ -837,9 +836,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    assert capture_io(fn ->
-             Import.notebook_from_markdown(markdown)
-           end) ==
-             "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section\n"
+    assert {_notebook,
+            [
+              "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section"
+            ]} = Import.notebook_from_markdown(markdown)
   end
 end
