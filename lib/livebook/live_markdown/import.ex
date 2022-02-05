@@ -393,59 +393,46 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp postprocess_notebook(notebook) do
-    sections_with_parents =
-      Enum.reduce(notebook.sections, %{}, fn section, acc ->
-        case section.parent_id do
-          nil ->
-            acc
-
-          _ ->
-            Map.put(acc, section.id, section.parent_id)
-        end
-      end)
-
-    {sections, warnings} =
+    {sections, {_branching_ids, warnings}} =
       Enum.with_index(notebook.sections)
-      |> Enum.map_reduce([], fn {section, section_idx}, warnings ->
+      |> Enum.map_reduce({MapSet.new(), []}, fn {section, section_idx},
+                                                {branching_ids, warnings} ->
         # Set parent_id based on the persisted branch_parent_index if present
         case section.parent_id do
           nil ->
-            {section, warnings}
+            {section, {branching_ids, warnings}}
 
           {:idx, parent_idx} ->
-            cond do
-              section_idx > parent_idx &&
-                  !has_parent_section_a_parent?(
-                    sections_with_parents,
-                    notebook.sections,
-                    parent_idx
-                  ) ->
-                parent = Enum.at(notebook.sections, parent_idx)
+            parent = Enum.at(notebook.sections, parent_idx)
 
-                {%{section | parent_id: parent.id}, warnings}
+            cond do
+              section_idx > parent_idx ->
+                {%{section | parent_id: parent.id},
+                 {MapSet.put(branching_ids, section.id), warnings}}
+
+              !is_nil(parent) && MapSet.member?(branching_ids, parent.id) ->
+                {%{section | parent_id: nil},
+                 {
+                   branching_ids,
+                   [
+                     "Parent section of #{section.name} is itself a branching section, which is not allowed"
+                     | warnings
+                   ]
+                 }}
 
               true ->
-                warning_message =
-                  "[warning] Section [#{section.name}] has a parent section which is either after the section it self or its parent is a branching section"
-
-                {%{section | parent_id: nil}, [warning_message | warnings]}
+                {%{section | parent_id: nil},
+                 {
+                   branching_ids,
+                   [
+                     "Parent of section of #{section.name} is after current section, which is not allowed"
+                     | warnings
+                   ]
+                 }}
             end
         end
       end)
 
     {%{notebook | sections: sections}, warnings}
-  end
-
-  defp has_parent_section_a_parent?(_sections_with_parents, sections, _parent_index)
-       when length(sections) == 0,
-       do: false
-
-  defp has_parent_section_a_parent?(%{}, _sections, _parent_index), do: false
-
-  defp has_parent_section_a_parent?(sections_with_parents, sections, parent_idx) do
-    case Enum.at(sections, parent_idx) do
-      nil -> false
-      parent -> !is_nil(Map.get(sections_with_parents, parent.id))
-    end
   end
 end

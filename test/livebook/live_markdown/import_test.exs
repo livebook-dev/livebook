@@ -788,7 +788,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
 
     {notebook,
      [
-       "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section"
+       "Parent of section of Section 3 is after current section, which is not allowed"
      ]} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
@@ -818,30 +818,5 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                }
              ]
            } = notebook
-  end
-
-  test "import notebook with invalid parent section produces a warning message" do
-    markdown = """
-    # My Notebook
-
-    <!-- livebook:{"branch_parent_index":4} -->
-
-    ## Section 3
-
-    ```elixir
-    Process.info()
-    ```
-
-    ## Section 4
-
-    ```elixir
-    Process.info()
-    ```
-    """
-
-    assert {_notebook,
-            [
-              "[warning] Section [Section 3] has a parent section which is either after the section it self or its parent is a branching section"
-            ]} = Import.notebook_from_markdown(markdown)
   end
 end
