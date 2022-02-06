@@ -766,4 +766,120 @@ defmodule Livebook.LiveMarkdown.ImportTest do
              } = notebook
     end
   end
+
+  test "import notebook with invalid parent section produces a warning" do
+    markdown = """
+    # My Notebook
+
+    <!-- livebook:{"branch_parent_index":4} -->
+
+    ## Section 1
+
+    ```elixir
+    Process.info()
+    ```
+
+    ## Section 2
+
+    ```elixir
+    Process.info()
+    ```
+    """
+
+    assert {notebook,
+            [
+              "ignoring the parent section of \"Section 1\", because it comes later in the notebook"
+            ]} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 parent_id: nil
+               },
+               %Notebook.Section{
+                 parent_id: nil
+               }
+             ]
+           } = notebook
+  end
+
+  test "import notebook with parent section pointing to the section itself produces a warning" do
+    markdown = """
+    # My Notebook
+
+    <!-- livebook:{"branch_parent_index":0} -->
+
+    ## Section 1
+
+    ```elixir
+    Process.info()
+    ```
+    """
+
+    assert {notebook,
+            [
+              "ignoring the parent section of \"Section 1\", because it comes later in the notebook"
+            ]} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 parent_id: nil
+               }
+             ]
+           } = notebook
+  end
+
+  test "import notebook with parent section being a branching section  itself produces a warning" do
+    markdown = """
+    # My Notebook
+
+
+    ## Section 1
+
+    ```elixir
+    Process.info()
+    ```
+
+    <!-- livebook:{"branch_parent_index":0} -->
+
+    ## Section 2
+
+    ```elixir
+    Process.info()
+    ```
+    <!-- livebook:{"branch_parent_index":1} -->
+
+    ## Section 3
+
+    ```elixir
+    Process.info()
+    ```
+    """
+
+    assert {notebook,
+            [
+              "ignoring the parent section of \"Section 3\", because it is itself a branching section"
+            ]} = Import.notebook_from_markdown(markdown)
+
+    assert %Notebook{
+             name: "My Notebook",
+             sections: [
+               %Notebook.Section{
+                 name: "Section 1",
+                 parent_id: nil
+               },
+               %Notebook.Section{
+                 name: "Section 2",
+                 parent_id: _
+               },
+               %Notebook.Section{
+                 name: "Section 3",
+                 parent_id: nil
+               }
+             ]
+           } = notebook
+  end
 end
