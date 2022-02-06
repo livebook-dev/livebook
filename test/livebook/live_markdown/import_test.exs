@@ -767,7 +767,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     end
   end
 
-  test "import notebook with invalid parent section sets parent_id of section to produces a warning" do
+  test "import notebook with invalid parent section produces a warning" do
     markdown = """
     # My Notebook
 
@@ -808,7 +808,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     markdown = """
     # My Notebook
 
-    <!-- livebook:{"branch_parent_index":1} -->
+    <!-- livebook:{"branch_parent_index":0} -->
 
     ## Section 1
 
