@@ -407,7 +407,7 @@ defmodule Livebook.LiveMarkdown.Import do
             parent = Enum.at(notebook.sections, parent_idx)
 
             cond do
-              section_idx < parent_idx ->
+              section_idx <= parent_idx ->
                 {%{section | parent_id: nil},
                  {
                    branching_ids,
