@@ -786,35 +786,19 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook,
-     [
-       "Parent of section of Section 3 is after current section, which is not allowed"
-     ]} = Import.notebook_from_markdown(markdown)
+    assert {notebook,
+            [
+              "ignoring the parent section of \"Section 3\", because it comes later in the notebook"
+            ]} = Import.notebook_from_markdown(markdown)
 
     assert %Notebook{
              name: "My Notebook",
              sections: [
                %Notebook.Section{
-                 name: "Section 3",
-                 parent_id: nil,
-                 cells: [
-                   %Cell.Elixir{
-                     source: """
-                     Process.info()\
-                     """
-                   }
-                 ]
+                 parent_id: nil
                },
                %Notebook.Section{
-                 name: "Section 4",
-                 parent_id: _,
-                 cells: [
-                   %Cell.Elixir{
-                     source: """
-                     Process.info()\
-                     """
-                   }
-                 ]
+                 parent_id: _
                }
              ]
            } = notebook

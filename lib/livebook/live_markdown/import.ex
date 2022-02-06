@@ -394,7 +394,8 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp postprocess_notebook(notebook) do
     {sections, {_branching_ids, warnings}} =
-      Enum.with_index(notebook.sections)
+      notebook.sections
+      |> Enum.with_index()
       |> Enum.map_reduce({MapSet.new(), []}, fn {section, section_idx},
                                                 {branching_ids, warnings} ->
         # Set parent_id based on the persisted branch_parent_index if present
@@ -406,33 +407,33 @@ defmodule Livebook.LiveMarkdown.Import do
             parent = Enum.at(notebook.sections, parent_idx)
 
             cond do
-              section_idx > parent_idx ->
-                {%{section | parent_id: parent.id},
-                 {MapSet.put(branching_ids, section.id), warnings}}
+              section_idx < parent_idx ->
+                {%{section | parent_id: nil},
+                 {
+                   branching_ids,
+                   [
+                     ~s{ignoring the parent section of "#{section.name}", because it comes later in the notebook}
+                     | warnings
+                   ]
+                 }}
 
               !is_nil(parent) && MapSet.member?(branching_ids, parent.id) ->
                 {%{section | parent_id: nil},
                  {
                    branching_ids,
                    [
-                     "Parent section of #{section.name} is itself a branching section, which is not allowed"
+                     ~s{ignoring the parent section of "#{section.name}", because it is itself a branching section}
                      | warnings
                    ]
                  }}
 
               true ->
-                {%{section | parent_id: nil},
-                 {
-                   branching_ids,
-                   [
-                     "Parent of section of #{section.name} is after current section, which is not allowed"
-                     | warnings
-                   ]
-                 }}
+                {%{section | parent_id: parent.id},
+                 {MapSet.put(branching_ids, section.id), warnings}}
             end
         end
       end)
 
-    {%{notebook | sections: sections}, warnings}
+    {%{notebook | sections: sections}, Enum.reverse(warnings)}
   end
 end
