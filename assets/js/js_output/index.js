@@ -350,29 +350,31 @@ const HEADER_LENGTH = 4;
 
 function encode(meta, buffer) {
   const encoder = new TextEncoder();
-  const metaBuffer = encoder.encode(JSON.stringify(meta));
+  const metaArray = encoder.encode(JSON.stringify(meta));
 
   const raw = new ArrayBuffer(
-    HEADER_LENGTH + metaBuffer.byteLength + buffer.byteLength
+    HEADER_LENGTH + metaArray.byteLength + buffer.byteLength
   );
   const view = new DataView(raw);
 
-  view.setUint32(0, metaBuffer.byteLength);
-  new Uint8Array(raw, HEADER_LENGTH, metaBuffer.byteLength).set(metaBuffer);
-  new Uint8Array(raw, HEADER_LENGTH + metaBuffer.byteLength).set(buffer);
+  view.setUint32(0, metaArray.byteLength);
+  new Uint8Array(raw, HEADER_LENGTH, metaArray.byteLength).set(metaArray);
+  new Uint8Array(raw, HEADER_LENGTH + metaArray.byteLength).set(
+    new Uint8Array(buffer)
+  );
 
   return raw;
 }
 
 function decode(raw) {
   const view = new DataView(raw);
-  const metaBufferLength = view.getUint32(0);
+  const metaArrayLength = view.getUint32(0);
 
-  const metaBuffer = new Uint8Array(raw, HEADER_LENGTH, metaBufferLength);
-  const buffer = raw.slice(HEADER_LENGTH + metaBufferLength);
+  const metaArray = new Uint8Array(raw, HEADER_LENGTH, metaArrayLength);
+  const buffer = raw.slice(HEADER_LENGTH + metaArrayLength);
 
   const decoder = new TextDecoder();
-  const meta = JSON.parse(decoder.decode(metaBuffer));
+  const meta = JSON.parse(decoder.decode(metaArray));
 
   return [meta, buffer];
 }
