@@ -1,4 +1,4 @@
-defmodule LivebookWeb.CurrentUserHook do
+defmodule LivebookWeb.UserHook do
   import Phoenix.LiveView
 
   alias Livebook.Users.User

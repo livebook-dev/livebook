@@ -11,11 +11,16 @@ defmodule LivebookWeb.Endpoint do
     same_site: "Lax"
   ]
 
-  socket "/live", LivebookWeb.Socket,
-    # Don't check the origin as we don't know how the web app is gonna be accessed.
-    # It runs locally, but may be exposed via IP or domain name.
-    # The WebSocket connection is already protected from CSWSH by using CSRF token.
-    websocket: [check_origin: false, connect_info: [:user_agent, :uri, session: @session_options]]
+  # Don't check the origin as we don't know how the web app is gonna be accessed.
+  # It runs locally, but may be exposed via IP or domain name. The WebSocket
+  # connection is already protected from CSWSH by using CSRF token.
+  @websocket_options [
+    check_origin: false,
+    connect_info: [:user_agent, :uri, session: @session_options]
+  ]
+
+  socket "/live", Phoenix.LiveView.Socket, websocket: @websocket_options
+  socket "/socket", LivebookWeb.Socket, websocket: @websocket_options
 
   # We use Escript for distributing Livebook, so we don't have access to the static
   # files at runtime in the prod environment. To overcome this we load contents of

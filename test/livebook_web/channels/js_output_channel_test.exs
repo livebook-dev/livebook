@@ -20,13 +20,13 @@ defmodule LivebookWeb.JSOutputChannelTest do
     assert_receive {:connect, from, %{}}
     send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
 
-    assert_push "init:1", %{"data" => [1, 2, 3]}
+    assert_push "init:1", %{"root" => [nil, [1, 2, 3]]}
   end
 
   test "sends events received from widget server to the client", %{socket: socket} do
     send(socket.channel_pid, {:event, "ping", [1, 2, 3], %{ref: "1"}})
 
-    assert_push "event:1", %{"event" => "ping", "payload" => [1, 2, 3]}
+    assert_push "event:1", %{"root" => [["ping"], [1, 2, 3]]}
   end
 
   test "sends client events to the corresponding widget server", %{socket: socket} do
@@ -35,9 +35,42 @@ defmodule LivebookWeb.JSOutputChannelTest do
     assert_receive {:connect, from, %{}}
     send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
 
-    push(socket, "event", %{"event" => "ping", "payload" => [1, 2, 3], "ref" => "1"})
+    push(socket, "event", %{"root" => [["ping", "1"], [1, 2, 3]]})
 
     assert_receive {:event, "ping", [1, 2, 3], %{origin: _origin}}
+  end
+
+  describe "binary payload" do
+    test "initial data", %{socket: socket} do
+      push(socket, "connect", %{"session_token" => session_token(), "ref" => "1"})
+
+      assert_receive {:connect, from, %{}}
+      payload = {:binary, %{message: "hey"}, <<1, 2, 3>>}
+      send(from, {:connect_reply, payload, %{ref: "1"}})
+
+      assert_push "init:1", {:binary, <<24::size(32), "[null,{\"message\":\"hey\"}]", 1, 2, 3>>}
+    end
+
+    test "from server to client", %{socket: socket} do
+      payload = {:binary, %{message: "hey"}, <<1, 2, 3>>}
+      send(socket.channel_pid, {:event, "ping", payload, %{ref: "1"}})
+
+      assert_push "event:1",
+                  {:binary, <<28::size(32), "[[\"ping\"],{\"message\":\"hey\"}]", 1, 2, 3>>}
+    end
+
+    test "form client to server", %{socket: socket} do
+      push(socket, "connect", %{"session_token" => session_token(), "ref" => "1"})
+
+      assert_receive {:connect, from, %{}}
+      send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
+
+      raw = {:binary, <<32::size(32), "[[\"ping\",\"1\"],{\"message\":\"hey\"}]", 1, 2, 3>>}
+      push(socket, "event", raw)
+
+      payload = {:binary, %{"message" => "hey"}, <<1, 2, 3>>}
+      assert_receive {:event, "ping", ^payload, %{origin: _origin}}
+    end
   end
 
   defp session_token() do

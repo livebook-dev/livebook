@@ -39,7 +39,7 @@ defmodule LivebookWeb.Router do
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
   end
 
-  live_session :default, on_mount: LivebookWeb.CurrentUserHook do
+  live_session :default, on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 

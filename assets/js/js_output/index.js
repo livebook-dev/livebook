@@ -1,3 +1,4 @@
+import { Socket } from "phoenix";
 import { getAttributeOrThrow } from "../lib/attribute";
 import { randomToken, sha256Base64 } from "../lib/utils";
 
@@ -41,10 +42,7 @@ const JSOutput = {
       errorContainer: null,
     };
 
-    const channel = getChannel(
-      this.__liveSocket.getSocket(),
-      this.props.sessionId
-    );
+    const channel = getChannel(this.props.sessionId);
 
     // When cells/sections are reordered, morphdom detaches and attaches
     // the relevant elements in the DOM. Consequently the output element
@@ -118,7 +116,8 @@ const JSOutput = {
             this.el.dispatchEvent(event);
           } else if (message.type === "event") {
             const { event, payload } = message;
-            channel.push("event", { event, payload, ref: this.props.ref });
+            const raw = transportEncode([event, this.props.ref], payload);
+            channel.push("event", raw);
           }
         }
       };
@@ -147,20 +146,18 @@ const JSOutput = {
       ref: this.props.ref,
     });
 
-    const initRef = channel.on(`init:${this.props.ref}`, ({ data }) => {
+    const initRef = channel.on(`init:${this.props.ref}`, (raw) => {
+      const [, payload] = transportDecode(raw);
+
       this.state.childReadyPromise.then(() => {
-        postMessage({ type: "init", data });
+        postMessage({ type: "init", data: payload });
       });
     });
 
-    const eventRef = channel.on(
-      `event:${this.props.ref}`,
-      ({ event, payload }) => {
-        this.state.childReadyPromise.then(() => {
-          postMessage({ type: "event", event, payload });
-        });
-      }
-    );
+    const eventRef = channel.on(`event:${this.props.ref}`, (raw) => {
+      const [[event], payload] = transportDecode(raw);
+      postMessage({ type: "event", event, payload });
+    });
 
     const errorRef = channel.on(`error:${this.props.ref}`, ({ message }) => {
       if (!this.state.errorContainer) {
@@ -188,13 +185,7 @@ const JSOutput = {
     this.disconnectObservers();
     this.state.iframe.remove();
 
-    const channel = getChannel(
-      this.__liveSocket.getSocket(),
-      this.props.sessionId,
-      {
-        create: false,
-      }
-    );
+    const channel = getChannel(this.props.sessionId, { create: false });
 
     if (channel) {
       this.state.channelUnsubscribe();
@@ -213,13 +204,19 @@ function getProps(hook) {
   };
 }
 
+const csrfToken = document
+  .querySelector("meta[name='csrf-token']")
+  .getAttribute("content");
+const socket = new Socket("/socket", { params: { _csrf_token: csrfToken } });
+
 let channel = null;
 
 /**
  * Returns channel used for all JS outputs in the current session.
  */
-function getChannel(socket, sessionId, { create = true } = {}) {
+function getChannel(sessionId, { create = true } = {}) {
   if (!channel && create) {
+    socket.connect();
     channel = socket.channel("js_output", { session_id: sessionId });
     channel.join();
   }
@@ -231,10 +228,8 @@ function getChannel(socket, sessionId, { create = true } = {}) {
  * Leaves the JS outputs channel tied to the current session.
  */
 export function leaveChannel() {
-  if (channel) {
-    channel.leave();
-    channel = null;
-  }
+  socket.disconnect();
+  channel = null;
 }
 
 /**
@@ -328,6 +323,64 @@ function verifyIframeSource() {
   }
 
   return iframeVerificationPromise;
+}
+
+function transportEncode(meta, payload) {
+  if (
+    Array.isArray(payload) &&
+    payload[1] &&
+    payload[1].constructor === ArrayBuffer
+  ) {
+    const [info, buffer] = payload;
+    return encode([meta, info], buffer);
+  } else {
+    return { root: [meta, payload] };
+  }
+}
+
+function transportDecode(raw) {
+  if (raw.constructor === ArrayBuffer) {
+    const [[meta, info], buffer] = decode(raw);
+    return [meta, [info, buffer]];
+  } else {
+    const {
+      root: [meta, payload],
+    } = raw;
+    return [meta, payload];
+  }
+}
+
+const HEADER_LENGTH = 4;
+
+function encode(meta, buffer) {
+  const encoder = new TextEncoder();
+  const metaArray = encoder.encode(JSON.stringify(meta));
+
+  const raw = new ArrayBuffer(
+    HEADER_LENGTH + metaArray.byteLength + buffer.byteLength
+  );
+  const view = new DataView(raw);
+
+  view.setUint32(0, metaArray.byteLength);
+  new Uint8Array(raw, HEADER_LENGTH, metaArray.byteLength).set(metaArray);
+  new Uint8Array(raw, HEADER_LENGTH + metaArray.byteLength).set(
+    new Uint8Array(buffer)
+  );
+
+  return raw;
+}
+
+function decode(raw) {
+  const view = new DataView(raw);
+  const metaArrayLength = view.getUint32(0);
+
+  const metaArray = new Uint8Array(raw, HEADER_LENGTH, metaArrayLength);
+  const buffer = raw.slice(HEADER_LENGTH + metaArrayLength);
+
+  const decoder = new TextDecoder();
+  const meta = JSON.parse(decoder.decode(metaArray));
+
+  return [meta, buffer];
 }
 
 export default JSOutput;
