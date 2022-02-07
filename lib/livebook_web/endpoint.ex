@@ -19,7 +19,7 @@ defmodule LivebookWeb.Endpoint do
     connect_info: [:user_agent, :uri, session: @session_options]
   ]
 
-  socket "/live", LivebookWeb.LiveSocket, websocket: @websocket_options
+  socket "/live", Phoenix.LiveView.Socket, websocket: @websocket_options
   socket "/socket", LivebookWeb.Socket, websocket: @websocket_options
 
   # We use Escript for distributing Livebook, so we don't have access to the static
