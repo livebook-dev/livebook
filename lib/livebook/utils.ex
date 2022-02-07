@@ -389,15 +389,14 @@ defmodule Livebook.Utils do
   
   @doc """
   Returns a URL (including localhost) to open the given `url` as a notebook
-    
-    iex> Livebook.Utils.notebook_open_url("https://example.com/foo.livemd")
-    "http://localhost:4002/open?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
 
-    iex> Livebook.Utils.notebook_open_url("https://my_host", "https://example.com/foo.livemd")
-    "https://my_host/open?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"  
-    
+      iex> Livebook.Utils.notebook_open_url("https://example.com/foo.livemd")
+      "http://localhost:4002/open?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+
+      iex> Livebook.Utils.notebook_open_url("https://my_host", "https://example.com/foo.livemd")
+      "https://my_host/open?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"  
+
   """
-  
   def notebook_open_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
     base_url
     |> URI.parse()
