@@ -99,11 +99,16 @@ defmodule Standalone do
     release
   end
 
-  defp download_elixir_at_destination(destination, elixir_version) do
-    url = "https://github.com/elixir-lang/elixir/releases/download/v#{elixir_version}/Precompiled.zip"
-    binary = fetch_body!(url)
-    File.write!("/tmp/elixir_#{elixir_version}.zip", binary, [:binary])
-    :zip.unzip('/tmp/elixir_#{elixir_version}.zip', cwd: destination)
+  defp download_elixir_at_destination(destination, version) do
+    url = "https://github.com/elixir-lang/elixir/releases/download/v#{version}/Precompiled.zip"
+    path = Path.join(System.tmp_dir!(), "elixir_#{version}.zip")
+
+    unless File.exists?(path) do
+      binary = fetch_body!(url)
+      File.write!(path, binary, [:binary])
+    end
+
+    :zip.unzip(String.to_charlist(path), cwd: destination)
   end
 
   defp erts_data do
