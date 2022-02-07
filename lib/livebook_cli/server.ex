@@ -168,9 +168,7 @@ defmodule LivebookCLI.Server do
 
       File.regular?(path) ->
         base_url
-        |> append_path("open")
-        |> update_query(%{"path" => path})
-        |> Livebook.Utils.browser_open()
+        |> Livebook.Utils.notebook_open_url()
 
       File.dir?(path) ->
         base_url
