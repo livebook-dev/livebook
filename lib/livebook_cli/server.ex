@@ -168,7 +168,7 @@ defmodule LivebookCLI.Server do
 
       File.regular?(path) ->
         base_url
-        |> Livebook.Utils.notebook_open_url()
+        |> Livebook.Utils.notebook_open_url(url_or_file_or_dir)
 
       File.dir?(path) ->
         base_url
