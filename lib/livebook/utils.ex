@@ -386,7 +386,26 @@ defmodule Livebook.Utils do
     |> append_query("url=#{URI.encode_www_form(url)}")
     |> URI.to_string()
   end
+  
+  @doc """
+  Returns a URL (including localhost) to open the given `url` as a notebook
+    
+    iex> Livebook.Utils.notebook_open_url("https://example.com/foo.livemd")
+    "http://localhost:4002/open?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"
 
+    iex> Livebook.Utils.notebook_open_url("https://my_host", "https://example.com/foo.livemd")
+    "https://my_host/open?url=https%3A%2F%2Fexample.com%2Ffoo.livemd"  
+    
+  """
+  
+  def notebook_open_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
+    base_url
+    |> URI.parse()
+    |> Map.replace!(:path, "/open")
+    |> append_query("url=#{URI.encode_www_form(url)}")
+    |> URI.to_string()
+  end
+  
   # TODO: On Elixir v1.14, use URI.append_query/2
   def append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
     %{uri | query: query_to_add}
