@@ -401,7 +401,7 @@ defmodule Livebook.Utils do
     base_url
     |> URI.parse()
     |> Map.replace!(:path, "/open")
-    |> append_query("url=#{URI.encode_www_form(url)}")
+    |> append_query("path=#{URI.encode_www_form(url)}")
     |> URI.to_string()
   end
   
