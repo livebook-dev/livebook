@@ -182,10 +182,7 @@ defmodule Livebook.Application do
   end
 
   defp iframe_server_specs() do
-    endpoint_config = Application.get_env(:livebook, LivebookWeb.Endpoint)
-    serve_endpoints? = Application.get_env(:phoenix, :serve_endpoints, false)
-    server? = Keyword.get(endpoint_config, :server, serve_endpoints?)
-
+    server? = Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint)
     port = Livebook.Config.iframe_port()
 
     if server? do
