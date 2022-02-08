@@ -45,7 +45,7 @@ defmodule LivebookWeb.StaticPlug do
   # * `:file_provider` (**required**) - a module implementing `LivebookWeb.StaticPlug.Provider`
   #   behaviour, responsible for resolving file requests
   #
-  # * `:at`, `:gzip` - same as `Plug.Static`
+  # * `:at`, `:gzip`, `:headers` - same as `Plug.Static`
 
   @behaviour Plug
 
@@ -60,7 +60,8 @@ defmodule LivebookWeb.StaticPlug do
     %{
       file_provider: file_provider,
       at: opts |> Keyword.fetch!(:at) |> Plug.Router.Utils.split(),
-      gzip?: Keyword.get(opts, :gzip, false)
+      gzip?: Keyword.get(opts, :gzip, false),
+      headers: Keyword.get(opts, :headers, [])
     }
   end
 
@@ -95,6 +96,7 @@ defmodule LivebookWeb.StaticPlug do
         |> put_resp_header("content-type", content_type)
         |> maybe_add_encoding(content_encoding)
         |> maybe_add_vary(options)
+        |> merge_resp_headers(options.headers)
         |> send_resp(200, file.content)
         |> halt()
 

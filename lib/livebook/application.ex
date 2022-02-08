@@ -30,12 +30,14 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.UniqueTask,
-        # Start the Endpoint (http/https)
-        # We skip the access url as we do our own logging below
-        {LivebookWeb.Endpoint, log_access_url: false}
+        Livebook.UniqueTask
       ] ++
-        app_specs()
+        iframe_server_specs() ++
+        [
+          # Start the Endpoint (http/https)
+          # We skip the access url as we do our own logging below
+          {LivebookWeb.Endpoint, log_access_url: false}
+        ] ++ app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -180,5 +182,17 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  defp iframe_server_specs() do
+    server? = Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint)
+    port = Livebook.Config.iframe_port()
+
+    if server? do
+      # Start the iframe endpoint on a different port
+      [{Plug.Cowboy, scheme: :http, plug: LivebookWeb.IframeEndpoint, options: [port: port]}]
+    else
+      []
+    end
   end
 end

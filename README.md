@@ -93,17 +93,17 @@ and also for local usage in case you don't have Elixir installed.
 
 ```shell
 # Running with the default configuration
-docker run -p 8080:8080 --pull always livebook/livebook
+docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
 
 # In order to access and save notebooks directly to your machine
 # you can mount a local directory into the container.
 # Make sure to specify the user with "-u $(id -u):$(id -g)"
 # so that the created files have proper permissions
-docker run -p 8080:8080 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
+docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
 
 # You can configure Livebook using environment variables,
 # for all options see the dedicated "Environment variables" section below
-docker run -p 8080:8080 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
+docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
 ```
 
 To try out features from the main branch you can alternatively
@@ -159,6 +159,9 @@ The following environment variables configure Livebook:
   * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
     default path used on file selection screens and others. Defaults to the
     user's operating system home.
+
+  * LIVEBOOK_IFRAME_PORT - sets the port that Livebook serves iframes at.
+    This is relevant only when running Livebook without TLS. Defaults to 8081.
 
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.

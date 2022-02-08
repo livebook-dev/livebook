@@ -1,5 +1,5 @@
 import { Socket } from "phoenix";
-import { getAttributeOrThrow } from "../lib/attribute";
+import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
 import { randomToken, sha256Base64 } from "../lib/utils";
 
 /**
@@ -28,6 +28,11 @@ import { randomToken, sha256Base64 } from "../lib/utils";
  *
  *   * `data-session-token` - token is sent in the "connect" message to
  *     the channel
+ *
+ *   * `data-session-id` - the identifier of the session that this output
+ *     belongs go
+ *
+ *   * `data-iframe-local-port` - the local port where the iframe is served
  *
  */
 const JSOutput = {
@@ -135,7 +140,7 @@ const JSOutput = {
 
     // Load the iframe content
     const iframesEl = document.querySelector(`[data-element="output-iframes"]`);
-    initializeIframeSource(iframe).then(() => {
+    initializeIframeSource(iframe, this.props.iframePort).then(() => {
       iframesEl.appendChild(iframe);
     });
 
@@ -156,7 +161,10 @@ const JSOutput = {
 
     const eventRef = channel.on(`event:${this.props.ref}`, (raw) => {
       const [[event], payload] = transportDecode(raw);
-      postMessage({ type: "event", event, payload });
+
+      this.state.childReadyPromise.then(() => {
+        postMessage({ type: "event", event, payload });
+      });
     });
 
     const errorRef = channel.on(`error:${this.props.ref}`, ({ message }) => {
@@ -201,6 +209,11 @@ function getProps(hook) {
     jsPath: getAttributeOrThrow(hook.el, "data-js-path"),
     sessionToken: getAttributeOrThrow(hook.el, "data-session-token"),
     sessionId: getAttributeOrThrow(hook.el, "data-session-id"),
+    iframePort: getAttributeOrThrow(
+      hook.el,
+      "data-iframe-local-port",
+      parseInteger
+    ),
   };
 }
 
@@ -284,34 +297,48 @@ function bindIframeSize(iframe, iframePlaceholder) {
 // would be insecure (2). Consequently, we need to load the iframe
 // from a different origin.
 //
+// When running Livebook on https:// we load the iframe from another
+// https:// origin. On the other hand, when running on http:// we want
+// to load the iframe from http:// as well, otherwise the browser could
+// block asset requests from the https:// iframe to http:// Livebook.
+// However, external http:// content is not considered a secure context (3),
+// which implies no access to user media. Therefore, instead of using
+// http://livebook.space we use another localhost endpoint. Note that
+// this endpoint has a different port than the Livebook web app, that's
+// because we need separate origins, as outlined above.
+//
 // To ensure integrity of the loaded content we manually verify the
 // checksum against the expected value.
 //
 // (1): https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#document_source_security
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
+// (3): https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
 
-// When running Livebook on http:// we want to load the iframe from
-// http:// as well, otherwise the browser could block asset requests
-// from the https:// iframe to http:// Livebook. Both protocols are
-// supported by livebook.space
-const IFRAME_URL = `${window.location.protocol}//livebook.space/iframe/v2.html`;
 const IFRAME_SHA256 = "+uJyGu0Ey7uVV7WwRwg7GyjwCkMNRBnyNc25iGFpYXc=";
 
-function initializeIframeSource(iframe) {
-  return verifyIframeSource().then(() => {
+function getIframeUrl(iframePort) {
+  return window.location.protocol === "https:"
+    ? "https://livebook.space/iframe/v2.html"
+    : `http://${window.location.hostname}:${iframePort}/iframe/v2.html`;
+}
+
+function initializeIframeSource(iframe, iframePort) {
+  const iframeUrl = getIframeUrl(iframePort);
+
+  return verifyIframeSource(iframeUrl).then(() => {
     iframe.sandbox =
       "allow-scripts allow-same-origin allow-downloads allow-modals";
     iframe.allow =
       "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking";
-    iframe.src = IFRAME_URL;
+    iframe.src = iframeUrl;
   });
 }
 
 let iframeVerificationPromise = null;
 
-function verifyIframeSource() {
+function verifyIframeSource(iframeUrl) {
   if (!iframeVerificationPromise) {
-    iframeVerificationPromise = fetch(IFRAME_URL)
+    iframeVerificationPromise = fetch(iframeUrl)
       .then((response) => response.text())
       .then((html) => {
         if (sha256Base64(html) !== IFRAME_SHA256) {
@@ -324,6 +351,8 @@ function verifyIframeSource() {
 
   return iframeVerificationPromise;
 }
+
+// Encoding/decoding of channel payloads
 
 function transportEncode(meta, payload) {
   if (

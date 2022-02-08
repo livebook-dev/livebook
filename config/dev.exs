@@ -23,6 +23,8 @@ config :livebook, LivebookWeb.Endpoint,
     ]
   ]
 
+config :livebook, :iframe_port, 4001
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

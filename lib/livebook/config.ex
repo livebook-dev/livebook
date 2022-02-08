@@ -66,6 +66,27 @@ defmodule Livebook.Config do
     Application.get_env(:livebook, :data_path) || :filename.basedir(:user_data, "livebook")
   end
 
+  @doc """
+  Returns the configured port for the Livebook endpoint.
+
+  Note that the value may be `0`.
+  """
+  @spec port() :: pos_integer() | 0
+  def port() do
+    Application.get_env(:livebook, LivebookWeb.Endpoint)[:http][:port]
+  end
+
+  @doc """
+  Returns the configured port for the iframe endpoint.
+  """
+  @spec iframe_port() :: pos_integer() | 0
+  def iframe_port() do
+    case port() do
+      0 -> 0
+      _ -> Application.fetch_env!(:livebook, :iframe_port)
+    end
+  end
+
   ## Parsing
 
   @doc """

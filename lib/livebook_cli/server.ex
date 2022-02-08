@@ -86,31 +86,41 @@ defmodule LivebookCLI.Server do
     config_entries = opts_to_config(opts, [])
     put_config_entries(config_entries)
 
-    port = Application.get_env(:livebook, LivebookWeb.Endpoint)[:http][:port]
-    base_url = "http://localhost:#{port}"
+    case Livebook.Config.port() do
+      0 ->
+        # When a random port is configured, we can assume no collision
+        start_server(extra_args)
 
-    case check_endpoint_availability(base_url) do
-      :livebook_running ->
-        IO.puts("Livebook already running on #{base_url}")
-        open_from_args(base_url, extra_args)
+      port ->
+        base_url = "http://localhost:#{port}"
 
-      :taken ->
-        print_error(
-          "Another application is already running on port #{port}." <>
-            " Either ensure this port is free or specify a different port using the --port option"
-        )
+        case check_endpoint_availability(base_url) do
+          :livebook_running ->
+            IO.puts("Livebook already running on #{base_url}")
+            open_from_args(base_url, extra_args)
 
-      :available ->
-        # We configure the endpoint with `server: true`,
-        # so it's gonna start listening
-        case Application.ensure_all_started(:livebook) do
-          {:ok, _} ->
-            open_from_args(LivebookWeb.Endpoint.access_url(), extra_args)
-            Process.sleep(:infinity)
+          :taken ->
+            print_error(
+              "Another application is already running on port #{port}." <>
+                " Either ensure this port is free or specify a different port using the --port option"
+            )
 
-          {:error, error} ->
-            print_error("Livebook failed to start with reason: #{inspect(error)}")
+          :available ->
+            start_server(extra_args)
         end
+    end
+  end
+
+  defp start_server(extra_args) do
+    # We configure the endpoint with `server: true`,
+    # so it's gonna start listening
+    case Application.ensure_all_started(:livebook) do
+      {:ok, _} ->
+        open_from_args(LivebookWeb.Endpoint.access_url(), extra_args)
+        Process.sleep(:infinity)
+
+      {:error, error} ->
+        print_error("Livebook failed to start with reason: #{inspect(error)}")
     end
   end
 

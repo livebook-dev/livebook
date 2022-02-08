@@ -42,6 +42,10 @@ defmodule Livebook do
         config :livebook, authentication_mode: :disabled
     end
 
+    if port = Livebook.Config.port!("LIVEBOOK_IFRAME_PORT") do
+      config :livebook, :iframe_port, port
+    end
+
     if runtime = Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") do
       config :livebook, :default_runtime, runtime
     end

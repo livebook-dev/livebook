@@ -11,7 +11,8 @@ defmodule LivebookWeb.Output.JSComponent do
       data-assets-base-path={Routes.session_path(@socket, :show_asset, @session_id, @info.assets.hash, [])}
       data-js-path={@info.assets.js_path}
       data-session-token={session_token(@info.pid)}
-      data-session-id={@session_id}>
+      data-session-id={@session_id}
+      data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}>
     </div>
     """
   end
