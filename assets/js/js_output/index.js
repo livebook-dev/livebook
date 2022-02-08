@@ -319,7 +319,7 @@ const IFRAME_SHA256 = "+uJyGu0Ey7uVV7WwRwg7GyjwCkMNRBnyNc25iGFpYXc=";
 function getIframeUrl(iframePort) {
   return window.location.protocol === "https:"
     ? "https://livebook.space/iframe/v2.html"
-    : `http://localhost:${iframePort}/iframe/v2.html`;
+    : `http://${window.location.hostname}:${iframePort}/iframe/v2.html`;
 }
 
 function initializeIframeSource(iframe, iframePort) {
