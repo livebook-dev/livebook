@@ -61,6 +61,8 @@ jobs:
         run: brew install elixir
       - name: Setup hex
         run: mix local.hex --force
+      - name: Setup rebar
+        run: mix local.rebar --force
       - name: Cache Mix
         uses: actions/cache@v2
         with:
