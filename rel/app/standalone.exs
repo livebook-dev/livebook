@@ -9,7 +9,7 @@ defmodule Standalone do
   def copy_otp(release, otp_version) do
     expected_otp_version = otp_version()
 
-    if otp_version != expected_otp_version do
+    unless expected_otp_version =~ otp_version do
       raise "expected OTP #{expected_otp_version}, got: #{otp_version}"
     end
 
