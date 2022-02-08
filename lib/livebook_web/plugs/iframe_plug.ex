@@ -25,4 +25,18 @@ defmodule LivebookWeb.IframePlug do
   defp not_found(conn, _) do
     send_resp(conn, 404, "not found")
   end
+
+  @doc """
+  Returns the listening port of the iframe endpoint.
+  """
+  @spec port() :: pos_integer()
+  def port() do
+    livebook_port = Livebook.Config.port()
+    iframe_port = Livebook.Config.iframe_port()
+
+    case livebook_port do
+      0 -> Livebook.Utils.get_port(__MODULE__.HTTP, iframe_port)
+      _ -> iframe_port
+    end
+  end
 end

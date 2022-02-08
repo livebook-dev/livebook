@@ -30,11 +30,14 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.UniqueTask,
-        # Start the Endpoint (http/https)
-        # We skip the access url as we do our own logging below
-        {LivebookWeb.Endpoint, log_access_url: false}
-      ] ++ iframe_server_specs() ++ app_specs()
+        Livebook.UniqueTask
+      ] ++
+        iframe_server_specs() ++
+        [
+          # Start the Endpoint (http/https)
+          # We skip the access url as we do our own logging below
+          {LivebookWeb.Endpoint, log_access_url: false}
+        ] ++ app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 

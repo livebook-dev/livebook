@@ -67,12 +67,24 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the port number of the iframe endpoint.
+  Returns the configured port for the Livebook endpoint.
+
+  Note that the value may be `0`.
   """
-  @spec iframe_port() :: non_neg_integer()
+  @spec port() :: pos_integer() | 0
+  def port() do
+    Application.get_env(:livebook, LivebookWeb.Endpoint)[:http][:port]
+  end
+
+  @doc """
+  Returns the configured port for the iframe endpoint.
+  """
+  @spec iframe_port() :: pos_integer() | 0
   def iframe_port() do
-    livebook_port = Application.get_env(:livebook, LivebookWeb.Endpoint)[:http][:port]
-    Application.get_env(:livebook, :iframe_port, livebook_port + 1)
+    case port() do
+      0 -> 0
+      _ -> Application.fetch_env!(:livebook, :iframe_port)
+    end
   end
 
   ## Parsing

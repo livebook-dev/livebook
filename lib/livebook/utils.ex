@@ -394,7 +394,7 @@ defmodule Livebook.Utils do
       "http://localhost:4002/open?path=https%3A%2F%2Fexample.com%2Ffoo.livemd"
 
       iex> Livebook.Utils.notebook_open_url("https://my_host", "https://example.com/foo.livemd")
-      "https://my_host/open?path=https%3A%2F%2Fexample.com%2Ffoo.livemd"  
+      "https://my_host/open?path=https%3A%2F%2Fexample.com%2Ffoo.livemd"
 
   """
   def notebook_open_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
@@ -458,4 +458,22 @@ defmodule Livebook.Utils do
   defp memory_unit(:GB), do: 1024 * 1024 * 1024
   defp memory_unit(:MB), do: 1024 * 1024
   defp memory_unit(:KB), do: 1024
+
+  @doc """
+  Gets the port for an existing listener.
+
+  The listener references usually follow the pattern `plug.HTTP`
+  and `plug.HTTPS`.
+  """
+  @spec get_port(:ranch.ref(), :inet.port_number()) :: :inet.port_number()
+  def get_port(ref, default) do
+    try do
+      :ranch.get_addr(ref)
+    rescue
+      _ -> default
+    else
+      {_, port} when is_integer(port) -> port
+      _ -> default
+    end
+  end
 end
