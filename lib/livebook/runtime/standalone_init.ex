@@ -105,7 +105,9 @@ defmodule Livebook.Runtime.StandaloneInit do
         {:DOWN, ^port_ref, :port, _object, _reason} ->
           {:error, "Elixir process terminated unexpectedly"}
       after
-        10_000 ->
+        # Use a longer timeout to account for longer child node startup,
+        # as may happen when starting with Mix.
+        40_000 ->
           {:error, "connection timed out"}
       end
     end
