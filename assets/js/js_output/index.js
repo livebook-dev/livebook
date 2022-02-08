@@ -268,10 +268,14 @@ function bindIframeSize(iframe, iframePlaceholder) {
   }
 
   // Most output position changes are accompanied by changes to the
-  // notebook content element (adding cells, inserting newlines in
-  // the editor, etc)
+  // notebook content element height (adding cells, inserting newlines
+  // in the editor, etc). On the other hand, toggling the sidebar or
+  // resizing the window changes the width, however the notebook
+  // content element doesn't span full width, so this change may not
+  // be detected, that's why we observe the full-width parent element
   const resizeObserver = new ResizeObserver((entries) => repositionIframe());
   resizeObserver.observe(notebookContentEl);
+  resizeObserver.observe(notebookEl);
 
   // On lower level cell/section reordering is applied as element
   // removal followed by insert, consequently the intersection
