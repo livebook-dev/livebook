@@ -50,3 +50,29 @@ jobs:
         run: npm run format-check --prefix assets
       - name: Run assets tests
         run: npm test --prefix assets
+  app:
+    env:
+      MIX_ENV: prod
+      MIX_TARGET: app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Erlang and Elixir
+        run: brew install elixir
+      - name: Setup hex
+        run: mix local.hex --force
+      - name: Cache Mix
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
+      - name: Install mix dependencies
+        run: mix deps.get
+      - name: Build app
+        run: mix release mac_app --overwrite
+      - name: Build dmg
+        run: mix release mac_app_dmg --overwrite
