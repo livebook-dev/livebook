@@ -34,8 +34,7 @@ defmodule Livebook.Application do
         # Start the Endpoint (http/https)
         # We skip the access url as we do our own logging below
         {LivebookWeb.Endpoint, log_access_url: false}
-      ] ++
-        app_specs()
+      ] ++ iframe_server_specs() ++ app_specs()
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -180,5 +179,20 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  defp iframe_server_specs() do
+    endpoint_config = Application.get_env(:livebook, LivebookWeb.Endpoint)
+    serve_endpoints? = Application.get_env(:phoenix, :serve_endpoints, false)
+    server? = Keyword.get(endpoint_config, :server, serve_endpoints?)
+
+    port = Livebook.Config.iframe_port()
+
+    if server? do
+      # Start the iframe endpoint on a different port
+      [{Plug.Cowboy, scheme: :http, plug: LivebookWeb.IframePlug, options: [port: port]}]
+    else
+      []
+    end
   end
 end

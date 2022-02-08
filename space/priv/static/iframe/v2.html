@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Output</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+        overflow-y: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      "use strict";
+
+      // Invoke the init function in a separate context for better isolation
+      function applyInit(init, ctx, data) {
+        init(ctx, data);
+      }
+
+      (() => {
+        const state = {
+          token: null,
+          importPromise: null,
+          eventHandlers: {},
+          eventQueue: [],
+        };
+
+        function postMessage(message) {
+          window.parent.postMessage({ token: state.token, ...message }, "*");
+        }
+
+        const ctx = {
+          root: document.getElementById("root"),
+
+          handleEvent(event, callback) {
+            if (state.eventHandlers[event]) {
+              throw new Error(
+                `Handler has already been defined for event "${event}"`
+              );
+            }
+
+            state.eventHandlers[event] = callback;
+
+            while (
+              state.eventQueue.length > 0 &&
+              state.eventHandlers[state.eventQueue[0].event]
+            ) {
+              const { event, payload } = state.eventQueue.shift();
+              const handler = state.eventHandlers[event];
+              handler(payload);
+            }
+          },
+
+          pushEvent(event, payload = null) {
+            postMessage({ type: "event", event, payload });
+          },
+
+          importCSS(url) {
+            return new Promise((resolve, reject) => {
+              const linkEl = document.createElement("link");
+              linkEl.addEventListener(
+                "load",
+                (event) => {
+                  resolve();
+                },
+                { once: true }
+              );
+              linkEl.rel = "stylesheet";
+              linkEl.href = url;
+              document.head.appendChild(linkEl);
+            });
+          },
+        };
+
+        window.addEventListener("message", (event) => {
+          if (event.source === window.parent) {
+            handleParentMessage(event.data);
+          }
+        });
+
+        function handleParentMessage(message) {
+          if (message.type === "readyReply") {
+            state.token = message.token;
+            onReady();
+
+            // Set the base URL for relative URLs
+            const baseUrlEl = document.createElement("base");
+            baseUrlEl.href = message.baseUrl;
+            document.head.appendChild(baseUrlEl);
+            // We already entered the script and the base URL change
+            // doesn't impact this import call, so we use the absolute
+            // URL instead
+            state.importPromise = import(`${message.baseUrl}${message.jsPath}`);
+          } else if (message.type === "init") {
+            state.importPromise
+              .then((module) => {
+                const init = module.init;
+
+                if (!init) {
+                  const fns = Object.keys(module);
+                  throw new Error(
+                    `Expected the module to export an init function, but found: ${fns.join(
+                      ", "
+                    )}`
+                  );
+                }
+
+                applyInit(init, ctx, message.data);
+              })
+              .catch((error) => {
+                renderErrorMessage(
+                  `Failed to load the widget JS module, got the following error:\n\n    ${error.message}\n\nSee the browser console for more details. If running behind an authentication proxy, make sure the /public/* routes are publicly accessible.`
+                );
+
+                throw error;
+              });
+          } else if (message.type === "event") {
+            const { event, payload } = message;
+            const handler = state.eventHandlers[event];
+
+            if (state.eventQueue.length === 0 && handler) {
+              handler(payload);
+            } else {
+              state.eventQueue.push({ event, payload });
+            }
+          }
+        }
+
+        postMessage({ type: "ready" });
+
+        function onReady() {
+          // Report height changes
+
+          const resizeObserver = new ResizeObserver((entries) => {
+            postMessage({ type: "resize", height: document.body.scrollHeight });
+          });
+
+          resizeObserver.observe(document.body);
+
+          // Forward relevant DOM events
+
+          window.addEventListener("mousedown", (event) => {
+            postMessage({ type: "domEvent", event: { type: "mousedown" } });
+          });
+
+          window.addEventListener("focus", (event) => {
+            postMessage({ type: "domEvent", event: { type: "focus" } });
+          });
+
+          window.addEventListener("keydown", (event) => {
+            if (!isEditableElement(event.target)) {
+              postMessage({
+                type: "domEvent",
+                event: keyboardEventToPayload(event),
+              });
+            }
+          });
+        }
+
+        function isEditableElement(element) {
+          return element.matches("input, textarea, [contenteditable]");
+        }
+
+        function keyboardEventToPayload(event) {
+          const {
+            altKey,
+            code,
+            ctrlKey,
+            isComposing,
+            key,
+            location,
+            metaKey,
+            repeat,
+            shiftKey,
+          } = event;
+
+          return {
+            type: event.type,
+            props: {
+              altKey,
+              code,
+              ctrlKey,
+              isComposing,
+              key,
+              location,
+              metaKey,
+              repeat,
+              shiftKey,
+            },
+          };
+        }
+
+        function renderErrorMessage(message) {
+          ctx.root.innerHTML = `
+            <div style="color: #FF3E38; white-space: pre-wrap; word-break: break-word;">${message}</div>
+          `;
+        }
+      })();
+    </script>
+  </body>
+</html>
