@@ -146,11 +146,6 @@ const JSOutput = {
 
     // Event handlers
 
-    channel.push("connect", {
-      session_token: this.props.sessionToken,
-      ref: this.props.ref,
-    });
-
     const initRef = channel.on(`init:${this.props.ref}`, (raw) => {
       const [, payload] = transportDecode(raw);
 
@@ -182,6 +177,11 @@ const JSOutput = {
       channel.off(`event:${this.props.ref}`, eventRef);
       channel.off(`error:${this.props.ref}`, errorRef);
     };
+
+    channel.push("connect", {
+      session_token: this.props.sessionToken,
+      ref: this.props.ref,
+    });
   },
 
   updated() {
@@ -241,8 +241,9 @@ function getChannel(sessionId, { create = true } = {}) {
  * Leaves the JS outputs channel tied to the current session.
  */
 export function leaveChannel() {
-  socket.disconnect();
+  channel.leave();
   channel = null;
+  socket.disconnect();
 }
 
 /**
@@ -267,10 +268,14 @@ function bindIframeSize(iframe, iframePlaceholder) {
   }
 
   // Most output position changes are accompanied by changes to the
-  // notebook content element (adding cells, inserting newlines in
-  // the editor, etc)
+  // notebook content element height (adding cells, inserting newlines
+  // in the editor, etc). On the other hand, toggling the sidebar or
+  // resizing the window changes the width, however the notebook
+  // content element doesn't span full width, so this change may not
+  // be detected, that's why we observe the full-width parent element
   const resizeObserver = new ResizeObserver((entries) => repositionIframe());
   resizeObserver.observe(notebookContentEl);
+  resizeObserver.observe(notebookEl);
 
   // On lower level cell/section reordering is applied as element
   // removal followed by insert, consequently the intersection
