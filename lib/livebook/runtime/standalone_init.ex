@@ -107,7 +107,7 @@ defmodule Livebook.Runtime.StandaloneInit do
       after
         # Use a longer timeout to account for longer child node startup,
         # as may happen when starting with Mix.
-        4_000 ->
+        40_000 ->
           {:error, "connection timed out"}
       end
     end
