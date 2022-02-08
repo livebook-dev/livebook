@@ -3,7 +3,7 @@ defmodule LivebookWeb.IframePlug do
 
   defmodule AssetsMemoryProvider do
     use LivebookWeb.MemoryProvider,
-      from: Path.expand("../../../space/priv/static/iframe", __DIR__),
+      from: Path.expand("../../../iframe/priv/static/iframe", __DIR__),
       gzip: true
   end
 
