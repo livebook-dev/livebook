@@ -190,7 +190,7 @@ defmodule Livebook.Application do
 
     if server? do
       # Start the iframe endpoint on a different port
-      [{Plug.Cowboy, scheme: :http, plug: LivebookWeb.IframePlug, options: [port: port]}]
+      [{Plug.Cowboy, scheme: :http, plug: LivebookWeb.IframeEndpoint, options: [port: port]}]
     else
       []
     end

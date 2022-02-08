@@ -12,7 +12,7 @@ defmodule LivebookWeb.Output.JSComponent do
       data-js-path={@info.assets.js_path}
       data-session-token={session_token(@info.pid)}
       data-session-id={@session_id}
-      data-iframe-local-port={LivebookWeb.IframePlug.port()}>
+      data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}>
     </div>
     """
   end
