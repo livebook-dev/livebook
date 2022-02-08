@@ -146,11 +146,6 @@ const JSOutput = {
 
     // Event handlers
 
-    channel.push("connect", {
-      session_token: this.props.sessionToken,
-      ref: this.props.ref,
-    });
-
     const initRef = channel.on(`init:${this.props.ref}`, (raw) => {
       const [, payload] = transportDecode(raw);
 
@@ -182,6 +177,11 @@ const JSOutput = {
       channel.off(`event:${this.props.ref}`, eventRef);
       channel.off(`error:${this.props.ref}`, errorRef);
     };
+
+    channel.push("connect", {
+      session_token: this.props.sessionToken,
+      ref: this.props.ref,
+    });
   },
 
   updated() {
@@ -241,8 +241,9 @@ function getChannel(sessionId, { create = true } = {}) {
  * Leaves the JS outputs channel tied to the current session.
  */
 export function leaveChannel() {
-  socket.disconnect();
+  channel.leave();
   channel = null;
+  socket.disconnect();
 }
 
 /**
