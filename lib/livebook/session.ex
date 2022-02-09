@@ -1312,27 +1312,72 @@ defmodule Livebook.Session do
 
   @doc """
   Subscribes the caller to runtime messages under the given topic.
+
+  Broadcasted events are encoded using `encoder`, if successful,
+  the message is sent directly to `receiver_pid`, otherwise an
+  `{:encoding_error, error, message}` is sent to the caller.
   """
-  @spec subscribe_to_runtime_events(id(), String.t(), String.t()) :: :ok | {:error, term()}
-  def subscribe_to_runtime_events(session_id, topic, subtopic) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, runtime_messages_topic(session_id, topic, subtopic))
+  @spec subscribe_to_runtime_events(
+          id(),
+          String.t(),
+          String.t(),
+          (term() -> {:ok, term()} | {:error, term()}),
+          pid()
+        ) :: :ok | {:error, term()}
+  def subscribe_to_runtime_events(session_id, topic, subtopic, encoder, receiver_pid) do
+    full_topic = runtime_messages_topic(session_id, topic, subtopic)
+    Phoenix.PubSub.subscribe(Livebook.PubSub, full_topic, metadata: {encoder, receiver_pid})
   end
 
   @doc """
   Unsubscribes the caller from runtime messages subscribed earlier
-  with `subscribe_to_runtime_events/3`.
+  with `subscribe_to_runtime_events/5`.
   """
   @spec unsubscribe_from_runtime_events(id(), String.t(), String.t()) :: :ok | {:error, term()}
   def unsubscribe_from_runtime_events(session_id, topic, subtopic) do
-    Phoenix.PubSub.unsubscribe(
-      Livebook.PubSub,
-      runtime_messages_topic(session_id, topic, subtopic)
-    )
+    full_topic = runtime_messages_topic(session_id, topic, subtopic)
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, full_topic)
   end
 
   @doc false
-  def runtime_messages_topic(session_id, topic, subtopic) do
+  def broadcast_runtime_event(session_id, topic, subtopic, message) do
+    full_topic = runtime_messages_topic(session_id, topic, subtopic)
+    Phoenix.PubSub.broadcast(Livebook.PubSub, full_topic, message, __MODULE__)
+  end
+
+  defp runtime_messages_topic(session_id, topic, subtopic) do
     "sessions:#{session_id}:runtime_messages:#{topic}:#{subtopic}"
+  end
+
+  @doc false
+  # Custom dispatcher for broadcasting runtime events
+  def dispatch(subscribers, from, message) do
+    Enum.reduce(subscribers, %{}, fn
+      {pid, _}, cache when pid == from ->
+        cache
+
+      {pid, {encoder, receiver_pid}}, cache ->
+        case cache do
+          %{^encoder => encoded_message} ->
+            send(receiver_pid, encoded_message)
+            cache
+
+          %{} ->
+            case encoder.(message) do
+              {:ok, encoded_message} ->
+                send(receiver_pid, encoded_message)
+                Map.put(cache, encoder, encoded_message)
+
+              {:error, error} ->
+                send(pid, {:encoding_error, error, message})
+                cache
+            end
+        end
+
+      {pid, _}, cache ->
+        send(pid, message)
+        cache
+    end)
   end
 
   @doc """

@@ -21,8 +21,7 @@ defmodule Livebook.Session.Worker do
 
   @impl true
   def handle_info({:runtime_broadcast, topic, subtopic, message}, state) do
-    full_topic = Livebook.Session.runtime_messages_topic(state.session_id, topic, subtopic)
-    Phoenix.PubSub.broadcast(Livebook.PubSub, full_topic, message)
+    Livebook.Session.broadcast_runtime_event(state.session_id, topic, subtopic, message)
     {:noreply, state}
   end
 end
