@@ -5,8 +5,8 @@ defmodule Livebook.Session.Worker do
   # when the session state is not necessary.
   #
   # In particular, this process handles broadcast messages
-  # sent from within the runtime and sends them to the actual
-  # subscribers.
+  # sent from within the runtime and distributes them to the
+  # actual subscribers via pubsub.
 
   use GenServer
 
