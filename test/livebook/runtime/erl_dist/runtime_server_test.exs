@@ -8,12 +8,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       start_supervised({NodeManager, [unload_modules_on_termination: false, anonymous: true]})
 
     runtime_server_pid = NodeManager.start_runtime_server(manager_pid)
-    RuntimeServer.set_owner(runtime_server_pid, self())
-    {:ok, %{pid: runtime_server_pid}}
+    RuntimeServer.attach(runtime_server_pid, self())
+    {:ok, %{pid: runtime_server_pid, manager_pid: manager_pid}}
   end
 
-  describe "set_owner/2" do
-    test "starts watching the given process and terminates as soon as it terminates", %{pid: pid} do
+  describe "attach/2" do
+    test "starts watching the given process and terminates as soon as it terminates",
+         %{manager_pid: manager_pid} do
       owner =
         spawn(fn ->
           receive do
@@ -21,7 +22,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
           end
         end)
 
-      RuntimeServer.set_owner(pid, owner)
+      pid = NodeManager.start_runtime_server(manager_pid)
+      RuntimeServer.attach(pid, owner)
 
       # Make sure the node is running.
       assert Process.alive?(pid)

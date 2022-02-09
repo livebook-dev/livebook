@@ -5,7 +5,10 @@ defmodule Livebook.EvaluatorTest do
 
   setup do
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
-    {:ok, _pid, evaluator} = start_supervised({Evaluator, [object_tracker: object_tracker]})
+
+    {:ok, _pid, evaluator} =
+      start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]})
+
     %{evaluator: evaluator, object_tracker: object_tracker}
   end
 
@@ -23,7 +26,7 @@ defmodule Livebook.EvaluatorTest do
       x + y
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
+      Evaluator.evaluate_code(evaluator, code, :code_1)
 
       assert_receive {:evaluation_response, :code_1, {:ok, 3}, metadata() = metadata}
       assert metadata.evaluation_time_ms >= 0
@@ -33,11 +36,11 @@ defmodule Livebook.EvaluatorTest do
     end
 
     test "given no prev_ref does not see previous evaluation context", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
       assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       ignore_warnings(fn ->
-        Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
+        Evaluator.evaluate_code(evaluator, "x", :code_2)
 
         assert_receive {:evaluation_response, :code_2,
                         {:error, _kind,
@@ -48,22 +51,22 @@ defmodule Livebook.EvaluatorTest do
     end
 
     test "given prev_ref sees previous evaluation context", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
       assert_receive {:evaluation_response, :code_1, _, metadata()}
 
-      Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
+      Evaluator.evaluate_code(evaluator, "x", :code_2, :code_1)
 
       assert_receive {:evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
 
     test "given invalid prev_ref just uses default context", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), ":hey", :code_1, :code_nonexistent)
+      Evaluator.evaluate_code(evaluator, ":hey", :code_1, :code_nonexistent)
 
       assert_receive {:evaluation_response, :code_1, {:ok, :hey}, metadata()}
     end
 
     test "captures standard output and sends it to the caller", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), ~s{IO.puts("hey")}, :code_1)
+      Evaluator.evaluate_code(evaluator, ~s{IO.puts("hey")}, :code_1)
 
       assert_receive {:evaluation_output, :code_1, {:stdout, "hey\n"}}
     end
@@ -78,7 +81,7 @@ defmodule Livebook.EvaluatorTest do
       end
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1)
+      Evaluator.evaluate_code(evaluator, code, :code_1)
 
       assert_receive {:evaluation_input, :code_1, reply_to, "input1"}
       send(reply_to, {:evaluation_input_reply, {:ok, :value}})
@@ -91,7 +94,7 @@ defmodule Livebook.EvaluatorTest do
       List.first(%{})
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+      Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       assert_receive {:evaluation_response, :code_1,
                       {:error, :error, :function_clause, [{List, :first, _arity, _location}]},
@@ -101,7 +104,7 @@ defmodule Livebook.EvaluatorTest do
     test "returns additional metadata when there is a syntax error", %{evaluator: evaluator} do
       code = "1+"
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+      Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       assert_receive {:evaluation_response, :code_1, {:error, :error, %TokenMissingError{}, []},
                       %{
@@ -115,7 +118,7 @@ defmodule Livebook.EvaluatorTest do
     test "returns additional metadata when there is a compilation error", %{evaluator: evaluator} do
       code = "x"
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+      Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       assert_receive {:evaluation_response, :code_1, {:error, :error, %CompileError{}, []},
                       %{
@@ -131,7 +134,7 @@ defmodule Livebook.EvaluatorTest do
       Code.eval_string("x")
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, file: "file.ex")
+      Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       expected_stacktrace = [{Code, :validated_eval_string, 3, [file: 'lib/code.ex', line: 404]}]
 
@@ -160,7 +163,7 @@ defmodule Livebook.EvaluatorTest do
       """
 
       ignore_warnings(fn ->
-        Evaluator.evaluate_code(evaluator, self(), code, :code_1)
+        Evaluator.evaluate_code(evaluator, code, :code_1)
 
         expected_stacktrace = [
           {Livebook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
@@ -188,14 +191,14 @@ defmodule Livebook.EvaluatorTest do
       x * x
       """
 
-      Evaluator.evaluate_code(evaluator, self(), code1, :code_1)
+      Evaluator.evaluate_code(evaluator, code1, :code_1)
       assert_receive {:evaluation_response, :code_1, {:ok, _}, metadata()}
 
-      Evaluator.evaluate_code(evaluator, self(), code2, :code_2, :code_1)
+      Evaluator.evaluate_code(evaluator, code2, :code_2, :code_1)
 
       assert_receive {:evaluation_response, :code_2, {:error, _, _, _}, metadata()}
 
-      Evaluator.evaluate_code(evaluator, self(), code3, :code_3, :code_2)
+      Evaluator.evaluate_code(evaluator, code3, :code_3, :code_2)
       assert_receive {:evaluation_response, :code_3, {:ok, 4}, metadata()}
     end
 
@@ -205,7 +208,7 @@ defmodule Livebook.EvaluatorTest do
       """
 
       opts = [file: "/path/dir/file"]
-      Evaluator.evaluate_code(evaluator, self(), code, :code_1, nil, opts)
+      Evaluator.evaluate_code(evaluator, code, :code_1, nil, opts)
 
       assert_receive {:evaluation_response, :code_1, {:ok, "/path/dir"}, metadata()}
     end
@@ -215,13 +218,13 @@ defmodule Livebook.EvaluatorTest do
       # The evaluation reference is the same, so the second one overrides
       # the first one and the first widget should eventually be kiled.
 
-      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      Evaluator.evaluate_code(evaluator, spawn_widget_code(), :code_1)
 
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}, metadata()}
 
       ref = Process.monitor(widget_pid1)
 
-      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      Evaluator.evaluate_code(evaluator, spawn_widget_code(), :code_1)
 
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid2}, metadata()}
 
@@ -234,12 +237,7 @@ defmodule Livebook.EvaluatorTest do
       # The widget is spawned from a process that terminates,
       # so the widget should terminate immediately as well
 
-      Evaluator.evaluate_code(
-        evaluator,
-        self(),
-        spawn_widget_from_terminating_process_code(),
-        :code_1
-      )
+      Evaluator.evaluate_code(evaluator, spawn_widget_from_terminating_process_code(), :code_1)
 
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}, metadata()}
 
@@ -249,13 +247,13 @@ defmodule Livebook.EvaluatorTest do
 
   describe "forget_evaluation/2" do
     test "invalidates the given reference", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), "x = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
       assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.forget_evaluation(evaluator, :code_1)
 
       ignore_warnings(fn ->
-        Evaluator.evaluate_code(evaluator, self(), "x", :code_2, :code_1)
+        Evaluator.evaluate_code(evaluator, "x", :code_2, :code_1)
 
         assert_receive {:evaluation_response, :code_2,
                         {:error, _kind,
@@ -266,7 +264,7 @@ defmodule Livebook.EvaluatorTest do
     end
 
     test "kills widgets that no evaluation points to", %{evaluator: evaluator} do
-      Evaluator.evaluate_code(evaluator, self(), spawn_widget_code(), :code_1)
+      Evaluator.evaluate_code(evaluator, spawn_widget_code(), :code_1)
 
       assert_receive {:evaluation_response, :code_1, {:ok, widget_pid1}, metadata()}
 
@@ -280,30 +278,32 @@ defmodule Livebook.EvaluatorTest do
   describe "initialize_from/3" do
     setup %{object_tracker: object_tracker} do
       {:ok, _pid, parent_evaluator} =
-        start_supervised({Evaluator, [object_tracker: object_tracker]}, id: :parent_evaluator)
+        start_supervised({Evaluator, [send_to: self(), object_tracker: object_tracker]},
+          id: :parent_evaluator
+        )
 
       %{parent_evaluator: parent_evaluator}
     end
 
     test "copies the given context and sets as the initial one",
          %{evaluator: evaluator, parent_evaluator: parent_evaluator} do
-      Evaluator.evaluate_code(parent_evaluator, self(), "x = 1", :code_1)
+      Evaluator.evaluate_code(parent_evaluator, "x = 1", :code_1)
       assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.initialize_from(evaluator, parent_evaluator, :code_1)
 
-      Evaluator.evaluate_code(evaluator, self(), "x", :code_2)
+      Evaluator.evaluate_code(evaluator, "x", :code_2)
       assert_receive {:evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
 
     test "mirrors process dictionary of the given evaluator",
          %{evaluator: evaluator, parent_evaluator: parent_evaluator} do
-      Evaluator.evaluate_code(parent_evaluator, self(), "Process.put(:data, 1)", :code_1)
+      Evaluator.evaluate_code(parent_evaluator, "Process.put(:data, 1)", :code_1)
       assert_receive {:evaluation_response, :code_1, _, metadata()}
 
       Evaluator.initialize_from(evaluator, parent_evaluator, :code_1)
 
-      Evaluator.evaluate_code(evaluator, self(), "Process.get(:data)", :code_2)
+      Evaluator.evaluate_code(evaluator, "Process.get(:data)", :code_2)
       assert_receive {:evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
   end

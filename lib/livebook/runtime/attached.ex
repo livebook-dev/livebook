@@ -41,8 +41,8 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   alias Livebook.Runtime.ErlDist
 
-  def connect(runtime) do
-    ErlDist.RuntimeServer.set_owner(runtime.server_pid, self())
+  def connect(runtime, opts \\ []) do
+    ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
   end
 

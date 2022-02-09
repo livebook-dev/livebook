@@ -25,7 +25,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Starts the manager.
 
-  Note: make sure to call `set_owner` within #{@await_owner_timeout}ms
+  Note: make sure to call `attach` within #{@await_owner_timeout}ms
   or the runtime server assumes it's not needed and terminates.
   """
   def start_link(opts \\ []) do
@@ -38,10 +38,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   The owner process is monitored and as soon as it terminates,
   the server also terminates. All the evaluation results are
   send directly to the owner.
+
+  ## Options
+
+  See `Livebook.Runtime.connect/2` for the list of available
+  options.
   """
-  @spec set_owner(pid(), pid()) :: :ok
-  def set_owner(pid, owner) do
-    GenServer.cast(pid, {:set_owner, owner})
+  @spec attach(pid(), pid(), keyword()) :: :ok
+  def attach(pid, owner, opts \\ []) do
+    GenServer.cast(pid, {:attach, owner, opts})
   end
 
   @doc """
@@ -141,6 +146,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:ok,
      %{
        owner: nil,
+       runtime_broadcast_to: nil,
        evaluators: %{},
        evaluator_supervisor: evaluator_supervisor,
        task_supervisor: task_supervisor,
@@ -189,9 +195,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
-  def handle_cast({:set_owner, owner}, state) do
+  def handle_cast({:attach, owner, opts}, state) do
+    if state.owner do
+      raise "runtime owner has already been configured"
+    end
+
     Process.monitor(owner)
-    state = %{state | owner: owner}
+
+    state = %{state | owner: owner, runtime_broadcast_to: opts[:runtime_broadcast_to]}
     report_memory_usage(state)
     {:noreply, state}
   end
@@ -219,7 +230,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     Evaluator.evaluate_code(
       state.evaluators[container_ref],
-      state.owner,
       code,
       evaluation_ref,
       prev_evaluation_ref,
@@ -289,7 +299,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       {:ok, evaluator} =
         ErlDist.EvaluatorSupervisor.start_evaluator(
           state.evaluator_supervisor,
-          state.object_tracker
+          send_to: state.owner,
+          runtime_broadcast_to: state.runtime_broadcast_to,
+          object_tracker: state.object_tracker
         )
 
       Process.monitor(evaluator.pid)

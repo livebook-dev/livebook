@@ -7,7 +7,7 @@ defmodule Livebook.Evaluator.IOProxy do
   # and can be thought of as a *virtual* IO device.
   #
   # Upon receiving an IO requests, the process sends a message
-  # the `target` process specified during initialization.
+  # the `:send_to` process specified during initialization.
   # Currently only output requests are supported.
   #
   # The implementation is based on the built-in `StringIO`,
@@ -22,18 +22,18 @@ defmodule Livebook.Evaluator.IOProxy do
   @doc """
   Starts the IO device process.
 
-  Make sure to use `configure/3` to actually proxy the requests.
+  Make sure to use `configure/3` to correctly proxy the requests.
   """
-  @spec start_link(pid(), pid()) :: GenServer.on_start()
-  def start_link(evaluator, object_tracker) do
-    GenServer.start_link(__MODULE__, evaluator: evaluator, object_tracker: object_tracker)
+  @spec start_link(pid(), pid(), pid(), pid()) :: GenServer.on_start()
+  def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker) do
+    GenServer.start_link(__MODULE__, {evaluator, send_to, runtime_broadcast_to, object_tracker})
   end
 
   @doc """
   Sets IO proxy destination and the reference to be attached
   to all messages.
 
-  For all supported requests a message is sent to `target`,
+  For all supported requests a message is sent to `:send_to`,
   so this device serves as a proxy. The given evaluation
   reference (`ref`) is also sent in all messages.
 
@@ -46,14 +46,14 @@ defmodule Livebook.Evaluator.IOProxy do
   As described by the `Livebook.Runtime` protocol. The `ref`
   is always the given evaluation reference.
   """
-  @spec configure(pid(), pid(), Evaluator.ref()) :: :ok
-  def configure(pid, target, ref) do
-    GenServer.cast(pid, {:configure, target, ref})
+  @spec configure(pid(), Evaluator.ref()) :: :ok
+  def configure(pid, ref) do
+    GenServer.cast(pid, {:configure, ref})
   end
 
   @doc """
   Synchronously sends all buffer contents to the configured
-  target process.
+  `:send_to` process.
   """
   @spec flush(pid()) :: :ok
   def flush(pid) do
@@ -80,26 +80,24 @@ defmodule Livebook.Evaluator.IOProxy do
   ## Callbacks
 
   @impl true
-  def init(opts) do
-    evaluator = Keyword.fetch!(opts, :evaluator)
-    object_tracker = Keyword.fetch!(opts, :object_tracker)
-
+  def init({evaluator, send_to, runtime_broadcast_to, object_tracker}) do
     {:ok,
      %{
        encoding: :unicode,
-       target: nil,
        ref: nil,
        buffer: [],
        input_cache: %{},
        token_count: 0,
        evaluator: evaluator,
+       send_to: send_to,
+       runtime_broadcast_to: runtime_broadcast_to,
        object_tracker: object_tracker
      }}
   end
 
   @impl true
-  def handle_cast({:configure, target, ref}, state) do
-    {:noreply, %{state | target: target, ref: ref, token_count: 0}}
+  def handle_cast({:configure, ref}, state) do
+    {:noreply, %{state | ref: ref, token_count: 0}}
   end
 
   def handle_cast(:clear_input_cache, state) do
@@ -197,7 +195,7 @@ defmodule Livebook.Evaluator.IOProxy do
 
   defp io_request({:livebook_put_output, output}, state) do
     state = flush_buffer(state)
-    send(state.target, {:evaluation_output, state.ref, output})
+    send(state.send_to, {:evaluation_output, state.ref, output})
     {:ok, state}
   end
 
@@ -239,7 +237,7 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   defp io_request(:livebook_get_broadcast_target, state) do
-    {{:ok, state.target}, state}
+    {{:ok, state.runtime_broadcast_to}, state}
   end
 
   defp io_request(_, state) do
@@ -271,9 +269,9 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   defp request_input_value(input_id, state) do
-    send(state.target, {:evaluation_input, state.ref, self(), input_id})
+    send(state.send_to, {:evaluation_input, state.ref, self(), input_id})
 
-    ref = Process.monitor(state.target)
+    ref = Process.monitor(state.send_to)
 
     receive do
       {:evaluation_input_reply, {:ok, value}} ->
@@ -296,8 +294,8 @@ defmodule Livebook.Evaluator.IOProxy do
   defp flush_buffer(state) do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
-    if state.target != nil and string != "" do
-      send(state.target, {:evaluation_output, state.ref, {:stdout, string}})
+    if state.send_to != nil and string != "" do
+      send(state.send_to, {:evaluation_output, state.ref, {:stdout, string}})
     end
 
     %{state | buffer: []}
