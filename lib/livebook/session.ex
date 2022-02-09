@@ -815,12 +815,12 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:evaluation_output, cell_id, output}, state) do
+  def handle_info({:runtime_evaluation_output, cell_id, output}, state) do
     operation = {:add_cell_evaluation_output, self(), cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:evaluation_response, cell_id, response, metadata}, state) do
+  def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
 
@@ -831,7 +831,7 @@ defmodule Livebook.Session do
      |> notify_update()}
   end
 
-  def handle_info({:evaluation_input, cell_id, reply_to, input_id}, state) do
+  def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Map.fetch(state.data.input_values, input_id) do
@@ -841,12 +841,12 @@ defmodule Livebook.Session do
         _ -> {:error, state}
       end
 
-    send(reply_to, {:evaluation_input_reply, reply})
+    send(reply_to, {:runtime_evaluation_input_reply, reply})
 
     {:noreply, state}
   end
 
-  def handle_info({:container_down, container_ref, message}, state) do
+  def handle_info({:runtime_container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
     operation =
@@ -872,7 +872,7 @@ defmodule Livebook.Session do
     {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
-  def handle_info({:memory_usage, runtime_memory}, state) do
+  def handle_info({:runtime_memory_usage, runtime_memory}, state) do
     {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
   end
 

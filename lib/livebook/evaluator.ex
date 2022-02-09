@@ -115,7 +115,7 @@ defmodule Livebook.Evaluator do
   in which case the corresponding binding and environment are used during evaluation.
 
   Evaluation response is sent to the process configured via `:send_to` as
-  `{:evaluation_response, ref, response, metadata}`. Note that response is
+  `{:runtime_evaluation_response, ref, response, metadata}`. Note that response is
   transformed with the configured formatter (identity by default).
 
   ## Options
@@ -326,7 +326,7 @@ defmodule Livebook.Evaluator do
       code_error: code_error
     }
 
-    send(state.send_to, {:evaluation_response, ref, output, metadata})
+    send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
 
     :erlang.garbage_collect(self())
     {:noreply, state}

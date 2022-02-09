@@ -39,9 +39,9 @@ defmodule Livebook.Evaluator.IOProxy do
 
   The possible messages are:
 
-    * `{:evaluation_output, ref, output}`
+    * `{:runtime_evaluation_output, ref, output}`
 
-    * `{:evaluation_input, ref, reply_to, input_id}`
+    * `{:runtime_evaluation_input, ref, reply_to, input_id}`
 
   As described by the `Livebook.Runtime` protocol. The `ref`
   is always the given evaluation reference.
@@ -195,7 +195,7 @@ defmodule Livebook.Evaluator.IOProxy do
 
   defp io_request({:livebook_put_output, output}, state) do
     state = flush_buffer(state)
-    send(state.send_to, {:evaluation_output, state.ref, output})
+    send(state.send_to, {:runtime_evaluation_output, state.ref, output})
     {:ok, state}
   end
 
@@ -269,16 +269,16 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   defp request_input_value(input_id, state) do
-    send(state.send_to, {:evaluation_input, state.ref, self(), input_id})
+    send(state.send_to, {:runtime_evaluation_input, state.ref, self(), input_id})
 
     ref = Process.monitor(state.send_to)
 
     receive do
-      {:evaluation_input_reply, {:ok, value}} ->
+      {:runtime_evaluation_input_reply, {:ok, value}} ->
         Process.demonitor(ref, [:flush])
         {:ok, value}
 
-      {:evaluation_input_reply, :error} ->
+      {:runtime_evaluation_input_reply, :error} ->
         Process.demonitor(ref, [:flush])
         {:error, :not_found}
 
@@ -295,7 +295,7 @@ defmodule Livebook.Evaluator.IOProxy do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.send_to != nil and string != "" do
-      send(state.send_to, {:evaluation_output, state.ref, {:stdout, string}})
+      send(state.send_to, {:runtime_evaluation_output, state.ref, {:stdout, string}})
     end
 
     %{state | buffer: []}

@@ -925,7 +925,7 @@ defmodule LivebookWeb.SessionLive do
      |> push_redirect(to: Routes.home_path(socket, :page))}
   end
 
-  def handle_info({:intellisense_response, ref, request, response}, socket) do
+  def handle_info({:runtime_intellisense_response, ref, request, response}, socket) do
     response = process_intellisense_response(response, request)
     payload = %{"ref" => inspect(ref), "response" => response}
     {:noreply, push_event(socket, "intellisense_response", payload)}

@@ -178,7 +178,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     |> case do
       {container_ref, _} ->
         message = Exception.format_exit(reason)
-        send(state.owner, {:container_down, container_ref, message})
+        send(state.owner, {:runtime_container_down, container_ref, message})
         {:noreply, %{state | evaluators: Map.delete(state.evaluators, container_ref)}}
 
       nil ->
@@ -265,7 +265,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     Task.Supervisor.start_child(state.task_supervisor, fn ->
       response = Livebook.Intellisense.handle_request(request, intellisense_context)
-      send(send_to, {:intellisense_response, ref, request, response})
+      send(send_to, {:runtime_intellisense_response, ref, request, response})
     end)
 
     {:noreply, state}
@@ -327,6 +327,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   defp report_memory_usage(%{owner: nil}), do: :ok
 
   defp report_memory_usage(state) do
-    send(state.owner, {:memory_usage, Evaluator.memory()})
+    send(state.owner, {:runtime_memory_usage, Evaluator.memory()})
   end
 end

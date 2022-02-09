@@ -286,12 +286,12 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
-      send(session.pid, {:evaluation_output, cell_id, {:stdout, "line 1\n"}})
+      send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 1\n"}})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
       assert render(view) =~ "line 1"
 
-      send(session.pid, {:evaluation_output, cell_id, {:stdout, "line 2\n"}})
+      send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 2\n"}})
       wait_for_session_update(session.pid)
       assert render(view) =~ "line 2"
     end
@@ -304,7 +304,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(
         session.pid,
-        {:evaluation_output, cell_id,
+        {:runtime_evaluation_output, cell_id,
          {:frame, [{:text, "In frame"}], %{ref: "1", type: :default}}}
       )
 
@@ -313,7 +313,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(
         session.pid,
-        {:evaluation_output, cell_id,
+        {:runtime_evaluation_output, cell_id,
          {:frame, [{:text, "Updated frame"}], %{ref: "1", type: :replace}}}
       )
 

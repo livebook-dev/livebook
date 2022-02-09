@@ -121,7 +121,7 @@ defprotocol Livebook.Runtime do
   @typedoc """
   The runtime memory usage for each type in bytes.
 
-  The runtime may periodically send messages of type {:memory_usage, runtime_memory()}
+  The runtime may periodically send messages of type {:runtime_memory_usage, runtime_memory()}
   """
   @type runtime_memory :: %{
           atom: non_neg_integer(),
@@ -176,24 +176,24 @@ defprotocol Livebook.Runtime do
   Evaluation outputs are sent to the connected runtime owner.
   The messages should be of the form:
 
-    * `{:evaluation_output, ref, output}` - output captured
+    * `{:runtime_evaluation_output, ref, output}` - output captured
       during evaluation
 
-    * `{:evaluation_response, ref, output, metadata}` - final
+    * `{:runtime_evaluation_response, ref, output, metadata}` - final
       result of the evaluation. Recognised metadata entries
       are: `code_error`, `evaluation_time_ms` and `memory_usage`
 
   The output may include input fields. The evaluation may then
   request the current value of a previously rendered input by
-  sending `{:evaluation_input, ref, reply_to, input_id}` to the
-  runtime owner, which is supposed to reply with `{:evaluation_input_reply, reply}`
+  sending `{:runtime_evaluation_input, ref, reply_to, input_id}` to the
+  runtime owner, which is supposed to reply with `{:runtime_evaluation_input_reply, reply}`
   where `reply` is either `{:ok, value}` or `:error` if no matching
   input can be found.
 
   In all of the above `ref` is the evaluation reference.
 
   If the evaluation state within a container is lost (for example
-  a process goes down), the runtime may send `{:container_down, container_ref, message}`
+  a process goes down), the runtime may send `{:runtime_container_down, container_ref, message}`
   to notify the owner.
 
   ## Options
@@ -230,7 +230,7 @@ defprotocol Livebook.Runtime do
   the text editor.
 
   The response is sent to the `send_to` process as
-  `{:intellisense_response, ref, request, response}`.
+  `{:runtime_intellisense_response, ref, request, response}`.
 
   The given `locator` idenfities an evaluation that may be used
   as context when resolving the request (if relevant).

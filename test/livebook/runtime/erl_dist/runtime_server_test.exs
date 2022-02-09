@@ -41,7 +41,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     test "spawns a new evaluator when necessary", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
     end
 
     test "prevents from module redefinition warning being printed to standard error", %{pid: pid} do
@@ -51,8 +51,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
           RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
           RuntimeServer.evaluate_code(pid, code, {:c1, :e2}, {:c1, nil})
 
-          assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
-          assert_receive {:evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
+          assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+          assert_receive {:runtime_evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
         end)
 
       assert stderr == ""
@@ -61,7 +61,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     test "proxies evaluation stderr to evaluation stdout", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, ~s{IO.puts(:stderr, "error")}, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :e1, {:stdout, "error\n"}}
+      assert_receive {:runtime_evaluation_output, :e1, {:stdout, "error\n"}}
     end
 
     @tag capture_log: true
@@ -73,17 +73,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
       RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
 
-      assert_receive {:evaluation_output, :e1, {:stdout, log_message}}
+      assert_receive {:runtime_evaluation_output, :e1, {:stdout, log_message}}
       assert log_message =~ "[error] hey"
     end
 
     test "supports cross-container evaluation context references", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, "x = 1", {:c1, :e1}, {:c1, nil})
-      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       RuntimeServer.evaluate_code(pid, "x", {:c2, :e2}, {:c1, :e1})
 
-      assert_receive {:evaluation_response, :e2, {:text, "\e[34m1\e[0m"},
+      assert_receive {:runtime_evaluation_response, :e2, {:text, "\e[34m1\e[0m"},
                       %{evaluation_time_ms: _time_ms}}
     end
 
@@ -111,7 +111,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       """
 
       RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
-      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       await_code = """
       send(pid, {:join, self()})
@@ -127,8 +127,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       RuntimeServer.evaluate_code(pid, await_code, {:c2, :e2}, {:c1, :e1})
       RuntimeServer.evaluate_code(pid, await_code, {:c1, :e3}, {:c1, :e1})
 
-      assert_receive {:evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
-      assert_receive {:evaluation_response, :e3, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:runtime_evaluation_response, :e2, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:runtime_evaluation_response, :e3, _, %{evaluation_time_ms: _time_ms}}
     end
   end
 
@@ -137,7 +137,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:completion, "System.ver"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "version/0"}]}}
+      assert_receive {:runtime_intellisense_response, :ref, ^request,
+                      %{items: [%{label: "version/0"}]}}
     end
 
     test "provides extended completion when previous evaluation reference is given", %{pid: pid} do
@@ -147,17 +148,19 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       """
 
       RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
-      assert_receive {:evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
+      assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       request = {:completion, "num"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
 
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "number"}]}}
+      assert_receive {:runtime_intellisense_response, :ref, ^request,
+                      %{items: [%{label: "number"}]}}
 
       request = {:completion, "ANSI.brigh"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
 
-      assert_receive {:intellisense_response, :ref, ^request, %{items: [%{label: "bright/0"}]}}
+      assert_receive {:runtime_intellisense_response, :ref, ^request,
+                      %{items: [%{label: "bright/0"}]}}
     end
   end
 
@@ -166,7 +169,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:details, "System.version", 10}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, ^request,
+      assert_receive {:runtime_intellisense_response, :ref, ^request,
                       %{range: %{from: 1, to: 15}, contents: [_]}}
     end
   end
@@ -176,7 +179,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       request = {:format, "System.version"}
       RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
 
-      assert_receive {:intellisense_response, :ref, ^request, %{code: "System.version()"}}
+      assert_receive {:runtime_intellisense_response, :ref, ^request, %{code: "System.version()"}}
     end
   end
 
@@ -198,7 +201,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
     RuntimeServer.evaluate_code(pid, code, {:c1, :e1}, {:c1, nil})
 
-    assert_receive {:container_down, :c1, message}
+    assert_receive {:runtime_container_down, :c1, message}
     assert message =~ "killed"
   end
 end
