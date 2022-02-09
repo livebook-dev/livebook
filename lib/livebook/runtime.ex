@@ -142,9 +142,14 @@ defprotocol Livebook.Runtime do
   monitoring that process and return the monitor reference.
   This way the caller is notified when the runtime goes down
   by listening to the :DOWN message.
+
+  ## Options
+
+    * `:runtime_broadcast_to` - the process to which broadcast
+      messages should be sent. Defaults to the owner
   """
-  @spec connect(t()) :: reference()
-  def connect(runtime)
+  @spec connect(t(), keyword()) :: reference()
+  def connect(runtime, opts \\ [])
 
   @doc """
   Disconnects the current owner from runtime.

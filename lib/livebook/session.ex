@@ -478,7 +478,11 @@ defmodule Livebook.Session do
 
   @impl true
   def init(opts) do
-    with {:ok, state} <- init_state(opts),
+    id = Keyword.fetch!(opts, :id)
+
+    {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
+
+    with {:ok, state} <- init_state(id, worker_pid, opts),
          :ok <-
            if(copy_images_from = opts[:copy_images_from],
              do: copy_images(state, copy_images_from),
@@ -497,9 +501,7 @@ defmodule Livebook.Session do
     end
   end
 
-  defp init_state(opts) do
-    id = Keyword.fetch!(opts, :id)
-
+  defp init_state(id, worker_pid, opts) do
     with {:ok, data} <- init_data(opts) do
       state = %{
         session_id: id,
@@ -510,7 +512,8 @@ defmodule Livebook.Session do
         autosave_path: opts[:autosave_path],
         save_task_pid: nil,
         saved_default_file: nil,
-        memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()}
+        memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
+        worker_pid: worker_pid
       }
 
       {:ok, state}
@@ -763,11 +766,9 @@ defmodule Livebook.Session do
       Runtime.disconnect(old_runtime)
     end
 
-    runtime_monitor_ref = Runtime.connect(runtime)
+    state = do_connect_runtime(runtime, state)
 
-    {:noreply,
-     %{state | runtime_monitor_ref: runtime_monitor_ref}
-     |> handle_operation({:set_runtime, client_pid, runtime})}
+    {:noreply, handle_operation(state, {:set_runtime, client_pid, runtime})}
   end
 
   def handle_cast({:set_file, client_pid, file}, state) do
@@ -842,12 +843,6 @@ defmodule Livebook.Session do
 
     send(reply_to, {:evaluation_input_reply, reply})
 
-    {:noreply, state}
-  end
-
-  def handle_info({:runtime_broadcast, topic, subtopic, message}, state) do
-    full_topic = runtime_messages_topic(state.session_id, topic, subtopic)
-    Phoenix.PubSub.broadcast(Livebook.PubSub, full_topic, message)
     {:noreply, state}
   end
 
@@ -1019,6 +1014,11 @@ defmodule Livebook.Session do
     end)
   end
 
+  defp do_connect_runtime(runtime, state) do
+    runtime_monitor_ref = Runtime.connect(runtime, runtime_broadcast_to: state.worker_pid)
+    %{state | runtime_monitor_ref: runtime_monitor_ref}
+  end
+
   # Given any operation on `Livebook.Session.Data`, the process
   # does the following:
   #
@@ -1134,10 +1134,8 @@ defmodule Livebook.Session do
 
     case apply(runtime_module, :init, args) do
       {:ok, runtime} ->
-        runtime_monitor_ref = Runtime.connect(runtime)
-
-        %{state | runtime_monitor_ref: runtime_monitor_ref}
-        |> handle_operation({:set_runtime, self(), runtime})
+        state = do_connect_runtime(runtime, state)
+        handle_operation(state, {:set_runtime, self(), runtime})
 
       {:error, error} ->
         broadcast_error(state.session_id, "failed to setup runtime - #{error}")
@@ -1332,7 +1330,8 @@ defmodule Livebook.Session do
     )
   end
 
-  defp runtime_messages_topic(session_id, topic, subtopic) do
+  @doc false
+  def runtime_messages_topic(session_id, topic, subtopic) do
     "sessions:#{session_id}:runtime_messages:#{topic}:#{subtopic}"
   end
 

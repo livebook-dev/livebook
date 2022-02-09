@@ -23,9 +23,11 @@ defmodule Livebook.Evaluator do
   @type t :: %{pid: pid(), ref: reference()}
 
   @type state :: %{
-          ref: reference(),
+          evaluator_ref: reference(),
           formatter: module(),
           io_proxy: pid(),
+          send_to: pid(),
+          runtime_broadcast_to: pid(),
           object_tracker: pid(),
           contexts: %{ref() => context()},
           initial_context: context()
@@ -58,11 +60,16 @@ defmodule Livebook.Evaluator do
   @doc """
   Starts the evaluator.
 
-  Options:
+  ## Options
 
-    * `object_tracker` - a PID of `Livebook.Evaluator.ObjectTracker`, required
+    * `:send_to` - the process to send evaluation messages to, required
 
-    * `formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
+    * `:runtime_broadcast_to` - the process to send runtime broadcast
+      messages to. Defaults to the value of `:send_to`
+
+    * `:object_tracker` - a pid of `Livebook.Evaluator.ObjectTracker`, required
+
+    * `:formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
       used for transforming evaluation response before it's sent to the client
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
@@ -107,8 +114,9 @@ defmodule Livebook.Evaluator do
   Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
   in which case the corresponding binding and environment are used during evaluation.
 
-  Evaluation response is sent to the process identified by `send_to` as `{:evaluation_response, ref, response, metadata}`.
-  Note that response is transformed with the configured formatter (identity by default).
+  Evaluation response is sent to the process configured via `:send_to` as
+  `{:evaluation_response, ref, response, metadata}`. Note that response is
+  transformed with the configured formatter (identity by default).
 
   ## Options
 
@@ -116,9 +124,9 @@ defmodule Livebook.Evaluator do
       this has an impact on the value of `__DIR__`.
 
   """
-  @spec evaluate_code(t(), pid(), String.t(), ref(), ref() | nil, keyword()) :: :ok
-  def evaluate_code(evaluator, send_to, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
-    cast(evaluator, {:evaluate_code, send_to, code, ref, prev_ref, opts})
+  @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
+  def evaluate_code(evaluator, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
+    cast(evaluator, {:evaluate_code, code, ref, prev_ref, opts})
   end
 
   @doc """
@@ -227,10 +235,13 @@ defmodule Livebook.Evaluator do
   end
 
   def init(opts) do
+    send_to = Keyword.fetch!(opts, :send_to)
+    runtime_broadcast_to = Keyword.get(opts, :runtime_broadcast_to, send_to)
     object_tracker = Keyword.fetch!(opts, :object_tracker)
     formatter = Keyword.get(opts, :formatter, Evaluator.IdentityFormatter)
 
-    {:ok, io_proxy} = Evaluator.IOProxy.start_link(self(), object_tracker)
+    {:ok, io_proxy} =
+      Evaluator.IOProxy.start_link(self(), send_to, runtime_broadcast_to, object_tracker)
 
     # Use the dedicated IO device as the group leader, so that
     # intercepts all :stdio requests and also handles Livebook
@@ -238,26 +249,25 @@ defmodule Livebook.Evaluator do
     Process.group_leader(self(), io_proxy)
 
     evaluator_ref = make_ref()
-    state = initial_state(evaluator_ref, formatter, io_proxy, object_tracker)
     evaluator = %{pid: self(), ref: evaluator_ref}
 
-    :proc_lib.init_ack(evaluator)
-
-    loop(state)
-  end
-
-  defp initial_state(evaluator_ref, formatter, io_proxy, object_tracker) do
     context = initial_context()
     Process.put(@initial_env_key, context.env)
 
-    %{
+    state = %{
       evaluator_ref: evaluator_ref,
       formatter: formatter,
       io_proxy: io_proxy,
+      send_to: send_to,
+      runtime_broadcast_to: runtime_broadcast_to,
       object_tracker: object_tracker,
       contexts: %{},
       initial_context: context
     }
+
+    :proc_lib.init_ack(evaluator)
+
+    loop(state)
   end
 
   defp loop(%{evaluator_ref: evaluator_ref} = state) do
@@ -279,8 +289,8 @@ defmodule Livebook.Evaluator do
     %{binding: [], env: env, id: random_id()}
   end
 
-  defp handle_cast({:evaluate_code, send_to, code, ref, prev_ref, opts}, state) do
-    Evaluator.IOProxy.configure(state.io_proxy, send_to, ref)
+  defp handle_cast({:evaluate_code, code, ref, prev_ref, opts}, state) do
+    Evaluator.IOProxy.configure(state.io_proxy, ref)
 
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
@@ -316,7 +326,7 @@ defmodule Livebook.Evaluator do
       code_error: code_error
     }
 
-    send(send_to, {:evaluation_response, ref, output, metadata})
+    send(state.send_to, {:evaluation_response, ref, output, metadata})
 
     :erlang.garbage_collect(self())
     {:noreply, state}
