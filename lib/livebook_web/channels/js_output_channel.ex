@@ -18,7 +18,9 @@ defmodule LivebookWeb.JSOutputChannel do
     socket = assign(socket, ref_with_pid: ref_with_pid, ref_with_count: ref_with_count)
 
     if socket.assigns.ref_with_count[ref] == 1 do
-      Livebook.Session.subscribe_to_runtime_events(socket.assigns.session_id, "js_live", ref)
+      %{session_id: session_id} = socket.assigns
+      metadata = {:js_output_fastlane, socket.transport_pid}
+      Livebook.Session.subscribe_to_runtime_events(session_id, "js_live", ref, metadata)
     end
 
     {:noreply, socket}
@@ -52,8 +54,8 @@ defmodule LivebookWeb.JSOutputChannel do
   end
 
   @impl true
-  def handle_info({:connect_reply, data, %{ref: ref}}, socket) do
-    with {:error, error} <- try_push(socket, "init:#{ref}", nil, data) do
+  def handle_info({:connect_reply, payload, %{ref: ref}}, socket) do
+    with {:error, error} <- try_push(socket, "init:#{ref}", nil, payload) do
       message = "Failed to serialize initial widget data, " <> error
       push(socket, "error:#{ref}", %{"message" => message})
     end
@@ -61,20 +63,23 @@ defmodule LivebookWeb.JSOutputChannel do
     {:noreply, socket}
   end
 
-  def handle_info({:event, event, payload, %{ref: ref}}, socket) do
-    with {:error, error} <- try_push(socket, "event:#{ref}", [event], payload) do
-      message = "Failed to serialize event payload, " <> error
-      push(socket, "error:#{ref}", %{"message" => message})
-    end
-
+  def handle_info({:error, ref, message}, socket) do
+    push(socket, "error:#{ref}", %{"message" => message})
     {:noreply, socket}
   end
 
-  # In case the payload fails to encode we catch the error
   defp try_push(socket, event, meta, payload) do
+    with {:ok, _} <-
+           run_safely(fn ->
+             push(socket, event, transport_encode!(meta, payload))
+           end),
+         do: :ok
+  end
+
+  # In case the payload fails to encode we catch the error
+  defp run_safely(fun) do
     try do
-      payload = transport_encode!(meta, payload)
-      push(socket, event, payload)
+      {:ok, fun.()}
     catch
       :error, %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
         {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
@@ -82,6 +87,50 @@ defmodule LivebookWeb.JSOutputChannel do
       :error, error ->
         {:error, Exception.message(error)}
     end
+  end
+
+  # Define a custom dispatcher for broadcasting runtime events,
+  # see Livebook.Session.Worker. In the dispatcher we encode the
+  # event payload once and send directly to the transport process,
+  # skipping the channel process entirely
+
+  @doc false
+  def dispatch(subscribers, from, {:event, event, payload, %{ref: ref}} = message) do
+    run_safely(fn ->
+      Phoenix.Socket.V2.JSONSerializer.fastlane!(%Phoenix.Socket.Broadcast{
+        topic: "js_output",
+        event: "event:#{ref}",
+        payload: transport_encode!([event], payload)
+      })
+    end)
+    |> case do
+      {:ok, encoded_message} ->
+        for {pid, metadata} <- subscribers, pid != from do
+          case metadata do
+            {:js_output_fastlane, transport_pid} ->
+              send(transport_pid, encoded_message)
+
+            _ ->
+              send(pid, message)
+          end
+        end
+
+      {:error, error} ->
+        for {pid, _} <- subscribers, pid != from do
+          message = "Failed to serialize widget data, " <> error
+          send(pid, {:error, ref, message})
+        end
+    end
+
+    :ok
+  end
+
+  def dispatch(subscribers, from, message) do
+    for {pid, _} <- subscribers, pid != from do
+      send(pid, message)
+    end
+
+    :ok
   end
 
   # A user payload can be either a JSON-serializable term

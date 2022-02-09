@@ -1313,9 +1313,11 @@ defmodule Livebook.Session do
   @doc """
   Subscribes the caller to runtime messages under the given topic.
   """
-  @spec subscribe_to_runtime_events(id(), String.t(), String.t()) :: :ok | {:error, term()}
-  def subscribe_to_runtime_events(session_id, topic, subtopic) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, runtime_messages_topic(session_id, topic, subtopic))
+  @spec subscribe_to_runtime_events(id(), String.t(), String.t(), term()) ::
+          :ok | {:error, term()}
+  def subscribe_to_runtime_events(session_id, topic, subtopic, metadata) do
+    full_topic = runtime_messages_topic(session_id, topic, subtopic)
+    Phoenix.PubSub.subscribe(Livebook.PubSub, full_topic, metadata: metadata)
   end
 
   @doc """

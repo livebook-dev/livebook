@@ -23,12 +23,6 @@ defmodule LivebookWeb.JSOutputChannelTest do
     assert_push "init:1", %{"root" => [nil, [1, 2, 3]]}
   end
 
-  test "sends events received from widget server to the client", %{socket: socket} do
-    send(socket.channel_pid, {:event, "ping", [1, 2, 3], %{ref: "1"}})
-
-    assert_push "event:1", %{"root" => [["ping"], [1, 2, 3]]}
-  end
-
   test "sends client events to the corresponding widget server", %{socket: socket} do
     push(socket, "connect", %{"session_token" => session_token(), "ref" => "1"})
 
@@ -49,14 +43,6 @@ defmodule LivebookWeb.JSOutputChannelTest do
       send(from, {:connect_reply, payload, %{ref: "1"}})
 
       assert_push "init:1", {:binary, <<24::size(32), "[null,{\"message\":\"hey\"}]", 1, 2, 3>>}
-    end
-
-    test "from server to client", %{socket: socket} do
-      payload = {:binary, %{message: "hey"}, <<1, 2, 3>>}
-      send(socket.channel_pid, {:event, "ping", payload, %{ref: "1"}})
-
-      assert_push "event:1",
-                  {:binary, <<28::size(32), "[[\"ping\"],{\"message\":\"hey\"}]", 1, 2, 3>>}
     end
 
     test "form client to server", %{socket: socket} do
