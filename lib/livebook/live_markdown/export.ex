@@ -3,17 +3,7 @@ defmodule Livebook.LiveMarkdown.Export do
   alias Livebook.Notebook.Cell
   alias Livebook.LiveMarkdown.MarkdownHelpers
 
-  @doc """
-  Converts the given notebook into a Markdown document.
-
-  ## Options
-
-    * `:include_outputs` - whether to render cell outputs.
-      Only textual outputs are included. Defaults to the
-      value of `:persist_outputs` notebook attribute.
-  """
-  @spec notebook_to_markdown(Notebook.t(), keyword()) :: String.t()
-  def notebook_to_markdown(notebook, opts \\ []) do
+  def notebook_to_livemd(notebook, opts \\ []) do
     include_outputs? = Keyword.get(opts, :include_outputs, notebook.persist_outputs)
 
     js_ref_with_data = if include_outputs?, do: collect_js_output_data(notebook), else: %{}

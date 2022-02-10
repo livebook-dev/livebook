@@ -2,14 +2,7 @@ defmodule Livebook.LiveMarkdown.Import do
   alias Livebook.Notebook
   alias Livebook.LiveMarkdown.MarkdownHelpers
 
-  @doc """
-  Converts the given Markdown document into a notebook data structure.
-
-  Returns the notebook structure and a list of informative messages/warnings
-  related to the imported input.
-  """
-  @spec notebook_from_markdown(String.t()) :: {Notebook.t(), list(String.t())}
-  def notebook_from_markdown(markdown) do
+  def notebook_from_livemd(markdown) do
     {_, ast, earmark_messages} = MarkdownHelpers.markdown_to_block_ast(markdown)
     earmark_messages = Enum.map(earmark_messages, &earmark_message_to_string/1)
 

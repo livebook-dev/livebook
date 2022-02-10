@@ -348,7 +348,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp import_notebook(file) do
     with {:ok, content} <- FileSystem.File.read(file) do
-      {:ok, LiveMarkdown.Import.notebook_from_markdown(content)}
+      {:ok, LiveMarkdown.notebook_from_livemd(content)}
     end
   end
 
@@ -358,7 +358,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp import_content(socket, content, session_opts) do
-    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+    {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
     socket =
       socket

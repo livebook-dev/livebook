@@ -1023,7 +1023,7 @@ defmodule LivebookWeb.SessionLive do
   defp open_notebook(socket, origin) do
     case Notebook.ContentLoader.fetch_content_from_location(origin) do
       {:ok, content} ->
-        {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+        {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
         # If the current session has no path, fork the notebook
         fork? = socket.private.data.file == nil
