@@ -37,15 +37,15 @@ defmodule LivebookWeb.SessionLive.BinComponent do
       </h3>
       <div class="w-full flex-col space-y-5">
         <p class="text-gray-700">
-          Here you can find all the deleted cells from this notebook session.
+          Find all your deleted cells from this notebook session
         </p>
         <%= if @bin_entries == [] do %>
-          <div class="p-5 flex space-x-4 items-center border border-gray-200 rounded-lg">
+          <div class="p-5 py-24 flex flex-col gap-3 space-x-4 items-center">
             <div>
-              <.remix_icon icon="windy-line" class="text-gray-400 text-xl" />
+              <.remix_icon icon="delete-bin-6-line ri-lg" class="text-gray-700 text-xl bg-gray-100 p-3 rounded-full" />
             </div>
-            <div class="text-gray-600">
-              There are currently no cells in the bin.
+            <div class="w-64 text-gray-600 text-center">
+              You haven't deleted any cells or sections yet. Once you do, they'll appear here.
             </div>
           </div>
         <% else %>
