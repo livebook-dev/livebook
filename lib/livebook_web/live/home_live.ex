@@ -178,10 +178,10 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_params(%{"url" => url}, _url, socket)
       when socket.assigns.live_action == :public_import do
-    origin = Livebook.ContentLoader.url_to_location(url)
+    origin = Notebook.ContentLoader.url_to_location(url)
 
     origin
-    |> Livebook.ContentLoader.fetch_content_from_location()
+    |> Notebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
         socket = import_content(socket, content, origin: origin)

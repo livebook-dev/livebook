@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Utils
+  alias Livebook.{Utils, Notebook}
 
   @impl true
   def mount(socket) do
@@ -59,10 +59,10 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
   end
 
   defp do_import(socket, url) do
-    origin = Livebook.ContentLoader.url_to_location(url)
+    origin = Notebook.ContentLoader.url_to_location(url)
 
     origin
-    |> Livebook.ContentLoader.fetch_content_from_location()
+    |> Notebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
         send(self(), {:import_content, content, [origin: origin]})

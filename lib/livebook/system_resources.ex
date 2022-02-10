@@ -1,6 +1,8 @@
 defmodule Livebook.SystemResources do
-  # Periodically compute system resource usage.
   @moduledoc false
+
+  # Periodically computes system resource usage.
+
   @type memory :: %{total: non_neg_integer(), free: non_neg_integer()}
 
   use GenServer

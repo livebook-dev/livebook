@@ -990,7 +990,7 @@ defmodule LivebookWeb.SessionLive do
         |> redirect_to_self()
 
       resolution_location ->
-        origin = Livebook.ContentLoader.resolve_location(resolution_location, relative_path)
+        origin = Notebook.ContentLoader.resolve_location(resolution_location, relative_path)
 
         case session_id_by_location(origin) do
           {:ok, session_id} ->
@@ -1021,7 +1021,7 @@ defmodule LivebookWeb.SessionLive do
   defp location(%{origin: origin}), do: origin
 
   defp open_notebook(socket, origin) do
-    case Livebook.ContentLoader.fetch_content_from_location(origin) do
+    case Notebook.ContentLoader.fetch_content_from_location(origin) do
       {:ok, content} ->
         {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
 
