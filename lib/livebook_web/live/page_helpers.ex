@@ -15,7 +15,7 @@ defmodule LivebookWeb.PageHelpers do
   def title(assigns) do
     ~H"""
     <div class="relative">
-      <%= live_patch to: Routes.home_path(@socket, :page),
+      <%= live_redirect to: Routes.home_path(@socket, :page),
             class: "hidden md:block absolute top-[50%] left-[-12px] transform -translate-y-1/2 -translate-x-full" do %>
         <.remix_icon icon="arrow-left-line" class="text-2xl align-middle" />
       <% end %>
