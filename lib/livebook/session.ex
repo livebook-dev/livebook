@@ -205,7 +205,7 @@ defmodule Livebook.Session do
 
         # Fetch assets in a separate process and avoid several
         # simultaneous fateches of the same assets
-        case Livebook.UniqueTask.run(hash, fun) do
+        case Livebook.Utils.UniqueTask.run(hash, fun) do
           :ok -> :ok
           :error -> {:error, "failed to fetch assets"}
         end

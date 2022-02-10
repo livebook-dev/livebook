@@ -1,7 +1,7 @@
-defmodule Livebook.UniqueTaskTest do
+defmodule Livebook.Utils.UniqueTaskTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.UniqueTask
+  alias Livebook.Utils.UniqueTask
 
   test "run/2 only awaits existing function call when the given key is taken", %{test: test} do
     parent = self()

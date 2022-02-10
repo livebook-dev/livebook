@@ -1,6 +1,7 @@
 defmodule Livebook.Settings do
-  # Keeps all Livebook settings that are backed by storage.
   @moduledoc false
+
+  # Keeps all Livebook settings that are backed by storage.
 
   alias Livebook.FileSystem
 

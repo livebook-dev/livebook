@@ -1,9 +1,9 @@
-defmodule Livebook.UniqueTask.Task do
+defmodule Livebook.Utils.UniqueTask.Task do
   @moduledoc false
 
   use GenServer, restart: :temporary
 
-  @registry Livebook.UniqueTask.Registry
+  @registry Livebook.Utils.UniqueTask.Registry
 
   def start_link({key, fun}) do
     GenServer.start_link(__MODULE__, fun, name: {:via, Registry, {@registry, key}})
@@ -21,14 +21,14 @@ defmodule Livebook.UniqueTask.Task do
   end
 end
 
-defmodule Livebook.UniqueTask do
+defmodule Livebook.Utils.UniqueTask do
   @moduledoc false
 
   use Supervisor
 
-  @registry Livebook.UniqueTask.Registry
-  @supervisor Livebook.UniqueTask.Supervisor
-  @task Livebook.UniqueTask.Task
+  @registry Livebook.Utils.UniqueTask.Registry
+  @supervisor Livebook.Utils.UniqueTask.Supervisor
+  @task Livebook.Utils.UniqueTask.Task
 
   def start_link(_opts) do
     Supervisor.start_link(__MODULE__, {}, name: __MODULE__)

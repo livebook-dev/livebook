@@ -30,7 +30,7 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.UniqueTask
+        Livebook.Utils.UniqueTask
       ] ++
         iframe_server_specs() ++
         [
