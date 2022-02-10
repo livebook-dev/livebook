@@ -1,4 +1,4 @@
-defmodule Livebook.Evaluator.Formatter do
+defmodule Livebook.Runtime.Evaluator.Formatter do
   @moduledoc false
 
   # Behaviour defining how evaluation results are transformed.
@@ -14,7 +14,7 @@ defmodule Livebook.Evaluator.Formatter do
   # in the runtime node, then formatting anywhere else wouldn't be accurate,
   # for example using `inspect` on an external struct.
 
-  alias Livebook.Evaluator
+  alias Livebook.Runtime.Evaluator
 
   @doc """
   Transforms the evaluation response.

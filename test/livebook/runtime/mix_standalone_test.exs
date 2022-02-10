@@ -34,7 +34,7 @@ defmodule Livebook.Runtime.MixStandaloneTest do
   end
 
   defp evaluator_module_loaded?(node) do
-    :rpc.call(node, :code, :is_loaded, [Livebook.Evaluator]) != false
+    :rpc.call(node, :code, :is_loaded, [Livebook.Runtime.Evaluator]) != false
   end
 
   defp manager_started?(node) do

@@ -1,4 +1,4 @@
-defmodule Livebook.Evaluator.IOProxy do
+defmodule Livebook.Runtime.Evaluator.IOProxy do
   @moduledoc false
 
   # An IO device process used by `Evaluator` as the group leader.
@@ -11,14 +11,14 @@ defmodule Livebook.Evaluator.IOProxy do
   # that allows `Kino` to communicate with Livebook in an unobtrusive
   # manner.
   #
-  # Also see `Livebook.Evaluator` and `Livebook.Runtime`.
+  # Also see `Livebook.Runtime.Evaluator` and `Livebook.Runtime`.
   #
   # The implementation is based on the built-in `StringIO`, so check
   # it out for more reference.
 
   use GenServer
 
-  alias Livebook.Evaluator
+  alias Livebook.Runtime.Evaluator
 
   @doc """
   Starts an IO device process.

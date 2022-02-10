@@ -15,7 +15,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   use GenServer, restart: :temporary
 
-  alias Livebook.Evaluator
+  alias Livebook.Runtime.Evaluator
   alias Livebook.Runtime
   alias Livebook.Runtime.ErlDist
 
@@ -50,14 +50,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Evaluates the given code using an `Livebook.Evaluator`
+  Evaluates the given code using an `Livebook.Runtime.Evaluator`
   process belonging to the given container and instructs
   it to send all the outputs to the owner process.
 
   If no evaluator exists for the given container, a new
   one is started.
 
-  See `Livebook.Evaluator` for more details.
+  See `Livebook.Runtime.Evaluator` for more details.
   """
   @spec evaluate_code(pid(), String.t(), Runtime.locator(), Runtime.locator(), keyword()) :: :ok
   def evaluate_code(pid, code, locator, prev_locator, opts \\ []) do
@@ -67,7 +67,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Removes the specified evaluation from the history.
 
-  See `Livebook.Evaluator` for more details.
+  See `Livebook.Runtime.Evaluator` for more details.
   """
   @spec forget_evaluation(pid(), Runtime.locator()) :: :ok
   def forget_evaluation(pid, locator) do
@@ -75,7 +75,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Terminates the `Livebook.Evaluator` process that belongs
+  Terminates the `Livebook.Runtime.Evaluator` process that belongs
   to the given container.
   """
   @spec drop_container(pid(), Runtime.container_ref()) :: :ok
@@ -86,7 +86,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Asynchronously sends an intellisense request to the server.
 
-  Completions are forwarded to `Livebook.Evaluator` process
+  Completions are forwarded to `Livebook.Runtime.Evaluator` process
   that belongs to the given container. If there's no evaluator,
   there's also no binding and environment, so a generic
   completion is handled by a temporary process.
@@ -141,7 +141,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, task_supervisor} = Task.Supervisor.start_link()
-    {:ok, object_tracker} = Livebook.Evaluator.ObjectTracker.start_link()
+    {:ok, object_tracker} = Livebook.Runtime.Evaluator.ObjectTracker.start_link()
 
     {:ok,
      %{

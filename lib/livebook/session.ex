@@ -23,13 +23,13 @@ defmodule Livebook.Session do
   #
   # ### Implementation considerations
   #
-  # In practice, every evaluation container is a `Livebook.Evaluator`
+  # In practice, every evaluation container is a `Livebook.Runtime.Evaluator`
   # process, so we have one such process for the main flow and one
   # for each branching section. Since a branching section inherits
   # the evaluation context from the parent section, the last context
   # needs to be copied from the main flow evaluator to the branching
   # section evaluator. The latter synchronously asks the former for
-  # that context using `Livebook.Evaluator.fetch_evaluation_context/3`.
+  # that context using `Livebook.Runtime.Evaluator.fetch_evaluation_context/3`.
   # Consequently, in order to evaluate the first cell in a branching
   # section, the main flow needs to be free of work, otherwise we wait.
   # This assumptions are mirrored in by `Livebook.Session.Data` when

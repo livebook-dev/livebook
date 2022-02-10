@@ -1,8 +1,8 @@
-defmodule Livebook.Evaluator.IOProxyTest do
+defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.Evaluator
-  alias Livebook.Evaluator.IOProxy
+  alias Livebook.Runtime.Evaluator
+  alias Livebook.Runtime.Evaluator.IOProxy
 
   setup do
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)

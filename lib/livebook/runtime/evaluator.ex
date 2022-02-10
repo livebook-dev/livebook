@@ -1,4 +1,4 @@
-defmodule Livebook.Evaluator do
+defmodule Livebook.Runtime.Evaluator do
   @moduledoc false
 
   # A process responsible for evaluating notebook code.
@@ -20,7 +20,7 @@ defmodule Livebook.Evaluator do
 
   require Logger
 
-  alias Livebook.Evaluator
+  alias Livebook.Runtime.Evaluator
 
   @type t :: %{pid: pid(), ref: reference()}
 
@@ -68,13 +68,13 @@ defmodule Livebook.Evaluator do
 
     * `:send_to` - the process to send evaluation messages to. Required
 
-    * `:object_tracker` - a pid of `Livebook.Evaluator.ObjectTracker`.
+    * `:object_tracker` - a pid of `Livebook.Runtime.Evaluator.ObjectTracker`.
       Required
 
     * `:runtime_broadcast_to` - the process to send runtime broadcast
       events to. Defaults to the value of `:send_to`
 
-    * `:formatter` - a module implementing the `Livebook.Evaluator.Formatter`
+    * `:formatter` - a module implementing the `Livebook.Runtime.Evaluator.Formatter`
       behaviour, used for transforming evaluation response before sending
       it to the client. Defaults to identity
   """
