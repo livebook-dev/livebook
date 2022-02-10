@@ -42,7 +42,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     # Match only on the relevant fields as some may be generated (ids).
 
@@ -115,7 +115,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     | Maine | ME | Augusta |
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -144,7 +144,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -169,7 +169,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ###### Tiny heading
     """
 
-    {notebook, messages} = Import.notebook_from_markdown(markdown)
+    {notebook, messages} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -213,7 +213,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ## # Section
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My *Notebook*",
@@ -234,7 +234,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ## Actual section
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -263,7 +263,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "Untitled notebook",
@@ -293,7 +293,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {notebook, messages} = Import.notebook_from_markdown(markdown)
+    {notebook, messages} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -325,7 +325,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Some markdown.
     """
 
-    {_notebook, messages} = Import.notebook_from_markdown(markdown)
+    {_notebook, messages} = Import.notebook_from_livemd(markdown)
 
     assert ["Line 3: Closing unclosed backquotes ` at end of input"] == messages
   end
@@ -351,7 +351,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -407,7 +407,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -455,7 +455,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Cell 2
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -499,7 +499,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     Cell 1
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -540,7 +540,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     {notebook,
      [
        "found an invalid sequence of comments at the beginning, make sure custom comments are at the very top"
-     ]} = Import.notebook_from_markdown(markdown)
+     ]} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -585,7 +585,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_markdown(markdown)
+      {notebook, []} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -631,7 +631,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_markdown(markdown)
+      {notebook, []} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -670,7 +670,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       # My Notebook
       """
 
-      {notebook, []} = Import.notebook_from_markdown(markdown)
+      {notebook, []} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{name: "My Notebook", persist_outputs: true} = notebook
     end
@@ -683,7 +683,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     # My Notebook
     """
 
-    {notebook, []} = Import.notebook_from_markdown(markdown)
+    {notebook, []} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{name: "My Notebook", autosave_interval_s: 10} = notebook
   end
@@ -698,7 +698,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"livebook_object":"cell_input","name":"length","type":"text","value":"100"} -->
       """
 
-      {_notebook, messages} = Import.notebook_from_markdown(markdown)
+      {_notebook, messages} = Import.notebook_from_livemd(markdown)
 
       assert [
                "found an input cell, but those are no longer supported, please use Kino.Input instead"
@@ -714,7 +714,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       <!-- livebook:{"livebook_object":"cell_input","name":"length","reactive":true,"type":"text","value":"100"} -->
       """
 
-      {_notebook, messages} = Import.notebook_from_markdown(markdown)
+      {_notebook, messages} = Import.notebook_from_livemd(markdown)
 
       assert [
                "found an input cell, but those are no longer supported, please use Kino.Input instead." <>
@@ -745,7 +745,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
       ```
       """
 
-      {notebook, []} = Import.notebook_from_markdown(markdown)
+      {notebook, []} = Import.notebook_from_livemd(markdown)
 
       assert %Notebook{
                name: "My Notebook",
@@ -789,7 +789,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert {notebook,
             [
               "ignoring the parent section of \"Section 1\", because it comes later in the notebook"
-            ]} = Import.notebook_from_markdown(markdown)
+            ]} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -820,7 +820,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert {notebook,
             [
               "ignoring the parent section of \"Section 1\", because it comes later in the notebook"
-            ]} = Import.notebook_from_markdown(markdown)
+            ]} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",
@@ -862,7 +862,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     assert {notebook,
             [
               "ignoring the parent section of \"Section 3\", because it is itself a branching section"
-            ]} = Import.notebook_from_markdown(markdown)
+            ]} = Import.notebook_from_livemd(markdown)
 
     assert %Notebook{
              name: "My Notebook",

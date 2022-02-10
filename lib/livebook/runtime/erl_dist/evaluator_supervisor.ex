@@ -6,7 +6,7 @@ defmodule Livebook.Runtime.ErlDist.EvaluatorSupervisor do
 
   use DynamicSupervisor
 
-  alias Livebook.Evaluator
+  alias Livebook.Runtime.Evaluator
 
   def start_link(opts \\ []) do
     DynamicSupervisor.start_link(__MODULE__, opts)

@@ -75,5 +75,29 @@ defmodule Livebook.LiveMarkdown do
   # This file defines a notebook named *My Notebook* with two sections.
   # The first section includes 3 cells and the second section includes 1 Elixir cell.
 
+  @doc """
+  The file extension used by Live Markdown files.
+  """
   def extension(), do: ".livemd"
+
+  @doc """
+  Converts the given notebook into a Markdown document.
+
+  ## Options
+
+    * `:include_outputs` - whether to render cell outputs.
+      Only textual outputs are included. Defaults to the
+      value of `:persist_outputs` notebook attribute.
+  """
+  @spec notebook_to_livemd(Notebook.t(), keyword()) :: String.t()
+  defdelegate notebook_to_livemd(notebook, opts \\ []), to: Livebook.LiveMarkdown.Export
+
+  @doc """
+  Converts the given Markdown document into a notebook data structure.
+
+  Returns the notebook structure and a list of informative messages/warnings
+  related to the imported input.
+  """
+  @spec notebook_from_livemd(String.t()) :: {Notebook.t(), list(String.t())}
+  defdelegate notebook_from_livemd(markdown), to: Livebook.LiveMarkdown.Import
 end

@@ -1,26 +1,27 @@
-defmodule Livebook.Evaluator.IOProxy do
+defmodule Livebook.Runtime.Evaluator.IOProxy do
   @moduledoc false
 
-  # An IO device process used by `Evaluator` as its `:stdio`.
+  # An IO device process used by `Evaluator` as the group leader.
   #
-  # The process implements [The Erlang I/O Protocol](https://erlang.org/doc/apps/stdlib/io_protocol.html)
-  # and can be thought of as a *virtual* IO device.
+  # The process implements [the Erlang I/O Protocol](https://erlang.org/doc/apps/stdlib/io_protocol.html)
+  # and can be thought of as a _virtual_ IO device.
   #
-  # Upon receiving an IO requests, the process sends a message
-  # the `:send_to` process specified during initialization.
-  # Currently only output requests are supported.
+  # IO requests are converted into Livebook output messages and sent
+  # to the configured target. Additionally, this process is the bridge
+  # that allows `Kino` to communicate with Livebook in an unobtrusive
+  # manner.
   #
-  # The implementation is based on the built-in `StringIO`,
-  # so check it out for more reference.
+  # Also see `Livebook.Runtime.Evaluator` and `Livebook.Runtime`.
+  #
+  # The implementation is based on the built-in `StringIO`, so check
+  # it out for more reference.
 
   use GenServer
 
-  alias Livebook.Evaluator
-
-  ## API
+  alias Livebook.Runtime.Evaluator
 
   @doc """
-  Starts the IO device process.
+  Starts an IO device process.
 
   Make sure to use `configure/3` to correctly proxy the requests.
   """
@@ -30,21 +31,12 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   @doc """
-  Sets IO proxy destination and the reference to be attached
-  to all messages.
+  Sets IO proxy destination and the reference to be attached to all
+  messages.
 
-  For all supported requests a message is sent to `:send_to`,
-  so this device serves as a proxy. The given evaluation
-  reference (`ref`) is also sent in all messages.
-
-  The possible messages are:
-
-    * `{:evaluation_output, ref, output}`
-
-    * `{:evaluation_input, ref, reply_to, input_id}`
-
-  As described by the `Livebook.Runtime` protocol. The `ref`
-  is always the given evaluation reference.
+  For all supported requests a message is sent to the configured
+  `:send_to` process, so this device serves as a proxy. The given
+  evaluation reference is also included in all messages.
   """
   @spec configure(pid(), Evaluator.ref()) :: :ok
   def configure(pid, ref) do
@@ -52,8 +44,8 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   @doc """
-  Synchronously sends all buffer contents to the configured
-  `:send_to` process.
+  Synchronously clears the buffered output and sends it to the
+  configured `:send_to` process.
   """
   @spec flush(pid()) :: :ok
   def flush(pid) do
@@ -61,7 +53,7 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   @doc """
-  Asynchronously clears all buffered inputs, so next time they
+  Asynchronously clears all cached inputs, so on next read they
   are requested again.
   """
   @spec clear_input_cache(pid()) :: :ok
@@ -76,8 +68,6 @@ defmodule Livebook.Evaluator.IOProxy do
   def flush_widgets(pid) do
     GenServer.call(pid, :flush_widgets)
   end
-
-  ## Callbacks
 
   @impl true
   def init({evaluator, send_to, runtime_broadcast_to, object_tracker}) do
@@ -188,14 +178,14 @@ defmodule Livebook.Evaluator.IOProxy do
     io_requests(reqs, {:ok, state})
   end
 
-  # Livebook custom request types, handled in a special manner
-  # by IOProxy and safely failing for any other IO device
-  # (resulting in the {:error, :request} response).
-  # Those requests are generally made by Kino
+  # Livebook custom request types, handled in a special manner by
+  # IOProxy and safely failing for any other IO device (resulting
+  # in the `{:error, :request}` response). Those requests are generally
+  # done by Kino.
 
   defp io_request({:livebook_put_output, output}, state) do
     state = flush_buffer(state)
-    send(state.send_to, {:evaluation_output, state.ref, output})
+    send(state.send_to, {:runtime_evaluation_output, state.ref, output})
     {:ok, state}
   end
 
@@ -269,16 +259,16 @@ defmodule Livebook.Evaluator.IOProxy do
   end
 
   defp request_input_value(input_id, state) do
-    send(state.send_to, {:evaluation_input, state.ref, self(), input_id})
+    send(state.send_to, {:runtime_evaluation_input, state.ref, self(), input_id})
 
     ref = Process.monitor(state.send_to)
 
     receive do
-      {:evaluation_input_reply, {:ok, value}} ->
+      {:runtime_evaluation_input_reply, {:ok, value}} ->
         Process.demonitor(ref, [:flush])
         {:ok, value}
 
-      {:evaluation_input_reply, :error} ->
+      {:runtime_evaluation_input_reply, :error} ->
         Process.demonitor(ref, [:flush])
         {:error, :not_found}
 
@@ -295,20 +285,20 @@ defmodule Livebook.Evaluator.IOProxy do
     string = state.buffer |> Enum.reverse() |> Enum.join()
 
     if state.send_to != nil and string != "" do
-      send(state.send_to, {:evaluation_output, state.ref, {:stdout, string}})
+      send(state.send_to, {:runtime_evaluation_output, state.ref, {:stdout, string}})
     end
 
     %{state | buffer: []}
   end
 
   defp buffer_append(buffer, text) do
-    # Sometimes there are intensive outputs that use \r
-    # to dynamically refresh the printd text.
-    # Since we buffer the messages anyway, it makes
-    # sense to send only the latest of these outputs.
-    # Note that \r works per-line, so if there are newlines
-    # we keep the buffer, but for \r-intensive operations
-    # there are usually no newlines involved, so this optimisation works fine.
+    # Sometimes there are intensive outputs that use \r to
+    # dynamically refresh the printd text. Since we buffer
+    # the messages anyway, it makes sense to send only the
+    # latest of these outputs. Note that \r works per-line,
+    # so if there are newlines we keep the buffer, but for
+    # \r-intensive operations there are usually no newlines
+    # involved, so this optimisation works fine.
     if has_rewind?(text) and not has_newline?(text) and not Enum.any?(buffer, &has_newline?/1) do
       [text]
     else

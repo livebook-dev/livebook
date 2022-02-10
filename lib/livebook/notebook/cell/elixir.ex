@@ -19,31 +19,7 @@ defmodule Livebook.Notebook.Cell.Elixir do
           reevaluate_automatically: boolean()
         }
 
-  @type indexed_output :: {non_neg_integer(), output()}
-
-  @typedoc """
-  For more details on output types see `t:Kino.Output.t/0`.
-  """
-  @type output ::
-          :ignored
-          # IO output, adjacent such outputs are treated as a whole
-          | {:stdout, binary()}
-          # Standalone text block
-          | {:text, binary()}
-          # Markdown content
-          | {:markdown, binary()}
-          # A raw image in the given format
-          | {:image, content :: binary(), mime_type :: binary()}
-          # JavaScript powered output
-          | {:js, info :: map()}
-          # Outputs placeholder
-          | {:frame, outputs :: list(output()), info :: map()}
-          # An input field
-          | {:input, attrs :: map()}
-          # A control element
-          | {:control, attrs :: map()}
-          # Internal output format for errors
-          | {:error, message :: binary(), type :: :other | :runtime_restart_required}
+  @type indexed_output :: {non_neg_integer(), Livebook.Runtime.output()}
 
   @doc """
   Returns an empty cell.

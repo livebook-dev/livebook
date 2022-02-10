@@ -29,7 +29,7 @@ defmodule LivebookWeb.SessionController do
 
   defp send_notebook_source(conn, notebook, file_name, "livemd" = format) do
     opts = [include_outputs: conn.params["include_outputs"] == "true"]
-    source = Livebook.LiveMarkdown.Export.notebook_to_markdown(notebook, opts)
+    source = Livebook.LiveMarkdown.notebook_to_livemd(notebook, opts)
 
     send_download(conn, {:binary, source},
       filename: file_name <> "." <> format,

@@ -1,11 +1,11 @@
-defmodule Livebook.Evaluator.DefaultFormatter do
+defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   @moduledoc false
 
   # The formatter used by Livebook for rendering the results.
   #
   # See `Livebook.Notebook.Cell` for available output formats.
 
-  @behaviour Livebook.Evaluator.Formatter
+  @behaviour Livebook.Runtime.Evaluator.Formatter
 
   require Logger
 

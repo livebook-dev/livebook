@@ -1,7 +1,7 @@
-defmodule Livebook.Evaluator.ObjecTrackerTest do
+defmodule Livebook.Runtime.Evaluator.ObjecTrackerTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.Evaluator.ObjectTracker
+  alias Livebook.Runtime.Evaluator.ObjectTracker
 
   setup do
     {:ok, object_tracker} = start_supervised(ObjectTracker)

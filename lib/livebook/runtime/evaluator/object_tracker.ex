@@ -1,4 +1,4 @@
-defmodule Livebook.Evaluator.ObjectTracker do
+defmodule Livebook.Runtime.Evaluator.ObjectTracker do
   @moduledoc false
 
   # This module is an abstraction for tracking objects,

@@ -1,24 +1,26 @@
-defmodule Livebook.Evaluator do
+defmodule Livebook.Runtime.Evaluator do
   @moduledoc false
 
   # A process responsible for evaluating notebook code.
   #
-  # The process receives evaluation request and synchronously
-  # evaluates the given code within itself (rather than spawning a separate process).
-  # It stores the resulting binding and env as part of the state.
+  # Evaluator receives an evaluation request and synchronously
+  # evaluates the given code within itself (rather than spawning
+  # a separate process). It stores the resulting binding and env
+  # in its state (under a specific reference).
   #
-  # It's important to store the binding in the same process
-  # where the evaluation happens, as otherwise we would have to
-  # send them between processes, effectively copying potentially large data.
+  # Storing the binding in the same process that evaluates the
+  # code is essential, because otherwise we would have to send it
+  # to another process, which means copying a potentially massive
+  # amounts of data.
   #
-  # Note that this process is intentionally not a GenServer,
-  # because we during evaluation we may receive arbitrary
-  # messages and we don't want to consume them from the inbox,
-  # as GenServer does.
+  # Also, note that this process is intentionally not a GenServer,
+  # because during evaluation we it may receive arbitrary messages
+  # and we want to keep them in the inbox, while a GenServer would
+  # always consume them.
 
   require Logger
 
-  alias Livebook.Evaluator
+  alias Livebook.Runtime.Evaluator
 
   @type t :: %{pid: pid(), ref: reference()}
 
@@ -35,6 +37,9 @@ defmodule Livebook.Evaluator do
 
   @typedoc """
   An evaluation context.
+
+  Each evaluation produces a new context, which may be optionally
+  used by a later evaluation.
   """
   @type context :: %{binding: Code.binding(), env: Macro.Env.t(), id: binary()}
 
@@ -44,33 +49,34 @@ defmodule Livebook.Evaluator do
   @type ref :: term()
 
   @typedoc """
-  Either {:ok, result} for successful evaluation
-  or {:error, kind, error, stacktrace} for a failed one.
+  An evaluation response, either the resulting value or an error
+  if raised.
   """
   @type evaluation_response ::
-          {:ok, any()} | {:error, Exception.kind(), any(), Exception.stacktrace()}
+          {:ok, result :: any()}
+          | {:error, Exception.kind(), error :: any(), Exception.stacktrace()}
 
-  # We store evaluation envs in process dictionary, so that we can
-  # build intellisense context without asking the evaluator
+  # We store evaluation envs in the process dictionary, so that we
+  # can build intellisense context without asking the evaluator
   @env_key :evaluation_env
   @initial_env_key :initial_env
 
-  ## API
-
   @doc """
-  Starts the evaluator.
+  Starts an evaluator.
 
   ## Options
 
-    * `:send_to` - the process to send evaluation messages to, required
+    * `:send_to` - the process to send evaluation messages to. Required
+
+    * `:object_tracker` - a pid of `Livebook.Runtime.Evaluator.ObjectTracker`.
+      Required
 
     * `:runtime_broadcast_to` - the process to send runtime broadcast
-      messages to. Defaults to the value of `:send_to`
+      events to. Defaults to the value of `:send_to`
 
-    * `:object_tracker` - a pid of `Livebook.Evaluator.ObjectTracker`, required
-
-    * `:formatter` - a module implementing the `Livebook.Evaluator.Formatter` behaviour,
-      used for transforming evaluation response before it's sent to the client
+    * `:formatter` - a module implementing the `Livebook.Runtime.Evaluator.Formatter`
+      behaviour, used for transforming evaluation response before sending
+      it to the client. Defaults to identity
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
   def start_link(opts \\ []) do
@@ -81,10 +87,10 @@ defmodule Livebook.Evaluator do
   end
 
   @doc """
-  Computes the memory usage from this evaluator node.
+  Computes the memory usage for the current node.
   """
-  @spec memory :: Livebook.Runtime.runtime_memory()
-  def memory do
+  @spec memory() :: Livebook.Runtime.runtime_memory()
+  def memory() do
     %{
       total: total,
       processes: processes,
@@ -108,21 +114,19 @@ defmodule Livebook.Evaluator do
   @doc """
   Asynchronously parses and evaluates the given code.
 
-  Any exceptions are captured, in which case this method returns an error.
+  Any exceptions are captured and transformed into an error
+  response.
 
-  The evaluator stores the resulting binding and environment under `ref`.
-  Any subsequent calls may specify `prev_ref` pointing to a previous evaluation,
-  in which case the corresponding binding and environment are used during evaluation.
+  The resulting contxt (binding and env) is stored under `ref`.
+  Any subsequent calls may specify `prev_ref` pointing to a
+  previous evaluation, in which case the corresponding context
+  is used as the entry point for evaluation.
 
-  Evaluation response is sent to the process configured via `:send_to` as
-  `{:evaluation_response, ref, response, metadata}`. Note that response is
-  transformed with the configured formatter (identity by default).
+  The evaluation response is transformed with the configured
+  formatter send to the configured client (see `start_link/1`).
 
-  ## Options
-
-    * `:file` - file to which the evaluated code belongs. Most importantly,
-      this has an impact on the value of `__DIR__`.
-
+  See `Livebook.Runtime.evaluate_code/5` for the messages format
+  and the list of available options.
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
@@ -130,27 +134,27 @@ defmodule Livebook.Evaluator do
   end
 
   @doc """
-  Fetches evaluation context (binding and environment) by evaluation reference.
+  Fetches the evaluation context (binding and env) for the given
+  evaluation reference.
 
   ## Options
 
-    * `cached_id` - id of context that the sender may already have,
-      if it matches the fetched context the `{:error, :not_modified}`
-      tuple is returned instead
+    * `:cached_id` - id of context that the sender may already have,
+      if it matches the fetched context, `{:error, :not_modified}`
+      is returned instead
   """
   @spec fetch_evaluation_context(t(), ref(), keyword()) ::
           {:ok, context()} | {:error, :not_modified}
   def fetch_evaluation_context(evaluator, ref, opts \\ []) do
     cached_id = opts[:cached_id]
-
     call(evaluator, {:fetch_evaluation_context, ref, cached_id})
   end
 
   @doc """
-  Fetches an evaluation context from another `Evaluator` process
-  and configures it as the initial context for this evaluator.
+  Fetches an evaluation context from `source_evaluator` and configures
+  it as the initial context for `evaluator`.
 
-  The process dictionary is also copied to match the given evaluator.
+  The process dictionary is also copied to match `source_evaluator`.
   """
   @spec initialize_from(t(), t(), ref()) :: :ok
   def initialize_from(evaluator, source_evaluator, source_evaluation_ref) do
@@ -158,8 +162,9 @@ defmodule Livebook.Evaluator do
   end
 
   @doc """
-  Removes the evaluation identified by `ref` from history,
-  so that further evaluations cannot use it.
+  Removes the evaluation identified by `ref` from history.
+
+  The corresponding context is removed and garbage collected.
   """
   @spec forget_evaluation(t(), ref()) :: :ok
   def forget_evaluation(evaluator, ref) do
@@ -222,8 +227,6 @@ defmodule Livebook.Evaluator do
         exit({reason, {__MODULE__, :call, [evaluator, message]}})
     end
   end
-
-  ## Callbacks
 
   def child_spec(opts) do
     %{
@@ -326,7 +329,7 @@ defmodule Livebook.Evaluator do
       code_error: code_error
     }
 
-    send(state.send_to, {:evaluation_response, ref, output, metadata})
+    send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
 
     :erlang.garbage_collect(self())
     {:noreply, state}
@@ -432,8 +435,8 @@ defmodule Livebook.Evaluator do
 
   defp prune_stacktrace(stacktrace) do
     # The order in which each drop_while is listed is important.
-    # For example, the user may call Code.eval_string/2 in their code
-    # and if there is an error we should not remove erl_eval
+    # For example, the user may call Code.eval_string/2 in their
+    # code and if there is an error we should not remove erl_eval
     # and eval_bits information from the user stacktrace.
     stacktrace
     |> Enum.reverse()

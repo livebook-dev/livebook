@@ -23,13 +23,13 @@ defmodule Livebook.Session do
   #
   # ### Implementation considerations
   #
-  # In practice, every evaluation container is a `Livebook.Evaluator`
+  # In practice, every evaluation container is a `Livebook.Runtime.Evaluator`
   # process, so we have one such process for the main flow and one
   # for each branching section. Since a branching section inherits
   # the evaluation context from the parent section, the last context
   # needs to be copied from the main flow evaluator to the branching
   # section evaluator. The latter synchronously asks the former for
-  # that context using `Livebook.Evaluator.fetch_evaluation_context/3`.
+  # that context using `Livebook.Runtime.Evaluator.fetch_evaluation_context/3`.
   # Consequently, in order to evaluate the first cell in a branching
   # section, the main flow needs to be free of work, otherwise we wait.
   # This assumptions are mirrored in by `Livebook.Session.Data` when
@@ -60,7 +60,7 @@ defmodule Livebook.Session do
   @type t :: %__MODULE__{
           id: id(),
           pid: pid(),
-          origin: Livebook.ContentLoader.location() | nil,
+          origin: Notebook.ContentLoader.location() | nil,
           notebook_name: String.t(),
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
@@ -205,7 +205,7 @@ defmodule Livebook.Session do
 
         # Fetch assets in a separate process and avoid several
         # simultaneous fateches of the same assets
-        case Livebook.UniqueTask.run(hash, fun) do
+        case Livebook.Utils.UniqueTask.run(hash, fun) do
           :ok -> :ok
           :error -> {:error, "failed to fetch assets"}
         end
@@ -815,12 +815,12 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:evaluation_output, cell_id, output}, state) do
+  def handle_info({:runtime_evaluation_output, cell_id, output}, state) do
     operation = {:add_cell_evaluation_output, self(), cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_info({:evaluation_response, cell_id, response, metadata}, state) do
+  def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
     operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
 
@@ -831,7 +831,7 @@ defmodule Livebook.Session do
      |> notify_update()}
   end
 
-  def handle_info({:evaluation_input, cell_id, reply_to, input_id}, state) do
+  def handle_info({:runtime_evaluation_input, cell_id, reply_to, input_id}, state) do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Map.fetch(state.data.input_values, input_id) do
@@ -841,12 +841,12 @@ defmodule Livebook.Session do
         _ -> {:error, state}
       end
 
-    send(reply_to, {:evaluation_input_reply, reply})
+    send(reply_to, {:runtime_evaluation_input_reply, reply})
 
     {:noreply, state}
   end
 
-  def handle_info({:container_down, container_ref, message}, state) do
+  def handle_info({:runtime_container_down, container_ref, message}, state) do
     broadcast_error(state.session_id, "evaluation process terminated - #{message}")
 
     operation =
@@ -872,7 +872,7 @@ defmodule Livebook.Session do
     {:noreply, handle_save_finished(state, result, file, default?)}
   end
 
-  def handle_info({:memory_usage, runtime_memory}, state) do
+  def handle_info({:runtime_memory_usage, runtime_memory}, state) do
     {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
   end
 
@@ -1215,7 +1215,7 @@ defmodule Livebook.Session do
 
       {:ok, pid} =
         Task.start(fn ->
-          content = LiveMarkdown.Export.notebook_to_markdown(notebook)
+          content = LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
           send(pid, {:save_finished, self(), result, file, default?})
         end)
@@ -1230,7 +1230,7 @@ defmodule Livebook.Session do
     {file, default?} = notebook_autosave_file(state)
 
     if file && should_save_notebook?(state) do
-      content = LiveMarkdown.Export.notebook_to_markdown(state.data.notebook)
+      content = LiveMarkdown.notebook_to_livemd(state.data.notebook)
       result = FileSystem.File.write(file, content)
       handle_save_finished(state, result, file, default?)
     else

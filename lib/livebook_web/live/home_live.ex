@@ -178,10 +178,10 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_params(%{"url" => url}, _url, socket)
       when socket.assigns.live_action == :public_import do
-    origin = Livebook.ContentLoader.url_to_location(url)
+    origin = Notebook.ContentLoader.url_to_location(url)
 
     origin
-    |> Livebook.ContentLoader.fetch_content_from_location()
+    |> Notebook.ContentLoader.fetch_content_from_location()
     |> case do
       {:ok, content} ->
         socket = import_content(socket, content, origin: origin)
@@ -348,7 +348,7 @@ defmodule LivebookWeb.HomeLive do
 
   defp import_notebook(file) do
     with {:ok, content} <- FileSystem.File.read(file) do
-      {:ok, LiveMarkdown.Import.notebook_from_markdown(content)}
+      {:ok, LiveMarkdown.notebook_from_livemd(content)}
     end
   end
 
@@ -358,7 +358,7 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp import_content(socket, content, session_opts) do
-    {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+    {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
     socket =
       socket

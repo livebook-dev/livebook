@@ -1,7 +1,7 @@
-defmodule Livebook.Evaluator.DefaultFormatterTest do
+defmodule Livebook.Runtime.Evaluator.DefaultFormatterTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.Evaluator.DefaultFormatter
+  alias Livebook.Runtime.Evaluator.DefaultFormatter
 
   test "inspects successful results" do
     result = 10

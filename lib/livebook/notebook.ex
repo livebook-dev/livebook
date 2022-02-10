@@ -554,7 +554,7 @@ defmodule Livebook.Notebook do
 
   Automatically merges stdout outputs and updates frames.
   """
-  @spec add_cell_output(t(), Cell.id(), Cell.Elixir.output()) :: t()
+  @spec add_cell_output(t(), Cell.id(), Livebook.Runtime.output()) :: t()
   def add_cell_output(notebook, cell_id, output) do
     {notebook, counter} = do_add_cell_output(notebook, cell_id, notebook.output_counter, output)
     %{notebook | output_counter: counter}
@@ -626,7 +626,7 @@ defmodule Livebook.Notebook do
   @doc """
   Recursively adds index to all outputs, including frames.
   """
-  @spec index_outputs(list(Cell.Elixir.output()), non_neg_integer()) ::
+  @spec index_outputs(list(Livebook.Runtime.output()), non_neg_integer()) ::
           {list(Cell.Elixir.index_output()), non_neg_integer()}
   def index_outputs(outputs, counter) do
     Enum.map_reduce(outputs, counter, &index_output/2)

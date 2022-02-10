@@ -22,10 +22,10 @@ defmodule Livebook.Runtime.ErlDist do
   # Modules to load into the connected node.
   def required_modules do
     [
-      Livebook.Evaluator,
-      Livebook.Evaluator.IOProxy,
-      Livebook.Evaluator.ObjectTracker,
-      Livebook.Evaluator.DefaultFormatter,
+      Livebook.Runtime.Evaluator,
+      Livebook.Runtime.Evaluator.IOProxy,
+      Livebook.Runtime.Evaluator.ObjectTracker,
+      Livebook.Runtime.Evaluator.DefaultFormatter,
       Livebook.Intellisense,
       Livebook.Intellisense.Docs,
       Livebook.Intellisense.IdentifierMatcher,

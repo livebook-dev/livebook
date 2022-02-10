@@ -1,7 +1,7 @@
-defmodule Livebook.ContentLoaderTest do
+defmodule Livebook.Notebook.ContentLoaderTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.ContentLoader
+  alias Livebook.Notebook.ContentLoader
 
   describe "rewrite_url/1" do
     test "rewrites GitHub URLs to their raw counterpart" do

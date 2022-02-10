@@ -1,8 +1,8 @@
-defmodule Livebook.Evaluator.IOProxyTest do
+defmodule Livebook.Runtime.Evaluator.IOProxyTest do
   use ExUnit.Case, async: true
 
-  alias Livebook.Evaluator
-  alias Livebook.Evaluator.IOProxy
+  alias Livebook.Runtime.Evaluator
+  alias Livebook.Runtime.Evaluator.IOProxy
 
   setup do
     {:ok, object_tracker} = start_supervised(Evaluator.ObjectTracker)
@@ -18,17 +18,17 @@ defmodule Livebook.Evaluator.IOProxyTest do
   describe ":stdio interoperability" do
     test "IO.puts", %{io: io} do
       IO.puts(io, "hey")
-      assert_receive {:evaluation_output, :ref, {:stdout, "hey\n"}}
+      assert_receive {:runtime_evaluation_output, :ref, {:stdout, "hey\n"}}
     end
 
     test "IO.write", %{io: io} do
       IO.write(io, "hey")
-      assert_receive {:evaluation_output, :ref, {:stdout, "hey"}}
+      assert_receive {:runtime_evaluation_output, :ref, {:stdout, "hey"}}
     end
 
     test "IO.inspect", %{io: io} do
       IO.inspect(io, %{}, [])
-      assert_receive {:evaluation_output, :ref, {:stdout, "%{}\n"}}
+      assert_receive {:runtime_evaluation_output, :ref, {:stdout, "%{}\n"}}
     end
 
     test "IO.read", %{io: io} do
@@ -83,25 +83,25 @@ defmodule Livebook.Evaluator.IOProxyTest do
   test "buffers rapid output", %{io: io} do
     IO.puts(io, "hey")
     IO.puts(io, "hey")
-    assert_receive {:evaluation_output, :ref, {:stdout, "hey\nhey\n"}}
+    assert_receive {:runtime_evaluation_output, :ref, {:stdout, "hey\nhey\n"}}
   end
 
   test "respects CR as line cleaner", %{io: io} do
     IO.write(io, "hey")
     IO.write(io, "\roverride\r")
-    assert_receive {:evaluation_output, :ref, {:stdout, "\roverride\r"}}
+    assert_receive {:runtime_evaluation_output, :ref, {:stdout, "\roverride\r"}}
   end
 
   test "flush/1 synchronously sends buffer contents", %{io: io} do
     IO.puts(io, "hey")
     IOProxy.flush(io)
-    assert_received {:evaluation_output, :ref, {:stdout, "hey\n"}}
+    assert_received {:runtime_evaluation_output, :ref, {:stdout, "hey\n"}}
   end
 
   test "supports direct livebook output forwarding", %{io: io} do
     livebook_put_output(io, {:text, "[1, 2, 3]"})
 
-    assert_received {:evaluation_output, :ref, {:text, "[1, 2, 3]"}}
+    assert_received {:runtime_evaluation_output, :ref, {:text, "[1, 2, 3]"}}
   end
 
   describe "token requests" do
@@ -138,8 +138,8 @@ defmodule Livebook.Evaluator.IOProxyTest do
 
   defp reply_to_input_request(ref, input_id, reply, times) do
     receive do
-      {:evaluation_input, ^ref, reply_to, ^input_id} ->
-        send(reply_to, {:evaluation_input_reply, reply})
+      {:runtime_evaluation_input, ^ref, reply_to, ^input_id} ->
+        send(reply_to, {:runtime_evaluation_input_reply, reply})
         reply_to_input_request(ref, input_id, reply, times - 1)
     end
   end

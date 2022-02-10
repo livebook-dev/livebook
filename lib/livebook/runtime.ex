@@ -1,22 +1,21 @@
 defprotocol Livebook.Runtime do
   @moduledoc false
 
-  # This protocol defines an interface for evaluation backends.
+  # This protocol defines an interface for code evaluation backends.
   #
-  # Usually a runtime involves a set of processes responsible
-  # for evaluation, which could be running on a different node,
-  # however the protocol does not require that.
+  # Usually a runtime involves a set of processes responsible for
+  # evaluation, which could be running on a different node, however
+  # the protocol does not require that.
 
   @typedoc """
   An arbitrary term identifying an evaluation container.
 
   A container is an abstraction of an isolated group of evaluations.
-  Containers are mostly independent and consequently can be evaluated
-  concurrently if possible.
+  Containers are mostly independent and therefore can be evaluated
+  concurrently (if possible).
 
-  Note that every evaluation can use the resulting environment
-  and bindings of any previous evaluation, even from a different
-  container.
+  Note that every evaluation can use the resulting binding and env
+  of any previous evaluation, even from a different container.
   """
   @type container_ref :: term()
 
@@ -27,11 +26,50 @@ defprotocol Livebook.Runtime do
 
   @typedoc """
   A pair identifying evaluation together with its container.
+
+  When the evaluation reference is `nil`, the `locator` points to
+  a container and may be used to represent its default evaluation
+  context.
   """
   @type locator :: {container_ref(), evaluation_ref() | nil}
 
   @typedoc """
-  Recognised intellisense requests.
+  An output emitted during evaluation or as the final result.
+
+  For more details on output types see `t:Kino.Output.t/0`.
+  """
+  @type output ::
+          :ignored
+          # IO output, adjacent such outputs are treated as a whole
+          | {:stdout, binary()}
+          # Standalone text block
+          | {:text, binary()}
+          # Markdown content
+          | {:markdown, binary()}
+          # A raw image in the given format
+          | {:image, content :: binary(), mime_type :: binary()}
+          # JavaScript powered output
+          | {:js, info :: map()}
+          # Outputs placeholder
+          | {:frame, outputs :: list(output()), info :: map()}
+          # An input field
+          | {:input, attrs :: map()}
+          # A control element
+          | {:control, attrs :: map()}
+          # Internal output format for errors
+          | {:error, message :: binary(), type :: :other | :runtime_restart_required}
+
+  @typedoc """
+  Additional information about a complted evaluation.
+  """
+  @type evaluation_response_metadata :: %{
+          evaluation_time_ms: non_neg_integer(),
+          code_error: code_error(),
+          memory_usage: runtime_memory()
+        }
+
+  @typedoc """
+  Recognised intellisense request.
   """
   @type intellisense_request ::
           completion_request()
@@ -40,11 +78,10 @@ defprotocol Livebook.Runtime do
           | format_request()
 
   @typedoc """
-  Expected intellisense responses.
+  Expected intellisense response.
 
-  Responding with `nil` indicates there is no relevant reply
-  and effectively aborts the request, so it's suitable for
-  error cases.
+  Responding with `nil` indicates there is no relevant reply and
+  effectively aborts the request, so it's suitable for error cases.
   """
   @type intellisense_response ::
           nil
@@ -54,8 +91,8 @@ defprotocol Livebook.Runtime do
           | format_response()
 
   @typedoc """
-  Looks up a list of identifiers that are suitable code
-  completions for the given hint.
+  Looks up a list of identifiers that are suitable code completions
+  for the given hint.
   """
   @type completion_request :: {:completion, hint :: String.t()}
 
@@ -75,7 +112,8 @@ defprotocol Livebook.Runtime do
           :function | :module | :struct | :interface | :type | :variable | :field | :keyword
 
   @typedoc """
-  Looks up more details about an identifier found in `column` in `line`.
+  Looks up more details about an identifier found in `column` in
+  `line`.
   """
   @type details_request :: {:details, line :: String.t(), column :: pos_integer()}
 
@@ -90,8 +128,8 @@ defprotocol Livebook.Runtime do
   @typedoc """
   Looks up a list of function signatures matching the given hint.
 
-  The resulting information includes current position in the
-  argument list.
+  The resulting information includes current position in the argument
+  list.
   """
   @type signature_request :: {:signature, hint :: String.t()}
 
@@ -116,43 +154,54 @@ defprotocol Livebook.Runtime do
           code_error: code_error() | nil
         }
 
+  @typedoc """
+  A descriptive error pointing to a specific line in the code.
+  """
   @type code_error :: %{line: pos_integer(), description: String.t()}
 
   @typedoc """
-  The runtime memory usage for each type in bytes.
+  The detailed runtime memory usage.
 
-  The runtime may periodically send messages of type {:memory_usage, runtime_memory()}
+  The runtime may periodically send memory usage updates as
+
+    * `{:runtime_memory_usage, runtime_memory()}`
   """
   @type runtime_memory :: %{
-          atom: non_neg_integer(),
-          binary: non_neg_integer(),
-          code: non_neg_integer(),
-          ets: non_neg_integer(),
-          other: non_neg_integer(),
-          processes: non_neg_integer(),
-          total: non_neg_integer()
+          atom: size_in_bytes(),
+          binary: size_in_bytes(),
+          code: size_in_bytes(),
+          ets: size_in_bytes(),
+          other: size_in_bytes(),
+          processes: size_in_bytes(),
+          total: size_in_bytes()
         }
 
+  @type size_in_bytes :: non_neg_integer()
+
   @doc """
+  Connects the caller to the given runtime.
+
+  The caller becomes the runtime owner, which makes it the target
+  for most of the runtime messages and ties the runtime life to the
   Sets the caller as runtime owner.
 
-  It's advised for each runtime to have a leading process
-  that is coupled to the lifetime of the underlying runtime
-  resources. In this case the `connect` function may start
-  monitoring that process and return the monitor reference.
-  This way the caller is notified when the runtime goes down
-  by listening to the :DOWN message.
+  It is advised for each runtime to have a leading process that is
+  coupled to the lifetime of the underlying runtime resources. In
+  such case the `connect` function may start monitoring this process
+  and return the monitor reference. This way the caller is notified
+  when the runtime goes down by listening to the :DOWN message with
+  that reference.
 
   ## Options
 
-    * `:runtime_broadcast_to` - the process to which broadcast
-      messages should be sent. Defaults to the owner
+    * `:runtime_broadcast_to` - the process to send runtime broadcast
+      events to. Defaults to the owner
   """
   @spec connect(t(), keyword()) :: reference()
   def connect(runtime, opts \\ [])
 
   @doc """
-  Disconnects the current owner from runtime.
+  Disconnects the current owner from the runtime.
 
   This should cleanup the underlying node/processes.
   """
@@ -162,44 +211,47 @@ defprotocol Livebook.Runtime do
   @doc """
   Asynchronously parses and evaluates the given code.
 
-  The given `locator` identifies the container where
-  the code should be evaluated as well as the evaluation
-  reference to store the resulting context under.
+  The given `locator` identifies the container where the code should
+  be evaluated as well as the evaluation reference to store the
+  resulting context under.
 
-  Additionally, `prev_locator` points to a previous
-  evaluation to be used as the starting point of this
-  evaluation. If not applicable, the previous evaluation
-  reference may be specified as `nil`.
+  Additionally, `prev_locator` points to a previous evaluation to be
+  used as the starting point of this evaluation. If not applicable,
+  the previous evaluation reference may be specified as `nil`.
 
   ## Communication
 
-  Evaluation outputs are sent to the connected runtime owner.
-  The messages should be of the form:
+  During evaluation a number of messages may be sent to the runtime
+  owner. All captured outputs have the form:
 
-    * `{:evaluation_output, ref, output}` - output captured
-      during evaluation
+    * `{:runtime_evaluation_output, evaluation_ref, output}`
 
-    * `{:evaluation_response, ref, output, metadata}` - final
-      result of the evaluation. Recognised metadata entries
-      are: `code_error`, `evaluation_time_ms` and `memory_usage`
+  When the evaluation completes, the resulting output and metadata
+  is sent as:
 
-  The output may include input fields. The evaluation may then
-  request the current value of a previously rendered input by
-  sending `{:evaluation_input, ref, reply_to, input_id}` to the
-  runtime owner, which is supposed to reply with `{:evaluation_input_reply, reply}`
-  where `reply` is either `{:ok, value}` or `:error` if no matching
-  input can be found.
+    * `{:runtime_evaluation_response, evaluation_ref, output, metadata}`
 
-  In all of the above `ref` is the evaluation reference.
+  Outputs may include input fields. The evaluation may then request
+  the current value of a previously rendered input by sending
 
-  If the evaluation state within a container is lost (for example
-  a process goes down), the runtime may send `{:container_down, container_ref, message}`
+    * `{:runtime_evaluation_input, evaluation_ref, reply_to, input_id}`
+
+  to the  runtime owner who is supposed to reply with
+  `{:runtime_evaluation_input_reply, reply}` where `reply` is either
+  `{:ok, value}` or `:error` if no matching input can be found.
+
+  If the evaluation state within a container is lost (for example when
+  a process goes down), the runtime may send
+
+    * `{:runtime_container_down, container_ref, message}`
+
   to notify the owner.
 
   ## Options
 
-    * `:file` - file to which the evaluated code belongs. Most importantly,
-      this has an impact on the value of `__DIR__`.
+    * `:file` - the file considered as the source during evaluation.
+      This information is relevant for errors formatting and imparts
+      the value of `__DIR__`
   """
   @spec evaluate_code(t(), String.t(), locator(), locator(), keyword()) :: :ok
   def evaluate_code(runtime, code, locator, prev_locator, opts \\ [])
@@ -208,7 +260,7 @@ defprotocol Livebook.Runtime do
   Disposes of an evaluation identified by the given locator.
 
   This can be used to cleanup resources related to an old evaluation
-  if no longer needed.
+  if it is no longer needed.
   """
   @spec forget_evaluation(t(), locator()) :: :ok
   def forget_evaluation(runtime, locator)
@@ -225,22 +277,22 @@ defprotocol Livebook.Runtime do
   @doc """
   Asynchronously handles an intellisense request.
 
-  This part of runtime functionality is used to provide
-  language and context specific intellisense features in
-  the text editor.
+  This part of runtime functionality is used to provide language-
+  and context-specific intellisense features in the text editor.
 
   The response is sent to the `send_to` process as
-  `{:intellisense_response, ref, request, response}`.
+
+    * `{:runtime_intellisense_response, ref, request, response}`.
 
   The given `locator` idenfities an evaluation that may be used
-  as context when resolving the request (if relevant).
+  as the context when resolving the request (if relevant).
   """
   @spec handle_intellisense(t(), pid(), reference(), intellisense_request(), locator()) :: :ok
   def handle_intellisense(runtime, send_to, ref, request, locator)
 
   @doc """
-  Synchronously starts a runtime of the same type with the
-  same parameters.
+  Synchronously starts a runtime of the same type with the same
+  parameters.
   """
   @spec duplicate(Runtime.t()) :: {:ok, Runtime.t()} | {:error, String.t()}
   def duplicate(runtime)
@@ -248,17 +300,15 @@ defprotocol Livebook.Runtime do
   @doc """
   Returns true if the given runtime is self-contained.
 
-  A standalone runtime always starts fresh and frees all
-  resources when terminated. This may not be the case for
-  for runtimes that connect to an external running system
-  and use it for code evaluation.
+  A standalone runtime always starts fresh and frees all resources
+  on termination. This may not be the case for for runtimes that
+  connect to an external running system and use it for code evaluation.
   """
   @spec standalone?(Runtime.t()) :: boolean()
   def standalone?(runtime)
 
   @doc """
-  Reads file at the given absolute path within the runtime
-  file system.
+  Reads file at the given absolute path within the runtime file system.
   """
   @spec read_file(Runtime.t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
   def read_file(runtime, path)

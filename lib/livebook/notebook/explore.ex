@@ -123,7 +123,7 @@ defmodule Livebook.Notebook.Explore do
       markdown = File.read!(path)
       # Parse the file to ensure no warnings and read the title.
       # However, in the info we keep just the file contents to save on memory.
-      {notebook, warnings} = Livebook.LiveMarkdown.Import.notebook_from_markdown(markdown)
+      {notebook, warnings} = Livebook.LiveMarkdown.notebook_from_livemd(markdown)
 
       if warnings != [] do
         items = Enum.map(warnings, &("- " <> &1))
@@ -194,7 +194,7 @@ defmodule Livebook.Notebook.Explore do
         raise NotFoundError, slug: slug
 
       notebook_info ->
-        {notebook, []} = Livebook.LiveMarkdown.Import.notebook_from_markdown(notebook_info.livemd)
+        {notebook, []} = Livebook.LiveMarkdown.notebook_from_livemd(notebook_info.livemd)
         {notebook, notebook_info.images}
     end
   end

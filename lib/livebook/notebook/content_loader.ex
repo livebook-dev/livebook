@@ -1,4 +1,4 @@
-defmodule Livebook.ContentLoader do
+defmodule Livebook.Notebook.ContentLoader do
   @moduledoc false
 
   alias Livebook.Utils.HTTP

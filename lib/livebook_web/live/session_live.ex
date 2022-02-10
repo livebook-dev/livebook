@@ -925,7 +925,7 @@ defmodule LivebookWeb.SessionLive do
      |> push_redirect(to: Routes.home_path(socket, :page))}
   end
 
-  def handle_info({:intellisense_response, ref, request, response}, socket) do
+  def handle_info({:runtime_intellisense_response, ref, request, response}, socket) do
     response = process_intellisense_response(response, request)
     payload = %{"ref" => inspect(ref), "response" => response}
     {:noreply, push_event(socket, "intellisense_response", payload)}
@@ -990,7 +990,7 @@ defmodule LivebookWeb.SessionLive do
         |> redirect_to_self()
 
       resolution_location ->
-        origin = Livebook.ContentLoader.resolve_location(resolution_location, relative_path)
+        origin = Notebook.ContentLoader.resolve_location(resolution_location, relative_path)
 
         case session_id_by_location(origin) do
           {:ok, session_id} ->
@@ -1021,9 +1021,9 @@ defmodule LivebookWeb.SessionLive do
   defp location(%{origin: origin}), do: origin
 
   defp open_notebook(socket, origin) do
-    case Livebook.ContentLoader.fetch_content_from_location(origin) do
+    case Notebook.ContentLoader.fetch_content_from_location(origin) do
       {:ok, content} ->
-        {notebook, messages} = Livebook.LiveMarkdown.Import.notebook_from_markdown(content)
+        {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
         # If the current session has no path, fork the notebook
         fork? = socket.private.data.file == nil

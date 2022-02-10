@@ -8,7 +8,7 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
   # but instead of logging to the console, it sends
   # log output to the group leader of the source process,
   # provided the group leader is an instance of
-  # `Livebook.Evaluator.IOProxy`.
+  # `Livebook.Runtime.Evaluator.IOProxy`.
   #
   # Basic configuration is taken from the console
   # logger configuration to match its formatting.
@@ -102,7 +102,7 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
 
   defp io_proxy?(pid) do
     info = Process.info(pid, [:dictionary])
-    info[:dictionary][:"$initial_call"] == {Livebook.Evaluator.IOProxy, :init, 1}
+    info[:dictionary][:"$initial_call"] == {Livebook.Runtime.Evaluator.IOProxy, :init, 1}
   end
 
   defp async_io(device, output) when is_pid(device) do
