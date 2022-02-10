@@ -241,9 +241,11 @@ function getChannel(sessionId, { create = true } = {}) {
  * Leaves the JS outputs channel tied to the current session.
  */
 export function leaveChannel() {
-  channel.leave();
-  channel = null;
-  socket.disconnect();
+  if (channel) {
+    channel.leave();
+    channel = null;
+    socket.disconnect();
+  }
 }
 
 /**
