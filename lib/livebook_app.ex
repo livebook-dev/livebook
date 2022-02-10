@@ -37,8 +37,6 @@ if Mix.target() == :app do
       :wx.subscribe_events()
       state = %{frame: frame}
 
-      Livebook.Utils.browser_open(LivebookWeb.Endpoint.access_url())
-
       {frame, state}
     end
 
@@ -54,20 +52,33 @@ if Mix.target() == :app do
       {:stop, :shutdown, state}
     end
 
+    # This event is triggered when the application is opened for the first time
+    @impl true
+    def handle_info({:new_file, ''}, state) do
+      Livebook.Utils.browser_open(LivebookWeb.Endpoint.access_url())
+      {:noreply, state}
+    end
+
     # TODO: investigate "Universal Links" [1], that is, instead of livebook://foo, we have
     # https://livebook.dev/foo, which means the link works with and without Livebook.app.
     #
     # [1] https://developer.apple.com/documentation/xcode/allowing-apps-and-websites-to-link-to-your-content
     @impl true
-    def handle_info({:open_url, url}, state) do
-      'livebook://' ++ rest = url
-      import_livebook("https://#{rest}")
+    def handle_info({:open_url, 'livebook://' ++ rest}, state) do
+      "https://#{rest}"
+      |> Livebook.Utils.notebook_import_url()
+      |> Livebook.Utils.browser_open()
+
       {:noreply, state}
     end
 
     @impl true
     def handle_info({:open_file, path}, state) do
-      import_livebook("file://#{path}")
+      path
+      |> List.to_string()
+      |> Livebook.Utils.notebook_open_url()
+      |> Livebook.Utils.browser_open()
+
       {:noreply, state}
     end
 
@@ -81,12 +92,6 @@ if Mix.target() == :app do
     @impl true
     def handle_info(_event, state) do
       {:noreply, state}
-    end
-
-    defp import_livebook(url) do
-      url
-      |> Livebook.Utils.notebook_import_url()
-      |> Livebook.Utils.browser_open()
     end
 
     defp fixup_macos_menubar(frame, title) do
