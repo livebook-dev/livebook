@@ -87,19 +87,19 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   language={Cell.type(cell)}
                   source={cell.source} />
                 <div class="pt-1 pb-4 border-b border-gray-200">
-                  <button class="button-base button-gray whitespace-nowrap"
+                  <button class="button-base button-gray whitespace-nowrap py-1 px-2"
                     aria-label="restore"
                     phx-click="restore"
                     phx-value-cell_id={entry.cell.id}
                     phx-target={@myself}>
-                    <.remix_icon icon="arrow-go-back-line" class="align-bottom mr-1" />
-                    <span class="font-normal">Restore</span>
+                    <.remix_icon icon="arrow-go-back-line" class="align-middle mr-1 text-xs" />
+                    <span class="font-normal text-xs">Restore</span>
                   </button>
-                  <button class="button-base button-gray whitespace-nowrap"
+                  <button class="button-base button-gray whitespace-nowrap py-1 px-2"
                     aria-label="copy source"
                     phx-click={JS.dispatch("lb:clipcopy", to: "#bin-cell-#{cell.id}-source")}>
-                    <.remix_icon icon="clipboard-line" class="align-bottom mr-1" />
-                    <span class="font-normal">Copy source</span>
+                    <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
+                    <span class="font-normal text-xs">Copy source</span>
                   </button>
                 </div>
               </div>
