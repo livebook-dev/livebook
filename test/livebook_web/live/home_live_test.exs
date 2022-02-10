@@ -120,6 +120,8 @@ defmodule LivebookWeb.HomeLiveTest do
 
       assert render(view) =~ session1.id
       assert render(view) =~ session2.id
+
+      Session.close([session1.pid, session2.pid])
     end
 
     test "updates UI whenever a session is added or deleted", %{conn: conn} do
@@ -151,6 +153,8 @@ defmodule LivebookWeb.HomeLiveTest do
                Routes.session_path(conn, :download_source, session.id, "livemd",
                  include_outputs: false
                )
+
+      Session.close(session.pid)
     end
 
     test "allows forking existing session", %{conn: conn} do
@@ -168,6 +172,8 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook - fork"
+
+      Session.close(session.pid)
     end
 
     test "allows closing session after confirmation", %{conn: conn} do
@@ -186,6 +192,8 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_click()
 
       refute render(view) =~ session.id
+
+      Session.close(session.pid)
     end
 
     test "close all selected sessions using bulk action", %{conn: conn} do
@@ -215,6 +223,8 @@ defmodule LivebookWeb.HomeLiveTest do
       refute render(view) =~ session1.id
       refute render(view) =~ session2.id
       refute render(view) =~ session3.id
+
+      Session.close([session1.pid, session2.pid, session3.pid])
     end
   end
 
