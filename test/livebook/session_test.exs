@@ -632,8 +632,8 @@ defmodule Livebook.SessionTest do
   end
 
   defp start_session(opts \\ []) do
-    session_id = Utils.random_id()
-    {:ok, pid} = Session.start_link(Keyword.merge([id: session_id], opts))
+    opts = Keyword.merge([id: Utils.random_id()], opts)
+    pid = start_supervised!({Session, opts}, id: opts[:id])
     Session.get_by_pid(pid)
   end
 

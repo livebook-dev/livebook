@@ -168,7 +168,7 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <%= live_patch to: Routes.home_path(@socket, :close_session, @session.id),
+                <%= live_redirect to: Routes.home_path(@socket, :close_session, @session.id),
                       class: "menu-item text-red-600",
                       role: "menuitem" do %>
                   <.remix_icon icon="close-circle-line" />

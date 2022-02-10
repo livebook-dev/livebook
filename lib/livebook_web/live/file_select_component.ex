@@ -217,7 +217,7 @@ defmodule LivebookWeb.FileSelectComponent do
             </button>
           <% end %>
         <% end %>
-        <%= live_patch to: Routes.settings_path(@socket, :page),
+        <%= live_redirect to: Routes.settings_path(@socket, :page),
               class: "menu-item text-gray-500 border-t border-gray-200",
               role: "menuitem" do %>
           <.remix_icon icon="settings-3-line" />
