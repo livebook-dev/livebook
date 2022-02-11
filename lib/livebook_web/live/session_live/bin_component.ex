@@ -40,88 +40,89 @@ defmodule LivebookWeb.SessionLive.BinComponent do
           <p class="text-gray-700 basis-4/5">
             Find all your deleted cells from this notebook session
           </p>
-          <form phx-change="search" onsubmit="return false" phx-target={@myself}
-            class={"mt-1 relative #{if @bin_entries == [], do: "hidden"}"}>
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
-              <.remix_icon icon="search-line" class="align-bottom text-gray-500" />
-            </span>
-            <input class="input block w-full pl-10"
-              type="text"
-              name="search"
-              value={@search}
-              placeholder="Search"
-              autocomplete="off"
-              spellcheck="false"
-              autofocus />
-          </form>
+          <%= if @bin_entries != [] do %>
+            <form phx-change="search" onsubmit="return false" phx-target={@myself} class="mt-1 relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                <.remix_icon icon="search-line" class="align-bottom text-gray-500" />
+              </span>
+              <input class="input block w-full pl-10"
+                type="text"
+                name="search"
+                value={@search}
+                placeholder="Search"
+                autocomplete="off"
+                spellcheck="false"
+                autofocus />
+            </form>
+          <% end %>
         </div>
-        <%= if @bin_entries == [] do %>
-          <div class="p-5 py-24 flex flex-col gap-3 space-x-4 items-center">
-            <div>
-              <.remix_icon icon="delete-bin-6-line" class="text-gray-700 text-xl bg-gray-100 p-3 rounded-full" />
+        <%= cond do %>
+          <%= @bin_entries == [] -> %>
+            <div class="p-5 py-24 flex flex-col gap-3 space-x-4 items-center">
+              <div>
+                <.remix_icon icon="delete-bin-6-line" class="text-gray-700 text-xl bg-gray-100 p-3 rounded-full" />
+              </div>
+              <div class="w-64 text-gray-600 text-center">
+                You haven't deleted any cells or sections yet. Once you do, they'll appear here.
+              </div>
             </div>
-            <div class="w-64 text-gray-600 text-center">
-              You haven't deleted any cells or sections yet. Once you do, they'll appear here.
+          <% @matching_entries == [] -> %>
+            <div class="p-5 py-24 flex flex-col gap-3 space-x-4 items-center">
+              <div>
+                <.remix_icon icon="file-search-line" class="text-gray-700 text-xl bg-gray-100 p-3 rounded-full" />
+              </div>
+              <div class="w-64 text-gray-600 text-center">
+                We couldn't find any results for your query.
+              </div>
             </div>
-          </div>
-        <% else %>
-          <div class="flex flex-col space-y-8 min-h-[30rem] pt-3">
-            <%= for %{cell: cell} = entry <- Enum.take(@matching_entries, @limit) do %>
-              <div class="flex flex-col space-y-1">
-                <div class="flex justify-between items-center">
-                  <div class="flex py-1">
-                    <.cell_icon cell_type={Cell.type(cell)}/>
-                    <p class="text-sm text-gray-700 self-center">
-                      <span class="font-semibold"><%= Cell.type(cell) |> Atom.to_string() |> String.capitalize() %></span> cell
-                      deleted from <span class="font-semibold">“<%= entry.section_name %>”</span> section
-                    </p>
+          <% true -> %>
+            <div class="flex flex-col space-y-8 min-h-[30rem] pt-3">
+              <%= for %{cell: cell} = entry <- Enum.take(@matching_entries, @limit) do %>
+                <div class="flex flex-col space-y-1">
+                  <div class="flex justify-between items-center">
+                    <div class="flex py-1">
+                      <.cell_icon cell_type={Cell.type(cell)}/>
+                      <p class="text-sm text-gray-700 self-center">
+                        <span class="font-semibold"><%= Cell.type(cell) |> Atom.to_string() |> String.capitalize() %></span> cell
+                        deleted from <span class="font-semibold">“<%= entry.section_name %>”</span> section
+                      </p>
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                      <span class="text-sm text-gray-500">
+                        <%= format_date_relatively(entry.deleted_at) %>
+                      </span>
+                    </div>
                   </div>
-                  <div class="flex justify-end space-x-2">
-                    <span class="text-sm text-gray-500">
-                      <%= format_date_relatively(entry.deleted_at) %>
-                    </span>
+                  <.code_preview
+                    source_id={"bin-cell-#{cell.id}-source"}
+                    language={Cell.type(cell)}
+                    source={cell.source} />
+                  <div class="pt-1 pb-4 border-b border-gray-200">
+                    <button class="button-base button-gray whitespace-nowrap py-1 px-2"
+                      aria-label="restore"
+                      phx-click="restore"
+                      phx-value-cell_id={entry.cell.id}
+                      phx-target={@myself}>
+                      <.remix_icon icon="arrow-go-back-line" class="align-middle mr-1 text-xs" />
+                      <span class="font-normal text-xs">Restore</span>
+                    </button>
+                    <button class="button-base button-gray whitespace-nowrap py-1 px-2"
+                      aria-label="copy source"
+                      phx-click={JS.dispatch("lb:clipcopy", to: "#bin-cell-#{cell.id}-source")}>
+                      <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
+                      <span class="font-normal text-xs">Copy source</span>
+                    </button>
                   </div>
                 </div>
-                <.code_preview
-                  source_id={"bin-cell-#{cell.id}-source"}
-                  language={Cell.type(cell)}
-                  source={cell.source} />
-                <div class="pt-1 pb-4 border-b border-gray-200">
-                  <button class="button-base button-gray whitespace-nowrap py-1 px-2"
-                    aria-label="restore"
-                    phx-click="restore"
-                    phx-value-cell_id={entry.cell.id}
-                    phx-target={@myself}>
-                    <.remix_icon icon="arrow-go-back-line" class="align-middle mr-1 text-xs" />
-                    <span class="font-normal text-xs">Restore</span>
-                  </button>
-                  <button class="button-base button-gray whitespace-nowrap py-1 px-2"
-                    aria-label="copy source"
-                    phx-click={JS.dispatch("lb:clipcopy", to: "#bin-cell-#{cell.id}-source")}>
-                    <.remix_icon icon="clipboard-line" class="align-middle mr-1 text-xs" />
-                    <span class="font-normal text-xs">Copy source</span>
+              <% end %>
+              <%= if length(@matching_entries) > @limit do %>
+                <div class="flex justify-center">
+                  <button class="button-base button-outlined-gray" phx-click="more" phx-target={@myself}>
+                    Older
                   </button>
                 </div>
-              </div>
-            <% end %>
-            <%= if length(@matching_entries) > @limit do %>
-              <div class="flex justify-center">
-                <button class="button-base button-outlined-gray" phx-click="more" phx-target={@myself}>
-                  Older
-                </button>
-              </div>
-            <% end %>
-            <%= if @search != "" and @matching_entries == [] do %>
-              <div class="p-5 py-24 flex flex-col gap-3 space-x-4 items-center">
-                <div>
-                  <.remix_icon icon="file-search-line" class="text-gray-700 text-xl bg-gray-100 p-3 rounded-full" />
-                </div>
-                <div class="w-64 text-gray-600 text-center">
-                  We couldn't find any results for your query.
-                </div>
-              </div>
-            <% end %>
-          </div>
+              <% end %>
+            </div>
         <% end %>
       </div>
     </div>
