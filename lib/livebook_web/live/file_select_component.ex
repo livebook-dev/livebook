@@ -147,6 +147,8 @@ defmodule LivebookWeb.FileSelectComponent do
                 phx-target={@myself}>
                 <input
                   id="new_dir_input"
+                  class="input"
+                  placeholder="Enter directory name"
                   aria-label="new directory"
                   type="text"
                   spellcheck="false"
