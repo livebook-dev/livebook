@@ -96,7 +96,12 @@ window.liveSocket = liveSocket;
 // Handling custom events dispatched with JS.dispatch/3
 
 window.addEventListener("lb:focus", (event) => {
-  event.target.focus();
+  // The element may be about to show up via JS.show, which wraps the
+  // change in requestAnimationFrame, so we do the same to make sure
+  // the focus is applied only after we change the element visibility
+  requestAnimationFrame(() => {
+    event.target.focus();
+  });
 });
 
 window.addEventListener("lb:set_value", (event) => {
