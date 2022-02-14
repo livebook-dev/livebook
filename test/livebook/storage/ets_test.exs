@@ -87,4 +87,42 @@ defmodule Livebook.Storage.EtsTest do
       assert [] = Ets.all(:unknown_namespace)
     end
   end
+
+  describe "persistence" do
+    defp load_state(%{tmp_dir: tmp_dir, secret: secret, state: state}) do
+      %{state | secret: secret, file_path: Path.join([tmp_dir, "config.txt"])}
+    end
+
+    @table_name __MODULE__
+    setup do
+      # intentionally don't pass the 'file_path' nor 'secret' into init/1
+      # to avoid loading the file on initialization
+      {:ok, state} = Ets.init(table_name: @table_name)
+
+      [state: state, secret: :crypto.strong_rand_bytes(32)]
+    end
+
+    @tag :tmp_dir
+    test "saves/loads the ets content to/from an encrypted file", ctx do
+      state = load_state(ctx)
+
+      {:reply, :ok, state} = Ets.handle_call({:insert, :all, "test1", key: "val"}, {}, state)
+      {:reply, :ok, state} = Ets.handle_call({:insert, :all, "test2", key: "val"}, {}, state)
+
+      assert {:noreply, _state} = Ets.handle_info(:persist, state)
+
+      assert File.exists?(state.file_path)
+
+      # delete the ets table and reinitialize the ETS module
+      assert [_, _] = entries = :ets.tab2list(@table_name)
+      :ets.delete(@table_name)
+      assert :undefined == :ets.info(@table_name)
+
+      # make the Ets load the entries on init
+      {:ok, _state} =
+        Ets.init(table_name: @table_name, secret: state.secret, file_path: state.file_path)
+
+      assert ^entries = :ets.tab2list(@table_name)
+    end
+  end
 end

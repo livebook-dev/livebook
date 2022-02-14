@@ -12,6 +12,10 @@ defmodule Livebook.Storage.Ets do
 
   @table_name __MODULE__
 
+  @persistence_timeout 5_000
+
+  @sign_secret "livebook-ets"
+
   use GenServer
 
   @impl Livebook.Storage
@@ -72,10 +76,18 @@ defmodule Livebook.Storage.Ets do
   end
 
   @impl GenServer
-  def init(_opts) do
-    table = :ets.new(@table_name, [:named_table, :protected, :duplicate_bag])
+  def init(opts) do
+    # enable passing table name for testing purposes
+    table_name = Keyword.get(opts, :table_name, @table_name)
+    table = :ets.new(table_name, [:named_table, :protected, :duplicate_bag])
 
-    {:ok, %{table: table}}
+    # NOTE: should we always start persisting to file or make user state that explicitly?
+    secret = Keyword.get(opts, :secret, default_secret())
+    file_path = Keyword.get(opts, :file_path, default_file_path())
+
+    state = %{table: table, pending_persist: nil, secret: secret, file_path: file_path}
+
+    {:ok, load_from_file(state)}
   end
 
   @impl GenServer
@@ -98,13 +110,90 @@ defmodule Livebook.Storage.Ets do
 
     :ets.insert(table, attributes)
 
-    {:reply, :ok, state}
+    {:reply, :ok, schedule_persist(state)}
   end
 
   @impl GenServer
   def handle_call({:delete, namespace, entity_id}, _from, %{table: table} = state) do
     :ets.delete(table, {namespace, entity_id})
 
-    {:reply, :ok, state}
+    {:reply, :ok, schedule_persist(state)}
+  end
+
+  @impl GenServer
+  def handle_info(:persist, state) do
+    state = %{state | pending_persist: nil}
+
+    {:noreply, save_to_file(state)}
+  end
+
+  defp schedule_persist(%{pending_persist: ref} = state) do
+    unless is_nil(ref) do
+      Process.cancel_timer(ref)
+    end
+
+    ref = Process.send_after(self(), :persist, @persistence_timeout)
+
+    %{state | pending_persist: ref}
+  end
+
+  defp default_secret() do
+    Livebook.Config.secret!("LIVEBOOK_SECRET_KEY_BASE")
+  end
+
+  defp default_file_path() do
+    # NOTE: should we add the application port to distinguish between multiple instances?
+    Path.join([:filename.basedir(:user_cache, "livebook"), "livebook.conf"])
+  end
+
+  defp load_from_file(%{file_path: file_path, secret: secret} = state)
+       when is_nil(file_path) or is_nil(secret) do
+    state
+  end
+
+  defp load_from_file(%{table: table, file_path: file_path, secret: secret} = state) do
+    # NOTE: should we silently ignore a case where the file does not exist yet?
+    if File.exists?(file_path) do
+      file_path
+      |> load()
+      |> decrypt(secret)
+      |> :erlang.binary_to_term()
+      |> then(&:ets.insert(table, &1))
+    end
+
+    state
+  end
+
+  defp save_to_file(%{file_path: file_path, secret: secret} = state)
+       when is_nil(file_path) or is_nil(secret) do
+    state
+  end
+
+  defp save_to_file(%{table: table, file_path: file_path, secret: secret} = state) do
+    table
+    |> :ets.tab2list()
+    |> :erlang.term_to_binary()
+    |> encrypt(secret)
+    |> persist(file_path)
+
+    state
+  end
+
+  defp persist(content, file_path) do
+    File.write!(file_path, content)
+  end
+
+  defp encrypt(payload, secret) do
+    Plug.Crypto.MessageEncryptor.encrypt(payload, secret, @sign_secret)
+  end
+
+  defp load(file_path) do
+    File.read!(file_path)
+  end
+
+  defp decrypt(payload, secret) do
+    {:ok, content} = Plug.Crypto.MessageEncryptor.decrypt(payload, secret, @sign_secret)
+
+    content
   end
 end
