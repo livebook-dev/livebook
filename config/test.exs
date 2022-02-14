@@ -14,6 +14,8 @@ config :logger, level: :warn
 # Disable authentication mode during test
 config :livebook, :authentication_mode, :disabled
 
+config :livebook, :data_path, Path.expand("tmp/livebook_data/test")
+
 # Use the embedded runtime in tests by default, so they
 # are cheaper to run. Other runtimes can be tested by starting
 # and setting them explicitly

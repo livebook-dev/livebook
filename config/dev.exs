@@ -71,3 +71,5 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Disable authentication mode during dev
 config :livebook, :authentication_mode, :disabled
+
+config :livebook, :data_path, Path.expand("tmp/livebook_data/dev")
