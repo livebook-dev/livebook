@@ -6,7 +6,8 @@ defmodule Livebook.Application do
   use Application
 
   def start(_type, _args) do
-    ensure_local_filesystem!()
+    ensure_directories!()
+    set_local_filesystem!()
     ensure_distribution!()
     validate_hostname_resolution!()
     set_cookie()
@@ -55,7 +56,12 @@ defmodule Livebook.Application do
     :ok
   end
 
-  defp ensure_local_filesystem!() do
+  defp ensure_directories!() do
+    File.mkdir_p!(Livebook.Config.home())
+    File.mkdir_p!(Livebook.Config.data_path())
+  end
+
+  defp set_local_filesystem!() do
     home =
       Livebook.Config.home()
       |> Livebook.FileSystem.Utils.ensure_dir_path()
