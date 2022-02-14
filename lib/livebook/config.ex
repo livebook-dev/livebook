@@ -63,7 +63,8 @@ defmodule Livebook.Config do
   """
   @spec data_path() :: String.t()
   def data_path() do
-    Application.get_env(:livebook, :data_path) || :filename.basedir(:user_data, "livebook")
+    path = Application.get_env(:livebook, :data_path) || :filename.basedir(:user_data, "livebook")
+    Path.expand(path)
   end
 
   ## Parsing
