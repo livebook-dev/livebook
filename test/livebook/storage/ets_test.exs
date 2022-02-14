@@ -3,6 +3,16 @@ defmodule Livebook.Storage.EtsTest do
 
   alias Livebook.Storage.Ets
 
+  setup_all do
+    # clear all possible stale test's entities
+    [:insert, :fetch_key, :fetch, :delete, :all, :persistence]
+    |> Enum.each(fn namespace ->
+      namespace
+      |> Ets.all()
+      |> Enum.each(& Ets.delete(namespace, &1.id))
+    end)
+  end
+
   describe "insert/3 and fetch/2" do
     test "properly inserts a new key-value attribute" do
       assert :ok = Ets.insert(:insert, "test", key1: "val1", key2: "val2")
@@ -89,40 +99,35 @@ defmodule Livebook.Storage.EtsTest do
   end
 
   describe "persistence" do
-    defp load_state(%{tmp_dir: tmp_dir, secret: secret, state: state}) do
-      %{state | secret: secret, file_path: Path.join([tmp_dir, "config.txt"])}
+    defp read_table_and_lookup(path, entity) do
+      {:ok, tab} =
+        path
+        |> String.to_charlist()
+        |> :ets.file2tab()
+
+      :ets.lookup(tab, {:persistence, entity})
     end
 
-    @table_name __MODULE__
-    setup do
-      # intentionally don't pass the 'file_path' nor 'secret' into init/1
-      # to avoid loading the file on initialization
-      {:ok, state} = Ets.init(table_name: @table_name)
+    test "insert triggers saving to file" do
+      :ok = Ets.insert(:persistence, "insert", key: "val")
 
-      [state: state, secret: :crypto.strong_rand_bytes(32)]
+      path = Ets.config_file_path()
+      assert File.exists?(path)
+
+      assert [_test] = read_table_and_lookup(path, "insert")
     end
 
-    @tag :tmp_dir
-    test "saves/loads the ets content to/from an encrypted file", ctx do
-      state = load_state(ctx)
+    test "delete triggers saving to file" do
+      :ok = Ets.insert(:persistence, "delete", key: "val")
 
-      {:reply, :ok, state} = Ets.handle_call({:insert, :all, "test1", key: "val"}, {}, state)
-      {:reply, :ok, state} = Ets.handle_call({:insert, :all, "test2", key: "val"}, {}, state)
+      path = Ets.config_file_path()
+      assert File.exists?(path)
 
-      assert {:noreply, _state} = Ets.handle_info(:persist, state)
+      assert [_test] = read_table_and_lookup(path, "delete")
 
-      assert File.exists?(state.file_path)
+      :ok = Ets.delete(:persistence, "delete")
 
-      # delete the ets table and reinitialize the ETS module
-      assert [_, _] = entries = :ets.tab2list(@table_name)
-      :ets.delete(@table_name)
-      assert :undefined == :ets.info(@table_name)
-
-      # make the Ets load the entries on init
-      {:ok, _state} =
-        Ets.init(table_name: @table_name, secret: state.secret, file_path: state.file_path)
-
-      assert ^entries = :ets.tab2list(@table_name)
+      assert [] = read_table_and_lookup(path, "delete")
     end
   end
 end

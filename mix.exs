@@ -94,7 +94,6 @@ defmodule Livebook.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:plug_crypto, "~> 1.2"},
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 0.1.0"},
       {:aws_signature, "~> 0.2.0"},
