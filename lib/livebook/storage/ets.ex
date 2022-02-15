@@ -10,6 +10,7 @@ defmodule Livebook.Storage.Ets do
   """
   @behaviour Livebook.Storage
 
+  require Logger
   use GenServer
 
   @impl Livebook.Storage
@@ -56,7 +57,7 @@ defmodule Livebook.Storage.Ets do
 
   @spec config_file_path() :: Path.t()
   def config_file_path() do
-    Path.join([Livebook.Config.data_path(), "storage.ets"])
+    Path.join([Livebook.Config.data_path(), "livebook_config.ets"])
   end
 
   @impl Livebook.Storage
@@ -130,7 +131,12 @@ defmodule Livebook.Storage.Ets do
       {:ok, tab} ->
         tab
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        case reason do
+          {:read_error, {:file_error, _, :enoent}} -> :ok
+          _ -> Logger.warning("Could not open up #{config_file_path()}: #{inspect(reason)}")
+        end
+
         :ets.new(__MODULE__, [:protected, :duplicate_bag])
     end
   end
