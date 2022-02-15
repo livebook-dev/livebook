@@ -127,6 +127,13 @@ window.addEventListener("lb:clipcopy", (event) => {
   }
 });
 
+// Accessibility handlers
+
+window.addEventListener("lb:live_region:message", (event) => {
+  const message = event.detail.message;
+  event.target.textContent = message;
+});
+
 // Other global handlers
 
 window.addEventListener("contextmenu", (event) => {
