@@ -10,13 +10,11 @@ defmodule Livebook.Storage.Ets do
   """
   @behaviour Livebook.Storage
 
-  @table_name __MODULE__
-
   use GenServer
 
   @impl Livebook.Storage
   def all(namespace) do
-    @table_name
+    table_name()
     |> :ets.match({{namespace, :"$1"}, :"$2", :"$3", :_})
     |> Enum.group_by(
       fn [entity_id, _attr, _val] -> entity_id end,
@@ -31,7 +29,7 @@ defmodule Livebook.Storage.Ets do
 
   @impl Livebook.Storage
   def fetch(namespace, entity_id) do
-    @table_name
+    table_name()
     |> :ets.lookup({namespace, entity_id})
     |> case do
       [] ->
@@ -48,12 +46,17 @@ defmodule Livebook.Storage.Ets do
 
   @impl Livebook.Storage
   def fetch_key(namespace, entity_id, key) do
-    @table_name
+    table_name()
     |> :ets.match({{namespace, entity_id}, key, :"$1", :_})
     |> case do
       [[value]] -> {:ok, value}
       [] -> :error
     end
+  end
+
+  @spec config_file_path() :: Path.t()
+  def config_file_path() do
+    Path.join([Livebook.Config.data_path(), "storage.ets"])
   end
 
   @impl Livebook.Storage
@@ -73,7 +76,12 @@ defmodule Livebook.Storage.Ets do
 
   @impl GenServer
   def init(_opts) do
-    table = :ets.new(@table_name, [:named_table, :protected, :duplicate_bag])
+    # Make sure that this process does not terminate abruptly
+    # in case it is persisting to disk. terminate/2 is still a no-op.
+    Process.flag(:trap_exit, true)
+
+    table = load_or_create_table()
+    :persistent_term.put(__MODULE__, table)
 
     {:ok, %{table: table}}
   end
@@ -98,6 +106,8 @@ defmodule Livebook.Storage.Ets do
 
     :ets.insert(table, attributes)
 
+    :ok = save_to_file(state)
+
     {:reply, :ok, state}
   end
 
@@ -105,6 +115,29 @@ defmodule Livebook.Storage.Ets do
   def handle_call({:delete, namespace, entity_id}, _from, %{table: table} = state) do
     :ets.delete(table, {namespace, entity_id})
 
+    :ok = save_to_file(state)
+
     {:reply, :ok, state}
+  end
+
+  defp table_name(), do: :persistent_term.get(__MODULE__)
+
+  defp load_or_create_table() do
+    config_file_path()
+    |> String.to_charlist()
+    |> :ets.file2tab()
+    |> case do
+      {:ok, tab} ->
+        tab
+
+      {:error, _reason} ->
+        :ets.new(__MODULE__, [:protected, :duplicate_bag])
+    end
+  end
+
+  defp save_to_file(%{table: table}) do
+    file_path = String.to_charlist(config_file_path())
+
+    :ets.tab2file(table, file_path)
   end
 end

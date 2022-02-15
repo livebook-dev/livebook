@@ -87,4 +87,35 @@ defmodule Livebook.Storage.EtsTest do
       assert [] = Ets.all(:unknown_namespace)
     end
   end
+
+  describe "persistence" do
+    defp read_table_and_lookup(path, entity) do
+      {:ok, tab} =
+        path
+        |> String.to_charlist()
+        |> :ets.file2tab()
+
+      :ets.lookup(tab, {:persistence, entity})
+    end
+
+    test "insert triggers saving to file" do
+      :ok = Ets.insert(:persistence, "insert", key: "val")
+
+      path = Ets.config_file_path()
+      assert File.exists?(path)
+
+      assert [_test] = read_table_and_lookup(path, "insert")
+    end
+
+    test "delete triggers saving to file" do
+      :ok = Ets.insert(:persistence, "delete", key: "val")
+
+      path = Ets.config_file_path()
+      assert File.exists?(path)
+
+      :ok = Ets.delete(:persistence, "delete")
+
+      assert [] = read_table_and_lookup(path, "delete")
+    end
+  end
 end
