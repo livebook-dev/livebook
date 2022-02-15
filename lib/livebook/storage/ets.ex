@@ -59,6 +59,11 @@ defmodule Livebook.Storage.Ets do
     Path.join([Livebook.Config.data_path(), "storage.ets"])
   end
 
+  @spec sync() :: :ok
+  def sync() do
+    GenServer.call(__MODULE__, :sync)
+  end
+
   @impl Livebook.Storage
   def insert(namespace, entity_id, attributes) do
     GenServer.call(__MODULE__, {:insert, namespace, entity_id, attributes})
@@ -87,6 +92,11 @@ defmodule Livebook.Storage.Ets do
   end
 
   @impl GenServer
+  def handle_call(:sync, _from, state) do
+    {:reply, :ok, state}
+  end
+
+  @impl GenServer
   def handle_call({:insert, namespace, entity_id, attributes}, _from, %{table: table} = state) do
     match_head = {{namespace, entity_id}, :"$1", :_, :_}
 
@@ -105,19 +115,20 @@ defmodule Livebook.Storage.Ets do
       end)
 
     :ets.insert(table, attributes)
-
-    :ok = save_to_file(state)
-
-    {:reply, :ok, state}
+    {:reply, :ok, state, {:continue, :save_to_file}}
   end
 
   @impl GenServer
   def handle_call({:delete, namespace, entity_id}, _from, %{table: table} = state) do
     :ets.delete(table, {namespace, entity_id})
+    {:reply, :ok, state, {:continue, :save_to_file}}
+  end
 
-    :ok = save_to_file(state)
-
-    {:reply, :ok, state}
+  @impl GenServer
+  def handle_continue(:save_to_file, %{table: table} = state) do
+    file_path = String.to_charlist(config_file_path())
+    :ets.tab2file(table, file_path)
+    {:noreply, state}
   end
 
   defp table_name(), do: :persistent_term.get(__MODULE__)
@@ -133,11 +144,5 @@ defmodule Livebook.Storage.Ets do
       {:error, _reason} ->
         :ets.new(__MODULE__, [:protected, :duplicate_bag])
     end
-  end
-
-  defp save_to_file(%{table: table}) do
-    file_path = String.to_charlist(config_file_path())
-
-    :ets.tab2file(table, file_path)
   end
 end

@@ -89,9 +89,11 @@ defmodule Livebook.Storage.EtsTest do
   end
 
   describe "persistence" do
-    defp read_table_and_lookup(path, entity) do
+    defp read_table_and_lookup(entity) do
+      :ok = Ets.sync()
+
       {:ok, tab} =
-        path
+        Ets.config_file_path()
         |> String.to_charlist()
         |> :ets.file2tab()
 
@@ -101,21 +103,14 @@ defmodule Livebook.Storage.EtsTest do
     test "insert triggers saving to file" do
       :ok = Ets.insert(:persistence, "insert", key: "val")
 
-      path = Ets.config_file_path()
-      assert File.exists?(path)
-
-      assert [_test] = read_table_and_lookup(path, "insert")
+      assert [_test] = read_table_and_lookup("insert")
     end
 
     test "delete triggers saving to file" do
       :ok = Ets.insert(:persistence, "delete", key: "val")
-
-      path = Ets.config_file_path()
-      assert File.exists?(path)
-
       :ok = Ets.delete(:persistence, "delete")
 
-      assert [] = read_table_and_lookup(path, "delete")
+      assert [] = read_table_and_lookup("delete")
     end
   end
 end
