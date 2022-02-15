@@ -267,6 +267,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     JS.remove_class("hidden", to: "[data-element='bulk-edit-member']")
     |> JS.add_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:session_list:on_selection_change")
+    |> home_live_region("bulk actions available")
   end
 
   def toggle_edit(:off) do
@@ -274,6 +275,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     |> JS.remove_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
     |> JS.dispatch("lb:session_list:on_selection_change")
+    |> home_live_region("bulk actions canceled")
   end
 
   defp order_by_label("date"), do: "Date"
@@ -304,10 +306,15 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp select_all() do
     JS.dispatch("lb:check", to: "[name='session_ids[]']")
     |> JS.dispatch("lb:session_list:on_selection_change")
+    |> home_live_region("all sessions selected")
   end
 
   defp set_action(action) do
     JS.dispatch("lb:set_value", to: "#bulk-action-input", detail: %{value: action})
     |> JS.dispatch("submit", to: "#bulk-action-form")
+  end
+
+  defp home_live_region(js, message) do
+    JS.dispatch(js, "lb:live_region:message", to: "#home-live-region", detail: %{message: message})
   end
 end
