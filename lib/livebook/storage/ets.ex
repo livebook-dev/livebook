@@ -127,7 +127,7 @@ defmodule Livebook.Storage.Ets do
   @impl GenServer
   def handle_continue(:save_to_file, %{table: table} = state) do
     file_path = String.to_charlist(config_file_path())
-    :ets.tab2file(table, file_path)
+    :ok = :ets.tab2file(table, file_path)
     {:noreply, state}
   end
 
