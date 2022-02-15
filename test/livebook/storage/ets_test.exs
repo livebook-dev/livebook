@@ -9,7 +9,7 @@ defmodule Livebook.Storage.EtsTest do
     |> Enum.each(fn namespace ->
       namespace
       |> Ets.all()
-      |> Enum.each(& Ets.delete(namespace, &1.id))
+      |> Enum.each(&Ets.delete(namespace, &1.id))
     end)
   end
 
@@ -122,8 +122,6 @@ defmodule Livebook.Storage.EtsTest do
 
       path = Ets.config_file_path()
       assert File.exists?(path)
-
-      assert [_test] = read_table_and_lookup(path, "delete")
 
       :ok = Ets.delete(:persistence, "delete")
 

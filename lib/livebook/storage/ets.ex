@@ -14,7 +14,7 @@ defmodule Livebook.Storage.Ets do
 
   @impl Livebook.Storage
   def all(namespace) do
-    :persistent_term.get(__MODULE__)
+    table_name()
     |> :ets.match({{namespace, :"$1"}, :"$2", :"$3", :_})
     |> Enum.group_by(
       fn [entity_id, _attr, _val] -> entity_id end,
@@ -29,7 +29,7 @@ defmodule Livebook.Storage.Ets do
 
   @impl Livebook.Storage
   def fetch(namespace, entity_id) do
-    :persistent_term.get(__MODULE__)
+    table_name()
     |> :ets.lookup({namespace, entity_id})
     |> case do
       [] ->
@@ -46,7 +46,7 @@ defmodule Livebook.Storage.Ets do
 
   @impl Livebook.Storage
   def fetch_key(namespace, entity_id, key) do
-    :persistent_term.get(__MODULE__)
+    table_name()
     |> :ets.match({{namespace, entity_id}, key, :"$1", :_})
     |> case do
       [[value]] -> {:ok, value}
@@ -56,7 +56,7 @@ defmodule Livebook.Storage.Ets do
 
   @spec config_file_path() :: Path.t()
   def config_file_path() do
-    Path.join([Livebook.Config.data_path(), "livebook.#{Mix.env()}.ets"])
+    Path.join([Livebook.Config.data_path(), "storage.ets"])
   end
 
   @impl Livebook.Storage
@@ -80,13 +80,11 @@ defmodule Livebook.Storage.Ets do
     # in case it is persisting to disk. terminate/2 is still a no-op.
     Process.flag(:trap_exit, true)
 
-    file_path = config_file_path()
-
     # enable passing table name for testing purposes
-    table = load_or_create_table(file_path)
+    table = load_or_create_table(config_file_path())
     :persistent_term.put(__MODULE__, table)
 
-    {:ok, %{table: table, file_path: file_path}}
+    {:ok, %{table: table}}
   end
 
   @impl GenServer
@@ -123,24 +121,24 @@ defmodule Livebook.Storage.Ets do
     {:reply, :ok, state}
   end
 
+  defp table_name(), do: :persistent_term.get(__MODULE__)
 
   defp load_or_create_table(file_path) do
-    if File.exists?(file_path) do
-      {:ok, tab} = :ets.file2tab(String.to_charlist(file_path))
+    file_path
+    |> String.to_charlist()
+    |> :ets.file2tab()
+    |> case do
+      {:ok, tab} ->
+        tab
 
-      tab
-    else
-      :ets.new(__MODULE__, [:protected, :duplicate_bag])
+      {:error, _reason} ->
+        :ets.new(__MODULE__, [:protected, :duplicate_bag])
     end
   end
 
-  defp save_to_file(%{table: table, file_path: file_path}) do
-    if is_nil(file_path) do
-      :ok
-    else
-      :ok = :ets.tab2file(table, String.to_charlist(file_path))
+  defp save_to_file(%{table: table}) do
+    file_path = String.to_charlist(config_file_path())
 
-      :ok
-    end
+    :ets.tab2file(table, file_path)
   end
 end
