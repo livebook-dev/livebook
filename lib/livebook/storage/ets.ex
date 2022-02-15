@@ -80,7 +80,6 @@ defmodule Livebook.Storage.Ets do
     # in case it is persisting to disk. terminate/2 is still a no-op.
     Process.flag(:trap_exit, true)
 
-    # enable passing table name for testing purposes
     table = load_or_create_table()
     :persistent_term.put(__MODULE__, table)
 
