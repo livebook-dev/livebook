@@ -3,16 +3,6 @@ defmodule Livebook.Storage.EtsTest do
 
   alias Livebook.Storage.Ets
 
-  setup_all do
-    # clear all possible stale test's entities
-    [:insert, :fetch_key, :fetch, :delete, :all, :persistence]
-    |> Enum.each(fn namespace ->
-      namespace
-      |> Ets.all()
-      |> Enum.each(&Ets.delete(namespace, &1.id))
-    end)
-  end
-
   describe "insert/3 and fetch/2" do
     test "properly inserts a new key-value attribute" do
       assert :ok = Ets.insert(:insert, "test", key1: "val1", key2: "val2")

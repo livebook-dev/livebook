@@ -81,7 +81,7 @@ defmodule Livebook.Storage.Ets do
     Process.flag(:trap_exit, true)
 
     # enable passing table name for testing purposes
-    table = load_or_create_table(config_file_path())
+    table = load_or_create_table()
     :persistent_term.put(__MODULE__, table)
 
     {:ok, %{table: table}}
@@ -123,8 +123,8 @@ defmodule Livebook.Storage.Ets do
 
   defp table_name(), do: :persistent_term.get(__MODULE__)
 
-  defp load_or_create_table(file_path) do
-    file_path
+  defp load_or_create_table() do
+    config_file_path()
     |> String.to_charlist()
     |> :ets.file2tab()
     |> case do
