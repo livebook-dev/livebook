@@ -116,6 +116,10 @@ window.addEventListener("lb:uncheck", (event) => {
   event.target.checked = false;
 });
 
+window.addEventListener("lb:set_text", (event) => {
+  event.target.textContent = event.detail.value;
+});
+
 window.addEventListener("lb:clipcopy", (event) => {
   if ("clipboard" in navigator) {
     const text = event.target.textContent;
@@ -125,13 +129,6 @@ window.addEventListener("lb:clipcopy", (event) => {
       "Sorry, your browser does not support clipboard copy.\nThis generally requires a secure origin — either HTTPS or localhost."
     );
   }
-});
-
-// Accessibility handlers
-
-window.addEventListener("lb:live_region:message", (event) => {
-  const message = event.detail.message;
-  event.target.textContent = message;
 });
 
 // Other global handlers
