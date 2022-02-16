@@ -389,4 +389,25 @@ defmodule LivebookWeb.Helpers do
   """
   def pluralize(1, singular, _plural), do: "1 #{singular}"
   def pluralize(count, _singular, plural), do: "#{count} #{plural}"
+
+  @doc """
+  Creates a live region with the given role.
+
+  ## Examples
+
+      <.live_region role="alert" />
+      <.live_region role="status" />
+  """
+  def live_region(assigns) do
+    ~H"""
+    <div class="sr-only" role={@role} id="live-region"></div>
+    """
+  end
+
+  @doc """
+  Sends a message to be read by the screen reader by changing the text content of the live region
+  """
+  def sr_message(js \\ %JS{}, message) do
+    JS.dispatch(js, "lb:set_text", to: "#live-region", detail: %{value: message})
+  end
 end

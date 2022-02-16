@@ -61,7 +61,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 <button class={"menu-item #{if order_by == @order_by, do: "text-gray-900", else: "text-gray-500"}"}
                   type="button"
                   role="menuitem"
-                  phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself)}>
+                  phx-click={JS.push("set_order", value: %{order_by: order_by}, target: @myself) |> sr_message("ordered by #{order_by}")}>
                   <.remix_icon icon={order_by_icon(order_by)} />
                   <span class="font-medium"><%= order_by_label(order_by) %></span>
                 </button>
@@ -267,6 +267,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     JS.remove_class("hidden", to: "[data-element='bulk-edit-member']")
     |> JS.add_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:session_list:on_selection_change")
+    |> sr_message("bulk actions available")
   end
 
   def toggle_edit(:off) do
@@ -274,6 +275,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     |> JS.remove_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
     |> JS.dispatch("lb:session_list:on_selection_change")
+    |> sr_message("bulk actions canceled")
   end
 
   defp order_by_label("date"), do: "Date"
@@ -304,6 +306,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   defp select_all() do
     JS.dispatch("lb:check", to: "[name='session_ids[]']")
     |> JS.dispatch("lb:session_list:on_selection_change")
+    |> sr_message("all sessions selected")
   end
 
   defp set_action(action) do

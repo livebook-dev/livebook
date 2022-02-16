@@ -110,6 +110,7 @@ defmodule LivebookWeb.HomeLive do
               id="session-list"
               sessions={@sessions}/>
           </div>
+          <.live_region role="alert" />
         </div>
       </div>
     </div>
