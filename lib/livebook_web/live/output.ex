@@ -94,7 +94,7 @@ defmodule LivebookWeb.Output do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""
-    <div class="flex flex-col space-y-4" role="complementary" aria-label="restart runtime">
+    <div class="flex flex-col space-y-4" role="complementary" aria-label="runtime restart required">
       <%= render_error(@formatted) %>
       <%= if @is_standalone do %>
         <div>
