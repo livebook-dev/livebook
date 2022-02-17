@@ -94,7 +94,7 @@ defmodule LivebookWeb.Output do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""
-    <div class="flex flex-col space-y-4">
+    <div class="flex flex-col space-y-4" role="complementary" aria-label="runtime restart required">
       <%= render_error(@formatted) %>
       <%= if @is_standalone do %>
         <div>
@@ -142,7 +142,7 @@ defmodule LivebookWeb.Output do
     assigns = %{message: message}
 
     ~H"""
-    <div class="whitespace-pre-wrap font-editor text-gray-500"><%= ansi_string_to_html(@message) %></div>
+    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error"><%= ansi_string_to_html(@message) %></div>
     """
   end
 
@@ -150,7 +150,7 @@ defmodule LivebookWeb.Output do
     assigns = %{message: message}
 
     ~H"""
-    <div class="whitespace-pre-wrap font-editor text-red-600"><%= @message %></div>
+    <div class="whitespace-pre-wrap font-editor text-red-600" role="complementary" aria-label="error message"><%= @message %></div>
     """
   end
 end
