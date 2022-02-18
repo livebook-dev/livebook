@@ -156,8 +156,8 @@ defmodule LivebookCLI.Server do
     end
   end
 
-  defp open_from_args(base_url, []) do
-    Livebook.Utils.browser_open(base_url)
+  defp open_from_args(_base_url, []) do
+    :ok
   end
 
   defp open_from_args(base_url, ["new"]) do
