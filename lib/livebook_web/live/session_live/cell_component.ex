@@ -172,6 +172,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <span class="tooltip top" data-tooltip="Link">
       <a href={"#cell-#{@cell_id}"} class="icon-button"
+        role="button"
         aria-label="link to cell">
         <.remix_icon icon="link" class="text-xl" />
       </a>
