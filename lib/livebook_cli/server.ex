@@ -139,7 +139,7 @@ defmodule LivebookCLI.Server do
   defp check_endpoint_availability(base_url) do
     Application.ensure_all_started(:inets)
 
-    health_url = append_path(base_url, "/public/health")
+    health_url = set_path(base_url, "/public/health")
 
     case Livebook.Utils.HTTP.request(:get, health_url) do
       {:ok, status, _headers, body} ->
@@ -162,7 +162,7 @@ defmodule LivebookCLI.Server do
 
   defp open_from_args(base_url, ["new"]) do
     base_url
-    |> append_path("/explore/notebooks/new")
+    |> set_path("/explore/notebooks/new")
     |> Livebook.Utils.browser_open()
   end
 
@@ -276,10 +276,10 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([_opt | opts], config), do: opts_to_config(opts, config)
 
-  defp append_path(url, path) do
+  defp set_path(url, path) do
     url
     |> URI.parse()
-    |> Map.update!(:path, &((&1 || "") <> path))
+    |> Map.put(:path, path)
     |> URI.to_string()
   end
 
