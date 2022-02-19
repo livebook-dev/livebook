@@ -32,6 +32,7 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
+      <.live_region role="alert" />
       <SidebarHelpers.sidebar>
         <SidebarHelpers.shared_home_footer
           socket={@socket}
@@ -110,7 +111,6 @@ defmodule LivebookWeb.HomeLive do
               id="session-list"
               sessions={@sessions}/>
           </div>
-          <.live_region role="alert" />
         </div>
       </div>
     </div>
