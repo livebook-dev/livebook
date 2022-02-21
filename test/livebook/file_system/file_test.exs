@@ -1,4 +1,4 @@
-defmodule Livebook.FileSystem.FileTest do
+  defmodule Livebook.FileSystem.FileTest do
   use ExUnit.Case, async: true
 
   import Livebook.TestHelpers
@@ -6,22 +6,18 @@ defmodule Livebook.FileSystem.FileTest do
   alias Livebook.FileSystem
 
   describe "new/2" do
-    test "raises an error when a relative path is given" do
+    test "resolves relative paths" do
       file_system = FileSystem.Local.new()
 
-      assert_raise ArgumentError, ~s{expected an expanded absolute path, got: "file.txt"}, fn ->
-        FileSystem.File.new(file_system, "file.txt")
-      end
+      assert FileSystem.File.new(file_system, "file.txt").path ==
+               Path.join(File.cwd!(), "file.txt")
     end
 
-    test "raises an error when a unexpanded path is given" do
+    test "resolves unexpanded paths" do
       file_system = FileSystem.Local.new()
 
-      assert_raise ArgumentError,
-                   ~s{expected an expanded absolute path, got: "/dir/nested/../file.txt"},
-                   fn ->
-                     FileSystem.File.new(file_system, "/dir/nested/../file.txt")
-                   end
+      assert FileSystem.File.new(file_system, "/dir/nested/../file.txt").path ==
+               Path.expand("/dir/file.txt")
     end
 
     test "uses default file system path if non is given" do
