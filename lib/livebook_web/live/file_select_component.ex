@@ -200,7 +200,7 @@ defmodule LivebookWeb.FileSelectComponent do
         </button>
       </:toggle>
       <:content>
-        <%= for {file_system, index} <- @file_systems |> Enum.with_index() do %>
+        <%= for {file_system_id, file_system} <- @file_systems do %>
           <%= if file_system == @file.file_system do %>
             <button class="menu-item text-gray-900" role="menuitem">
               <.file_system_icon file_system={file_system} />
@@ -211,7 +211,7 @@ defmodule LivebookWeb.FileSelectComponent do
               role="menuitem"
               phx-target={@myself}
               phx-click="set_file_system"
-              phx-value-index={index}>
+              phx-value-id={file_system_id}>
               <.file_system_icon file_system={file_system} />
               <span class="font-medium"><%= file_system_label(file_system) %></span>
             </button>
@@ -331,9 +331,12 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   @impl true
-  def handle_event("set_file_system", %{"index" => index}, socket) do
-    index = String.to_integer(index)
-    file_system = Enum.at(socket.assigns.file_systems, index)
+  def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
+    {^file_system_id, file_system} =
+      Enum.find(socket.assigns.file_systems, fn {id, _file_system} ->
+        id == file_system_id
+      end)
+
     file = FileSystem.File.new(file_system)
 
     send(self(), {:set_file, file, %{exists: true}})
@@ -342,7 +345,10 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_event("set_path", %{"path" => path}, socket) do
-    file = FileSystem.File.new(socket.assigns.file.file_system) |> FileSystem.File.resolve(path)
+    file =
+      socket.assigns.file.file_system
+      |> FileSystem.File.new()
+      |> FileSystem.File.resolve(path)
 
     info =
       socket.assigns.file_infos

@@ -21,36 +21,39 @@ defmodule Livebook.Settings do
   @doc """
   Returns all known filesystems.
   """
-  @spec file_systems() :: list(FileSystem.t())
+  @spec file_systems() :: [{Filesystem.id(), Filesystem.t()}]
   def file_systems() do
-    [Livebook.Config.local_filesystem() | Enum.map(storage().all(:filesystem), &storage_to_fs/1)]
+    restored_file_systems =
+      storage().all(:filesystem)
+      |> Enum.map(fn %{id: fs_id} = raw_fs ->
+        {fs_id, storage_to_fs(raw_fs)}
+      end)
+
+    [{:local, Livebook.Config.local_filesystem()} | restored_file_systems]
   end
 
   @doc """
-  Appends a new file system to the configured ones.
-
-  TODO: Refactor to receive settings submission parameters.
+  Saves a new file system to the configured ones.
   """
-  @spec append_file_system(FileSystem.t()) :: :ok
-  def append_file_system(%FileSystem.S3{} = file_system) do
+  @spec save_filesystem(FileSystem.t()) :: FileSystem.id()
+  def save_filesystem(%FileSystem.S3{} = file_system) do
     attributes =
       file_system
       |> FileSystem.S3.to_config()
       |> Map.to_list()
 
-    storage().insert(:filesystem, generate_filesystem_id(), [{:type, "s3"} | attributes])
+    id = generate_filesystem_id()
+    :ok = storage().insert(:filesystem, id, [{:type, "s3"} | attributes])
+
+    id
   end
 
   @doc """
   Removes the given file system from the configured ones.
-
-  TODO: Refactor to receive the filesystem id.
   """
-  @spec remove_file_system(FileSystem.t()) :: :ok
-  def remove_file_system(file_system) do
-    storage().all(:filesystem)
-    |> Enum.find(&(storage_to_fs(&1) == file_system))
-    |> then(fn %{id: id} -> storage().delete(:filesystem, id) end)
+  @spec remove_file_system(FileSystem.id()) :: :ok
+  def remove_file_system(filesystem_id) do
+    storage().delete(:filesystem, filesystem_id)
   end
 
   defp storage() do

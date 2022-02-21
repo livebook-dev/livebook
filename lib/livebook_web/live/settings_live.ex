@@ -134,17 +134,16 @@ defmodule LivebookWeb.SettingsLive do
         <.live_component module={LivebookWeb.SettingsLive.RemoveFileSystemComponent}
           id="detach-file-system"
           return_to={Routes.settings_path(@socket, :page)}
-          file_system={@file_system} />
+          file_system_id={@file_system_id}
+        />
       </.modal>
     <% end %>
     """
   end
 
   @impl true
-  def handle_params(%{"file_system_index" => index}, _url, socket) do
-    index = String.to_integer(index)
-    file_system = Enum.at(socket.assigns.file_systems, index)
-    {:noreply, assign(socket, :file_system, file_system)}
+  def handle_params(%{"file_system_id" => file_system_id}, _url, socket) do
+    {:noreply, assign(socket, file_system_id: file_system_id)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}

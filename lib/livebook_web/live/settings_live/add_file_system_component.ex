@@ -82,7 +82,7 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
 
     case FileSystem.File.list(default_dir) do
       {:ok, _} ->
-        Livebook.Settings.append_file_system(file_system)
+        Livebook.Settings.save_filesystem(file_system)
         send(self(), {:file_systems_updated, Livebook.Settings.file_systems()})
         {:noreply, push_patch(socket, to: socket.assigns.return_to)}
 
