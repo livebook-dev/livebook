@@ -55,8 +55,10 @@ defmodule Livebook.Config do
   """
   @spec home() :: String.t()
   def home do
-    Application.get_env(:livebook, :home) || System.user_home() || File.cwd!()
+    Application.get_env(:livebook, :home) || user_home() || File.cwd!()
   end
+
+  defp user_home(), do: System.user_home() |> Path.expand()
 
   @doc """
   Returns the configuration path.
