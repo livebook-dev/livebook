@@ -166,8 +166,8 @@ const Cell = {
 
   disconnected() {
     // When disconnected, this client is no longer seen by the server
-    // and misses all collaborative changes. On reconnect we want to
-    // do cleanup and mount a fresh hook, which we force by ensuring
+    // and misses all collaborative changes. On reconnection we want
+    // to clean up and mount a fresh hook, which we force by ensuring
     // the DOM id doesn't match
     this.el.removeAttribute("id");
   },

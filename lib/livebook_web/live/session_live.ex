@@ -26,6 +26,20 @@ defmodule LivebookWeb.SessionLive do
             Session.get_data(session_pid)
           end
 
+        socket =
+          if connected?(socket) do
+            payload = %{
+              clients:
+                Enum.map(data.clients_map, fn {client_pid, user_id} ->
+                  client_info(client_pid, data.users_map[user_id])
+                end)
+            }
+
+            push_event(socket, "session_init", payload)
+          else
+            socket
+          end
+
         session = Session.get_by_pid(session_pid)
 
         platform = platform_from_socket(socket)
@@ -565,19 +579,6 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
-  def handle_event("session_init", _params, socket) do
-    data = socket.private.data
-
-    payload = %{
-      clients:
-        Enum.map(data.clients_map, fn {client_pid, user_id} ->
-          client_info(client_pid, data.users_map[user_id])
-        end)
-    }
-
-    {:reply, payload, socket}
-  end
-
   def handle_event("append_section", %{}, socket) do
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session.pid, idx)
