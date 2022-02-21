@@ -75,14 +75,6 @@ const Session = {
 
     setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
 
-    // Load initial data
-
-    this.pushEvent("session_init", {}, ({ clients }) => {
-      clients.forEach((client) => {
-        this.state.clientsMap[client.pid] = client;
-      });
-    });
-
     // DOM events
 
     this.handleDocumentKeyDown = (event) => {
@@ -159,6 +151,12 @@ const Session = {
 
     // Server events
 
+    this.handleEvent("session_init", ({ clients }) => {
+      clients.forEach((client) => {
+        this.state.clientsMap[client.pid] = client;
+      });
+    });
+
     this.handleEvent("cell_inserted", ({ cell_id: cellId }) => {
       handleCellInserted(this, cellId);
     });
@@ -233,6 +231,11 @@ const Session = {
     if (this.props.globalStatus !== prevProps.globalStatus) {
       setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
     }
+  },
+
+  disconnected() {
+    // Reinitialize on reconnection
+    this.el.removeAttribute("id");
   },
 
   destroyed() {
