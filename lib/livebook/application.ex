@@ -64,6 +64,7 @@ defmodule Livebook.Application do
   defp set_local_filesystem!() do
     home =
       Livebook.Config.home()
+      |> Path.expand()
       |> Livebook.FileSystem.Utils.ensure_dir_path()
 
     local_filesystem = Livebook.FileSystem.Local.new(default_path: home)
