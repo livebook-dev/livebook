@@ -29,7 +29,13 @@ defmodule Livebook.FileSystem.File do
 
     path =
       if path do
-        FileSystem.resolve_path(file_system, default_path, path)
+        resolved_path = FileSystem.resolve_path(file_system, default_path, path)
+
+        unless path == resolved_path do
+          raise ArgumentError, "expected an expanded absolute path, got: #{inspect(path)}"
+        end
+
+        path
       else
         default_path
       end

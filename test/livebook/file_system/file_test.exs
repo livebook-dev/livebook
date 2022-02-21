@@ -6,18 +6,22 @@ defmodule Livebook.FileSystem.FileTest do
   alias Livebook.FileSystem
 
   describe "new/2" do
-    test "resolves relative paths" do
+    test "raises an error when a relative path is given" do
       file_system = FileSystem.Local.new()
 
-      assert FileSystem.File.new(file_system, "file.txt").path ==
-               Path.join(File.cwd!(), "file.txt")
+      assert_raise ArgumentError, ~s{expected an expanded absolute path, got: "file.txt"}, fn ->
+        FileSystem.File.new(file_system, "file.txt")
+      end
     end
 
-    test "resolves unexpanded paths" do
+    test "raises an error when a unexpanded path is given" do
       file_system = FileSystem.Local.new()
 
-      assert FileSystem.File.new(file_system, "/dir/nested/../file.txt").path ==
-               Path.expand("/dir/file.txt")
+      assert_raise ArgumentError,
+                   ~s{expected an expanded absolute path, got: "/dir/nested/../file.txt"},
+                   fn ->
+                     FileSystem.File.new(file_system, "/dir/nested/../file.txt")
+                   end
     end
 
     test "uses default file system path if non is given" do
