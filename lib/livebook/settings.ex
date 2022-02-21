@@ -7,8 +7,6 @@ defmodule Livebook.Settings do
 
   @doc """
   Returns the autosave path.
-
-  TODO: Make this configurable in the UI.
   """
   @spec autosave_path() :: String.t() | nil
   def autosave_path() do
