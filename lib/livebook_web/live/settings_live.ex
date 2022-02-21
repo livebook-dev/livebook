@@ -14,6 +14,14 @@ defmodule LivebookWeb.SettingsLive do
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
        file_systems: file_systems,
+       autosave_file: %Livebook.FileSystem.File{
+         # FIXME: change once file systems get their proper ids such as `:local`...
+         file_system:
+           Enum.find(Livebook.Settings.file_systems(), fn %module{} ->
+             module == Livebook.FileSystem.Local
+           end),
+         path: Livebook.Settings.autosave_path()
+       },
        page_title: "Livebook - Settings"
      )}
   end
@@ -37,8 +45,8 @@ defmodule LivebookWeb.SettingsLive do
               <PageHelpers.title text="System settings" socket={@socket} />
               <p class="mt-4 text-gray-700">
                 Here you can change global Livebook configuration. Keep in mind
-                that this configuration is not persisted and gets discarded as
-                soon as you stop the application.
+                that this configuration gets persisted and will be restored on application
+                launch.
               </p>
             </div>
 
@@ -71,6 +79,22 @@ defmodule LivebookWeb.SettingsLive do
                 file_systems={@file_systems}
                 socket={@socket} />
             </div>
+          </div>
+          <!-- Autosave path configuration -->
+          <div class="flex flex-col space-y-4">
+            <div>
+              <h2 class="text-xl text-gray-800 font-semibold">
+                Auto save path
+              </h2>
+              <p class="mt-4 text-gray-700">
+                The following path dictates the directory where the livebook
+                will automatically save your notebooks while you are actively working on them.
+              </p>
+            </div>
+            <LivebookWeb.SettingsLive.AutosavePathComponent.render
+              autosave_file={@autosave_file}
+              socket={@socket}
+             />
           </div>
           <!-- User settings section -->
           <div class="flex flex-col space-y-8">
@@ -150,8 +174,25 @@ defmodule LivebookWeb.SettingsLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
+  def handle_event("set_autosave_path", %{}, socket) do
+    Livebook.Settings.set_autosave_path(socket.assigns.autosave_file.path)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("reset_autosave_path", %{}, socket) do
+    Livebook.Settings.reset_autosave_path()
+
+    {:noreply, update(socket, :autosave_file, &%{&1 | path: Livebook.Settings.autosave_path()})}
+  end
+
+  @impl true
   def handle_info({:file_systems_updated, file_systems}, socket) do
     {:noreply, assign(socket, file_systems: file_systems)}
+  end
+
+  def handle_info({:set_file, file, _info}, socket) do
+    {:noreply, assign(socket, :autosave_file, file)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

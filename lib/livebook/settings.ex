@@ -19,6 +19,22 @@ defmodule Livebook.Settings do
   end
 
   @doc """
+  Sets the current autosave path.
+  """
+  @spec set_autosave_path(String.t()) :: :ok
+  def set_autosave_path(autosave_path) do
+    storage().insert(:settings, "global", autosave_path: autosave_path)
+  end
+
+  @doc """
+  Restores the default autosave path.
+  """
+  @spec reset_autosave_path() :: :ok
+  def reset_autosave_path() do
+    storage().delete_key(:settings, "global", :autosave_path)
+  end
+
+  @doc """
   Returns all known filesystems.
   """
   @spec file_systems() :: list(FileSystem.t())

@@ -72,6 +72,15 @@ defmodule Livebook.Storage.EtsTest do
     assert :error = Ets.fetch(:delete, "test")
   end
 
+  test "delete_key/3" do
+    :ok = Ets.insert(:delete_key, "test", key1: "val1", key2: "val2")
+
+    assert :ok = Ets.delete_key(:delete_key, "test", :key2)
+
+    assert {:ok, "val1"} = Ets.fetch_key(:delete_key, "test", :key1)
+    assert :error = Ets.fetch_key(:delete_key, "test", :key2)
+  end
+
   describe "all/1" do
     test "returns all inserted entities for given namespace" do
       :ok = Ets.insert(:all, "test1", key1: "val1")

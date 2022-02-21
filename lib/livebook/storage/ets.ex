@@ -75,6 +75,11 @@ defmodule Livebook.Storage.Ets do
     GenServer.call(__MODULE__, {:delete, namespace, entity_id})
   end
 
+  @impl Livebook.Storage
+  def delete_key(namespace, entity_id, key) do
+    GenServer.call(__MODULE__, {:delete_key, namespace, entity_id, key})
+  end
+
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -99,14 +104,9 @@ defmodule Livebook.Storage.Ets do
 
   @impl GenServer
   def handle_call({:insert, namespace, entity_id, attributes}, _from, %{table: table} = state) do
-    match_head = {{namespace, entity_id}, :"$1", :_, :_}
+    keys_to_delete = Enum.map(attributes, fn {key, _val} -> key end)
 
-    guards =
-      Enum.map(attributes, fn {key, _val} ->
-        {:==, :"$1", key}
-      end)
-
-    :ets.select_delete(table, [{match_head, guards, [true]}])
+    delete_keys(table, namespace, entity_id, keys_to_delete)
 
     timestamp = System.os_time(:millisecond)
 
@@ -122,6 +122,12 @@ defmodule Livebook.Storage.Ets do
   @impl GenServer
   def handle_call({:delete, namespace, entity_id}, _from, %{table: table} = state) do
     :ets.delete(table, {namespace, entity_id})
+    {:reply, :ok, state, {:continue, :save_to_file}}
+  end
+
+  @impl GenServer
+  def handle_call({:delete_key, namespace, entity_id, key}, _from, %{table: table} = state) do
+    delete_keys(table, namespace, entity_id, [key])
     {:reply, :ok, state, {:continue, :save_to_file}}
   end
 
@@ -150,5 +156,13 @@ defmodule Livebook.Storage.Ets do
 
         :ets.new(__MODULE__, [:protected, :duplicate_bag])
     end
+  end
+
+  defp delete_keys(table, namespace, entity_id, keys) do
+    match_head = {{namespace, entity_id}, :"$1", :_, :_}
+
+    guards = Enum.map(keys, &{:==, :"$1", &1})
+
+    :ets.select_delete(table, [{match_head, guards, [true]}])
   end
 end
