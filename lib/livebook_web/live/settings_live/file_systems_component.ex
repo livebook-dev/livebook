@@ -8,14 +8,14 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
     ~H"""
     <div class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
-        <%= for {file_system, index} <- Enum.with_index(@file_systems) do %>
+        <%= for {file_system_id, file_system} <- @file_systems do %>
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
             <div class="flex items-center space-x-12">
               <.file_system_info file_system={file_system} />
             </div>
             <%= unless is_struct(file_system, FileSystem.Local) do %>
               <%= live_patch "Detach",
-                    to: Routes.settings_path(@socket, :detach_file_system, index),
+                    to: Routes.settings_path(@socket, :detach_file_system, file_system_id),
                     class: "button-base button-outlined-red" %>
             <% end %>
           </div>

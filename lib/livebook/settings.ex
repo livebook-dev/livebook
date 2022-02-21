@@ -5,6 +5,11 @@ defmodule Livebook.Settings do
 
   alias Livebook.FileSystem
 
+  @typedoc """
+  An id that is used for filesystem's manipulation, either insertion or removal.
+  """
+  @type file_system_id :: :local | String.t()
+
   @doc """
   Returns the autosave path.
 
@@ -19,9 +24,11 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns all known filesystems.
+  Returns all known filesystems with their associated ids.
+
+  In case of the local filesystem the id resolves to `:local` atom.
   """
-  @spec file_systems() :: [{Filesystem.id(), Filesystem.t()}]
+  @spec file_systems() :: [{file_system_id(), Filesystem.t()}]
   def file_systems() do
     restored_file_systems =
       storage().all(:filesystem)
@@ -35,14 +42,14 @@ defmodule Livebook.Settings do
   @doc """
   Saves a new file system to the configured ones.
   """
-  @spec save_filesystem(FileSystem.t()) :: FileSystem.id()
+  @spec save_filesystem(FileSystem.t()) :: file_system_id()
   def save_filesystem(%FileSystem.S3{} = file_system) do
     attributes =
       file_system
       |> FileSystem.S3.to_config()
       |> Map.to_list()
 
-    id = generate_filesystem_id()
+    id = Livebook.Utils.random_short_id()
     :ok = storage().insert(:filesystem, id, [{:type, "s3"} | attributes])
 
     id
@@ -51,7 +58,7 @@ defmodule Livebook.Settings do
   @doc """
   Removes the given file system from the configured ones.
   """
-  @spec remove_file_system(FileSystem.id()) :: :ok
+  @spec remove_file_system(file_system_id()) :: :ok
   def remove_file_system(filesystem_id) do
     storage().delete(:filesystem, filesystem_id)
   end
@@ -65,9 +72,5 @@ defmodule Livebook.Settings do
       {:ok, fs} -> fs
       {:error, message} -> raise ArgumentError, "invalid S3 filesystem: #{message}"
     end
-  end
-
-  defp generate_filesystem_id() do
-    :crypto.strong_rand_bytes(6) |> Base.url_encode64()
   end
 end
