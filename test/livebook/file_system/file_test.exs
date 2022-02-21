@@ -1,4 +1,4 @@
-  defmodule Livebook.FileSystem.FileTest do
+defmodule Livebook.FileSystem.FileTest do
   use ExUnit.Case, async: true
 
   import Livebook.TestHelpers
