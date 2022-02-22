@@ -1307,7 +1307,14 @@ defmodule Livebook.Session do
   end
 
   defp extract_archive!(binary, path) do
-    :ok = :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, String.to_charlist(path)}])
+    case :erl_tar.extract({:binary, binary}, [:compressed, {:cwd, String.to_charlist(path)}]) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        File.rm_rf!(path)
+        raise "failed to extract archive to #{path}, reason: #{inspect(reason)}"
+    end
   end
 
   @doc """
