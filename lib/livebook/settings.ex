@@ -53,7 +53,10 @@ defmodule Livebook.Settings do
     id = Livebook.Utils.random_short_id()
 
     :ok =
-      storage().insert(:filesystem, id, [{:type, "s3"}, {:order, System.monotonic_time()} | attributes])
+      storage().insert(:filesystem, id, [
+        {:type, "s3"},
+        {:order, System.monotonic_time()} | attributes
+      ])
 
     id
   end
