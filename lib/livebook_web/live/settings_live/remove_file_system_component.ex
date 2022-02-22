@@ -26,7 +26,7 @@ defmodule LivebookWeb.SettingsLive.RemoveFileSystemComponent do
 
   @impl true
   def handle_event("detach", %{}, socket) do
-    Livebook.Settings.remove_file_system(socket.assigns.file_system)
+    Livebook.Settings.remove_file_system(socket.assigns.file_system_id)
     send(self(), {:file_systems_updated, Livebook.Settings.file_systems()})
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end

@@ -5,6 +5,11 @@ defmodule Livebook.Settings do
 
   alias Livebook.FileSystem
 
+  @typedoc """
+  An id that is used for filesystem's manipulation, either insertion or removal.
+  """
+  @type file_system_id :: :local | String.t()
+
   @doc """
   Returns the autosave path.
 
@@ -19,38 +24,49 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns all known filesystems.
+  Returns all known filesystems with their associated ids.
+
+  In case of the local filesystem the id resolves to `:local` atom.
   """
-  @spec file_systems() :: list(FileSystem.t())
+  @spec file_systems() :: [{file_system_id(), Filesystem.t()}]
   def file_systems() do
-    [Livebook.Config.local_filesystem() | Enum.map(storage().all(:filesystem), &storage_to_fs/1)]
+    restored_file_systems =
+      storage().all(:filesystem)
+      |> Enum.sort_by(&Map.get(&1, :order, System.monotonic_time()))
+      |> Enum.map(fn %{id: fs_id} = raw_fs ->
+        {fs_id, storage_to_fs(raw_fs)}
+      end)
+
+    [{:local, Livebook.Config.local_filesystem()} | restored_file_systems]
   end
 
   @doc """
-  Appends a new file system to the configured ones.
-
-  TODO: Refactor to receive settings submission parameters.
+  Saves a new file system to the configured ones.
   """
-  @spec append_file_system(FileSystem.t()) :: :ok
-  def append_file_system(%FileSystem.S3{} = file_system) do
+  @spec save_filesystem(FileSystem.t()) :: file_system_id()
+  def save_filesystem(%FileSystem.S3{} = file_system) do
     attributes =
       file_system
       |> FileSystem.S3.to_config()
       |> Map.to_list()
 
-    storage().insert(:filesystem, generate_filesystem_id(), [{:type, "s3"} | attributes])
+    id = Livebook.Utils.random_short_id()
+
+    :ok =
+      storage().insert(:filesystem, id, [
+        {:type, "s3"},
+        {:order, System.monotonic_time()} | attributes
+      ])
+
+    id
   end
 
   @doc """
   Removes the given file system from the configured ones.
-
-  TODO: Refactor to receive the filesystem id.
   """
-  @spec remove_file_system(FileSystem.t()) :: :ok
-  def remove_file_system(file_system) do
-    storage().all(:filesystem)
-    |> Enum.find(&(storage_to_fs(&1) == file_system))
-    |> then(fn %{id: id} -> storage().delete(:filesystem, id) end)
+  @spec remove_file_system(file_system_id()) :: :ok
+  def remove_file_system(filesystem_id) do
+    storage().delete(:filesystem, filesystem_id)
   end
 
   defp storage() do
@@ -62,9 +78,5 @@ defmodule Livebook.Settings do
       {:ok, fs} -> fs
       {:error, message} -> raise ArgumentError, "invalid S3 filesystem: #{message}"
     end
-  end
-
-  defp generate_filesystem_id() do
-    :crypto.strong_rand_bytes(6) |> Base.url_encode64()
   end
 end
