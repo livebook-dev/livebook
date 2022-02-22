@@ -20,7 +20,7 @@ export default class CacheLRU {
     }
   }
 
-  set(key, val) {
+  set(key, value) {
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size === this.size) {
@@ -28,6 +28,6 @@ export default class CacheLRU {
       this.cache.delete(oldestKey);
     }
 
-    this.cache.set(key, val);
+    this.cache.set(key, value);
   }
 }
