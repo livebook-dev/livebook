@@ -52,7 +52,7 @@ defmodule Livebook.Storage do
   @doc """
   Deletes an attribute from given entity.
   """
-  @callback delete_key(namespace(), entity(), attribute()) :: :ok
+  @callback delete_key(namespace(), entity_id(), attribute()) :: :ok
 
   @spec current() :: module()
   def current(), do: Application.fetch_env!(:livebook, :storage)
