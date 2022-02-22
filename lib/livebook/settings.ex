@@ -32,6 +32,7 @@ defmodule Livebook.Settings do
   def file_systems() do
     restored_file_systems =
       storage().all(:filesystem)
+      |> Enum.sort_by(&Map.get(&1, :order, System.os_time()))
       |> Enum.map(fn %{id: fs_id} = raw_fs ->
         {fs_id, storage_to_fs(raw_fs)}
       end)
@@ -50,7 +51,9 @@ defmodule Livebook.Settings do
       |> Map.to_list()
 
     id = Livebook.Utils.random_short_id()
-    :ok = storage().insert(:filesystem, id, [{:type, "s3"} | attributes])
+
+    :ok =
+      storage().insert(:filesystem, id, [{:type, "s3"}, {:order, System.os_time()} | attributes])
 
     id
   end
