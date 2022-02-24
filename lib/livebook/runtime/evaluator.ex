@@ -428,25 +428,34 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(_error), do: false
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
+  # TODO: Remove else branch once we depend on the versions below
+  if System.otp_release() >= "25" and Version.match?(System.version(), "~> 1.14-dev") do
+    defp prune_stacktrace(stack) do
+      stack
+      |> Enum.reverse()
+      |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
+      |> Enum.reverse()
+    end
+  else
+    @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
+                        [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
+                        [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
 
-  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
-                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
-                      [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass]
-
-  defp prune_stacktrace(stacktrace) do
-    # The order in which each drop_while is listed is important.
-    # For example, the user may call Code.eval_string/2 in their
-    # code and if there is an error we should not remove erl_eval
-    # and eval_bits information from the user stacktrace.
-    stacktrace
-    |> Enum.reverse()
-    |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
-    |> Enum.drop_while(&(elem(&1, 0) == :gen_server))
-    |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
-    |> Enum.drop_while(&(elem(&1, 0) == :elixir))
-    |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
-    |> Enum.reverse()
-    |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
+    defp prune_stacktrace(stacktrace) do
+      # The order in which each drop_while is listed is important.
+      # For example, the user may call Code.eval_string/2 in their
+      # code and if there is an error we should not remove erl_eval
+      # and eval_bits information from the user stacktrace.
+      stacktrace
+      |> Enum.reverse()
+      |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
+      |> Enum.drop_while(&(elem(&1, 0) == :gen_server))
+      |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
+      |> Enum.drop_while(&(elem(&1, 0) == :elixir))
+      |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
+      |> Enum.reverse()
+      |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
+    end
   end
 
   defp random_id() do
