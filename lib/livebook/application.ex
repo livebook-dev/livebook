@@ -170,7 +170,11 @@ defmodule Livebook.Application do
 
   defp display_startup_info() do
     if Phoenix.Endpoint.server?(:livebook, LivebookWeb.Endpoint) do
-      IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
+      if IO.ANSI.enabled? do
+        IO.puts("[Livebook] Application running at \e]8;;#{LivebookWeb.Endpoint.access_url()}\e\\#{LivebookWeb.Endpoint.access_url()}\e]8;;\e\\")
+      else
+        IO.puts("[Livebook] Application running at #{LivebookWeb.Endpoint.access_url()}")
+      end
     end
   end
 
