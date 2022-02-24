@@ -96,7 +96,7 @@ defmodule LivebookWeb.Endpoint do
           uri
       end
 
-    base = update_in(base.path, &(&1 || "/"))
+    base = normalize_path(base)
 
     if Livebook.Config.auth_mode() == :token do
       token = Application.fetch_env!(:livebook, :token)
@@ -109,4 +109,8 @@ defmodule LivebookWeb.Endpoint do
   def access_url do
     URI.to_string(access_struct_url())
   end
+
+  defp normalize_path(uri = %URI{path: nil}), do: %{uri | path: "/"}
+  defp normalize_path(uri = %URI{path: ""}), do: %{uri | path: "/"}
+  defp normalize_path(uri = %URI{}), do: uri
 end
