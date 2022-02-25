@@ -11,7 +11,8 @@ import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "../cell/live_editor/monaco";
-import { leaveChannel } from "../js_output";
+import { leaveChannel } from "../js_view";
+import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
 /**
  * A hook managing the whole session.
@@ -320,7 +321,7 @@ function handleDocumentKeyDown(hook, event) {
       queueFullCellsEvaluation(hook, true);
     } else if (cmd && !alt && key === "Enter") {
       cancelEvent(event);
-      if (hook.state.focusedCellType === "elixir") {
+      if (isEvaluable(hook.state.focusedCellType)) {
         queueFocusedCellEvaluation(hook);
       }
     } else if (cmd && key === "s") {
@@ -355,7 +356,7 @@ function handleDocumentKeyDown(hook, event) {
       keyBuffer.tryMatch(["e", "e"]) ||
       (cmd && !alt && key === "Enter")
     ) {
-      if (hook.state.focusedCellType === "elixir") {
+      if (isEvaluable(hook.state.focusedCellType)) {
         queueFocusedCellEvaluation(hook);
       }
     } else if (keyBuffer.tryMatch(["e", "s"])) {
@@ -383,7 +384,9 @@ function handleDocumentKeyDown(hook, event) {
         key === "Enter")
     ) {
       cancelEvent(event);
-      enterInsertMode(hook);
+      if (isInsertModeAvailable(hook)) {
+        enterInsertMode(hook);
+      }
     } else if (keyBuffer.tryMatch(["j"])) {
       moveFocus(hook, 1);
     } else if (keyBuffer.tryMatch(["k"])) {
@@ -479,7 +482,7 @@ function editableElementClicked(event, element) {
     const editableElement = element.querySelector(
       `[data-element="editor-container"], [data-element="heading"]`
     );
-    return editableElement.contains(event.target);
+    return editableElement && editableElement.contains(event.target);
   }
 
   return false;
@@ -744,6 +747,13 @@ function showShortcuts(hook) {
   hook.pushEvent("show_shortcuts", {});
 }
 
+function isInsertModeAvailable(hook) {
+  return (
+    hook.state.focusedCellType === null ||
+    isDirectlyEditable(hook.state.focusedCellType)
+  );
+}
+
 function enterInsertMode(hook) {
   if (hook.state.focusedId) {
     setInsertMode(hook, true);
@@ -817,6 +827,8 @@ function setFocusedEl(
 
     if (isCell(focusableId)) {
       hook.state.focusedCellType = el.getAttribute("data-type");
+    } else {
+      hook.state.focusedCellType = null;
     }
 
     if (focusElement) {
@@ -864,7 +876,7 @@ function setInsertMode(hook, insertModeEnabled) {
 
 function handleCellInserted(hook, cellId) {
   setFocusedEl(hook, cellId);
-  if (["markdown", "elixir"].includes(hook.state.focusedCellType)) {
+  if (isDirectlyEditable(hook.state.focusedCellType)) {
     setInsertMode(hook, true);
   }
 }

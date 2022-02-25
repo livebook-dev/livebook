@@ -123,7 +123,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-element="session"]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert %{cell_infos: %{^cell_id => %{evaluation_status: :evaluating}}} =
+      assert %{cell_infos: %{^cell_id => %{eval: %{status: :evaluating}}}} =
                Session.get_data(session.pid)
     end
 
@@ -141,7 +141,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-element="session"]})
       |> render_hook("cancel_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert %{cell_infos: %{^cell_id => %{evaluation_status: :ready}}} =
+      assert %{cell_infos: %{^cell_id => %{eval: %{status: :ready}}}} =
                Session.get_data(session.pid)
     end
 
@@ -184,6 +184,28 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("delete_cell", %{"cell_id" => cell_id})
 
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session.pid)
+    end
+
+    test "restoring a deleted cell", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+
+      Session.delete_cell(session.pid, cell_id)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      refute render(view) =~ "cell-" <> cell_id
+
+      view
+      |> element(~s{a[aria-label="Bin (sb)"]})
+      |> render_click()
+
+      view
+      |> element("button", "Restore")
+      |> render_click()
+
+      assert %{notebook: %{sections: [%{cells: [%{id: ^cell_id}]}]}} =
+               Session.get_data(session.pid)
     end
 
     test "editing input field in cell output", %{conn: conn, session: session, test: test} do
@@ -330,6 +352,29 @@ defmodule LivebookWeb.SessionLiveTest do
       content = render(view)
       assert content =~ "Updated frame"
       refute content =~ "In frame"
+    end
+  end
+
+  describe "smart cells" do
+    test "shows a new cell insert button when a new smart cell kind becomes available",
+         %{conn: conn, session: session} do
+      insert_section(session.pid)
+
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      Session.connect_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      refute render(view) =~ "Database connection"
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "dbconn", name: "Database connection"}]}
+      )
+
+      wait_for_session_update(session.pid)
+
+      assert render(view) =~ "Database connection"
     end
   end
 

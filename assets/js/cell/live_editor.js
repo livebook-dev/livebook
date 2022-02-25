@@ -10,12 +10,13 @@ import { settingsStore } from "../lib/settings";
  * Mounts cell source editor with real-time collaboration mechanism.
  */
 class LiveEditor {
-  constructor(hook, container, cellId, type, source, revision) {
+  constructor(hook, container, cellId, source, revision, language, readOnly) {
     this.hook = hook;
     this.container = container;
     this.cellId = cellId;
-    this.type = type;
     this.source = source;
+    this.language = language;
+    this.readOnly = readOnly;
     this._onChange = null;
     this._onBlur = null;
     this._onCursorSelectionChange = null;
@@ -23,7 +24,7 @@ class LiveEditor {
 
     this.__mountEditor();
 
-    if (type === "elixir") {
+    if (language === "elixir") {
       this.__setupIntellisense();
     }
 
@@ -172,8 +173,9 @@ class LiveEditor {
     const settings = settingsStore.get();
 
     this.editor = monaco.editor.create(this.container, {
-      language: this.type,
+      language: this.language,
       value: this.source,
+      readOnly: this.readOnly,
       scrollbar: {
         vertical: "hidden",
         alwaysConsumeMouseWheel: false,
@@ -197,15 +199,16 @@ class LiveEditor {
       formatOnType: true,
       formatOnPaste: true,
       quickSuggestions:
-        this.type === "elixir" && settings.editor_auto_completion,
+        this.language === "elixir" && settings.editor_auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
       // For Elixir word suggestions are confusing at times.
       // For example given `defmodule<CURSOR> Foo do`, if the
       // user opens completion list and then jumps to the end
       // of the line we would get "defmodule" as a word completion.
-      wordBasedSuggestions: this.type !== "elixir",
-      parameterHints: this.type === "elixir" && settings.editor_auto_signature,
+      wordBasedSuggestions: this.language !== "elixir",
+      parameterHints:
+        this.language === "elixir" && settings.editor_auto_signature,
     });
 
     this.editor.addAction({

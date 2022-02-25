@@ -48,6 +48,14 @@ defmodule Livebook.Notebook.Export.ElixirTest do
                   | source: """
                     IO.gets("length: ")\
                     """
+                },
+                %{
+                  Notebook.Cell.new(:smart)
+                  | source: """
+                    IO.puts("My text")\
+                    """,
+                    attrs: %{"text" => "My text"},
+                    kind: "text"
                 }
               ]
           },
@@ -85,6 +93,8 @@ defmodule Livebook.Notebook.Export.ElixirTest do
     # ── Section 2 ──
 
     IO.gets("length: ")
+
+    IO.puts("My text")
 
     # ── Section 3 ── (⎇ from Section 2)
 

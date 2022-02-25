@@ -160,7 +160,7 @@ defprotocol Livebook.Runtime do
   @type code_error :: %{line: pos_integer(), description: String.t()}
 
   @typedoc """
-  The detailed runtime memory usage.
+  A detailed runtime memory usage.
 
   The runtime may periodically send memory usage updates as
 
@@ -177,6 +177,36 @@ defprotocol Livebook.Runtime do
         }
 
   @type size_in_bytes :: non_neg_integer()
+
+  @typedoc """
+  An information about a smart cell kind.
+
+  The `kind` attribute is an opaque identifier.
+
+  Whenever new smart cells become available the runtime should send
+  the updated list as
+
+    * `{:runtime_smart_cell_definitions, list(smart_cell_definition())}`
+  """
+  @type smart_cell_definition :: %{
+          kind: String.t(),
+          name: String.t()
+        }
+
+  @typedoc """
+  A JavaScript view definition.
+
+  See `t:Kino.Output.js_view/0` for details.
+  """
+  @type js_view :: %{
+          ref: String.t(),
+          pid: Process.dest(),
+          assets: %{
+            archive_path: String.t(),
+            hash: String.t(),
+            js_path: String.t()
+          }
+        }
 
   @doc """
   Connects the caller to the given runtime.
@@ -312,4 +342,38 @@ defprotocol Livebook.Runtime do
   """
   @spec read_file(Runtime.t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
   def read_file(runtime, path)
+
+  @doc """
+  Starts a smart cell of the given kind.
+
+  `kind` must point to an available `t:smart_cell_definition/0`, which
+  was reported by the runtime. The cell gets initialized with `attrs`,
+  which represent the persisted cell state and determine the current
+  version of the generated source code. The given `ref` is used to
+  identify the cell.
+
+  Once the cell starts, the runtime sends the following message
+
+    * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t()}}`
+
+  ## Communication
+
+  Apart from the regular JS view communication, the cell sends updates
+  to the runtime owner whenever attrs and the generated source code
+  change.
+
+    * `{:runtime_smart_cell_update, ref, attrs, source}`
+
+  The attrs are persisted and may be used to restore the smart cell
+  state later. Note that for persistence they get serialized and
+  deserialized as JSON.
+  """
+  @spec start_smart_cell(t(), String.t(), String.t(), term()) :: :ok
+  def start_smart_cell(runtime, kind, ref, attrs)
+
+  @doc """
+  Stops smart cell identified by the given reference.
+  """
+  @spec stop_smart_cell(t(), String.t()) :: :ok
+  def stop_smart_cell(runtime, ref)
 end

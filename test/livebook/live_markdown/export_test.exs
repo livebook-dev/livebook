@@ -64,6 +64,14 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                   | source: """
                     Process.info()\
                     """
+                },
+                %{
+                  Notebook.Cell.new(:smart)
+                  | source: """
+                    IO.puts("My text")\
+                    """,
+                    attrs: %{"text" => "My text"},
+                    kind: "text"
                 }
               ]
           }
@@ -103,6 +111,12 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ```elixir
     Process.info()
+    ```
+
+    <!-- livebook:{"attrs":{"text":"My text"},"kind":"text","livebook_object":"smart_cell"} -->
+
+    ```elixir
+    IO.puts("My text")
     ```
     """
 
@@ -696,9 +710,11 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid: spawn_widget_with_data("1", "data"),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid: spawn_widget_with_data("1", "data"),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: nil
                           }}}
                       ]
@@ -739,9 +755,11 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: %{info_string: "mermaid", key: nil}
                           }}}
                       ]
@@ -789,9 +807,11 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: %{info_string: "box", key: nil}
                           }}}
                       ]
@@ -838,13 +858,15 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid:
-                              spawn_widget_with_data("1", %{
-                                spec: %{"height" => 50, "width" => 50},
-                                datasets: []
-                              }),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid:
+                                spawn_widget_with_data("1", %{
+                                  spec: %{"height" => 50, "width" => 50},
+                                  datasets: []
+                                }),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: %{info_string: "vega-lite", key: :spec}
                           }}}
                       ]

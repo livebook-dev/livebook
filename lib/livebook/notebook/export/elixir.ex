@@ -60,6 +60,10 @@ defmodule Livebook.Notebook.Export.Elixir do
     end
   end
 
+  defp render_cell(%Cell.Smart{} = cell, ctx) do
+    render_cell(%{Cell.Elixir.new() | source: cell.source}, ctx)
+  end
+
   defp render_cell(_cell, _section), do: []
 
   defp comment_out(""), do: ""

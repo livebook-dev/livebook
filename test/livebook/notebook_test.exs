@@ -247,7 +247,7 @@ defmodule Livebook.NotebookTest do
           ]
       }
 
-      assert Notebook.cell_dependency_graph(notebook, cell_filter: &is_struct(&1, Cell.Elixir)) ==
+      assert Notebook.cell_dependency_graph(notebook, cell_filter: &Cell.evaluable?/1) ==
                %{
                  "c3" => "c1",
                  "c1" => nil
@@ -258,7 +258,7 @@ defmodule Livebook.NotebookTest do
   describe "find_asset_info/2" do
     test "returns asset info matching the given type if found" do
       assets_info = %{archive: "/path/to/archive.tar.gz", hash: "abcd", js_path: "main.js"}
-      js_info = %{assets: assets_info}
+      js_info = %{js_view: %{assets: assets_info}}
       output = {:js, js_info}
 
       notebook = %{

@@ -6,15 +6,15 @@ defmodule Livebook.JSInterop do
   @doc """
   Returns the result of applying `delta` to `string`.
 
-  The delta operation lengths (retain, delete) are treated
-  such that they match the JavaScript strings behavior.
+  The delta operation lengths (retain, delete) are treated such that
+  they match the JavaScript strings behavior.
 
   JavaScript uses UTF-16 encoding, in which every character is stored
   as either one or two 16-bit code units. JS treats the number of units
-  as string length and this also impacts position-based functions like `String.slice`.
-  To match this behavior we first convert normal UTF-8 string
-  into a list of UTF-16 code points, then apply the delta to this list
-  and finally convert back to a UTF-8 string.
+  as string length and this also impacts position-based functions like
+  `String.slice`. To match this behavior we first convert normal UTF-8
+  string into a list of UTF-16 code points, then apply the delta to this
+  list and finally convert back to a UTF-8 string.
   """
   @spec apply_delta_to_string(Delta.t(), String.t()) :: String.t()
   def apply_delta_to_string(delta, string) do
@@ -38,6 +38,29 @@ defmodule Livebook.JSInterop do
 
   defp apply_to_code_units([{:delete, n} | ops], code_units) do
     apply_to_code_units(ops, Enum.slice(code_units, n..-1))
+  end
+
+  @doc """
+  Computes Myers Difference between the given strings and returns its
+  `Delta` representation.
+
+  The diff is computed on UTF-16 code units and the resulting delta
+  is JavaScript-compatible. See `apply_delta_to_string/2` for more
+  details.
+  """
+  @spec diff(String.t(), String.t()) :: Delta.t()
+  def diff(string1, string2) do
+    units1 = string_to_utf16_code_units(string1)
+    units2 = string_to_utf16_code_units(string2)
+
+    units1
+    |> List.myers_difference(units2)
+    |> Enum.reduce(Delta.new(), fn
+      {:eq, units}, delta -> Delta.retain(delta, length(units))
+      {:ins, units}, delta -> Delta.insert(delta, utf16_code_units_to_string(units))
+      {:del, units}, delta -> Delta.delete(delta, length(units))
+    end)
+    |> Delta.trim()
   end
 
   @doc """

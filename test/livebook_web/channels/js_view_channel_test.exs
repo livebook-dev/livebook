@@ -1,4 +1,4 @@
-defmodule LivebookWeb.JSOutputChannelTest do
+defmodule LivebookWeb.JSViewChannelTest do
   use LivebookWeb.ChannelCase, async: true
 
   setup do
@@ -7,7 +7,7 @@ defmodule LivebookWeb.JSOutputChannelTest do
     {:ok, _, socket} =
       LivebookWeb.Socket
       |> socket()
-      |> subscribe_and_join(LivebookWeb.JSOutputChannel, "js_output", %{
+      |> subscribe_and_join(LivebookWeb.JSViewChannel, "js_view", %{
         "session_id" => session_id
       })
 
@@ -60,6 +60,6 @@ defmodule LivebookWeb.JSOutputChannelTest do
   end
 
   defp session_token() do
-    Phoenix.Token.sign(LivebookWeb.Endpoint, "js output", %{pid: self()})
+    Phoenix.Token.sign(LivebookWeb.Endpoint, "js view", %{pid: self()})
   end
 end

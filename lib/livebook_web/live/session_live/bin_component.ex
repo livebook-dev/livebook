@@ -15,12 +15,6 @@ defmodule LivebookWeb.SessionLive.BinComponent do
   def update(assigns, socket) do
     {bin_entries, assigns} = Map.pop(assigns, :bin_entries)
 
-    # Only show text cells, as they have an actual content
-    bin_entries =
-      Enum.filter(bin_entries, fn entry ->
-        Cell.type(entry.cell) in [:markdown, :elixir]
-      end)
-
     {:ok,
      socket
      |> assign(:bin_entries, bin_entries)
@@ -95,7 +89,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
                   </div>
                   <.code_preview
                     source_id={"bin-cell-#{cell.id}-source"}
-                    language={Cell.type(cell)}
+                    language={cell_language(cell)}
                     source={cell.source} />
                   <div class="pt-1 pb-4 border-b border-gray-200">
                     <button class="button-base button-gray whitespace-nowrap py-1 px-2"
@@ -155,6 +149,18 @@ defmodule LivebookWeb.SessionLive.BinComponent do
     </div>
     """
   end
+
+  defp cell_icon(%{cell_type: :smart} = assigns) do
+    ~H"""
+    <div class="flex w-6 h-6 bg-red-100 rounded items-center justify-center mr-1">
+      <.remix_icon icon="flashlight-line text-red-900" />
+    </div>
+    """
+  end
+
+  defp cell_language(%Cell.Markdown{}), do: "markdown"
+  defp cell_language(%Cell.Elixir{}), do: "elixir"
+  defp cell_language(%Cell.Smart{}), do: "elixir"
 
   defp format_date_relatively(date) do
     time_words = date |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()

@@ -16,7 +16,7 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
-  pipeline :js_output_assets do
+  pipeline :js_view_assets do
     plug :put_secure_browser_headers
   end
 
@@ -33,7 +33,7 @@ defmodule LivebookWeb.Router do
 
   # The following routes are public, but should be treated as opaque
   scope "/public", LivebookWeb do
-    pipe_through [:js_output_assets]
+    pipe_through [:js_view_assets]
 
     get "/sessions/assets/:hash/*file_parts", SessionController, :show_cached_asset
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset

@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Socket do
   use Phoenix.Socket
 
-  channel "js_output", LivebookWeb.JSOutputChannel
+  channel "js_view", LivebookWeb.JSViewChannel
 
   @impl true
   def connect(_params, socket, info) do

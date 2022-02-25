@@ -58,7 +58,7 @@ defmodule Livebook.SessionTest do
       assert_receive {:operation, {:insert_section, ^pid, 0, section_id}}
 
       Session.insert_cell(session.pid, section_id, 0, :elixir)
-      assert_receive {:operation, {:insert_cell, ^pid, ^section_id, 0, :elixir, _id}}
+      assert_receive {:operation, {:insert_cell, ^pid, ^section_id, 0, :elixir, _id, _attrs}}
     end
   end
 
@@ -531,6 +531,38 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "smart cells" do
+    test "notifies subcribers when a smart cell starts and passes source diff as delta" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Notebook.Section.new() | cells: [smart_cell]}
+          ]
+      }
+
+      session = start_session(notebook: notebook)
+
+      runtime = Livebook.Runtime.NoopRuntime.new()
+      Session.connect_runtime(session.pid, runtime)
+
+      send(session.pid, {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text"}]})
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id, %{source: "content!", js_view: %{}}}
+      )
+
+      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      cell_id = smart_cell.id
+
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}}}
+    end
+  end
+
   describe "find_prev_locator/3" do
     test "given cell in main flow returns previous Elixir cell" do
       cell1 = %{Cell.new(:elixir) | id: "c1"}
@@ -641,7 +673,7 @@ defmodule Livebook.SessionTest do
     Session.insert_section(session_pid, 0)
     assert_receive {:operation, {:insert_section, _, 0, section_id}}
     Session.insert_cell(session_pid, section_id, 0, :elixir)
-    assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :elixir, cell_id}}
+    assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :elixir, cell_id, _attrs}}
 
     {section_id, cell_id}
   end
