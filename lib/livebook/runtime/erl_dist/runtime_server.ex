@@ -158,7 +158,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:ok, evaluator_supervisor} = ErlDist.EvaluatorSupervisor.start_link()
     {:ok, task_supervisor} = Task.Supervisor.start_link()
     {:ok, object_tracker} = Livebook.Runtime.Evaluator.ObjectTracker.start_link()
-    {:ok, smart_cell_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
 
     {:ok,
      %{
@@ -168,7 +167,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        evaluator_supervisor: evaluator_supervisor,
        task_supervisor: task_supervisor,
        object_tracker: object_tracker,
-       smart_cell_supervisor: smart_cell_supervisor,
+       smart_cell_supervisor: nil,
        smart_cell_gl: nil,
        smart_cells: %{},
        smart_cell_definitions: [],
@@ -231,9 +230,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     state = report_small_cell_definitions(state)
     report_memory_usage(state)
 
+    {:ok, smart_cell_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
     {:ok, smart_cell_gl} = ErlDist.SmartCellGL.start_link(state.runtime_broadcast_to)
+    Process.group_leader(smart_cell_supervisor, smart_cell_gl)
 
-    {:noreply, %{state | smart_cell_gl: smart_cell_gl}}
+    {:noreply,
+     %{state | smart_cell_supervisor: smart_cell_supervisor, smart_cell_gl: smart_cell_gl}}
   end
 
   def handle_cast(
@@ -305,18 +307,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   def handle_cast({:start_smart_cell, kind, ref, attrs}, state) do
     definition = Enum.find(state.smart_cell_definitions, &(&1.kind == kind))
 
-    child_spec =
-      definition.module.child_spec(%{
-        ref: ref,
-        attrs: attrs,
-        target_pid: state.owner
-      })
-
-    child_spec =
-      update_in(child_spec.start, &{__MODULE__, :__smart_cell_start__, [&1, state.smart_cell_gl]})
-
     state =
-      case DynamicSupervisor.start_child(state.smart_cell_supervisor, child_spec) do
+      case DynamicSupervisor.start_child(
+             state.smart_cell_supervisor,
+             {definition.module, %{ref: ref, attrs: attrs, target_pid: state.owner}}
+           ) do
         {:ok, pid, info} ->
           send(state.owner, {:runtime_smart_cell_started, ref, info})
           put_in(state.smart_cells[ref], pid)
@@ -407,11 +402,6 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       send(state.owner, {:runtime_smart_cell_definitions, defs})
       %{state | smart_cell_definitions: smart_cell_definitions}
     end
-  end
-
-  def __smart_cell_start__({mod, fun, args}, gl) do
-    Process.group_leader(self(), gl)
-    apply(mod, fun, args)
   end
 
   @compile {:no_warn_undefined, {Kino.SmartCell, :definitions, 0}}
