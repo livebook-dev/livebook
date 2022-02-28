@@ -302,6 +302,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends cell convertion request to the server.
+  """
+  @spec convert_smart_cell(pid(), Cell.id()) :: :ok
+  def convert_smart_cell(pid, cell_id) do
+    GenServer.cast(pid, {:convert_smart_cell, self(), cell_id})
+  end
+
+  @doc """
   Sends cell evaluation request to the server.
   """
   @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
@@ -686,6 +694,26 @@ defmodule Livebook.Session do
   def handle_cast({:move_section, client_pid, section_id, offset}, state) do
     operation = {:move_section, client_pid, section_id, offset}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:convert_smart_cell, client_pid, cell_id}, state) do
+    state =
+      with {:ok, %Cell.Smart{} = cell, section} <-
+             Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
+        index = Enum.find_index(section.cells, &(&1 == cell))
+
+        attrs = Map.take(cell, [:source, :outputs])
+
+        state
+        |> handle_operation({:delete_cell, client_pid, cell.id})
+        |> handle_operation(
+          {:insert_cell, client_pid, section.id, index, :elixir, Utils.random_id(), attrs}
+        )
+      else
+        _ -> state
+      end
+
+    {:noreply, state}
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do

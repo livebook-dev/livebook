@@ -99,6 +99,30 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "convert_smart_cell/2" do
+    test "sends a delete and insert opreations to subscribers" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      pid = self()
+
+      Session.convert_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+      section_id = section.id
+
+      assert_receive {:operation, {:delete_cell, ^pid, ^cell_id}}
+
+      assert_receive {:operation,
+                      {:insert_cell, ^pid, ^section_id, 0, :elixir, _id,
+                       %{source: "content", outputs: []}}}
+    end
+  end
+
   describe "queue_cell_evaluation/2" do
     test "triggers evaluation and sends update operation once it finishes",
          %{session: session} do
