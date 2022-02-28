@@ -522,10 +522,15 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_reply view, %{"ref" => ref}
       assert ref != nil
 
-      assert_push_event(view, "intellisense_response", %{
-        "ref" => ^ref,
-        "response" => %{items: [%{label: "version/0"}]}
-      })
+      assert_push_event(
+        view,
+        "intellisense_response",
+        %{
+          "ref" => ^ref,
+          "response" => %{items: [%{label: "version/0"}]}
+        },
+        1000
+      )
     end
   end
 
