@@ -226,7 +226,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
-
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
