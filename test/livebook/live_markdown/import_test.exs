@@ -40,6 +40,12 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     ```elixir
     Process.info()
     ```
+
+    <!-- livebook:{"attrs":{"text":"My text"},"livebook_object":"smart_cell","kind":"text"} -->
+
+    ```elixir
+    IO.puts("My text")
+    ```
     """
 
     {notebook, []} = Import.notebook_from_livemd(markdown)
@@ -96,6 +102,13 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      source: """
                      Process.info()\
                      """
+                   },
+                   %Cell.Smart{
+                     source: """
+                     IO.puts("My text")\
+                     """,
+                     attrs: %{"text" => "My text"},
+                     kind: "text"
                    }
                  ]
                }

@@ -44,6 +44,33 @@ defmodule Livebook.JSInteropTest do
     end
   end
 
+  describe "diff/2" do
+    test "insert" do
+      assert JSInterop.diff("cats", "cat's") ==
+               Delta.new() |> Delta.retain(3) |> Delta.insert("'")
+    end
+
+    test "delete" do
+      assert JSInterop.diff("cats", "cs") ==
+               Delta.new() |> Delta.retain(1) |> Delta.delete(2)
+    end
+
+    test "replace" do
+      assert JSInterop.diff("cats", "cars") ==
+               Delta.new() |> Delta.retain(2) |> Delta.delete(1) |> Delta.insert("r")
+    end
+
+    test "retain skips the given number UTF-16 code units" do
+      assert JSInterop.diff("🚀 cats", "🚀 my cats") ==
+               Delta.new() |> Delta.retain(3) |> Delta.insert("my ")
+    end
+
+    test "delete removes the given number UTF-16 code units" do
+      assert JSInterop.diff("🚀 cats", " cats") ==
+               Delta.new() |> Delta.delete(2)
+    end
+  end
+
   describe "js_column_to_elixir/2" do
     test "keeps the column as is for ASCII characters" do
       column = 4

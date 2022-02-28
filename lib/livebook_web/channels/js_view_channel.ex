@@ -1,14 +1,14 @@
-defmodule LivebookWeb.JSOutputChannel do
+defmodule LivebookWeb.JSViewChannel do
   use Phoenix.Channel
 
   @impl true
-  def join("js_output", %{"session_id" => session_id}, socket) do
+  def join("js_view", %{"session_id" => session_id}, socket) do
     {:ok, assign(socket, session_id: session_id, ref_with_pid: %{}, ref_with_count: %{})}
   end
 
   @impl true
   def handle_in("connect", %{"session_token" => session_token, "ref" => ref}, socket) do
-    {:ok, data} = Phoenix.Token.verify(LivebookWeb.Endpoint, "js output", session_token)
+    {:ok, data} = Phoenix.Token.verify(LivebookWeb.Endpoint, "js view", session_token)
     %{pid: pid} = data
 
     send(pid, {:connect, self(), %{origin: self(), ref: ref}})
@@ -97,7 +97,7 @@ defmodule LivebookWeb.JSOutputChannel do
   defp fastlane_encoder({:event, event, payload, %{ref: ref}}) do
     run_safely(fn ->
       Phoenix.Socket.V2.JSONSerializer.fastlane!(%Phoenix.Socket.Broadcast{
-        topic: "js_output",
+        topic: "js_view",
         event: "event:#{ref}",
         payload: transport_encode!([event], payload)
       })

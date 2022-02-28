@@ -24,5 +24,9 @@ defmodule Livebook.Runtime.NoopRuntime do
         {:error, posix} -> {:error, posix |> :file.format_error() |> List.to_string()}
       end
     end
+
+    def start_smart_cell(_, _, _, _), do: :ok
+
+    def stop_smart_cell(_, _), do: :ok
   end
 end

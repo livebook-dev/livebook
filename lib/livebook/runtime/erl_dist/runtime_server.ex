@@ -124,6 +124,22 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
+  Starts a new smart cell.
+  """
+  @spec start_smart_cell(pid(), String.t(), String.t(), term()) :: :ok
+  def start_smart_cell(pid, kind, ref, attrs) do
+    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs})
+  end
+
+  @doc """
+  Stops the given smart cell.
+  """
+  @spec stop_smart_cell(pid(), String.t()) :: :ok
+  def stop_smart_cell(pid, ref) do
+    GenServer.cast(pid, {:stop_smart_cell, ref})
+  end
+
+  @doc """
   Stops the manager.
 
   This results in all Livebook-related modules being unloaded
@@ -151,6 +167,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        evaluator_supervisor: evaluator_supervisor,
        task_supervisor: task_supervisor,
        object_tracker: object_tracker,
+       smart_cell_supervisor: nil,
+       smart_cell_gl: nil,
+       smart_cells: %{},
+       smart_cell_definitions: [],
        memory_timer_ref: nil
      }}
   end
@@ -186,6 +206,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
+  def handle_info({:evaluation_finished, _ref}, state) do
+    {:noreply, report_small_cell_definitions(state)}
+  end
+
   def handle_info(:memory_usage, state) do
     report_memory_usage(state)
     schedule_memory_usage_report()
@@ -203,8 +227,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     Process.monitor(owner)
 
     state = %{state | owner: owner, runtime_broadcast_to: opts[:runtime_broadcast_to]}
+    state = report_small_cell_definitions(state)
     report_memory_usage(state)
-    {:noreply, state}
+
+    {:ok, smart_cell_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
+    {:ok, smart_cell_gl} = ErlDist.SmartCellGL.start_link(state.runtime_broadcast_to)
+    Process.group_leader(smart_cell_supervisor, smart_cell_gl)
+
+    {:noreply,
+     %{state | smart_cell_supervisor: smart_cell_supervisor, smart_cell_gl: smart_cell_gl}}
   end
 
   def handle_cast(
@@ -227,6 +258,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
           nil
       end
+
+    opts = Keyword.put(opts, :notify_to, self())
 
     Evaluator.evaluate_code(
       state.evaluators[container_ref],
@@ -267,6 +300,35 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       response = Livebook.Intellisense.handle_request(request, intellisense_context)
       send(send_to, {:runtime_intellisense_response, ref, request, response})
     end)
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:start_smart_cell, kind, ref, attrs}, state) do
+    definition = Enum.find(state.smart_cell_definitions, &(&1.kind == kind))
+
+    state =
+      case DynamicSupervisor.start_child(
+             state.smart_cell_supervisor,
+             {definition.module, %{ref: ref, attrs: attrs, target_pid: state.owner}}
+           ) do
+        {:ok, pid, info} ->
+          send(state.owner, {:runtime_smart_cell_started, ref, info})
+          put_in(state.smart_cells[ref], pid)
+
+        _ ->
+          state
+      end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:stop_smart_cell, ref}, state) do
+    {pid, state} = pop_in(state.smart_cells[ref])
+
+    if pid do
+      DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
+    end
 
     {:noreply, state}
   end
@@ -328,5 +390,27 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   defp report_memory_usage(state) do
     send(state.owner, {:runtime_memory_usage, Evaluator.memory()})
+  end
+
+  defp report_small_cell_definitions(state) do
+    smart_cell_definitions = get_smart_cell_definitions()
+
+    if smart_cell_definitions == state.smart_cell_definitions do
+      state
+    else
+      defs = Enum.map(smart_cell_definitions, &Map.take(&1, [:kind, :name]))
+      send(state.owner, {:runtime_smart_cell_definitions, defs})
+      %{state | smart_cell_definitions: smart_cell_definitions}
+    end
+  end
+
+  @compile {:no_warn_undefined, {Kino.SmartCell, :definitions, 0}}
+
+  defp get_smart_cell_definitions() do
+    if Code.ensure_loaded?(Kino.SmartCell) and function_exported?(Kino.SmartCell, :definitions, 0) do
+      Kino.SmartCell.definitions()
+    else
+      []
+    end
   end
 end

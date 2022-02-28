@@ -46,7 +46,7 @@ defmodule Livebook.Session.DataTest do
           ]
       }
 
-      assert %{cell_infos: %{"c1" => %{snapshot: snapshot}}} = Data.new(notebook)
+      assert %{cell_infos: %{"c1" => %{eval: %{snapshot: snapshot}}}} = Data.new(notebook)
       assert snapshot != {nil, nil}
     end
   end
@@ -118,8 +118,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}}
         ])
 
       operation = {:insert_section_into, self(), "s1", 1, "s2"}
@@ -212,11 +212,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -230,9 +230,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -241,11 +241,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -257,9 +257,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -325,11 +325,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -344,9 +344,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -355,11 +355,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -372,9 +372,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :stale, evaluation_status: :evaluating}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :stale, status: :evaluating}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -383,17 +383,17 @@ defmodule Livebook.Session.DataTest do
   describe "apply_operation/2 given :insert_cell" do
     test "returns an error given invalid section id" do
       data = Data.new()
-      operation = {:insert_cell, self(), "nonexistent", 0, :elixir, "c1"}
+      operation = {:insert_cell, self(), "nonexistent", 0, :elixir, "c1", %{}}
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "insert_cell adds new cell to notebook and cell info" do
+    test "adds a new cell to notebook and cell infos" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"}
         ])
 
-      operation = {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+      operation = {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
 
       assert {:ok,
               %{
@@ -415,12 +415,39 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"}
         ])
 
-      operation = {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+      operation = {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{revision_by_client_pid: %{^client_pid => 0}}}
+                cell_infos: %{"c1" => %{source: %{revision_by_client_pid: %{^client_pid => 0}}}}
               }, []} = Data.apply_operation(data, operation)
+    end
+
+    test "given a smart cell, keeps it dead if there is no corresponding definition" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()}
+        ])
+
+      operation = {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :dead}}}, []} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "given a smart cell, marks it as starting if there is a corresponding definition and a runtime" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]}
+        ])
+
+      operation = {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
+              [{:start_smart_cell, %{id: "c1"}}]} = Data.apply_operation(data, operation)
     end
   end
 
@@ -453,7 +480,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:delete_section, self(), "s1", false}
@@ -464,9 +491,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"}
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}}
         ])
 
       operation = {:delete_section, self(), "s2", false}
@@ -484,9 +511,13 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"}
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1", "c2"]},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
+          {:add_cell_evaluation_response, self(), "c2", @eval_resp, @eval_meta}
         ])
 
       operation = {:delete_section, self(), "s2", true}
@@ -514,9 +545,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           # Evaluate both cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
@@ -528,7 +559,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{validity_status: :stale}}
+                cell_infos: %{"c2" => %{eval: %{validity: :stale}}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -536,11 +567,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -555,9 +586,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -566,11 +597,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -585,8 +616,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :evaluated}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -616,8 +647,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -626,7 +657,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :ready}},
+                cell_infos: %{"c2" => %{eval: %{status: :ready}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -635,7 +666,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:delete_cell, self(), "c1"}
@@ -663,8 +694,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -681,8 +712,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           # Evaluate both cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
@@ -694,7 +725,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{validity_status: :stale}}
+                cell_infos: %{"c2" => %{eval: %{validity: :stale}}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -702,8 +733,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
           # Evaluate both cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -716,7 +747,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :evaluating}}
+                cell_infos: %{"c2" => %{eval: %{status: :evaluating}}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -724,8 +755,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :markdown, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :markdown, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           # Evaluate the elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c2"]},
@@ -736,7 +767,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{validity_status: :evaluated}}
+                cell_infos: %{"c2" => %{eval: %{validity: :evaluated}}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -744,12 +775,31 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
 
       operation = {:delete_cell, self(), "c1"}
 
       assert {:ok, _data, [{:forget_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "given an alive smart cell returns a stop action" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:smart_cell_started, self(), "c1", Delta.new(), %{}}
+        ])
+
+      operation = {:delete_cell, self(), "c1"}
+
+      assert {:ok, _data, [{:stop_smart_cell, %{id: "c1"}}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -759,7 +809,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:restore_cell, self(), "c1"}
@@ -770,7 +820,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:delete_section, self(), "s1", true}
         ])
 
@@ -782,9 +832,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:delete_cell, self(), "c2"}
         ])
 
@@ -804,9 +854,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:delete_section, self(), "s1", true}
         ])
 
@@ -821,6 +871,22 @@ defmodule Livebook.Session.DataTest do
                 bin_entries: []
               }, _actions} = Data.apply_operation(data, operation)
     end
+
+    test "given a smart cell starts it when there is a matching definition" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:delete_cell, self(), "c1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]}
+        ])
+
+      operation = {:restore_cell, self(), "c1"}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
+              [{:start_smart_cell, %{id: "c1"}}]} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :move_cell" do
@@ -834,7 +900,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:move_cell, self(), "c1", 0}
@@ -846,10 +912,10 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s1", 3, :elixir, "c4", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
@@ -871,10 +937,10 @@ defmodule Livebook.Session.DataTest do
                   ]
                 },
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -884,10 +950,10 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s1", 3, :elixir, "c4", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
@@ -909,10 +975,10 @@ defmodule Livebook.Session.DataTest do
                   ]
                 },
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -923,10 +989,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4", %{}}
         ])
 
       operation = {:move_cell, self(), "c2", 1}
@@ -946,10 +1012,10 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -962,7 +1028,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c3" => %{validity_status: :stale}}
+                cell_infos: %{"c3" => %{eval: %{validity: :stale}}}
               }, []} = Data.apply_operation(data, operation)
     end
 
@@ -971,8 +1037,8 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :markdown, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :markdown, "c2", %{}},
           # Evaluate the Elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
@@ -984,7 +1050,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -994,8 +1060,8 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           # Evaluate the Elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
@@ -1006,7 +1072,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{evaluation_status: :ready}
+                  "c2" => %{eval: %{status: :ready}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1016,9 +1082,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :markdown, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :markdown, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c3"]},
@@ -1031,8 +1097,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1041,12 +1107,12 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -1062,10 +1128,10 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1074,14 +1140,14 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4", %{}},
           {:insert_section, self(), 3, "s4"},
-          {:insert_cell, self(), "s4", 0, :elixir, "c5"},
+          {:insert_cell, self(), "s4", 0, :elixir, "c5", %{}},
           {:set_section_parent, self(), "s3", "s2"},
           {:set_section_parent, self(), "s4", "s1"},
           # Evaluate cells
@@ -1101,11 +1167,11 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale},
-                  "c5" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :stale}},
+                  "c5" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1115,9 +1181,9 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -1157,10 +1223,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
@@ -1185,10 +1251,10 @@ defmodule Livebook.Session.DataTest do
                   ]
                 },
                 cell_infos: %{
-                  "c1" => %{validity_status: :stale},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :stale}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1199,10 +1265,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
@@ -1227,10 +1293,10 @@ defmodule Livebook.Session.DataTest do
                   ]
                 },
                 cell_infos: %{
-                  "c1" => %{validity_status: :stale},
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale}
+                  "c1" => %{eval: %{validity: :stale}},
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1242,9 +1308,9 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 1, "s2"},
           {:insert_section, self(), 2, "s3"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -1257,7 +1323,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c3" => %{validity_status: :stale}}
+                cell_infos: %{"c3" => %{eval: %{validity: :stale}}}
               }, []} = Data.apply_operation(data, operation)
     end
 
@@ -1267,8 +1333,8 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s2", 0, :markdown, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s2", 0, :markdown, "c2", %{}},
           # Evaluate the Elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
@@ -1280,7 +1346,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1291,8 +1357,8 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           # Evaluate the Elixir cell
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
@@ -1303,7 +1369,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{evaluation_status: :ready}
+                  "c2" => %{eval: %{status: :ready}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1316,10 +1382,10 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_section, self(), 3, "s4"},
           # Add cells
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s2", 0, :markdown, "c2"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s4", 0, :markdown, "c4"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s2", 0, :markdown, "c2", %{}},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s4", 0, :markdown, "c4", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c3"]},
@@ -1332,8 +1398,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1342,13 +1408,13 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:insert_section, self(), 3, "s4"},
-          {:insert_cell, self(), "s4", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s4", 0, :elixir, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -1366,10 +1432,10 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :evaluated},
-                  "c4" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :evaluated}},
+                  "c4" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1420,7 +1486,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :markdown, "c1"}
+          {:insert_cell, self(), "s1", 0, :markdown, "c1", %{}}
         ])
 
       operation = {:queue_cells_evaluation, self(), ["c1"]}
@@ -1431,7 +1497,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1444,14 +1510,14 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:queue_cells_evaluation, self(), ["c1"]}
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{evaluation_status: :queued}},
+                cell_infos: %{"c1" => %{eval: %{status: :queued}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: ["c1"]}}
               }, [:start_runtime]} = Data.apply_operation(data, operation)
     end
@@ -1460,8 +1526,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
 
@@ -1470,8 +1536,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{evaluation_status: :queued},
-                  "c2" => %{evaluation_status: :queued}
+                  "c1" => %{eval: %{status: :queued}},
+                  "c2" => %{eval: %{status: :queued}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: ["c1", "c2"]}
@@ -1483,7 +1549,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()}
         ])
 
@@ -1491,7 +1557,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{evaluation_status: :evaluating}},
+                cell_infos: %{"c1" => %{eval: %{status: :evaluating}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -1500,7 +1566,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()}
         ])
 
@@ -1514,8 +1580,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1524,7 +1590,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :queued}},
+                cell_infos: %{"c2" => %{eval: %{status: :queued}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: ["c2"]}}
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1533,9 +1599,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1544,7 +1610,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :queued}},
+                cell_infos: %{"c2" => %{eval: %{status: :queued}}},
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []},
                   "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c2"]}
@@ -1556,11 +1622,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4", %{}},
           # Evaluate first 2 cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
@@ -1588,9 +1654,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{evaluation_status: :evaluating},
-                  "c3" => %{evaluation_status: :queued},
-                  "c4" => %{evaluation_status: :queued}
+                  "c2" => %{eval: %{status: :evaluating}},
+                  "c3" => %{eval: %{status: :queued}},
+                  "c4" => %{eval: %{status: :queued}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: "c2", evaluation_queue: []},
@@ -1603,11 +1669,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s3", "s1"},
           {:set_runtime, self(), NoopRuntime.new()}
         ])
@@ -1619,9 +1685,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated, evaluation_status: :evaluating},
-                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :queued}
+                  "c1" => %{eval: %{validity: :evaluated, status: :evaluating}},
+                  "c2" => %{eval: %{validity: :fresh, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :queued}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []},
@@ -1635,11 +1701,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c3"]},
@@ -1651,8 +1717,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{evaluation_status: :queued},
-                  "c3" => %{evaluation_status: :evaluating}
+                  "c2" => %{eval: %{status: :queued}},
+                  "c3" => %{eval: %{status: :evaluating}}
                 },
                 section_infos: %{
                   "s2" => %{evaluating_cell_id: nil, evaluation_queue: ["c2"]},
@@ -1665,9 +1731,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
@@ -1678,7 +1744,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :evaluating}},
+                cell_infos: %{"c2" => %{eval: %{status: :evaluating}}},
                 section_infos: %{"s2" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
               },
               [{:start_evaluation, %{id: "c2"}, %{id: "s2"}}]} =
@@ -1689,12 +1755,12 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c4"]},
@@ -1707,8 +1773,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c3" => %{evaluation_status: :evaluating},
-                  "c4" => %{evaluation_status: :evaluating}
+                  "c3" => %{eval: %{status: :evaluating}},
+                  "c4" => %{eval: %{status: :evaluating}}
                 },
                 section_infos: %{
                   "s2" => %{evaluating_cell_id: "c3", evaluation_queue: []},
@@ -1721,11 +1787,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
@@ -1736,7 +1802,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c3" => %{evaluation_status: :evaluating}},
+                cell_infos: %{"c3" => %{eval: %{status: :evaluating}}},
                 section_infos: %{"s3" => %{evaluating_cell_id: "c3", evaluation_queue: []}}
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -1747,7 +1813,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1758,7 +1824,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 cell_infos: %{
                   "c1" => %{
-                    evaluation_digest: "digest"
+                    eval: %{evaluation_digest: "digest"}
                   }
                 }
               }, []} = Data.apply_operation(data, operation)
@@ -1770,7 +1836,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
@@ -1794,7 +1860,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
@@ -1818,7 +1884,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:set_notebook_attributes, self(), %{persist_outputs: true}},
@@ -1836,7 +1902,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1860,7 +1926,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1869,7 +1935,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{evaluation_status: :ready}},
+                cell_infos: %{"c1" => %{eval: %{status: :ready}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: []}}
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1878,8 +1944,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           # Evaluate the first cell
           {:queue_cells_evaluation, self(), ["c1"]},
@@ -1894,7 +1960,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{validity_status: :stale}}
+                cell_infos: %{"c2" => %{eval: %{validity: :stale}}}
               }, []} = Data.apply_operation(data, operation)
     end
 
@@ -1902,8 +1968,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -1912,7 +1978,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :evaluating}},
+                cell_infos: %{"c2" => %{eval: %{status: :evaluating}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c2", evaluation_queue: []}}
               },
               [{:start_evaluation, %{id: "c2"}, %{id: "s1"}}]} =
@@ -1923,9 +1989,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -1934,7 +2000,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{evaluation_status: :evaluating}},
+                cell_infos: %{"c2" => %{eval: %{status: :evaluating}}},
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
                   "s2" => %{evaluating_cell_id: "c2", evaluation_queue: []}
@@ -1948,10 +2014,10 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
           # Evaluate all cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -1967,8 +2033,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{validity_status: :stale},
-                  "c3" => %{validity_status: :stale}
+                  "c2" => %{eval: %{validity: :stale}},
+                  "c3" => %{eval: %{validity: :stale}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -1977,13 +2043,13 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c3", %{}},
           {:insert_section, self(), 3, "s4"},
-          {:insert_cell, self(), "s4", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s4", 0, :elixir, "c4", %{}},
           {:set_section_parent, self(), "s3", "s2"},
           {:set_section_parent, self(), "s4", "s1"},
           # Evaluate cells
@@ -2004,10 +2070,10 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated},
-                  "c2" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :evaluated}
+                  "c1" => %{eval: %{validity: :evaluated}},
+                  "c2" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :evaluated}}
                 }
               }, []} = Data.apply_operation(data, operation)
     end
@@ -2016,9 +2082,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:set_cell_attributes, self(), "c3", %{reevaluate_automatically: true}},
           # Evaluate all cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -2035,8 +2101,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{evaluation_status: :evaluating},
-                  "c3" => %{evaluation_status: :queued}
+                  "c2" => %{eval: %{status: :evaluating}},
+                  "c3" => %{eval: %{status: :queued}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -2045,8 +2111,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
           # Evaluate all cells
           {:set_runtime, self(), NoopRuntime.new()},
@@ -2058,8 +2124,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{evaluation_status: :ready, validity_status: :evaluated},
-                  "c2" => %{evaluation_status: :ready, validity_status: :fresh}
+                  "c1" => %{eval: %{status: :ready, validity: :evaluated}},
+                  "c2" => %{eval: %{status: :ready, validity: :fresh}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -2070,8 +2136,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2089,7 +2155,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{validity_status: :stale}
+                  "c2" => %{eval: %{validity: :stale}}
                 }
               }, _} = Data.apply_operation(data, operation)
     end
@@ -2098,7 +2164,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -2110,7 +2176,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{evaluation_time_ms: evaluation_time}}
+                cell_infos: %{"c1" => %{eval: %{evaluation_time_ms: evaluation_time}}}
               }, []} = Data.apply_operation(data, operation)
 
       assert evaluation_time >= 10
@@ -2120,7 +2186,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:set_notebook_attributes, self(), %{persist_outputs: true}},
@@ -2139,7 +2205,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -2155,7 +2221,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2175,7 +2241,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2197,8 +2263,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2223,8 +2289,8 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_section_parent, self(), "s3", "s1"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c2"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s3", 0, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2245,7 +2311,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:bind_input, self(), "c1", "nonexistent"}
@@ -2256,8 +2322,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}}
         ])
 
       operation = {:bind_input, self(), "c2", "c1"}
@@ -2270,8 +2336,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2285,7 +2351,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{bound_to_input_ids: ^bound_to_input_ids}
+                  "c2" => %{eval: %{bound_to_input_ids: ^bound_to_input_ids}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -2296,9 +2362,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
@@ -2309,9 +2375,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []}
@@ -2323,10 +2389,10 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -2339,9 +2405,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c2" => %{validity_status: :evaluated, evaluation_status: :ready},
-                  "c3" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c2" => %{eval: %{validity: :evaluated, status: :ready}},
+                  "c3" => %{eval: %{validity: :evaluated, status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2356,12 +2422,12 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
@@ -2374,10 +2440,10 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated, evaluation_status: :ready},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c4" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                  "c1" => %{eval: %{validity: :evaluated, status: :ready}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c4" => %{eval: %{validity: :evaluated, status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2399,7 +2465,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
@@ -2413,10 +2479,10 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
@@ -2427,9 +2493,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2442,8 +2508,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -2458,12 +2524,12 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c2"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c3", %{}},
           {:insert_section, self(), 2, "s3"},
-          {:insert_cell, self(), "s3", 0, :elixir, "c4"},
+          {:insert_cell, self(), "s3", 0, :elixir, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
@@ -2475,10 +2541,10 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :evaluated, evaluation_status: :ready},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :ready},
-                  "c4" => %{validity_status: :evaluated, evaluation_status: :evaluating}
+                  "c1" => %{eval: %{validity: :evaluated, status: :ready}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :ready}},
+                  "c4" => %{eval: %{validity: :evaluated, status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2492,8 +2558,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -2502,7 +2568,9 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c2" => %{validity_status: :fresh, evaluation_status: :ready}},
+                cell_infos: %{
+                  "c2" => %{eval: %{validity: :fresh, status: :ready}}
+                },
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
               }, []} = Data.apply_operation(data, operation)
     end
@@ -2511,9 +2579,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]}
         ])
@@ -2522,9 +2590,93 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c3" => %{evaluation_status: :ready}},
+                cell_infos: %{"c3" => %{eval: %{status: :ready}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}}
               }, []} = Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :smart_cell_started" do
+    test "returns an error if the cell is dead" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
+        ])
+
+      operation = {:smart_cell_started, self(), "c1", Delta.new(), %{}}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "marks the cell as alive and updates its source" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
+        ])
+
+      delta = Delta.new() |> Delta.insert("content")
+
+      operation = {:smart_cell_started, self(), "c1", delta, %{}}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :alive}}}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "updates the cell source and returns a broadcast delta action" do
+      client_pid = self()
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
+        ])
+
+      delta = Delta.new() |> Delta.insert("content")
+
+      operation = {:smart_cell_started, client_pid, "c1", delta, %{}}
+
+      assert {:ok,
+              %{
+                notebook: %{sections: [%{cells: [%{id: "c1", source: "content"}]}]}
+              },
+              [{:broadcast_delta, ^client_pid, _cell, ^delta}]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :update_smart_cell" do
+    test "updates the cell attrs, source and returns a broadcast delta action" do
+      client_pid = self()
+
+      delta1 = Delta.new() |> Delta.insert("content")
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:smart_cell_started, self(), "c1", delta1, %{}}
+        ])
+
+      attrs = %{"text" => "content!"}
+      delta2 = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      operation = {:update_smart_cell, client_pid, "c1", attrs, delta2}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [%{cells: [%{id: "c1", source: "content!", attrs: ^attrs}]}]
+                }
+              },
+              [{:broadcast_delta, ^client_pid, _cell, ^delta2}]} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -2533,10 +2685,10 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
@@ -2548,9 +2700,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c2" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :ready}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2563,9 +2715,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :markdown, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :markdown, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c3"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta},
@@ -2656,7 +2808,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:client_join, client1_pid, user},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
@@ -2665,7 +2817,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{revision_by_client_pid: %{^client2_pid => 1}}}
+                cell_infos: %{"c1" => %{source: %{revision_by_client_pid: %{^client2_pid => 1}}}}
               }, _} = Data.apply_operation(data, operation)
     end
   end
@@ -2729,7 +2881,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, User.new()},
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
@@ -2738,7 +2890,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{deltas: [], revision_by_client_pid: revision_by_client_pid}
+                  "c1" => %{source: %{deltas: [], revision_by_client_pid: revision_by_client_pid}}
                 }
               }, _} = Data.apply_operation(data, operation)
 
@@ -2785,7 +2937,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
@@ -2798,7 +2950,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
@@ -2812,7 +2964,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
@@ -2825,7 +2977,7 @@ defmodule Livebook.Session.DataTest do
                     %{cells: [%{source: "cats"}]}
                   ]
                 },
-                cell_infos: %{"c1" => %{revision: 1}}
+                cell_infos: %{"c1" => %{source: %{revision: 1}}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -2840,7 +2992,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, User.new()},
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
@@ -2854,7 +3006,7 @@ defmodule Livebook.Session.DataTest do
                     %{cells: [%{source: "catstea"}]}
                   ]
                 },
-                cell_infos: %{"c1" => %{revision: 2}}
+                cell_infos: %{"c1" => %{source: %{revision: 2}}}
               }, _} = Data.apply_operation(data, operation)
     end
 
@@ -2869,7 +3021,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, User.new()},
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
@@ -2889,7 +3041,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:client_join, client_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
@@ -2897,7 +3049,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{deltas: []}}
+                cell_infos: %{"c1" => %{source: %{deltas: []}}}
               }, _} = Data.apply_operation(data, operation)
     end
 
@@ -2910,7 +3062,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, User.new()},
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
@@ -2918,7 +3070,7 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{deltas: [^delta]}}
+                cell_infos: %{"c1" => %{source: %{deltas: [^delta]}}}
               }, _} = Data.apply_operation(data, operation)
     end
   end
@@ -2942,7 +3094,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:client_join, client1_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:apply_cell_delta, client1_pid, "c1", Delta.new(insert: "cats"), 1}
         ])
 
@@ -2955,7 +3107,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       operation = {:report_cell_revision, self(), "c1", 1}
@@ -2973,7 +3125,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, User.new()},
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:apply_cell_delta, client1_pid, "c1", delta1, 1}
         ])
 
@@ -2983,8 +3135,10 @@ defmodule Livebook.Session.DataTest do
               %{
                 cell_infos: %{
                   "c1" => %{
-                    deltas: [],
-                    revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}
+                    source: %{
+                      deltas: [],
+                      revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}
+                    }
                   }
                 }
               }, _} = Data.apply_operation(data, operation)
@@ -3003,7 +3157,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       attrs = %{unknown: :value}
@@ -3016,7 +3170,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"}
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}}
         ])
 
       attrs = %{disable_formatting: true, reevaluate_automatically: true}
@@ -3036,8 +3190,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           # Evaluate cells
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
@@ -3053,8 +3207,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{evaluation_status: :ready},
-                  "c2" => %{evaluation_status: :evaluating}
+                  "c1" => %{eval: %{status: :ready}},
+                  "c2" => %{eval: %{status: :evaluating}}
                 }
               }, _} = Data.apply_operation(data, operation)
     end
@@ -3074,7 +3228,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta}
@@ -3091,11 +3245,11 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           # Insert three evaluated cells and bind the second one to the input
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 3, :elixir, "c4"},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s1", 3, :elixir, "c4", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3", "c4"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -3110,9 +3264,9 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c2" => %{validity_status: :evaluated},
-                  "c3" => %{validity_status: :stale},
-                  "c4" => %{validity_status: :stale}
+                  "c2" => %{eval: %{validity: :evaluated}},
+                  "c3" => %{eval: %{validity: :stale}},
+                  "c4" => %{eval: %{validity: :stale}}
                 }
               }, _} = Data.apply_operation(data, operation)
     end
@@ -3133,14 +3287,14 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           # First section with evaluating and queued cells
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           # Second section with evaluating and queued cells
           {:insert_section, self(), 1, "s2"},
-          {:insert_cell, self(), "s2", 0, :elixir, "c3"},
-          {:insert_cell, self(), "s2", 1, :elixir, "c4"},
+          {:insert_cell, self(), "s2", 0, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s2", 1, :elixir, "c4", %{}},
           {:queue_cells_evaluation, self(), ["c3", "c4"]}
         ])
 
@@ -3150,10 +3304,10 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{validity_status: :aborted, evaluation_status: :ready},
-                  "c2" => %{validity_status: :fresh, evaluation_status: :ready},
-                  "c3" => %{validity_status: :fresh, evaluation_status: :ready},
-                  "c4" => %{validity_status: :fresh, evaluation_status: :ready}
+                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c2" => %{eval: %{validity: :fresh, status: :ready}},
+                  "c3" => %{eval: %{validity: :fresh, status: :ready}},
+                  "c4" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
                   "s2" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -3166,7 +3320,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
 
@@ -3176,13 +3330,29 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{evaluation_status: :evaluating}
+                  "c1" => %{eval: %{status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: "c1", evaluation_queue: []}
                 }
               },
               [{:start_evaluation, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :set_smart_cell_definitions" do
+    test "sets the definitions and starts dead cells with matching kinds" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:set_runtime, self(), NoopRuntime.new()}
+        ])
+
+      operation = {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}}, _actions} =
                Data.apply_operation(data, operation)
     end
   end
@@ -3235,10 +3405,10 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
-          {:insert_cell, self(), "s1", 4, :elixir, "c4"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
+          {:insert_cell, self(), "s1", 4, :elixir, "c4", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -3257,9 +3427,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
           {:evaluation_started, self(), "c1", @empty_digest},
@@ -3280,8 +3450,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c3"]},
           {:evaluation_started, self(), "c1", @empty_digest},
@@ -3289,7 +3459,7 @@ defmodule Livebook.Session.DataTest do
           {:evaluation_started, self(), "c3", @empty_digest},
           {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
           # Insert a fresh cell between cell 1 and cell 3
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"}
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}}
         ])
 
       assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2", "c3"]
@@ -3299,8 +3469,8 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           {:evaluation_started, self(), "c1", @empty_digest},
@@ -3320,9 +3490,9 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :elixir, "c1"},
-          {:insert_cell, self(), "s1", 1, :elixir, "c2"},
-          {:insert_cell, self(), "s1", 2, :elixir, "c3"},
+          {:insert_cell, self(), "s1", 0, :elixir, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :elixir, "c2", %{}},
+          {:insert_cell, self(), "s1", 2, :elixir, "c3", %{}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]},
           {:evaluation_started, self(), "c1", @empty_digest},

@@ -99,8 +99,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       <div class="container">
         <div class="flex flex-col space-y-1">
           <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
-              id={"#{@section_view.id}:first"}
+              id={"insert-buttons-#{@section_view.id}-first"}
               persistent={@section_view.cell_views == []}
+              smart_cell_definitions={@smart_cell_definitions}
               section_id={@section_view.id}
               cell_id={nil} />
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
@@ -110,8 +111,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                 runtime={@runtime}
                 cell_view={cell_view} />
             <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
-                id={"#{@section_view.id}:#{index}"}
+                id={"insert-buttons-#{@section_view.id}-#{index}"}
                 persistent={false}
+                smart_cell_definitions={@smart_cell_definitions}
                 section_id={@section_view.id}
                 cell_id={cell_view.id} />
           <% end %>

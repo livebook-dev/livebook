@@ -35,7 +35,8 @@ defmodule Livebook.Runtime.ErlDist do
       Livebook.Runtime.ErlDist.RuntimeServer,
       Livebook.Runtime.ErlDist.EvaluatorSupervisor,
       Livebook.Runtime.ErlDist.IOForwardGL,
-      Livebook.Runtime.ErlDist.LoggerGLBackend
+      Livebook.Runtime.ErlDist.LoggerGLBackend,
+      Livebook.Runtime.ErlDist.SmartCellGL
     ]
   end
 

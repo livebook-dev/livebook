@@ -168,6 +168,9 @@ defmodule Livebook.LiveMarkdown.Import do
       %{"livebook_object" => "cell_input"} ->
         {:cell, :input, data}
 
+      %{"livebook_object" => "smart_cell"} ->
+        {:cell, :smart, data}
+
       _ ->
         {:metadata, data}
     end
@@ -212,6 +215,27 @@ defmodule Livebook.LiveMarkdown.Import do
   # and then aggregate elements into data strictures going bottom-up.
   defp build_notebook(elems) do
     build_notebook(elems, _cells = [], _sections = [], _messages = [], _output_counter = 0)
+  end
+
+  defp build_notebook(
+         [{:cell, :elixir, source, outputs}, {:cell, :smart, data} | elems],
+         cells,
+         sections,
+         messages,
+         output_counter
+       ) do
+    {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
+    %{"kind" => kind, "attrs" => attrs} = data
+
+    cell = %{
+      Notebook.Cell.new(:smart)
+      | source: source,
+        outputs: outputs,
+        kind: kind,
+        attrs: attrs
+    }
+
+    build_notebook(elems, [cell | cells], sections, messages, output_counter)
   end
 
   defp build_notebook(

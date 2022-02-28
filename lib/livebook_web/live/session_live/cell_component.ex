@@ -14,10 +14,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       if not connected?(socket) or socket.assigns.initialized do
         socket
       else
-        %{id: id, source_info: info} = socket.assigns.cell_view
+        %{id: id, source_view: source_view} = socket.assigns.cell_view
 
         socket
-        |> push_event("cell_init:#{id}", info)
+        |> push_event("cell_init:#{id}", source_view)
         |> assign(initialized: true)
       end
 
@@ -42,11 +42,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp render_cell(%{cell_view: %{type: :markdown}} = assigns) do
     ~H"""
-    <div class="mb-1 flex items-center justify-end">
-      <div class="relative z-20 flex items-center justify-end space-x-2"
-        role="toolbar"
-        aria-label="cell actions"
-        data-element="actions">
+    <.cell_actions>
+      <:secondary>
         <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
           <button class="icon-button" aria-label="edit content">
             <.remix_icon icon="pencil-line" class="text-xl" />
@@ -64,9 +61,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
-      </div>
-    </div>
-
+      </:secondary>
+    </.cell_actions>
     <.cell_body>
       <div class="pb-4" data-element="editor-box">
         <.editor cell_view={@cell_view} />
@@ -75,7 +71,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         data-element="markdown-container"
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore">
-        <.content_placeholder bg_class="bg-gray-200" empty={empty?(@cell_view.source_info)} />
+        <.content_placeholder bg_class="bg-gray-200" empty={empty?(@cell_view.source_view)} />
       </div>
     </.cell_body>
     """
@@ -83,74 +79,118 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp render_cell(%{cell_view: %{type: :elixir}} = assigns) do
     ~H"""
-    <div class="mb-1 flex items-center justify-between">
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
-        <%= if @cell_view.evaluation_status == :ready do %>
-          <%= if @cell_view.validity_status != :fresh and @cell_view.reevaluate_automatically do %>
-            <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_view.id),
-                  class: "text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center" do %>
-              <.remix_icon icon="check-line" class="text-xl" />
-              <span class="text-sm font-medium">
-                Reevaluates automatically
-              </span>
-            <% end %>
-          <% else %>
-            <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-              phx-click="queue_cell_evaluation"
-              phx-value-cell_id={@cell_view.id}>
-              <.remix_icon icon="play-circle-fill" class="text-xl" />
-              <span class="text-sm font-medium">
-                <%= if(@cell_view.validity_status == :evaluated, do: "Reevaluate", else: "Evaluate") %>
-              </span>
-            </button>
-          <% end %>
-        <% else %>
-          <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-            phx-click="cancel_cell_evaluation"
-            phx-value-cell_id={@cell_view.id}>
-            <.remix_icon icon="stop-circle-fill" class="text-xl" />
-            <span class="text-sm font-medium">
-              Stop
-            </span>
-          </button>
-        <% end %>
-      </div>
-      <div class="relative z-20 flex items-center justify-end space-x-2"
-        role="toolbar"
-        aria-label="cell actions"
-        data-element="actions">
-        <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
-          <button class="icon-button"
-            aria-label="amplify outputs">
-            <.remix_icon icon="zoom-in-line" class="text-xl" data-element="zoom-in-icon" />
-            <.remix_icon icon="zoom-out-line" class="text-xl" data-element="zoom-out-icon" />
-          </button>
-        </span>
+    <.cell_actions>
+      <:primary>
+        <.cell_evaluation_button
+          session_id={@session_id}
+          socket={@socket}
+          cell_id={@cell_view.id}
+          validity={@cell_view.eval.validity}
+          status={@cell_view.eval.status}
+          reevaluate_automatically={@cell_view.reevaluate_automatically} />
+      </:primary>
+      <:secondary>
+        <.amplify_output_button />
         <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
         <.delete_cell_button cell_id={@cell_view.id} />
+      </:secondary>
+    </.cell_actions>
+    <.cell_body>
+      <div class="relative">
+        <.editor cell_view={@cell_view} />
+        <div class="absolute bottom-2 right-2">
+          <.cell_status cell_view={@cell_view} />
+        </div>
+      </div>
+      <.evaluation_outputs
+        cell_view={@cell_view}
+        socket={@socket}
+        session_id={@session_id}
+        runtime={@runtime} />
+    </.cell_body>
+    """
+  end
+
+  defp render_cell(%{cell_view: %{type: :smart}} = assigns) do
+    ~H"""
+    <.cell_actions>
+      <:primary>
+        <.cell_evaluation_button
+          session_id={@session_id}
+          socket={@socket}
+          cell_id={@cell_view.id}
+          validity={@cell_view.eval.validity}
+          status={@cell_view.eval.status}
+          reevaluate_automatically={false} />
+      </:primary>
+      <:secondary>
+        <span class="tooltip top" data-tooltip="Toggle source" data-element="toggle-source-button">
+          <button class="icon-button" aria-label="toggle source">
+            <.remix_icon icon="code-line" class="text-xl" data-element="show-code-icon" />
+            <.remix_icon icon="pencil-line" class="text-xl" data-element="show-ui-icon" />
+          </button>
+        </span>
+        <.cell_link_button cell_id={@cell_view.id} />
+        <.move_cell_up_button cell_id={@cell_view.id} />
+        <.move_cell_down_button cell_id={@cell_view.id} />
+        <.delete_cell_button cell_id={@cell_view.id} />
+      </:secondary>
+    </.cell_actions>
+    <.cell_body>
+      <div class="relative">
+        <div data-element="ui-box">
+          <%= case @cell_view.status do %>
+            <% :alive -> %>
+              <.live_component module={LivebookWeb.JSViewComponent}
+                id={@cell_view.id}
+                js_view={@cell_view.js_view}
+                session_id={@session_id} />
+
+            <% :dead -> %>
+              <div class="p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg">
+                Evaluate and install dependencies to show the contents of this Smart cell.
+              </div>
+
+            <% :starting -> %>
+              <div class="delay-200">
+                <.content_placeholder bg_class="bg-gray-200" empty={false} />
+              </div>
+          <% end %>
+        </div>
+        <div data-element="editor-box">
+          <.editor cell_view={@cell_view} />
+        </div>
+        <div data-element="cell-status-container">
+          <.cell_status cell_view={@cell_view} />
+        </div>
+      </div>
+      <.evaluation_outputs
+        cell_view={@cell_view}
+        socket={@socket}
+        session_id={@session_id}
+        runtime={@runtime} />
+    </.cell_body>
+    """
+  end
+
+  defp cell_actions(assigns) do
+    assigns = assign_new(assigns, :primary, fn -> [] end)
+
+    ~H"""
+    <div class="mb-1 flex items-center justify-between">
+      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
+        <%= render_slot(@primary) %>
+      </div>
+      <div class="relative z-20 flex items-center justify-end space-x-2"
+        role="toolbar"
+        aria-label="cell actions"
+        data-element="actions">
+        <%= render_slot(@secondary) %>
       </div>
     </div>
-
-    <.cell_body>
-      <.editor cell_view={@cell_view} />
-      <div class="flex flex-col"
-        aria-live="polite"
-        data-element="outputs-container"
-        id={"outputs-#{@cell_view.id}-#{@cell_view.outputs_batch_number}"}
-        phx-update="append">
-        <LivebookWeb.Output.outputs
-          outputs={@cell_view.outputs}
-          dom_id_map={%{}}
-          socket={@socket}
-          session_id={@session_id}
-          runtime={@runtime}
-          cell_validity_status={@cell_view.validity_status}
-          input_values={@cell_view.input_values} />
-      </div>
-    </.cell_body>
     """
   end
 
@@ -168,6 +208,45 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
+  defp cell_evaluation_button(%{status: :ready, reevaluate_automatically: true} = assigns)
+       when assigns.validity in [:evaluated, :stale] do
+    ~H"""
+    <%= live_patch to: Routes.session_path(@socket, :cell_settings, @session_id, @cell_id),
+          class: "text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center" do %>
+      <.remix_icon icon="check-line" class="text-xl" />
+      <span class="text-sm font-medium">
+        Reevaluates automatically
+      </span>
+    <% end %>
+    """
+  end
+
+  defp cell_evaluation_button(%{status: :ready} = assigns) do
+    ~H"""
+    <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+      phx-click="queue_cell_evaluation"
+      phx-value-cell_id={@cell_id}>
+      <.remix_icon icon="play-circle-fill" class="text-xl" />
+      <span class="text-sm font-medium">
+        <%= if(@validity == :evaluated, do: "Reevaluate", else: "Evaluate") %>
+      </span>
+    </button>
+    """
+  end
+
+  defp cell_evaluation_button(assigns) do
+    ~H"""
+    <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
+      phx-click="cancel_cell_evaluation"
+      phx-value-cell_id={@cell_id}>
+      <.remix_icon icon="stop-circle-fill" class="text-xl" />
+      <span class="text-sm font-medium">
+        Stop
+      </span>
+    </button>
+    """
+  end
+
   defp cell_link_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Link">
@@ -176,6 +255,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         aria-label="link to cell">
         <.remix_icon icon="link" class="text-xl" />
       </a>
+    </span>
+    """
+  end
+
+  def amplify_output_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
+      <button class="icon-button"
+        aria-label="amplify outputs">
+        <.remix_icon icon="zoom-in-line" class="text-xl" data-element="zoom-in-icon" />
+        <.remix_icon icon="zoom-out-line" class="text-xl" data-element="zoom-out-icon" />
+      </button>
     </span>
     """
   end
@@ -236,20 +327,30 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp editor(assigns) do
     ~H"""
-    <div class="relative">
-      <div id={"editor-#{@cell_view.id}"} phx-update="ignore">
-        <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
-          <div class="px-8">
-            <.content_placeholder bg_class="bg-gray-500" empty={empty?(@cell_view.source_info)} />
-          </div>
+    <div id={"editor-#{@cell_view.id}"} phx-update="ignore">
+      <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
+        <div class="px-8">
+          <.content_placeholder bg_class="bg-gray-500" empty={empty?(@cell_view.source_view)} />
         </div>
       </div>
+    </div>
+    """
+  end
 
-      <%= if @cell_view.type == :elixir do %>
-        <div class="absolute bottom-2 right-2">
-          <.cell_status cell_view={@cell_view} />
-        </div>
-      <% end %>
+  defp evaluation_outputs(assigns) do
+    ~H"""
+    <div class="flex flex-col"
+      data-element="outputs-container"
+      id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
+      phx-update="append">
+      <LivebookWeb.Output.outputs
+        outputs={@cell_view.eval.outputs}
+        dom_id_map={%{}}
+        socket={@socket}
+        session_id={@session_id}
+        runtime={@runtime}
+        cell_validity={@cell_view.eval.validity}
+        input_values={@cell_view.eval.input_values} />
     </div>
     """
   end
@@ -274,23 +375,23 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp empty?(%{source: ""} = _source_info), do: true
-  defp empty?(_source_info), do: false
+  defp empty?(%{source: ""} = _source_view), do: true
+  defp empty?(_source_view), do: false
 
-  defp cell_status(%{cell_view: %{evaluation_status: :evaluating}} = assigns) do
+  defp cell_status(%{cell_view: %{eval: %{status: :evaluating}}} = assigns) do
     ~H"""
     <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
       <span class="font-mono"
-        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.evaluation_number}"}
+        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.eval.evaluation_number}"}
         phx-hook="Timer"
         phx-update="ignore"
-        data-start={DateTime.to_iso8601(@cell_view.evaluation_start)}>
+        data-start={DateTime.to_iso8601(@cell_view.eval.evaluation_start)}>
       </span>
     </.status_indicator>
     """
   end
 
-  defp cell_status(%{cell_view: %{evaluation_status: :queued}} = assigns) do
+  defp cell_status(%{cell_view: %{eval: %{status: :queued}}} = assigns) do
     ~H"""
     <.status_indicator circle_class="bg-gray-400" animated_circle_class="bg-gray-300">
       Queued
@@ -298,18 +399,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp cell_status(%{cell_view: %{validity_status: :evaluated}} = assigns) do
+  defp cell_status(%{cell_view: %{eval: %{validity: :evaluated}}} = assigns) do
     ~H"""
     <.status_indicator
       circle_class="bg-green-bright-400"
       change_indicator={true}
-      tooltip={evaluated_label(@cell_view.evaluation_time_ms)}>
+      tooltip={evaluated_label(@cell_view.eval.evaluation_time_ms)}>
       Evaluated
     </.status_indicator>
     """
   end
 
-  defp cell_status(%{cell_view: %{validity_status: :stale}} = assigns) do
+  defp cell_status(%{cell_view: %{eval: %{validity: :stale}}} = assigns) do
     ~H"""
     <.status_indicator circle_class="bg-yellow-bright-200" change_indicator={true}>
       Stale
@@ -317,7 +418,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp cell_status(%{cell_view: %{validity_status: :aborted}} = assigns) do
+  defp cell_status(%{cell_view: %{eval: %{validity: :aborted}}} = assigns) do
     ~H"""
     <.status_indicator circle_class="bg-gray-500">
       Aborted

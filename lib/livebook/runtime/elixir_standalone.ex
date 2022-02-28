@@ -103,4 +103,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def read_file(runtime, path) do
     ErlDist.RuntimeServer.read_file(runtime.server_pid, path)
   end
+
+  def start_smart_cell(runtime, kind, ref, attrs) do
+    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs)
+  end
+
+  def stop_smart_cell(runtime, ref) do
+    ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+  end
 end

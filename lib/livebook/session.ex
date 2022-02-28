@@ -256,9 +256,9 @@ defmodule Livebook.Session do
   @doc """
   Sends cell insertion request to the server.
   """
-  @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type()) :: :ok
-  def insert_cell(pid, section_id, index, type) do
-    GenServer.cast(pid, {:insert_cell, self(), section_id, index, type})
+  @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type(), map()) :: :ok
+  def insert_cell(pid, section_id, index, type, attrs \\ %{}) do
+    GenServer.cast(pid, {:insert_cell, self(), section_id, index, type, attrs})
   end
 
   @doc """
@@ -657,9 +657,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:insert_cell, client_pid, section_id, index, type}, state) do
+  def handle_cast({:insert_cell, client_pid, section_id, index, type, attrs}, state) do
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id()}
+    operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id(), attrs}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -696,7 +696,7 @@ defmodule Livebook.Session do
   def handle_cast({:queue_section_evaluation, client_pid, section_id}, state) do
     case Notebook.fetch_section(state.data.notebook, section_id) do
       {:ok, section} ->
-        cell_ids = for cell <- section.cells, is_struct(cell, Cell.Elixir), do: cell.id
+        cell_ids = for cell <- section.cells, Cell.evaluable?(cell), do: cell.id
         operation = {:queue_cells_evaluation, client_pid, cell_ids}
         {:noreply, handle_operation(state, operation)}
 
@@ -874,6 +874,35 @@ defmodule Livebook.Session do
 
   def handle_info({:runtime_memory_usage, runtime_memory}, state) do
     {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
+  end
+
+  def handle_info({:runtime_smart_cell_definitions, definitions}, state) do
+    operation = {:set_smart_cell_definitions, self(), definitions}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:runtime_smart_cell_started, id, info}, state) do
+    case Notebook.fetch_cell_and_section(state.data.notebook, id) do
+      {:ok, cell, _section} ->
+        delta = Livebook.JSInterop.diff(cell.source, info.source)
+        operation = {:smart_cell_started, self(), id, delta, info.js_view}
+        {:noreply, handle_operation(state, operation)}
+
+      :error ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_info({:runtime_smart_cell_update, id, cell_state, source}, state) do
+    case Notebook.fetch_cell_and_section(state.data.notebook, id) do
+      {:ok, cell, _section} ->
+        delta = Livebook.JSInterop.diff(cell.source, source)
+        operation = {:update_smart_cell, self(), id, cell_state, delta}
+        {:noreply, handle_operation(state, operation)}
+
+      :error ->
+        {:noreply, state}
+    end
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -1177,6 +1206,22 @@ defmodule Livebook.Session do
     state
   end
 
+  defp handle_action(state, {:start_smart_cell, cell}) do
+    if state.data.runtime do
+      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs)
+    end
+
+    state
+  end
+
+  defp handle_action(state, {:stop_smart_cell, cell}) do
+    if state.data.runtime do
+      Runtime.stop_smart_cell(state.data.runtime, cell.id)
+    end
+
+    state
+  end
+
   defp handle_action(state, _action), do: state
 
   defp broadcast_operation(session_id, operation) do
@@ -1398,7 +1443,7 @@ defmodule Livebook.Session do
     notebook
     |> Notebook.parent_cells_with_section(cell.id)
     |> Enum.find_value(default, fn {cell, section} ->
-      is_struct(cell, Cell.Elixir) && {container_ref_for_section(section), cell.id}
+      Cell.evaluable?(cell) && {container_ref_for_section(section), cell.id}
     end)
   end
 

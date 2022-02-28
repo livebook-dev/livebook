@@ -17,8 +17,8 @@ defmodule Livebook.LiveMarkdown.Export do
 
   defp collect_js_output_data(notebook) do
     for section <- notebook.sections,
-        %Cell.Elixir{} = cell <- section.cells,
-        {_idx, {:js, %{export: %{}, ref: ref, pid: pid}}} <- cell.outputs do
+        %{outputs: outputs} <- section.cells,
+        {_idx, {:js, %{js_view: %{ref: ref, pid: pid}, export: %{}}}} <- outputs do
       Task.async(fn ->
         {ref, get_js_output_data(pid, ref)}
       end)
@@ -129,6 +129,16 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
+  defp render_cell(%Cell.Smart{} = cell, ctx) do
+    %{Cell.Elixir.new() | source: cell.source, outputs: cell.outputs}
+    |> render_cell(ctx)
+    |> prepend_metadata(%{
+      "livebook_object" => "smart_cell",
+      "kind" => cell.kind,
+      "attrs" => cell.attrs
+    })
+  end
+
   defp cell_metadata(%Cell.Elixir{} = cell) do
     put_unless_default(
       %{},
@@ -165,7 +175,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_output(
-         {:js, %{export: %{info_string: info_string, key: key}, ref: ref}},
+         {:js, %{export: %{info_string: info_string, key: key}, js_view: %{ref: ref}}},
          ctx
        )
        when is_binary(info_string) do

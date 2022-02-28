@@ -86,7 +86,7 @@ defmodule LivebookWeb.Output.FrameComponent do
             session_id={@session_id}
             input_values={@input_values}
             runtime={nil}
-            cell_validity_status={nil} />
+            cell_validity={nil} />
           </div>
       <% end %>
     </div>

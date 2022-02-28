@@ -206,7 +206,7 @@ defmodule LivebookWeb.SessionControllerTest do
     archive_path = Path.expand("../../support/assets.tar.gz", __DIR__)
     hash = "test-" <> Livebook.Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
-    output = {:js, %{assets: assets_info}}
+    output = {:js, %{js_view: %{assets: assets_info}}}
 
     notebook = %{
       Notebook.new()

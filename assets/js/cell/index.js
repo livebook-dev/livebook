@@ -4,6 +4,7 @@ import Markdown from "./markdown";
 import { globalPubSub } from "../lib/pub_sub";
 import { md5Base64, smoothlyScrollToElement } from "../lib/utils";
 import scrollIntoView from "scroll-into-view-if-needed";
+import { isEvaluable } from "../lib/notebook";
 
 /**
  * A hook managing a single cell.
@@ -29,6 +30,25 @@ const Cell = {
       evaluationDigest: null,
     };
 
+    // Setup action handlers
+    if (this.props.type === "elixir") {
+      const amplifyButton = this.el.querySelector(
+        `[data-element="amplify-outputs-button"]`
+      );
+      amplifyButton.addEventListener("click", (event) => {
+        this.el.toggleAttribute("data-js-amplified");
+      });
+    }
+
+    if (this.props.type === "smart") {
+      const toggleSourceButton = this.el.querySelector(
+        `[data-element="toggle-source-button"]`
+      );
+      toggleSourceButton.addEventListener("click", (event) => {
+        this.el.toggleAttribute("data-js-source-visible");
+      });
+    }
+
     this.handleEvent(`cell_init:${this.props.cellId}`, (payload) => {
       const { source, revision, evaluation_digest } = payload;
 
@@ -43,110 +63,102 @@ const Cell = {
         });
       }
 
-      // Setup action handlers
-      if (this.props.type === "elixir") {
-        const amplifyButton = this.el.querySelector(
-          `[data-element="amplify-outputs-button"]`
+      const editorContainer = this.el.querySelector(
+        `[data-element="editor-container"]`
+      );
+      // Remove the content placeholder.
+      editorContainer.firstElementChild.remove();
+      // Create an empty container for the editor to be mounted in.
+      const editorElement = document.createElement("div");
+      editorContainer.appendChild(editorElement);
+      // Setup the editor instance.
+      const language = {
+        markdown: "markdown",
+        elixir: "elixir",
+        smart: "elixir",
+      }[this.props.type];
+      const readOnly = this.props.type === "smart";
+      this.state.liveEditor = new LiveEditor(
+        this,
+        editorElement,
+        this.props.cellId,
+        source,
+        revision,
+        language,
+        readOnly
+      );
+
+      // Setup change indicator
+      if (isEvaluable(this.props.type)) {
+        this.state.evaluationDigest = evaluation_digest;
+
+        const updateChangeIndicator = () => {
+          const cellStatus = this.el.querySelector(
+            `[data-element="cell-status"]`
+          );
+          const indicator =
+            cellStatus &&
+            cellStatus.querySelector(`[data-element="change-indicator"]`);
+
+          if (indicator) {
+            const source = this.state.liveEditor.getSource();
+            const digest = md5Base64(source);
+            const changed = this.state.evaluationDigest !== digest;
+            cellStatus.toggleAttribute("data-js-changed", changed);
+          }
+        };
+
+        updateChangeIndicator();
+
+        this.handleEvent(
+          `evaluation_started:${this.props.cellId}`,
+          ({ evaluation_digest }) => {
+            this.state.evaluationDigest = evaluation_digest;
+            updateChangeIndicator();
+          }
         );
-        amplifyButton.addEventListener("click", (event) => {
-          this.el.toggleAttribute("data-js-amplified");
+
+        this.state.liveEditor.onChange((newSource) => {
+          updateChangeIndicator();
+        });
+
+        this.handleEvent(
+          `evaluation_finished:${this.props.cellId}`,
+          ({ code_error }) => {
+            this.state.liveEditor.setCodeErrorMarker(code_error);
+          }
+        );
+      }
+
+      // Setup markdown updates
+      if (this.props.type === "markdown") {
+        this.state.liveEditor.onChange((newSource) => {
+          this.state.markdown.setContent(newSource);
         });
       }
 
-      // Setting up an editor takes relatively much synchronous time,
-      // so we postpone it, so that other immediate initializations
-      // are done first. This is relevant if there are a lot of cells
-      setTimeout(() => {
-        const editorContainer = this.el.querySelector(
-          `[data-element="editor-container"]`
-        );
-        // Remove the content placeholder.
-        editorContainer.firstElementChild.remove();
-        // Create an empty container for the editor to be mounted in.
-        const editorElement = document.createElement("div");
-        editorContainer.appendChild(editorElement);
-        // Setup the editor instance.
-        this.state.liveEditor = new LiveEditor(
-          this,
-          editorElement,
-          this.props.cellId,
-          this.props.type,
-          source,
-          revision
-        );
+      // Once the editor is created, reflect the current state.
+      if (this.state.isFocused && this.state.insertMode) {
+        this.state.liveEditor.focus();
+        // If the element is being scrolled to, focus interrupts it,
+        // so ensure the scrolling continues.
+        smoothlyScrollToElement(this.el);
 
-        // Setup change indicator
-        if (this.props.type === "elixir") {
-          this.state.evaluationDigest = evaluation_digest;
+        broadcastSelection(this);
+      }
 
-          const updateChangeIndicator = () => {
-            const cellStatus = this.el.querySelector(
-              `[data-element="cell-status"]`
-            );
-            const indicator =
-              cellStatus &&
-              cellStatus.querySelector(`[data-element="change-indicator"]`);
-
-            if (indicator) {
-              const source = this.state.liveEditor.getSource();
-              const digest = md5Base64(source);
-              const changed = this.state.evaluationDigest !== digest;
-              cellStatus.toggleAttribute("data-js-changed", changed);
-            }
-          };
-
-          updateChangeIndicator();
-
-          this.handleEvent(
-            `evaluation_started:${this.props.cellId}`,
-            ({ evaluation_digest }) => {
-              this.state.evaluationDigest = evaluation_digest;
-              updateChangeIndicator();
-            }
-          );
-
-          this.state.liveEditor.onChange((newSource) => {
-            updateChangeIndicator();
-          });
-
-          this.handleEvent(
-            `evaluation_finished:${this.props.cellId}`,
-            ({ code_error }) => {
-              this.state.liveEditor.setCodeErrorMarker(code_error);
-            }
-          );
-        }
-
-        // Setup markdown updates
-        if (this.props.type === "markdown") {
-          this.state.liveEditor.onChange((newSource) => {
-            this.state.markdown.setContent(newSource);
-          });
-        }
-
-        // Once the editor is created, reflect the current state.
+      this.state.liveEditor.onBlur(() => {
+        // Prevent from blurring unless the state changes.
+        // For example when we move cell using buttons
+        // the editor should keep focus.
         if (this.state.isFocused && this.state.insertMode) {
           this.state.liveEditor.focus();
-          // If the element is being scrolled to, focus interrupts it,
-          // so ensure the scrolling continues.
-          smoothlyScrollToElement(this.el);
-
-          broadcastSelection(this);
         }
+      });
 
-        this.state.liveEditor.onBlur(() => {
-          // Prevent from blurring unless the state changes.
-          // For example when we move cell using buttons
-          // the editor should keep focus.
-          if (this.state.isFocused && this.state.insertMode) {
-            this.state.liveEditor.focus();
-          }
-        });
-
-        this.state.liveEditor.onCursorSelectionChange((selection) => {
-          broadcastSelection(this, selection);
-        });
-      }, 0);
+      this.state.liveEditor.onCursorSelectionChange((selection) => {
+        broadcastSelection(this, selection);
+      });
     });
 
     this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
