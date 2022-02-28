@@ -62,7 +62,7 @@ defmodule LivebookWeb.SidebarHelpers do
           aria-label="shutdown"
           phx-click="shutdown"
           data-confirm="Are you sure you want to shutdown Livebook?">
-            <.remix_icon icon="shut-down-line" />
+          <.remix_icon icon="shut-down-line" />
         </button>
       </span>
       """
