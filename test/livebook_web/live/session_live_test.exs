@@ -222,6 +222,8 @@ defmodule LivebookWeb.SessionLiveTest do
         destination: test
       }
 
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -248,6 +250,8 @@ defmodule LivebookWeb.SessionLiveTest do
         default: "hey",
         destination: test
       }
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -285,6 +289,8 @@ defmodule LivebookWeb.SessionLiveTest do
         reset_on_submit: []
       }
 
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
       insert_cell_with_output(session.pid, section_id, {:control, form_control})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -320,6 +326,8 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 2\n"}})
       wait_for_session_update(session.pid)
+      # Render once, so that stdout send_update is processed
+      _ = render(view)
       assert render(view) =~ "line 2"
     end
 
@@ -514,10 +522,15 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_reply view, %{"ref" => ref}
       assert ref != nil
 
-      assert_push_event(view, "intellisense_response", %{
-        "ref" => ^ref,
-        "response" => %{items: [%{label: "version/0"}]}
-      })
+      assert_push_event(
+        view,
+        "intellisense_response",
+        %{
+          "ref" => ^ref,
+          "response" => %{items: [%{label: "version/0"}]}
+        },
+        1000
+      )
     end
   end
 
@@ -906,6 +919,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     cell_id = insert_text_cell(session_pid, section_id, :elixir, code)
     Session.queue_cell_evaluation(session_pid, cell_id)
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
     cell_id
   end
 
