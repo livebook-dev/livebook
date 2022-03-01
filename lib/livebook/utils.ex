@@ -310,7 +310,7 @@ defmodule Livebook.Utils do
   def browser_open(url) do
     {cmd, args} =
       case :os.type() do
-        {:win32, _} -> {"cmd", ["/c", "start", url]}
+        {:win32, _} -> {"cmd", ["/c", "start", String.replace(url, "&", "^&")]}
         {:unix, :darwin} -> {"open", [url]}
         {:unix, _} -> {"xdg-open", [url]}
       end

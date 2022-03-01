@@ -31,7 +31,9 @@ defmodule Livebook.FileSystem.File do
       if path do
         resolved_path = FileSystem.resolve_path(file_system, default_path, path)
 
-        unless path == resolved_path do
+        # TODO: For `C:/Foo.txt`, the resolved path is `c:/Foo.txt`.
+        #       Is case-insensitive comparison ok? Will it be bad for case-sensitive file systems?
+        unless String.downcase(path) == String.downcase(resolved_path) do
           raise ArgumentError, "expected an expanded absolute path, got: #{inspect(path)}"
         end
 

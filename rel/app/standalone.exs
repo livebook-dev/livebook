@@ -25,24 +25,26 @@ defmodule Standalone do
     _ = File.rm(Path.join(erts_destination_source, "erl"))
     _ = File.rm(Path.join(erts_destination_source, "erl.ini"))
 
-    erts_destination_source
-    |> Path.join("erl")
-    |> File.write!(~S"""
-    #!/bin/sh
-    SELF=$(readlink "$0" || true)
-    if [ -z "$SELF" ]; then SELF="$0"; fi
-    BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
-    ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
-    EMU=beam
-    PROGNAME=$(echo "$0" | sed 's/.*\///')
-    export EMU
-    export ROOTDIR
-    export BINDIR
-    export PROGNAME
-    exec "$BINDIR/erlexec" ${1+"$@"}
-    """)
+    if os() == :macos do
+      erts_destination_source
+      |> Path.join("erl")
+      |> File.write!(~S"""
+      #!/bin/sh
+      SELF=$(readlink "$0" || true)
+      if [ -z "$SELF" ]; then SELF="$0"; fi
+      BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
+      ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
+      EMU=beam
+      PROGNAME=$(echo "$0" | sed 's/.*\///')
+      export EMU
+      export ROOTDIR
+      export BINDIR
+      export PROGNAME
+      exec "$BINDIR/erlexec" ${1+"$@"}
+      """)
 
-    executable!(Path.join(erts_destination_source, "erl"))
+      executable!(Path.join(erts_destination_source, "erl"))
+    end
 
     # Copy lib
     erts_destination_lib = Path.join(release.path, "lib")
@@ -93,8 +95,16 @@ defmodule Standalone do
     standalone_destination = Path.join(release.path, "vendor/elixir")
     download_elixir_at_destination(standalone_destination, elixir_version)
 
-    ["elixir", "elixirc", "mix", "iex"]
-    |> Enum.map(&executable!(Path.join(standalone_destination, "bin/#{&1}")))
+    filenames =
+      case os() do
+        :macos ->
+          ["elixir", "elixirc", "mix", "iex"]
+
+        :windows ->
+          ["elixir.bat", "elixirc.bat", "mix.bat", "iex.bat"]
+      end
+
+    Enum.map(filenames, &executable!(Path.join(standalone_destination, "bin/#{&1}")))
 
     release
   end
@@ -131,4 +141,11 @@ defmodule Standalone do
   end
 
   defp executable!(path), do: File.chmod!(path, 0o755)
+
+  defp os() do
+    case :os.type() do
+      {:unix, :darwin} -> :macos
+      {:win32, _} -> :windows
+    end
+  end
 end
