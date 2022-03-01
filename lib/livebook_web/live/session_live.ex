@@ -47,6 +47,7 @@ defmodule LivebookWeb.SessionLive do
         {:ok,
          socket
          |> assign(
+           self_path: Routes.session_path(socket, :page, session.id),
            session: session,
            platform: platform,
            self: self(),
@@ -227,12 +228,12 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :user do %>
       <.current_user_modal
-        return_to={Routes.session_path(@socket, :page, @session.id)}
+        return_to={@self_path}
         current_user={@current_user} />
     <% end %>
 
     <%= if @live_action == :runtime_settings do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="runtime-settings-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.RuntimeComponent}
           id="runtime-settings"
           session={@session}
@@ -241,7 +242,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :file_settings do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="persistence-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <%= live_render @socket, LivebookWeb.SessionLive.PersistenceLive,
               id: "persistence",
               session: %{
@@ -254,7 +255,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
-      <.modal class="w-full max-w-6xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="shortcuts-modal" show class="w-full max-w-6xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.ShortcutsComponent}
           id="shortcuts"
           platform={@platform} />
@@ -262,49 +263,49 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :cell_settings do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="cell-settings-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={settings_component_for(@cell)}
           id="cell-settings"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           cell={@cell} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :cell_upload do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="cell-upload-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.CellUploadComponent}
           id="cell-upload"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           cell={@cell}
           uploads={@uploads} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :delete_section do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="delete-section-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.DeleteSectionComponent}
           id="delete-section"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           section={@section}
           is_first={@section.id == @first_section_id} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :bin do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="bin-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.BinComponent}
           id="bin"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           bin_entries={@data_view.bin_entries} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :export do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="export-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.ExportComponent}
           id="export"
           session={@session}

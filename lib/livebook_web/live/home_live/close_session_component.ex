@@ -11,7 +11,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
         Close session
       </h3>
       <p class="text-gray-700">
-        Are you sure you want to close this section -
+        Are you sure you want to close this session -
         <span class="font-semibold">“<%= @session.notebook_name %>”</span>?
         <br/>
         <%= if @session.file,
