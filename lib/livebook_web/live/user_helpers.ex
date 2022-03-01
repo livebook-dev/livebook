@@ -55,7 +55,7 @@ defmodule LivebookWeb.UserHelpers do
       <.live_component module={LivebookWeb.UserComponent}
         id="user"
         user={@current_user}
-        on_submit={hide_current_user_modal()} />
+        on_save={hide_current_user_modal()} />
     </.modal>
     """
   end

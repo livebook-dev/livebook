@@ -28,7 +28,7 @@ defmodule LivebookWeb.UserComponent do
         <.user_avatar user={@preview_user} class="h-20 w-20" text_class="text-3xl" />
       </div>
       <.form let={f} for={:data}
-        phx-submit={@on_submit |> JS.push("save")}
+        phx-submit={@on_save |> JS.push("save")}
         phx-change="validate"
         phx-target={@myself}
         id="user_form"
