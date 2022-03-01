@@ -54,7 +54,7 @@ if Mix.target() == :app do
           :wx.subscribe_events()
 
         :windows ->
-          windows_to_wx((System.get_env("LIVEBOOK_URL") || ""))
+          windows_to_wx(System.get_env("LIVEBOOK_URL") || "")
       end
 
       state = %{frame: frame}
