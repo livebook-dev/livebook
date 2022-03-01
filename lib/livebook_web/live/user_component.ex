@@ -28,7 +28,7 @@ defmodule LivebookWeb.UserComponent do
         <.user_avatar user={@preview_user} class="h-20 w-20" text_class="text-3xl" />
       </div>
       <.form let={f} for={:data}
-        phx-submit="save"
+        phx-submit={@on_save |> JS.push("save")}
         phx-change="validate"
         phx-target={@myself}
         id="user_form"
@@ -95,6 +95,6 @@ defmodule LivebookWeb.UserComponent do
   def handle_event("save", %{"data" => data}, socket) do
     {:ok, user} = User.change(socket.assigns.user, data)
     Livebook.Users.broadcast_change(user)
-    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+    {:noreply, socket}
   end
 end

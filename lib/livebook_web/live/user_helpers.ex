@@ -1,6 +1,10 @@
 defmodule LivebookWeb.UserHelpers do
   use Phoenix.Component
 
+  import LivebookWeb.Helpers
+
+  alias Phoenix.LiveView.JS
+
   @doc """
   Renders user avatar.
 
@@ -43,16 +47,20 @@ defmodule LivebookWeb.UserHelpers do
 
   ## Examples
 
-      <.current_user_modal return_to={...} current_user={@current_user} />
+      <.current_user_modal current_user={@current_user} />
   """
   def current_user_modal(assigns) do
     ~H"""
-    <LivebookWeb.Helpers.modal id="user-modal" show class="w-full max-w-sm" patch={@return_to}>
+    <.modal id="user-modal" class="w-full max-w-sm">
       <.live_component module={LivebookWeb.UserComponent}
         id="user"
-        return_to={@return_to}
-        user={@current_user} />
-    </LivebookWeb.Helpers.modal>
+        user={@current_user}
+        on_save={hide_current_user_modal()} />
+    </.modal>
     """
   end
+
+  def show_current_user_modal(js \\ %JS{}), do: show_modal(js, "user-modal")
+
+  def hide_current_user_modal(js \\ %JS{}), do: hide_modal(js, "user-modal")
 end

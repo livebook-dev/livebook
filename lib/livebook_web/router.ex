@@ -44,21 +44,17 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :auth]
 
       live "/", HomeLive, :page
-      live "/home/user-profile", HomeLive, :user
       live "/home/import/:tab", HomeLive, :import
       live "/home/sessions/:session_id/close", HomeLive, :close_session
       live "/home/sessions/edit_sessions/:action", HomeLive, :edit_sessions
 
       live "/settings", SettingsLive, :page
-      live "/settings/user-profile", SettingsLive, :user
       live "/settings/add-file-system", SettingsLive, :add_file_system
 
       live "/explore", ExploreLive, :page
-      live "/explore/user-profile", ExploreLive, :user
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
       live "/sessions/:id", SessionLive, :page
-      live "/sessions/:id/user-profile", SessionLive, :user
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings

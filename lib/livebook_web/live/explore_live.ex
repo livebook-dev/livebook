@@ -27,10 +27,7 @@ defmodule LivebookWeb.ExploreLive do
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.shared_home_footer
-          socket={@socket}
-          current_user={@current_user}
-          user_path={Routes.explore_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
@@ -73,11 +70,7 @@ defmodule LivebookWeb.ExploreLive do
       </div>
     </div>
 
-    <%= if @live_action == :user do %>
-      <.current_user_modal
-        return_to={Routes.explore_path(@socket, :page)}
-        current_user={@current_user} />
-    <% end %>
+    <.current_user_modal current_user={@current_user} />
     """
   end
 
