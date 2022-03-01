@@ -52,7 +52,6 @@ defmodule LivebookWeb.Router do
       live "/settings", SettingsLive, :page
       live "/settings/user-profile", SettingsLive, :user
       live "/settings/add-file-system", SettingsLive, :add_file_system
-      live "/settings/detach-file-system/:file_system_id", SettingsLive, :detach_file_system
 
       live "/explore", ExploreLive, :page
       live "/explore/user-profile", ExploreLive, :user

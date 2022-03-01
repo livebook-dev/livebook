@@ -122,20 +122,10 @@ defmodule LivebookWeb.SettingsLive do
     <% end %>
 
     <%= if @live_action == :add_file_system do %>
-      <.modal class="w-full max-w-3xl" return_to={Routes.settings_path(@socket, :page)}>
+      <.modal id="add-file-system-modal" show class="w-full max-w-3xl" patch={Routes.settings_path(@socket, :page)}>
         <.live_component module={LivebookWeb.SettingsLive.AddFileSystemComponent}
           id="add-file-system"
           return_to={Routes.settings_path(@socket, :page)} />
-      </.modal>
-    <% end %>
-
-    <%= if @live_action == :detach_file_system do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.settings_path(@socket, :page)}>
-        <.live_component module={LivebookWeb.SettingsLive.RemoveFileSystemComponent}
-          id="detach-file-system"
-          return_to={Routes.settings_path(@socket, :page)}
-          file_system_id={@file_system_id}
-        />
       </.modal>
     <% end %>
     """
@@ -147,6 +137,13 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("detach_file_system", %{"id" => file_system_id}, socket) do
+    Livebook.Settings.remove_file_system(file_system_id)
+    file_systems = Livebook.Settings.file_systems()
+    {:noreply, assign(socket, file_systems: file_systems)}
+  end
 
   @impl true
   def handle_info({:file_systems_updated, file_systems}, socket) do

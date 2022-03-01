@@ -34,11 +34,11 @@
   /* Animations */
 
   .fade-in {
-    animation: fade-in-frames 200ms;
+    animation: fade-in-frames 200ms ease-out;
   }
 
   .fade-out {
-    animation: fade-out-frames 200ms;
+    animation: fade-out-frames 200ms ease-in;
   }
 
   @keyframes fade-in-frames {

@@ -47,7 +47,7 @@ defmodule LivebookWeb.UserHelpers do
   """
   def current_user_modal(assigns) do
     ~H"""
-    <LivebookWeb.Helpers.modal class="w-full max-w-sm" return_to={@return_to}>
+    <LivebookWeb.Helpers.modal id="user-modal" show class="w-full max-w-sm" patch={@return_to}>
       <.live_component module={LivebookWeb.UserComponent}
         id="user"
         return_to={@return_to}

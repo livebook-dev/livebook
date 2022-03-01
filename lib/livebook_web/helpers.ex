@@ -10,44 +10,48 @@ defmodule LivebookWeb.Helpers do
   @doc """
   Wraps the given content in a modal dialog.
 
-  When closed, the modal redirects to the given `:return_to` URL.
-
   ## Example
 
-      <.modal return_to={...}>
+      <.modal id="edit-modal" patch={...}>
         <.live_component module={MyComponent}  />
       </.modal>
   """
   def modal(assigns) do
     assigns =
       assigns
+      |> assign_new(:show, fn -> false end)
+      |> assign_new(:patch, fn -> nil end)
+      |> assign_new(:navigate, fn -> nil end)
       |> assign_new(:class, fn -> "" end)
+      |> assign(:attrs, assigns_to_attributes(assigns, [:id, :show, :patch, :navigate, :class]))
 
     ~H"""
-    <div class="fixed z-[10000] inset-0 fade-in" phx-remove={JS.transition("fade-out")}>
+    <div id={@id} class={"fixed z-[10000] inset-0 #{if @show, do: "fade-in", else: "hidden"}"} phx-remove={JS.transition("fade-out")} {@attrs}>
       <!-- Modal container -->
       <div class="h-screen flex items-center justify-center p-4">
         <!-- Overlay -->
-        <div class="absolute inset-0 bg-gray-500 opacity-75 z-0" aria-hidden="true"></div>
-
+        <div class="absolute z-0 inset-0 bg-gray-500 opacity-75" aria-hidden="true"></div>
         <!-- Modal box -->
         <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@class}"}
           role="dialog"
           aria-modal="true"
           tabindex="0"
           autofocus
-          phx-window-keydown={click_modal_close()}
-          phx-click-away={click_modal_close()}
+          phx-window-keydown={hide_modal(@id)}
+          phx-click-away={hide_modal(@id)}
           phx-key="escape">
-
-          <%= live_patch to: @return_to,
-                class: "absolute top-6 right-6 text-gray-400 flex space-x-1 items-center",
-                aria_label: "close modal",
-                id: "close-modal-button" do %>
+          <%= if @patch do %>
+            <%= live_patch "", to: @patch, class: "hidden", id: "#{@id}-return" %>
+            <% end %>
+          <%= if @navigate do %>
+            <%= live_redirect "", to: @navigate, class: "hidden", id: "#{@id}-return" %>
+          <% end %>
+          <button class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
+            aria_label="close modal"
+            phx-click={hide_modal(@id)}>
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
-          <% end %>
-
+          </button>
           <%= render_slot(@inner_block) %>
         </div>
       </div>
@@ -55,8 +59,118 @@ defmodule LivebookWeb.Helpers do
     """
   end
 
-  defp click_modal_close(js \\ %JS{}) do
-    JS.dispatch(js, "click", to: "#close-modal-button")
+  @doc """
+  Shows a modal rendered with `modal/1`.
+  """
+  def show_modal(js \\ %JS{}, id) do
+    js
+    |> JS.show(
+      to: "##{id}",
+      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+    )
+  end
+
+  @doc """
+  Hides a modal rendered with `modal/1`.
+  """
+  def hide_modal(js \\ %JS{}, id) do
+    js
+    |> JS.hide(
+      to: "##{id}",
+      transition: {"ease-in duration-200", "opacity-100", "opacity-0"}
+    )
+    |> JS.dispatch("click", to: "##{id}-return")
+  end
+
+  @doc """
+  Renders the confirmation modal for `with_confirm/3`.
+  """
+  def confirm_modal(assigns) do
+    # TODO: this ensures unique ids when navigating across LVs.
+    # Remove once https://github.com/phoenixframework/phoenix_live_view/issues/1903
+    # is resolved
+    lv_id = self() |> :erlang.term_to_binary() |> Base.encode32()
+    assigns = assign_new(assigns, :id, fn -> "confirm-modal-#{lv_id}" end)
+
+    ~H"""
+    <.modal id={@id} class="w-full max-w-xl" phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
+      <div id={"#{@id}-content"} class="p-6 pb-4 flex flex-col" phx-update="ignore">
+        <h3 class="text-2xl font-semibold text-gray-800" data-title></h3>
+        <p class="mt-8 text-gray-700" data-description></p>
+        <label class="mt-6 text-gray-700 flex items-center" data-opt-out>
+          <input class="checkbox-base mr-3" type="checkbox" />
+          <span class="text-sm">
+            Don't show this message again
+          </span>
+        </label>
+        <div class="mt-8 flex justify-end space-x-2">
+          <button class="button-base button-red"
+            phx-click={hide_modal(@id) |> JS.dispatch("lb:confirm", to: "##{@id}")}>
+            <i aria-hidden="true" data-confirm-icon></i>
+            <span data-confirm-text></span>
+          </button>
+          <button class="button-base button-outlined-gray"
+            phx-click={hide_modal(@id)}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </.modal>
+    """
+  end
+
+  @doc """
+  Shows a confirmation modal before executing the given JS action.
+
+  The modal template must already be on the page, see `confirm_modal/1`.
+
+  ## Options
+
+    * `:title` - title of the confirmation modal. Defaults to `"Are you sure?"`
+
+    * `:description` - content of the confirmation modal. Required
+
+    * `:confirm_text` - text of the confirm button. Defaults to `"Yes"`
+
+    * `:confirm_icon` - icon in the confirm button. Optional
+
+    * `:opt_out_id` - enables the "Don't show this message again"
+      checkbox. Once checked by the user, the confirmation with this
+      id is never shown again. Optional
+
+  ## Examples
+
+        <button class="..."
+          phx-click={
+            with_confirm(
+              JS.push("delete_item", value: %{id: @item_id}),
+              title: "Delete item",
+              description: "Are you sure you want to delete item?",
+              confirm_text: "Delete",
+              confirm_icon: "delete-bin-6-line",
+              opt_out_id: "delete-item"
+            )
+          }>
+          Delete
+        </button>
+  """
+  def with_confirm(js \\ %JS{}, on_confirm, opts) do
+    opts =
+      Keyword.validate!(
+        opts,
+        [:confirm_icon, :description, :opt_out_id, title: "Are you sure?", confirm_text: "Yes"]
+      )
+
+    JS.dispatch(js, "lb:confirm_request",
+      detail: %{
+        on_confirm: Jason.encode!(on_confirm.ops),
+        title: opts[:title],
+        description: Keyword.fetch!(opts, :description),
+        confirm_text: opts[:confirm_text],
+        confirm_icon: opts[:confirm_icon],
+        opt_out_id: opts[:opt_out_id]
+      }
+    )
   end
 
   @doc """

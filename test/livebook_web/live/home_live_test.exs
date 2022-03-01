@@ -245,8 +245,6 @@ defmodule LivebookWeb.HomeLiveTest do
 
   describe "notebook import" do
     test "allows importing notebook directly from content", %{conn: conn} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
-
       {:ok, view, _} = live(conn, "/home/import/content")
 
       notebook_content = """
@@ -257,9 +255,9 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      assert_receive {:session_created, %{id: id, notebook_name: "My notebook"}}
+      {path, _flash} = assert_redirect(view, 1000)
 
-      {:ok, view, _} = live(conn, "/sessions/#{id}")
+      {:ok, view, _} = live(conn, path)
       assert render(view) =~ "My notebook"
     end
 
@@ -274,7 +272,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      {_path, flash} = assert_redirect(view)
+      {_path, flash} = assert_redirect(view, 1000)
 
       assert flash["info"] =~
                "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
@@ -294,7 +292,7 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      {_path, flash} = assert_redirect(view)
+      {_path, flash} = assert_redirect(view, 1000)
 
       assert flash["warning"] =~
                "We found problems while importing the file and tried to autofix them:\n- Downgrading all headings, because 3 instances of heading 1 were found"
