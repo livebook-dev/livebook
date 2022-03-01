@@ -1,4 +1,6 @@
-const SETTINGS_KEY = "livebook:settings";
+import { load, store } from "./storage";
+
+const SETTINGS_KEY = "settings";
 
 export const EDITOR_FONT_SIZE = {
   normal: 14,
@@ -61,25 +63,15 @@ class SettingsStore {
   }
 
   _loadSettings() {
-    try {
-      const json = localStorage.getItem(SETTINGS_KEY);
+    const settings = load(SETTINGS_KEY);
 
-      if (json) {
-        const settings = JSON.parse(json);
-        this._settings = { ...this._settings, ...settings };
-      }
-    } catch (error) {
-      console.error(`Failed to load local settings, reason: ${error.message}`);
+    if (settings) {
+      this._settings = { ...this._settings, ...settings };
     }
   }
 
   _storeSettings() {
-    try {
-      const json = JSON.stringify(this._settings);
-      localStorage.setItem(SETTINGS_KEY, json);
-    } catch (error) {
-      console.error(`Failed to store local settings, reason: ${error.message}`);
-    }
+    store(SETTINGS_KEY, this._settings);
   }
 }
 

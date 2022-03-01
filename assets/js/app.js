@@ -25,6 +25,7 @@ import Highlight from "./highlight";
 import DragAndDrop from "./drag_and_drop";
 import PasswordToggle from "./password_toggle";
 import KeyboardControl from "./keyboard_control";
+import ConfirmModal from "./confirm_modal";
 import morphdomCallbacks from "./morphdom_callbacks";
 import JSView from "./js_view";
 import { loadUserData } from "./lib/user";
@@ -46,6 +47,7 @@ const hooks = {
   PasswordToggle,
   KeyboardControl,
   JSView,
+  ConfirmModal,
 };
 
 const csrfToken = document

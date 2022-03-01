@@ -317,8 +317,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Delete">
       <button class="icon-button"
         aria-label="delete cell"
-        phx-click="delete_cell"
-        phx-value-cell_id={@cell_id}>
+        phx-click={
+          with_confirm(
+            JS.push("delete_cell", value: %{cell_id: @cell_id}),
+            title: "Delete cell",
+            description: "Once you delete this cell, it will be moved to the bin.",
+            confirm_text: "Delete",
+            confirm_icon: "delete-bin-6-line",
+            opt_out_id: "delete-cell"
+          )
+        }>
         <.remix_icon icon="delete-bin-6-line" class="text-xl" />
       </button>
     </span>

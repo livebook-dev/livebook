@@ -4,6 +4,7 @@ defmodule LivebookWeb.SidebarHelpers do
   import LivebookWeb.Helpers
   import LivebookWeb.UserHelpers
 
+  alias Phoenix.LiveView.JS
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -60,9 +61,16 @@ defmodule LivebookWeb.SidebarHelpers do
       <span class="tooltip right distant" data-tooltip="Shutdown">
         <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
           aria-label="shutdown"
-          phx-click="shutdown"
-          data-confirm="Are you sure you want to shutdown Livebook?">
-            <.remix_icon icon="shut-down-line" />
+          phx-click={
+            with_confirm(
+              JS.push("shutdown"),
+              title: "Shutdown",
+              description: "Are you sure you want to shutdown Livebook?",
+              confirm_text: "Shutdown",
+              confirm_icon: "shut-down-line"
+            )
+          }>
+          <.remix_icon icon="shut-down-line" />
         </button>
       </span>
       """
