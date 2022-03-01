@@ -24,10 +24,7 @@ defmodule LivebookWeb.SettingsLive do
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
         <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.shared_home_footer
-          socket={@socket}
-          current_user={@current_user}
-          user_path={Routes.settings_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-16">
@@ -115,11 +112,7 @@ defmodule LivebookWeb.SettingsLive do
       </div>
     </div>
 
-    <%= if @live_action == :user do %>
-      <.current_user_modal
-        return_to={Routes.settings_path(@socket, :page)}
-        current_user={@current_user} />
-    <% end %>
+    <.current_user_modal current_user={@current_user} />
 
     <%= if @live_action == :add_file_system do %>
       <.modal id="add-file-system-modal" show class="w-full max-w-3xl" patch={Routes.settings_path(@socket, :page)}>

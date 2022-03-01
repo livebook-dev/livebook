@@ -35,10 +35,7 @@ defmodule LivebookWeb.HomeLive do
     <div class="flex grow h-full">
       <.live_region role="alert" />
       <SidebarHelpers.sidebar>
-        <SidebarHelpers.shared_home_footer
-          socket={@socket}
-          current_user={@current_user}
-          user_path={Routes.home_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
@@ -116,11 +113,7 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </div>
 
-    <%= if @live_action == :user do %>
-      <.current_user_modal
-        return_to={@self_path}
-        current_user={@current_user} />
-    <% end %>
+    <.current_user_modal current_user={@current_user} />
 
     <%= if @live_action == :close_session do %>
       <.modal id="close-session-modal" show class="w-full max-w-xl" patch={@self_path}>

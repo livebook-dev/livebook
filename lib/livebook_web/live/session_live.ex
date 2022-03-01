@@ -120,9 +120,7 @@ defmodule LivebookWeb.SessionLive do
           label="Keyboard shortcuts (?)"
           path={Routes.session_path(@socket, :shortcuts, @session.id)}
           active={@live_action == :shortcuts} />
-        <SidebarHelpers.user_item
-          current_user={@current_user}
-          path={Routes.session_path(@socket, :user, @session.id)} />
+        <SidebarHelpers.user_item current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
@@ -226,11 +224,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
     </div>
 
-    <%= if @live_action == :user do %>
-      <.current_user_modal
-        return_to={@self_path}
-        current_user={@current_user} />
-    <% end %>
+    <.current_user_modal return_to={@self_path} current_user={@current_user} />
 
     <%= if @live_action == :runtime_settings do %>
       <.modal id="runtime-settings-modal" show class="w-full max-w-4xl" patch={@self_path}>
