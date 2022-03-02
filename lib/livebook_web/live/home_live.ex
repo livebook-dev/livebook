@@ -380,6 +380,8 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp determine_file(%{"path" => path} = _params) do
+    path = Path.expand(path)
+
     cond do
       File.dir?(path) ->
         path
