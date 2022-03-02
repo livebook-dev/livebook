@@ -31,14 +31,14 @@ defmodule AppBuilder.Windows do
     copy_image(logo_path, app_icon_path)
 
     erts_dir = Path.join([tmp_dir, "rel", "erts-#{:erlang.system_info(:version)}"])
-    rcedit_path = Path.join(Mix.Project.build_path(), "rcedit")
-    ensure_rcedit(rcedit_path)
+    rcedit_path = ensure_rcedit()
     cmd!(rcedit_path, ["--set-icon", app_icon_path, Path.join([erts_dir, "bin", "erl.exe"])])
 
     File.write!(Path.join(tmp_dir, "#{app_name}.vbs"), launcher_vbs(release, options))
     nsi_path = Path.join(tmp_dir, "#{app_name}.nsi")
     File.write!(nsi_path, nsi(options))
-    cmd!("makensis", [nsi_path])
+    makensis_path = ensure_makensis()
+    cmd!(makensis_path, [nsi_path])
 
     File.rename!(
       Path.join(tmp_dir, "#{app_name}Install.exe"),
@@ -173,26 +173,39 @@ defmodule AppBuilder.Windows do
 
   EEx.function_from_string(:defp, :launcher_vbs, code, [:release, :options], trim: true)
 
-  # TODO: Use https://github.com/elixir-desktop/libpe when fixed
-  defp ensure_rcedit(path) do
-    unless File.exists?(path) do
-      url = "https://github.com/electron/rcedit/releases/download/v1.1.1/rcedit-x64.exe"
-      cmd!("curl", ["-L", url, "-o", path])
-    end
+  defp ensure_makensis do
+    url = "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.08/nsis-3.08.zip"
+    sha256 = "1bb9fc85ee5b220d3869325dbb9d191dfe6537070f641c30fbb275c97051fd0c"
+    AppBuilder.Utils.ensure_executable(url, sha256, "nsis-3.08/makensis.exe")
+  end
+
+  defp ensure_rcedit do
+    url = "https://github.com/electron/rcedit/releases/download/v1.1.1/rcedit-x64.exe"
+    sha256 = "02e8e8c5d430d8b768980f517b62d7792d690982b9ba0f7e04163cbc1a6e7915"
+    AppBuilder.Utils.ensure_executable(url, sha256)
+  end
+
+  defp ensure_magick do
+    url =
+      "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip"
+
+    sha256 = "6c0a104527d93c73da2e93c050795c94d711620b9ca396d7ace1ed1adc94f4b3"
+    AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
   end
 
   defp copy_image(src_path, dest_path) do
     if Path.extname(src_path) == ".ico" do
       File.cp!(src_path, dest_path)
     else
+      magick_path = ensure_magick()
       sizes = [16, 32, 48, 64, 128]
 
       for i <- sizes do
-        cmd!("magick", [src_path, "-resize", "#{i}x#{i}", sized_path(dest_path, i)])
+        cmd!(magick_path, [src_path, "-resize", "#{i}x#{i}", sized_path(dest_path, i)])
       end
 
       sized_paths = Enum.map(sizes, &sized_path(dest_path, &1))
-      cmd!("magick", sized_paths ++ [dest_path])
+      cmd!(magick_path, sized_paths ++ [dest_path])
     end
   end
 
