@@ -189,6 +189,7 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_params(%{"path" => path} = _params, _uri, socket)
       when socket.assigns.live_action == :public_open do
+    path = Path.expand(path)
     file = FileSystem.File.local(path)
 
     if file_running?(file, socket.assigns.sessions) do
