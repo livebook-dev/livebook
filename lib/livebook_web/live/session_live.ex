@@ -706,6 +706,12 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("convert_smart_cell", %{"cell_id" => cell_id}, socket) do
+    Session.convert_smart_cell(socket.assigns.session.pid, cell_id)
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
 

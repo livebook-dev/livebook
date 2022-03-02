@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Delta, Runtime, Users, FileSystem}
+  alias Livebook.{Sessions, Session, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
@@ -892,18 +892,8 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   defp insert_text_cell(session_pid, section_id, type, content \\ "") do
-    Session.insert_cell(session_pid, section_id, 0, type)
+    Session.insert_cell(session_pid, section_id, 0, type, %{source: content})
     %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_pid)
-
-    # We need to register ourselves as a client to start submitting cell deltas
-    user = Livebook.Users.User.new()
-    Session.register_client(session_pid, self(), user)
-
-    delta = Delta.new(insert: content)
-    Session.apply_cell_delta(session_pid, cell.id, delta, 1)
-
-    wait_for_session_update(session_pid)
-
     cell.id
   end
 

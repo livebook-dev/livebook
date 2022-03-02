@@ -44,19 +44,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:secondary>
-        <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
-          <button class="icon-button" aria-label="edit content">
-            <.remix_icon icon="pencil-line" class="text-xl" />
-          </button>
-        </span>
-        <span class="tooltip top" data-tooltip="Insert image" data-element="insert-image-button">
-          <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_view.id),
-                class: "icon-button",
-                aria_label: "insert image",
-                role: "button" do %>
-            <.remix_icon icon="image-add-line" class="text-xl" />
-          <% end %>
-        </span>
+        <.enable_insert_mode_button />
+        <.insert_image_button cell_id={@cell_view.id} session_id={@session_id} socket={@socket} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -127,12 +116,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           reevaluate_automatically={false} />
       </:primary>
       <:secondary>
-        <span class="tooltip top" data-tooltip="Toggle source" data-element="toggle-source-button">
-          <button class="icon-button" aria-label="toggle source">
-            <.remix_icon icon="code-line" class="text-xl" data-element="show-code-icon" />
-            <.remix_icon icon="pencil-line" class="text-xl" data-element="show-ui-icon" />
-          </button>
-        </span>
+        <.toggle_source_button />
+        <.convert_smart_cell_button cell_id={@cell_view.id} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.move_cell_up_button cell_id={@cell_view.id} />
         <.move_cell_down_button cell_id={@cell_view.id} />
@@ -244,6 +229,61 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         Stop
       </span>
     </button>
+    """
+  end
+
+  defp enable_insert_mode_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
+      <button class="icon-button" aria-label="edit content">
+        <.remix_icon icon="pencil-line" class="text-xl" />
+      </button>
+    </span>
+    """
+  end
+
+  defp insert_image_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Insert image" data-element="insert-image-button">
+      <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_id),
+            class: "icon-button",
+            aria_label: "insert image",
+            role: "button" do %>
+        <.remix_icon icon="image-add-line" class="text-xl" />
+      <% end %>
+    </span>
+    """
+  end
+
+  defp toggle_source_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Toggle source" data-element="toggle-source-button">
+      <button class="icon-button" aria-label="toggle source">
+        <.remix_icon icon="code-line" class="text-xl" data-element="show-code-icon" />
+        <.remix_icon icon="pencil-line" class="text-xl" data-element="show-ui-icon" />
+      </button>
+    </span>
+    """
+  end
+
+  defp convert_smart_cell_button(assigns) do
+    ~H"""
+    <span class="tooltip top" data-tooltip="Convert to Elixir cell">
+      <button class="icon-button"
+        aria-label="toggle source"
+        phx-click={
+          with_confirm(
+            JS.push("convert_smart_cell", value: %{cell_id: @cell_id}),
+            title: "Convert cell",
+            description: "Once you convert this Smart cell to a Code cell, the Smart cell will be moved to the bin.",
+            confirm_text: "Convert",
+            confirm_icon: "arrow-up-down-line",
+            opt_out_id: "convert-smart-cell"
+          )
+        }>
+        <.remix_icon icon="arrow-up-down-line" class="text-xl" />
+      </button>
+    </span>
     """
   end
 
