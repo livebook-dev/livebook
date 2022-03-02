@@ -47,8 +47,8 @@ defmodule Livebook.Notebook.Export.Elixir do
     |> Enum.map_intersperse("\n", &comment_out/1)
   end
 
-  defp render_cell(%Cell.Elixir{} = cell, section) do
-    code = get_elixir_cell_code(cell)
+  defp render_cell(%Cell.Code{} = cell, section) do
+    code = get_code_cell_code(cell)
 
     if section.parent_id do
       code
@@ -61,7 +61,7 @@ defmodule Livebook.Notebook.Export.Elixir do
   end
 
   defp render_cell(%Cell.Smart{} = cell, ctx) do
-    render_cell(%{Cell.Elixir.new() | source: cell.source}, ctx)
+    render_cell(%{Cell.Code.new() | source: cell.source}, ctx)
   end
 
   defp render_cell(_cell, _section), do: []
@@ -69,10 +69,10 @@ defmodule Livebook.Notebook.Export.Elixir do
   defp comment_out(""), do: ""
   defp comment_out(line), do: ["# ", line]
 
-  defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
+  defp get_code_cell_code(%{source: source, disable_formatting: true}),
     do: source
 
-  defp get_elixir_cell_code(%{source: source}), do: format_code(source)
+  defp get_code_cell_code(%{source: source}), do: format_code(source)
 
   defp format_code(code) do
     try do

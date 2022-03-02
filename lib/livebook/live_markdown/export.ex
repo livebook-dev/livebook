@@ -111,9 +111,9 @@ defmodule Livebook.LiveMarkdown.Export do
     |> prepend_metadata(metadata)
   end
 
-  defp render_cell(%Cell.Elixir{} = cell, ctx) do
+  defp render_cell(%Cell.Code{} = cell, ctx) do
     delimiter = MarkdownHelpers.code_block_delimiter(cell.source)
-    code = get_elixir_cell_code(cell)
+    code = get_code_cell_code(cell)
     outputs = if ctx.include_outputs?, do: render_outputs(cell, ctx), else: []
 
     metadata = cell_metadata(cell)
@@ -130,7 +130,7 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_cell(%Cell.Smart{} = cell, ctx) do
-    %{Cell.Elixir.new() | source: cell.source, outputs: cell.outputs}
+    %{Cell.Code.new() | source: cell.source, outputs: cell.outputs}
     |> render_cell(ctx)
     |> prepend_metadata(%{
       "livebook_object" => "smart_cell",
@@ -139,11 +139,11 @@ defmodule Livebook.LiveMarkdown.Export do
     })
   end
 
-  defp cell_metadata(%Cell.Elixir{} = cell) do
+  defp cell_metadata(%Cell.Code{} = cell) do
     put_unless_default(
       %{},
       Map.take(cell, [:disable_formatting, :reevaluate_automatically]),
-      Map.take(Cell.Elixir.new(), [:disable_formatting, :reevaluate_automatically])
+      Map.take(Cell.Code.new(), [:disable_formatting, :reevaluate_automatically])
     )
   end
 
@@ -199,10 +199,10 @@ defmodule Livebook.LiveMarkdown.Export do
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}
   defp encode_js_data(data), do: Jason.encode(data)
 
-  defp get_elixir_cell_code(%{source: source, disable_formatting: true}),
+  defp get_code_cell_code(%{source: source, disable_formatting: true}),
     do: source
 
-  defp get_elixir_cell_code(%{source: source}), do: format_code(source)
+  defp get_code_cell_code(%{source: source}), do: format_code(source)
 
   defp render_metadata(metadata) do
     metadata_json = Jason.encode!(metadata)

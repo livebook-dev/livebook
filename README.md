@@ -4,7 +4,7 @@
 
 Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
-  * Code notebooks with Markdown support and Elixir cells where code is evaluated on demand.
+  * Code notebooks with Markdown support and Code cells where Elixir code is evaluated on demand.
 
   * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with support for diagrams via [Mermaid](https://mermaid-js.github.io/mermaid) and for mathematical formulas via [KaTex](https://katex.org/). `.livemd` files can be easily shared and play well with version control.
 

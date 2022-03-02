@@ -18,12 +18,12 @@ and run them locally.
 
 Each notebook consists of a number of cells, which serve as primary building blocks.
 There are **Markdown** cells (such as this one) that allow you to describe your work
-and **Elixir** cells to run your code!
+and **Code** cells to run your Elixir code!
 
 To insert a new cell move your cursor between cells and click one of the revealed buttons. 👇
 
 ```elixir
-# This is an Elixir cell - as the name suggests that's where the code goes.
+# This is a Code cell - as the name suggests that's where the code goes.
 # To evaluate this cell, you can either press the "Evaluate" button above
 # or use `Ctrl + Enter` (or Cmd + Enter on a Mac)!
 
@@ -83,7 +83,7 @@ suited for running long computations "in background".
 Process.sleep(300_000)
 ```
 
-Having this cell running, feel free to insert another Elixir cell
+Having this cell running, feel free to insert another Code cell
 in the section below and see it evaluates immediately.
 
 ## Saving notebooks

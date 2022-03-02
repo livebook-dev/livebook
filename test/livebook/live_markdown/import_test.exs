@@ -69,7 +69,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      $x_{i} + y_{i}$\
                      """
                    },
-                   %Cell.Elixir{
+                   %Cell.Code{
                      disable_formatting: true,
                      reevaluate_automatically: true,
                      source: """
@@ -87,7 +87,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  id: section2_id,
                  name: "Section 2",
                  cells: [
-                   %Cell.Elixir{
+                   %Cell.Code{
                      source: """
                      IO.gets("length: ")\
                      """
@@ -98,7 +98,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  name: "Section 3",
                  parent_id: section2_id,
                  cells: [
-                   %Cell.Elixir{
+                   %Cell.Code{
                      source: """
                      Process.info()\
                      """
@@ -284,7 +284,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                %Notebook.Section{
                  name: "Section",
                  cells: [
-                   %Cell.Elixir{
+                   %Cell.Code{
                      source: """
                      Enum.to_list(1..10)\
                      """
@@ -379,7 +379,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                      ```\
                      """
                    },
-                   %Cell.Elixir{
+                   %Cell.Code{
                      source: """
                      Enum.to_list(1..10)\
                      """
@@ -606,7 +606,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  %Notebook.Section{
                    name: "Section 1",
                    cells: [
-                     %Cell.Elixir{
+                     %Cell.Code{
                        source: """
                        IO.puts("hey")\
                        """,
@@ -652,19 +652,19 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  %Notebook.Section{
                    name: "Section 1",
                    cells: [
-                     %Cell.Elixir{
+                     %Cell.Code{
                        source: """
                        IO.puts("hey")\
                        """,
                        outputs: []
                      },
-                     %Cell.Elixir{
+                     %Cell.Code{
                        source: """
                        plot()\
                        """,
                        outputs: []
                      },
-                     %Cell.Elixir{
+                     %Cell.Code{
                        source: """
                        :ok\
                        """,
@@ -766,7 +766,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                  %Notebook.Section{
                    name: "Section 1",
                    cells: [
-                     %Cell.Elixir{
+                     %Cell.Code{
                        source: """
                        IO.puts("hey")\
                        """,

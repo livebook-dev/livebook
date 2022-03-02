@@ -58,13 +58,13 @@ defmodule Livebook.Session.Data do
           evaluation_queue: list(Cell.id())
         }
 
-  @type cell_info :: markdown_cell_info() | elixir_cell_info() | smart_cell_info()
+  @type cell_info :: markdown_cell_info() | code_cell_info() | smart_cell_info()
 
   @type markdown_cell_info :: %{
           source: cell_source_info()
         }
 
-  @type elixir_cell_info :: %{
+  @type code_cell_info :: %{
           source: cell_source_info(),
           eval: cell_eval_info()
         }
@@ -159,7 +159,7 @@ defmodule Livebook.Session.Data do
           | {:evaluation_started, pid(), Cell.id(), binary()}
           | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
           | {:add_cell_evaluation_response, pid(), Cell.id(), term(), metadata :: map()}
-          | {:bind_input, pid(), elixir_cell_id :: Cell.id(), input_id()}
+          | {:bind_input, pid(), code_cell_id :: Cell.id(), input_id()}
           | {:reflect_main_evaluation_failure, pid()}
           | {:reflect_evaluation_failure, pid(), Section.id()}
           | {:cancel_cell_evaluation, pid(), Cell.id()}
@@ -1466,7 +1466,7 @@ defmodule Livebook.Session.Data do
     }
   end
 
-  defp new_cell_info(%Cell.Elixir{}, clients_map) do
+  defp new_cell_info(%Cell.Code{}, clients_map) do
     %{
       source: new_source_info(clients_map),
       eval: new_eval_info()

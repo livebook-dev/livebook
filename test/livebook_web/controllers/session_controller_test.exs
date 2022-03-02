@@ -86,7 +86,7 @@ defmodule LivebookWeb.SessionControllerTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -213,7 +213,7 @@ defmodule LivebookWeb.SessionControllerTest do
       | sections: [
           %{
             Notebook.Section.new()
-            | cells: [%{Notebook.Cell.new(:elixir) | outputs: [{0, output}]}]
+            | cells: [%{Notebook.Cell.new(:code) | outputs: [{0, output}]}]
           }
         ]
     }

@@ -74,7 +74,7 @@ defmodule Livebook.NotebookTest do
               | id: "s1",
                 cells: [
                   %{Cell.new(:markdown) | id: "c1"},
-                  %{Cell.new(:elixir) | id: "c2"}
+                  %{Cell.new(:code) | id: "c2"}
                 ]
             },
             %{
@@ -82,7 +82,7 @@ defmodule Livebook.NotebookTest do
               | id: "s2",
                 cells: [
                   %{Cell.new(:markdown) | id: "c3"},
-                  %{Cell.new(:elixir) | id: "c4"}
+                  %{Cell.new(:code) | id: "c4"}
                 ]
             }
           ]
@@ -100,9 +100,9 @@ defmodule Livebook.NotebookTest do
       notebook = %{
         Notebook.new()
         | sections: [
-            %{Section.new() | id: "s1", cells: [%{Cell.new(:elixir) | id: "c1"}]},
+            %{Section.new() | id: "s1", cells: [%{Cell.new(:code) | id: "c1"}]},
             %{Section.new() | id: "s2", cells: []},
-            %{Section.new() | id: "s3", cells: [%{Cell.new(:elixir) | id: "c2"}]}
+            %{Section.new() | id: "s3", cells: [%{Cell.new(:code) | id: "c2"}]}
           ]
       }
 
@@ -120,8 +120,8 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1"},
-                  %{Cell.new(:elixir) | id: "c2"}
+                  %{Cell.new(:code) | id: "c1"},
+                  %{Cell.new(:code) | id: "c2"}
                 ]
             },
             %{
@@ -129,16 +129,16 @@ defmodule Livebook.NotebookTest do
               | id: "s2",
                 parent_id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c3"},
-                  %{Cell.new(:elixir) | id: "c4"}
+                  %{Cell.new(:code) | id: "c3"},
+                  %{Cell.new(:code) | id: "c4"}
                 ]
             },
             %{
               Section.new()
               | id: "s3",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c5"},
-                  %{Cell.new(:elixir) | id: "c6"}
+                  %{Cell.new(:code) | id: "c5"},
+                  %{Cell.new(:code) | id: "c6"}
                 ]
             }
           ]
@@ -162,7 +162,7 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1"}
+                  %{Cell.new(:code) | id: "c1"}
                 ]
             },
             %{
@@ -175,7 +175,7 @@ defmodule Livebook.NotebookTest do
               | id: "s3",
                 parent_id: "s2",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c2"}
+                  %{Cell.new(:code) | id: "c2"}
                 ]
             }
           ]
@@ -195,14 +195,14 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1"}
+                  %{Cell.new(:code) | id: "c1"}
                 ]
             },
             %{
               Section.new()
               | id: "s2",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c2"}
+                  %{Cell.new(:code) | id: "c2"}
                 ]
             },
             %{
@@ -210,14 +210,14 @@ defmodule Livebook.NotebookTest do
               | id: "s3",
                 parent_id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c3"}
+                  %{Cell.new(:code) | id: "c3"}
                 ]
             },
             %{
               Section.new()
               | id: "s4",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c4"}
+                  %{Cell.new(:code) | id: "c4"}
                 ]
             }
           ]
@@ -239,9 +239,9 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1"},
+                  %{Cell.new(:code) | id: "c1"},
                   %{Cell.new(:markdown) | id: "c2"},
-                  %{Cell.new(:elixir) | id: "c3"}
+                  %{Cell.new(:code) | id: "c3"}
                 ]
             }
           ]
@@ -263,7 +263,7 @@ defmodule Livebook.NotebookTest do
 
       notebook = %{
         Notebook.new()
-        | sections: [%{Section.new() | cells: [%{Cell.new(:elixir) | outputs: [{0, output}]}]}]
+        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [{0, output}]}]}]
       }
 
       assert ^assets_info = Notebook.find_asset_info(notebook, "abcd")
@@ -284,7 +284,7 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                  %{Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
                 ]
             }
           ],
@@ -308,7 +308,7 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1", outputs: []}
+                  %{Cell.new(:code) | id: "c1", outputs: []}
                 ]
             }
           ],
@@ -332,7 +332,7 @@ defmodule Livebook.NotebookTest do
               Section.new()
               | id: "s1",
                 cells: [
-                  %{Cell.new(:elixir) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
+                  %{Cell.new(:code) | id: "c1", outputs: [{0, {:stdout, "Hola"}}]}
                 ]
             }
           ],
@@ -357,12 +357,12 @@ defmodule Livebook.NotebookTest do
               | id: "s1",
                 cells: [
                   %{
-                    Cell.new(:elixir)
+                    Cell.new(:code)
                     | id: "c1",
                       outputs: [{0, {:frame, [], %{ref: "1", type: :default}}}]
                   },
                   %{
-                    Cell.new(:elixir)
+                    Cell.new(:code)
                     | id: "c2",
                       outputs: [{1, {:frame, [], %{ref: "1", type: :default}}}]
                   }

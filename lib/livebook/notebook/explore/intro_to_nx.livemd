@@ -205,7 +205,7 @@ shape of a tensor using the tensor's API instead of the struct).
 Primarily, a tensor is a struct, and the
 functions to access it go through a specific backend. We'll get to
 the backend details in a moment. For now, use the IEx `h` helper
-to get more documentation about tensors. We could also open an Elixir
+to get more documentation about tensors. We could also open a Code
 cell, type Nx.tensor, and hover the cursor over the word `tensor`
 to see the help about that function.
 
@@ -520,8 +520,8 @@ our code within a `defn` block.
 
 To use Nx in a Mix project or a notebook, we need to include
 the `:nx` dependency and import the `Nx.Defn` module. The
-dependency is already included, so import it in an Elixir
-cell, like this:
+dependency is already included, so import it in a Code cell,
+like this:
 
 ```elixir
 import Nx.Defn
@@ -572,7 +572,7 @@ Now, it's your turn. Add a `defn` to `TensorMath`
 that accepts two tensors representing the lengths of sides of a
 right triangle and uses the pythagorean theorem to return the
 [length of the hypotenuse](https://www.mathsisfun.com/pythagoras.html).
-Add your function directly to the previous Elixir cell.
+Add your function directly to the previous Code cell.
 
 The last major feature we'll cover is called auto-differentiation, or autograd.
 

@@ -12,9 +12,9 @@ defmodule Livebook.Notebook.Cell do
 
   @type id :: Utils.id()
 
-  @type t :: Cell.Markdown.t() | Cell.Elixir.t() | Cell.Smart.t()
+  @type t :: Cell.Markdown.t() | Cell.Code.t() | Cell.Smart.t()
 
-  @type type :: :markdown | :elixir | :smart
+  @type type :: :markdown | :code | :smart
 
   @type indexed_output :: {non_neg_integer(), Livebook.Runtime.output()}
 
@@ -25,7 +25,7 @@ defmodule Livebook.Notebook.Cell do
   def new(type)
 
   def new(:markdown), do: Cell.Markdown.new()
-  def new(:elixir), do: Cell.Elixir.new()
+  def new(:code), do: Cell.Code.new()
   def new(:smart), do: Cell.Smart.new()
 
   @doc """
@@ -34,7 +34,7 @@ defmodule Livebook.Notebook.Cell do
   @spec type(t()) :: type()
   def type(cell)
 
-  def type(%Cell.Elixir{}), do: :elixir
+  def type(%Cell.Code{}), do: :code
   def type(%Cell.Markdown{}), do: :markdown
   def type(%Cell.Smart{}), do: :smart
 
@@ -44,7 +44,7 @@ defmodule Livebook.Notebook.Cell do
   @spec evaluable?(t()) :: boolean()
   def evaluable?(cell)
 
-  def evaluable?(%Cell.Elixir{}), do: true
+  def evaluable?(%Cell.Code{}), do: true
   def evaluable?(%Cell.Smart{}), do: true
   def evaluable?(_cell), do: false
 

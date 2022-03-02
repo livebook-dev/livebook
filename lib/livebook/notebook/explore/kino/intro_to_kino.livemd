@@ -42,7 +42,7 @@ color dialogs, selects, and more. Feel free to explore them.
 
 Given our notebooks already know how to render Markdown,
 you won't be surprised to find we can also render Markdown
-directly from our Elixir cells. This is done by wrapping
+directly from our Code cells. This is done by wrapping
 the Markdown contents in [`Kino.Markdown.new/1`](https://hexdocs.pm/kino/Kino.Markdown.html):
 
 ````elixir

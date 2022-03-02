@@ -123,7 +123,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
     """
   end
 
-  defp cell_icon(%{cell_type: :elixir} = assigns) do
+  defp cell_icon(%{cell_type: :code} = assigns) do
     ~H"""
     <div class="flex w-6 h-6 bg-purple-100 rounded items-center justify-center mr-1">
       <svg width="11" height="15" viewBox="0 0 11 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -159,7 +159,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
   end
 
   defp cell_language(%Cell.Markdown{}), do: "markdown"
-  defp cell_language(%Cell.Elixir{}), do: "elixir"
+  defp cell_language(%Cell.Code{}), do: "elixir"
   defp cell_language(%Cell.Smart{}), do: "elixir"
 
   defp format_date_relatively(date) do

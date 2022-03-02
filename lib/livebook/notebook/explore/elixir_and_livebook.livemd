@@ -146,7 +146,7 @@ Process.exit(self(), :kill)
 
 ## Evaluation vs compilation
 
-Livebook automatically shows the execution time of each Elixir
+Livebook automatically shows the execution time of each Code
 cell on the bottom-right of the cell. After evaluation, the total
 time can be seen by hovering the green dot.
 
