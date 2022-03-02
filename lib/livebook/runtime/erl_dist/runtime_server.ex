@@ -207,7 +207,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_info({:evaluation_finished, _ref}, state) do
-    {:noreply, report_small_cell_definitions(state)}
+    {:noreply, report_smart_cell_definitions(state)}
   end
 
   def handle_info(:memory_usage, state) do
@@ -227,7 +227,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     Process.monitor(owner)
 
     state = %{state | owner: owner, runtime_broadcast_to: opts[:runtime_broadcast_to]}
-    state = report_small_cell_definitions(state)
+    state = report_smart_cell_definitions(state)
     report_memory_usage(state)
 
     {:ok, smart_cell_supervisor} = DynamicSupervisor.start_link(strategy: :one_for_one)
@@ -392,7 +392,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     send(state.owner, {:runtime_memory_usage, Evaluator.memory()})
   end
 
-  defp report_small_cell_definitions(state) do
+  defp report_smart_cell_definitions(state) do
     smart_cell_definitions = get_smart_cell_definitions()
 
     if smart_cell_definitions == state.smart_cell_definitions do
