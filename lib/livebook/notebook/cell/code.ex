@@ -1,4 +1,4 @@
-defmodule Livebook.Notebook.Cell.Elixir do
+defmodule Livebook.Notebook.Cell.Code do
   @moduledoc false
 
   # A cell with Elixir code.

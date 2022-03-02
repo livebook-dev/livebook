@@ -16,7 +16,7 @@ defmodule Livebook.LiveMarkdown do
   #
   #   2. Every *Heading 2* starts a new section
   #
-  #   3. Every Elixir code block maps to an Elixir cell
+  #   3. Every Elixir code block maps to a Code cell
   #
   #   4. Adjacent regular Markdown text maps to a Markdown cell
   #
@@ -31,7 +31,7 @@ defmodule Livebook.LiveMarkdown do
   #
   #        - `{"force_markdown":true}` - an annotation forcing the next Markdown
   #          block to be treated as part of Markdown cell (relevant for Elixir code
-  #          blocks, which otherwise are interpreted as Elixir cells)
+  #          blocks, which otherwise are interpreted as Code cells)
   #
   #        - `{"break_markdown":true}` - an annotation splitting the markdown content
   #          into separate Markdown cells
@@ -73,7 +73,7 @@ defmodule Livebook.LiveMarkdown do
   #     ```
   #
   # This file defines a notebook named *My Notebook* with two sections.
-  # The first section includes 3 cells and the second section includes 1 Elixir cell.
+  # The first section includes 3 cells and the second section includes 1 Code cell.
 
   @doc """
   The file extension used by Live Markdown files.

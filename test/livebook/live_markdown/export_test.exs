@@ -26,7 +26,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     """
                 },
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | disable_formatting: true,
                     reevaluate_automatically: true,
                     source: """
@@ -47,7 +47,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               name: "Section 2",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.gets("length: ")\
                     """
@@ -60,7 +60,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               parent_id: "s2",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     Process.info()\
                     """
@@ -311,7 +311,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "formats code in Elixir cells" do
+  test "formats code in Code cells" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -321,7 +321,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     [1,2,3] # Comment
                     """
@@ -347,7 +347,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "does not format code in Elixir cells which have formatting disabled" do
+  test "does not format code in Code cells which have formatting disabled" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -357,7 +357,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | disable_formatting: true,
                     source: """
                     [1,2,3] # Comment\
@@ -395,7 +395,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     \"\"\"
                     ```elixir
@@ -540,7 +540,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -578,7 +578,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -620,7 +620,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -668,7 +668,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -704,7 +704,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
@@ -749,7 +749,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
@@ -801,7 +801,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
@@ -852,7 +852,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
@@ -909,7 +909,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.puts("hey")\
                     """,
@@ -954,7 +954,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.puts("hey")\
                     """,

@@ -16,10 +16,10 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           >+ Markdown</button>
         <button class="button-base button-small"
           phx-click="insert_cell_below"
-          phx-value-type="elixir"
+          phx-value-type="code"
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
-          >+ Elixir</button>
+          >+ Code</button>
         <button class="button-base button-small"
           phx-click="insert_section_below"
           phx-value-section_id={@section_id}

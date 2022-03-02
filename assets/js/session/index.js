@@ -396,9 +396,9 @@ function handleDocumentKeyDown(hook, event) {
     } else if (keyBuffer.tryMatch(["K"])) {
       moveFocusedCell(hook, -1);
     } else if (keyBuffer.tryMatch(["n"])) {
-      insertCellBelowFocused(hook, "elixir");
+      insertCellBelowFocused(hook, "code");
     } else if (keyBuffer.tryMatch(["N"])) {
-      insertCellAboveFocused(hook, "elixir");
+      insertCellAboveFocused(hook, "code");
     } else if (keyBuffer.tryMatch(["m"])) {
       insertCellBelowFocused(hook, "markdown");
     } else if (keyBuffer.tryMatch(["M"])) {

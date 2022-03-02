@@ -24,7 +24,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
                     """
                 },
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | disable_formatting: true,
                     source: """
                     Enum.to_list(1..10)\
@@ -44,7 +44,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
               name: "Section 2",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.gets("length: ")\
                     """
@@ -65,7 +65,7 @@ defmodule Livebook.Notebook.Export.ElixirTest do
               parent_id: "s2",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     Process.info()\
                     """

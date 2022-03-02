@@ -527,8 +527,8 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp settings_component_for(%Cell.Elixir{}),
-    do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
+  defp settings_component_for(%Cell.Code{}),
+    do: LivebookWeb.SessionLive.CodeCellSettingsComponent
 
   defp branching_tooltip_attrs(name, parent_name) do
     direction = if String.length(name) >= 16, do: "left", else: "right"
@@ -1258,7 +1258,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
-  defp cell_type_and_attrs_from_params(%{"type" => "elixir"}), do: {:elixir, %{}}
+  defp cell_type_and_attrs_from_params(%{"type" => "code"}), do: {:code, %{}}
 
   defp cell_type_and_attrs_from_params(%{"type" => "smart", "kind" => kind}) do
     {:smart, %{kind: kind}}
@@ -1420,12 +1420,12 @@ defmodule LivebookWeb.SessionLive do
     }
   end
 
-  defp cell_to_view(%Cell.Elixir{} = cell, data) do
+  defp cell_to_view(%Cell.Code{} = cell, data) do
     info = data.cell_infos[cell.id]
 
     %{
       id: cell.id,
-      type: :elixir,
+      type: :code,
       source_view: cell_source_view(cell, info),
       eval: eval_info_to_view(cell, info.eval, data),
       reevaluate_automatically: cell.reevaluate_automatically

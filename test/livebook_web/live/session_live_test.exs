@@ -115,7 +115,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "queueing cell evaluation", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(50)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(50)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -129,7 +129,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "cancelling cell evaluation", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(2000)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(2000)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -147,7 +147,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "inserting a cell below the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "inserting a cell at section start", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      _cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      _cell_id = insert_text_cell(session.pid, section_id, :code)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -175,7 +175,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "deleting the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -188,7 +188,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "restoring a deleted cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       Session.delete_cell(session.pid, cell_id)
 
@@ -315,7 +315,7 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "outputs" do
     test "stdout output update", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
@@ -333,7 +333,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "frame output update", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
@@ -484,7 +484,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "replies with nil completion reference when no runtime is started",
          %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(10)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -503,7 +503,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "replies with completion reference and then sends asynchronous response",
          %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(10)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
       {:ok, runtime} = Livebook.Runtime.Embedded.init()
       Session.connect_runtime(session.pid, runtime)
@@ -907,7 +907,7 @@ defmodule LivebookWeb.SessionLiveTest do
       end
       |> Macro.to_string()
 
-    cell_id = insert_text_cell(session_pid, section_id, :elixir, code)
+    cell_id = insert_text_cell(session_pid, section_id, :code, code)
     Session.queue_cell_evaluation(session_pid, cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
     cell_id

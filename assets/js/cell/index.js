@@ -24,14 +24,14 @@ const Cell = {
     this.state = {
       isFocused: false,
       insertMode: false,
-      // For text cells (markdown or elixir)
+      // For text cells (markdown or code)
       liveEditor: null,
       markdown: null,
       evaluationDigest: null,
     };
 
     // Setup action handlers
-    if (this.props.type === "elixir") {
+    if (this.props.type === "code") {
       const amplifyButton = this.el.querySelector(
         `[data-element="amplify-outputs-button"]`
       );
@@ -74,7 +74,7 @@ const Cell = {
       // Setup the editor instance.
       const language = {
         markdown: "markdown",
-        elixir: "elixir",
+        code: "elixir",
         smart: "elixir",
       }[this.props.type];
       const readOnly = this.props.type === "smart";

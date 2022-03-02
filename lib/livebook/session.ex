@@ -550,7 +550,7 @@ defmodule Livebook.Session do
   end
 
   defp default_notebook() do
-    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:elixir)]}]}
+    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:code)]}]}
   end
 
   defp schedule_autosave(state) do
@@ -707,7 +707,7 @@ defmodule Livebook.Session do
         state
         |> handle_operation({:delete_cell, client_pid, cell.id})
         |> handle_operation(
-          {:insert_cell, client_pid, section.id, index, :elixir, Utils.random_id(), attrs}
+          {:insert_cell, client_pid, section.id, index, :code, Utils.random_id(), attrs}
         )
       else
         _ -> state

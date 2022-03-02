@@ -66,7 +66,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp render_cell(%{cell_view: %{type: :elixir}} = assigns) do
+  defp render_cell(%{cell_view: %{type: :code}} = assigns) do
     ~H"""
     <.cell_actions>
       <:primary>
@@ -268,7 +268,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp convert_smart_cell_button(assigns) do
     ~H"""
-    <span class="tooltip top" data-tooltip="Convert to Elixir cell">
+    <span class="tooltip top" data-tooltip="Convert to Code cell">
       <button class="icon-button"
         aria-label="toggle source"
         phx-click={
