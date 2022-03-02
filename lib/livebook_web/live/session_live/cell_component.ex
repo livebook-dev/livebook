@@ -275,7 +275,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           with_confirm(
             JS.push("convert_smart_cell", value: %{cell_id: @cell_id}),
             title: "Convert cell",
-            description: "Once you convert this smart cell to a code cell, the smart cell will be moved to the bin.",
+            description: "Once you convert this Smart cell to a Code cell, the Smart cell will be moved to the bin.",
             confirm_text: "Convert",
             confirm_icon: "arrow-up-down-line",
             opt_out_id: "convert-smart-cell"
