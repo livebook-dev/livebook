@@ -132,7 +132,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     * `:notify_to` - a process to be notified about finished
       evaluation. The notification is sent as a message of the
-      form `{:evaluation_finished, ref}`
+      form `{:evaluation_finished, pid, ref}`
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
@@ -214,6 +214,17 @@ defmodule Livebook.Runtime.Evaluator do
   # Applies the given function to evaluation binding
   defp map_binding(evaluator, ref, fun) do
     call(evaluator, {:map_binding, ref, fun})
+  end
+
+  @doc """
+  Runs the given function with binding and env of the given evaluation.
+
+  Ths function runs within the evaluator process, so that no data
+  is copied between processes, unless explicitly sent.
+  """
+  @spec peek_context(t(), ref(), (Code.binding(), Macro.Env.t() -> any())) :: :ok
+  def peek_context(evaluator, ref, fun) do
+    cast(evaluator, {:peek_context, ref, fun})
   end
 
   defp cast(evaluator, message) do
@@ -338,7 +349,7 @@ defmodule Livebook.Runtime.Evaluator do
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
 
     if notify_to = opts[:notify_to] do
-      send(notify_to, {:evaluation_finished, ref})
+      send(notify_to, {:evaluation_finished, self(), ref})
     end
 
     :erlang.garbage_collect(self())
@@ -350,6 +361,12 @@ defmodule Livebook.Runtime.Evaluator do
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
     :erlang.garbage_collect(self())
+    {:noreply, state}
+  end
+
+  defp handle_cast({:peek_context, ref, fun}, state) do
+    context = get_context(state, ref)
+    fun.(context.binding, context.env)
     {:noreply, state}
   end
 

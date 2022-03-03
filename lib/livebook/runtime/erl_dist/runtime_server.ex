@@ -126,9 +126,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Starts a new smart cell.
   """
-  @spec start_smart_cell(pid(), String.t(), String.t(), term()) :: :ok
-  def start_smart_cell(pid, kind, ref, attrs) do
-    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs})
+  @spec start_smart_cell(
+          pid(),
+          String.t(),
+          Runtime.smart_cell_ref(),
+          Runtime.smart_cell_attrs(),
+          Runtime.locator()
+        ) :: :ok
+  def start_smart_cell(pid, kind, ref, attrs, prev_locator) do
+    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs, prev_locator})
+  end
+
+  @doc """
+  Updates the locator with smart cell context.
+  """
+  @spec set_smart_cell_prev_locator(pid(), Runtime.smart_cell_ref(), Runtime.locator()) :: :ok
+  def set_smart_cell_prev_locator(pid, ref, prev_locator) do
+    GenServer.cast(pid, {:set_smart_cell_prev_locator, ref, prev_locator})
   end
 
   @doc """
@@ -206,8 +220,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  def handle_info({:evaluation_finished, _ref}, state) do
-    {:noreply, report_smart_cell_definitions(state)}
+  def handle_info({:evaluation_finished, pid, evaluation_ref}, state) do
+    {:noreply,
+     state
+     |> report_smart_cell_definitions()
+     |> scan_binding_after_evaluation(pid, evaluation_ref)}
   end
 
   def handle_info(:memory_usage, state) do
@@ -304,7 +321,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:start_smart_cell, kind, ref, attrs}, state) do
+  def handle_cast({:start_smart_cell, kind, ref, attrs, prev_locator}, state) do
     definition = Enum.find(state.smart_cell_definitions, &(&1.kind == kind))
 
     state =
@@ -313,8 +330,22 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
              {definition.module, %{ref: ref, attrs: attrs, target_pid: state.owner}}
            ) do
         {:ok, pid, info} ->
-          send(state.owner, {:runtime_smart_cell_started, ref, info})
-          put_in(state.smart_cells[ref], pid)
+          %{js_view: js_view, source: source, scan_binding: scan_binding} = info
+
+          send(
+            state.owner,
+            {:runtime_smart_cell_started, ref, %{js_view: js_view, source: source}}
+          )
+
+          info = %{
+            pid: pid,
+            scan_binding: scan_binding,
+            prev_locator: prev_locator,
+            scan_binding_version: -1
+          }
+
+          info = scan_binding_async(info, state)
+          put_in(state.smart_cells[ref], info)
 
         _ ->
           state
@@ -323,8 +354,18 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
+  def handle_cast({:set_smart_cell_prev_locator, ref, prev_locator}, state) do
+    state =
+      update_in(state.smart_cells[ref], fn
+        %{prev_locator: ^prev_locator} = info -> info
+        info -> scan_binding_async(%{info | prev_locator: prev_locator}, state)
+      end)
+
+    {:noreply, state}
+  end
+
   def handle_cast({:stop_smart_cell, ref}, state) do
-    {pid, state} = pop_in(state.smart_cells[ref])
+    {%{pid: pid}, state} = pop_in(state.smart_cells[ref])
 
     if pid do
       DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
@@ -412,5 +453,54 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     else
       []
     end
+  end
+
+  defp scan_binding_async(%{scan_binding: nil} = info, _state), do: info
+
+  defp scan_binding_async(info, state) do
+    info = update_in(info.scan_binding_version, &(&1 + 1))
+    %{pid: pid, scan_binding: scan_binding, scan_binding_version: version} = info
+
+    scan_and_send = fn binding, env ->
+      result =
+        try do
+          data = scan_binding.(binding, env)
+          {:ok, data}
+        rescue
+          error -> {:error, error}
+        end
+
+      send(pid, {:scan_binding_result, version, result})
+    end
+
+    {container_ref, evaluation_ref} = info.prev_locator
+    evaluator = state.evaluators[container_ref]
+
+    if evaluator do
+      Evaluator.peek_context(evaluator, evaluation_ref, scan_and_send)
+    else
+      Task.Supervisor.start_child(state.task_supervisor, fn ->
+        binding = []
+        # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
+        env = :elixir.env_for_eval([])
+        scan_and_send.(binding, env)
+      end)
+    end
+
+    info
+  end
+
+  defp scan_binding_after_evaluation(state, pid, evaluation_ref) do
+    {container_ref, _} =
+      Enum.find(state.evaluators, fn {_container_ref, evaluator} -> evaluator.pid == pid end)
+
+    locator = {container_ref, evaluation_ref}
+
+    update_in(state.smart_cells, fn smart_cells ->
+      Map.map(smart_cells, fn
+        {_, %{prev_locator: ^locator} = info} -> scan_binding_async(info, state)
+        {_, info} -> info
+      end)
+    end)
   end
 end

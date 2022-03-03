@@ -56,6 +56,7 @@ defmodule Livebook.Session do
   alias Livebook.Notebook.{Cell, Section}
 
   @timeout :infinity
+  @main_container_ref :main_flow
 
   @type t :: %__MODULE__{
           id: id(),
@@ -879,7 +880,7 @@ defmodule Livebook.Session do
 
     operation =
       case container_ref do
-        :main_flow -> {:reflect_main_evaluation_failure, self()}
+        @main_container_ref -> {:reflect_main_evaluation_failure, self()}
         section_id -> {:reflect_evaluation_failure, self(), section_id}
       end
 
@@ -1234,9 +1235,27 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, {:start_smart_cell, cell}) do
+  defp handle_action(state, {:start_smart_cell, cell, section}) do
     if state.data.runtime do
-      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs)
+      prev_locator = find_smart_cell_prev_locator(state.data, cell, section)
+      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, prev_locator)
+    end
+
+    state
+  end
+
+  defp handle_action(state, {:set_smart_cell_parent, cell, parent}) do
+    if state.data.runtime do
+      prev_locator =
+        case parent do
+          nil ->
+            {@main_container_ref, nil}
+
+          {parent_cell, parent_section} ->
+            {container_ref_for_section(parent_section), parent_cell.id}
+        end
+
+      Runtime.set_smart_cell_prev_locator(state.data.runtime, cell.id, prev_locator)
     end
 
     state
@@ -1475,6 +1494,20 @@ defmodule Livebook.Session do
     end)
   end
 
-  defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
+  # TODO clarify name, we should use this for intelisense instead!
+  defp find_smart_cell_prev_locator(data, cell, section) do
+    default = {container_ref_for_section(section), nil}
+
+    data.notebook
+    |> Notebook.parent_cells_with_section(cell.id)
+    |> Enum.find_value(default, fn {cell, section} ->
+      info = data.cell_infos[cell.id]
+
+      Cell.evaluable?(cell) && info.eval.validity != :fresh &&
+        {container_ref_for_section(section), cell.id}
+    end)
+  end
+
+  defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref
   defp container_ref_for_section(section), do: section.id
 end

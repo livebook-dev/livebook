@@ -79,8 +79,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     ErlDist.RuntimeServer.read_file(runtime.server_pid, path)
   end
 
-  def start_smart_cell(runtime, kind, ref, attrs) do
-    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs)
+  def start_smart_cell(runtime, kind, ref, attrs, prev_locator) do
+    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, prev_locator)
+  end
+
+  def set_smart_cell_prev_locator(runtime, ref, prev_locator) do
+    ErlDist.RuntimeServer.set_smart_cell_prev_locator(runtime.server_pid, ref, prev_locator)
   end
 
   def stop_smart_cell(runtime, ref) do
