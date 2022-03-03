@@ -118,7 +118,7 @@ defmodule Livebook.Runtime.Evaluator do
   response.
 
   The resulting contxt (binding and env) is stored under `ref`.
-  Any subsequent calls may specify `prev_ref` pointing to a
+  Any subsequent calls may specify `base_ref` pointing to a
   previous evaluation, in which case the corresponding context
   is used as the entry point for evaluation.
 
@@ -135,8 +135,8 @@ defmodule Livebook.Runtime.Evaluator do
       form `{:evaluation_finished, pid, ref}`
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
-  def evaluate_code(evaluator, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
-    cast(evaluator, {:evaluate_code, code, ref, prev_ref, opts})
+  def evaluate_code(evaluator, code, ref, base_ref \\ nil, opts \\ []) when ref != nil do
+    cast(evaluator, {:evaluate_code, code, ref, base_ref, opts})
   end
 
   @doc """
@@ -309,12 +309,12 @@ defmodule Livebook.Runtime.Evaluator do
     %{binding: [], env: env, id: random_id()}
   end
 
-  defp handle_cast({:evaluate_code, code, ref, prev_ref, opts}, state) do
+  defp handle_cast({:evaluate_code, code, ref, base_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, ref)
 
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
-    context = get_context(state, prev_ref)
+    context = get_context(state, base_ref)
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()

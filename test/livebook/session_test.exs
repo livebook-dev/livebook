@@ -587,7 +587,7 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "find_prev_locator/3" do
+  describe "find_base_locator/3" do
     test "given cell in main flow returns previous Code cell" do
       cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:markdown) | id: "c2"}
@@ -598,7 +598,7 @@ defmodule Livebook.SessionTest do
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
 
-      assert {:main_flow, "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+      assert {:main_flow, "c1"} = Session.find_base_locator(notebook, cell3, section2)
     end
 
     test "given cell in branching section returns previous Code cell in that section" do
@@ -617,7 +617,7 @@ defmodule Livebook.SessionTest do
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
 
-      assert {"s2", "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+      assert {"s2", "c1"} = Session.find_base_locator(notebook, cell3, section2)
     end
 
     test "given cell in main flow returns nil if there is no previous cell" do
@@ -629,7 +629,7 @@ defmodule Livebook.SessionTest do
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
 
-      assert {:main_flow, nil} = Session.find_prev_locator(notebook, cell2, section2)
+      assert {:main_flow, nil} = Session.find_base_locator(notebook, cell2, section2)
     end
 
     test "given cell in branching section returns nil in that section if there is no previous cell" do
@@ -647,7 +647,7 @@ defmodule Livebook.SessionTest do
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
 
-      assert {"s2", nil} = Session.find_prev_locator(notebook, cell2, section2)
+      assert {"s2", nil} = Session.find_base_locator(notebook, cell2, section2)
     end
   end
 

@@ -60,8 +60,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   See `Livebook.Runtime.Evaluator` for more details.
   """
   @spec evaluate_code(pid(), String.t(), Runtime.locator(), Runtime.locator(), keyword()) :: :ok
-  def evaluate_code(pid, code, locator, prev_locator, opts \\ []) do
-    GenServer.cast(pid, {:evaluate_code, code, locator, prev_locator, opts})
+  def evaluate_code(pid, code, locator, base_locator, opts \\ []) do
+    GenServer.cast(pid, {:evaluate_code, code, locator, base_locator, opts})
   end
 
   @doc """
@@ -100,8 +100,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           Runtime.intellisense_request(),
           Runtime.locator()
         ) :: :ok
-  def handle_intellisense(pid, send_to, ref, request, locator) do
-    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, locator})
+  def handle_intellisense(pid, send_to, ref, request, base_locator) do
+    GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, base_locator})
   end
 
   @doc """
@@ -133,16 +133,16 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           Runtime.smart_cell_attrs(),
           Runtime.locator()
         ) :: :ok
-  def start_smart_cell(pid, kind, ref, attrs, prev_locator) do
-    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs, prev_locator})
+  def start_smart_cell(pid, kind, ref, attrs, base_locator) do
+    GenServer.cast(pid, {:start_smart_cell, kind, ref, attrs, base_locator})
   end
 
   @doc """
   Updates the locator with smart cell context.
   """
-  @spec set_smart_cell_prev_locator(pid(), Runtime.smart_cell_ref(), Runtime.locator()) :: :ok
-  def set_smart_cell_prev_locator(pid, ref, prev_locator) do
-    GenServer.cast(pid, {:set_smart_cell_prev_locator, ref, prev_locator})
+  @spec set_smart_cell_base_locator(pid(), Runtime.smart_cell_ref(), Runtime.locator()) :: :ok
+  def set_smart_cell_base_locator(pid, ref, base_locator) do
+    GenServer.cast(pid, {:set_smart_cell_base_locator, ref, base_locator})
   end
 
   @doc """
@@ -256,13 +256,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, code, {container_ref, evaluation_ref}, prev_locator, opts},
+        {:evaluate_code, code, {container_ref, evaluation_ref}, base_locator, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
 
-    prev_evaluation_ref =
-      case prev_locator do
+    base_evaluation_ref =
+      case base_locator do
         {^container_ref, evaluation_ref} ->
           evaluation_ref
 
@@ -282,7 +282,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       state.evaluators[container_ref],
       code,
       evaluation_ref,
-      prev_evaluation_ref,
+      base_evaluation_ref,
       opts
     )
 
@@ -302,8 +302,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:handle_intellisense, send_to, ref, request, locator}, state) do
-    {container_ref, evaluation_ref} = locator
+  def handle_cast({:handle_intellisense, send_to, ref, request, base_locator}, state) do
+    {container_ref, evaluation_ref} = base_locator
     evaluator = state.evaluators[container_ref]
 
     intellisense_context =
@@ -321,7 +321,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:start_smart_cell, kind, ref, attrs, prev_locator}, state) do
+  def handle_cast({:start_smart_cell, kind, ref, attrs, base_locator}, state) do
     definition = Enum.find(state.smart_cell_definitions, &(&1.kind == kind))
 
     state =
@@ -340,7 +340,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           info = %{
             pid: pid,
             scan_binding: scan_binding,
-            prev_locator: prev_locator,
+            base_locator: base_locator,
             scan_binding_version: -1
           }
 
@@ -354,11 +354,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:set_smart_cell_prev_locator, ref, prev_locator}, state) do
+  def handle_cast({:set_smart_cell_base_locator, ref, base_locator}, state) do
     state =
       update_in(state.smart_cells[ref], fn
-        %{prev_locator: ^prev_locator} = info -> info
-        info -> scan_binding_async(%{info | prev_locator: prev_locator}, state)
+        %{base_locator: ^base_locator} = info -> info
+        info -> scan_binding_async(%{info | base_locator: base_locator}, state)
       end)
 
     {:noreply, state}
@@ -473,7 +473,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       send(pid, {:scan_binding_result, version, result})
     end
 
-    {container_ref, evaluation_ref} = info.prev_locator
+    {container_ref, evaluation_ref} = info.base_locator
     evaluator = state.evaluators[container_ref]
 
     if evaluator do
@@ -498,7 +498,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     update_in(state.smart_cells, fn smart_cells ->
       Map.map(smart_cells, fn
-        {_, %{prev_locator: ^locator} = info} -> scan_binding_async(info, state)
+        {_, %{base_locator: ^locator} = info} -> scan_binding_async(info, state)
         {_, info} -> info
       end)
     end)

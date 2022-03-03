@@ -1212,8 +1212,8 @@ defmodule Livebook.Session do
     opts = [file: file]
 
     locator = {container_ref_for_section(section), cell.id}
-    prev_locator = find_prev_locator(state.data.notebook, cell, section)
-    Runtime.evaluate_code(state.data.runtime, cell.source, locator, prev_locator, opts)
+    base_locator = find_base_locator(state.data.notebook, cell, section)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
@@ -1237,8 +1237,8 @@ defmodule Livebook.Session do
 
   defp handle_action(state, {:start_smart_cell, cell, section}) do
     if state.data.runtime do
-      prev_locator = find_smart_cell_prev_locator(state.data, cell, section)
-      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, prev_locator)
+      base_locator = find_smart_cell_base_locator(state.data, cell, section)
+      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
     end
 
     state
@@ -1246,7 +1246,7 @@ defmodule Livebook.Session do
 
   defp handle_action(state, {:set_smart_cell_parent, cell, parent}) do
     if state.data.runtime do
-      prev_locator =
+      base_locator =
         case parent do
           nil ->
             {@main_container_ref, nil}
@@ -1255,7 +1255,7 @@ defmodule Livebook.Session do
             {container_ref_for_section(parent_section), parent_cell.id}
         end
 
-      Runtime.set_smart_cell_prev_locator(state.data.runtime, cell.id, prev_locator)
+      Runtime.set_smart_cell_base_locator(state.data.runtime, cell.id, base_locator)
     end
 
     state
@@ -1483,8 +1483,8 @@ defmodule Livebook.Session do
   Determines locator of the evaluation that the given
   cell depends on.
   """
-  @spec find_prev_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
-  def find_prev_locator(notebook, cell, section) do
+  @spec find_base_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
+  def find_base_locator(notebook, cell, section) do
     default = {container_ref_for_section(section), nil}
 
     notebook
@@ -1495,7 +1495,7 @@ defmodule Livebook.Session do
   end
 
   # TODO clarify name, we should use this for intelisense instead!
-  defp find_smart_cell_prev_locator(data, cell, section) do
+  defp find_smart_cell_base_locator(data, cell, section) do
     default = {container_ref_for_section(section), nil}
 
     data.notebook
