@@ -1212,7 +1212,7 @@ defmodule Livebook.Session do
     opts = [file: file]
 
     locator = {container_ref_for_section(section), cell.id}
-    base_locator = find_base_locator(state.data.notebook, cell, section)
+    base_locator = find_base_locator(state.data, cell, section)
     Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
@@ -1237,19 +1237,19 @@ defmodule Livebook.Session do
 
   defp handle_action(state, {:start_smart_cell, cell, section}) do
     if state.data.runtime do
-      base_locator = find_smart_cell_base_locator(state.data, cell, section)
+      base_locator = find_base_locator(state.data, cell, section, existing: true)
       Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
     end
 
     state
   end
 
-  defp handle_action(state, {:set_smart_cell_parent, cell, parent}) do
+  defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
     if state.data.runtime do
       base_locator =
         case parent do
           nil ->
-            {@main_container_ref, nil}
+            {container_ref_for_section(section), nil}
 
           {parent_cell, parent_section} ->
             {container_ref_for_section(parent_section), parent_cell.id}
@@ -1480,31 +1480,33 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Determines locator of the evaluation that the given
-  cell depends on.
+  Finds evaluation locator that the given cell depends on.
+
+  By default looks up the direct evaluation parent.
+
+  ## Options
+
+    * `:existing` - considers only cells that have been evaluated
+      as evaluation parents. Defaults to `false`
   """
-  @spec find_base_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
-  def find_base_locator(notebook, cell, section) do
-    default = {container_ref_for_section(section), nil}
+  @spec find_base_locator(Data.t(), Cell.t(), Section.t(), keyword()) :: Runtime.locator()
+  def find_base_locator(data, cell, section, opts \\ []) do
+    parent_filter =
+      if opts[:existing] do
+        fn cell ->
+          info = data.cell_infos[cell.id]
+          Cell.evaluable?(cell) and info.eval.validity in [:evaluated, :stale]
+        end
+      else
+        &Cell.evaluable?/1
+      end
 
-    notebook
-    |> Notebook.parent_cells_with_section(cell.id)
-    |> Enum.find_value(default, fn {cell, section} ->
-      Cell.evaluable?(cell) && {container_ref_for_section(section), cell.id}
-    end)
-  end
-
-  # TODO clarify name, we should use this for intelisense instead!
-  defp find_smart_cell_base_locator(data, cell, section) do
     default = {container_ref_for_section(section), nil}
 
     data.notebook
     |> Notebook.parent_cells_with_section(cell.id)
     |> Enum.find_value(default, fn {cell, section} ->
-      info = data.cell_infos[cell.id]
-
-      Cell.evaluable?(cell) && info.eval.validity != :fresh &&
-        {container_ref_for_section(section), cell.id}
+      parent_filter.(cell) && {container_ref_for_section(section), cell.id}
     end)
   end
 

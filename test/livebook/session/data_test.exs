@@ -1,6 +1,8 @@
 defmodule Livebook.Session.DataTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Session.Data
   alias Livebook.{Delta, Notebook}
   alias Livebook.Notebook.Cell
@@ -447,7 +449,8 @@ defmodule Livebook.Session.DataTest do
       operation = {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
-              [{:start_smart_cell, %{id: "c1"}}]} = Data.apply_operation(data, operation)
+              [{:start_smart_cell, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -885,7 +888,8 @@ defmodule Livebook.Session.DataTest do
       operation = {:restore_cell, self(), "c1"}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
-              [{:start_smart_cell, %{id: "c1"}}]} = Data.apply_operation(data, operation)
+              [{:start_smart_cell, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -2622,7 +2626,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:smart_cell_started, self(), "c1", delta, %{}}
 
-      assert {:ok, %{cell_infos: %{"c1" => %{status: :alive}}}, _actions} =
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :started}}}, _actions} =
                Data.apply_operation(data, operation)
     end
 
@@ -3379,18 +3383,6 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{dirty: false}, []} = Data.apply_operation(data, operation)
     end
-  end
-
-  defp data_after_operations!(operations) do
-    Enum.reduce(operations, Data.new(), fn operation, data ->
-      case Data.apply_operation(data, operation) do
-        {:ok, data, _action} ->
-          data
-
-        :error ->
-          raise "failed to set up test data, operation #{inspect(operation)} returned an error"
-      end
-    end)
   end
 
   describe "bound_cells_with_section/2" do

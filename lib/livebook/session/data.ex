@@ -108,7 +108,7 @@ defmodule Livebook.Session.Data do
   @type cell_evaluation_validity :: :fresh | :evaluated | :stale | :aborted
   @type cell_evaluation_status :: :ready | :queued | :evaluating
 
-  @type smart_cell_status :: :dead | :starting | :alive
+  @type smart_cell_status :: :dead | :starting | :started
 
   @type input_id :: String.t()
 
@@ -187,7 +187,7 @@ defmodule Livebook.Session.Data do
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
           | {:start_smart_cell, Cell.t(), Section.t()}
-          | {:set_smart_cell_parent, Cell.t(), parent :: {Cell.t(), Section.t()} | nil}
+          | {:set_smart_cell_base, Cell.t(), Section.t(), parent :: {Cell.t(), Section.t()} | nil}
           | {:broadcast_delta, pid(), Cell.t(), Delta.t()}
 
   @doc """
@@ -359,7 +359,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> delete_section(section, delete_cells)
       |> compute_snapshots_and_validity()
-      |> update_smart_cell_parents(data)
+      |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -373,7 +373,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> delete_cell(cell, section)
       |> compute_snapshots_and_validity()
-      |> update_smart_cell_parents(data)
+      |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -401,7 +401,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> move_cell(cell, offset)
       |> compute_snapshots_and_validity()
-      |> update_smart_cell_parents(data)
+      |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -417,7 +417,7 @@ defmodule Livebook.Session.Data do
       |> with_actions()
       |> move_section(section, offset)
       |> compute_snapshots_and_validity()
-      |> update_smart_cell_parents(data)
+      |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -487,6 +487,7 @@ defmodule Livebook.Session.Data do
       |> compute_snapshots_and_validity()
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
+      |> update_smart_cell_bases(data)
       |> mark_dirty_if_persisting_outputs()
       |> wrap_ok()
     else
@@ -512,6 +513,7 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> clear_main_evaluation()
+    |> update_smart_cell_bases(data)
     |> wrap_ok()
   end
 
@@ -520,6 +522,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> clear_section_evaluation(section)
+      |> update_smart_cell_bases(data)
       |> wrap_ok()
     end
   end
@@ -530,6 +533,7 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> cancel_cell_evaluation(cell, section)
+      |> update_smart_cell_bases(data)
       |> wrap_ok()
     else
       _ -> :error
@@ -568,6 +572,7 @@ defmodule Livebook.Session.Data do
     |> with_actions()
     |> erase_outputs()
     |> garbage_collect_input_values()
+    |> update_smart_cell_bases(data)
     |> wrap_ok()
   end
 
@@ -1208,7 +1213,7 @@ defmodule Livebook.Session.Data do
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
-    |> update_cell_info!(cell.id, &%{&1 | status: :alive})
+    |> update_cell_info!(cell.id, &%{&1 | status: :started})
     |> add_action({:broadcast_delta, client_pid, updated_cell, delta})
   end
 
@@ -1458,70 +1463,73 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp update_smart_cell_parents({data, _} = data_actions, prev_data) do
-    # TODO unify with dead_smart_cells ?
-    candidate_smart_cell_ids =
+  defp update_smart_cell_bases({data, _} = data_actions, prev_data) do
+    alive_smart_cell_ids =
       for {%Cell.Smart{} = cell, _} <- Notebook.cells_with_section(data.notebook),
           data.cell_infos[cell.id].status != :dead,
           into: MapSet.new(),
           do: cell.id
 
-    if Enum.empty?(candidate_smart_cell_ids) do
+    if Enum.empty?(alive_smart_cell_ids) do
       data_actions
     else
-      new = smart_cell_parents(data)
-      prev = smart_cell_parents(prev_data)
+      new_eval_graph = cell_evaluation_graph(data)
+      prev_eval_graph = cell_evaluation_graph(prev_data)
 
-      cell_id_lookup =
+      cell_lookup =
         data.notebook
         |> Notebook.cells_with_section()
         |> Map.new(fn {cell, section} -> {cell.id, {cell, section}} end)
 
-      for {cell_id, parent_id} <- new,
-          MapSet.member?(candidate_smart_cell_ids, cell_id),
-          Map.has_key?(prev, cell_id),
-          prev[cell_id] != parent_id,
+      for {cell_id, parent_id} <- new_eval_graph,
+          MapSet.member?(alive_smart_cell_ids, cell_id),
+          Map.has_key?(prev_eval_graph, cell_id),
+          prev_eval_graph[cell_id] != parent_id,
           reduce: data_actions do
         data_actions ->
-          {cell, _} = cell_id_lookup[cell_id]
-          parent = cell_id_lookup[parent_id]
-          add_action(data_actions, {:set_smart_cell_parent, cell, parent})
+          {cell, section} = cell_lookup[cell_id]
+          parent = cell_lookup[parent_id]
+          add_action(data_actions, {:set_smart_cell_base, cell, section, parent})
       end
     end
   end
 
-  # TODO naming: it's eval_parents but ingoring fresh cells kinda
-  defp smart_cell_parents(data) do
+  # Builds a graph with evaluation parents, where each parent has
+  # aleady been evaluated. All fresh/aborted cells are leaves in
+  # this graph
+  defp cell_evaluation_graph(data) do
     graph = Notebook.cell_dependency_graph(data.notebook, cell_filter: &Cell.evaluable?/1)
 
     graph
     |> Livebook.Utils.Graph.leaves()
-    |> Enum.reduce(%{}, fn cell_id, eval_parents ->
-      iter(data, graph, cell_id, [], eval_parents)
+    |> Enum.reduce(%{}, fn cell_id, eval_graph ->
+      build_eval_graph(data, graph, cell_id, [], eval_graph)
     end)
   end
 
-  defp iter(_data, _graph, nil, pending_ids, eval_parents) do
-    put_parents(eval_parents, pending_ids, nil)
+  defp build_eval_graph(_data, _graph, nil, orphan_ids, eval_graph) do
+    put_parent(eval_graph, orphan_ids, nil)
   end
 
-  defp iter(data, graph, cell_id, pending_ids, eval_parents) do
-    if eval_parent = eval_parents[cell_id] do
-      put_parents(eval_parents, pending_ids, eval_parent)
+  defp build_eval_graph(data, graph, cell_id, orphan_ids, eval_graph) do
+    # We are traversing from every leaf up, so we want to compute
+    # the common path only once
+    if eval_parent_id = eval_graph[cell_id] do
+      put_parent(eval_graph, orphan_ids, eval_parent_id)
     else
       info = data.cell_infos[cell_id]
 
-      if info.eval.validity == :fresh do
-        iter(data, graph, graph[cell_id], [cell_id | pending_ids], eval_parents)
+      if info.eval.validity in [:evaluated, :stale] do
+        eval_graph = put_parent(eval_graph, orphan_ids, cell_id)
+        build_eval_graph(data, graph, graph[cell_id], [cell_id], eval_graph)
       else
-        eval_parents = put_parents(eval_parents, pending_ids, cell_id)
-        iter(data, graph, graph[cell_id], [cell_id], eval_parents)
+        build_eval_graph(data, graph, graph[cell_id], [cell_id | orphan_ids], eval_graph)
       end
     end
   end
 
-  defp put_parents(eval_parents, cell_ids, parent_id) do
-    Enum.reduce(cell_ids, eval_parents, &Map.put(&2, &1, parent_id))
+  defp put_parent(eval_graph, cell_ids, parent_id) do
+    Enum.reduce(cell_ids, eval_graph, &Map.put(&2, &1, parent_id))
   end
 
   defp new_section_info() do
