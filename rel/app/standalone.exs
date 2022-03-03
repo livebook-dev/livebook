@@ -7,84 +7,47 @@ defmodule Standalone do
   """
   @spec copy_otp(Mix.Release.t(), otp_version :: String.t()) :: Mix.Release.t()
   def copy_otp(release, otp_version) do
-    expected_otp_version = otp_version()
+    ensure_otp_version(otp_version)
+    {erts_source, otp_bin_dir, otp_lib_dir} = otp_dirs()
 
-    if otp_version != expected_otp_version do
-      raise "expected OTP #{expected_otp_version}, got: #{otp_version}"
-    end
+    # 1. copy erts/bin
+    release_erts_bin_dir = Path.join(release.path, "erts-#{release.erts_version}/bin")
+    File.mkdir_p!(release_erts_bin_dir)
 
-    {erts_source, erts_bin_dir, erts_lib_dir, _erts_version} = erts_data()
+    cp_r!(Path.join(erts_source, "bin"), release_erts_bin_dir)
 
-    erts_destination_source = Path.join(release.path, "vendor/bin")
-    File.mkdir_p!(erts_destination_source)
+    File.rm(Path.join(release_erts_bin_dir, "erl"))
+    File.rm(Path.join(release_erts_bin_dir, "erl.ini"))
 
-    erts_source
-    |> Path.join("bin")
-    |> File.cp_r!(erts_destination_source, fn _, _ -> false end)
+    File.write!(Path.join(release_erts_bin_dir, "erl"), ~S"""
+    #!/bin/sh
+    SELF=$(readlink "$0" || true)
+    if [ -z "$SELF" ]; then SELF="$0"; fi
+    BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
+    ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
+    EMU=beam
+    PROGNAME=$(echo "$0" | sed 's/.*\///')
+    export EMU
+    export ROOTDIR
+    export BINDIR
+    export PROGNAME
+    exec "$BINDIR/erlexec" ${1+"$@"}
+    """)
 
-    _ = File.rm(Path.join(erts_destination_source, "erl"))
-    _ = File.rm(Path.join(erts_destination_source, "erl.ini"))
+    make_executable(Path.join(release_erts_bin_dir, "erl"))
 
-    if os() == :macos do
-      erts_destination_source
-      |> Path.join("erl")
-      |> File.write!(~S"""
-      #!/bin/sh
-      SELF=$(readlink "$0" || true)
-      if [ -z "$SELF" ]; then SELF="$0"; fi
-      BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
-      ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
-      EMU=beam
-      PROGNAME=$(echo "$0" | sed 's/.*\///')
-      export EMU
-      export ROOTDIR
-      export BINDIR
-      export PROGNAME
-      exec "$BINDIR/erlexec" ${1+"$@"}
-      """)
+    # 2. copy lib
+    release_lib_dir = Path.join(release.path, "lib")
+    cp_r!(otp_lib_dir, release_lib_dir)
 
-      executable!(Path.join(erts_destination_source, "erl"))
-    end
+    # 3. copy boot files
+    release_bin_dir = Path.join(release.path, "bin")
 
-    # Copy lib
-    erts_destination_lib = Path.join(release.path, "lib")
-    File.mkdir_p!(erts_destination_lib)
-
-    erts_lib_dir
-    |> File.cp_r!(erts_destination_lib, fn _, _ -> false end)
-
-    # copy *.boot files to <resource_path>/bin
-    erts_destination_bin = Path.join(release.path, "bin")
-
-    boot_files =
-      erts_bin_dir
-      |> Path.join("*.boot")
-      |> Path.wildcard()
-      |> Enum.map(&(String.split(&1, "/") |> List.last()))
-
-    File.mkdir_p!(erts_destination_bin)
-
-    for boot_file <- boot_files do
-      erts_bin_dir |> Path.join(boot_file) |> File.cp!(Path.join(erts_destination_bin, boot_file))
+    for file <- Path.wildcard(Path.join(otp_bin_dir, "*.boot")) do
+      File.cp!(file, Path.join(release_bin_dir, Path.basename(file)))
     end
 
     %{release | erts_source: erts_source}
-  end
-
-  # From https://github.com/fishcakez/dialyze/blob/6698ae582c77940ee10b4babe4adeff22f1b7779/lib/mix/tasks/dialyze.ex#L168
-  defp otp_version do
-    major = :erlang.system_info(:otp_release) |> List.to_string()
-    vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
-
-    try do
-      {:ok, contents} = File.read(vsn_file)
-      String.split(contents, "\n", trim: true)
-    else
-      [full] -> full
-      _ -> major
-    catch
-      :error, _ -> major
-    end
   end
 
   @doc """
@@ -104,7 +67,7 @@ defmodule Standalone do
           ["elixir.bat", "elixirc.bat", "mix.bat", "iex.bat"]
       end
 
-    Enum.map(filenames, &executable!(Path.join(standalone_destination, "bin/#{&1}")))
+    Enum.map(filenames, &make_executable(Path.join(standalone_destination, "bin/#{&1}")))
 
     release
   end
@@ -121,11 +84,12 @@ defmodule Standalone do
     :zip.unzip(String.to_charlist(path), cwd: destination)
   end
 
-  defp erts_data do
+  defp otp_dirs do
     version = :erlang.system_info(:version)
+    root_dir = :code.root_dir()
 
-    {:filename.join(:code.root_dir(), 'erts-#{version}'), :filename.join(:code.root_dir(), 'bin'),
-     :code.lib_dir(), version}
+    {:filename.join(root_dir, 'erts-#{version}'), :filename.join(root_dir, 'bin'),
+     :code.lib_dir()}
   end
 
   defp fetch_body!(url) do
@@ -140,12 +104,39 @@ defmodule Standalone do
     end
   end
 
-  defp executable!(path), do: File.chmod!(path, 0o755)
+  defp make_executable(path), do: File.chmod!(path, 0o755)
 
   defp os() do
     case :os.type() do
       {:unix, :darwin} -> :macos
       {:win32, _} -> :windows
+    end
+  end
+
+  defp cp_r!(source, destination) do
+    File.cp_r!(source, destination, fn _, _ -> false end)
+  end
+
+  defp ensure_otp_version(expected_otp_version) do
+    actual_otp_version = otp_version()
+
+    if actual_otp_version != expected_otp_version do
+      raise "expected OTP #{expected_otp_version}, got: #{actual_otp_version}"
+    end
+  end
+
+  # From https://github.com/fishcakez/dialyze/blob/6698ae582c77940ee10b4babe4adeff22f1b7779/lib/mix/tasks/dialyze.ex#L168
+  defp otp_version do
+    major = :erlang.system_info(:otp_release) |> List.to_string()
+    vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
+
+    try do
+      vsn_file |> File.read!() |> String.split("\n", trim: true)
+    else
+      [full] -> full
+      _ -> major
+    catch
+      :error, _ -> major
     end
   end
 end

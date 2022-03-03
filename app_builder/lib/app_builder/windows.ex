@@ -30,9 +30,9 @@ defmodule AppBuilder.Windows do
     app_icon_path = Path.join(tmp_dir, "app_icon.ico")
     copy_image(logo_path, app_icon_path)
 
-    erts_dir = Path.join([tmp_dir, "rel", "erts-#{:erlang.system_info(:version)}"])
+    erl_exe = Path.join([tmp_dir, "rel", "erts-#{release.erts_version}", "bin", "erl.exe"])
     rcedit_path = ensure_rcedit()
-    cmd!(rcedit_path, ["--set-icon", app_icon_path, Path.join([erts_dir, "bin", "erl.exe"])])
+    cmd!(rcedit_path, ["--set-icon", app_icon_path, erl_exe])
 
     File.write!(Path.join(tmp_dir, "#{app_name}.vbs"), launcher_vbs(release, options))
     nsi_path = Path.join(tmp_dir, "#{app_name}.nsi")
@@ -157,7 +157,7 @@ defmodule AppBuilder.Windows do
   ' It's ok for either to fail because we run them asynchronously.
 
   Set env = shell.Environment("Process")
-  env("PATH") = ".\rel\erts-<%= :erlang.system_info(:version) %>\bin;" & env("PATH")
+  env("PATH") = ".\rel\erts-<%= release.erts_version %>\bin;" & env("PATH")
 
   ' > bin/release rpc "mod.windows_connected(url)"
   '
