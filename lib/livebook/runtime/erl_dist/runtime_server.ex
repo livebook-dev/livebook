@@ -477,7 +477,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     evaluator = state.evaluators[container_ref]
 
     if evaluator do
-      Evaluator.peek_context(evaluator, evaluation_ref, scan_and_send)
+      Evaluator.peek_context(evaluator, evaluation_ref, &scan_and_send.(&1.binding, &1.env))
     else
       Task.Supervisor.start_child(state.task_supervisor, fn ->
         binding = []

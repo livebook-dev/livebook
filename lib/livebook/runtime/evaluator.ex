@@ -222,7 +222,7 @@ defmodule Livebook.Runtime.Evaluator do
   Ths function runs within the evaluator process, so that no data
   is copied between processes, unless explicitly sent.
   """
-  @spec peek_context(t(), ref(), (Code.binding(), Macro.Env.t() -> any())) :: :ok
+  @spec peek_context(t(), ref(), (context() -> any())) :: :ok
   def peek_context(evaluator, ref, fun) do
     cast(evaluator, {:peek_context, ref, fun})
   end
@@ -366,7 +366,7 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp handle_cast({:peek_context, ref, fun}, state) do
     context = get_context(state, ref)
-    fun.(context.binding, context.env)
+    fun.(context)
     {:noreply, state}
   end
 
