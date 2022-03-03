@@ -1750,6 +1750,7 @@ defmodule Livebook.Session.Data do
       update_cell_eval_info!(data_actions, cell.id, fn eval_info ->
         validity =
           case eval_info do
+            %{status: :evaluating, validity: validity} -> validity
             %{evaluation_snapshot: snapshot, snapshot: snapshot} -> :evaluated
             %{evaluation_snapshot: nil, validity: :aborted} -> :aborted
             %{evaluation_snapshot: nil} -> :fresh
@@ -1767,7 +1768,9 @@ defmodule Livebook.Session.Data do
       |> Notebook.evaluable_cells_with_section()
       |> Enum.filter(fn {cell, _section} ->
         info = data.cell_infos[cell.id]
-        info.eval.validity == :stale and Map.get(cell, :reevaluate_automatically, false)
+
+        info.eval.status == :ready and info.eval.validity == :stale and
+          Map.get(cell, :reevaluate_automatically, false)
       end)
 
     data_actions
