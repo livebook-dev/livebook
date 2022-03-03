@@ -89,7 +89,7 @@ defmodule LivebookWeb.Helpers do
     # TODO: this ensures unique ids when navigating across LVs.
     # Remove once https://github.com/phoenixframework/phoenix_live_view/issues/1903
     # is resolved
-    lv_id = self() |> :erlang.term_to_binary() |> Base.encode32()
+    lv_id = self() |> :erlang.term_to_binary() |> Base.encode32(padding: false)
     assigns = assign_new(assigns, :id, fn -> "confirm-modal-#{lv_id}" end)
 
     ~H"""
