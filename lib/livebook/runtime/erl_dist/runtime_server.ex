@@ -27,6 +27,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   Note: make sure to call `attach` within #{@await_owner_timeout}ms
   or the runtime server assumes it's not needed and terminates.
+
+  ## Options
+
+    * `:smart_cell_definitions_module` - the module to read smart
+      cell definitions from, it needs to export a `definitions/0`
+      function. Defaults to `Kino.SmartCell`
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -165,7 +171,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @impl true
-  def init(_opts) do
+  def init(opts) do
     Process.send_after(self(), :check_owner, @await_owner_timeout)
     schedule_memory_usage_report()
 
@@ -185,6 +191,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        smart_cell_gl: nil,
        smart_cells: %{},
        smart_cell_definitions: [],
+       smart_cell_definitions_module:
+         Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        memory_timer_ref: nil
      }}
   end
@@ -434,7 +442,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp report_smart_cell_definitions(state) do
-    smart_cell_definitions = get_smart_cell_definitions()
+    smart_cell_definitions = get_smart_cell_definitions(state.smart_cell_definitions_module)
 
     if smart_cell_definitions == state.smart_cell_definitions do
       state
@@ -445,11 +453,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  @compile {:no_warn_undefined, {Kino.SmartCell, :definitions, 0}}
-
-  defp get_smart_cell_definitions() do
-    if Code.ensure_loaded?(Kino.SmartCell) and function_exported?(Kino.SmartCell, :definitions, 0) do
-      Kino.SmartCell.definitions()
+  defp get_smart_cell_definitions(module) do
+    if Code.ensure_loaded?(module) and function_exported?(module, :definitions, 0) do
+      module.definitions()
     else
       []
     end
@@ -458,6 +464,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   defp scan_binding_async(%{scan_binding: nil} = info, _state), do: info
 
   defp scan_binding_async(info, state) do
+    # The requests are handled asynchronously and may target different
+    # evaluators, so we include the version that the receiver can check
+    # to avoid race conditions
     info = update_in(info.scan_binding_version, &(&1 + 1))
     %{pid: pid, scan_binding: scan_binding, scan_binding_version: version} = info
 

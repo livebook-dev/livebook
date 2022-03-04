@@ -71,9 +71,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   @doc """
   Starts a new `Livebook.Runtime.ErlDist.RuntimeServer` for evaluation.
   """
-  @spec start_runtime_server(node() | pid()) :: pid()
-  def start_runtime_server(node_or_pid) do
-    GenServer.call(server(node_or_pid), :start_runtime_server)
+  @spec start_runtime_server(node() | pid(), keyword()) :: pid()
+  def start_runtime_server(node_or_pid, opts \\ []) do
+    GenServer.call(server(node_or_pid), {:start_runtime_server, opts})
   end
 
   defp server(pid) when is_pid(pid), do: pid
@@ -154,9 +154,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
-  def handle_call(:start_runtime_server, _from, state) do
+  def handle_call({:start_runtime_server, opts}, _from, state) do
     {:ok, server_pid} =
-      DynamicSupervisor.start_child(state.server_supevisor, ErlDist.RuntimeServer)
+      DynamicSupervisor.start_child(state.server_supevisor, {ErlDist.RuntimeServer, opts})
 
     Process.monitor(server_pid)
     state = update_in(state.runtime_servers, &[server_pid | &1])
