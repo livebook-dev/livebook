@@ -15,6 +15,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   use GenServer, restart: :temporary
 
+  require Logger
+
   alias Livebook.Runtime.Evaluator
   alias Livebook.Runtime
   alias Livebook.Runtime.ErlDist
@@ -241,6 +243,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
+  def handle_info({:scan_binding_ack, ref}, state) do
+    {:noreply, finish_scan_binding(ref, state)}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -349,10 +355,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             pid: pid,
             scan_binding: scan_binding,
             base_locator: base_locator,
-            scan_binding_version: -1
+            scan_binding_pending: false,
+            scan_binding_worker: nil
           }
 
-          info = scan_binding_async(info, state)
+          info = scan_binding_async(ref, info, state)
           put_in(state.smart_cells[ref], info)
 
         _ ->
@@ -366,7 +373,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     state =
       update_in(state.smart_cells[ref], fn
         %{base_locator: ^base_locator} = info -> info
-        info -> scan_binding_async(%{info | base_locator: base_locator}, state)
+        info -> scan_binding_async(ref, %{info | base_locator: base_locator}, state)
       end)
 
     {:noreply, state}
@@ -461,42 +468,66 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end
   end
 
-  defp scan_binding_async(%{scan_binding: nil} = info, _state), do: info
+  defp scan_binding_async(_ref, %{scan_binding: nil} = info, _state), do: info
 
-  defp scan_binding_async(info, state) do
-    # The requests are handled asynchronously and may target different
-    # evaluators, so we include the version that the receiver can check
-    # to avoid race conditions
-    info = update_in(info.scan_binding_version, &(&1 + 1))
-    %{pid: pid, scan_binding: scan_binding, scan_binding_version: version} = info
+  defp scan_binding_async(ref, %{scan_binding_worker: pid} = info, state) when pid != nil do
+    if Process.alive?(pid) do
+      # We wait for the current scanning to finish, this way we avoid
+      # race conditions and don't unnecessarily spam evaluators
+      %{info | scan_binding_pending: true}
+    else
+      # The worker terminated unexpectedly, so we can proceed
+      scan_binding_async(ref, %{info | scan_binding_worker: nil}, state)
+    end
+  end
 
-    scan_and_send = fn binding, env ->
-      result =
-        try do
-          data = scan_binding.(binding, env)
-          {:ok, data}
-        rescue
-          error -> {:error, error}
-        end
+  defp scan_binding_async(ref, info, state) do
+    %{pid: pid, scan_binding: scan_binding} = info
 
-      send(pid, {:scan_binding_result, version, result})
+    myself = self()
+
+    scan_and_ack = fn binding, env ->
+      try do
+        scan_binding.(pid, binding, env)
+      rescue
+        error -> Logger.error("scanning binding raised an error: #{inspect(error)}")
+      end
+
+      send(myself, {:scan_binding_ack, ref})
     end
 
     {container_ref, evaluation_ref} = info.base_locator
     evaluator = state.evaluators[container_ref]
 
-    if evaluator do
-      Evaluator.peek_context(evaluator, evaluation_ref, &scan_and_send.(&1.binding, &1.env))
-    else
-      Task.Supervisor.start_child(state.task_supervisor, fn ->
-        binding = []
-        # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
-        env = :elixir.env_for_eval([])
-        scan_and_send.(binding, env)
-      end)
-    end
+    worker_pid =
+      if evaluator do
+        Evaluator.peek_context(evaluator, evaluation_ref, &scan_and_ack.(&1.binding, &1.env))
+        evaluator.pid
+      else
+        {:ok, pid} =
+          Task.Supervisor.start_child(state.task_supervisor, fn ->
+            binding = []
+            # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
+            env = :elixir.env_for_eval([])
+            scan_and_ack.(binding, env)
+          end)
 
-    info
+        pid
+      end
+
+    %{info | scan_binding_pending: false, scan_binding_worker: worker_pid}
+  end
+
+  defp finish_scan_binding(ref, state) do
+    update_in(state.smart_cells[ref], fn info ->
+      info = %{info | scan_binding_worker: nil}
+
+      if info.scan_binding_pending do
+        scan_binding_async(ref, info, state)
+      else
+        info
+      end
+    end)
   end
 
   defp scan_binding_after_evaluation(state, pid, evaluation_ref) do
@@ -507,7 +538,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
     update_in(state.smart_cells, fn smart_cells ->
       Map.map(smart_cells, fn
-        {_, %{base_locator: ^locator} = info} -> scan_binding_async(info, state)
+        {ref, %{base_locator: ^locator} = info} -> scan_binding_async(ref, info, state)
         {_, info} -> info
       end)
     end)
