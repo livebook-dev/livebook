@@ -118,7 +118,7 @@ defmodule Livebook.Runtime.Evaluator do
   response.
 
   The resulting contxt (binding and env) is stored under `ref`.
-  Any subsequent calls may specify `prev_ref` pointing to a
+  Any subsequent calls may specify `base_ref` pointing to a
   previous evaluation, in which case the corresponding context
   is used as the entry point for evaluation.
 
@@ -132,11 +132,11 @@ defmodule Livebook.Runtime.Evaluator do
 
     * `:notify_to` - a process to be notified about finished
       evaluation. The notification is sent as a message of the
-      form `{:evaluation_finished, ref}`
+      form `{:evaluation_finished, pid, ref}`
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
-  def evaluate_code(evaluator, code, ref, prev_ref \\ nil, opts \\ []) when ref != nil do
-    cast(evaluator, {:evaluate_code, code, ref, prev_ref, opts})
+  def evaluate_code(evaluator, code, ref, base_ref \\ nil, opts \\ []) when ref != nil do
+    cast(evaluator, {:evaluate_code, code, ref, base_ref, opts})
   end
 
   @doc """
@@ -214,6 +214,17 @@ defmodule Livebook.Runtime.Evaluator do
   # Applies the given function to evaluation binding
   defp map_binding(evaluator, ref, fun) do
     call(evaluator, {:map_binding, ref, fun})
+  end
+
+  @doc """
+  Runs the given function with binding and env of the given evaluation.
+
+  Ths function runs within the evaluator process, so that no data
+  is copied between processes, unless explicitly sent.
+  """
+  @spec peek_context(t(), ref(), (context() -> any())) :: :ok
+  def peek_context(evaluator, ref, fun) do
+    cast(evaluator, {:peek_context, ref, fun})
   end
 
   defp cast(evaluator, message) do
@@ -298,12 +309,12 @@ defmodule Livebook.Runtime.Evaluator do
     %{binding: [], env: env, id: random_id()}
   end
 
-  defp handle_cast({:evaluate_code, code, ref, prev_ref, opts}, state) do
+  defp handle_cast({:evaluate_code, code, ref, base_ref, opts}, state) do
     Evaluator.IOProxy.configure(state.io_proxy, ref)
 
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
-    context = get_context(state, prev_ref)
+    context = get_context(state, base_ref)
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()
@@ -338,7 +349,7 @@ defmodule Livebook.Runtime.Evaluator do
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
 
     if notify_to = opts[:notify_to] do
-      send(notify_to, {:evaluation_finished, ref})
+      send(notify_to, {:evaluation_finished, self(), ref})
     end
 
     :erlang.garbage_collect(self())
@@ -350,6 +361,12 @@ defmodule Livebook.Runtime.Evaluator do
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
     :erlang.garbage_collect(self())
+    {:noreply, state}
+  end
+
+  defp handle_cast({:peek_context, ref, fun}, state) do
+    context = get_context(state, ref)
+    fun.(context)
     {:noreply, state}
   end
 

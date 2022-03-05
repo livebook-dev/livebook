@@ -56,6 +56,7 @@ defmodule Livebook.Session do
   alias Livebook.Notebook.{Cell, Section}
 
   @timeout :infinity
+  @main_container_ref :main_flow
 
   @type t :: %__MODULE__{
           id: id(),
@@ -879,7 +880,7 @@ defmodule Livebook.Session do
 
     operation =
       case container_ref do
-        :main_flow -> {:reflect_main_evaluation_failure, self()}
+        @main_container_ref -> {:reflect_main_evaluation_failure, self()}
         section_id -> {:reflect_evaluation_failure, self(), section_id}
       end
 
@@ -1211,8 +1212,8 @@ defmodule Livebook.Session do
     opts = [file: file]
 
     locator = {container_ref_for_section(section), cell.id}
-    prev_locator = find_prev_locator(state.data.notebook, cell, section)
-    Runtime.evaluate_code(state.data.runtime, cell.source, locator, prev_locator, opts)
+    base_locator = find_base_locator(state.data, cell, section)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
@@ -1234,9 +1235,27 @@ defmodule Livebook.Session do
     state
   end
 
-  defp handle_action(state, {:start_smart_cell, cell}) do
+  defp handle_action(state, {:start_smart_cell, cell, section}) do
     if state.data.runtime do
-      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs)
+      base_locator = find_base_locator(state.data, cell, section, existing: true)
+      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
+    end
+
+    state
+  end
+
+  defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
+    if state.data.runtime do
+      base_locator =
+        case parent do
+          nil ->
+            {container_ref_for_section(section), nil}
+
+          {parent_cell, parent_section} ->
+            {container_ref_for_section(parent_section), parent_cell.id}
+        end
+
+      Runtime.set_smart_cell_base_locator(state.data.runtime, cell.id, base_locator)
     end
 
     state
@@ -1461,20 +1480,36 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Determines locator of the evaluation that the given
-  cell depends on.
+  Finds evaluation locator that the given cell depends on.
+
+  By default looks up the direct evaluation parent.
+
+  ## Options
+
+    * `:existing` - considers only cells that have been evaluated
+      as evaluation parents. Defaults to `false`
   """
-  @spec find_prev_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
-  def find_prev_locator(notebook, cell, section) do
+  @spec find_base_locator(Data.t(), Cell.t(), Section.t(), keyword()) :: Runtime.locator()
+  def find_base_locator(data, cell, section, opts \\ []) do
+    parent_filter =
+      if opts[:existing] do
+        fn cell ->
+          info = data.cell_infos[cell.id]
+          Cell.evaluable?(cell) and info.eval.validity in [:evaluated, :stale]
+        end
+      else
+        &Cell.evaluable?/1
+      end
+
     default = {container_ref_for_section(section), nil}
 
-    notebook
+    data.notebook
     |> Notebook.parent_cells_with_section(cell.id)
     |> Enum.find_value(default, fn {cell, section} ->
-      Cell.evaluable?(cell) && {container_ref_for_section(section), cell.id}
+      parent_filter.(cell) && {container_ref_for_section(section), cell.id}
     end)
   end
 
-  defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
+  defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref
   defp container_ref_for_section(section), do: section.id
 end

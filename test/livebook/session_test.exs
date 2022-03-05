@@ -1,8 +1,11 @@
 defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
   alias Livebook.Notebook.{Section, Cell}
+  alias Livebook.Session.Data
 
   setup do
     session = start_session()
@@ -587,7 +590,7 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "find_prev_locator/3" do
+  describe "find_base_locator/3" do
     test "given cell in main flow returns previous Code cell" do
       cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:markdown) | id: "c2"}
@@ -597,8 +600,9 @@ defmodule Livebook.SessionTest do
       section2 = %{Section.new() | id: "s2", cells: [cell3]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {:main_flow, "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2)
     end
 
     test "given cell in branching section returns previous Code cell in that section" do
@@ -616,8 +620,9 @@ defmodule Livebook.SessionTest do
       }
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {"s2", "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+      assert {"s2", "c1"} = Session.find_base_locator(data, cell3, section2)
     end
 
     test "given cell in main flow returns nil if there is no previous cell" do
@@ -628,8 +633,9 @@ defmodule Livebook.SessionTest do
       section2 = %{Section.new() | id: "s2", cells: [cell2]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_prev_locator(notebook, cell2, section2)
+      assert {:main_flow, nil} = Session.find_base_locator(data, cell2, section2)
     end
 
     test "given cell in branching section returns nil in that section if there is no previous cell" do
@@ -646,8 +652,39 @@ defmodule Livebook.SessionTest do
       }
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {"s2", nil} = Session.find_prev_locator(notebook, cell2, section2)
+      assert {"s2", nil} = Session.find_base_locator(data, cell2, section2)
+    end
+
+    test "when :existing is set ignores fresh and aborted cells" do
+      cell1 = %{Cell.new(:code) | id: "c1"}
+      cell2 = %{Cell.new(:code) | id: "c2"}
+      section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
+
+      cell3 = %{Cell.new(:code) | id: "c3"}
+      section2 = %{Section.new() | id: "s2", cells: [cell3]}
+
+      notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
+
+      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
+
+      data =
+        data_after_operations!(data, [
+          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
+        ])
+
+      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2, existing: true)
+
+      data =
+        data_after_operations!(data, [
+          {:reflect_main_evaluation_failure, self()}
+        ])
+
+      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
     end
   end
 

@@ -128,7 +128,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <div class="relative">
         <div data-element="ui-box">
           <%= case @cell_view.status do %>
-            <% :alive -> %>
+            <% :started -> %>
               <.live_component module={LivebookWeb.JSViewComponent}
                 id={@cell_view.id}
                 js_view={@cell_view.js_view}

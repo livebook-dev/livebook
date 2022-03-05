@@ -819,8 +819,8 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if data.runtime do
         ref = make_ref()
-        prev_locator = Session.find_prev_locator(data.notebook, cell, section)
-        Runtime.handle_intellisense(data.runtime, self(), ref, request, prev_locator)
+        base_locator = Session.find_base_locator(data, cell, section, existing: true)
+        Runtime.handle_intellisense(data.runtime, self(), ref, request, base_locator)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else

@@ -208,6 +208,10 @@ defprotocol Livebook.Runtime do
           }
         }
 
+  @type smart_cell_ref :: String.t()
+
+  @type smart_cell_attrs :: map()
+
   @doc """
   Connects the caller to the given runtime.
 
@@ -245,7 +249,7 @@ defprotocol Livebook.Runtime do
   be evaluated as well as the evaluation reference to store the
   resulting context under.
 
-  Additionally, `prev_locator` points to a previous evaluation to be
+  Additionally, `base_locator` points to a previous evaluation to be
   used as the starting point of this evaluation. If not applicable,
   the previous evaluation reference may be specified as `nil`.
 
@@ -284,7 +288,7 @@ defprotocol Livebook.Runtime do
       the value of `__DIR__`
   """
   @spec evaluate_code(t(), String.t(), locator(), locator(), keyword()) :: :ok
-  def evaluate_code(runtime, code, locator, prev_locator, opts \\ [])
+  def evaluate_code(runtime, code, locator, base_locator, opts \\ [])
 
   @doc """
   Disposes of an evaluation identified by the given locator.
@@ -314,11 +318,11 @@ defprotocol Livebook.Runtime do
 
     * `{:runtime_intellisense_response, ref, request, response}`.
 
-  The given `locator` idenfities an evaluation that may be used
-  as the context when resolving the request (if relevant).
+  The given `base_locator` idenfities an evaluation that may be
+  used as the context when resolving the request (if relevant).
   """
   @spec handle_intellisense(t(), pid(), reference(), intellisense_request(), locator()) :: :ok
-  def handle_intellisense(runtime, send_to, ref, request, locator)
+  def handle_intellisense(runtime, send_to, ref, request, base_locator)
 
   @doc """
   Synchronously starts a runtime of the same type with the same
@@ -352,6 +356,12 @@ defprotocol Livebook.Runtime do
   version of the generated source code. The given `ref` is used to
   identify the cell.
 
+  The cell may depend on evaluation context to provide a better user
+  experience, for instance it may suggest relevant variable names.
+  Similarly to `evaluate_code/5`, `base_locator` must be specified
+  pointing to the evaluation to use as the context. When the locator
+  changes, it can be updated with `set_smart_cell_base_locator/3`.
+
   Once the cell starts, the runtime sends the following message
 
     * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t()}}`
@@ -368,12 +378,20 @@ defprotocol Livebook.Runtime do
   state later. Note that for persistence they get serialized and
   deserialized as JSON.
   """
-  @spec start_smart_cell(t(), String.t(), String.t(), term()) :: :ok
-  def start_smart_cell(runtime, kind, ref, attrs)
+  @spec start_smart_cell(t(), String.t(), smart_cell_ref(), smart_cell_attrs(), locator()) :: :ok
+  def start_smart_cell(runtime, kind, ref, attrs, base_locator)
+
+  @doc """
+  Updates the locator used by a smart cell as its context.
+
+  See `start_smart_cell/5` for more details.
+  """
+  @spec set_smart_cell_base_locator(t(), smart_cell_ref(), locator()) :: :ok
+  def set_smart_cell_base_locator(runtime, ref, base_locator)
 
   @doc """
   Stops smart cell identified by the given reference.
   """
-  @spec stop_smart_cell(t(), String.t()) :: :ok
+  @spec stop_smart_cell(t(), smart_cell_ref()) :: :ok
   def stop_smart_cell(runtime, ref)
 end

@@ -25,8 +25,8 @@ defmodule Livebook.Runtime.NoopRuntime do
       end
     end
 
-    def start_smart_cell(_, _, _, _), do: :ok
-
+    def start_smart_cell(_, _, _, _, _), do: :ok
+    def set_smart_cell_base_locator(_, _, _), do: :ok
     def stop_smart_cell(_, _), do: :ok
   end
 end

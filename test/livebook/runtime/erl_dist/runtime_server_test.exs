@@ -3,11 +3,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
   alias Livebook.Runtime.ErlDist.{NodeManager, RuntimeServer}
 
-  setup do
+  setup ctx do
     {:ok, manager_pid} =
       start_supervised({NodeManager, [unload_modules_on_termination: false, anonymous: true]})
 
-    runtime_server_pid = NodeManager.start_runtime_server(manager_pid)
+    runtime_server_pid = NodeManager.start_runtime_server(manager_pid, ctx[:opts] || [])
     RuntimeServer.attach(runtime_server_pid, self())
     {:ok, %{pid: runtime_server_pid, manager_pid: manager_pid}}
   end
@@ -203,5 +203,72 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
     assert_receive {:runtime_container_down, :c1, message}
     assert message =~ "killed"
+  end
+
+  describe "smart cells" do
+    defmodule Kino.SmartCell.Dumb do
+      use GenServer
+
+      # Every smart cell needs a child_spec, we use the GenServer default
+
+      def start_link(info) do
+        {:ok, pid} = GenServer.start_link(__MODULE__, info)
+
+        {:ok, pid,
+         %{
+           js_view: %{ref: info.ref, pid: pid, assets: %{}},
+           source: "source",
+           scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_result) end
+         }}
+      end
+
+      @impl true
+      def init(info) do
+        {:ok, info}
+      end
+
+      @impl true
+      def handle_info(message, info) do
+        send(info.target_pid, {:smart_cell_debug, info.ref, :handle_info, message})
+        {:noreply, info}
+      end
+    end
+
+    defmodule Kino.SmartCell do
+      def definitions() do
+        [%{kind: "dumb", module: Kino.SmartCell.Dumb, name: "Test smart cell"}]
+      end
+    end
+
+    @opts [smart_cell_definitions_module: Kino.SmartCell]
+
+    @tag opts: @opts
+    test "notifies runtime owner when a smart cell is started", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      assert_receive {:runtime_smart_cell_started, "ref", %{js_view: %{}, source: "source"}}
+    end
+
+    @tag opts: @opts
+    test "once started scans binding and sends the result to the cell server", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+    end
+
+    @tag opts: @opts
+    test "scans binding when a new base locator is set", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      RuntimeServer.set_smart_cell_base_locator(pid, "ref", {:c2, nil})
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+    end
+
+    @tag opts: @opts
+    test "scans binding when the base locator is evaluated", %{pid: pid} do
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, :e1})
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+    end
   end
 end

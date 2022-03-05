@@ -1,6 +1,8 @@
 defmodule Livebook.Session.DataTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.Session.Data
   alias Livebook.{Delta, Notebook}
   alias Livebook.Notebook.Cell
@@ -374,7 +376,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :evaluated}},
                   "c2" => %{eval: %{validity: :aborted, status: :ready}},
-                  "c3" => %{eval: %{validity: :stale, status: :evaluating}}
+                  "c3" => %{eval: %{validity: :fresh, status: :evaluating}}
                 }
               }, _actions} = Data.apply_operation(data, operation)
     end
@@ -447,7 +449,24 @@ defmodule Livebook.Session.DataTest do
       operation = {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
-              [{:start_smart_cell, %{id: "c1"}}]} = Data.apply_operation(data, operation)
+              [{:start_smart_cell, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
+    end
+
+    test "inserting code cell before smart cell does not change its base" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:smart_cell_started, self(), "c2", Delta.new(), %{}}
+        ])
+
+      operation = {:insert_cell, self(), "s1", 0, :code, "c3", %{}}
+
+      assert {:ok, %{}, []} = Data.apply_operation(data, operation)
     end
   end
 
@@ -802,6 +821,28 @@ defmodule Livebook.Session.DataTest do
       assert {:ok, _data, [{:stop_smart_cell, %{id: "c1"}}]} =
                Data.apply_operation(data, operation)
     end
+
+    test "deleting evaluated code cell before smart cell changes its base" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:smart_cell_started, self(), "c2", Delta.new(), %{}},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:delete_cell, self(), "c1"}
+
+      assert {:ok, %{},
+              [
+                {:forget_evaluation, _, _},
+                {:set_smart_cell_base, %{id: "c2"}, %{id: "s1"}, nil}
+              ]} = Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :restore_cell" do
@@ -885,7 +926,8 @@ defmodule Livebook.Session.DataTest do
       operation = {:restore_cell, self(), "c1"}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
-              [{:start_smart_cell, %{id: "c1"}}]} = Data.apply_operation(data, operation)
+              [{:start_smart_cell, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
     end
   end
 
@@ -1685,7 +1727,7 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{eval: %{validity: :evaluated, status: :evaluating}},
+                  "c1" => %{eval: %{validity: :fresh, status: :evaluating}},
                   "c2" => %{eval: %{validity: :fresh, status: :ready}},
                   "c3" => %{eval: %{validity: :fresh, status: :queued}}
                 },
@@ -2304,6 +2346,25 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{input_values: %{"i1" => "value"}}, _} = Data.apply_operation(data, operation)
     end
+
+    test "evaluating code cell before smart cell changes its base" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:smart_cell_started, self(), "c2", Delta.new(), %{}},
+          {:queue_cells_evaluation, self(), ["c1"]}
+        ])
+
+      operation = {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+
+      assert {:ok, %{},
+              [{:set_smart_cell_base, %{id: "c2"}, %{id: "s1"}, {%{id: "c1"}, %{id: "s1"}}}]} =
+               Data.apply_operation(data, operation)
+    end
   end
 
   describe "apply_operation/2 given :bind_input" do
@@ -2407,7 +2468,7 @@ defmodule Livebook.Session.DataTest do
                 cell_infos: %{
                   "c1" => %{eval: %{validity: :aborted, status: :ready}},
                   "c2" => %{eval: %{validity: :evaluated, status: :ready}},
-                  "c3" => %{eval: %{validity: :evaluated, status: :evaluating}}
+                  "c3" => %{eval: %{validity: :fresh, status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2443,7 +2504,7 @@ defmodule Livebook.Session.DataTest do
                   "c1" => %{eval: %{validity: :evaluated, status: :ready}},
                   "c2" => %{eval: %{validity: :aborted, status: :ready}},
                   "c3" => %{eval: %{validity: :aborted, status: :ready}},
-                  "c4" => %{eval: %{validity: :evaluated, status: :evaluating}}
+                  "c4" => %{eval: %{validity: :fresh, status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2544,7 +2605,7 @@ defmodule Livebook.Session.DataTest do
                   "c1" => %{eval: %{validity: :evaluated, status: :ready}},
                   "c2" => %{eval: %{validity: :aborted, status: :ready}},
                   "c3" => %{eval: %{validity: :fresh, status: :ready}},
-                  "c4" => %{eval: %{validity: :evaluated, status: :evaluating}}
+                  "c4" => %{eval: %{validity: :fresh, status: :evaluating}}
                 },
                 section_infos: %{
                   "s1" => %{evaluating_cell_id: nil, evaluation_queue: []},
@@ -2622,7 +2683,7 @@ defmodule Livebook.Session.DataTest do
 
       operation = {:smart_cell_started, self(), "c1", delta, %{}}
 
-      assert {:ok, %{cell_infos: %{"c1" => %{status: :alive}}}, _actions} =
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :started}}}, _actions} =
                Data.apply_operation(data, operation)
     end
 
@@ -3379,18 +3440,6 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok, %{dirty: false}, []} = Data.apply_operation(data, operation)
     end
-  end
-
-  defp data_after_operations!(operations) do
-    Enum.reduce(operations, Data.new(), fn operation, data ->
-      case Data.apply_operation(data, operation) do
-        {:ok, data, _action} ->
-          data
-
-        :error ->
-          raise "failed to set up test data, operation #{inspect(operation)} returned an error"
-      end
-    end)
   end
 
   describe "bound_cells_with_section/2" do

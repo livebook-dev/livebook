@@ -78,8 +78,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     ErlDist.RuntimeServer.stop(runtime.server_pid)
   end
 
-  def evaluate_code(runtime, code, locator, prev_locator, opts \\ []) do
-    ErlDist.RuntimeServer.evaluate_code(runtime.server_pid, code, locator, prev_locator, opts)
+  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
+    ErlDist.RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
   end
 
   def forget_evaluation(runtime, locator) do
@@ -90,8 +90,14 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, ref, request, locator) do
-    ErlDist.RuntimeServer.handle_intellisense(runtime.server_pid, send_to, ref, request, locator)
+  def handle_intellisense(runtime, send_to, ref, request, base_locator) do
+    ErlDist.RuntimeServer.handle_intellisense(
+      runtime.server_pid,
+      send_to,
+      ref,
+      request,
+      base_locator
+    )
   end
 
   def duplicate(_runtime) do
@@ -104,8 +110,12 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     ErlDist.RuntimeServer.read_file(runtime.server_pid, path)
   end
 
-  def start_smart_cell(runtime, kind, ref, attrs) do
-    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs)
+  def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
+    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+  end
+
+  def set_smart_cell_base_locator(runtime, ref, base_locator) do
+    ErlDist.RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
   end
 
   def stop_smart_cell(runtime, ref) do
