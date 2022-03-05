@@ -214,20 +214,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:stop, :shutdown, state}
   end
 
-  def handle_info({:DOWN, _, :process, pid, reason}, state) do
-    state.evaluators
-    |> Enum.find(fn {_container_ref, evaluator} ->
-      evaluator.pid == pid
-    end)
-    |> case do
-      {container_ref, _} ->
-        message = Exception.format_exit(reason)
-        send(state.owner, {:runtime_container_down, container_ref, message})
-        {:noreply, %{state | evaluators: Map.delete(state.evaluators, container_ref)}}
-
-      nil ->
-        {:noreply, state}
-    end
+  def handle_info({:DOWN, _, :process, _, _} = message, state) do
+    {:noreply,
+     state
+     |> handle_down_evaluator(message)
+     |> handle_down_scan_binding(message)}
   end
 
   def handle_info({:evaluation_finished, pid, evaluation_ref}, state) do
@@ -248,6 +239,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_info(_message, state), do: {:noreply, state}
+
+  defp handle_down_evaluator(state, {:DOWN, _, :process, pid, reason}) do
+    state.evaluators
+    |> Enum.find(fn {_container_ref, evaluator} -> evaluator.pid == pid end)
+    |> case do
+      {container_ref, _} ->
+        message = Exception.format_exit(reason)
+        send(state.owner, {:runtime_container_down, container_ref, message})
+        %{state | evaluators: Map.delete(state.evaluators, container_ref)}
+
+      nil ->
+        state
+    end
+  end
+
+  defp handle_down_scan_binding(state, {:DOWN, monitor_ref, :process, _, _}) do
+    Enum.find_value(state.smart_cells, fn
+      {ref, %{scan_binding_monitor_ref: ^monitor_ref}} -> ref
+      _ -> nil
+    end)
+    |> case do
+      nil -> state
+      ref -> finish_scan_binding(ref, state)
+    end
+  end
 
   @impl true
   def handle_cast({:attach, owner, opts}, state) do
@@ -356,7 +372,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             scan_binding: scan_binding,
             base_locator: base_locator,
             scan_binding_pending: false,
-            scan_binding_worker: nil
+            scan_binding_monitor_ref: nil
           }
 
           info = scan_binding_async(ref, info, state)
@@ -470,16 +486,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   defp scan_binding_async(_ref, %{scan_binding: nil} = info, _state), do: info
 
-  defp scan_binding_async(ref, %{scan_binding_worker: pid} = info, state) when pid != nil do
-    if Process.alive?(pid) do
-      # We wait for the current scanning to finish, this way we avoid
-      # race conditions and don't unnecessarily spam evaluators
-      %{info | scan_binding_pending: true}
-    else
-      # The worker terminated unexpectedly, so we can proceed
-      scan_binding_async(ref, %{info | scan_binding_worker: nil}, state)
-    end
-  end
+  # We wait for the current scanning to finish, this way we avoid
+  # race conditions and don't unnecessarily spam evaluators
+  defp scan_binding_async(_ref, %{scan_binding_monitor_ref: ref} = info, _state) when ref != nil,
+    do: %{info | scan_binding_pending: true}
 
   defp scan_binding_async(ref, info, state) do
     %{pid: pid, scan_binding: scan_binding} = info
@@ -515,12 +525,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         pid
       end
 
-    %{info | scan_binding_pending: false, scan_binding_worker: worker_pid}
+    monitor_ref = Process.monitor(worker_pid)
+
+    %{info | scan_binding_pending: false, scan_binding_monitor_ref: monitor_ref}
   end
 
   defp finish_scan_binding(ref, state) do
     update_in(state.smart_cells[ref], fn info ->
-      info = %{info | scan_binding_worker: nil}
+      Process.demonitor(info.scan_binding_monitor_ref, [:flush])
+      info = %{info | scan_binding_monitor_ref: nil}
 
       if info.scan_binding_pending do
         scan_binding_async(ref, info, state)
