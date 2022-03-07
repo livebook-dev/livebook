@@ -86,8 +86,8 @@ defmodule Livebook.FileSystem.Utils do
   and handles sequences such as "." and "..".
   """
   @spec resolve_unix_like_path(FileSystem.path(), String.t()) :: FileSystem.t()
-  def resolve_unix_like_path(dir_path, subject) do
-    assert_dir_path!(dir_path)
+  def resolve_unix_like_path(relative_to, subject) do
+    dir_path = relative_to |> Path.dirname() |> ensure_dir_path()
 
     subject =
       if Path.basename(subject) in [".", ".."] do
