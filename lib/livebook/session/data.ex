@@ -395,8 +395,9 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:move_cell, _client_pid, id, offset}) do
-    with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, id),
-         true <- offset != 0 do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         true <- offset != 0,
+         true <- can_move_cell_by?(data, cell, section, offset) do
       data
       |> with_actions()
       |> move_cell(cell, offset)
@@ -841,6 +842,18 @@ defmodule Livebook.Session.Data do
     data_actions
     |> insert_cell(section.id, index, cell_bin_entry.cell)
     |> set!(bin_entries: List.delete(data.bin_entries, cell_bin_entry))
+  end
+
+  defp can_move_cell_by?(data, cell, section, offset) do
+    case data.cell_infos[cell.id] do
+      %{eval: %{status: :evaluating}} ->
+        notebook = Notebook.move_cell(data.notebook, cell.id, offset)
+        {:ok, _cell, new_section} = Notebook.fetch_cell_and_section(notebook, cell.id)
+        section.id == new_section.id
+
+      _info ->
+        true
+    end
   end
 
   defp move_cell({data, _} = data_actions, cell, offset) do
