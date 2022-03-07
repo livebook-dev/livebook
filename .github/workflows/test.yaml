@@ -67,6 +67,15 @@ jobs:
       - name: Start epmd
         run: cmd /c "START /b epmd"
         working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-12.0.4/bin
+      - name: Cache Mix
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
       - name: Install mix dependencies
         run: mix deps.get
       - name: Check formatting
