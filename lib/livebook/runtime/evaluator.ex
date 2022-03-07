@@ -130,9 +130,9 @@ defmodule Livebook.Runtime.Evaluator do
 
   ## Options
 
-    * `:notify_to` - a process to be notified about finished
-      evaluation. The notification is sent as a message of the
-      form `{:evaluation_finished, pid, ref}`
+    * `:on_finish` - a function to run when the evaluation is
+      finished. The function receives `t:evaluation_response/0`
+      as an argument
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, code, ref, base_ref \\ nil, opts \\ []) when ref != nil do
@@ -348,8 +348,8 @@ defmodule Livebook.Runtime.Evaluator do
 
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
 
-    if notify_to = opts[:notify_to] do
-      send(notify_to, {:evaluation_finished, self(), ref})
+    if on_finish = opts[:on_finish] do
+      on_finish.(response)
     end
 
     :erlang.garbage_collect(self())
