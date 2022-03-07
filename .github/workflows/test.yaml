@@ -74,4 +74,4 @@ jobs:
       - name: Check warnings
         run: mix compile --warnings-as-errors
       - name: Run tests
-        run: elixir --cookie "COOKIEFORTESTS" -S mix test
+        run: mix test
