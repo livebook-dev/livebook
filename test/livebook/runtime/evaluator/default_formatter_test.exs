@@ -5,12 +5,12 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatterTest do
 
   test "inspects successful results" do
     result = 10
-    assert {:text, "\e[34m10\e[0m"} = DefaultFormatter.format_response({:ok, result})
+    assert {:text, "\e[34m10\e[0m"} = DefaultFormatter.format_result({:ok, result})
   end
 
   test "gracefully handles errors in the inspect protocol" do
     result = %Livebook.TestModules.BadInspect{}
-    assert {:error, error, :other} = DefaultFormatter.format_response({:ok, result})
+    assert {:error, error, :other} = DefaultFormatter.format_result({:ok, result})
     assert error =~ ":bad_return"
   end
 end

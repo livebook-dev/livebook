@@ -949,8 +949,8 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns an error if the cell is evaluating and would move to a diffrent section" do
-      # In practic we don't want evaluating cells to be moved between
+    test "returns an error if the cell is evaluating and would move to a different section" do
+      # In practice we don't want evaluating cells to be moved between
       # a section and a branching section, however for simplicity we
       # do the same for other sections
 
