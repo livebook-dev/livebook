@@ -38,7 +38,7 @@ defmodule Livebook.Runtime.Evaluator do
   @typedoc """
   An evaluation context.
 
-  Each evaluation produces a new context, which may be optionally
+  Each evaluation produces a  new context, which may be optionally
   used by a later evaluation.
   """
   @type context :: %{binding: Code.binding(), env: Macro.Env.t(), id: binary()}
@@ -49,10 +49,10 @@ defmodule Livebook.Runtime.Evaluator do
   @type ref :: term()
 
   @typedoc """
-  An evaluation response, either the resulting value or an error
-  if raised.
+  An evaluation result, either the return value or an error if
+  raised.
   """
-  @type evaluation_response ::
+  @type evaluation_result ::
           {:ok, result :: any()}
           | {:error, Exception.kind(), error :: any(), Exception.stacktrace()}
 
@@ -75,7 +75,7 @@ defmodule Livebook.Runtime.Evaluator do
       events to. Defaults to the value of `:send_to`
 
     * `:formatter` - a module implementing the `Livebook.Runtime.Evaluator.Formatter`
-      behaviour, used for transforming evaluation response before sending
+      behaviour, used for transforming evaluation result before sending
       it to the client. Defaults to identity
   """
   @spec start_link(keyword()) :: {:ok, pid(), t()} | {:error, term()}
@@ -115,14 +115,14 @@ defmodule Livebook.Runtime.Evaluator do
   Asynchronously parses and evaluates the given code.
 
   Any exceptions are captured and transformed into an error
-  response.
+  result.
 
   The resulting contxt (binding and env) is stored under `ref`.
   Any subsequent calls may specify `base_ref` pointing to a
   previous evaluation, in which case the corresponding context
   is used as the entry point for evaluation.
 
-  The evaluation response is transformed with the configured
+  The evaluation result is transformed with the configured
   formatter send to the configured client (see `start_link/1`).
 
   See `Livebook.Runtime.evaluate_code/5` for the messages format
@@ -130,9 +130,9 @@ defmodule Livebook.Runtime.Evaluator do
 
   ## Options
 
-    * `:notify_to` - a process to be notified about finished
-      evaluation. The notification is sent as a message of the
-      form `{:evaluation_finished, pid, ref}`
+    * `:on_finish` - a function to run when the evaluation is
+      finished. The function receives `t:evaluation_result/0`
+      as an argument
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, code, ref, base_ref \\ nil, opts \\ []) when ref != nil do
@@ -319,16 +319,16 @@ defmodule Livebook.Runtime.Evaluator do
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()
 
-    {result_context, response, code_error} =
+    {result_context, result, code_error} =
       case eval(code, context.binding, context.env) do
-        {:ok, result, binding, env} ->
+        {:ok, value, binding, env} ->
           result_context = %{binding: binding, env: env, id: random_id()}
-          response = {:ok, result}
-          {result_context, response, nil}
+          result = {:ok, value}
+          {result_context, result, nil}
 
         {:error, kind, error, stacktrace, code_error} ->
-          response = {:error, kind, error, stacktrace}
-          {context, response, code_error}
+          result = {:error, kind, error, stacktrace}
+          {context, result, code_error}
       end
 
     evaluation_time_ms = get_execution_time_delta(start_time)
@@ -338,7 +338,7 @@ defmodule Livebook.Runtime.Evaluator do
     Evaluator.IOProxy.flush(state.io_proxy)
     Evaluator.IOProxy.clear_input_cache(state.io_proxy)
 
-    output = state.formatter.format_response(response)
+    output = state.formatter.format_result(result)
 
     metadata = %{
       evaluation_time_ms: evaluation_time_ms,
@@ -348,8 +348,8 @@ defmodule Livebook.Runtime.Evaluator do
 
     send(state.send_to, {:runtime_evaluation_response, ref, output, metadata})
 
-    if notify_to = opts[:notify_to] do
-      send(notify_to, {:evaluation_finished, self(), ref})
+    if on_finish = opts[:on_finish] do
+      on_finish.(result)
     end
 
     :erlang.garbage_collect(self())
@@ -429,11 +429,11 @@ defmodule Livebook.Runtime.Evaluator do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
       # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
-      {result, binding, env} = :elixir.eval_quoted(quoted, binding, env)
+      {value, binding, env} = :elixir.eval_quoted(quoted, binding, env)
       # TODO: Remove this line on Elixir v1.14 as binding propagates to env correctly
       {_, binding, env} = :elixir.eval_forms(:ok, binding, env)
 
-      {:ok, result, binding, env}
+      {:ok, value, binding, env}
     catch
       kind, error ->
         stacktrace = prune_stacktrace(__STACKTRACE__)

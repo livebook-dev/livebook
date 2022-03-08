@@ -949,6 +949,24 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
+    test "returns an error if the cell is evaluating and would move to a different section" do
+      # In practice we don't want evaluating cells to be moved between
+      # a section and a branching section, however for simplicity we
+      # do the same for other sections
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"]}
+        ])
+
+      operation = {:move_cell, self(), "c1", 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
     test "given negative offset moves the cell and marks relevant cells as stale" do
       data =
         data_after_operations!([

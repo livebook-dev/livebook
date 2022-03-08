@@ -10,22 +10,22 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   require Logger
 
   @impl true
-  def format_response({:ok, :"do not show this result in output"}) do
+  def format_result({:ok, :"do not show this result in output"}) do
     # Functions in the `IEx.Helpers` module return this specific value
     # to indicate no result should be printed in the iex shell,
     # so we respect that as well.
     :ignored
   end
 
-  def format_response({:ok, {:module, _, _, _} = value}) do
+  def format_result({:ok, {:module, _, _, _} = value}) do
     to_inspect_output(value, limit: 10)
   end
 
-  def format_response({:ok, value}) do
+  def format_result({:ok, value}) do
     to_output(value)
   end
 
-  def format_response({:error, kind, error, stacktrace}) do
+  def format_result({:error, kind, error, stacktrace}) do
     formatted = format_error(kind, error, stacktrace)
     {:error, formatted, error_type(error)}
   end

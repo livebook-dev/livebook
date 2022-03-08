@@ -221,11 +221,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
      |> handle_down_scan_binding(message)}
   end
 
-  def handle_info({:evaluation_finished, pid, evaluation_ref}, state) do
+  def handle_info({:evaluation_finished, locator}, state) do
     {:noreply,
      state
      |> report_smart_cell_definitions()
-     |> scan_binding_after_evaluation(pid, evaluation_ref)}
+     |> scan_binding_after_evaluation(locator)}
   end
 
   def handle_info(:memory_usage, state) do
@@ -286,7 +286,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, code, {container_ref, evaluation_ref}, base_locator, opts},
+        {:evaluate_code, code, {container_ref, evaluation_ref} = locator, base_locator, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
@@ -306,7 +306,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           nil
       end
 
-    opts = Keyword.put(opts, :notify_to, self())
+    {smart_cell_ref, opts} = Keyword.pop(opts, :smart_cell_ref)
+    smart_cell_info = smart_cell_ref && state.smart_cells[smart_cell_ref]
+
+    myself = self()
+
+    opts =
+      Keyword.put(opts, :on_finish, fn result ->
+        with %{scan_eval_result: scan_eval_result} when scan_eval_result != nil <- smart_cell_info do
+          try do
+            smart_cell_info.scan_eval_result.(smart_cell_info.pid, result)
+          rescue
+            error -> Logger.error("scanning evaluation result raised an error: #{inspect(error)}")
+          end
+        end
+
+        send(myself, {:evaluation_finished, locator})
+      end)
 
     Evaluator.evaluate_code(
       state.evaluators[container_ref],
@@ -360,7 +376,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
              {definition.module, %{ref: ref, attrs: attrs, target_pid: state.owner}}
            ) do
         {:ok, pid, info} ->
-          %{js_view: js_view, source: source, scan_binding: scan_binding} = info
+          %{
+            js_view: js_view,
+            source: source,
+            scan_binding: scan_binding,
+            scan_eval_result: scan_eval_result
+          } = info
 
           send(
             state.owner,
@@ -372,7 +393,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             scan_binding: scan_binding,
             base_locator: base_locator,
             scan_binding_pending: false,
-            scan_binding_monitor_ref: nil
+            scan_binding_monitor_ref: nil,
+            scan_eval_result: scan_eval_result
           }
 
           info = scan_binding_async(ref, info, state)
@@ -543,12 +565,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end)
   end
 
-  defp scan_binding_after_evaluation(state, pid, evaluation_ref) do
-    {container_ref, _} =
-      Enum.find(state.evaluators, fn {_container_ref, evaluator} -> evaluator.pid == pid end)
-
-    locator = {container_ref, evaluation_ref}
-
+  defp scan_binding_after_evaluation(state, locator) do
     update_in(state.smart_cells, fn smart_cells ->
       Map.map(smart_cells, fn
         {ref, %{base_locator: ^locator} = info} -> scan_binding_async(ref, info, state)

@@ -1209,7 +1209,14 @@ defmodule Livebook.Session do
       end
 
     file = path <> "#cell"
-    opts = [file: file]
+
+    smart_cell_ref =
+      case cell do
+        %Cell.Smart{} -> cell.id
+        _ -> nil
+      end
+
+    opts = [file: file, smart_cell_ref: smart_cell_ref]
 
     locator = {container_ref_for_section(section), cell.id}
     base_locator = find_base_locator(state.data, cell, section)

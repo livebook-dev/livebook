@@ -218,7 +218,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
          %{
            js_view: %{ref: info.ref, pid: pid, assets: %{}},
            source: "source",
-           scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_result) end
+           scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_ping) end,
+           scan_eval_result: fn pid, _result -> send(pid, :scan_eval_result_ping) end
          }}
       end
 
@@ -251,24 +252,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     @tag opts: @opts
     test "once started scans binding and sends the result to the cell server", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
     test "scans binding when a new base locator is set", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
       RuntimeServer.set_smart_cell_base_locator(pid, "ref", {:c2, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
     test "scans binding when the base locator is evaluated", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, :e1})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
       RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
+    end
+
+    @tag opts: @opts
+    test "scans evaluation result when the smart cell is evaluated", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil}, smart_cell_ref: "ref")
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_eval_result_ping}
     end
   end
 end
