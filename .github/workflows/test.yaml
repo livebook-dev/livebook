@@ -32,7 +32,7 @@ jobs:
       - name: Check warnings
         run: mix compile --warnings-as-errors
       - name: Run tests
-        run: elixir --cookie "COOKIEFORTESTS" -S mix test
+        run: mix test
       - name: Install Node
         uses: actions/setup-node@v2
         with:
@@ -57,7 +57,6 @@ jobs:
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
-        working-directory: .
       - uses: actions/checkout@v2
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
@@ -67,6 +66,10 @@ jobs:
       - name: Start epmd
         run: cmd /c "START /b epmd"
         working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-12.0.4/bin
+      # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
+      - name: Add tar.exe
+        run: |
+          "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
       - name: Cache Mix
         uses: actions/cache@v2
         with:
