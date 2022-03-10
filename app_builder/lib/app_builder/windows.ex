@@ -26,6 +26,9 @@ defmodule AppBuilder.Windows do
 
     app_name = Keyword.fetch!(options, :name)
 
+    vcredist_path = ensure_vcredistx64()
+    File.cp!(vcredist_path, Path.join(tmp_dir, "vcredist_x64.exe"))
+
     logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     app_icon_path = Path.join(tmp_dir, "app_icon.ico")
     copy_image(logo_path, app_icon_path)
@@ -92,9 +95,14 @@ defmodule AppBuilder.Windows do
 
   Section "Install"
     SetOutPath "$INSTDIR"
+
+    File vcredist_x64.exe
+    ExecWait '"$INSTDIR\\vcredist_x64.exe" /install'
+
     File /r rel rel
     File "<%= app_name %>.vbs"
     File "app_icon.ico"
+
     CreateDirectory "$INSTDIR\\Logs"
     WriteUninstaller "$INSTDIR\\<%= app_name %>Uninstall.exe"
 
@@ -157,7 +165,7 @@ defmodule AppBuilder.Windows do
   ' It's ok for either to fail because we run them asynchronously.
 
   Set env = shell.Environment("Process")
-  env("PATH") = ".\rel\erts-<%= release.erts_version %>\bin;" & env("PATH")
+  env("PATH") = ".\rel\vendor\elixir\bin;.\rel\erts-<%= release.erts_version %>\bin;" & env("PATH")
 
   ' > bin/release rpc "mod.windows_connected(url)"
   '
@@ -172,6 +180,12 @@ defmodule AppBuilder.Windows do
   """
 
   EEx.function_from_string(:defp, :launcher_vbs, code, [:release, :options], trim: true)
+
+  defp ensure_vcredistx64 do
+    url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    sha256 = "37ed59a66699c0e5a7ebeef7352d7c1c2ed5ede7212950a1b0a8ee289af4a95b"
+    AppBuilder.Utils.ensure_executable(url, sha256)
+  end
 
   defp ensure_makensis do
     url = "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.08/nsis-3.08.zip"
@@ -189,7 +203,7 @@ defmodule AppBuilder.Windows do
     url =
       "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip"
 
-    sha256 = "6c0a104527d93c73da2e93c050795c94d711620b9ca396d7ace1ed1adc94f4b3"
+    sha256 = "d7b82e95d2860042c241d9913e14832cf1491f39c4da91286bace39582916dc8"
     AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
   end
 
