@@ -66,7 +66,7 @@ defmodule LivebookWeb.SettingsLive do
           <div class="flex flex-col space-y-4">
             <div>
               <h2 class="text-xl text-gray-800 font-semibold">
-                Auto save path
+                Autosave location
               </h2>
               <p class="mt-4 text-gray-700">
                 A directory to temporarily keep notebooks until they are persisted.

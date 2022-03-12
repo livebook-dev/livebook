@@ -29,7 +29,7 @@ defmodule LivebookWeb.SettingsLive.AutosavePathComponent do
               phx-click="set_autosave_path"
               disabled={not Livebook.FileSystem.File.dir?(@state.file)}
               tabindex="-1">
-              Choose
+              Save
             </button>
           </.live_component>
         <% else %>
@@ -37,7 +37,7 @@ defmodule LivebookWeb.SettingsLive.AutosavePathComponent do
             <input class="input mr-2" readonly value={@state.file.path}/>
             <button class="button-base button-gray button-small"
               phx-click="switch_autosave_path_select">
-              Choose a path
+              Change
             </button>
           </div>
         <% end %>
