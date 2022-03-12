@@ -106,7 +106,7 @@ this particular section as a branched section, which means
 the main execution flow will not be interrupted. But it
 is something you should keep in mind in the future. You
 can also stop it by pressing the "Stop" button above the
-Elixir cell.
+Code cell.
 
 <!-- livebook:{"branch_parent_index":0} -->
 

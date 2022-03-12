@@ -56,6 +56,7 @@ defmodule Livebook.Session do
   alias Livebook.Notebook.{Cell, Section}
 
   @timeout :infinity
+  @main_container_ref :main_flow
 
   @type t :: %__MODULE__{
           id: id(),
@@ -256,9 +257,9 @@ defmodule Livebook.Session do
   @doc """
   Sends cell insertion request to the server.
   """
-  @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type()) :: :ok
-  def insert_cell(pid, section_id, index, type) do
-    GenServer.cast(pid, {:insert_cell, self(), section_id, index, type})
+  @spec insert_cell(pid(), Section.id(), non_neg_integer(), Cell.type(), map()) :: :ok
+  def insert_cell(pid, section_id, index, type, attrs \\ %{}) do
+    GenServer.cast(pid, {:insert_cell, self(), section_id, index, type, attrs})
   end
 
   @doc """
@@ -299,6 +300,14 @@ defmodule Livebook.Session do
   @spec move_section(pid(), Section.id(), integer()) :: :ok
   def move_section(pid, section_id, offset) do
     GenServer.cast(pid, {:move_section, self(), section_id, offset})
+  end
+
+  @doc """
+  Sends cell convertion request to the server.
+  """
+  @spec convert_smart_cell(pid(), Cell.id()) :: :ok
+  def convert_smart_cell(pid, cell_id) do
+    GenServer.cast(pid, {:convert_smart_cell, self(), cell_id})
   end
 
   @doc """
@@ -542,7 +551,7 @@ defmodule Livebook.Session do
   end
 
   defp default_notebook() do
-    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:elixir)]}]}
+    %{Notebook.new() | sections: [%{Section.new() | cells: [Cell.new(:code)]}]}
   end
 
   defp schedule_autosave(state) do
@@ -657,9 +666,9 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:insert_cell, client_pid, section_id, index, type}, state) do
+  def handle_cast({:insert_cell, client_pid, section_id, index, type, attrs}, state) do
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id()}
+    operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id(), attrs}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -688,6 +697,26 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:convert_smart_cell, client_pid, cell_id}, state) do
+    state =
+      with {:ok, %Cell.Smart{} = cell, section} <-
+             Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
+        index = Enum.find_index(section.cells, &(&1 == cell))
+
+        attrs = Map.take(cell, [:source, :outputs])
+
+        state
+        |> handle_operation({:delete_cell, client_pid, cell.id})
+        |> handle_operation(
+          {:insert_cell, client_pid, section.id, index, :code, Utils.random_id(), attrs}
+        )
+      else
+        _ -> state
+      end
+
+    {:noreply, state}
+  end
+
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
     operation = {:queue_cells_evaluation, client_pid, [cell_id]}
     {:noreply, handle_operation(state, operation)}
@@ -696,7 +725,7 @@ defmodule Livebook.Session do
   def handle_cast({:queue_section_evaluation, client_pid, section_id}, state) do
     case Notebook.fetch_section(state.data.notebook, section_id) do
       {:ok, section} ->
-        cell_ids = for cell <- section.cells, is_struct(cell, Cell.Elixir), do: cell.id
+        cell_ids = for cell <- section.cells, Cell.evaluable?(cell), do: cell.id
         operation = {:queue_cells_evaluation, client_pid, cell_ids}
         {:noreply, handle_operation(state, operation)}
 
@@ -851,7 +880,7 @@ defmodule Livebook.Session do
 
     operation =
       case container_ref do
-        :main_flow -> {:reflect_main_evaluation_failure, self()}
+        @main_container_ref -> {:reflect_main_evaluation_failure, self()}
         section_id -> {:reflect_evaluation_failure, self(), section_id}
       end
 
@@ -874,6 +903,35 @@ defmodule Livebook.Session do
 
   def handle_info({:runtime_memory_usage, runtime_memory}, state) do
     {:noreply, state |> put_memory_usage(runtime_memory) |> notify_update()}
+  end
+
+  def handle_info({:runtime_smart_cell_definitions, definitions}, state) do
+    operation = {:set_smart_cell_definitions, self(), definitions}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_info({:runtime_smart_cell_started, id, info}, state) do
+    case Notebook.fetch_cell_and_section(state.data.notebook, id) do
+      {:ok, cell, _section} ->
+        delta = Livebook.JSInterop.diff(cell.source, info.source)
+        operation = {:smart_cell_started, self(), id, delta, info.js_view}
+        {:noreply, handle_operation(state, operation)}
+
+      :error ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_info({:runtime_smart_cell_update, id, cell_state, source}, state) do
+    case Notebook.fetch_cell_and_section(state.data.notebook, id) do
+      {:ok, cell, _section} ->
+        delta = Livebook.JSInterop.diff(cell.source, source)
+        operation = {:update_smart_cell, self(), id, cell_state, delta}
+        {:noreply, handle_operation(state, operation)}
+
+      :error ->
+        {:noreply, state}
+    end
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -1151,11 +1209,18 @@ defmodule Livebook.Session do
       end
 
     file = path <> "#cell"
-    opts = [file: file]
+
+    smart_cell_ref =
+      case cell do
+        %Cell.Smart{} -> cell.id
+        _ -> nil
+      end
+
+    opts = [file: file, smart_cell_ref: smart_cell_ref]
 
     locator = {container_ref_for_section(section), cell.id}
-    prev_locator = find_prev_locator(state.data.notebook, cell, section)
-    Runtime.evaluate_code(state.data.runtime, cell.source, locator, prev_locator, opts)
+    base_locator = find_base_locator(state.data, cell, section)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
     handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
@@ -1172,6 +1237,40 @@ defmodule Livebook.Session do
   defp handle_action(state, {:forget_evaluation, cell, section}) do
     if state.data.runtime do
       Runtime.forget_evaluation(state.data.runtime, {container_ref_for_section(section), cell.id})
+    end
+
+    state
+  end
+
+  defp handle_action(state, {:start_smart_cell, cell, section}) do
+    if state.data.runtime do
+      base_locator = find_base_locator(state.data, cell, section, existing: true)
+      Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
+    end
+
+    state
+  end
+
+  defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
+    if state.data.runtime do
+      base_locator =
+        case parent do
+          nil ->
+            {container_ref_for_section(section), nil}
+
+          {parent_cell, parent_section} ->
+            {container_ref_for_section(parent_section), parent_cell.id}
+        end
+
+      Runtime.set_smart_cell_base_locator(state.data.runtime, cell.id, base_locator)
+    end
+
+    state
+  end
+
+  defp handle_action(state, {:stop_smart_cell, cell}) do
+    if state.data.runtime do
+      Runtime.stop_smart_cell(state.data.runtime, cell.id)
     end
 
     state
@@ -1388,20 +1487,36 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Determines locator of the evaluation that the given
-  cell depends on.
+  Finds evaluation locator that the given cell depends on.
+
+  By default looks up the direct evaluation parent.
+
+  ## Options
+
+    * `:existing` - considers only cells that have been evaluated
+      as evaluation parents. Defaults to `false`
   """
-  @spec find_prev_locator(Notebook.t(), Cell.t(), Section.t()) :: Runtime.locator()
-  def find_prev_locator(notebook, cell, section) do
+  @spec find_base_locator(Data.t(), Cell.t(), Section.t(), keyword()) :: Runtime.locator()
+  def find_base_locator(data, cell, section, opts \\ []) do
+    parent_filter =
+      if opts[:existing] do
+        fn cell ->
+          info = data.cell_infos[cell.id]
+          Cell.evaluable?(cell) and info.eval.validity in [:evaluated, :stale]
+        end
+      else
+        &Cell.evaluable?/1
+      end
+
     default = {container_ref_for_section(section), nil}
 
-    notebook
+    data.notebook
     |> Notebook.parent_cells_with_section(cell.id)
     |> Enum.find_value(default, fn {cell, section} ->
-      is_struct(cell, Cell.Elixir) && {container_ref_for_section(section), cell.id}
+      parent_filter.(cell) && {container_ref_for_section(section), cell.id}
     end)
   end
 
-  defp container_ref_for_section(%{parent_id: nil}), do: :main_flow
+  defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref
   defp container_ref_for_section(section), do: section.id
 end

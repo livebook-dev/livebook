@@ -86,7 +86,7 @@ defmodule LivebookWeb.SessionControllerTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -206,14 +206,14 @@ defmodule LivebookWeb.SessionControllerTest do
     archive_path = Path.expand("../../support/assets.tar.gz", __DIR__)
     hash = "test-" <> Livebook.Utils.random_id()
     assets_info = %{archive_path: archive_path, hash: hash, js_path: "main.js"}
-    output = {:js, %{assets: assets_info}}
+    output = {:js, %{js_view: %{assets: assets_info}}}
 
     notebook = %{
       Notebook.new()
       | sections: [
           %{
             Notebook.Section.new()
-            | cells: [%{Notebook.Cell.new(:elixir) | outputs: [{0, output}]}]
+            | cells: [%{Notebook.Cell.new(:code) | outputs: [{0, output}]}]
           }
         ]
     }

@@ -47,6 +47,7 @@ defmodule LivebookWeb.SessionLive do
         {:ok,
          socket
          |> assign(
+           self_path: Routes.session_path(socket, :page, session.id),
            session: session,
            platform: platform,
            self: self(),
@@ -119,9 +120,7 @@ defmodule LivebookWeb.SessionLive do
           label="Keyboard shortcuts (?)"
           path={Routes.session_path(@socket, :shortcuts, @session.id)}
           active={@live_action == :shortcuts} />
-        <SidebarHelpers.user_item
-          current_user={@current_user}
-          path={Routes.session_path(@socket, :user, @session.id)} />
+        <SidebarHelpers.user_item current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-element="side-panel">
@@ -136,7 +135,7 @@ defmodule LivebookWeb.SessionLive do
         </div>
       </div>
       <div class="grow overflow-y-auto relative" data-element="notebook">
-        <div data-element="output-iframes" phx-update="ignore" id="output-iframes"></div>
+        <div data-element="js-view-iframes" phx-update="ignore" id="js-view-iframes"></div>
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-element="notebook-content">
           <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200"
             data-element="notebook-headline"
@@ -206,6 +205,7 @@ defmodule LivebookWeb.SessionLive do
                   index={index}
                   session_id={@session.id}
                   runtime={@data_view.runtime}
+                  smart_cell_definitions={@data_view.smart_cell_definitions}
                   section_view={section_view} />
             <% end %>
             <div style="height: 80vh"></div>
@@ -224,14 +224,10 @@ defmodule LivebookWeb.SessionLive do
       </div>
     </div>
 
-    <%= if @live_action == :user do %>
-      <.current_user_modal
-        return_to={Routes.session_path(@socket, :page, @session.id)}
-        current_user={@current_user} />
-    <% end %>
+    <.current_user_modal return_to={@self_path} current_user={@current_user} />
 
     <%= if @live_action == :runtime_settings do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="runtime-settings-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.RuntimeComponent}
           id="runtime-settings"
           session={@session}
@@ -240,7 +236,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :file_settings do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="persistence-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <%= live_render @socket, LivebookWeb.SessionLive.PersistenceLive,
               id: "persistence",
               session: %{
@@ -253,7 +249,7 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :shortcuts do %>
-      <.modal class="w-full max-w-6xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="shortcuts-modal" show class="w-full max-w-6xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.ShortcutsComponent}
           id="shortcuts"
           platform={@platform} />
@@ -261,49 +257,49 @@ defmodule LivebookWeb.SessionLive do
     <% end %>
 
     <%= if @live_action == :cell_settings do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="cell-settings-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={settings_component_for(@cell)}
           id="cell-settings"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           cell={@cell} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :cell_upload do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="cell-upload-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.CellUploadComponent}
           id="cell-upload"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           cell={@cell}
           uploads={@uploads} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :delete_section do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="delete-section-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.DeleteSectionComponent}
           id="delete-section"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           section={@section}
           is_first={@section.id == @first_section_id} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :bin do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="bin-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.BinComponent}
           id="bin"
           session={@session}
-          return_to={Routes.session_path(@socket, :page, @session.id)}
+          return_to={@self_path}
           bin_entries={@data_view.bin_entries} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :export do %>
-      <.modal class="w-full max-w-4xl" return_to={Routes.session_path(@socket, :page, @session.id)}>
+      <.modal id="export-modal" show class="w-full max-w-4xl" patch={@self_path}>
         <.live_component module={LivebookWeb.SessionLive.ExportComponent}
           id="export"
           session={@session}
@@ -531,8 +527,8 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp settings_component_for(%Cell.Elixir{}),
-    do: LivebookWeb.SessionLive.ElixirCellSettingsComponent
+  defp settings_component_for(%Cell.Code{}),
+    do: LivebookWeb.SessionLive.CodeCellSettingsComponent
 
   defp branching_tooltip_attrs(name, parent_name) do
     direction = if String.length(name) >= 16, do: "left", else: "right"
@@ -615,8 +611,8 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("insert_cell_below", %{"type" => type} = params, socket) do
-    type = String.to_atom(type)
+  def handle_event("insert_cell_below", params, socket) do
+    {type, attrs} = cell_type_and_attrs_from_params(params)
 
     with {:ok, section, index} <-
            section_with_next_index(
@@ -624,7 +620,7 @@ defmodule LivebookWeb.SessionLive do
              params["section_id"],
              params["cell_id"]
            ) do
-      Session.insert_cell(socket.assigns.session.pid, section.id, index, type)
+      Session.insert_cell(socket.assigns.session.pid, section.id, index, type, attrs)
     end
 
     {:noreply, socket}
@@ -706,6 +702,12 @@ defmodule LivebookWeb.SessionLive do
         :error ->
           socket
       end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("convert_smart_cell", %{"cell_id" => cell_id}, socket) do
+    Session.convert_smart_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
@@ -817,8 +819,8 @@ defmodule LivebookWeb.SessionLive do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if data.runtime do
         ref = make_ref()
-        prev_locator = Session.find_prev_locator(data.notebook, cell, section)
-        Runtime.handle_intellisense(data.runtime, self(), ref, request, prev_locator)
+        base_locator = Session.find_base_locator(data, cell, section, existing: true)
+        Runtime.handle_intellisense(data.runtime, self(), ref, request, base_locator)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
@@ -1139,7 +1141,7 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id, _attrs}) do
     socket = prune_cell_sources(socket)
 
     if client_pid == self() do
@@ -1255,6 +1257,13 @@ defmodule LivebookWeb.SessionLive do
     String.upcase(head) <> tail
   end
 
+  defp cell_type_and_attrs_from_params(%{"type" => "markdown"}), do: {:markdown, %{}}
+  defp cell_type_and_attrs_from_params(%{"type" => "code"}), do: {:code, %{}}
+
+  defp cell_type_and_attrs_from_params(%{"type" => "smart", "kind" => kind}) do
+    {:smart, %{kind: kind}}
+  end
+
   defp section_with_next_index(notebook, section_id, cell_id)
 
   defp section_with_next_index(notebook, section_id, nil) do
@@ -1315,6 +1324,7 @@ defmodule LivebookWeb.SessionLive do
       autosave_interval_s: data.notebook.autosave_interval_s,
       dirty: data.dirty,
       runtime: data.runtime,
+      smart_cell_definitions: data.smart_cell_definitions,
       global_status: global_status(data),
       notebook_name: data.notebook.name,
       sections_items:
@@ -1331,8 +1341,7 @@ defmodule LivebookWeb.SessionLive do
         |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
       section_views: section_views(data.notebook.sections, data),
-      bin_entries: data.bin_entries,
-      created_at: DateTime.now!("Etc/UTC")
+      bin_entries: data.bin_entries
     }
   end
 
@@ -1355,17 +1364,23 @@ defmodule LivebookWeb.SessionLive do
   defp global_status(data) do
     cells =
       data.notebook
-      |> Notebook.elixir_cells_with_section()
+      |> Notebook.evaluable_cells_with_section()
       |> Enum.map(fn {cell, _} -> cell end)
 
     cells_status(cells, data)
   end
 
-  defp evaluating?(cell, data), do: data.cell_infos[cell.id].evaluation_status == :evaluating
+  defp evaluating?(cell, data) do
+    get_in(data.cell_infos, [cell.id, :eval, :status]) == :evaluating
+  end
 
-  defp stale?(cell, data), do: data.cell_infos[cell.id].validity_status == :stale
+  defp stale?(cell, data) do
+    get_in(data.cell_infos, [cell.id, :eval, :validity]) == :stale
+  end
 
-  defp evaluated?(cell, data), do: data.cell_infos[cell.id].validity_status == :evaluated
+  defp evaluated?(cell, data) do
+    get_in(data.cell_infos, [cell.id, :eval, :validity]) == :evaluated
+  end
 
   defp section_views(sections, data) do
     sections
@@ -1395,52 +1410,71 @@ defmodule LivebookWeb.SessionLive do
     %{id: section.id, name: section.name}
   end
 
-  defp cell_to_view(%Cell.Elixir{} = cell, data) do
-    info = data.cell_infos[cell.id]
-
-    %{
-      id: cell.id,
-      type: :elixir,
-      source_info: cell_source_info(cell, info),
-      outputs: cell.outputs,
-      validity_status: info.validity_status,
-      evaluation_status: info.evaluation_status,
-      evaluation_time_ms: info.evaluation_time_ms,
-      evaluation_start: info.evaluation_start,
-      evaluation_number: info.evaluation_number,
-      outputs_batch_number: info.outputs_batch_number,
-      reevaluate_automatically: cell.reevaluate_automatically,
-      # Pass input values relevant to the given cell
-      input_values: input_values_for_cell(cell, data)
-    }
-  end
-
   defp cell_to_view(%Cell.Markdown{} = cell, data) do
     info = data.cell_infos[cell.id]
 
     %{
       id: cell.id,
       type: :markdown,
-      source_info: cell_source_info(cell, info)
+      source_view: cell_source_view(cell, info)
     }
   end
 
-  defp cell_source_info(%{source: :__pruned__}, _info) do
+  defp cell_to_view(%Cell.Code{} = cell, data) do
+    info = data.cell_infos[cell.id]
+
+    %{
+      id: cell.id,
+      type: :code,
+      source_view: cell_source_view(cell, info),
+      eval: eval_info_to_view(cell, info.eval, data),
+      reevaluate_automatically: cell.reevaluate_automatically
+    }
+  end
+
+  defp cell_to_view(%Cell.Smart{} = cell, data) do
+    info = data.cell_infos[cell.id]
+
+    %{
+      id: cell.id,
+      type: :smart,
+      source_view: cell_source_view(cell, info),
+      eval: eval_info_to_view(cell, info.eval, data),
+      status: info.status,
+      js_view: cell.js_view
+    }
+  end
+
+  defp eval_info_to_view(cell, eval_info, data) do
+    %{
+      outputs: cell.outputs,
+      validity: eval_info.validity,
+      status: eval_info.status,
+      evaluation_time_ms: eval_info.evaluation_time_ms,
+      evaluation_start: eval_info.evaluation_start,
+      evaluation_number: eval_info.evaluation_number,
+      outputs_batch_number: eval_info.outputs_batch_number,
+      # Pass input values relevant to the given cell
+      input_values: input_values_for_cell(cell, data)
+    }
+  end
+
+  defp cell_source_view(%{source: :__pruned__}, _info) do
     :__pruned__
   end
 
-  defp cell_source_info(cell, info) do
+  defp cell_source_view(cell, info) do
     %{
       source: cell.source,
-      revision: info.revision,
-      evaluation_digest: encode_digest(info.evaluation_digest)
+      revision: info.source.revision,
+      evaluation_digest: encode_digest(get_in(info, [:eval, :evaluation_digest]))
     }
   end
 
   defp input_values_for_cell(cell, data) do
     input_ids =
       for output <- cell.outputs,
-          attrs <- Cell.Elixir.find_inputs_in_output(output),
+          attrs <- Cell.find_inputs_in_output(output),
           do: attrs.id
 
     Map.take(data.input_values, input_ids)
@@ -1455,6 +1489,9 @@ defmodule LivebookWeb.SessionLive do
         data_view
 
       {:apply_cell_delta, _pid, _cell_id, _delta, _revision} ->
+        update_dirty_status(data_view, data)
+
+      {:update_smart_cell, _pid, _cell_id, _cell_state, _delta} ->
         update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly
@@ -1503,6 +1540,7 @@ defmodule LivebookWeb.SessionLive do
         update_in(
           data.notebook,
           &Notebook.update_cells(&1, fn
+            %Notebook.Cell.Smart{} = cell -> %{cell | source: :__pruned__, attrs: :__pruned__}
             %{source: _} = cell -> %{cell | source: :__pruned__}
             cell -> cell
           end)

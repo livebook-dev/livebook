@@ -20,6 +20,7 @@ defmodule LivebookWeb.HomeLive do
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
+       self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
@@ -34,10 +35,7 @@ defmodule LivebookWeb.HomeLive do
     <div class="flex grow h-full">
       <.live_region role="alert" />
       <SidebarHelpers.sidebar>
-        <SidebarHelpers.shared_home_footer
-          socket={@socket}
-          current_user={@current_user}
-          user_path={Routes.home_path(@socket, :user)} />
+        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
@@ -115,23 +113,19 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </div>
 
-    <%= if @live_action == :user do %>
-      <.current_user_modal
-        return_to={Routes.home_path(@socket, :page)}
-        current_user={@current_user} />
-    <% end %>
+    <.current_user_modal current_user={@current_user} />
 
     <%= if @live_action == :close_session do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+      <.modal id="close-session-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.HomeLive.CloseSessionComponent}
           id="close-session"
-          return_to={Routes.home_path(@socket, :page)}
+          return_to={@self_path}
           session={@session} />
       </.modal>
     <% end %>
 
     <%= if @live_action == :import do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+      <.modal id="import-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.HomeLive.ImportComponent}
           id="import"
           tab={@tab}
@@ -140,11 +134,11 @@ defmodule LivebookWeb.HomeLive do
     <% end %>
 
     <%= if @live_action == :edit_sessions do %>
-      <.modal class="w-full max-w-xl" return_to={Routes.home_path(@socket, :page)}>
+      <.modal id="edit-sessions-modal" show class="w-full max-w-xl" patch={@self_path}>
         <.live_component module={LivebookWeb.HomeLive.EditSessionsComponent}
           id="edit-sessions"
           action={@bulk_action}
-          return_to={Routes.home_path(@socket, :page)}
+          return_to={@self_path}
           sessions={@sessions}
           selected_sessions={selected_sessions(@sessions, @selected_session_ids)} />
       </.modal>
@@ -195,6 +189,7 @@ defmodule LivebookWeb.HomeLive do
 
   def handle_params(%{"path" => path} = _params, _uri, socket)
       when socket.assigns.live_action == :public_open do
+    path = Path.expand(path)
     file = FileSystem.File.local(path)
 
     if file_running?(file, socket.assigns.sessions) do
@@ -385,6 +380,8 @@ defmodule LivebookWeb.HomeLive do
   end
 
   defp determine_file(%{"path" => path} = _params) do
+    path = Path.expand(path)
+
     cond do
       File.dir?(path) ->
         path

@@ -1,8 +1,11 @@
 defmodule Livebook.SessionTest do
   use ExUnit.Case, async: true
 
+  import Livebook.TestHelpers
+
   alias Livebook.{Session, Delta, Runtime, Utils, Notebook, FileSystem}
   alias Livebook.Notebook.{Section, Cell}
+  alias Livebook.Session.Data
 
   setup do
     session = start_session()
@@ -57,8 +60,8 @@ defmodule Livebook.SessionTest do
       Session.insert_section(session.pid, 0)
       assert_receive {:operation, {:insert_section, ^pid, 0, section_id}}
 
-      Session.insert_cell(session.pid, section_id, 0, :elixir)
-      assert_receive {:operation, {:insert_cell, ^pid, ^section_id, 0, :elixir, _id}}
+      Session.insert_cell(session.pid, section_id, 0, :code)
+      assert_receive {:operation, {:insert_cell, ^pid, ^section_id, 0, :code, _id, _attrs}}
     end
   end
 
@@ -96,6 +99,30 @@ defmodule Livebook.SessionTest do
 
       Session.restore_cell(session.pid, cell_id)
       assert_receive {:operation, {:restore_cell, ^pid, ^cell_id}}
+    end
+  end
+
+  describe "convert_smart_cell/2" do
+    test "sends a delete and insert opreations to subscribers" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      pid = self()
+
+      Session.convert_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+      section_id = section.id
+
+      assert_receive {:operation, {:delete_cell, ^pid, ^cell_id}}
+
+      assert_receive {:operation,
+                      {:insert_cell, ^pid, ^section_id, 0, :code, _id,
+                       %{source: "content", outputs: []}}}
     end
   end
 
@@ -481,20 +508,20 @@ defmodule Livebook.SessionTest do
 
   describe "user input" do
     test "replies to runtime input request" do
-      input_elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_put_input_code}
+      input_code_cell = %{Notebook.Cell.new(:code) | source: @livebook_put_input_code}
 
-      elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_get_input_value_code}
+      code_cell = %{Notebook.Cell.new(:code) | source: @livebook_get_input_value_code}
 
       notebook = %{
         Notebook.new()
         | sections: [
-            %{Notebook.Section.new() | cells: [input_elixir_cell, elixir_cell]}
+            %{Notebook.Section.new() | cells: [input_code_cell, code_cell]}
           ]
       }
 
       session = start_session(notebook: notebook)
 
-      cell_id = elixir_cell.id
+      cell_id = code_cell.id
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       Session.queue_cell_evaluation(session.pid, cell_id)
@@ -507,18 +534,18 @@ defmodule Livebook.SessionTest do
     end
 
     test "replies with error when no matching input is found" do
-      elixir_cell = %{Notebook.Cell.new(:elixir) | source: @livebook_get_input_value_code}
+      code_cell = %{Notebook.Cell.new(:code) | source: @livebook_get_input_value_code}
 
       notebook = %{
         Notebook.new()
         | sections: [
-            %{Notebook.Section.new() | cells: [elixir_cell]}
+            %{Notebook.Section.new() | cells: [code_cell]}
           ]
       }
 
       session = start_session(notebook: notebook)
 
-      cell_id = elixir_cell.id
+      cell_id = code_cell.id
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       Session.queue_cell_evaluation(session.pid, cell_id)
@@ -531,26 +558,59 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "find_prev_locator/3" do
-    test "given cell in main flow returns previous Elixir cell" do
-      cell1 = %{Cell.new(:elixir) | id: "c1"}
+  describe "smart cells" do
+    test "notifies subcribers when a smart cell starts and passes source diff as delta" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{Notebook.Section.new() | cells: [smart_cell]}
+          ]
+      }
+
+      session = start_session(notebook: notebook)
+
+      runtime = Livebook.Runtime.NoopRuntime.new()
+      Session.connect_runtime(session.pid, runtime)
+
+      send(session.pid, {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text"}]})
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id, %{source: "content!", js_view: %{}}}
+      )
+
+      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      cell_id = smart_cell.id
+
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}}}
+    end
+  end
+
+  describe "find_base_locator/3" do
+    test "given cell in main flow returns previous Code cell" do
+      cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:markdown) | id: "c2"}
       section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
 
-      cell3 = %{Cell.new(:elixir) | id: "c3"}
+      cell3 = %{Cell.new(:code) | id: "c3"}
       section2 = %{Section.new() | id: "s2", cells: [cell3]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {:main_flow, "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2)
     end
 
-    test "given cell in branching section returns previous Elixir cell in that section" do
+    test "given cell in branching section returns previous Code cell in that section" do
       section1 = %{Section.new() | id: "s1"}
 
-      cell1 = %{Cell.new(:elixir) | id: "c1"}
+      cell1 = %{Cell.new(:code) | id: "c1"}
       cell2 = %{Cell.new(:markdown) | id: "c2"}
-      cell3 = %{Cell.new(:elixir) | id: "c3"}
+      cell3 = %{Cell.new(:code) | id: "c3"}
 
       section2 = %{
         Section.new()
@@ -560,27 +620,29 @@ defmodule Livebook.SessionTest do
       }
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {"s2", "c1"} = Session.find_prev_locator(notebook, cell3, section2)
+      assert {"s2", "c1"} = Session.find_base_locator(data, cell3, section2)
     end
 
     test "given cell in main flow returns nil if there is no previous cell" do
       cell1 = %{Cell.new(:markdown) | id: "c1"}
       section1 = %{Section.new() | id: "s1", cells: [cell1]}
 
-      cell2 = %{Cell.new(:elixir) | id: "c2"}
+      cell2 = %{Cell.new(:code) | id: "c2"}
       section2 = %{Section.new() | id: "s2", cells: [cell2]}
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_prev_locator(notebook, cell2, section2)
+      assert {:main_flow, nil} = Session.find_base_locator(data, cell2, section2)
     end
 
     test "given cell in branching section returns nil in that section if there is no previous cell" do
       cell1 = %{Cell.new(:markdown) | id: "c1"}
       section1 = %{Section.new() | id: "s1", cells: [cell1]}
 
-      cell2 = %{Cell.new(:elixir) | id: "c2"}
+      cell2 = %{Cell.new(:code) | id: "c2"}
 
       section2 = %{
         Section.new()
@@ -590,8 +652,39 @@ defmodule Livebook.SessionTest do
       }
 
       notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
 
-      assert {"s2", nil} = Session.find_prev_locator(notebook, cell2, section2)
+      assert {"s2", nil} = Session.find_base_locator(data, cell2, section2)
+    end
+
+    test "when :existing is set ignores fresh and aborted cells" do
+      cell1 = %{Cell.new(:code) | id: "c1"}
+      cell2 = %{Cell.new(:code) | id: "c2"}
+      section1 = %{Section.new() | id: "s1", cells: [cell1, cell2]}
+
+      cell3 = %{Cell.new(:code) | id: "c3"}
+      section2 = %{Section.new() | id: "s2", cells: [cell3]}
+
+      notebook = %{Notebook.new() | sections: [section1, section2]}
+      data = Data.new(notebook)
+
+      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
+
+      data =
+        data_after_operations!(data, [
+          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
+        ])
+
+      assert {:main_flow, "c1"} = Session.find_base_locator(data, cell3, section2, existing: true)
+
+      data =
+        data_after_operations!(data, [
+          {:reflect_main_evaluation_failure, self()}
+        ])
+
+      assert {:main_flow, nil} = Session.find_base_locator(data, cell3, section2, existing: true)
     end
   end
 
@@ -640,8 +733,8 @@ defmodule Livebook.SessionTest do
   defp insert_section_and_cell(session_pid) do
     Session.insert_section(session_pid, 0)
     assert_receive {:operation, {:insert_section, _, 0, section_id}}
-    Session.insert_cell(session_pid, section_id, 0, :elixir)
-    assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :elixir, cell_id}}
+    Session.insert_cell(session_pid, section_id, 0, :code)
+    assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :code, cell_id, _attrs}}
 
     {section_id, cell_id}
   end

@@ -3,13 +3,18 @@ import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
 import { randomToken, sha256Base64 } from "../lib/utils";
 
 /**
- * A hook used to render JS-enabled cell output.
+ * A hook used to render a runtime-connected JavaScript view.
+ *
+ * JavaScript view is an abstraction for extending Livebook with
+ * custom capabilities. In particular, it is the primary building
+ * block for defining custom interactive output types, such as plots
+ * and maps.
  *
  * The JavaScript is defined by the user, so we sandbox the script
  * execution inside an iframe.
  *
  * The hook connects to a dedicated channel, sending the token and
- * output ref in an initial message. It expects `init:<ref>` message
+ * view ref in an initial message. It expects `init:<ref>` message
  * with `{ data }` payload, the data is then used in the initial call
  * to the custom JS module.
  *
@@ -23,19 +28,20 @@ import { randomToken, sha256Base64 } from "../lib/utils";
  *   * `data-assets-base-path` - the path to resolve all relative paths
  *     against in the iframe
  *
- *   * `data-js-path` - a relative path for the initial output-specific
+ *   * `data-js-path` - a relative path for the initial view-specific
  *     JS module
  *
- *   * `data-session-token` - token is sent in the "connect" message to
- *     the channel
+ *   * `data-session-token` - token is sent in the "connect" message
+ *     to the channel
  *
- *   * `data-session-id` - the identifier of the session that this output
- *     belongs go
+ *   * `data-session-id` - the identifier of the session that this
+ *     view belongs go
  *
- *   * `data-iframe-local-port` - the local port where the iframe is served
+ *   * `data-iframe-local-port` - the local port where the iframe is
+ *     served
  *
  */
-const JSOutput = {
+const JSView = {
   mounted() {
     this.props = getProps(this);
     this.state = {
@@ -50,10 +56,10 @@ const JSOutput = {
     const channel = getChannel(this.props.sessionId);
 
     // When cells/sections are reordered, morphdom detaches and attaches
-    // the relevant elements in the DOM. Consequently the output element
-    // becomes temporarily detached from the DOM and attaching it back
-    // would cause the iframe to reload. This behaviour is expected, see
-    // https://github.com/whatwg/html/issues/5484 for more details. Reloading
+    // the relevant elements in the DOM. JS view is generally rendered
+    // inside cells, so when reordering happens it becomes temporarily
+    // detached from the DOM and attaching it back would cause the iframe
+    // to reload. This behaviour is expected, as discussed in (1). Reloading
     // that frequently is inefficient and also clears the iframe state,
     // which makes is very undesired in our case. To solve this, we insert
     // the iframe higher in the DOM tree, so that it's never affected by
@@ -62,6 +68,8 @@ const JSOutput = {
     // the iframe exactly over that placeholder. We set up observers to
     // track the changes in placeholder's position/size and we keep the
     // absolute iframe in sync.
+    //
+    // (1): https://github.com/whatwg/html/issues/5484
 
     const iframePlaceholder = document.createElement("div");
     this.el.appendChild(iframePlaceholder);
@@ -139,7 +147,9 @@ const JSOutput = {
     });
 
     // Load the iframe content
-    const iframesEl = document.querySelector(`[data-element="output-iframes"]`);
+    const iframesEl = document.querySelector(
+      `[data-element="js-view-iframes"]`
+    );
     initializeIframeSource(iframe, this.props.iframePort).then(() => {
       iframesEl.appendChild(iframe);
     });
@@ -225,12 +235,12 @@ const socket = new Socket("/socket", { params: { _csrf_token: csrfToken } });
 let channel = null;
 
 /**
- * Returns channel used for all JS outputs in the current session.
+ * Returns channel used for all JS views in the current session.
  */
 function getChannel(sessionId, { create = true } = {}) {
   if (!channel && create) {
     socket.connect();
-    channel = socket.channel("js_output", { session_id: sessionId });
+    channel = socket.channel("js_view", { session_id: sessionId });
     channel.join();
   }
 
@@ -238,7 +248,7 @@ function getChannel(sessionId, { create = true } = {}) {
 }
 
 /**
- * Leaves the JS outputs channel tied to the current session.
+ * Leaves the JS views channel tied to the current session.
  */
 export function leaveChannel() {
   if (channel) {
@@ -269,7 +279,7 @@ function bindIframeSize(iframe, iframePlaceholder) {
     iframe.style.width = `${placeholderBox.width}px`;
   }
 
-  // Most output position changes are accompanied by changes to the
+  // Most placeholder position changes are accompanied by changes to the
   // notebook content element height (adding cells, inserting newlines
   // in the editor, etc). On the other hand, toggling the sidebar or
   // resizing the window changes the width, however the notebook
@@ -281,8 +291,8 @@ function bindIframeSize(iframe, iframePlaceholder) {
 
   // On lower level cell/section reordering is applied as element
   // removal followed by insert, consequently the intersection
-  // between the output and notebook content changes (becomes none
-  // for a brief moment)
+  // between the placeholder and notebook content changes (becomes
+  // none for a brief moment)
   const intersectionObserver = new IntersectionObserver(
     (entries) => repositionIframe(),
     { root: notebookContentEl }
@@ -419,4 +429,4 @@ function decode(raw) {
   return [meta, buffer];
 }
 
-export default JSOutput;
+export default JSView;

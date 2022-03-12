@@ -4,6 +4,7 @@ defmodule LivebookWeb.SidebarHelpers do
   import LivebookWeb.Helpers
   import LivebookWeb.UserHelpers
 
+  alias Phoenix.LiveView.JS
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -60,9 +61,16 @@ defmodule LivebookWeb.SidebarHelpers do
       <span class="tooltip right distant" data-tooltip="Shutdown">
         <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
           aria-label="shutdown"
-          phx-click="shutdown"
-          data-confirm="Are you sure you want to shutdown Livebook?">
-            <.remix_icon icon="shut-down-line" />
+          phx-click={
+            with_confirm(
+              JS.push("shutdown"),
+              title: "Shutdown",
+              description: "Are you sure you want to shutdown Livebook?",
+              confirm_text: "Shutdown",
+              confirm_icon: "shut-down-line"
+            )
+          }>
+          <.remix_icon icon="shut-down-line" />
         </button>
       </span>
       """
@@ -81,11 +89,11 @@ defmodule LivebookWeb.SidebarHelpers do
   def user_item(assigns) do
     ~H"""
     <span class="tooltip right distant" data-tooltip="User profile">
-      <%= live_patch to: @path,
-            class: "text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center mt-2",
-            aria_label: "user profile" do %>
+      <button class="text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center mt-2"
+        aria_label="user profile"
+        phx-click={show_current_user_modal()}>
         <.user_avatar user={@current_user} text_class="text-xs" />
-      <% end %>
+      </button>
     </span>
     """
   end
@@ -106,7 +114,7 @@ defmodule LivebookWeb.SidebarHelpers do
       label="Settings"
       path={Routes.settings_path(@socket, :page)}
       active={false} />
-    <.user_item current_user={@current_user} path={@user_path} />
+    <.user_item current_user={@current_user} />
     """
   end
 

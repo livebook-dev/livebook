@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # Usage:
 #
 #     $ sh .github/scripts/app/build_mac.sh

@@ -20,7 +20,7 @@ defmodule LivebookWeb.Output do
               socket: @socket,
               session_id: @session_id,
               runtime: @runtime,
-              cell_validity_status: @cell_validity_status,
+              cell_validity: @cell_validity,
               input_values: @input_values
             }) %>
       </div>
@@ -61,8 +61,12 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:js, info}, %{id: id, session_id: session_id}) do
-    live_component(Output.JSComponent, id: id, info: info, session_id: session_id)
+  defp render_output({:js, js_info}, %{id: id, session_id: session_id}) do
+    live_component(LivebookWeb.JSViewComponent,
+      id: id,
+      js_view: js_info.js_view,
+      session_id: session_id
+    )
   end
 
   defp render_output({:frame, outputs, _info}, %{
@@ -88,9 +92,9 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:error, formatted, :runtime_restart_required}, %{
          runtime: runtime,
-         cell_validity_status: cell_validity_status
+         cell_validity: cell_validity
        })
-       when runtime != nil and cell_validity_status == :evaluated do
+       when runtime != nil and cell_validity == :evaluated do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""

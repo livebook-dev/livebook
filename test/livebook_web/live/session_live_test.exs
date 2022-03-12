@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Delta, Runtime, Users, FileSystem}
+  alias Livebook.{Sessions, Session, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
@@ -115,7 +115,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "queueing cell evaluation", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(50)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(50)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -123,13 +123,13 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-element="session"]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert %{cell_infos: %{^cell_id => %{evaluation_status: :evaluating}}} =
+      assert %{cell_infos: %{^cell_id => %{eval: %{status: :evaluating}}}} =
                Session.get_data(session.pid)
     end
 
     test "cancelling cell evaluation", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(2000)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(2000)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -141,13 +141,13 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{[data-element="session"]})
       |> render_hook("cancel_cell_evaluation", %{"cell_id" => cell_id})
 
-      assert %{cell_infos: %{^cell_id => %{evaluation_status: :ready}}} =
+      assert %{cell_infos: %{^cell_id => %{eval: %{status: :ready}}}} =
                Session.get_data(session.pid)
     end
 
     test "inserting a cell below the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -161,7 +161,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "inserting a cell at section start", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      _cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      _cell_id = insert_text_cell(session.pid, section_id, :code)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -175,7 +175,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
     test "deleting the given cell", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -184,6 +184,28 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_hook("delete_cell", %{"cell_id" => cell_id})
 
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session.pid)
+    end
+
+    test "restoring a deleted cell", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
+
+      Session.delete_cell(session.pid, cell_id)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      refute render(view) =~ "cell-" <> cell_id
+
+      view
+      |> element(~s{a[aria-label="Bin (sb)"]})
+      |> render_click()
+
+      view
+      |> element("button", "Restore")
+      |> render_click()
+
+      assert %{notebook: %{sections: [%{cells: [%{id: ^cell_id}]}]}} =
+               Session.get_data(session.pid)
     end
 
     test "editing input field in cell output", %{conn: conn, session: session, test: test} do
@@ -199,6 +221,8 @@ defmodule LivebookWeb.SessionLiveTest do
         default: "hey",
         destination: test
       }
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -226,6 +250,8 @@ defmodule LivebookWeb.SessionLiveTest do
         default: "hey",
         destination: test
       }
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -263,6 +289,8 @@ defmodule LivebookWeb.SessionLiveTest do
         reset_on_submit: []
       }
 
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
       insert_cell_with_output(session.pid, section_id, {:control, form_control})
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -287,7 +315,7 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "outputs" do
     test "stdout output update", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
@@ -298,12 +326,14 @@ defmodule LivebookWeb.SessionLiveTest do
 
       send(session.pid, {:runtime_evaluation_output, cell_id, {:stdout, "line 2\n"}})
       wait_for_session_update(session.pid)
+      # Render once, so that stdout send_update is processed
+      _ = render(view)
       assert render(view) =~ "line 2"
     end
 
     test "frame output update", %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir)
+      cell_id = insert_text_cell(session.pid, section_id, :code)
 
       Session.queue_cell_evaluation(session.pid, cell_id)
 
@@ -330,6 +360,29 @@ defmodule LivebookWeb.SessionLiveTest do
       content = render(view)
       assert content =~ "Updated frame"
       refute content =~ "In frame"
+    end
+  end
+
+  describe "smart cells" do
+    test "shows a new cell insert button when a new smart cell kind becomes available",
+         %{conn: conn, session: session} do
+      insert_section(session.pid)
+
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      Session.connect_runtime(session.pid, runtime)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      refute render(view) =~ "Database connection"
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "dbconn", name: "Database connection"}]}
+      )
+
+      wait_for_session_update(session.pid)
+
+      assert render(view) =~ "Database connection"
     end
   end
 
@@ -431,7 +484,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "replies with nil completion reference when no runtime is started",
          %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(10)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -450,7 +503,7 @@ defmodule LivebookWeb.SessionLiveTest do
     test "replies with completion reference and then sends asynchronous response",
          %{conn: conn, session: session} do
       section_id = insert_section(session.pid)
-      cell_id = insert_text_cell(session.pid, section_id, :elixir, "Process.sleep(10)")
+      cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
       {:ok, runtime} = Livebook.Runtime.Embedded.init()
       Session.connect_runtime(session.pid, runtime)
@@ -469,10 +522,15 @@ defmodule LivebookWeb.SessionLiveTest do
       assert_reply view, %{"ref" => ref}
       assert ref != nil
 
-      assert_push_event(view, "intellisense_response", %{
-        "ref" => ^ref,
-        "response" => %{items: [%{label: "version/0"}]}
-      })
+      assert_push_event(
+        view,
+        "intellisense_response",
+        %{
+          "ref" => ^ref,
+          "response" => %{items: [%{label: "version/0"}]}
+        },
+        1000
+      )
     end
   end
 
@@ -834,18 +892,8 @@ defmodule LivebookWeb.SessionLiveTest do
   end
 
   defp insert_text_cell(session_pid, section_id, type, content \\ "") do
-    Session.insert_cell(session_pid, section_id, 0, type)
+    Session.insert_cell(session_pid, section_id, 0, type, %{source: content})
     %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_pid)
-
-    # We need to register ourselves as a client to start submitting cell deltas
-    user = Livebook.Users.User.new()
-    Session.register_client(session_pid, self(), user)
-
-    delta = Delta.new(insert: content)
-    Session.apply_cell_delta(session_pid, cell.id, delta, 1)
-
-    wait_for_session_update(session_pid)
-
     cell.id
   end
 
@@ -859,8 +907,9 @@ defmodule LivebookWeb.SessionLiveTest do
       end
       |> Macro.to_string()
 
-    cell_id = insert_text_cell(session_pid, section_id, :elixir, code)
+    cell_id = insert_text_cell(session_pid, section_id, :code, code)
     Session.queue_cell_evaluation(session_pid, cell_id)
+    assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
     cell_id
   end
 

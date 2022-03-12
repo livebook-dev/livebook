@@ -150,7 +150,7 @@ defmodule Livebook.LiveMarkdown.Import do
          elems
        ) do
     {outputs, ast} = take_outputs(ast, [])
-    group_elements(ast, [{:cell, :elixir, source, outputs} | elems])
+    group_elements(ast, [{:cell, :code, source, outputs} | elems])
   end
 
   defp group_elements([ast_node | ast], [{:cell, :markdown, md_ast} | rest]) do
@@ -167,6 +167,9 @@ defmodule Livebook.LiveMarkdown.Import do
     case data do
       %{"livebook_object" => "cell_input"} ->
         {:cell, :input, data}
+
+      %{"livebook_object" => "smart_cell"} ->
+        {:cell, :smart, data}
 
       _ ->
         {:metadata, data}
@@ -215,16 +218,37 @@ defmodule Livebook.LiveMarkdown.Import do
   end
 
   defp build_notebook(
-         [{:cell, :elixir, source, outputs} | elems],
+         [{:cell, :code, source, outputs}, {:cell, :smart, data} | elems],
+         cells,
+         sections,
+         messages,
+         output_counter
+       ) do
+    {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
+    %{"kind" => kind, "attrs" => attrs} = data
+
+    cell = %{
+      Notebook.Cell.new(:smart)
+      | source: source,
+        outputs: outputs,
+        kind: kind,
+        attrs: attrs
+    }
+
+    build_notebook(elems, [cell | cells], sections, messages, output_counter)
+  end
+
+  defp build_notebook(
+         [{:cell, :code, source, outputs} | elems],
          cells,
          sections,
          messages,
          output_counter
        ) do
     {metadata, elems} = grab_metadata(elems)
-    attrs = cell_metadata_to_attrs(:elixir, metadata)
+    attrs = cell_metadata_to_attrs(:code, metadata)
     {outputs, output_counter} = Notebook.index_outputs(outputs, output_counter)
-    cell = %{Notebook.Cell.new(:elixir) | source: source, outputs: outputs} |> Map.merge(attrs)
+    cell = %{Notebook.Cell.new(:code) | source: source, outputs: outputs} |> Map.merge(attrs)
     build_notebook(elems, [cell | cells], sections, messages, output_counter)
   end
 
@@ -368,7 +392,7 @@ defmodule Livebook.LiveMarkdown.Import do
     end)
   end
 
-  defp cell_metadata_to_attrs(:elixir, metadata) do
+  defp cell_metadata_to_attrs(:code, metadata) do
     Enum.reduce(metadata, %{}, fn
       {"disable_formatting", disable_formatting}, attrs ->
         Map.put(attrs, :disable_formatting, disable_formatting)

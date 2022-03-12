@@ -16,7 +16,7 @@ defmodule LivebookWeb.Router do
     plug LivebookWeb.UserPlug
   end
 
-  pipeline :js_output_assets do
+  pipeline :js_view_assets do
     plug :put_secure_browser_headers
   end
 
@@ -33,7 +33,7 @@ defmodule LivebookWeb.Router do
 
   # The following routes are public, but should be treated as opaque
   scope "/public", LivebookWeb do
-    pipe_through [:js_output_assets]
+    pipe_through [:js_view_assets]
 
     get "/sessions/assets/:hash/*file_parts", SessionController, :show_cached_asset
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
@@ -44,22 +44,17 @@ defmodule LivebookWeb.Router do
       pipe_through [:browser, :auth]
 
       live "/", HomeLive, :page
-      live "/home/user-profile", HomeLive, :user
       live "/home/import/:tab", HomeLive, :import
       live "/home/sessions/:session_id/close", HomeLive, :close_session
       live "/home/sessions/edit_sessions/:action", HomeLive, :edit_sessions
 
       live "/settings", SettingsLive, :page
-      live "/settings/user-profile", SettingsLive, :user
       live "/settings/add-file-system", SettingsLive, :add_file_system
-      live "/settings/detach-file-system/:file_system_index", SettingsLive, :detach_file_system
 
       live "/explore", ExploreLive, :page
-      live "/explore/user-profile", ExploreLive, :user
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
       live "/sessions/:id", SessionLive, :page
-      live "/sessions/:id/user-profile", SessionLive, :user
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings

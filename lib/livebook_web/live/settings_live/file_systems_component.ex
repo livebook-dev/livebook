@@ -8,15 +8,24 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
     ~H"""
     <div class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
-        <%= for {file_system, index} <- Enum.with_index(@file_systems) do %>
+        <%= for {file_system_id, file_system} <- @file_systems do %>
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
             <div class="flex items-center space-x-12">
               <.file_system_info file_system={file_system} />
             </div>
             <%= unless is_struct(file_system, FileSystem.Local) do %>
-              <%= live_patch "Detach",
-                    to: Routes.settings_path(@socket, :detach_file_system, index),
-                    class: "button-base button-outlined-red" %>
+              <button class="button-base button-outlined-red"
+                phx-click={
+                  with_confirm(
+                    JS.push("detach_file_system", value: %{id: file_system_id}),
+                    title: "Detach file system",
+                    description: "Are you sure you want to detach this file system? Any sessions using it will keep the access until they get closed.",
+                    confirm_text: "Detach",
+                    confirm_icon: "close-circle-line"
+                  )
+                }>
+                Detach
+              </button>
             <% end %>
           </div>
         <% end %>

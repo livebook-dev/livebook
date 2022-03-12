@@ -26,7 +26,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
                     """
                 },
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | disable_formatting: true,
                     reevaluate_automatically: true,
                     source: """
@@ -47,7 +47,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               name: "Section 2",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.gets("length: ")\
                     """
@@ -60,10 +60,18 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               parent_id: "s2",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     Process.info()\
                     """
+                },
+                %{
+                  Notebook.Cell.new(:smart)
+                  | source: """
+                    IO.puts("My text")\
+                    """,
+                    attrs: %{"text" => "My text"},
+                    kind: "text"
                 }
               ]
           }
@@ -103,6 +111,12 @@ defmodule Livebook.LiveMarkdown.ExportTest do
 
     ```elixir
     Process.info()
+    ```
+
+    <!-- livebook:{"attrs":{"text":"My text"},"kind":"text","livebook_object":"smart_cell"} -->
+
+    ```elixir
+    IO.puts("My text")
     ```
     """
 
@@ -297,7 +311,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "formats code in Elixir cells" do
+  test "formats code in Code cells" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -307,7 +321,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     [1,2,3] # Comment
                     """
@@ -333,7 +347,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "does not format code in Elixir cells which have formatting disabled" do
+  test "does not format code in Code cells which have formatting disabled" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -343,7 +357,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | disable_formatting: true,
                     source: """
                     [1,2,3] # Comment\
@@ -381,7 +395,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     \"\"\"
                     ```elixir
@@ -526,7 +540,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -564,7 +578,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -606,7 +620,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -654,7 +668,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: """
                       IO.puts("hey")\
                       """,
@@ -690,15 +704,17 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid: spawn_widget_with_data("1", "data"),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid: spawn_widget_with_data("1", "data"),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: nil
                           }}}
                       ]
@@ -733,15 +749,17 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid: spawn_widget_with_data("1", "graph TD;\nA-->B;"),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: %{info_string: "mermaid", key: nil}
                           }}}
                       ]
@@ -783,15 +801,17 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid: spawn_widget_with_data("1", %{height: 50, width: 50}),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: %{info_string: "box", key: nil}
                           }}}
                       ]
@@ -832,19 +852,21 @@ defmodule Livebook.LiveMarkdown.ExportTest do
               | name: "Section 1",
                 cells: [
                   %{
-                    Notebook.Cell.new(:elixir)
+                    Notebook.Cell.new(:code)
                     | source: ":ok",
                       outputs: [
                         {0,
                          {:js,
                           %{
-                            ref: "1",
-                            pid:
-                              spawn_widget_with_data("1", %{
-                                spec: %{"height" => 50, "width" => 50},
-                                datasets: []
-                              }),
-                            assets: %{archive_path: "", hash: "abcd", js_path: "main.js"},
+                            js_view: %{
+                              ref: "1",
+                              pid:
+                                spawn_widget_with_data("1", %{
+                                  spec: %{"height" => 50, "width" => 50},
+                                  datasets: []
+                                }),
+                              assets: %{archive_path: "", hash: "abcd", js_path: "main.js"}
+                            },
                             export: %{info_string: "vega-lite", key: :spec}
                           }}}
                       ]
@@ -887,7 +909,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.puts("hey")\
                     """,
@@ -932,7 +954,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
             | name: "Section 1",
               cells: [
                 %{
-                  Notebook.Cell.new(:elixir)
+                  Notebook.Cell.new(:code)
                   | source: """
                     IO.puts("hey")\
                     """,

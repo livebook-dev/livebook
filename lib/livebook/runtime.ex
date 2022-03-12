@@ -160,7 +160,7 @@ defprotocol Livebook.Runtime do
   @type code_error :: %{line: pos_integer(), description: String.t()}
 
   @typedoc """
-  The detailed runtime memory usage.
+  A detailed runtime memory usage.
 
   The runtime may periodically send memory usage updates as
 
@@ -177,6 +177,40 @@ defprotocol Livebook.Runtime do
         }
 
   @type size_in_bytes :: non_neg_integer()
+
+  @typedoc """
+  An information about a smart cell kind.
+
+  The `kind` attribute is an opaque identifier.
+
+  Whenever new smart cells become available the runtime should send
+  the updated list as
+
+    * `{:runtime_smart_cell_definitions, list(smart_cell_definition())}`
+  """
+  @type smart_cell_definition :: %{
+          kind: String.t(),
+          name: String.t()
+        }
+
+  @typedoc """
+  A JavaScript view definition.
+
+  See `t:Kino.Output.js_view/0` for details.
+  """
+  @type js_view :: %{
+          ref: String.t(),
+          pid: Process.dest(),
+          assets: %{
+            archive_path: String.t(),
+            hash: String.t(),
+            js_path: String.t()
+          }
+        }
+
+  @type smart_cell_ref :: String.t()
+
+  @type smart_cell_attrs :: map()
 
   @doc """
   Connects the caller to the given runtime.
@@ -215,7 +249,7 @@ defprotocol Livebook.Runtime do
   be evaluated as well as the evaluation reference to store the
   resulting context under.
 
-  Additionally, `prev_locator` points to a previous evaluation to be
+  Additionally, `base_locator` points to a previous evaluation to be
   used as the starting point of this evaluation. If not applicable,
   the previous evaluation reference may be specified as `nil`.
 
@@ -252,9 +286,12 @@ defprotocol Livebook.Runtime do
     * `:file` - the file considered as the source during evaluation.
       This information is relevant for errors formatting and imparts
       the value of `__DIR__`
+
+    * `:smart_cell_ref` - a reference of the smart cell which code is
+      to be evaluated, if applicable
   """
   @spec evaluate_code(t(), String.t(), locator(), locator(), keyword()) :: :ok
-  def evaluate_code(runtime, code, locator, prev_locator, opts \\ [])
+  def evaluate_code(runtime, code, locator, base_locator, opts \\ [])
 
   @doc """
   Disposes of an evaluation identified by the given locator.
@@ -284,11 +321,11 @@ defprotocol Livebook.Runtime do
 
     * `{:runtime_intellisense_response, ref, request, response}`.
 
-  The given `locator` idenfities an evaluation that may be used
-  as the context when resolving the request (if relevant).
+  The given `base_locator` idenfities an evaluation that may be
+  used as the context when resolving the request (if relevant).
   """
   @spec handle_intellisense(t(), pid(), reference(), intellisense_request(), locator()) :: :ok
-  def handle_intellisense(runtime, send_to, ref, request, locator)
+  def handle_intellisense(runtime, send_to, ref, request, base_locator)
 
   @doc """
   Synchronously starts a runtime of the same type with the same
@@ -312,4 +349,52 @@ defprotocol Livebook.Runtime do
   """
   @spec read_file(Runtime.t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
   def read_file(runtime, path)
+
+  @doc """
+  Starts a smart cell of the given kind.
+
+  `kind` must point to an available `t:smart_cell_definition/0`, which
+  was reported by the runtime. The cell gets initialized with `attrs`,
+  which represent the persisted cell state and determine the current
+  version of the generated source code. The given `ref` is used to
+  identify the cell.
+
+  The cell may depend on evaluation context to provide a better user
+  experience, for instance it may suggest relevant variable names.
+  Similarly to `evaluate_code/5`, `base_locator` must be specified
+  pointing to the evaluation to use as the context. When the locator
+  changes, it can be updated with `set_smart_cell_base_locator/3`.
+
+  Once the cell starts, the runtime sends the following message
+
+    * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t()}}`
+
+  ## Communication
+
+  Apart from the regular JS view communication, the cell sends updates
+  to the runtime owner whenever attrs and the generated source code
+  change.
+
+    * `{:runtime_smart_cell_update, ref, attrs, source}`
+
+  The attrs are persisted and may be used to restore the smart cell
+  state later. Note that for persistence they get serialized and
+  deserialized as JSON.
+  """
+  @spec start_smart_cell(t(), String.t(), smart_cell_ref(), smart_cell_attrs(), locator()) :: :ok
+  def start_smart_cell(runtime, kind, ref, attrs, base_locator)
+
+  @doc """
+  Updates the locator used by a smart cell as its context.
+
+  See `start_smart_cell/5` for more details.
+  """
+  @spec set_smart_cell_base_locator(t(), smart_cell_ref(), locator()) :: :ok
+  def set_smart_cell_base_locator(runtime, ref, base_locator)
+
+  @doc """
+  Stops smart cell identified by the given reference.
+  """
+  @spec stop_smart_cell(t(), smart_cell_ref()) :: :ok
+  def stop_smart_cell(runtime, ref)
 end

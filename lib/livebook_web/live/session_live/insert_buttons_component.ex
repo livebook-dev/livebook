@@ -16,15 +16,35 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           >+ Markdown</button>
         <button class="button-base button-small"
           phx-click="insert_cell_below"
-          phx-value-type="elixir"
+          phx-value-type="code"
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
-          >+ Elixir</button>
+          >+ Code</button>
         <button class="button-base button-small"
           phx-click="insert_section_below"
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
           >+ Section</button>
+        <%= if @smart_cell_definitions != [] do %>
+          <.menu id={"#{@id}-smart-cell-menu"}>
+            <:toggle>
+              <button class="button-base button-small">+ Smart</button>
+            </:toggle>
+            <:content>
+              <%= for smart_cell_definition <- Enum.sort_by(@smart_cell_definitions, & &1.name) do %>
+                <button class="menu-item text-gray-500"
+                  role="menuitem"
+                  phx-click="insert_cell_below"
+                  phx-value-type="smart"
+                  phx-value-kind={smart_cell_definition.kind}
+                  phx-value-section_id={@section_id}
+                  phx-value-cell_id={@cell_id}>
+                  <span class="font-medium"><%= smart_cell_definition.name %></span>
+                </button>
+              <% end %>
+            </:content>
+          </.menu>
+        <% end %>
       </div>
     </div>
     """

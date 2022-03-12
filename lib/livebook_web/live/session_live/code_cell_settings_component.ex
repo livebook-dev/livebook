@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.ElixirCellSettingsComponent do
+defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Session

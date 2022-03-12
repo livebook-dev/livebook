@@ -2,7 +2,7 @@
 
 ## First section
 
-One Elixir cell below.
+One Code cell below.
 
 ```elixir
 length([1, 2, 3])

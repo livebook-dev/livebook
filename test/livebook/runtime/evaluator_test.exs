@@ -35,7 +35,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
                metadata.memory_usage
     end
 
-    test "given no prev_ref does not see previous evaluation context", %{evaluator: evaluator} do
+    test "given no base_ref does not see previous evaluation context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
       assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
 
@@ -50,7 +50,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       end)
     end
 
-    test "given prev_ref sees previous evaluation context", %{evaluator: evaluator} do
+    test "given base_ref sees previous evaluation context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, "x = 1", :code_1)
       assert_receive {:runtime_evaluation_response, :code_1, _, metadata()}
 
@@ -59,7 +59,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       assert_receive {:runtime_evaluation_response, :code_2, {:ok, 1}, metadata()}
     end
 
-    test "given invalid prev_ref just uses default context", %{evaluator: evaluator} do
+    test "given invalid base_ref just uses default context", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, ":hey", :code_1, :code_nonexistent)
 
       assert_receive {:runtime_evaluation_response, :code_1, {:ok, :hey}, metadata()}

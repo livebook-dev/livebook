@@ -35,21 +35,39 @@ defmodule WxDemo.Window do
     }
   end
 
+  def windows_connected(url) do
+    url
+    |> String.trim()
+    |> String.trim_leading("\"")
+    |> String.trim_trailing("\"")
+    |> windows_to_wx()
+  end
+
   @impl true
   def init(_) do
     title = "WxDemo"
 
+    true = Process.register(self(), __MODULE__)
+    os = os()
     wx = :wx.new()
-    frame = :wxFrame.new(wx, -1, title)
+    frame = :wxFrame.new(wx, -1, title, size: {100, 100})
 
-    if macOS?() do
+    if os == :macos do
       fixup_macos_menubar(frame, title)
     end
 
     :wxFrame.show(frame)
     :wxFrame.connect(frame, :command_menu_selected)
     :wxFrame.connect(frame, :close_window, skip: true)
-    :wx.subscribe_events()
+
+    case os do
+      :macos ->
+        :wx.subscribe_events()
+
+      :windows ->
+        windows_to_wx(System.get_env("WXDEMO_URL") || "")
+    end
+
     state = %{frame: frame}
     {frame, state}
   end
@@ -67,17 +85,16 @@ defmodule WxDemo.Window do
   end
 
   @impl true
-  def handle_info({:open_url, url}, state) do
-    :wxMessageDialog.new(state.frame, inspect(url))
-    |> :wxDialog.showModal()
-
+  def handle_info(event, state) do
+    show_dialog(state, inspect(event))
     {:noreply, state}
   end
 
-  @impl true
-  # ignore other events
-  def handle_info(_event, state) do
-    {:noreply, state}
+  # Helpers
+
+  defp show_dialog(state, data) do
+    :wxMessageDialog.new(state.frame, data)
+    |> :wxDialog.showModal()
   end
 
   defp fixup_macos_menubar(frame, title) do
@@ -98,7 +115,22 @@ defmodule WxDemo.Window do
     end
   end
 
-  defp macOS?() do
-    :os.type() == {:unix, :darwin}
+  defp os() do
+    case :os.type() do
+      {:unix, :darwin} -> :macos
+      {:win32, _} -> :windows
+    end
+  end
+
+  defp windows_to_wx("") do
+    send(__MODULE__, {:new_file, ''})
+  end
+
+  defp windows_to_wx("wxdemo://" <> _ = url) do
+    send(__MODULE__, {:open_url, String.to_charlist(url)})
+  end
+
+  defp windows_to_wx(path) do
+    send(__MODULE__, {:open_file, String.to_charlist(path)})
   end
 end
