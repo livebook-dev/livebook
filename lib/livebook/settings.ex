@@ -6,14 +6,22 @@ defmodule Livebook.Settings do
   alias Livebook.FileSystem
 
   @doc """
-  Returns the autosave path.
+  Returns the current autosave path.
   """
   @spec autosave_path() :: String.t() | nil
   def autosave_path() do
     case storage().fetch_key(:settings, "global", :autosave_path) do
       {:ok, value} -> value
-      :error -> Path.join(Livebook.Config.data_path(), "autosaved")
+      :error -> default_autosave_path()
     end
+  end
+
+  @doc """
+  Returns the default autosave path.
+  """
+  @spec default_autosave_path() :: String.t()
+  def default_autosave_path() do
+    Path.join(Livebook.Config.data_path(), "autosaved")
   end
 
   @doc """

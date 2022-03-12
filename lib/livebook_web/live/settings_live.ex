@@ -15,7 +15,10 @@ defmodule LivebookWeb.SettingsLive do
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
        file_systems: file_systems,
-       autosave_path_state: AutosavePathComponent.default_state(),
+       autosave_path_state: %{
+         file: file_for_local_path(),
+         dialog_opened?: false
+       },
        page_title: "Livebook - Settings"
      )}
   end
@@ -72,10 +75,7 @@ defmodule LivebookWeb.SettingsLive do
                 A directory to temporarily keep notebooks until they are persisted.
               </p>
             </div>
-            <LivebookWeb.SettingsLive.AutosavePathComponent.render
-              state={@autosave_path_state}
-              socket={@socket}
-             />
+            <.autosave_path_select state={@autosave_path_state} />
           </div>
           <!-- File systems configuration -->
           <div class="flex flex-col space-y-4">
@@ -157,6 +157,50 @@ defmodule LivebookWeb.SettingsLive do
     """
   end
 
+  defp autosave_path_select(assigns) do
+    ~H"""
+    <div class="flex items-center justify-between p-4">
+      <div class={"w-full #{if @state.dialog_opened?, do: "h-52", else: "h-8"}"}>
+        <%= if @state.dialog_opened? do %>
+          <.live_component module={LivebookWeb.FileSelectComponent}
+            id="autosave-path-component"
+            file={@state.file}
+            extnames={[]}
+            running_files={[]}
+            submit_event={:init}
+            file_system_select_disabled={true}
+          >
+            <button class="button-base button-gray"
+                phx-click="cancel_autosave_path"
+                tabindex="-1">
+                Cancel
+            </button>
+            <button class="button-base button-gray"
+                phx-click="reset_autosave_path"
+                tabindex="-1">
+                Reset
+            </button>
+            <button class="button-base button-blue"
+              phx-click="set_autosave_path"
+              disabled={not Livebook.FileSystem.File.dir?(@state.file)}
+              tabindex="-1">
+              Save
+            </button>
+          </.live_component>
+        <% else %>
+          <div class="flex">
+            <input class="input mr-2" readonly value={@state.file.path}/>
+            <button class="button-base button-gray button-small"
+              phx-click="open_autosave_path_select">
+              Change
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   @impl true
   def handle_params(%{"file_system_index" => index}, _url, socket) do
     index = String.to_integer(index)
@@ -172,7 +216,7 @@ defmodule LivebookWeb.SettingsLive do
      update(
        socket,
        :autosave_path_state,
-       &(&1 |> AutosavePathComponent.reload_file() |> AutosavePathComponent.switch_file_select())
+       &%{&1 | dialog_opened?: false, file: file_for_local_path()}
      )}
   end
 
@@ -185,25 +229,22 @@ defmodule LivebookWeb.SettingsLive do
      update(
        socket,
        :autosave_path_state,
-       &(&1 |> AutosavePathComponent.reload_file() |> AutosavePathComponent.switch_file_select())
+       &%{&1 | dialog_opened?: false, file: file_for_local_path()}
      )}
   end
 
   @impl true
   def handle_event("reset_autosave_path", %{}, socket) do
-    Livebook.Settings.reset_autosave_path()
-
     {:noreply,
      update(
        socket,
        :autosave_path_state,
-       &(&1 |> AutosavePathComponent.reload_file() |> AutosavePathComponent.switch_file_select())
+       &%{&1 | file: file_for_local_path(Livebook.Settings.default_autosave_path())}
      )}
   end
 
-  def handle_event("switch_autosave_path_select", %{}, socket) do
-    {:noreply,
-     update(socket, :autosave_path_state, &AutosavePathComponent.switch_file_select(&1))}
+  def handle_event("open_autosave_path_select", %{}, socket) do
+    {:noreply, update(socket, :autosave_path_state, &%{&1 | dialog_opened?: true})}
   end
 
   @impl true
@@ -212,8 +253,14 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_info({:set_file, file, _info}, socket) do
-    {:noreply, update(socket, :autosave_path_state, &AutosavePathComponent.update_file(&1, file))}
+    {:noreply, update(socket, :autosave_path_state, &%{&1 | file: file})}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp file_for_local_path(path \\ Livebook.Settings.autosave_path()) do
+    path
+    |> Livebook.FileSystem.Utils.ensure_dir_path()
+    |> Livebook.FileSystem.File.local()
+  end
 end
