@@ -11,16 +11,38 @@ defmodule Livebook.Settings do
   @type file_system_id :: :local | String.t()
 
   @doc """
-  Returns the autosave path.
-
-  TODO: Make this configurable in the UI.
+  Returns the current autosave path.
   """
   @spec autosave_path() :: String.t() | nil
   def autosave_path() do
     case storage().fetch_key(:settings, "global", :autosave_path) do
       {:ok, value} -> value
-      :error -> Path.join(Livebook.Config.data_path(), "autosaved")
+      :error -> default_autosave_path()
     end
+  end
+
+  @doc """
+  Returns the default autosave path.
+  """
+  @spec default_autosave_path() :: String.t()
+  def default_autosave_path() do
+    Path.join(Livebook.Config.data_path(), "autosaved")
+  end
+
+  @doc """
+  Sets the current autosave path.
+  """
+  @spec set_autosave_path(String.t()) :: :ok
+  def set_autosave_path(autosave_path) do
+    storage().insert(:settings, "global", autosave_path: autosave_path)
+  end
+
+  @doc """
+  Restores the default autosave path.
+  """
+  @spec reset_autosave_path() :: :ok
+  def reset_autosave_path() do
+    storage().delete_key(:settings, "global", :autosave_path)
   end
 
   @doc """
