@@ -269,14 +269,21 @@ function bindIframeSize(iframe, iframePlaceholder) {
   );
 
   function repositionIframe() {
-    const notebookBox = notebookEl.getBoundingClientRect();
-    const placeholderBox = iframePlaceholder.getBoundingClientRect();
-    const top = placeholderBox.top - notebookBox.top + notebookEl.scrollTop;
-    iframe.style.top = `${top}px`;
-    const left = placeholderBox.left - notebookBox.left + notebookEl.scrollLeft;
-    iframe.style.left = `${left}px`;
-    iframe.style.height = `${placeholderBox.height}px`;
-    iframe.style.width = `${placeholderBox.width}px`;
+    if (iframePlaceholder.offsetParent === null) {
+      // When the placeholder is hidden, we hide the iframe as well
+      iframe.classList.add("hidden");
+    } else {
+      iframe.classList.remove("hidden");
+      const notebookBox = notebookEl.getBoundingClientRect();
+      const placeholderBox = iframePlaceholder.getBoundingClientRect();
+      const top = placeholderBox.top - notebookBox.top + notebookEl.scrollTop;
+      iframe.style.top = `${top}px`;
+      const left =
+        placeholderBox.left - notebookBox.left + notebookEl.scrollLeft;
+      iframe.style.left = `${left}px`;
+      iframe.style.height = `${placeholderBox.height}px`;
+      iframe.style.width = `${placeholderBox.width}px`;
+    }
   }
 
   // Most placeholder position changes are accompanied by changes to the

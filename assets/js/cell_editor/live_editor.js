@@ -10,12 +10,23 @@ import { settingsStore } from "../lib/settings";
  * Mounts cell source editor with real-time collaboration mechanism.
  */
 class LiveEditor {
-  constructor(hook, container, cellId, source, revision, language, readOnly) {
+  constructor(
+    hook,
+    container,
+    cellId,
+    tag,
+    source,
+    revision,
+    language,
+    intellisense,
+    readOnly
+  ) {
     this.hook = hook;
     this.container = container;
     this.cellId = cellId;
     this.source = source;
     this.language = language;
+    this.intellisense = intellisense;
     this.readOnly = readOnly;
     this._onChange = null;
     this._onBlur = null;
@@ -24,11 +35,11 @@ class LiveEditor {
 
     this.__mountEditor();
 
-    if (language === "elixir") {
+    if (this.intellisense) {
       this.__setupIntellisense();
     }
 
-    const serverAdapter = new HookServerAdapter(hook, cellId);
+    const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     const editorAdapter = new MonacoEditorAdapter(this.editor);
     this.editorClient = new EditorClient(
       serverAdapter,
@@ -147,7 +158,7 @@ class LiveEditor {
    * To clear an existing marker `null` error is also supported.
    */
   setCodeErrorMarker(error) {
-    const owner = "elixir.error.syntax";
+    const owner = "livebook.error.syntax";
 
     if (error) {
       const line = this.editor.getModel().getLineContent(error.line);
@@ -198,17 +209,15 @@ class LiveEditor {
       autoIndent: true,
       formatOnType: true,
       formatOnPaste: true,
-      quickSuggestions:
-        this.language === "elixir" && settings.editor_auto_completion,
+      quickSuggestions: this.intellisense && settings.editor_auto_completion,
       tabCompletion: "on",
       suggestSelection: "first",
       // For Elixir word suggestions are confusing at times.
       // For example given `defmodule<CURSOR> Foo do`, if the
       // user opens completion list and then jumps to the end
       // of the line we would get "defmodule" as a word completion.
-      wordBasedSuggestions: this.language !== "elixir",
-      parameterHints:
-        this.language === "elixir" && settings.editor_auto_signature,
+      wordBasedSuggestions: !this.intellisense,
+      parameterHints: this.intellisense && settings.editor_auto_signature,
     });
 
     this.editor.addAction({
@@ -219,6 +228,7 @@ class LiveEditor {
       keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.KeyZ],
       run: (editor) => editor.updateOptions({ wordWrap: "on" }),
     });
+
     this.editor.addAction({
       contextMenuGroupId: "word-wrapping",
       id: "disable-word-wrapping",

@@ -1,5 +1,5 @@
 import { getAttributeOrThrow } from "../lib/attribute";
-import { highlight } from "../cell/live_editor/monaco";
+import { highlight } from "../cell_editor/live_editor/monaco";
 import { findChildOrThrow } from "../lib/utils";
 
 /**

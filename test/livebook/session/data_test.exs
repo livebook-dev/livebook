@@ -421,7 +421,9 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{source: %{revision_by_client_pid: %{^client_pid => 0}}}}
+                cell_infos: %{
+                  "c1" => %{sources: %{primary: %{revision_by_client_pid: %{^client_pid => 0}}}}
+                }
               }, []} = Data.apply_operation(data, operation)
     end
 
@@ -461,7 +463,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
-          {:smart_cell_started, self(), "c2", Delta.new(), %{}}
+          {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil}
         ])
 
       operation = {:insert_cell, self(), "s1", 0, :code, "c3", %{}}
@@ -813,7 +815,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:smart_cell_started, self(), "c1", Delta.new(), %{}}
+          {:smart_cell_started, self(), "c1", Delta.new(), %{}, nil}
         ])
 
       operation = {:delete_cell, self(), "c1"}
@@ -830,7 +832,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
-          {:smart_cell_started, self(), "c2", Delta.new(), %{}},
+          {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
         ])
@@ -2373,7 +2375,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
-          {:smart_cell_started, self(), "c2", Delta.new(), %{}},
+          {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
 
@@ -2683,7 +2685,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
 
-      operation = {:smart_cell_started, self(), "c1", Delta.new(), %{}}
+      operation = {:smart_cell_started, self(), "c1", Delta.new(), %{}, nil}
 
       assert :error = Data.apply_operation(data, operation)
     end
@@ -2699,7 +2701,7 @@ defmodule Livebook.Session.DataTest do
 
       delta = Delta.new() |> Delta.insert("content")
 
-      operation = {:smart_cell_started, self(), "c1", delta, %{}}
+      operation = {:smart_cell_started, self(), "c1", delta, %{}, nil}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :started}}}, _actions} =
                Data.apply_operation(data, operation)
@@ -2718,13 +2720,13 @@ defmodule Livebook.Session.DataTest do
 
       delta = Delta.new() |> Delta.insert("content")
 
-      operation = {:smart_cell_started, client_pid, "c1", delta, %{}}
+      operation = {:smart_cell_started, client_pid, "c1", delta, %{}, nil}
 
       assert {:ok,
               %{
                 notebook: %{sections: [%{cells: [%{id: "c1", source: "content"}]}]}
               },
-              [{:broadcast_delta, ^client_pid, _cell, ^delta}]} =
+              [{:broadcast_delta, ^client_pid, _cell, :primary, ^delta}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -2741,7 +2743,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, self(), NoopRuntime.new()},
           {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:smart_cell_started, self(), "c1", delta1, %{}}
+          {:smart_cell_started, self(), "c1", delta1, %{}, nil}
         ])
 
       attrs = %{"text" => "content!"}
@@ -2754,7 +2756,7 @@ defmodule Livebook.Session.DataTest do
                   sections: [%{cells: [%{id: "c1", source: "content!", attrs: ^attrs}]}]
                 }
               },
-              [{:broadcast_delta, ^client_pid, _cell, ^delta2}]} =
+              [{:broadcast_delta, ^client_pid, _cell, :primary, ^delta2}]} =
                Data.apply_operation(data, operation)
     end
   end
@@ -2888,7 +2890,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, user},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", :primary, delta1, 1}
         ])
 
       client2_pid = IEx.Helpers.pid(0, 0, 1)
@@ -2896,7 +2898,9 @@ defmodule Livebook.Session.DataTest do
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{source: %{revision_by_client_pid: %{^client2_pid => 1}}}}
+                cell_infos: %{
+                  "c1" => %{sources: %{primary: %{revision_by_client_pid: %{^client2_pid => 1}}}}
+                }
               }, _} = Data.apply_operation(data, operation)
     end
   end
@@ -2961,7 +2965,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", :primary, delta1, 1}
         ])
 
       operation = {:client_leave, client2_pid}
@@ -2969,7 +2973,11 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{source: %{deltas: [], revision_by_client_pid: revision_by_client_pid}}
+                  "c1" => %{
+                    sources: %{
+                      primary: %{deltas: [], revision_by_client_pid: revision_by_client_pid}
+                    }
+                  }
                 }
               }, _} = Data.apply_operation(data, operation)
 
@@ -3008,7 +3016,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, self(), User.new()}
         ])
 
-      operation = {:apply_cell_delta, self(), "nonexistent", Delta.new(), 1}
+      operation = {:apply_cell_delta, self(), "nonexistent", :primary, Delta.new(), 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3020,7 +3028,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, self(), "c1", delta, 1}
+      operation = {:apply_cell_delta, self(), "c1", :primary, delta, 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3033,7 +3041,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, self(), "c1", delta, 5}
+      operation = {:apply_cell_delta, self(), "c1", :primary, delta, 5}
 
       assert :error = Data.apply_operation(data, operation)
     end
@@ -3047,7 +3055,7 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, self(), "c1", delta, 1}
+      operation = {:apply_cell_delta, self(), "c1", :primary, delta, 1}
 
       assert {:ok,
               %{
@@ -3056,7 +3064,7 @@ defmodule Livebook.Session.DataTest do
                     %{cells: [%{source: "cats"}]}
                   ]
                 },
-                cell_infos: %{"c1" => %{source: %{revision: 1}}}
+                cell_infos: %{"c1" => %{sources: %{primary: %{revision: 1}}}}
               }, _actions} = Data.apply_operation(data, operation)
     end
 
@@ -3072,11 +3080,11 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", :primary, delta1, 1}
         ])
 
       delta2 = Delta.new() |> Delta.insert("tea")
-      operation = {:apply_cell_delta, client2_pid, "c1", delta2, 1}
+      operation = {:apply_cell_delta, client2_pid, "c1", :primary, delta2, 1}
 
       assert {:ok,
               %{
@@ -3085,7 +3093,7 @@ defmodule Livebook.Session.DataTest do
                     %{cells: [%{source: "catstea"}]}
                   ]
                 },
-                cell_infos: %{"c1" => %{source: %{revision: 2}}}
+                cell_infos: %{"c1" => %{sources: %{primary: %{revision: 2}}}}
               }, _} = Data.apply_operation(data, operation)
     end
 
@@ -3101,15 +3109,16 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", :primary, delta1, 1}
         ])
 
       delta2 = Delta.new() |> Delta.insert("tea")
-      operation = {:apply_cell_delta, client2_pid, "c1", delta2, 1}
+      operation = {:apply_cell_delta, client2_pid, "c1", :primary, delta2, 1}
 
       transformed_delta2 = Delta.new() |> Delta.retain(4) |> Delta.insert("tea")
 
-      assert {:ok, _data, [{:broadcast_delta, ^client2_pid, _cell, ^transformed_delta2}]} =
+      assert {:ok, _data,
+              [{:broadcast_delta, ^client2_pid, _cell, :primary, ^transformed_delta2}]} =
                Data.apply_operation(data, operation)
     end
 
@@ -3124,11 +3133,11 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, client_pid, "c1", delta, 1}
+      operation = {:apply_cell_delta, client_pid, "c1", :primary, delta, 1}
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{source: %{deltas: []}}}
+                cell_infos: %{"c1" => %{sources: %{primary: %{deltas: []}}}}
               }, _} = Data.apply_operation(data, operation)
     end
 
@@ -3145,12 +3154,38 @@ defmodule Livebook.Session.DataTest do
         ])
 
       delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, client1_pid, "c1", delta, 1}
+      operation = {:apply_cell_delta, client1_pid, "c1", :primary, delta, 1}
 
       assert {:ok,
               %{
-                cell_infos: %{"c1" => %{source: %{deltas: [^delta]}}}
+                cell_infos: %{"c1" => %{sources: %{primary: %{deltas: [^delta]}}}}
               }, _} = Data.apply_operation(data, operation)
+    end
+
+    test "updates smart cell editor source given a secondary source delta" do
+      data =
+        data_after_operations!([
+          {:client_join, self(), User.new()},
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 1, :smart, "c1", %{kind: "text"}},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:smart_cell_started, self(), "c1", Delta.new(), %{},
+           %{language: "text", placement: :bottom, source: ""}}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, self(), "c1", :secondary, delta, 1}
+
+      assert {:ok,
+              %{
+                notebook: %{
+                  sections: [
+                    %{cells: [%{editor: %{source: "cats"}}]}
+                  ]
+                },
+                cell_infos: %{"c1" => %{sources: %{secondary: %{revision: 1}}}}
+              }, _actions} = Data.apply_operation(data, operation)
     end
   end
 
@@ -3161,7 +3196,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, self(), User.new()}
         ])
 
-      operation = {:report_cell_revision, self(), "nonexistent", 1}
+      operation = {:report_cell_revision, self(), "nonexistent", :primary, 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3174,10 +3209,10 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client1_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_pid, "c1", Delta.new(insert: "cats"), 1}
+          {:apply_cell_delta, client1_pid, "c1", :primary, Delta.new(insert: "cats"), 1}
         ])
 
-      operation = {:report_cell_revision, client2_pid, "c1", 1}
+      operation = {:report_cell_revision, client2_pid, "c1", :primary, 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3189,7 +3224,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}}
         ])
 
-      operation = {:report_cell_revision, self(), "c1", 1}
+      operation = {:report_cell_revision, self(), "c1", :primary, 1}
       assert :error = Data.apply_operation(data, operation)
     end
 
@@ -3205,18 +3240,20 @@ defmodule Livebook.Session.DataTest do
           {:client_join, client2_pid, User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:apply_cell_delta, client1_pid, "c1", delta1, 1}
+          {:apply_cell_delta, client1_pid, "c1", :primary, delta1, 1}
         ])
 
-      operation = {:report_cell_revision, client2_pid, "c1", 1}
+      operation = {:report_cell_revision, client2_pid, "c1", :primary, 1}
 
       assert {:ok,
               %{
                 cell_infos: %{
                   "c1" => %{
-                    source: %{
-                      deltas: [],
-                      revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}
+                    sources: %{
+                      primary: %{
+                        deltas: [],
+                        revision_by_client_pid: %{^client1_pid => 1, ^client2_pid => 1}
+                      }
                     }
                   }
                 }
@@ -3507,7 +3544,7 @@ defmodule Livebook.Session.DataTest do
           {:add_cell_evaluation_response, self(), "c3", @eval_resp, @eval_meta},
           # Modify cell 2
           {:client_join, self(), User.new()},
-          {:apply_cell_delta, self(), "c2", Delta.new() |> Delta.insert("cats"), 1}
+          {:apply_cell_delta, self(), "c2", :primary, Delta.new() |> Delta.insert("cats"), 1}
         ])
 
       assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c2", "c3"]

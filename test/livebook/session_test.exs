@@ -190,8 +190,10 @@ defmodule Livebook.SessionTest do
       delta = Delta.new() |> Delta.insert("cats")
       revision = 1
 
-      Session.apply_cell_delta(session.pid, cell_id, delta, revision)
-      assert_receive {:operation, {:apply_cell_delta, ^pid, ^cell_id, ^delta, ^revision}}
+      Session.apply_cell_delta(session.pid, cell_id, :primary, delta, revision)
+
+      assert_receive {:operation,
+                      {:apply_cell_delta, ^pid, ^cell_id, :primary, ^delta, ^revision}}
     end
   end
 
@@ -203,8 +205,8 @@ defmodule Livebook.SessionTest do
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
       revision = 1
 
-      Session.report_cell_revision(session.pid, cell_id, revision)
-      assert_receive {:operation, {:report_cell_revision, ^pid, ^cell_id, ^revision}}
+      Session.report_cell_revision(session.pid, cell_id, :primary, revision)
+      assert_receive {:operation, {:report_cell_revision, ^pid, ^cell_id, :primary, ^revision}}
     end
   end
 
@@ -561,14 +563,7 @@ defmodule Livebook.SessionTest do
   describe "smart cells" do
     test "notifies subcribers when a smart cell starts and passes source diff as delta" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Notebook.Section.new() | cells: [smart_cell]}
-          ]
-      }
-
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
       runtime = Livebook.Runtime.NoopRuntime.new()
@@ -580,13 +575,44 @@ defmodule Livebook.SessionTest do
 
       send(
         session.pid,
-        {:runtime_smart_cell_started, smart_cell.id, %{source: "content!", js_view: %{}}}
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "content!", js_view: %{}, editor: nil}}
       )
 
       delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}, nil}}
+    end
+
+    test "sends an event to the smart cell server when the editor source changes" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
+      runtime = Livebook.Runtime.NoopRuntime.new()
+      Session.connect_runtime(session.pid, runtime)
+
+      send(session.pid, {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text"}]})
+
+      server_pid = self()
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{
+           source: "content",
+           js_view: %{ref: smart_cell.id, pid: server_pid, assets: %{}},
+           editor: %{language: nil, placement: :bottom, source: "content"}
+         }}
+      )
+
+      Session.register_client(session.pid, self(), Livebook.Users.User.new())
+
+      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, 1)
+
+      assert_receive {:editor_source, "content!"}
     end
   end
 

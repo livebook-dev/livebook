@@ -6,19 +6,26 @@ import Delta from "../../lib/delta";
  * Uses the given hook instance socket for the communication.
  */
 export default class HookServerAdapter {
-  constructor(hook, cellId) {
+  constructor(hook, cellId, tag) {
     this.hook = hook;
     this.cellId = cellId;
+    this.tag = tag;
     this._onDelta = null;
     this._onAcknowledgement = null;
 
-    this.hook.handleEvent(`cell_delta:${this.cellId}`, ({ delta }) => {
-      this._onDelta && this._onDelta(Delta.fromCompressed(delta));
-    });
+    this.hook.handleEvent(
+      `cell_delta:${this.cellId}:${this.tag}`,
+      ({ delta }) => {
+        this._onDelta && this._onDelta(Delta.fromCompressed(delta));
+      }
+    );
 
-    this.hook.handleEvent(`cell_acknowledgement:${this.cellId}`, () => {
-      this._onAcknowledgement && this._onAcknowledgement();
-    });
+    this.hook.handleEvent(
+      `cell_acknowledgement:${this.cellId}:${this.tag}`,
+      () => {
+        this._onAcknowledgement && this._onAcknowledgement();
+      }
+    );
   }
 
   /**
@@ -41,6 +48,7 @@ export default class HookServerAdapter {
   sendDelta(delta, revision) {
     this.hook.pushEvent("apply_cell_delta", {
       cell_id: this.cellId,
+      tag: this.tag,
       delta: delta.toCompressed(),
       revision,
     });
@@ -56,6 +64,7 @@ export default class HookServerAdapter {
   reportRevision(revision) {
     this.hook.pushEvent("report_cell_revision", {
       cell_id: this.cellId,
+      tag: this.tag,
       revision,
     });
   }

@@ -377,15 +377,17 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
            ) do
         {:ok, pid, info} ->
           %{
-            js_view: js_view,
             source: source,
+            js_view: js_view,
+            editor: editor,
             scan_binding: scan_binding,
             scan_eval_result: scan_eval_result
           } = info
 
           send(
             state.owner,
-            {:runtime_smart_cell_started, ref, %{js_view: js_view, source: source}}
+            {:runtime_smart_cell_started, ref,
+             %{source: source, js_view: js_view, editor: editor}}
           )
 
           info = %{

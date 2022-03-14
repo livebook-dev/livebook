@@ -1,5 +1,5 @@
 import { getAttributeOrThrow } from "../lib/attribute";
-import Markdown from "../cell/markdown";
+import Markdown from "../lib/markdown";
 
 /**
  * A hook used to render markdown content on the client.

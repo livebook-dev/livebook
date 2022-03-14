@@ -10,7 +10,7 @@ import {
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
-import monaco from "../cell/live_editor/monaco";
+import monaco from "../cell_editor/live_editor/monaco";
 import { leaveChannel } from "../js_view";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
@@ -477,12 +477,12 @@ function handleDocumentMouseDown(hook, event) {
   }
 }
 
-function editableElementClicked(event, element) {
-  if (element) {
-    const editableElement = element.querySelector(
+function editableElementClicked(event, focusableEl) {
+  if (focusableEl) {
+    const editableElement = event.target.closest(
       `[data-element="editor-container"], [data-element="heading"]`
     );
-    return editableElement && editableElement.contains(event.target);
+    return editableElement && focusableEl.contains(editableElement);
   }
 
   return false;
@@ -748,9 +748,11 @@ function showShortcuts(hook) {
 }
 
 function isInsertModeAvailable(hook) {
+  const el = getFocusableEl(hook.state.focusedId);
+
   return (
-    hook.state.focusedCellType === null ||
-    isDirectlyEditable(hook.state.focusedCellType)
+    !isCell(hook.state.focusedId) ||
+    !el.hasAttribute("data-js-insert-mode-disabled")
   );
 }
 
@@ -1011,11 +1013,14 @@ function sendLocationReport(hook, report) {
 function encodeSelection(selection) {
   if (selection === null) return null;
 
+  const { tag, editorSelection } = selection;
+
   return [
-    selection.selectionStartLineNumber,
-    selection.selectionStartColumn,
-    selection.positionLineNumber,
-    selection.positionColumn,
+    tag,
+    editorSelection.selectionStartLineNumber,
+    editorSelection.selectionStartColumn,
+    editorSelection.positionLineNumber,
+    editorSelection.positionColumn,
   ];
 }
 
@@ -1023,18 +1028,21 @@ function decodeSelection(encoded) {
   if (encoded === null) return null;
 
   const [
+    tag,
     selectionStartLineNumber,
     selectionStartColumn,
     positionLineNumber,
     positionColumn,
   ] = encoded;
 
-  return new monaco.Selection(
+  const editorSelection = new monaco.Selection(
     selectionStartLineNumber,
     selectionStartColumn,
     positionLineNumber,
     positionColumn
   );
+
+  return { tag, editorSelection };
 }
 
 // Helpers

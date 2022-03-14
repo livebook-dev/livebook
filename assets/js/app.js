@@ -13,6 +13,7 @@ import topbar from "topbar";
 import { LiveSocket } from "phoenix_live_view";
 import Headline from "./headline";
 import Cell from "./cell";
+import CellEditor from "./cell_editor";
 import Session from "./session";
 import FocusOnUpdate from "./focus_on_update";
 import ScrollOnUpdate from "./scroll_on_update";
@@ -34,6 +35,7 @@ import { settingsStore } from "./lib/settings";
 const hooks = {
   Headline,
   Cell,
+  CellEditor,
   Session,
   FocusOnUpdate,
   ScrollOnUpdate,
