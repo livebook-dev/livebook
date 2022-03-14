@@ -6,6 +6,7 @@ import {
   smoothlyScrollToElement,
   setFavicon,
   cancelEvent,
+  isElementInViewport,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "./key_buffer";
@@ -1057,6 +1058,12 @@ function nearbyFocusableId(focusableId, offset) {
   const idx = focusableIds.indexOf(focusableId);
 
   if (idx === -1) {
+    const focusableElInViewport = getFocusableEls().find(isElementInViewport);
+
+    if (focusableElInViewport) {
+      return focusableElInViewport.getAttribute("data-focusable-id");
+    }
+
     return focusableIds[0];
   } else {
     const siblingIdx = clamp(idx + offset, 0, focusableIds.length - 1);
@@ -1083,9 +1090,12 @@ function getFocusableEl(focusableId) {
   return document.querySelector(`[data-focusable-id="${focusableId}"]`);
 }
 
+function getFocusableEls() {
+  return Array.from(document.querySelectorAll(`[data-focusable-id]`));
+}
+
 function getFocusableIds() {
-  const elements = Array.from(document.querySelectorAll(`[data-focusable-id]`));
-  return elements.map((el) => el.getAttribute("data-focusable-id"));
+  return getFocusableEls().map((el) => el.getAttribute("data-focusable-id"));
 }
 
 function getSectionIdByFocusableId(focusableId) {
