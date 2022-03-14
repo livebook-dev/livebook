@@ -402,7 +402,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           info = scan_binding_async(ref, info, state)
           put_in(state.smart_cells[ref], info)
 
-        _ ->
+        {:error, error} ->
+          Logger.error("failed to start smart cell, reason: #{inspect(error)}")
           state
       end
 
