@@ -648,21 +648,23 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "apply_cell_delta",
-        %{"cell_id" => cell_id, "delta" => delta, "revision" => revision},
+        %{"cell_id" => cell_id, "tag" => tag, "delta" => delta, "revision" => revision},
         socket
       ) do
+    tag = String.to_atom(tag)
     delta = Delta.from_compressed(delta)
-    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, delta, revision)
+    Session.apply_cell_delta(socket.assigns.session.pid, cell_id, tag, delta, revision)
 
     {:noreply, socket}
   end
 
   def handle_event(
         "report_cell_revision",
-        %{"cell_id" => cell_id, "revision" => revision},
+        %{"cell_id" => cell_id, "tag" => tag, "revision" => revision},
         socket
       ) do
-    Session.report_cell_revision(socket.assigns.session.pid, cell_id, revision)
+    tag = String.to_atom(tag)
+    Session.report_cell_revision(socket.assigns.session.pid, cell_id, tag, revision)
 
     {:noreply, socket}
   end
@@ -1197,16 +1199,6 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:evaluation_started, _client_pid, cell_id, evaluation_digest}
-       ) do
-    push_event(socket, "evaluation_started:#{cell_id}", %{
-      evaluation_digest: encode_digest(evaluation_digest)
-    })
-  end
-
-  defp after_operation(
-         socket,
-         _prev_socket,
          {:add_cell_evaluation_output, _client_pid, _cell_id, _output}
        ) do
     prune_outputs(socket)
@@ -1222,17 +1214,25 @@ defmodule LivebookWeb.SessionLive do
     |> push_event("evaluation_finished:#{cell_id}", %{code_error: metadata.code_error})
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:smart_cell_started, _client_pid, _cell_id, _delta, _js_view, _editor}
+       ) do
+    prune_cell_sources(socket)
+  end
+
   defp after_operation(socket, _prev_socket, _operation), do: socket
 
   defp handle_actions(socket, actions) do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:broadcast_delta, client_pid, cell, delta}) do
+  defp handle_action(socket, {:broadcast_delta, client_pid, cell, tag, delta}) do
     if client_pid == self() do
-      push_event(socket, "cell_acknowledgement:#{cell.id}", %{})
+      push_event(socket, "cell_acknowledgement:#{cell.id}:#{tag}", %{})
     else
-      push_event(socket, "cell_delta:#{cell.id}", %{delta: Delta.to_compressed(delta)})
+      push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{delta: Delta.to_compressed(delta)})
     end
   end
 
@@ -1416,7 +1416,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
-      source_view: cell_source_view(cell, info)
+      source_view: source_view(cell.source, info.sources.primary)
     }
   end
 
@@ -1426,7 +1426,7 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :code,
-      source_view: cell_source_view(cell, info),
+      source_view: source_view(cell.source, info.sources.primary),
       eval: eval_info_to_view(cell, info.eval, data),
       reevaluate_automatically: cell.reevaluate_automatically
     }
@@ -1438,10 +1438,17 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :smart,
-      source_view: cell_source_view(cell, info),
+      source_view: source_view(cell.source, info.sources.primary),
       eval: eval_info_to_view(cell, info.eval, data),
       status: info.status,
-      js_view: cell.js_view
+      js_view: cell.js_view,
+      editor:
+        cell.editor &&
+          %{
+            language: cell.editor.language,
+            placement: cell.editor.placement,
+            source_view: source_view(cell.editor.source, info.sources.secondary)
+          }
     }
   end
 
@@ -1453,21 +1460,21 @@ defmodule LivebookWeb.SessionLive do
       evaluation_time_ms: eval_info.evaluation_time_ms,
       evaluation_start: eval_info.evaluation_start,
       evaluation_number: eval_info.evaluation_number,
+      evaluation_digest: encode_digest(eval_info.evaluation_digest),
       outputs_batch_number: eval_info.outputs_batch_number,
       # Pass input values relevant to the given cell
       input_values: input_values_for_cell(cell, data)
     }
   end
 
-  defp cell_source_view(%{source: :__pruned__}, _info) do
+  defp source_view(:__pruned__, _source_info) do
     :__pruned__
   end
 
-  defp cell_source_view(cell, info) do
+  defp source_view(source, source_info) do
     %{
-      source: cell.source,
-      revision: info.source.revision,
-      evaluation_digest: encode_digest(get_in(info, [:eval, :evaluation_digest]))
+      source: source,
+      revision: source_info.revision
     }
   end
 
@@ -1485,10 +1492,10 @@ defmodule LivebookWeb.SessionLive do
   # most common ones we only update the relevant parts.
   defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
-      {:report_cell_revision, _pid, _cell_id, _revision} ->
+      {:report_cell_revision, _pid, _cell_id, _tag, _revision} ->
         data_view
 
-      {:apply_cell_delta, _pid, _cell_id, _delta, _revision} ->
+      {:apply_cell_delta, _pid, _cell_id, _tag, _delta, _revision} ->
         update_dirty_status(data_view, data)
 
       {:update_smart_cell, _pid, _cell_id, _cell_state, _delta} ->
@@ -1540,13 +1547,24 @@ defmodule LivebookWeb.SessionLive do
         update_in(
           data.notebook,
           &Notebook.update_cells(&1, fn
-            %Notebook.Cell.Smart{} = cell -> %{cell | source: :__pruned__, attrs: :__pruned__}
-            %{source: _} = cell -> %{cell | source: :__pruned__}
-            cell -> cell
+            %Notebook.Cell.Smart{} = cell ->
+              %{cell | source: :__pruned__, attrs: :__pruned__}
+              |> prune_smart_cell_editor_source()
+
+            %{source: _} = cell ->
+              %{cell | source: :__pruned__}
+
+            cell ->
+              cell
           end)
         )
     )
   end
+
+  defp prune_smart_cell_editor_source(%{editor: %{source: _}} = cell),
+    do: put_in(cell.editor.source, :__pruned__)
+
+  defp prune_smart_cell_editor_source(cell), do: cell
 
   # Changes that affect only a single cell are still likely to
   # have impact on dirtiness, so we need to always mirror it

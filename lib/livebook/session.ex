@@ -380,9 +380,15 @@ defmodule Livebook.Session do
   @doc """
   Sends a cell delta to apply to the server.
   """
-  @spec apply_cell_delta(pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
-  def apply_cell_delta(pid, cell_id, delta, revision) do
-    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, delta, revision})
+  @spec apply_cell_delta(
+          pid(),
+          Cell.id(),
+          Data.cell_source_tag(),
+          Delta.t(),
+          Data.cell_revision()
+        ) :: :ok
+  def apply_cell_delta(pid, cell_id, tag, delta, revision) do
+    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, tag, delta, revision})
   end
 
   @doc """
@@ -390,9 +396,14 @@ defmodule Livebook.Session do
 
   This helps to remove old deltas that are no longer necessary.
   """
-  @spec report_cell_revision(pid(), Cell.id(), Data.cell_revision()) :: :ok
-  def report_cell_revision(pid, cell_id, revision) do
-    GenServer.cast(pid, {:report_cell_revision, self(), cell_id, revision})
+  @spec report_cell_revision(
+          pid(),
+          Cell.id(),
+          Data.cell_source_tag(),
+          Data.cell_revision()
+        ) :: :ok
+  def report_cell_revision(pid, cell_id, tag, revision) do
+    GenServer.cast(pid, {:report_cell_revision, self(), cell_id, tag, revision})
   end
 
   @doc """
@@ -770,13 +781,13 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:apply_cell_delta, client_pid, cell_id, delta, revision}, state) do
-    operation = {:apply_cell_delta, client_pid, cell_id, delta, revision}
+  def handle_cast({:apply_cell_delta, client_pid, cell_id, tag, delta, revision}, state) do
+    operation = {:apply_cell_delta, client_pid, cell_id, tag, delta, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:report_cell_revision, client_pid, cell_id, revision}, state) do
-    operation = {:report_cell_revision, client_pid, cell_id, revision}
+  def handle_cast({:report_cell_revision, client_pid, cell_id, tag, revision}, state) do
+    operation = {:report_cell_revision, client_pid, cell_id, tag, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -914,7 +925,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, info.source)
-        operation = {:smart_cell_started, self(), id, delta, info.js_view}
+        operation = {:smart_cell_started, self(), id, delta, info.js_view, info.editor}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -922,11 +933,11 @@ defmodule Livebook.Session do
     end
   end
 
-  def handle_info({:runtime_smart_cell_update, id, cell_state, source}, state) do
+  def handle_info({:runtime_smart_cell_update, id, attrs, source}, state) do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, self(), id, cell_state, delta}
+        operation = {:update_smart_cell, self(), id, attrs, delta}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1177,6 +1188,20 @@ defmodule Livebook.Session do
     cell_ids = Enum.map(section.cells, & &1.id)
     entries = Enum.filter(state.data.bin_entries, fn entry -> entry.cell.id in cell_ids end)
     broadcast_message(state.session_id, {:hydrate_bin_entries, entries})
+
+    state
+  end
+
+  defp after_operation(
+         state,
+         _prev_state,
+         {:apply_cell_delta, _client_pid, cell_id, tag, _delta, _revision}
+       ) do
+    with :secondary <- tag,
+         {:ok, %Cell.Smart{} = cell, _section} <-
+           Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
+      send(cell.js_view.pid, {:editor_source, cell.editor.source})
+    end
 
     state
   end

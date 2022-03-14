@@ -2,29 +2,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   use LivebookWeb, :live_component
 
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, initialized: false)}
-  end
-
-  @impl true
-  def update(assigns, socket) do
-    socket = assign(socket, assigns)
-
-    socket =
-      if not connected?(socket) or socket.assigns.initialized do
-        socket
-      else
-        %{id: id, source_view: source_view} = socket.assigns.cell_view
-
-        socket
-        |> push_event("cell_init:#{id}", source_view)
-        |> assign(initialized: true)
-      end
-
-    {:ok, socket}
-  end
-
-  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
@@ -34,7 +11,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-cell-id={@cell_view.id}
       data-focusable-id={@cell_view.id}
       data-type={@cell_view.type}
-      data-session-path={Routes.session_path(@socket, :page, @session_id)}>
+      data-session-path={Routes.session_path(@socket, :page, @session_id)}
+      data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}>
       <%= render_cell(assigns) %>
     </div>
     """
@@ -54,13 +32,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </.cell_actions>
     <.cell_body>
       <div class="pb-4" data-element="editor-box">
-        <.editor cell_view={@cell_view} />
+        <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
+          id={"#{@cell_view.id}-primary"}
+          cell_id={@cell_view.id}
+          tag="primary"
+          source_view={@cell_view.source_view}
+          language="markdown" />
       </div>
       <div class="markdown"
         data-element="markdown-container"
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore">
-        <.content_placeholder bg_class="bg-gray-200" empty={empty?(@cell_view.source_view)} />
+        <.content_skeleton empty={empty?(@cell_view.source_view)} />
       </div>
     </.cell_body>
     """
@@ -89,7 +72,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     </.cell_actions>
     <.cell_body>
       <div class="relative">
-        <.editor cell_view={@cell_view} />
+        <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
+          id={"#{@cell_view.id}-primary"}
+          cell_id={@cell_view.id}
+          tag="primary"
+          source_view={@cell_view.source_view}
+          language="elixir"
+          intellisense />
         <div class="absolute bottom-2 right-2">
           <.cell_status cell_view={@cell_view} />
         </div>
@@ -129,10 +118,20 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <div data-element="ui-box">
           <%= case @cell_view.status do %>
             <% :started -> %>
-              <.live_component module={LivebookWeb.JSViewComponent}
-                id={@cell_view.id}
-                js_view={@cell_view.js_view}
-                session_id={@session_id} />
+              <div class={"flex #{if(@cell_view.editor && @cell_view.editor.placement == :top, do: "flex-col-reverse", else: "flex-col")}"}>
+                <.live_component module={LivebookWeb.JSViewComponent}
+                  id={@cell_view.id}
+                  js_view={@cell_view.js_view}
+                  session_id={@session_id} />
+                <%= if @cell_view.editor do %>
+                  <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
+                    id={"#{@cell_view.id}-secondary"}
+                    cell_id={@cell_view.id}
+                    tag="secondary"
+                    source_view={@cell_view.editor.source_view}
+                    language={@cell_view.editor.language} />
+                <% end %>
+              </div>
 
             <% :dead -> %>
               <div class="p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg">
@@ -141,12 +140,19 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
             <% :starting -> %>
               <div class="delay-200">
-                <.content_placeholder bg_class="bg-gray-200" empty={false} />
+                <.content_skeleton empty={false} />
               </div>
           <% end %>
         </div>
         <div data-element="editor-box">
-          <.editor cell_view={@cell_view} />
+          <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
+            id={"#{@cell_view.id}-primary"}
+            cell_id={@cell_view.id}
+            tag="primary"
+            source_view={@cell_view.source_view}
+            language="elixir"
+            intellisense
+            read_only />
         </div>
         <div data-element="cell-status-container">
           <.cell_status cell_view={@cell_view} />
@@ -373,18 +379,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp editor(assigns) do
-    ~H"""
-    <div id={"editor-#{@cell_view.id}"} phx-update="ignore">
-      <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
-        <div class="px-8">
-          <.content_placeholder bg_class="bg-gray-500" empty={empty?(@cell_view.source_view)} />
-        </div>
-      </div>
-    </div>
-    """
-  end
-
   defp evaluation_outputs(assigns) do
     ~H"""
     <div class="flex flex-col"
@@ -400,26 +394,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         cell_validity={@cell_view.eval.validity}
         input_values={@cell_view.eval.input_values} />
     </div>
-    """
-  end
-
-  # The whole page has to load and then hooks are mounted.
-  # There may be a tiny delay before the markdown is rendered
-  # or editors are mounted, so show neat placeholders immediately.
-
-  defp content_placeholder(assigns) do
-    ~H"""
-    <%= if @empty do %>
-      <div class="h-4"></div>
-    <% else %>
-      <div class="max-w-2xl w-full animate-pulse">
-        <div class="flex-1 space-y-4">
-          <div class={"#{@bg_class} h-4 rounded-lg w-3/4"}></div>
-          <div class={"#{@bg_class} h-4 rounded-lg"}></div>
-          <div class={"#{@bg_class} h-4 rounded-lg w-5/6"}></div>
-        </div>
-      </div>
-    <% end %>
     """
   end
 

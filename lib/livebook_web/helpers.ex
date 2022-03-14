@@ -174,6 +174,36 @@ defmodule LivebookWeb.Helpers do
   end
 
   @doc """
+  Renders a text content skeleton.
+
+  ## Options
+
+    * `:empty` - if the source is empty. Defauls to `false`
+
+    * `:bg_class` - the skeleton background color. Defaults to `"bg-gray-200"`
+  """
+  def content_skeleton(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:empty, fn -> false end)
+      |> assign_new(:bg_class, fn -> "bg-gray-200" end)
+
+    ~H"""
+    <%= if @empty do %>
+      <div class="h-4"></div>
+    <% else %>
+      <div class="max-w-2xl w-full animate-pulse">
+        <div class="flex-1 space-y-4">
+          <div class={"#{@bg_class} h-4 rounded-lg w-3/4"}></div>
+          <div class={"#{@bg_class} h-4 rounded-lg"}></div>
+          <div class={"#{@bg_class} h-4 rounded-lg w-5/6"}></div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  @doc """
   Determines user platform based on the given *User-Agent* header.
   """
   @spec platform_from_user_agent(String.t()) :: :linux | :mac | :windows | :other

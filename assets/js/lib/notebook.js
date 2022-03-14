@@ -6,7 +6,7 @@ export function isEvaluable(cellType) {
 }
 
 /**
- * Checks if the given cell type has editable editor.
+ * Checks if the given cell type has primary editable editor.
  */
 export function isDirectlyEditable(cellType) {
   return ["markdown", "code"].includes(cellType);

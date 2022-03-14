@@ -216,8 +216,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
         {:ok, pid,
          %{
-           js_view: %{ref: info.ref, pid: pid, assets: %{}},
            source: "source",
+           js_view: %{ref: info.ref, pid: pid, assets: %{}},
+           editor: nil,
            scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_ping) end,
            scan_eval_result: fn pid, _result -> send(pid, :scan_eval_result_ping) end
          }}
