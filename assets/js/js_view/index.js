@@ -80,6 +80,22 @@ const JSView = {
 
     this.disconnectObservers = bindIframeSize(iframe, iframePlaceholder);
 
+    // Emulate mouse enter and leave on the placeholder. Note that we
+    // intentionally use bubbling to notify all parents that may have
+    // listeners on themselves
+
+    iframe.addEventListener("mouseenter", (event) => {
+      iframePlaceholder.dispatchEvent(
+        new MouseEvent("mouseenter", { bubbles: true })
+      );
+    });
+
+    iframe.addEventListener("mouseleave", (event) => {
+      iframePlaceholder.dispatchEvent(
+        new MouseEvent("mouseleave", { bubbles: true })
+      );
+    });
+
     // Register message chandler to communicate with the iframe
 
     function postMessage(message) {

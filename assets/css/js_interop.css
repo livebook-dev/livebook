@@ -73,7 +73,7 @@ solely client-side operations.
   @apply pointer-events-none;
 }
 
-[data-element="cell"]:not([data-js-focused]):hover
+[data-element="cell"]:not([data-js-focused])[data-js-hover]
   [data-element="actions"][data-primary] {
   @apply opacity-100 pointer-events-auto;
 }
@@ -92,7 +92,7 @@ solely client-side operations.
   @apply text-gray-900;
 }
 
-[data-element="cell"]:not([data-js-focused]):hover
+[data-element="cell"]:not([data-js-focused])[data-js-hover]
   [data-element="cell-focus-indicator"] {
   @apply bg-blue-200;
 }
