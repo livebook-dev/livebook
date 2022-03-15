@@ -19,7 +19,7 @@ export default class MonacoEditorAdapter {
 
       this.isLastChangeRemote = false;
 
-      const delta = this.__deltaFromEditorChange(event);
+      const delta = this._deltaFromEditorChange(event);
       this._onDelta && this._onDelta(delta);
     });
   }
@@ -57,7 +57,7 @@ export default class MonacoEditorAdapter {
       this.editor.getModel().popStackElement();
     }
 
-    const operations = this.__deltaToEditorOperations(delta);
+    const operations = this._deltaToEditorOperations(delta);
     this.ignoreChange = true;
     // Apply the operations and add them to the undo stack
     this.editor.getModel().pushEditOperations(null, operations, null);
@@ -70,7 +70,7 @@ export default class MonacoEditorAdapter {
     this.isLastChangeRemote = true;
   }
 
-  __deltaFromEditorChange(event) {
+  _deltaFromEditorChange(event) {
     const deltas = event.changes.map((change) => {
       const { rangeOffset, rangeLength, text } = change;
 
@@ -94,7 +94,7 @@ export default class MonacoEditorAdapter {
     return deltas.reduce((delta1, delta2) => delta1.compose(delta2));
   }
 
-  __deltaToEditorOperations(delta) {
+  _deltaToEditorOperations(delta) {
     const model = this.editor.getModel();
 
     const operations = [];

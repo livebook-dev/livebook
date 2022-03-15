@@ -4,118 +4,91 @@ import {
   parseBoolean,
   parseInteger,
 } from "../lib/attribute";
-import { findChildOrThrow, getLineHeight } from "../lib/utils";
+import { findChildOrThrow, getLineHeight, isScrolledToEnd } from "../lib/utils";
 
 /**
- * A hook used to render text lines as a virtual list,
- * so that only the visible lines are actually in the DOM.
+ * A hook used to render text lines as a virtual list, so that only
+ * the visible lines are actually in the DOM.
  *
- * Configuration:
+ * ## Configuration
  *
- *   * `data-max-height` - the maximum height of the element, exceeding this height enables scrolling
+ *   * `data-max-height` - the maximum height of the element, exceeding
+ *     this height enables scrolling
  *
- *   * `data-follow` - whether to automatically scroll to the bottom as new lines appear
+ *   * `data-follow` - whether to automatically scroll to the bottom as
+ *     new lines appear
  *
  * The element should have two children:
  *
- *   * one annotated with `data-template` attribute, it should be hidden
- *     and contain all the line elements, each with a data-line attribute
+ *   * `[data-template]` - a hidden container containing all the line
+ *     elements, each with a data-line attribute
  *
- *   * one annotated with `data-content` where the visible elements are rendered,
- *     it should contain any styling relevant for the container
- *
+ *   * `[data-content]` - the target element to render the virtualized
+ *     lines into, it should contain the styling relevant text styles
  */
 const VirtualizedLines = {
   mounted() {
-    this.props = getProps(this);
-    this.state = {
-      lineHeight: null,
-      templateElement: null,
-      contentElement: null,
-      virtualizedList: null,
-    };
+    this.props = this.getProps();
 
-    this.state.lineHeight = getLineHeight(this.el);
+    this.lineHeight = getLineHeight(this.el);
+    this.templateEl = findChildOrThrow(this.el, "[data-template]");
+    this.contentEl = findChildOrThrow(this.el, "[data-content]");
 
-    this.state.templateElement = findChildOrThrow(this.el, "[data-template]");
-    this.state.contentElement = findChildOrThrow(this.el, "[data-content]");
-
-    const config = hyperListConfig(
-      this.state.contentElement,
-      this.state.templateElement,
-      this.props.maxHeight,
-      this.state.lineHeight
-    );
-    this.state.virtualizedList = new HyperList(
-      this.state.contentElement,
-      config
-    );
+    const config = this.hyperListConfig();
+    this.virtualizedList = new HyperList(this.contentEl, config);
   },
 
   updated() {
-    this.props = getProps(this);
+    this.props = this.getProps();
 
-    const config = hyperListConfig(
-      this.state.contentElement,
-      this.state.templateElement,
-      this.props.maxHeight,
-      this.state.lineHeight
-    );
+    const scrollToEnd = this.props.follow && isScrolledToEnd(this.contentEl);
 
-    const scrollTop = Math.round(this.state.contentElement.scrollTop);
-    const maxScrollTop = Math.round(
-      this.state.contentElement.scrollHeight -
-        this.state.contentElement.clientHeight
-    );
-    const isAtTheEnd = scrollTop === maxScrollTop;
+    const config = this.hyperListConfig();
+    this.virtualizedList.refresh(this.contentEl, config);
 
-    this.state.virtualizedList.refresh(this.state.contentElement, config);
-
-    if (this.props.follow && isAtTheEnd) {
-      this.state.contentElement.scrollTop =
-        this.state.contentElement.scrollHeight;
+    if (scrollToEnd) {
+      this.contentEl.scrollTop = this.contentEl.scrollHeight;
     }
   },
+
+  getProps() {
+    return {
+      maxHeight: getAttributeOrThrow(this.el, "data-max-height", parseInteger),
+      follow: getAttributeOrThrow(this.el, "data-follow", parseBoolean),
+    };
+  },
+
+  hyperListConfig() {
+    const lineEls = this.templateEl.querySelectorAll("[data-line]");
+    const numberOfLines = lineEls.length;
+
+    const height = Math.min(
+      this.props.maxHeight,
+      this.lineHeight * numberOfLines
+    );
+
+    return {
+      height,
+      total: numberOfLines,
+      itemHeight: this.lineHeight,
+      generate: (index) => {
+        const node = lineEls[index].cloneNode(true);
+        node.removeAttribute("id");
+        return node;
+      },
+      afterRender: () => {
+        // The content element has a fixed height and when the horizontal
+        // scrollbar appears, it's treated as part of the element's content.
+        // To accommodate for the scrollbar we dynamically add more height
+        // to the element.
+        if (this.contentEl.scrollWidth > this.contentEl.clientWidth) {
+          this.contentEl.style.height = `${height + 12}px`;
+        } else {
+          this.contentEl.style.height = `${height}px`;
+        }
+      },
+    };
+  },
 };
-
-function hyperListConfig(
-  contentElement,
-  templateElement,
-  maxHeight,
-  lineHeight
-) {
-  const lineElements = templateElement.querySelectorAll("[data-line]");
-  const numberOfLines = lineElements.length;
-  const height = Math.min(maxHeight, lineHeight * numberOfLines);
-
-  return {
-    height,
-    total: numberOfLines,
-    itemHeight: lineHeight,
-    generate: (index) => {
-      const node = lineElements[index].cloneNode(true);
-      node.removeAttribute("id");
-      return node;
-    },
-    afterRender: () => {
-      // The content element has a fixed height and when the horizontal
-      // scrollbar appears, it's treated as part of the element's content.
-      // To accommodate for the scrollbar we dynamically add more height
-      // to the element.
-      if (contentElement.scrollWidth > contentElement.clientWidth) {
-        contentElement.style.height = `${height + 12}px`;
-      } else {
-        contentElement.style.height = `${height}px`;
-      }
-    },
-  };
-}
-
-function getProps(hook) {
-  return {
-    maxHeight: getAttributeOrThrow(hook.el, "data-max-height", parseInteger),
-    follow: getAttributeOrThrow(hook.el, "data-follow", parseBoolean),
-  };
-}
 
 export default VirtualizedLines;

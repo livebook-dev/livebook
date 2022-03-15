@@ -41,8 +41,8 @@ document.fonts.addEventListener("loadingdone", (event) => {
 
 monaco.languages.registerCompletionItemProvider("elixir", {
   provideCompletionItems: (model, position, context, token) => {
-    if (model.__getCompletionItems) {
-      return model.__getCompletionItems(model, position);
+    if (model.__getCompletionItems__) {
+      return model.__getCompletionItems__(model, position);
     } else {
       return null;
     }
@@ -51,8 +51,8 @@ monaco.languages.registerCompletionItemProvider("elixir", {
 
 monaco.languages.registerHoverProvider("elixir", {
   provideHover: (model, position, token) => {
-    if (model.__getHover) {
-      return model.__getHover(model, position);
+    if (model.__getHover__) {
+      return model.__getHover__(model, position);
     } else {
       return null;
     }
@@ -62,8 +62,8 @@ monaco.languages.registerHoverProvider("elixir", {
 monaco.languages.registerSignatureHelpProvider("elixir", {
   signatureHelpTriggerCharacters: ["(", ","],
   provideSignatureHelp: (model, position, token, context) => {
-    if (model.__getSignatureHelp) {
-      return model.__getSignatureHelp(model, position);
+    if (model.__getSignatureHelp__) {
+      return model.__getSignatureHelp__(model, position);
     } else {
       return null;
     }
@@ -72,8 +72,8 @@ monaco.languages.registerSignatureHelpProvider("elixir", {
 
 monaco.languages.registerDocumentFormattingEditProvider("elixir", {
   provideDocumentFormattingEdits: (model, options, token) => {
-    if (model.__getDocumentFormattingEdits) {
-      return model.__getDocumentFormattingEdits(model);
+    if (model.__getDocumentFormattingEdits__) {
+      return model.__getDocumentFormattingEdits__(model);
     } else {
       return null;
     }

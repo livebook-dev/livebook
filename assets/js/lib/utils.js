@@ -58,6 +58,14 @@ export function smoothlyScrollToElement(element) {
   }
 }
 
+export function isScrolledToEnd(element) {
+  // See https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollHeight#determine_if_an_element_has_been_totally_scrolled
+  return (
+    Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) <
+    1
+  );
+}
+
 /**
  * Transforms a UTF8 string into base64 encoding.
  */

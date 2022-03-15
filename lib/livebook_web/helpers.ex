@@ -411,11 +411,10 @@ defmodule LivebookWeb.Helpers do
   end
 
   @doc """
-  Renders a wrapper around password input
-  with an added visibility toggle button.
+  Renders a wrapper around password input with an added visibility
+  toggle button.
 
-  The toggle switches the input's type between `password`
-  and `text`.
+  The toggle switches the input's type between `password` and `text`.
 
   ## Examples
 

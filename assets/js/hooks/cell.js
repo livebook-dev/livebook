@@ -8,26 +8,28 @@ import { isEvaluable } from "../lib/notebook";
 /**
  * A hook managing a single cell.
  *
- * Mounts and manages the collaborative editor,
- * takes care of markdown rendering and focusing the editor when applicable.
+ * Manages the collaborative editor, takes care of markdown rendering
+ * and focusing the editor when applicable.
  *
- * Configuration:
+ * ## Configuration
  *
  *   * `data-cell-id` - id of the cell being edited
+ *
  *   * `data-type` - type of the cell
+ *
  *   * `data-session-path` - root path to the current session
+ *
  *   * `data-evaluation-digest` - digest of the last evaluated cell source
  */
 const Cell = {
   mounted() {
-    this.props = getProps(this);
-    this.state = {
-      isFocused: false,
-      insertMode: false,
-      liveEditors: {},
-    };
+    this.props = this.getProps();
 
-    updateInsertModeAvailability(this);
+    this.isFocused = false;
+    this.insertMode = false;
+    this.liveEditors = {};
+
+    this.updateInsertModeAvailability();
 
     // Setup action handlers
 
@@ -46,8 +48,8 @@ const Cell = {
       );
       toggleSourceButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-source-visible");
-        updateInsertModeAvailability(this);
-        maybeFocusCurrentEditor(this);
+        this.updateInsertModeAvailability();
+        this.maybeFocusCurrentEditor();
       });
     }
 
@@ -55,36 +57,31 @@ const Cell = {
 
     this.el.addEventListener("lb:cell:editor_created", (event) => {
       const { tag, liveEditor } = event.detail;
-      handleCellEditorCreated(this, tag, liveEditor);
+      this.handleCellEditorCreated(tag, liveEditor);
     });
 
     this.el.addEventListener("lb:cell:editor_removed", (event) => {
       const { tag } = event.detail;
-      handleCellEditorRemoved(this, tag);
+      this.handleCellEditorRemoved(tag);
     });
 
     // We manually track hover to correctly handle absolute iframe
 
     this.el.addEventListener("mouseenter", (event) => {
-      this.el.setAttribute("data-js-hover", "true");
+      this.el.setAttribute("data-js-hover", "");
     });
 
     this.el.addEventListener("mouseleave", (event) => {
       this.el.removeAttribute("data-js-hover");
     });
 
-    this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
+    this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(
       "navigation",
-      (event) => {
-        handleNavigationEvent(this, event);
-      }
+      (event) => this.handleNavigationEvent(event)
     );
 
-    this._unsubscribeFromCellsEvents = globalPubSub.subscribe(
-      "cells",
-      (event) => {
-        handleCellsEvent(this, event);
-      }
+    this.unsubscribeFromCellsEvents = globalPubSub.subscribe("cells", (event) =>
+      this.handleCellsEvent(event)
     );
   },
 
@@ -97,252 +94,257 @@ const Cell = {
   },
 
   destroyed() {
-    this._unsubscribeFromNavigationEvents();
-    this._unsubscribeFromCellsEvents();
+    this.unsubscribeFromNavigationEvents();
+    this.unsubscribeFromCellsEvents();
   },
 
   updated() {
     const prevProps = this.props;
-    this.props = getProps(this);
+    this.props = this.getProps();
 
     if (this.props.evaluationDigest !== prevProps.evaluationDigest) {
-      updateChangeIndicator(this);
+      this.updateChangeIndicator();
+    }
+  },
+
+  getProps() {
+    return {
+      cellId: getAttributeOrThrow(this.el, "data-cell-id"),
+      type: getAttributeOrThrow(this.el, "data-type"),
+      sessionPath: getAttributeOrThrow(this.el, "data-session-path"),
+      evaluationDigest: getAttributeOrDefault(
+        this.el,
+        "data-evaluation-digest",
+        null
+      ),
+    };
+  },
+
+  handleNavigationEvent(event) {
+    if (event.type === "element_focused") {
+      this.handleElementFocused(event.focusableId, event.scroll);
+    } else if (event.type === "insert_mode_changed") {
+      this.handleInsertModeChanged(event.enabled);
+    } else if (event.type === "location_report") {
+      this.handleLocationReport(event.client, event.report);
+    }
+  },
+
+  handleCellsEvent(event) {
+    if (event.type === "cell_moved") {
+      this.handleCellMoved(event.cellId);
+    } else if (event.type === "cell_upload") {
+      this.handleCellUpload(event.cellId, event.url);
+    }
+  },
+
+  handleElementFocused(focusableId, scroll) {
+    if (this.props.cellId === focusableId) {
+      this.isFocused = true;
+      this.el.setAttribute("data-js-focused", "");
+      if (scroll) {
+        smoothlyScrollToElement(this.el);
+      }
+    } else if (this.isFocused) {
+      this.isFocused = false;
+      this.el.removeAttribute("data-js-focused");
+    }
+  },
+
+  handleCellEditorCreated(tag, liveEditor) {
+    this.liveEditors[tag] = liveEditor;
+
+    this.updateInsertModeAvailability();
+
+    if (liveEditor === this.currentEditor()) {
+      // Once the editor is created, reflect the current insert mode state
+      this.maybeFocusCurrentEditor(true);
+    }
+
+    liveEditor.onBlur(() => {
+      // Prevent from blurring unless the state changes. For example
+      // when we move cell using buttons the editor should keep focus
+      if (this.isFocused && this.insertMode) {
+        this.currentEditor().focus();
+      }
+    });
+
+    liveEditor.onCursorSelectionChange((selection) => {
+      this.broadcastSelection(selection);
+    });
+
+    if (tag === "primary") {
+      // Setup markdown rendering
+      if (this.props.type === "markdown") {
+        const markdownContainer = this.el.querySelector(
+          `[data-element="markdown-container"]`
+        );
+        const markdown = new Markdown(
+          markdownContainer,
+          liveEditor.getSource(),
+          {
+            baseUrl: this.props.sessionPath,
+            emptyText: "Empty markdown cell",
+          }
+        );
+
+        liveEditor.onChange((newSource) => {
+          markdown.setContent(newSource);
+        });
+      }
+
+      // Setup change indicator
+      if (isEvaluable(this.props.type)) {
+        this.updateChangeIndicator();
+
+        liveEditor.onChange((newSource) => {
+          this.updateChangeIndicator();
+        });
+
+        this.handleEvent(
+          `evaluation_finished:${this.props.cellId}`,
+          ({ code_error }) => {
+            liveEditor.setCodeErrorMarker(code_error);
+          }
+        );
+      }
+    }
+  },
+
+  handleCellEditorRemoved(tag) {
+    delete this.liveEditors[tag];
+  },
+
+  currentEditor() {
+    return this.liveEditors[this.currentEditorTag()];
+  },
+
+  currentEditorTag() {
+    if (this.props.type === "smart") {
+      const isSourceTab = this.el.hasAttribute("data-js-source-visible");
+      return isSourceTab ? "primary" : "secondary";
+    }
+
+    return "primary";
+  },
+
+  updateInsertModeAvailability() {
+    this.el.toggleAttribute(
+      "data-js-insert-mode-disabled",
+      !this.currentEditor()
+    );
+  },
+
+  maybeFocusCurrentEditor(scroll = false) {
+    if (this.isFocused && this.insertMode) {
+      this.currentEditor().focus();
+
+      if (scroll) {
+        // If the element is being scrolled to, focus interrupts it,
+        // so ensure the scrolling continues.
+        smoothlyScrollToElement(this.el);
+      }
+
+      this.broadcastSelection();
+    }
+  },
+
+  updateChangeIndicator() {
+    const cellStatus = this.el.querySelector(`[data-element="cell-status"]`);
+    const indicator =
+      cellStatus &&
+      cellStatus.querySelector(`[data-element="change-indicator"]`);
+
+    if (indicator && this.props.evaluationDigest) {
+      const source = this.liveEditors.primary.getSource();
+      const digest = md5Base64(source);
+      const changed = this.props.evaluationDigest !== digest;
+      cellStatus.toggleAttribute("data-js-changed", changed);
+    }
+  },
+
+  handleInsertModeChanged(insertMode) {
+    if (this.isFocused && !this.insertMode && insertMode) {
+      this.insertMode = insertMode;
+
+      if (this.currentEditor()) {
+        this.currentEditor().focus();
+
+        // The insert mode may be enabled as a result of clicking the editor,
+        // in which case we want to wait until editor handles the click and
+        // sets new cursor position. To achieve this, we simply put this task
+        // at the end of event loop, ensuring the editor mousedown handler is
+        // executed first
+        setTimeout(() => {
+          scrollIntoView(document.activeElement, {
+            scrollMode: "if-needed",
+            behavior: "smooth",
+            block: "center",
+          });
+        }, 0);
+
+        this.broadcastSelection();
+      }
+    } else if (this.insertMode && !insertMode) {
+      this.insertMode = insertMode;
+
+      if (this.currentEditor()) {
+        this.currentEditor().blur();
+      }
+    }
+  },
+
+  handleCellMoved(cellId) {
+    if (this.isFocused && cellId === this.props.cellId) {
+      smoothlyScrollToElement(this.el);
+    }
+  },
+
+  handleCellUpload(cellId, url) {
+    const liveEditor = this.liveEditors.primary;
+
+    if (!liveEditor) {
+      return;
+    }
+
+    if (this.props.cellId === cellId) {
+      const markdown = `![](${url})`;
+      liveEditor.insert(markdown);
+    }
+  },
+
+  handleLocationReport(client, report) {
+    Object.entries(this.liveEditors).forEach(([tag, liveEditor]) => {
+      if (
+        this.props.cellId === report.focusableId &&
+        report.selection &&
+        report.selection.tag === tag
+      ) {
+        liveEditor.updateUserSelection(
+          client,
+          report.selection.editorSelection
+        );
+      } else {
+        liveEditor.removeUserSelection(client);
+      }
+    });
+  },
+
+  broadcastSelection(editorSelection = null) {
+    editorSelection =
+      editorSelection || this.currentEditor().editor.getSelection();
+
+    const tag = this.currentEditorTag();
+
+    // Report new selection only if this cell is in insert mode
+    if (this.isFocused && this.insertMode) {
+      globalPubSub.broadcast("session", {
+        type: "cursor_selection_changed",
+        focusableId: this.props.cellId,
+        selection: { tag, editorSelection },
+      });
     }
   },
 };
-
-function getProps(hook) {
-  return {
-    cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
-    type: getAttributeOrThrow(hook.el, "data-type"),
-    sessionPath: getAttributeOrThrow(hook.el, "data-session-path"),
-    evaluationDigest: getAttributeOrDefault(
-      hook.el,
-      "data-evaluation-digest",
-      null
-    ),
-  };
-}
-
-/**
- * Handles client-side navigation event.
- */
-function handleNavigationEvent(hook, event) {
-  if (event.type === "element_focused") {
-    handleElementFocused(hook, event.focusableId, event.scroll);
-  } else if (event.type === "insert_mode_changed") {
-    handleInsertModeChanged(hook, event.enabled);
-  } else if (event.type === "location_report") {
-    handleLocationReport(hook, event.client, event.report);
-  }
-}
-
-/**
- * Handles client-side cells event.
- */
-function handleCellsEvent(hook, event) {
-  if (event.type === "cell_moved") {
-    handleCellMoved(hook, event.cellId);
-  } else if (event.type === "cell_upload") {
-    handleCellUpload(hook, event.cellId, event.url);
-  }
-}
-
-function handleElementFocused(hook, focusableId, scroll) {
-  if (hook.props.cellId === focusableId) {
-    hook.state.isFocused = true;
-    hook.el.setAttribute("data-js-focused", "true");
-    if (scroll) {
-      smoothlyScrollToElement(hook.el);
-    }
-  } else if (hook.state.isFocused) {
-    hook.state.isFocused = false;
-    hook.el.removeAttribute("data-js-focused");
-  }
-}
-
-function handleCellEditorCreated(hook, tag, liveEditor) {
-  hook.state.liveEditors[tag] = liveEditor;
-
-  updateInsertModeAvailability(hook);
-
-  if (liveEditor === currentEditor(hook)) {
-    // Once the editor is created, reflect the current insert mode state
-    maybeFocusCurrentEditor(hook, true);
-  }
-
-  liveEditor.onBlur(() => {
-    // Prevent from blurring unless the state changes. For example
-    // when we move cell using buttons the editor should keep focus
-    if (hook.state.isFocused && hook.state.insertMode) {
-      currentEditor(hook).focus();
-    }
-  });
-
-  liveEditor.onCursorSelectionChange((selection) => {
-    broadcastSelection(hook, selection);
-  });
-
-  if (tag === "primary") {
-    // Setup markdown rendering
-    if (hook.props.type === "markdown") {
-      const markdownContainer = hook.el.querySelector(
-        `[data-element="markdown-container"]`
-      );
-      const markdown = new Markdown(markdownContainer, liveEditor.getSource(), {
-        baseUrl: hook.props.sessionPath,
-        emptyText: "Empty markdown cell",
-      });
-
-      liveEditor.onChange((newSource) => {
-        markdown.setContent(newSource);
-      });
-    }
-
-    // Setup change indicator
-    if (isEvaluable(hook.props.type)) {
-      updateChangeIndicator(hook);
-
-      liveEditor.onChange((newSource) => {
-        updateChangeIndicator(hook);
-      });
-
-      hook.handleEvent(
-        `evaluation_finished:${hook.props.cellId}`,
-        ({ code_error }) => {
-          liveEditor.setCodeErrorMarker(code_error);
-        }
-      );
-    }
-  }
-}
-
-function handleCellEditorRemoved(hook, tag) {
-  delete hook.state.liveEditors[tag];
-}
-
-function currentEditor(hook) {
-  return hook.state.liveEditors[currentEditorTag(hook)];
-}
-
-function currentEditorTag(hook) {
-  if (hook.props.type === "smart") {
-    const isSourceTab = hook.el.hasAttribute("data-js-source-visible");
-    return isSourceTab ? "primary" : "secondary";
-  }
-
-  return "primary";
-}
-
-function updateInsertModeAvailability(hook) {
-  hook.el.toggleAttribute("data-js-insert-mode-disabled", !currentEditor(hook));
-}
-
-function maybeFocusCurrentEditor(hook, scroll = false) {
-  if (hook.state.isFocused && hook.state.insertMode) {
-    currentEditor(hook).focus();
-
-    if (scroll) {
-      // If the element is being scrolled to, focus interrupts it,
-      // so ensure the scrolling continues.
-      smoothlyScrollToElement(hook.el);
-    }
-
-    broadcastSelection(hook);
-  }
-}
-
-function updateChangeIndicator(hook) {
-  const cellStatus = hook.el.querySelector(`[data-element="cell-status"]`);
-  const indicator =
-    cellStatus && cellStatus.querySelector(`[data-element="change-indicator"]`);
-
-  if (indicator && hook.props.evaluationDigest) {
-    const source = hook.state.liveEditors.primary.getSource();
-    const digest = md5Base64(source);
-    const changed = hook.props.evaluationDigest !== digest;
-    cellStatus.toggleAttribute("data-js-changed", changed);
-  }
-}
-
-function handleInsertModeChanged(hook, insertMode) {
-  if (hook.state.isFocused && !hook.state.insertMode && insertMode) {
-    hook.state.insertMode = insertMode;
-
-    if (currentEditor(hook)) {
-      currentEditor(hook).focus();
-
-      // The insert mode may be enabled as a result of clicking the editor,
-      // in which case we want to wait until editor handles the click and
-      // sets new cursor position. To achieve this, we simply put this task
-      // at the end of event loop, ensuring the editor mousedown handler is
-      // executed first
-      setTimeout(() => {
-        scrollIntoView(document.activeElement, {
-          scrollMode: "if-needed",
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 0);
-
-      broadcastSelection(hook);
-    }
-  } else if (hook.state.insertMode && !insertMode) {
-    hook.state.insertMode = insertMode;
-
-    if (currentEditor(hook)) {
-      currentEditor(hook).blur();
-    }
-  }
-}
-
-function handleCellMoved(hook, cellId) {
-  if (hook.state.isFocused && cellId === hook.props.cellId) {
-    smoothlyScrollToElement(hook.el);
-  }
-}
-
-function handleCellUpload(hook, cellId, url) {
-  const liveEditor = hook.state.liveEditors.primary;
-
-  if (!liveEditor) {
-    return;
-  }
-
-  if (hook.props.cellId === cellId) {
-    const markdown = `![](${url})`;
-    liveEditor.insert(markdown);
-  }
-}
-
-function handleLocationReport(hook, client, report) {
-  Object.entries(hook.state.liveEditors).forEach(([tag, liveEditor]) => {
-    if (
-      hook.props.cellId === report.focusableId &&
-      report.selection &&
-      report.selection.tag === tag
-    ) {
-      liveEditor.updateUserSelection(client, report.selection.editorSelection);
-    } else {
-      liveEditor.removeUserSelection(client);
-    }
-  });
-}
-
-function broadcastSelection(hook, editorSelection = null) {
-  editorSelection =
-    editorSelection || currentEditor(hook).editor.getSelection();
-
-  const tag = currentEditorTag(hook);
-
-  // Report new selection only if this cell is in insert mode
-  if (hook.state.isFocused && hook.state.insertMode) {
-    globalPubSub.broadcast("session", {
-      type: "cursor_selection_changed",
-      focusableId: hook.props.cellId,
-      selection: { tag, editorSelection },
-    });
-  }
-}
 
 export default Cell;

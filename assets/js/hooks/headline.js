@@ -7,126 +7,129 @@ import { smoothlyScrollToElement } from "../lib/utils";
  *
  * Similarly to cells the headline is focus/insert enabled.
  *
- * Configuration:
+ * ## Configuration
  *
- *   * `data-focusable-id` - an identifier for the focus/insert navigation
- *   * `data-on-value-change` - name of the event pushed when the user edits heading value
+ *   * `data-focusable-id` - an identifier for the focus/insert
+ *     navigation
+ *
+ *   * `data-on-value-change` - name of the event pushed when the user
+ *     edits heading value
+ *
  *   * `data-metadata` - additional value to send with the change event
  */
 const Headline = {
   mounted() {
-    this.props = getProps(this);
-    this.state = {
-      isFocused: false,
-      insertMode: false,
-    };
+    this.props = this.getProps();
 
-    const heading = getHeading(this);
+    this.isFocused = false;
+    this.insertMode = false;
+
+    this.initializeHeadingEl();
+
+    this.unsubscribeFromNavigationEvents = globalPubSub.subscribe(
+      "navigation",
+      (event) => {
+        this.handleNavigationEvent(event);
+      }
+    );
+  },
+
+  updated() {
+    this.props = this.getProps();
+    this.initializeHeadingEl();
+  },
+
+  destroyed() {
+    this.unsubscribeFromNavigationEvents();
+  },
+
+  getProps() {
+    return {
+      focusableId: getAttributeOrThrow(this.el, "data-focusable-id"),
+      onValueChange: getAttributeOrThrow(this.el, "data-on-value-change"),
+      metadata: getAttributeOrThrow(this.el, "data-metadata"),
+    };
+  },
+
+  initializeHeadingEl() {
+    const headingEl = this.el.querySelector(`[data-element="heading"]`);
+
+    if (headingEl === this.headingEl) {
+      return;
+    }
+
+    this.headingEl = headingEl;
 
     // Make sure only plain text is pasted
-    heading.addEventListener("paste", (event) => {
+    this.headingEl.addEventListener("paste", (event) => {
       event.preventDefault();
       const text = event.clipboardData.getData("text/plain").replace("\n", " ");
       document.execCommand("insertText", false, text);
     });
 
     // Ignore enter
-    heading.addEventListener("keydown", (event) => {
+    this.headingEl.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
       }
     });
 
-    heading.addEventListener("blur", (event) => {
+    this.headingEl.addEventListener("blur", (event) => {
       // Wait for other handlers to complete and if still in insert
-      // force focus
+      // mode force focus
       setTimeout(() => {
-        if (this.state.isFocused && this.state.insertMode) {
-          heading.focus();
-          moveSelectionToEnd(heading);
+        if (this.isFocused && this.insertMode) {
+          this.headingEl.focus();
+          moveSelectionToEnd(this.headingEl);
         }
       }, 0);
     });
+  },
 
-    this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
-      "navigation",
-      (event) => {
-        handleNavigationEvent(this, event);
+  handleNavigationEvent(event) {
+    if (event.type === "element_focused") {
+      this.handleElementFocused(event.focusableId, event.scroll);
+    } else if (event.type === "insert_mode_changed") {
+      this.handleInsertModeChanged(event.enabled);
+    }
+  },
+
+  handleElementFocused(cellId, scroll) {
+    if (this.props.focusableId === cellId) {
+      this.isFocused = true;
+      this.el.setAttribute("data-js-focused", "");
+      if (scroll) {
+        smoothlyScrollToElement(this.el);
       }
-    );
+    } else if (this.isFocused) {
+      this.isFocused = false;
+      this.el.removeAttribute("data-js-focused");
+    }
   },
 
-  updated() {
-    this.props = getProps(this);
-  },
-
-  destroyed() {
-    this._unsubscribeFromNavigationEvents();
+  handleInsertModeChanged(insertMode) {
+    if (this.isFocused && !this.insertMode && insertMode) {
+      this.insertMode = insertMode;
+      // While in insert mode, ignore the incoming changes
+      this.el.setAttribute("phx-update", "ignore");
+      this.headingEl.setAttribute("contenteditable", "");
+      this.headingEl.focus();
+      moveSelectionToEnd(this.headingEl);
+    } else if (this.insertMode && !insertMode) {
+      this.insertMode = insertMode;
+      this.headingEl.removeAttribute("contenteditable");
+      this.el.removeAttribute("phx-update");
+      this.pushEvent(this.props.onValueChange, {
+        value: this.headingEl.textContent.trim(),
+        metadata: this.props.metadata,
+      });
+    }
   },
 };
 
-function getProps(hook) {
-  return {
-    focusableId: getAttributeOrThrow(hook.el, "data-focusable-id"),
-    onValueChange: getAttributeOrThrow(hook.el, "data-on-value-change"),
-    metadata: getAttributeOrThrow(hook.el, "data-metadata"),
-  };
-}
-
-function handleNavigationEvent(hook, event) {
-  if (event.type === "element_focused") {
-    handleElementFocused(hook, event.focusableId, event.scroll);
-  } else if (event.type === "insert_mode_changed") {
-    handleInsertModeChanged(hook, event.enabled);
-  }
-}
-
-function handleElementFocused(hook, cellId, scroll) {
-  if (hook.props.focusableId === cellId) {
-    hook.state.isFocused = true;
-    hook.el.setAttribute("data-js-focused", "true");
-    if (scroll) {
-      smoothlyScrollToElement(hook.el);
-    }
-  } else if (hook.state.isFocused) {
-    hook.state.isFocused = false;
-    hook.el.removeAttribute("data-js-focused");
-  }
-}
-
-function handleInsertModeChanged(hook, insertMode) {
-  const heading = getHeading(hook);
-
-  if (hook.state.isFocused && !hook.state.insertMode && insertMode) {
-    hook.state.insertMode = insertMode;
-
-    // While in insert mode, ignore the incoming changes
-    hook.el.setAttribute("phx-update", "ignore");
-    heading.setAttribute("contenteditable", "true");
-    heading.focus();
-    moveSelectionToEnd(heading);
-  } else if (hook.state.insertMode && !insertMode) {
-    hook.state.insertMode = insertMode;
-    heading.removeAttribute("contenteditable");
-    hook.el.removeAttribute("phx-update");
-    hook.pushEvent(hook.props.onValueChange, {
-      value: headingValue(heading),
-      metadata: hook.props.metadata,
-    });
-  }
-}
-
-function getHeading(hook) {
-  return hook.el.querySelector(`[data-element="heading"]`);
-}
-
-function headingValue(heading) {
-  return heading.textContent.trim();
-}
-
-function moveSelectionToEnd(heading) {
+function moveSelectionToEnd(element) {
   const range = document.createRange();
-  range.selectNodeContents(heading);
+  range.selectNodeContents(element);
   range.collapse(false);
   const selection = window.getSelection();
   selection.removeAllRanges();

@@ -21,11 +21,12 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
         phx-change="validate"
         phx-drop-target={@uploads.notebook.ref}
         phx-target={@myself}
-        phx-hook="DragAndDrop"
         class="flex flex-col items-start"
       >
         <%= live_file_input @uploads.notebook, class: "hidden", aria_labelledby: "import-from-file" %>
-        <div data-dropzone class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48">
+        <div class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48"
+          phx-hook="Dropzone"
+          id="upload-file-dropzone">
           <%= if @uploads.notebook.entries == [] do %>
             <span name="placeholder" class="font-medium text-gray-400">Drop your notebook here</span>
           <% else %>
@@ -71,6 +72,8 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
       content = File.read!(path)
 
       send(self(), {:import_content, content, []})
+
+      {:ok, :ok}
     end)
 
     {:noreply, socket}

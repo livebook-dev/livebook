@@ -29,17 +29,17 @@ export default class EditorClient {
     this._onDelta = null;
 
     this.editorAdapter.onDelta((delta) => {
-      this.__handleClientDelta(delta);
+      this._handleClientDelta(delta);
       // This delta comes from the editor, so it has already been applied.
-      this.__emitDelta(delta);
+      this._emitDelta(delta);
     });
 
     this.serverAdapter.onDelta((delta) => {
-      this.__handleServerDelta(delta);
+      this._handleServerDelta(delta);
     });
 
     this.serverAdapter.onAcknowledgement(() => {
-      this.__handleServerAcknowledgement();
+      this._handleServerAcknowledgement();
     });
   }
 
@@ -53,20 +53,20 @@ export default class EditorClient {
     this._onDelta = callback;
   }
 
-  __emitDelta(delta) {
+  _emitDelta(delta) {
     this._onDelta && this._onDelta(delta);
   }
 
-  __handleClientDelta(delta) {
+  _handleClientDelta(delta) {
     this.state = this.state.onClientDelta(delta);
   }
 
-  __handleServerDelta(delta) {
+  _handleServerDelta(delta) {
     this.revision++;
     this.state = this.state.onServerDelta(delta);
   }
 
-  __handleServerAcknowledgement() {
+  _handleServerAcknowledgement() {
     this.revision++;
     this.state = this.state.onServerAcknowledgement();
   }
@@ -74,7 +74,7 @@ export default class EditorClient {
   applyDelta(delta) {
     this.editorAdapter.applyDelta(delta);
     // This delta comes from the server and we have just applied it to the editor.
-    this.__emitDelta(delta);
+    this._emitDelta(delta);
   }
 
   sendDelta(delta) {

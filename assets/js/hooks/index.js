@@ -1,7 +1,7 @@
 import Cell from "./cell";
 import CellEditor from "./cell_editor";
 import ConfirmModal from "./confirm_modal";
-import DragAndDrop from "./drag_and_drop";
+import Dropzone from "./dropzone";
 import EditorSettings from "./editor_settings";
 import FocusOnUpdate from "./focus_on_update";
 import Headline from "./headline";
@@ -20,7 +20,7 @@ export default {
   Cell,
   CellEditor,
   ConfirmModal,
-  DragAndDrop,
+  Dropzone,
   EditorSettings,
   FocusOnUpdate,
   Headline,

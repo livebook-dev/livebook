@@ -2,35 +2,32 @@ import { getAttributeOrThrow } from "../lib/attribute";
 import Markdown from "../lib/markdown";
 
 /**
- * A hook used to render markdown content on the client.
+ * A hook used to render Markdown content on the client.
  *
- * Configuration:
+ * ## Configuration
  *
- *   * `data-id` - id of the renderer, under which the content event is pushed
+ *   * `data-id` - id of the renderer, under which the content event
+ *     is pushed
  */
 const MarkdownRenderer = {
   mounted() {
-    this.props = getProps(this);
+    this.props = this.getProps();
 
     const markdown = new Markdown(this.el, "");
 
     this.handleEvent(
-      `markdown-renderer:${this.props.id}:content`,
+      `markdown_renderer:${this.props.id}:content`,
       ({ content }) => {
         markdown.setContent(content);
       }
     );
   },
 
-  updated() {
-    this.props = getProps(this);
+  getProps() {
+    return {
+      id: getAttributeOrThrow(this.el, "data-id"),
+    };
   },
 };
-
-function getProps(hook) {
-  return {
-    id: getAttributeOrThrow(hook.el, "data-id"),
-  };
-}
 
 export default MarkdownRenderer;

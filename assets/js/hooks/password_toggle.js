@@ -1,28 +1,26 @@
-/**
- * A hook used to toggle password's input visibility via icon button.
- */
-
 const VISIBLE_ICON = "ri-eye-off-line";
 const OBSCURED_ICON = "ri-eye-line";
 
+/**
+ * A hook used to toggle password's input visibility via icon button.
+ */
 const PasswordToggle = {
   mounted() {
     this.visible = false;
-
     this.input = this.el.querySelector("input");
     this.iconButton = this.el.querySelector("i");
 
     this.iconButton.addEventListener("click", () => {
       this.visible = !this.visible;
-      this._updateDOM();
+      this.updateDOM();
     });
   },
 
   updated() {
-    this._updateDOM();
+    this.updateDOM();
   },
 
-  _updateDOM() {
+  updateDOM() {
     if (this.visible) {
       this.input.type = "text";
       this.iconButton.classList.remove(OBSCURED_ICON);

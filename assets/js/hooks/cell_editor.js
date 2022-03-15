@@ -3,7 +3,7 @@ import { getAttributeOrThrow } from "../lib/attribute";
 
 const CellEditor = {
   mounted() {
-    this.props = getProps(this);
+    this.props = this.getProps();
 
     this.handleEvent(
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
@@ -50,13 +50,13 @@ const CellEditor = {
       this.liveEditor.dispose();
     }
   },
-};
 
-function getProps(hook) {
-  return {
-    cellId: getAttributeOrThrow(hook.el, "data-cell-id"),
-    tag: getAttributeOrThrow(hook.el, "data-tag"),
-  };
-}
+  getProps() {
+    return {
+      cellId: getAttributeOrThrow(this.el, "data-cell-id"),
+      tag: getAttributeOrThrow(this.el, "data-tag"),
+    };
+  },
+};
 
 export default CellEditor;

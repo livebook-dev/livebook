@@ -5,16 +5,16 @@ import { isEditableElement } from "../lib/utils";
  */
 const FocusOnUpdate = {
   mounted() {
-    this.__focus();
+    this.focus();
   },
 
   updated() {
     if (this.el !== document.activeElement) {
-      this.__focus();
+      this.focus();
     }
   },
 
-  __focus() {
+  focus() {
     if (isEditableElement(document.activeElement)) {
       return;
     }

@@ -1,17 +1,17 @@
 /**
- * A hook used to scroll to the bottom of an element
- * whenever it receives LV update.
+ * A hook used to scroll to the bottom of an element whenever it
+ * receives LV update.
  */
 const ScrollOnUpdate = {
   mounted() {
-    this.__scroll();
+    this.scroll();
   },
 
   updated() {
-    this.__scroll();
+    this.scroll();
   },
 
-  __scroll() {
+  scroll() {
     this.el.scrollTop = this.el.scrollHeight;
   },
 };

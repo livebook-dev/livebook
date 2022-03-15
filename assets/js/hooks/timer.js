@@ -3,39 +3,40 @@ import { getAttributeOrThrow } from "../lib/attribute";
 const UPDATE_INTERVAL_MS = 100;
 
 /**
- * A hook used to display a timer counting from the moment
- * of mounting.
+ * A hook used to display a counting timer.
+ *
+ * ## Configuration
+ *
+ *   * `data-start` - the timestamp to count from
  */
 const Timer = {
   mounted() {
-    this.props = getProps(this);
+    this.props = this.getProps();
 
-    this.state = {
-      start: new Date(this.props.start),
-      interval: null,
-    };
+    this.interval = setInterval(() => this.updateDOM(), UPDATE_INTERVAL_MS);
+  },
 
-    this.state.interval = setInterval(() => {
-      this.__tick();
-    }, UPDATE_INTERVAL_MS);
+  updated() {
+    this.props = this.getProps();
+    this.updateDOM();
   },
 
   destroyed() {
-    clearInterval(this.state.interval);
+    clearInterval(this.interval);
   },
 
-  __tick() {
-    const elapsedMs = Date.now() - this.state.start;
+  getProps() {
+    return {
+      start: getAttributeOrThrow(this.el, "data-start"),
+    };
+  },
+
+  updateDOM() {
+    const elapsedMs = Date.now() - new Date(this.props.start);
     const elapsedSeconds = elapsedMs / 1_000;
 
     this.el.innerHTML = `${elapsedSeconds.toFixed(1)}s`;
   },
 };
-
-function getProps(hook) {
-  return {
-    start: getAttributeOrThrow(hook.el, "data-start"),
-  };
-}
 
 export default Timer;

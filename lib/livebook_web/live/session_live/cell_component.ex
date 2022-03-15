@@ -404,7 +404,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400" change_indicator={true}>
       <span class="font-mono"
-        id={"cell-timer-#{@cell_view.id}-evaluation-#{@cell_view.eval.evaluation_number}"}
+        id={"cell-timer-#{@cell_view.id}"}
         phx-hook="Timer"
         phx-update="ignore"
         data-start={DateTime.to_iso8601(@cell_view.eval.evaluation_start)}>

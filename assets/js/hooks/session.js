@@ -12,19 +12,19 @@ import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "./cell_editor/live_editor/monaco";
-import { leaveChannel } from "./js_view";
+import { leaveChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
 /**
  * A hook managing the whole session.
  *
  * Serves as a coordinator handling all the global session events.
- * Note that each cell has its own hook, so that LV keeps track
- * of cells being added/removed from the DOM. We do however need
- * to communicate between this global hook and cells and for
- * that we use a simple local pubsub that the hooks subscribe to.
+ * Note that each cell has its own hook, so that LV keeps track of
+ * cells being added/removed from the DOM. We do however need to
+ * communicate between this global hook and cells and for that we
+ * use a simple local pubsub that the hooks subscribe to.
  *
- * Configuration:
+ * ## Configuration
  *
  *   * `data-autofocus-cell-id` - id of the cell that gets initial
  *     focus once the notebook is loaded
@@ -37,173 +37,152 @@ import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
  *
  * ## Navigation
  *
- * This hook handles focusing section titles, cells and moving the focus around,
- * this is done purely on the client side because it is event-intensive
- * and specific to this client only. The UI changes are handled by
- * setting `data-js-*` attributes and using CSS accordingly (see assets/css/js_interop.css).
- * Navigation changes are also broadcasted to all cell hooks via PubSub.
+ * This hook handles focusing section titles, cells and moving the
+ * focus around, this is done purely on the client side because it is
+ * event-intensive and specific to this client only. The UI changes
+ * are handled by setting `data-js-*` attributes and applying CSS
+ * accordingly (see assets/css/js_interop.css). Navigation changes
+ * are also broadcasted to all cell hooks via PubSub.
  *
  * ## Location tracking and following
  *
- * Location describes where the given client is within
- * the notebook (in which cell, and where specifically in that cell).
- * When multiple clients are connected, they report own location to
- * each other whenever it changes. We then each the location to show
- * cursor and selection indicators.
+ * Location describes where the given client is within the notebook
+ * (in which cell, and where specifically in that cell). When multiple
+ * clients are connected, they report own location to each other
+ * whenever it changes. We then each the location to show cursor and
+ * selection indicators.
  *
- * Additionally the current user may follow another client from the clients list.
- * In such case, whenever a new location comes from that client we move there automatically
- * (i.e. we focus the same cells to effectively mimic how the followed client moves around).
+ * Additionally the current user may follow another client from the
+ * clients list. In such case, whenever a new location comes from that
+ * client we move there automatically (i.e. we focus the same cells
+ * to effectively mimic how the followed client moves around).
  *
- * Initially we load basic information about connected clients using `"session_init"`
- * and then update this information whenever clients join/leave/update.
- * This way location reports include only client pid, as we already have
- * the necessary hex_color/name locally.
+ * Initially we load basic information about connected clients using
+ * the `"session_init"` event and then update this information whenever
+ * clients join/leave/update. This way location reports include only
+ * client pid, as we already have the necessary hex_color/name locally.
  */
 const Session = {
   mounted() {
-    this.props = getProps(this);
-    this.state = {
-      focusedId: null,
-      focusedCellType: null,
-      insertMode: false,
-      keyBuffer: new KeyBuffer(),
-      clientsMap: {},
-      lastLocationReportByClientPid: {},
-      followedClientPid: null,
-    };
+    this.props = this.getProps();
 
-    // Set initial favicon based on the current status
+    this.focusedId = null;
+    this.insertMode = false;
+    this.keyBuffer = new KeyBuffer();
+    this.clientsMap = {};
+    this.lastLocationReportByClientPid = {};
+    this.followedClientPid = null;
 
-    setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
+    setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
+
+    this.updateSectionListHighlight();
 
     // DOM events
 
-    this.handleDocumentKeyDown = (event) => {
-      handleDocumentKeyDown(this, event);
-    };
+    this._handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
+    this._handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
+    this._handleDocumentMouseDown = this.handleDocumentMouseDown.bind(this);
+    this._handleDocumentFocus = this.handleDocumentFocus.bind(this);
+    this._handleDocumentClick = this.handleDocumentClick.bind(this);
+    this._handleDocumentDoubleClick = this.handleDocumentDoubleClick.bind(this);
 
-    document.addEventListener("keydown", this.handleDocumentKeyDown, true);
-
-    this.handleDocumentMouseDown = (event) => {
-      handleDocumentMouseDown(this, event);
-    };
-
-    document.addEventListener("mousedown", this.handleDocumentMouseDown);
-
-    this.handleDocumentFocus = (event) => {
-      handleDocumentFocus(this, event);
-    };
-
+    document.addEventListener("keydown", this._handleDocumentKeyDown, true);
+    document.addEventListener("mousedown", this._handleDocumentMouseDown);
     // Note: the focus event doesn't bubble, so we register for the capture phase
-    document.addEventListener("focus", this.handleDocumentFocus, true);
+    document.addEventListener("focus", this._handleDocumentFocus, true);
+    document.addEventListener("click", this._handleDocumentClick);
+    document.addEventListener("dblclick", this._handleDocumentDoubleClick);
 
-    this.handleDocumentClick = (event) => {
-      handleDocumentClick(this, event);
-    };
-
-    document.addEventListener("click", this.handleDocumentClick);
-
-    this.handleDocumentDoubleClick = (event) => {
-      handleDocumentDoubleClick(this, event);
-    };
-
-    document.addEventListener("dblclick", this.handleDocumentDoubleClick);
-
-    getSectionsList().addEventListener("click", (event) => {
-      handleSectionsListClick(this, event);
-      handleCellIndicatorsClick(this, event);
+    this.getElement("sections-list").addEventListener("click", (event) => {
+      this.handleSectionsListClick(event);
+      this.handleCellIndicatorsClick(event);
     });
 
-    getClientsList().addEventListener("click", (event) => {
-      handleClientsListClick(this, event);
-    });
+    this.getElement("clients-list").addEventListener("click", (event) =>
+      this.handleClientsListClick(event)
+    );
 
-    getSectionsListToggle().addEventListener("click", (event) => {
-      toggleSectionsList(this);
-    });
+    this.getElement("sections-list-toggle").addEventListener("click", (event) =>
+      this.toggleSectionsList()
+    );
 
-    getClientsListToggle().addEventListener("click", (event) => {
-      toggleClientsList(this);
-    });
+    this.getElement("clients-list-toggle").addEventListener("click", (event) =>
+      this.toggleClientsList()
+    );
 
-    getRuntimeInfoToggle().addEventListener("click", (event) => {
-      toggleRuntimeInfo(this);
-    });
+    this.getElement("runtime-info-toggle").addEventListener("click", (event) =>
+      this.toggleRuntimeInfo()
+    );
 
-    getNotebook().addEventListener("scroll", (event) => {
-      updateSectionListHighlight();
-    });
+    this.getElement("notebook").addEventListener("scroll", (event) =>
+      this.updateSectionListHighlight()
+    );
 
-    getCellIndicators().addEventListener("click", (event) => {
-      handleCellIndicatorsClick(this, event);
-    });
+    this.getElement("notebook-indicators").addEventListener("click", (event) =>
+      this.handleCellIndicatorsClick(event)
+    );
 
     window.addEventListener(
       "phx:page-loading-stop",
       () => {
-        initializeFocus(this);
+        this.initializeFocus();
       },
       { once: true }
     );
-
-    // DOM setup
-
-    updateSectionListHighlight();
 
     // Server events
 
     this.handleEvent("session_init", ({ clients }) => {
       clients.forEach((client) => {
-        this.state.clientsMap[client.pid] = client;
+        this.clientsMap[client.pid] = client;
       });
     });
 
     this.handleEvent("cell_inserted", ({ cell_id: cellId }) => {
-      handleCellInserted(this, cellId);
+      this.handleCellInserted(cellId);
     });
 
     this.handleEvent(
       "cell_deleted",
       ({ cell_id: cellId, sibling_cell_id: siblingCellId }) => {
-        handleCellDeleted(this, cellId, siblingCellId);
+        this.handleCellDeleted(cellId, siblingCellId);
       }
     );
 
     this.handleEvent("cell_restored", ({ cell_id: cellId }) => {
-      handleCellRestored(this, cellId);
+      this.handleCellRestored(cellId);
     });
 
     this.handleEvent("cell_moved", ({ cell_id }) => {
-      handleCellMoved(this, cell_id);
+      this.handleCellMoved(cell_id);
     });
 
     this.handleEvent("section_inserted", ({ section_id }) => {
-      handleSectionInserted(this, section_id);
+      this.handleSectionInserted(section_id);
     });
 
     this.handleEvent("section_deleted", ({ section_id }) => {
-      handleSectionDeleted(this, section_id);
+      this.handleSectionDeleted(section_id);
     });
 
     this.handleEvent("section_moved", ({ section_id }) => {
-      handleSectionMoved(this, section_id);
+      this.handleSectionMoved(section_id);
     });
 
     this.handleEvent("cell_upload", ({ cell_id, url }) => {
-      handleCellUpload(this, cell_id, url);
+      this.handleCellUpload(cell_id, url);
     });
 
     this.handleEvent("client_joined", ({ client }) => {
-      handleClientJoined(this, client);
+      this.handleClientJoined(client);
     });
 
     this.handleEvent("client_left", ({ client_pid }) => {
-      handleClientLeft(this, client_pid);
+      this.handleClientLeft(client_pid);
     });
 
     this.handleEvent("clients_updated", ({ clients }) => {
-      handleClientsUpdated(this, clients);
+      this.handleClientsUpdated(clients);
     });
 
     this.handleEvent(
@@ -211,27 +190,27 @@ const Session = {
       ({ client_pid, focusable_id, selection }) => {
         const report = {
           focusableId: focusable_id,
-          selection: decodeSelection(selection),
+          selection: this.decodeSelection(selection),
         };
 
-        handleLocationReport(this, client_pid, report);
+        this.handleLocationReport(client_pid, report);
       }
     );
 
-    this._unsubscribeFromSessionEvents = globalPubSub.subscribe(
+    this.unsubscribeFromSessionEvents = globalPubSub.subscribe(
       "session",
       (event) => {
-        handleSessionEvent(this, event);
+        this.handleSessionEvent(event);
       }
     );
   },
 
   updated() {
     const prevProps = this.props;
-    this.props = getProps(this);
+    this.props = this.getProps();
 
     if (this.props.globalStatus !== prevProps.globalStatus) {
-      setFavicon(faviconForEvaluationStatus(this.props.globalStatus));
+      setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
     }
   },
 
@@ -241,36 +220,877 @@ const Session = {
   },
 
   destroyed() {
-    this._unsubscribeFromSessionEvents();
+    this.unsubscribeFromSessionEvents();
 
-    document.removeEventListener("keydown", this.handleDocumentKeyDown, true);
-    document.removeEventListener("mousedown", this.handleDocumentMouseDown);
-    document.removeEventListener("focus", this.handleDocumentFocus, true);
-    document.removeEventListener("click", this.handleDocumentClick);
-    document.removeEventListener("dblclick", this.handleDocumentDoubleClick);
+    document.removeEventListener("keydown", this._handleDocumentKeyDown, true);
+    document.removeEventListener("mousedown", this._handleDocumentMouseDown);
+    document.removeEventListener("focus", this._handleDocumentFocus, true);
+    document.removeEventListener("click", this._handleDocumentClick);
+    document.removeEventListener("dblclick", this._handleDocumentDoubleClick);
 
     setFavicon("favicon");
 
     leaveChannel();
   },
+
+  getProps() {
+    return {
+      autofocusCellId: getAttributeOrDefault(
+        this.el,
+        "data-autofocus-cell-id",
+        null
+      ),
+      globalStatus: getAttributeOrDefault(this.el, "data-global-status", null),
+    };
+  },
+
+  faviconForEvaluationStatus(evaluationStatus) {
+    if (evaluationStatus === "evaluating") return "favicon-evaluating";
+    if (evaluationStatus === "stale") return "favicon-stale";
+    return "favicon";
+  },
+
+  // DOM event handlers
+
+  /**
+   * Handles session keybindings.
+   *
+   * Make sure to keep the shortcuts help modal up to date.
+   */
+  handleDocumentKeyDown(event) {
+    if (event.repeat) {
+      return;
+    }
+
+    const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
+    const alt = event.altKey;
+    const shift = event.shiftKey;
+    const key = event.key;
+    const keyBuffer = this.keyBuffer;
+
+    if (this.insertMode) {
+      keyBuffer.reset();
+
+      if (key === "Escape") {
+        // Ignore Escape if it's supposed to close an editor widget
+        if (!this.escapesMonacoWidget(event)) {
+          this.escapeInsertMode();
+        }
+      } else if (cmd && shift && !alt && key === "Enter") {
+        cancelEvent(event);
+        this.queueFullCellsEvaluation(true);
+      } else if (cmd && !alt && key === "Enter") {
+        cancelEvent(event);
+        if (isEvaluable(this.focusedCellType())) {
+          this.queueFocusedCellEvaluation();
+        }
+      } else if (cmd && key === "s") {
+        cancelEvent(event);
+        this.saveNotebook();
+      }
+    } else {
+      // Ignore keystrokes on input fields
+      if (isEditableElement(event.target)) {
+        keyBuffer.reset();
+
+        // Use Escape for universal blur
+        if (key === "Escape") {
+          event.target.blur();
+        }
+
+        return;
+      }
+
+      keyBuffer.push(event.key);
+
+      if (cmd && key === "s") {
+        cancelEvent(event);
+        this.saveNotebook();
+      } else if (keyBuffer.tryMatch(["d", "d"])) {
+        this.deleteFocusedCell();
+      } else if (cmd && shift && !alt && key === "Enter") {
+        this.queueFullCellsEvaluation(true);
+      } else if (keyBuffer.tryMatch(["e", "a"])) {
+        this.queueFullCellsEvaluation(false);
+      } else if (
+        keyBuffer.tryMatch(["e", "e"]) ||
+        (cmd && !alt && key === "Enter")
+      ) {
+        if (isEvaluable(this.focusedCellType())) {
+          this.queueFocusedCellEvaluation();
+        }
+      } else if (keyBuffer.tryMatch(["e", "s"])) {
+        this.queueFocusedSectionEvaluation();
+      } else if (keyBuffer.tryMatch(["s", "s"])) {
+        this.toggleSectionsList();
+      } else if (keyBuffer.tryMatch(["s", "u"])) {
+        this.toggleClientsList();
+      } else if (keyBuffer.tryMatch(["s", "r"])) {
+        this.toggleRuntimeInfo();
+      } else if (keyBuffer.tryMatch(["s", "b"])) {
+        this.showBin();
+      } else if (keyBuffer.tryMatch(["e", "x"])) {
+        this.cancelFocusedCellEvaluation();
+      } else if (keyBuffer.tryMatch(["0", "0"])) {
+        this.restartRuntime();
+      } else if (keyBuffer.tryMatch(["Escape", "Escape"])) {
+        this.setFocusedEl(null);
+      } else if (keyBuffer.tryMatch(["?"])) {
+        this.showShortcuts();
+      } else if (
+        keyBuffer.tryMatch(["i"]) ||
+        (event.target === document.body && this.focusedId && key === "Enter")
+      ) {
+        cancelEvent(event);
+        if (this.isInsertModeAvailable()) {
+          this.enterInsertMode();
+        }
+      } else if (keyBuffer.tryMatch(["j"])) {
+        this.moveFocus(1);
+      } else if (keyBuffer.tryMatch(["k"])) {
+        this.moveFocus(-1);
+      } else if (keyBuffer.tryMatch(["J"])) {
+        this.moveFocusedCell(1);
+      } else if (keyBuffer.tryMatch(["K"])) {
+        this.moveFocusedCell(-1);
+      } else if (keyBuffer.tryMatch(["n"])) {
+        this.insertCellBelowFocused("code");
+      } else if (keyBuffer.tryMatch(["N"])) {
+        this.insertCellAboveFocused("code");
+      } else if (keyBuffer.tryMatch(["m"])) {
+        this.insertCellBelowFocused("markdown");
+      } else if (keyBuffer.tryMatch(["M"])) {
+        this.insertCellAboveFocused("markdown");
+      }
+    }
+  },
+
+  escapesMonacoWidget(event) {
+    // Escape pressed in an editor input
+    if (event.target.closest(".monaco-inputbox")) {
+      return true;
+    }
+
+    const editor = event.target.closest(".monaco-editor.focused");
+
+    if (!editor) {
+      return false;
+    }
+
+    // Completion box open
+    if (editor.querySelector(".editor-widget.parameter-hints-widget.visible")) {
+      return true;
+    }
+
+    // Signature details open
+    if (editor.querySelector(".editor-widget.suggest-widget.visible")) {
+      return true;
+    }
+
+    // Multi-cursor selection enabled
+    if (editor.querySelectorAll(".cursor").length > 1) {
+      return true;
+    }
+
+    return false;
+  },
+
+  /**
+   * Focuses/blurs a cell when the user clicks somewhere.
+   *
+   * Note: we use mousedown event to more reliably focus editor
+   * (e.g. if the user starts selecting some text within the editor)
+   */
+  handleDocumentMouseDown(event) {
+    // If the click is outside the notebook element, keep the focus as is
+    if (!event.target.closest(`[data-element="notebook"]`)) {
+      if (this.insertMode) {
+        this.setInsertMode(false);
+      }
+      return;
+    }
+
+    // When clicking an insert button, keep focus and insert mode as is
+    if (event.target.closest(`[data-element="insert-buttons"] button`)) {
+      return;
+    }
+
+    // Find the focusable element, if one was clicked
+    const focusableEl = event.target.closest(`[data-focusable-id]`);
+    const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
+    const insertMode = this.editableElementClicked(event, focusableEl);
+
+    if (focusableId !== this.focusedId) {
+      this.setFocusedEl(focusableId, { scroll: false, focusElement: false });
+    }
+
+    // If a cell action is clicked, keep the insert mode as is
+    if (event.target.closest(`[data-element="actions"]`)) {
+      return;
+    }
+
+    // Depending on whether the click targets editor or input disable/enable insert mode
+    if (this.insertMode !== insertMode) {
+      this.setInsertMode(insertMode);
+    }
+  },
+
+  editableElementClicked(event, focusableEl) {
+    if (focusableEl) {
+      const editableElement = event.target.closest(
+        `[data-element="editor-container"], [data-element="heading"]`
+      );
+      return editableElement && focusableEl.contains(editableElement);
+    }
+
+    return false;
+  },
+
+  /**
+   * Focuses a focusable element if the user "tab"s anywhere into it.
+   */
+  handleDocumentFocus(event) {
+    const focusableEl =
+      event.target.closest && event.target.closest(`[data-focusable-id]`);
+
+    if (focusableEl) {
+      const focusableId = focusableEl.dataset.focusableId;
+
+      if (focusableId !== this.focusedId) {
+        this.setFocusedEl(focusableId, { scroll: false, focusElement: false });
+      }
+    }
+  },
+
+  /**
+   * Enters insert mode when markdown edit action is clicked.
+   */
+  handleDocumentClick(event) {
+    if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
+      this.setInsertMode(true);
+    }
+  },
+
+  /**
+   * Enters insert mode when a markdown cell is double-clicked.
+   */
+  handleDocumentDoubleClick(event) {
+    const markdownCell = event.target.closest(
+      `[data-element="cell"][data-type="markdown"]`
+    );
+
+    if (markdownCell && this.focusedId && !this.insertMode) {
+      this.setInsertMode(true);
+    }
+  },
+
+  /**
+   * Handles section link clicks in the section list.
+   */
+  handleSectionsListClick(event) {
+    const sectionButton = event.target.closest(
+      `[data-element="sections-list-item"]`
+    );
+    if (sectionButton) {
+      const sectionId = sectionButton.getAttribute("data-section-id");
+      const section = this.getSectionById(sectionId);
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  },
+
+  /**
+   * Handles client link clicks in the clients list.
+   */
+  handleClientsListClick(event) {
+    const clientListItem = event.target.closest(
+      `[data-element="clients-list-item"]`
+    );
+
+    if (clientListItem) {
+      const clientPid = clientListItem.getAttribute("data-client-pid");
+
+      const clientLink = event.target.closest(`[data-element="client-link"]`);
+      if (clientLink) {
+        this.handleClientLinkClick(clientPid);
+      }
+
+      const clientFollowToggle = event.target.closest(
+        `[data-element="client-follow-toggle"]`
+      );
+      if (clientFollowToggle) {
+        this.handleClientFollowToggleClick(clientPid, clientListItem);
+      }
+    }
+  },
+
+  handleClientLinkClick(clientPid) {
+    this.mirrorClientFocus(clientPid);
+  },
+
+  handleClientFollowToggleClick(clientPid, clientListItem) {
+    const followedClientListItem = this.el.querySelector(
+      `[data-element="clients-list-item"][data-js-followed]`
+    );
+
+    if (followedClientListItem) {
+      followedClientListItem.removeAttribute("data-js-followed");
+    }
+
+    if (clientPid === this.followedClientPid) {
+      this.followedClientPid = null;
+    } else {
+      clientListItem.setAttribute("data-js-followed", "");
+      this.followedClientPid = clientPid;
+      this.mirrorClientFocus(clientPid);
+    }
+  },
+
+  mirrorClientFocus(clientPid) {
+    const locationReport = this.lastLocationReportByClientPid[clientPid];
+
+    if (locationReport && locationReport.focusableId) {
+      this.setFocusedEl(locationReport.focusableId);
+    }
+  },
+
+  /**
+   * Handles button clicks within cell indicators section.
+   */
+  handleCellIndicatorsClick(event) {
+    const button = event.target.closest(`[data-element="focus-cell-button"]`);
+    if (button) {
+      const cellId = button.getAttribute("data-target");
+      this.setFocusedEl(cellId);
+    }
+  },
+
+  /**
+   * Focuses cell or any other element based on the current
+   * URL and hook attributes.
+   */
+  initializeFocus() {
+    const hash = window.location.hash;
+
+    if (hash) {
+      const htmlId = hash.replace(/^#/, "");
+      const element = document.getElementById(htmlId);
+
+      if (element) {
+        const focusableEl = element.closest("[data-focusable-id]");
+
+        if (focusableEl) {
+          this.setFocusedEl(focusableEl.dataset.focusableId);
+        } else {
+          // Explicitly scroll to the target element
+          // after the loading finishes
+          element.scrollIntoView();
+        }
+      }
+    } else if (this.props.autofocusCellId) {
+      this.setFocusedEl(this.props.autofocusCellId, { scroll: false });
+      this.setInsertMode(true);
+    }
+  },
+
+  /**
+   * Handles the main notebook area being scrolled.
+   */
+  updateSectionListHighlight() {
+    const currentListItem = this.el.querySelector(
+      `[data-element="sections-list-item"][data-js-is-viewed]`
+    );
+
+    if (currentListItem) {
+      currentListItem.removeAttribute("data-js-is-viewed");
+    }
+
+    // Consider a section being viewed if it is within the top 35% of the screen
+    const viewedSection = this.getSections()
+      .reverse()
+      .find((section) => {
+        const { top } = section.getBoundingClientRect();
+        const scrollTop = document.documentElement.scrollTop;
+        return top <= scrollTop + window.innerHeight * 0.35;
+      });
+
+    if (viewedSection) {
+      const sectionId = viewedSection.getAttribute("data-section-id");
+      const listItem = this.el.querySelector(
+        `[data-element="sections-list-item"][data-section-id="${sectionId}"]`
+      );
+      listItem.setAttribute("data-js-is-viewed", "");
+    }
+  },
+
+  // User action handlers (mostly keybindings)
+
+  toggleSectionsList() {
+    this.toggleSidePanelContent("sections-list");
+  },
+
+  toggleClientsList() {
+    this.toggleSidePanelContent("clients-list");
+  },
+
+  toggleRuntimeInfo() {
+    this.toggleSidePanelContent("runtime-info");
+  },
+
+  toggleSidePanelContent(name) {
+    if (this.el.getAttribute("data-js-side-panel-content") === name) {
+      this.el.removeAttribute("data-js-side-panel-content");
+    } else {
+      this.el.setAttribute("data-js-side-panel-content", name);
+    }
+  },
+
+  showBin() {
+    this.pushEvent("show_bin", {});
+  },
+
+  saveNotebook() {
+    this.pushEvent("save", {});
+  },
+
+  deleteFocusedCell() {
+    if (this.focusedId && this.isCell(this.focusedId)) {
+      this.pushEvent("delete_cell", { cell_id: this.focusedId });
+    }
+  },
+
+  queueFocusedCellEvaluation() {
+    if (this.focusedId && this.isCell(this.focusedId)) {
+      this.pushEvent("queue_cell_evaluation", {
+        cell_id: this.focusedId,
+      });
+    }
+  },
+
+  queueFullCellsEvaluation(includeFocused) {
+    const forcedCellIds =
+      includeFocused && this.focusedId && this.isCell(this.focusedId)
+        ? [this.focusedId]
+        : [];
+
+    this.pushEvent("queue_full_evaluation", {
+      forced_cell_ids: forcedCellIds,
+    });
+  },
+
+  queueFocusedSectionEvaluation() {
+    if (this.focusedId) {
+      const sectionId = this.getSectionIdByFocusableId(this.focusedId);
+
+      if (sectionId) {
+        this.pushEvent("queue_section_evaluation", {
+          section_id: sectionId,
+        });
+      }
+    }
+  },
+
+  cancelFocusedCellEvaluation() {
+    if (this.focusedId && this.isCell(this.focusedId)) {
+      this.pushEvent("cancel_cell_evaluation", {
+        cell_id: this.focusedId,
+      });
+    }
+  },
+
+  restartRuntime() {
+    this.pushEvent("restart_runtime", {});
+  },
+
+  showShortcuts() {
+    this.pushEvent("show_shortcuts", {});
+  },
+
+  isInsertModeAvailable() {
+    if (!this.focusedId) {
+      return false;
+    }
+
+    const el = this.getFocusableEl(this.focusedId);
+
+    return (
+      !this.isCell(this.focusedId) ||
+      !el.hasAttribute("data-js-insert-mode-disabled")
+    );
+  },
+
+  enterInsertMode() {
+    if (this.focusedId) {
+      this.setInsertMode(true);
+    }
+  },
+
+  escapeInsertMode() {
+    this.setInsertMode(false);
+  },
+
+  moveFocus(offset) {
+    const focusableId = this.nearbyFocusableId(this.focusedId, offset);
+    this.setFocusedEl(focusableId);
+  },
+
+  moveFocusedCell(offset) {
+    if (this.focusedId && this.isCell(this.focusedId)) {
+      this.pushEvent("move_cell", { cell_id: this.focusedId, offset });
+    }
+  },
+
+  insertCellBelowFocused(type) {
+    if (this.focusedId) {
+      this.insertCellBelowFocusableId(this.focusedId, type);
+    } else {
+      const focusableIds = this.getFocusableIds();
+      if (focusableIds.length > 0) {
+        this.insertCellBelowFocusableId(
+          focusableIds[focusableIds.length - 1],
+          type
+        );
+      }
+    }
+  },
+
+  insertCellAboveFocused(type) {
+    if (this.focusedId) {
+      const prevFocusableId = this.nearbyFocusableId(this.focusedId, -1);
+      this.insertCellBelowFocusableId(prevFocusableId, type);
+    } else {
+      const focusableIds = this.getFocusableIds();
+      if (focusableIds.length > 0) {
+        this.insertCellBelowFocusableId(focusableIds[0], type);
+      }
+    }
+  },
+
+  insertCellBelowFocusableId(focusableId, type) {
+    if (this.isCell(focusableId)) {
+      this.pushEvent("insert_cell_below", { type, cell_id: focusableId });
+    } else if (this.isSection(focusableId)) {
+      this.pushEvent("insert_cell_below", { type, section_id: focusableId });
+    } else if (this.isNotebook(focusableId)) {
+      const sectionIds = this.getSectionIds();
+      if (sectionIds.length > 0) {
+        this.pushEvent("insert_cell_below", {
+          type,
+          section_id: sectionIds[0],
+        });
+      }
+    }
+  },
+
+  setFocusedEl(focusableId, { scroll = true, focusElement = true } = {}) {
+    this.focusedId = focusableId;
+
+    if (focusableId) {
+      const el = this.getFocusableEl(focusableId);
+
+      if (focusElement) {
+        // Focus the primary content in the focusable element, this is important for screen readers
+        const contentEl =
+          el.querySelector(`[data-element="cell-body"]`) ||
+          el.querySelector(`[data-element="heading"]`) ||
+          el;
+        contentEl.focus({ preventScroll: true });
+      }
+    }
+
+    globalPubSub.broadcast("navigation", {
+      type: "element_focused",
+      focusableId: focusableId,
+      scroll,
+    });
+
+    this.setInsertMode(false);
+  },
+
+  setInsertMode(insertModeEnabled) {
+    this.insertMode = insertModeEnabled;
+
+    if (insertModeEnabled) {
+      this.el.setAttribute("data-js-insert-mode", "");
+    } else {
+      this.el.removeAttribute("data-js-insert-mode");
+
+      this.sendLocationReport({
+        focusableId: this.focusedId,
+        selection: null,
+      });
+    }
+
+    globalPubSub.broadcast("navigation", {
+      type: "insert_mode_changed",
+      enabled: insertModeEnabled,
+    });
+  },
+
+  // Server event handlers
+
+  handleCellInserted(cellId) {
+    this.setFocusedEl(cellId);
+    if (isDirectlyEditable(this.focusedCellType())) {
+      this.setInsertMode(true);
+    }
+  },
+
+  handleCellDeleted(cellId, siblingCellId) {
+    if (this.focusedId === cellId) {
+      this.setFocusedEl(siblingCellId);
+    }
+  },
+
+  handleCellRestored(cellId) {
+    this.setFocusedEl(cellId);
+  },
+
+  handleCellMoved(cellId) {
+    if (this.focusedId === cellId) {
+      globalPubSub.broadcast("cells", { type: "cell_moved", cellId });
+    }
+  },
+
+  handleSectionInserted(sectionId) {
+    const section = this.getSectionById(sectionId);
+    const headlineEl = section.querySelector(
+      `[data-element="section-headline"]`
+    );
+    const { focusableId } = headlineEl.dataset;
+    this.setFocusedEl(focusableId);
+    this.setInsertMode(true);
+    selectElementContent(document.activeElement);
+  },
+
+  handleSectionDeleted(sectionId) {
+    // Clear focus if the element no longer exists
+    if (this.focusedId && !this.getFocusableEl(this.focusedId)) {
+      this.setFocusedEl(null);
+    }
+  },
+
+  handleSectionMoved(sectionId) {
+    const section = this.getSectionById(sectionId);
+    smoothlyScrollToElement(section);
+  },
+
+  handleCellUpload(cellId, url) {
+    if (this.focusedId !== cellId) {
+      this.setFocusedEl(cellId);
+    }
+
+    if (!this.insertMode) {
+      this.setInsertMode(true);
+    }
+
+    globalPubSub.broadcast("cells", { type: "cell_upload", cellId, url });
+  },
+
+  handleClientJoined(client) {
+    this.clientsMap[client.pid] = client;
+  },
+
+  handleClientLeft(clientPid) {
+    const client = this.clientsMap[clientPid];
+
+    if (client) {
+      delete this.clientsMap[clientPid];
+
+      this.broadcastLocationReport(client, {
+        focusableId: null,
+        selection: null,
+      });
+
+      if (client.pid === this.followedClientPid) {
+        this.followedClientPid = null;
+      }
+    }
+  },
+
+  handleClientsUpdated(updatedClients) {
+    updatedClients.forEach((client) => {
+      this.clientsMap[client.pid] = client;
+    });
+  },
+
+  handleLocationReport(clientPid, report) {
+    const client = this.clientsMap[clientPid];
+
+    this.lastLocationReportByClientPid[clientPid] = report;
+
+    if (client) {
+      this.broadcastLocationReport(client, report);
+
+      if (
+        client.pid === this.followedClientPid &&
+        report.focusableId !== this.focusedId
+      ) {
+        this.setFocusedEl(report.focusableId);
+      }
+    }
+  },
+
+  // Session event handlers
+
+  handleSessionEvent(event) {
+    if (event.type === "cursor_selection_changed") {
+      this.sendLocationReport({
+        focusableId: event.focusableId,
+        selection: event.selection,
+      });
+    }
+  },
+
+  /**
+   * Broadcast new location report coming from the server to all the cells.
+   */
+  broadcastLocationReport(client, report) {
+    globalPubSub.broadcast("navigation", {
+      type: "location_report",
+      client,
+      report,
+    });
+  },
+
+  /**
+   * Sends local location report to the server.
+   */
+  sendLocationReport(report) {
+    const numberOfClients = Object.keys(this.clientsMap).length;
+
+    // Only send reports if there are other people to send to
+    if (numberOfClients > 1) {
+      this.pushEvent("location_report", {
+        focusable_id: report.focusableId,
+        selection: this.encodeSelection(report.selection),
+      });
+    }
+  },
+
+  encodeSelection(selection) {
+    if (selection === null) return null;
+
+    const { tag, editorSelection } = selection;
+
+    return [
+      tag,
+      editorSelection.selectionStartLineNumber,
+      editorSelection.selectionStartColumn,
+      editorSelection.positionLineNumber,
+      editorSelection.positionColumn,
+    ];
+  },
+
+  decodeSelection(encoded) {
+    if (encoded === null) return null;
+
+    const [
+      tag,
+      selectionStartLineNumber,
+      selectionStartColumn,
+      positionLineNumber,
+      positionColumn,
+    ] = encoded;
+
+    const editorSelection = new monaco.Selection(
+      selectionStartLineNumber,
+      selectionStartColumn,
+      positionLineNumber,
+      positionColumn
+    );
+
+    return { tag, editorSelection };
+  },
+
+  // Helpers
+
+  focusedCellType() {
+    if (this.focusedId && this.isCell(this.focusedId)) {
+      const el = this.getFocusableEl(this.focusedId);
+      return el.getAttribute("data-type");
+    } else {
+      return null;
+    }
+  },
+
+  nearbyFocusableId(focusableId, offset) {
+    const focusableIds = this.getFocusableIds();
+
+    if (focusableIds.length === 0) {
+      return null;
+    }
+
+    const idx = focusableIds.indexOf(focusableId);
+
+    if (idx === -1) {
+      const focusableElInViewport =
+        this.getFocusableEls().find(isElementInViewport);
+
+      if (focusableElInViewport) {
+        return focusableElInViewport.getAttribute("data-focusable-id");
+      }
+
+      return focusableIds[0];
+    } else {
+      const siblingIdx = clamp(idx + offset, 0, focusableIds.length - 1);
+      return focusableIds[siblingIdx];
+    }
+  },
+
+  isCell(focusableId) {
+    const el = this.getFocusableEl(focusableId);
+    return el.dataset.element === "cell";
+  },
+
+  isSection(focusableId) {
+    const el = this.getFocusableEl(focusableId);
+    return el.dataset.element === "section-headline";
+  },
+
+  isNotebook(focusableId) {
+    const el = this.getFocusableEl(focusableId);
+    return el.dataset.element === "notebook-headline";
+  },
+
+  getFocusableEl(focusableId) {
+    return this.el.querySelector(`[data-focusable-id="${focusableId}"]`);
+  },
+
+  getFocusableEls() {
+    return Array.from(this.el.querySelectorAll(`[data-focusable-id]`));
+  },
+
+  getFocusableIds() {
+    return this.getFocusableEls().map((el) =>
+      el.getAttribute("data-focusable-id")
+    );
+  },
+
+  getSectionIdByFocusableId(focusableId) {
+    const el = this.getFocusableEl(focusableId);
+    const section = el.closest(`[data-element="section"]`);
+    return section && section.getAttribute("data-section-id");
+  },
+
+  getSectionIds() {
+    const sections = this.getSections();
+    return sections.map((section) => section.getAttribute("data-section-id"));
+  },
+
+  getSections() {
+    return Array.from(this.el.querySelectorAll(`[data-element="section"]`));
+  },
+
+  getSectionById(sectionId) {
+    return this.el.querySelector(
+      `[data-element="section"][data-section-id="${sectionId}"]`
+    );
+  },
+
+  getElement(name) {
+    return this.el.querySelector(`[data-element="${name}"]`);
+  },
 };
-
-function getProps(hook) {
-  return {
-    autofocusCellId: getAttributeOrDefault(
-      hook.el,
-      "data-autofocus-cell-id",
-      null
-    ),
-    globalStatus: getAttributeOrDefault(hook.el, "data-global-status", null),
-  };
-}
-
-function faviconForEvaluationStatus(evaluationStatus) {
-  if (evaluationStatus === "evaluating") return "favicon-evaluating";
-  if (evaluationStatus === "stale") return "favicon-stale";
-  return "favicon";
-}
 
 /**
  * Data of a specific LV client.
@@ -290,861 +1110,5 @@ function faviconForEvaluationStatus(evaluationStatus) {
  * @property {String|null} focusableId
  * @property {monaco.Selection|null} selection
  */
-
-// DOM event handlers
-
-/**
- * Handles session keybindings.
- *
- * Make sure to keep the shortcuts help modal up to date.
- */
-function handleDocumentKeyDown(hook, event) {
-  if (event.repeat) {
-    return;
-  }
-
-  const cmd = isMacOS() ? event.metaKey : event.ctrlKey;
-  const alt = event.altKey;
-  const shift = event.shiftKey;
-  const key = event.key;
-  const keyBuffer = hook.state.keyBuffer;
-
-  if (hook.state.insertMode) {
-    keyBuffer.reset();
-
-    if (key === "Escape") {
-      // Ignore Escape if it's supposed to close an editor widget
-      if (!escapesMonacoWidget(event)) {
-        escapeInsertMode(hook);
-      }
-    } else if (cmd && shift && !alt && key === "Enter") {
-      cancelEvent(event);
-      queueFullCellsEvaluation(hook, true);
-    } else if (cmd && !alt && key === "Enter") {
-      cancelEvent(event);
-      if (isEvaluable(hook.state.focusedCellType)) {
-        queueFocusedCellEvaluation(hook);
-      }
-    } else if (cmd && key === "s") {
-      cancelEvent(event);
-      saveNotebook(hook);
-    }
-  } else {
-    // Ignore keystrokes on input fields
-    if (isEditableElement(event.target)) {
-      keyBuffer.reset();
-
-      // Use Escape for universal blur
-      if (key === "Escape") {
-        event.target.blur();
-      }
-
-      return;
-    }
-
-    keyBuffer.push(event.key);
-
-    if (cmd && key === "s") {
-      cancelEvent(event);
-      saveNotebook(hook);
-    } else if (keyBuffer.tryMatch(["d", "d"])) {
-      deleteFocusedCell(hook);
-    } else if (cmd && shift && !alt && key === "Enter") {
-      queueFullCellsEvaluation(hook, true);
-    } else if (keyBuffer.tryMatch(["e", "a"])) {
-      queueFullCellsEvaluation(hook, false);
-    } else if (
-      keyBuffer.tryMatch(["e", "e"]) ||
-      (cmd && !alt && key === "Enter")
-    ) {
-      if (isEvaluable(hook.state.focusedCellType)) {
-        queueFocusedCellEvaluation(hook);
-      }
-    } else if (keyBuffer.tryMatch(["e", "s"])) {
-      queueFocusedSectionEvaluation(hook);
-    } else if (keyBuffer.tryMatch(["s", "s"])) {
-      toggleSectionsList(hook);
-    } else if (keyBuffer.tryMatch(["s", "u"])) {
-      toggleClientsList(hook);
-    } else if (keyBuffer.tryMatch(["s", "r"])) {
-      toggleRuntimeInfo(hook);
-    } else if (keyBuffer.tryMatch(["s", "b"])) {
-      showBin(hook);
-    } else if (keyBuffer.tryMatch(["e", "x"])) {
-      cancelFocusedCellEvaluation(hook);
-    } else if (keyBuffer.tryMatch(["0", "0"])) {
-      restartRuntime(hook);
-    } else if (keyBuffer.tryMatch(["Escape", "Escape"])) {
-      setFocusedEl(hook, null);
-    } else if (keyBuffer.tryMatch(["?"])) {
-      showShortcuts(hook);
-    } else if (
-      keyBuffer.tryMatch(["i"]) ||
-      (event.target === document.body &&
-        hook.state.focusedId &&
-        key === "Enter")
-    ) {
-      cancelEvent(event);
-      if (isInsertModeAvailable(hook)) {
-        enterInsertMode(hook);
-      }
-    } else if (keyBuffer.tryMatch(["j"])) {
-      moveFocus(hook, 1);
-    } else if (keyBuffer.tryMatch(["k"])) {
-      moveFocus(hook, -1);
-    } else if (keyBuffer.tryMatch(["J"])) {
-      moveFocusedCell(hook, 1);
-    } else if (keyBuffer.tryMatch(["K"])) {
-      moveFocusedCell(hook, -1);
-    } else if (keyBuffer.tryMatch(["n"])) {
-      insertCellBelowFocused(hook, "code");
-    } else if (keyBuffer.tryMatch(["N"])) {
-      insertCellAboveFocused(hook, "code");
-    } else if (keyBuffer.tryMatch(["m"])) {
-      insertCellBelowFocused(hook, "markdown");
-    } else if (keyBuffer.tryMatch(["M"])) {
-      insertCellAboveFocused(hook, "markdown");
-    }
-  }
-}
-
-function escapesMonacoWidget(event) {
-  // Escape pressed in an editor input
-  if (event.target.closest(".monaco-inputbox")) {
-    return true;
-  }
-
-  const editor = event.target.closest(".monaco-editor.focused");
-
-  if (!editor) {
-    return false;
-  }
-
-  // Completion box open
-  if (editor.querySelector(".editor-widget.parameter-hints-widget.visible")) {
-    return true;
-  }
-
-  // Signature details open
-  if (editor.querySelector(".editor-widget.suggest-widget.visible")) {
-    return true;
-  }
-
-  // Multi-cursor selection enabled
-  if (editor.querySelectorAll(".cursor").length > 1) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Focuses/blurs a cell when the user clicks somewhere.
- *
- * Note: we use mousedown event to more reliably focus editor
- * (e.g. if the user starts selecting some text within the editor)
- */
-function handleDocumentMouseDown(hook, event) {
-  // If the click is outside the notebook element, keep the focus as is
-  if (!event.target.closest(`[data-element="notebook"]`)) {
-    if (hook.state.insertMode) {
-      setInsertMode(hook, false);
-    }
-    return;
-  }
-
-  // When clicking an insert button, keep focus and insert mode as is
-  if (event.target.closest(`[data-element="insert-buttons"] button`)) {
-    return;
-  }
-
-  // Find the focusable element, if one was clicked
-  const focusableEl = event.target.closest(`[data-focusable-id]`);
-  const focusableId = focusableEl ? focusableEl.dataset.focusableId : null;
-  const insertMode = editableElementClicked(event, focusableEl);
-
-  if (focusableId !== hook.state.focusedId) {
-    setFocusedEl(hook, focusableId, { scroll: false, focusElement: false });
-  }
-
-  // If a cell action is clicked, keep the insert mode as is
-  if (event.target.closest(`[data-element="actions"]`)) {
-    return;
-  }
-
-  // Depending on whether the click targets editor or input disable/enable insert mode
-  if (hook.state.insertMode !== insertMode) {
-    setInsertMode(hook, insertMode);
-  }
-}
-
-function editableElementClicked(event, focusableEl) {
-  if (focusableEl) {
-    const editableElement = event.target.closest(
-      `[data-element="editor-container"], [data-element="heading"]`
-    );
-    return editableElement && focusableEl.contains(editableElement);
-  }
-
-  return false;
-}
-
-/**
- * Focuses a focusable element if the user "tab"s anywhere into it.
- */
-function handleDocumentFocus(hook, event) {
-  const focusableEl =
-    event.target.closest && event.target.closest(`[data-focusable-id]`);
-
-  if (focusableEl) {
-    const focusableId = focusableEl.dataset.focusableId;
-
-    if (focusableId !== hook.state.focusedId) {
-      setFocusedEl(hook, focusableId, { scroll: false, focusElement: false });
-    }
-  }
-}
-
-/**
- * Enters insert mode when markdown edit action is clicked.
- */
-function handleDocumentClick(hook, event) {
-  if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
-    setInsertMode(hook, true);
-  }
-}
-
-/**
- * Enters insert mode when a markdown cell is double-clicked.
- */
-function handleDocumentDoubleClick(hook, event) {
-  const markdownCell = event.target.closest(
-    `[data-element="cell"][data-type="markdown"]`
-  );
-
-  if (markdownCell && hook.state.focusedId && !hook.state.insertMode) {
-    setInsertMode(hook, true);
-  }
-}
-
-/**
- * Handles section link clicks in the section list.
- */
-function handleSectionsListClick(hook, event) {
-  const sectionButton = event.target.closest(
-    `[data-element="sections-list-item"]`
-  );
-  if (sectionButton) {
-    const sectionId = sectionButton.getAttribute("data-section-id");
-    const section = getSectionById(sectionId);
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
-/**
- * Handles client link clicks in the clients list.
- */
-function handleClientsListClick(hook, event) {
-  const clientListItem = event.target.closest(
-    `[data-element="clients-list-item"]`
-  );
-
-  if (clientListItem) {
-    const clientPid = clientListItem.getAttribute("data-client-pid");
-
-    const clientLink = event.target.closest(`[data-element="client-link"]`);
-    if (clientLink) {
-      handleClientLinkClick(hook, clientPid);
-    }
-
-    const clientFollowToggle = event.target.closest(
-      `[data-element="client-follow-toggle"]`
-    );
-    if (clientFollowToggle) {
-      handleClientFollowToggleClick(hook, clientPid, clientListItem);
-    }
-  }
-}
-
-function handleClientLinkClick(hook, clientPid) {
-  mirrorClientFocus(hook, clientPid);
-}
-
-function handleClientFollowToggleClick(hook, clientPid, clientListItem) {
-  const followedClientListItem = document.querySelector(
-    `[data-element="clients-list-item"][data-js-followed]`
-  );
-
-  if (followedClientListItem) {
-    followedClientListItem.removeAttribute("data-js-followed");
-  }
-
-  if (clientPid === hook.state.followedClientPid) {
-    hook.state.followedClientPid = null;
-  } else {
-    clientListItem.setAttribute("data-js-followed", "true");
-    hook.state.followedClientPid = clientPid;
-    mirrorClientFocus(hook, clientPid);
-  }
-}
-
-function mirrorClientFocus(hook, clientPid) {
-  const locationReport = hook.state.lastLocationReportByClientPid[clientPid];
-
-  if (locationReport && locationReport.focusableId) {
-    setFocusedEl(hook, locationReport.focusableId);
-  }
-}
-
-/**
- * Handles button clicks within cell indicators section.
- */
-function handleCellIndicatorsClick(hook, event) {
-  const button = event.target.closest(`[data-element="focus-cell-button"]`);
-  if (button) {
-    const cellId = button.getAttribute("data-target");
-    setFocusedEl(hook, cellId);
-  }
-}
-
-/**
- * Focuses cell or any other element based on the current
- * URL and hook attributes.
- */
-function initializeFocus(hook) {
-  const hash = window.location.hash;
-
-  if (hash) {
-    const htmlId = hash.replace(/^#/, "");
-    const element = document.getElementById(htmlId);
-
-    if (element) {
-      const focusableEl = element.closest("[data-focusable-id]");
-
-      if (focusableEl) {
-        setFocusedEl(hook, focusableEl.dataset.focusableId);
-      } else {
-        // Explicitly scroll to the target element
-        // after the loading finishes
-        element.scrollIntoView();
-      }
-    }
-  } else if (hook.props.autofocusCellId) {
-    setFocusedEl(hook, hook.props.autofocusCellId, { scroll: false });
-    setInsertMode(hook, true);
-  }
-}
-
-/**
- * Handles the main notebook area being scrolled.
- */
-function updateSectionListHighlight() {
-  const currentListItem = document.querySelector(
-    `[data-element="sections-list-item"][data-js-is-viewed]`
-  );
-
-  if (currentListItem) {
-    currentListItem.removeAttribute("data-js-is-viewed");
-  }
-
-  // Consider a section being viewed if it is within the top 35% of the screen
-  const viewedSection = getSections()
-    .reverse()
-    .find((section) => {
-      const { top } = section.getBoundingClientRect();
-      const scrollTop = document.documentElement.scrollTop;
-      return top <= scrollTop + window.innerHeight * 0.35;
-    });
-
-  if (viewedSection) {
-    const sectionId = viewedSection.getAttribute("data-section-id");
-    const listItem = document.querySelector(
-      `[data-element="sections-list-item"][data-section-id="${sectionId}"]`
-    );
-    listItem.setAttribute("data-js-is-viewed", "true");
-  }
-}
-
-// User action handlers (mostly keybindings)
-
-function toggleSectionsList(hook) {
-  toggleSidePanelContent(hook, "sections-list");
-}
-
-function toggleClientsList(hook) {
-  toggleSidePanelContent(hook, "clients-list");
-}
-
-function toggleRuntimeInfo(hook) {
-  toggleSidePanelContent(hook, "runtime-info");
-}
-
-function toggleSidePanelContent(hook, name) {
-  if (hook.el.getAttribute("data-js-side-panel-content") === name) {
-    hook.el.removeAttribute("data-js-side-panel-content");
-  } else {
-    hook.el.setAttribute("data-js-side-panel-content", name);
-  }
-}
-
-function showBin(hook) {
-  hook.pushEvent("show_bin", {});
-}
-
-function saveNotebook(hook) {
-  hook.pushEvent("save", {});
-}
-
-function deleteFocusedCell(hook) {
-  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
-    hook.pushEvent("delete_cell", { cell_id: hook.state.focusedId });
-  }
-}
-
-function queueFocusedCellEvaluation(hook) {
-  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
-    hook.pushEvent("queue_cell_evaluation", {
-      cell_id: hook.state.focusedId,
-    });
-  }
-}
-
-function queueFullCellsEvaluation(hook, includeFocused) {
-  const forcedCellIds =
-    includeFocused && hook.state.focusedId && isCell(hook.state.focusedId)
-      ? [hook.state.focusedId]
-      : [];
-
-  hook.pushEvent("queue_full_evaluation", {
-    forced_cell_ids: forcedCellIds,
-  });
-}
-
-function queueFocusedSectionEvaluation(hook) {
-  if (hook.state.focusedId) {
-    const sectionId = getSectionIdByFocusableId(hook.state.focusedId);
-
-    if (sectionId) {
-      hook.pushEvent("queue_section_evaluation", {
-        section_id: sectionId,
-      });
-    }
-  }
-}
-
-function cancelFocusedCellEvaluation(hook) {
-  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
-    hook.pushEvent("cancel_cell_evaluation", {
-      cell_id: hook.state.focusedId,
-    });
-  }
-}
-
-function restartRuntime(hook) {
-  hook.pushEvent("restart_runtime", {});
-}
-
-function showShortcuts(hook) {
-  hook.pushEvent("show_shortcuts", {});
-}
-
-function isInsertModeAvailable(hook) {
-  const el = getFocusableEl(hook.state.focusedId);
-
-  return (
-    !isCell(hook.state.focusedId) ||
-    !el.hasAttribute("data-js-insert-mode-disabled")
-  );
-}
-
-function enterInsertMode(hook) {
-  if (hook.state.focusedId) {
-    setInsertMode(hook, true);
-  }
-}
-
-function escapeInsertMode(hook) {
-  setInsertMode(hook, false);
-}
-
-function moveFocus(hook, offset) {
-  const focusableId = nearbyFocusableId(hook.state.focusedId, offset);
-  setFocusedEl(hook, focusableId);
-}
-
-function moveFocusedCell(hook, offset) {
-  if (hook.state.focusedId && isCell(hook.state.focusedId)) {
-    hook.pushEvent("move_cell", { cell_id: hook.state.focusedId, offset });
-  }
-}
-
-function insertCellBelowFocused(hook, type) {
-  if (hook.state.focusedId) {
-    insertCellBelowFocusableId(hook, hook.state.focusedId, type);
-  } else {
-    const focusableIds = getFocusableIds();
-    if (focusableIds.length > 0) {
-      insertCellBelowFocusableId(
-        hook,
-        focusableIds[focusableIds.length - 1],
-        type
-      );
-    }
-  }
-}
-
-function insertCellAboveFocused(hook, type) {
-  if (hook.state.focusedId) {
-    const prevFocusableId = nearbyFocusableId(hook.state.focusedId, -1);
-    insertCellBelowFocusableId(hook, prevFocusableId, type);
-  } else {
-    const focusableIds = getFocusableIds();
-    if (focusableIds.length > 0) {
-      insertCellBelowFocusableId(hook, focusableIds[0], type);
-    }
-  }
-}
-
-function insertCellBelowFocusableId(hook, focusableId, type) {
-  if (isCell(focusableId)) {
-    hook.pushEvent("insert_cell_below", { type, cell_id: focusableId });
-  } else if (isSection(focusableId)) {
-    hook.pushEvent("insert_cell_below", { type, section_id: focusableId });
-  } else if (isNotebook(focusableId)) {
-    const sectionIds = getSectionIds();
-    if (sectionIds.length > 0) {
-      hook.pushEvent("insert_cell_below", { type, section_id: sectionIds[0] });
-    }
-  }
-}
-
-function setFocusedEl(
-  hook,
-  focusableId,
-  { scroll = true, focusElement = true } = {}
-) {
-  hook.state.focusedId = focusableId;
-
-  if (focusableId) {
-    const el = getFocusableEl(focusableId);
-
-    if (isCell(focusableId)) {
-      hook.state.focusedCellType = el.getAttribute("data-type");
-    } else {
-      hook.state.focusedCellType = null;
-    }
-
-    if (focusElement) {
-      // Focus the primary content in the focusable element, this is important for screen readers
-      const contentEl =
-        el.querySelector(`[data-element="cell-body"]`) ||
-        el.querySelector(`[data-element="heading"]`) ||
-        el;
-      contentEl.focus({ preventScroll: true });
-    }
-  } else {
-    hook.state.focusedCellType = null;
-  }
-
-  globalPubSub.broadcast("navigation", {
-    type: "element_focused",
-    focusableId: focusableId,
-    scroll,
-  });
-
-  setInsertMode(hook, false);
-}
-
-function setInsertMode(hook, insertModeEnabled) {
-  hook.state.insertMode = insertModeEnabled;
-
-  if (insertModeEnabled) {
-    hook.el.setAttribute("data-js-insert-mode", "true");
-  } else {
-    hook.el.removeAttribute("data-js-insert-mode");
-
-    sendLocationReport(hook, {
-      focusableId: hook.state.focusedId,
-      selection: null,
-    });
-  }
-
-  globalPubSub.broadcast("navigation", {
-    type: "insert_mode_changed",
-    enabled: insertModeEnabled,
-  });
-}
-
-// Server event handlers
-
-function handleCellInserted(hook, cellId) {
-  setFocusedEl(hook, cellId);
-  if (isDirectlyEditable(hook.state.focusedCellType)) {
-    setInsertMode(hook, true);
-  }
-}
-
-function handleCellDeleted(hook, cellId, siblingCellId) {
-  if (hook.state.focusedId === cellId) {
-    setFocusedEl(hook, siblingCellId);
-  }
-}
-
-function handleCellRestored(hook, cellId) {
-  setFocusedEl(hook, cellId);
-}
-
-function handleCellMoved(hook, cellId) {
-  if (hook.state.focusedId === cellId) {
-    globalPubSub.broadcast("cells", { type: "cell_moved", cellId });
-  }
-}
-
-function handleSectionInserted(hook, sectionId) {
-  const section = getSectionById(sectionId);
-  const headlineEl = section.querySelector(`[data-element="section-headline"]`);
-  const { focusableId } = headlineEl.dataset;
-  setFocusedEl(hook, focusableId);
-  setInsertMode(hook, true);
-  selectElementContent(document.activeElement);
-}
-
-function handleSectionDeleted(hook, sectionId) {
-  // Clear focus if the element no longer exists
-  if (hook.state.focusedId && !getFocusableEl(hook.state.focusedId)) {
-    setFocusedEl(hook, null);
-  }
-}
-
-function handleSectionMoved(hook, sectionId) {
-  const section = getSectionById(sectionId);
-  smoothlyScrollToElement(section);
-}
-
-function handleCellUpload(hook, cellId, url) {
-  if (hook.state.focusedId !== cellId) {
-    setFocusedEl(hook, cellId);
-  }
-
-  if (!hook.state.insertMode) {
-    setInsertMode(hook, true);
-  }
-
-  globalPubSub.broadcast("cells", { type: "cell_upload", cellId, url });
-}
-
-function handleClientJoined(hook, client) {
-  hook.state.clientsMap[client.pid] = client;
-}
-
-function handleClientLeft(hook, clientPid) {
-  const client = hook.state.clientsMap[clientPid];
-
-  if (client) {
-    delete hook.state.clientsMap[clientPid];
-
-    broadcastLocationReport(client, { focusableId: null, selection: null });
-
-    if (client.pid === hook.state.followedClientPid) {
-      hook.state.followedClientPid = null;
-    }
-  }
-}
-
-function handleClientsUpdated(hook, updatedClients) {
-  updatedClients.forEach((client) => {
-    hook.state.clientsMap[client.pid] = client;
-  });
-}
-
-function handleLocationReport(hook, clientPid, report) {
-  const client = hook.state.clientsMap[clientPid];
-
-  hook.state.lastLocationReportByClientPid[clientPid] = report;
-
-  if (client) {
-    broadcastLocationReport(client, report);
-
-    if (
-      client.pid === hook.state.followedClientPid &&
-      report.focusableId !== hook.state.focusedId
-    ) {
-      setFocusedEl(hook, report.focusableId);
-    }
-  }
-}
-
-// Session event handlers
-
-function handleSessionEvent(hook, event) {
-  if (event.type === "cursor_selection_changed") {
-    sendLocationReport(hook, {
-      focusableId: event.focusableId,
-      selection: event.selection,
-    });
-  }
-}
-
-/**
- * Broadcast new location report coming from the server to all the cells.
- */
-function broadcastLocationReport(client, report) {
-  globalPubSub.broadcast("navigation", {
-    type: "location_report",
-    client,
-    report,
-  });
-}
-
-/**
- * Sends local location report to the server.
- */
-function sendLocationReport(hook, report) {
-  const numberOfClients = Object.keys(hook.state.clientsMap).length;
-
-  // Only send reports if there are other people to send to
-  if (numberOfClients > 1) {
-    hook.pushEvent("location_report", {
-      focusable_id: report.focusableId,
-      selection: encodeSelection(report.selection),
-    });
-  }
-}
-
-function encodeSelection(selection) {
-  if (selection === null) return null;
-
-  const { tag, editorSelection } = selection;
-
-  return [
-    tag,
-    editorSelection.selectionStartLineNumber,
-    editorSelection.selectionStartColumn,
-    editorSelection.positionLineNumber,
-    editorSelection.positionColumn,
-  ];
-}
-
-function decodeSelection(encoded) {
-  if (encoded === null) return null;
-
-  const [
-    tag,
-    selectionStartLineNumber,
-    selectionStartColumn,
-    positionLineNumber,
-    positionColumn,
-  ] = encoded;
-
-  const editorSelection = new monaco.Selection(
-    selectionStartLineNumber,
-    selectionStartColumn,
-    positionLineNumber,
-    positionColumn
-  );
-
-  return { tag, editorSelection };
-}
-
-// Helpers
-
-function nearbyFocusableId(focusableId, offset) {
-  const focusableIds = getFocusableIds();
-
-  if (focusableIds.length === 0) {
-    return null;
-  }
-
-  const idx = focusableIds.indexOf(focusableId);
-
-  if (idx === -1) {
-    const focusableElInViewport = getFocusableEls().find(isElementInViewport);
-
-    if (focusableElInViewport) {
-      return focusableElInViewport.getAttribute("data-focusable-id");
-    }
-
-    return focusableIds[0];
-  } else {
-    const siblingIdx = clamp(idx + offset, 0, focusableIds.length - 1);
-    return focusableIds[siblingIdx];
-  }
-}
-
-function isCell(focusableId) {
-  const el = getFocusableEl(focusableId);
-  return el.dataset.element === "cell";
-}
-
-function isSection(focusableId) {
-  const el = getFocusableEl(focusableId);
-  return el.dataset.element === "section-headline";
-}
-
-function isNotebook(focusableId) {
-  const el = getFocusableEl(focusableId);
-  return el.dataset.element === "notebook-headline";
-}
-
-function getFocusableEl(focusableId) {
-  return document.querySelector(`[data-focusable-id="${focusableId}"]`);
-}
-
-function getFocusableEls() {
-  return Array.from(document.querySelectorAll(`[data-focusable-id]`));
-}
-
-function getFocusableIds() {
-  return getFocusableEls().map((el) => el.getAttribute("data-focusable-id"));
-}
-
-function getSectionIdByFocusableId(focusableId) {
-  const el = getFocusableEl(focusableId);
-  const section = el.closest(`[data-element="section"]`);
-  return section && section.getAttribute("data-section-id");
-}
-
-function getSectionIds() {
-  const sections = getSections();
-  return sections.map((section) => section.getAttribute("data-section-id"));
-}
-
-function getSections() {
-  return Array.from(document.querySelectorAll(`[data-element="section"]`));
-}
-
-function getSectionById(sectionId) {
-  return document.querySelector(
-    `[data-element="section"][data-section-id="${sectionId}"]`
-  );
-}
-
-function getSectionsList() {
-  return document.querySelector(`[data-element="sections-list"]`);
-}
-
-function getClientsList() {
-  return document.querySelector(`[data-element="clients-list"]`);
-}
-
-function getCellIndicators() {
-  return document.querySelector(`[data-element="notebook-indicators"]`);
-}
-
-function getNotebook() {
-  return document.querySelector(`[data-element="notebook"]`);
-}
-
-function getSectionsListToggle() {
-  return document.querySelector(`[data-element="sections-list-toggle"]`);
-}
-
-function getClientsListToggle() {
-  return document.querySelector(`[data-element="clients-list-toggle"]`);
-}
-
-function getRuntimeInfoToggle() {
-  return document.querySelector(`[data-element="runtime-info-toggle"]`);
-}
 
 export default Session;

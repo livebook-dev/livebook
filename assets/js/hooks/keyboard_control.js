@@ -4,7 +4,7 @@ import { cancelEvent, isEditableElement } from "../lib/utils";
 /**
  * A hook for ControlComponent to handle user keyboard interactions.
  *
- * Configuration:
+ * ## Configuration
  *
  *   * `data-keydown-enabled` - whether keydown events should be intercepted
  *
@@ -14,92 +14,83 @@ import { cancelEvent, isEditableElement } from "../lib/utils";
  */
 const KeyboardControl = {
   mounted() {
-    this.props = getProps(this);
+    this.props = this.getProps();
 
-    this.handleDocumentKeyDown = (event) => {
-      handleDocumentKeyDown(this, event);
-    };
+    this._handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
+    this._handleDocumentKeyUp = this.handleDocumentKeyUp.bind(this);
+    this._handleDocumentFocus = this.handleDocumentFocus.bind(this);
 
-    // We intentionally register on window rather than document,
-    // to intercept clicks as early on as possible, even before
-    // the session shortcuts
-    window.addEventListener("keydown", this.handleDocumentKeyDown, true);
-
-    this.handleDocumentKeyUp = (event) => {
-      handleDocumentKeyUp(this, event);
-    };
-
-    window.addEventListener("keyup", this.handleDocumentKeyUp, true);
-
-    this.handleDocumentFocus = (event) => {
-      handleDocumentFocus(this, event);
-    };
-
-    // Note: the focus event doesn't bubble, so we register for the capture phase
-    window.addEventListener("focus", this.handleDocumentFocus, true);
+    // We intentionally register on window rather than document, to
+    // intercept events as early on as possible, even before the
+    // session shortcuts
+    window.addEventListener("keydown", this._handleDocumentKeyDown, true);
+    window.addEventListener("keyup", this._handleDocumentKeyUp, true);
+    // Note: the focus event doesn't bubble, so we register for the
+    // capture phase
+    window.addEventListener("focus", this._handleDocumentFocus, true);
   },
 
   updated() {
-    this.props = getProps(this);
+    this.props = this.getProps();
   },
 
   destroyed() {
-    window.removeEventListener("keydown", this.handleDocumentKeyDown, true);
-    window.removeEventListener("keyup", this.handleDocumentKeyUp, true);
-    window.removeEventListener("focus", this.handleDocumentFocus, true);
+    window.removeEventListener("keydown", this._handleDocumentKeyDown, true);
+    window.removeEventListener("keyup", this._handleDocumentKeyUp, true);
+    window.removeEventListener("focus", this._handleDocumentFocus, true);
   },
-};
 
-function getProps(hook) {
-  return {
-    isKeydownEnabled: getAttributeOrThrow(
-      hook.el,
-      "data-keydown-enabled",
-      parseBoolean
-    ),
-    isKeyupEnabled: getAttributeOrThrow(
-      hook.el,
-      "data-keyup-enabled",
-      parseBoolean
-    ),
-    target: getAttributeOrThrow(hook.el, "data-target"),
-  };
-}
+  getProps() {
+    return {
+      isKeydownEnabled: getAttributeOrThrow(
+        this.el,
+        "data-keydown-enabled",
+        parseBoolean
+      ),
+      isKeyupEnabled: getAttributeOrThrow(
+        this.el,
+        "data-keyup-enabled",
+        parseBoolean
+      ),
+      target: getAttributeOrThrow(this.el, "data-target"),
+    };
+  },
 
-function handleDocumentKeyDown(hook, event) {
-  if (keyboardEnabled(hook)) {
-    cancelEvent(event);
-  }
-
-  if (hook.props.isKeydownEnabled) {
-    if (event.repeat) {
-      return;
+  handleDocumentKeyDown(event) {
+    if (this.keyboardEnabled()) {
+      cancelEvent(event);
     }
 
-    const key = event.key;
-    hook.pushEventTo(hook.props.target, "keydown", { key });
-  }
-}
+    if (this.props.isKeydownEnabled) {
+      if (event.repeat) {
+        return;
+      }
 
-function handleDocumentKeyUp(hook, event) {
-  if (keyboardEnabled(hook)) {
-    cancelEvent(event);
-  }
+      const { key } = event;
+      this.pushEventTo(this.props.target, "keydown", { key });
+    }
+  },
 
-  if (hook.props.isKeyupEnabled) {
-    const key = event.key;
-    hook.pushEventTo(hook.props.target, "keyup", { key });
-  }
-}
+  handleDocumentKeyUp(event) {
+    if (this.keyboardEnabled()) {
+      cancelEvent(event);
+    }
 
-function handleDocumentFocus(hook, event) {
-  if (hook.props.isKeydownEnabled && isEditableElement(event.target)) {
-    hook.pushEventTo(hook.props.target, "disable_keyboard", {});
-  }
-}
+    if (this.props.isKeyupEnabled) {
+      const { key } = event;
+      this.pushEventTo(this.props.target, "keyup", { key });
+    }
+  },
 
-function keyboardEnabled(hook) {
-  return hook.props.isKeydownEnabled || hook.props.isKeyupEnabled;
-}
+  handleDocumentFocus(event) {
+    if (this.props.isKeydownEnabled && isEditableElement(event.target)) {
+      this.pushEventTo(this.props.target, "disable_keyboard", {});
+    }
+  },
+
+  keyboardEnabled() {
+    return this.props.isKeydownEnabled || this.props.isKeyupEnabled;
+  },
+};
 
 export default KeyboardControl;

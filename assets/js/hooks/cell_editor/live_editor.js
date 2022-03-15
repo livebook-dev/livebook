@@ -33,10 +33,10 @@ class LiveEditor {
     this._onCursorSelectionChange = null;
     this._remoteUserByClientPid = {};
 
-    this.__mountEditor();
+    this._mountEditor();
 
     if (this.intellisense) {
-      this.__setupIntellisense();
+      this._setupIntellisense();
     }
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
@@ -180,7 +180,7 @@ class LiveEditor {
     }
   }
 
-  __mountEditor() {
+  _mountEditor() {
     const settings = settingsStore.get();
 
     this.editor = monaco.editor.create(this.container, {
@@ -276,7 +276,7 @@ class LiveEditor {
   /**
    * Defines cell-specific providers for various editor features.
    */
-  __setupIntellisense() {
+  _setupIntellisense() {
     const settings = settingsStore.get();
 
     this.handlerByRef = {};
@@ -290,11 +290,11 @@ class LiveEditor {
      *   * the user opens the completion list, which triggers the global
      *     completion provider registered in `live_editor/monaco.js`
      *
-     *   * the global provider delegates to the cell-specific `__getCompletionItems`
+     *   * the global provider delegates to the cell-specific `__getCompletionItems__`
      *     defined below. That's a little bit hacky, but this way we make
      *     completion cell-specific
      *
-     *   * then `__getCompletionItems` sends a completion request to the LV process
+     *   * then `__getCompletionItems__` sends a completion request to the LV process
      *     and gets a unique reference, under which it keeps completion callback
      *
      *   * finally the hook receives the "intellisense_response" event with completion
@@ -302,11 +302,11 @@ class LiveEditor {
      *     it with the response, which finally returns the completion items to the editor
      */
 
-    this.editor.getModel().__getCompletionItems = (model, position) => {
+    this.editor.getModel().__getCompletionItems__ = (model, position) => {
       const line = model.getLineContent(position.lineNumber);
       const lineUntilCursor = line.slice(0, position.column - 1);
 
-      return this.__asyncIntellisenseRequest("completion", {
+      return this._asyncIntellisenseRequest("completion", {
         hint: lineUntilCursor,
         editor_auto_completion: settings.editor_auto_completion,
       })
@@ -335,11 +335,11 @@ class LiveEditor {
         .catch(() => null);
     };
 
-    this.editor.getModel().__getHover = (model, position) => {
+    this.editor.getModel().__getHover__ = (model, position) => {
       const line = model.getLineContent(position.lineNumber);
       const column = position.column;
 
-      return this.__asyncIntellisenseRequest("details", { line, column })
+      return this._asyncIntellisenseRequest("details", { line, column })
         .then((response) => {
           const contents = response.contents.map((content) => ({
             value: content,
@@ -363,7 +363,7 @@ class LiveEditor {
       response: null,
     };
 
-    this.editor.getModel().__getSignatureHelp = (model, position) => {
+    this.editor.getModel().__getSignatureHelp__ = (model, position) => {
       const lines = model.getLinesContent();
       const lineIdx = position.lineNumber - 1;
       const prevLines = lines.slice(0, lineIdx);
@@ -385,7 +385,7 @@ class LiveEditor {
         };
       }
 
-      return this.__asyncIntellisenseRequest("signature", {
+      return this._asyncIntellisenseRequest("signature", {
         hint: codeUntilCursor,
       })
         .then((response) => {
@@ -400,10 +400,10 @@ class LiveEditor {
         .catch(() => null);
     };
 
-    this.editor.getModel().__getDocumentFormattingEdits = (model) => {
+    this.editor.getModel().__getDocumentFormattingEdits__ = (model) => {
       const content = model.getValue();
 
-      return this.__asyncIntellisenseRequest("format", { code: content })
+      return this._asyncIntellisenseRequest("format", { code: content })
         .then((response) => {
           this.setCodeErrorMarker(response.code_error);
 
@@ -462,7 +462,7 @@ class LiveEditor {
    * The returned promise is either resolved with a valid
    * response or rejected with null.
    */
-  __asyncIntellisenseRequest(type, props) {
+  _asyncIntellisenseRequest(type, props) {
     return new Promise((resolve, reject) => {
       this.hook.pushEvent(
         "intellisense_request",

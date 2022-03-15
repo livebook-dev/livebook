@@ -45,9 +45,9 @@ class CursorWidget {
     this._id = randomId();
     this._editor = editor;
     this._position = position;
-    this._isPositionValid = this.__checkPositionValidity(position);
+    this._isPositionValid = this._checkPositionValidity(position);
 
-    this.__buildDomNode(hexColor, label);
+    this._buildDomNode(hexColor, label);
 
     this._editor.addContentWidget(this);
 
@@ -75,8 +75,8 @@ class CursorWidget {
 
   update(position) {
     this._position = position;
-    this._isPositionValid = this.__checkPositionValidity(position);
-    this.__updateDomNode();
+    this._isPositionValid = this._checkPositionValidity(position);
+    this._updateDomNode();
     this._editor.layoutContentWidget(this);
   }
 
@@ -89,12 +89,12 @@ class CursorWidget {
     this._onDidChangeModelContentDisposable.dispose();
   }
 
-  __checkPositionValidity(position) {
+  _checkPositionValidity(position) {
     const validPosition = this._editor.getModel().validatePosition(position);
     return position.equals(validPosition);
   }
 
-  __buildDomNode(hexColor, label) {
+  _buildDomNode(hexColor, label) {
     const lineHeight = this._editor.getOption(
       monaco.editor.EditorOption.lineHeight
     );
@@ -117,10 +117,10 @@ class CursorWidget {
     node.appendChild(labelNode);
 
     this._domNode = node;
-    this.__updateDomNode();
+    this._updateDomNode();
   }
 
-  __updateDomNode() {
+  _updateDomNode() {
     const isFirstLine = this._position.lineNumber === 1;
     this._domNode.classList.toggle("inline", isFirstLine);
   }

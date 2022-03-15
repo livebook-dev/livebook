@@ -5,63 +5,46 @@ import { findChildOrThrow } from "../lib/utils";
 /**
  * A hook used to highlight source code in the root element.
  *
- * Configuration:
+ * ## Configuration
  *
  *   * `data-language` - language of the source code
  *
  * The element should have two children:
  *
- *   * one annotated with `data-source` attribute, it should contain
- *     the source code to be highlighted
+ *   * `[data-source]` - an element containing the source code to be
+ *     highlighted
  *
- *   * one annotated with `data-target` where the highlighted code
- *     is rendered
+ *   * `[data-target]` - the element to render highlighted code into
  */
 const Highlight = {
   mounted() {
-    this.props = getProps(this);
-    this.state = {
-      sourceElement: null,
-      originalElement: null,
-    };
+    this.props = this.getProps();
 
-    this.state.sourceElement = findChildOrThrow(this.el, "[data-source]");
-    this.state.targetElement = findChildOrThrow(this.el, "[data-target]");
+    this.sourceEl = findChildOrThrow(this.el, "[data-source]");
+    this.targetEl = findChildOrThrow(this.el, "[data-target]");
 
-    highlightInto(
-      this.state.targetElement,
-      this.state.sourceElement,
-      this.props.language
-    ).then(() => {
-      this.el.setAttribute("data-highlighted", "true");
-    });
+    this.updateDOM();
   },
 
   updated() {
-    this.props = getProps(this);
+    this.props = this.getProps();
+    this.updateDOM();
+  },
 
-    highlightInto(
-      this.state.targetElement,
-      this.state.sourceElement,
-      this.props.language
-    ).then(() => {
-      this.el.setAttribute("data-highlighted", "true");
+  getProps() {
+    return {
+      language: getAttributeOrThrow(this.el, "data-language"),
+    };
+  },
+
+  updateDOM() {
+    const code = this.sourceEl.innerText;
+
+    highlight(code, this.props.language).then((html) => {
+      this.targetEl.innerHTML = html;
+      this.el.setAttribute("data-highlighted", "");
     });
   },
 };
-
-function getProps(hook) {
-  return {
-    language: getAttributeOrThrow(hook.el, "data-language"),
-  };
-}
-
-function highlightInto(targetElement, sourceElement, language) {
-  const code = sourceElement.innerText;
-
-  return highlight(code, language).then((html) => {
-    targetElement.innerHTML = html;
-  });
-}
 
 export default Highlight;
