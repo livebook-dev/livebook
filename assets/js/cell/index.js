@@ -63,6 +63,16 @@ const Cell = {
       handleCellEditorRemoved(this, tag);
     });
 
+    // We manually track hover to correctly handle absolute iframe
+
+    this.el.addEventListener("mouseenter", (event) => {
+      this.el.setAttribute("data-js-hover", "true");
+    });
+
+    this.el.addEventListener("mouseleave", (event) => {
+      this.el.removeAttribute("data-js-hover");
+    });
+
     this._unsubscribeFromNavigationEvents = globalPubSub.subscribe(
       "navigation",
       (event) => {
