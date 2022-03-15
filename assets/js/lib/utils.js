@@ -12,6 +12,11 @@ export function isEditableElement(element) {
   );
 }
 
+export function isElementInViewport(element) {
+  const box = element.getBoundingClientRect();
+  return box.bottom >= 0 && box.top <= window.innerHeight;
+}
+
 export function clamp(n, x, y) {
   return Math.min(Math.max(n, x), y);
 }
