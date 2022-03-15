@@ -1,4 +1,4 @@
-import Delta from "../../lib/delta";
+import Delta from "../../../lib/delta";
 
 /**
  * Encapsulates logic related to sending/receiving messages from the server.

@@ -1,5 +1,5 @@
 import monaco from "./monaco";
-import { randomId } from "../../lib/utils";
+import { randomId } from "../../../lib/utils";
 
 /**
  * Remote user visual indicators within the editor.

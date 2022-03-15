@@ -1,4 +1,4 @@
-const callbacks = {
+export const morphdomOptions = {
   onBeforeElUpdated(from, to) {
     // Keep element attributes starting with data-js-
     // which we set on the client.
@@ -29,5 +29,3 @@ const callbacks = {
     }
   },
 };
-
-export default callbacks;

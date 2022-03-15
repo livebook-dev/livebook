@@ -1,7 +1,6 @@
 import "../css/app.css";
 import "remixicon/fonts/remixicon.css";
 import "katex/dist/katex.min.css";
-
 import "@fontsource/inter";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
@@ -9,48 +8,13 @@ import "@fontsource/jetbrains-mono";
 
 import "phoenix_html";
 import { Socket } from "phoenix";
-import topbar from "topbar";
 import { LiveSocket } from "phoenix_live_view";
-import Headline from "./headline";
-import Cell from "./cell";
-import CellEditor from "./cell_editor";
-import Session from "./session";
-import FocusOnUpdate from "./focus_on_update";
-import ScrollOnUpdate from "./scroll_on_update";
-import VirtualizedLines from "./virtualized_lines";
-import UserForm from "./user_form";
-import EditorSettings from "./editor_settings";
-import Timer from "./timer";
-import MarkdownRenderer from "./markdown_renderer";
-import Highlight from "./highlight";
-import DragAndDrop from "./drag_and_drop";
-import PasswordToggle from "./password_toggle";
-import KeyboardControl from "./keyboard_control";
-import ConfirmModal from "./confirm_modal";
-import morphdomCallbacks from "./morphdom_callbacks";
-import JSView from "./js_view";
+import topbar from "topbar";
+
+import hooks from "./hooks";
+import { morphdomOptions } from "./dom";
 import { loadUserData } from "./lib/user";
 import { settingsStore } from "./lib/settings";
-
-const hooks = {
-  Headline,
-  Cell,
-  CellEditor,
-  Session,
-  FocusOnUpdate,
-  ScrollOnUpdate,
-  VirtualizedLines,
-  UserForm,
-  EditorSettings,
-  Timer,
-  MarkdownRenderer,
-  Highlight,
-  DragAndDrop,
-  PasswordToggle,
-  KeyboardControl,
-  JSView,
-  ConfirmModal,
-};
 
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
@@ -65,7 +29,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
     };
   },
   hooks: hooks,
-  dom: morphdomCallbacks,
+  dom: morphdomOptions,
 });
 
 // Show progress bar on live navigation and form submits
@@ -87,15 +51,6 @@ window.addEventListener("phx:page-loading-stop", () => {
   topBarScheduled = null;
   topbar.hide();
 });
-
-// connect if there are any LiveViews on the page
-liveSocket.connect();
-
-// expose liveSocket on window for web console debug logs and latency simulation:
-// >> liveSocket.enableDebug()
-// >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
-// >> liveSocket.disableLatencySim()
-window.liveSocket = liveSocket;
 
 // Handling custom events dispatched with JS.dispatch/3
 
@@ -135,17 +90,6 @@ window.addEventListener("lb:clipcopy", (event) => {
   }
 });
 
-// Other global handlers
-
-window.addEventListener("contextmenu", (event) => {
-  const target = event.target.closest("[data-contextmenu-trigger-click]");
-
-  if (target) {
-    event.preventDefault();
-    target.dispatchEvent(new Event("click", { bubbles: true }));
-  }
-});
-
 window.addEventListener("lb:session_list:on_selection_change", () => {
   const anySessionSelected = !!document.querySelector(
     "[name='session_ids[]']:checked"
@@ -158,8 +102,28 @@ window.addEventListener("lb:session_list:on_selection_change", () => {
   closeAll.disabled = !anySessionSelected;
 });
 
+// Other global handlers
+
+window.addEventListener("contextmenu", (event) => {
+  const target = event.target.closest("[data-contextmenu-trigger-click]");
+
+  if (target) {
+    event.preventDefault();
+    target.dispatchEvent(new Event("click", { bubbles: true }));
+  }
+});
+
 // Global configuration
 
 settingsStore.getAndSubscribe((settings) => {
   document.body.setAttribute("data-editor-theme", settings.editor_theme);
 });
+
+// Connect if there are any LiveViews on the page
+liveSocket.connect();
+
+// Expose liveSocket on window for web console debug logs and latency simulation:
+// >> liveSocket.enableDebug()
+// >> liveSocket.enableLatencySim(1000) // enabled for duration of browser session
+// >> liveSocket.disableLatencySim()
+window.liveSocket = liveSocket;

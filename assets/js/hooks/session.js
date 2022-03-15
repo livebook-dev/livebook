@@ -9,10 +9,10 @@ import {
   isElementInViewport,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
-import KeyBuffer from "./key_buffer";
+import KeyBuffer from "../lib/key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
-import monaco from "../cell_editor/live_editor/monaco";
-import { leaveChannel } from "../js_view";
+import monaco from "./cell_editor/live_editor/monaco";
+import { leaveChannel } from "./js_view";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
 /**

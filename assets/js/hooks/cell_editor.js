@@ -1,4 +1,4 @@
-import LiveEditor from "./live_editor";
+import LiveEditor from "./cell_editor/live_editor";
 import { getAttributeOrThrow } from "../lib/attribute";
 
 const CellEditor = {
