@@ -9,7 +9,6 @@ import Highlight from "./highlight";
 import JSView from "./js_view";
 import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
-import PasswordToggle from "./password_toggle";
 import ScrollOnUpdate from "./scroll_on_update";
 import Session from "./session";
 import Timer from "./timer";
@@ -28,7 +27,6 @@ export default {
   JSView,
   KeyboardControl,
   MarkdownRenderer,
-  PasswordToggle,
   ScrollOnUpdate,
   Session,
   Timer,
