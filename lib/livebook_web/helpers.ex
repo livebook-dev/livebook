@@ -411,30 +411,47 @@ defmodule LivebookWeb.Helpers do
   end
 
   @doc """
-  Renders a wrapper around password input
-  with an added visibility toggle button.
+  Renders a wrapper around password input with an added visibility
+  toggle button.
 
-  The toggle switches the input's type between `password`
-  and `text`.
+  The toggle switches the input's type between `password` and `text`.
 
   ## Examples
 
-      <.with_password_toggle id="input-id">
+      <.with_password_toggle id="secret-password-toggle">
         <input type="password" ...>
       </.with_password_toggle>
   """
   def with_password_toggle(assigns) do
     ~H"""
-    <div id={"password-toggle-#{@id}"} class="relative inline w-min" phx-hook="PasswordToggle">
-      <!-- render password input -->
+    <div id={@id} class="relative flex">
       <%= render_slot(@inner_block) %>
-      <button
-        class="bg-gray-50 p-1 icon-button absolute inset-y-0 right-1"
-        type="button"
-        aria-label="toggle password visibility"
-        phx-change="ignore">
-        <.remix_icon icon="eye-line" class="text-xl" />
-      </button>
+      <div class="flex items-center absolute inset-y-0 right-1">
+        <button class="icon-button"
+          data-show
+          type="button"
+          aria-label="show password"
+          phx-click={
+            JS.remove_attribute("type", to: "##{@id} input")
+            |> JS.set_attribute({"type", "text"}, to: "##{@id} input")
+            |> JS.add_class("hidden", to: "##{@id} [data-show]")
+            |> JS.remove_class("hidden", to: "##{@id} [data-hide]")
+          }>
+          <.remix_icon icon="eye-line" class="text-xl" />
+        </button>
+        <button class="icon-button hidden"
+          data-hide
+          type="button"
+          aria-label="hide password"
+          phx-click={
+            JS.remove_attribute("type", to: "##{@id} input")
+            |> JS.set_attribute({"type", "password"}, to: "##{@id} input")
+            |> JS.remove_class("hidden", to: "##{@id} [data-show]")
+            |> JS.add_class("hidden", to: "##{@id} [data-hide]")
+          }>
+          <.remix_icon icon="eye-off-line" class="text-xl" />
+        </button>
+      </div>
     </div>
     """
   end

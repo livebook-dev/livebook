@@ -15,7 +15,7 @@ import { visit } from "unist-util-visit";
 import { toText } from "hast-util-to-text";
 import { removePosition } from "unist-util-remove-position";
 
-import { highlight } from "../cell_editor/live_editor/monaco";
+import { highlight } from "../hooks/cell_editor/live_editor/monaco";
 import { renderMermaid } from "./markdown/mermaid";
 import { escapeHtml } from "../lib/utils";
 
@@ -29,16 +29,16 @@ class Markdown {
     this.baseUrl = baseUrl;
     this.emptyText = emptyText;
 
-    this.__render();
+    this._render();
   }
 
   setContent(content) {
     this.content = content;
-    this.__render();
+    this._render();
   }
 
-  __render() {
-    this.__getHtml().then((html) => {
+  _render() {
+    this._getHtml().then((html) => {
       // Wrap the HTML in another element, so that we
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
@@ -46,7 +46,7 @@ class Markdown {
     });
   }
 
-  __getHtml() {
+  _getHtml() {
     return (
       unified()
         .use(remarkParse)

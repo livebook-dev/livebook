@@ -1459,7 +1459,6 @@ defmodule LivebookWeb.SessionLive do
       status: eval_info.status,
       evaluation_time_ms: eval_info.evaluation_time_ms,
       evaluation_start: eval_info.evaluation_start,
-      evaluation_number: eval_info.evaluation_number,
       evaluation_digest: encode_digest(eval_info.evaluation_digest),
       outputs_batch_number: eval_info.outputs_batch_number,
       # Pass input values relevant to the given cell

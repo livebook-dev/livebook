@@ -46,13 +46,13 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
             </div>
             <div>
               <div class="input-label">Access Key ID</div>
-              <.with_password_toggle id="access-key">
+              <.with_password_toggle id="access-key-password-toggle">
                 <%= text_input f, :access_key_id, value: @data["access_key_id"], class: "input", type: "password" %>
               </.with_password_toggle>
             </div>
             <div>
               <div class="input-label">Secret Access Key</div>
-              <.with_password_toggle id="secret-access-key">
+              <.with_password_toggle id="secret-access-key-password-toggle">
                 <%= text_input f, :secret_access_key, value: @data["secret_access_key"], class: "input", type: "password" %>
               </.with_password_toggle>
             </div>

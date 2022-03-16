@@ -13,6 +13,10 @@ solely client-side operations.
   @apply hidden;
 }
 
+[phx-hook="Dropzone"][data-js-dragging] {
+  @apply bg-red-200 border-red-400;
+}
+
 /* === Session === */
 
 [data-element="session"]:not([data-js-insert-mode])
