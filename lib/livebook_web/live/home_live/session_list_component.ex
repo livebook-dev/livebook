@@ -2,7 +2,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   use LivebookWeb, :live_component
 
   import Livebook.Utils, only: [format_bytes: 1]
-  import LivebookWeb.SessionHelpers, only: [uses_memory?: 1]
+  import LivebookWeb.SessionHelpers
 
   @impl true
   def mount(socket) do
