@@ -6,6 +6,7 @@ if Mix.target() == :app do
 
     # https://github.com/erlang/otp/blob/OTP-24.1.2/lib/wx/include/wx.hrl#L1314
     @wx_id_exit 5006
+    @wx_id_osx_hide 5250
 
     def start_link(_) do
       {:wx_ref, _, _, pid} = :wx_object.start_link(__MODULE__, [], [])
@@ -30,7 +31,7 @@ if Mix.target() == :app do
 
     @impl true
     def init(_) do
-      title = "Livebook"
+      app_name = "Livebook"
 
       true = Process.register(self(), __MODULE__)
       os = os()
@@ -39,14 +40,14 @@ if Mix.target() == :app do
       size = if os == :macos, do: {0, 0}, else: {100, 100}
 
       wx = :wx.new()
-      frame = :wxFrame.new(wx, -1, title, size: size)
+      frame = :wxFrame.new(wx, -1, app_name, size: size)
 
       if os == :macos do
-        fixup_macos_menubar(frame, title)
+        fixup_macos_menubar(frame, app_name)
       end
 
       :wxFrame.show(frame)
-      :wxFrame.connect(frame, :command_menu_selected)
+      :wxFrame.connect(frame, :command_menu_selected, skip: true)
       :wxFrame.connect(frame, :close_window, skip: true)
 
       case os do
@@ -115,21 +116,21 @@ if Mix.target() == :app do
       {:noreply, state}
     end
 
-    defp fixup_macos_menubar(frame, title) do
+    # 1. WxeApp attaches event handler to "Quit" menu item that does nothing (to not accidentally bring
+    #    down the VM). Let's create a fresh menu bar without that caveat.
+    # 2. Fix app name
+    defp fixup_macos_menubar(frame, app_name) do
       menubar = :wxMenuBar.new()
       :wxFrame.setMenuBar(frame, menubar)
-
-      # App Menu
       menu = :wxMenuBar.oSXGetAppleMenu(menubar)
 
-      # Remove all items except for quit
-      for item <- :wxMenu.getMenuItems(menu) do
-        if :wxMenuItem.getId(item) == @wx_id_exit do
-          :wxMenuItem.setText(item, "Quit #{title}\tCtrl+Q")
-        else
-          :wxMenu.delete(menu, item)
-        end
-      end
+      menu
+      |> :wxMenu.findItem(@wx_id_osx_hide)
+      |> :wxMenuItem.setItemLabel("Hide #{app_name}\tCtrl+H")
+
+      menu
+      |> :wxMenu.findItem(@wx_id_exit)
+      |> :wxMenuItem.setItemLabel("Quit #{app_name}\tCtrl+Q")
     end
 
     defp os() do
