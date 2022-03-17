@@ -54,6 +54,9 @@ const theme = {
     // JSON specific
     { token: "string.key", foreground: colors.lightRed },
     { token: "keyword.json", foreground: colors.blue },
+
+    // SQL specific
+    { token: "operator.sql", foreground: colors.purple },
   ],
 
   colors: {
