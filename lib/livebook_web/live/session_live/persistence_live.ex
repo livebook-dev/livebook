@@ -6,6 +6,8 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   # the parent live view.
   use LivebookWeb, :live_view
 
+  import LivebookWeb.FileSystemHelpers
+
   alias Livebook.{Sessions, Session, LiveMarkdown, FileSystem}
 
   @impl true

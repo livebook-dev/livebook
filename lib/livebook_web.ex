@@ -67,6 +67,7 @@ defmodule LivebookWeb do
 
       # Custom helpers
       import LivebookWeb.Helpers
+      import LivebookWeb.LiveHelpers
     end
   end
 

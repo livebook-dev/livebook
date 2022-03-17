@@ -1,7 +1,7 @@
 defmodule LivebookWeb.UserHelpers do
   use Phoenix.Component
 
-  import LivebookWeb.Helpers
+  import LivebookWeb.LiveHelpers
 
   alias Phoenix.LiveView.JS
 

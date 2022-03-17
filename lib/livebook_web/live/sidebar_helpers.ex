@@ -1,7 +1,7 @@
 defmodule LivebookWeb.SidebarHelpers do
   use Phoenix.Component
 
-  import LivebookWeb.Helpers
+  import LivebookWeb.LiveHelpers
   import LivebookWeb.UserHelpers
 
   alias Phoenix.LiveView.JS
