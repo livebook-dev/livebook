@@ -4,11 +4,11 @@
 
 We need two libraries for plotting in Livebook:
 
-  * The [`vega_lite`](https://github.com/elixir-nx/vega_lite)
-    package allows us to define our graph specifications
+* The [`vega_lite`](https://github.com/elixir-nx/vega_lite)
+  package allows us to define our graph specifications
 
-  * The [`kino`](https://github.com/elixir-nx/kino) package
-    renders our specifications
+* The [`kino`](https://github.com/elixir-nx/kino) package
+  renders our specifications
 
 Let's install them:
 
@@ -25,6 +25,8 @@ so it's useful to alias the module as something shorter.
 ```elixir
 alias VegaLite, as: Vl
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Basic concepts
 
@@ -45,6 +47,8 @@ Vl.new(width: 400, height: 400)
 Below you can find a number of example graphics for common use cases.
 For a number of plain Vega-Lite examples you can look
 [here](https://vega.github.io/vega-lite/examples).
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Bar charts
 
@@ -115,6 +119,8 @@ Vl.new(width: [step: 12])
 |> Vl.encode_field(:color, "gender")
 |> Vl.config(view: [stroke: nil])
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Histograms, density plots and dot plots
 
@@ -232,6 +238,8 @@ Vl.new(title: "Daily max temperatures (C) in Seattle, WA")
 |> Vl.config(view: [stroke: nil])
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Scatter and strip plots
 
 ### Scatterplot
@@ -277,6 +285,8 @@ Vl.new(width: 400, height: 300)
 |> Vl.encode_field(:color, "Species", type: :nominal)
 |> Vl.encode_field(:shape, "Species", type: :nominal)
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Line charts
 
@@ -343,6 +353,8 @@ Vl.new(width: 300, height: 150)
 |> Vl.encode_field(:color, "key", type: :nominal, title: nil)
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Area charts and streamgraphs
 
 ### Area chart
@@ -386,6 +398,8 @@ Vl.new(width: 400, height: 300)
 |> Vl.encode_field(:y, "count", aggregate: :sum, axis: nil, stack: :center)
 |> Vl.encode_field(:color, "series", scale: [scheme: "category20b"])
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Circular plots
 
@@ -436,6 +450,8 @@ Vl.new()
 ])
 |> Vl.config(view: [stroke: nil])
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Calculations
 
@@ -491,6 +507,8 @@ Vl.new(width: 400, height: 300)
 ])
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Composite marks
 
 ### Error bars showing standard deviation
@@ -542,6 +560,8 @@ Vl.new(width: 400, height: 300)
 ])
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Box plots
 
 ### Box plot with min/max whiskers
@@ -558,6 +578,8 @@ Vl.new(width: 400, height: 300)
 |> Vl.encode_field(:color, "Species", type: :nominal, legend: nil)
 |> Vl.encode_field(:y, "Body Mass (g)", type: :quantitative, scale: [zero: false])
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Faceting
 
@@ -617,6 +639,8 @@ Vl.new(name: "Trellis Barley", height: [step: 12])
 |> Vl.encode_field(:y, "variety", type: :ordinal, sort: "-x")
 |> Vl.encode_field(:color, "year", type: :nominal)
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Repeated graphics
 
@@ -696,6 +720,8 @@ Vl.new()
 )
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Layering
 
 ### Layered charts with separate scales
@@ -731,6 +757,8 @@ Vl.new(width: 400, height: 300)
 |> Vl.resolve(:scale, y: :independent)
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## Concatenation
 
 ### Arbitrary charts
@@ -758,6 +786,8 @@ Vl.new()
   :vertical
 )
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Maps (geographic displays)
 
@@ -804,6 +834,8 @@ Vl.new(width: 500, height: 300)
 |> Vl.encode_field(:color, "rate", type: :quantitative)
 |> Vl.config(view: [stroke: nil])
 ```
+
+<!-- livebook:{"branch_parent_index":0} -->
 
 ## Interactive graphics
 
