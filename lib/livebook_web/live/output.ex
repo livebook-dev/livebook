@@ -38,14 +38,14 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.StdoutComponent, id: id, text: text, follow: true)
+    live_component(Output.StdoutComponent, id: id, text: text)
   end
 
   defp render_output({:text, text}, %{id: id}) do
     assigns = %{id: id, text: text}
 
     ~H"""
-    <Output.TextComponent.render id={@id} content={@text} follow={false} />
+    <Output.TextComponent.render id={@id} content={@text} />
     """
   end
 

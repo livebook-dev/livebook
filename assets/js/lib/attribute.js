@@ -13,14 +13,15 @@ export function getAttributeOrThrow(element, attr, transform = null) {
 export function getAttributeOrDefault(
   element,
   attr,
-  defaultAttrVal,
+  defaultValue,
   transform = null
 ) {
-  const value = element.hasAttribute(attr)
-    ? element.getAttribute(attr)
-    : defaultAttrVal;
-
-  return transform ? transform(value) : value;
+  if (element.hasAttribute(attr)) {
+    const value = element.getAttribute(attr);
+    return transform ? transform(value) : value;
+  } else {
+    return defaultValue;
+  }
 }
 
 export function parseBoolean(value) {

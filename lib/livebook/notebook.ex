@@ -612,7 +612,7 @@ defmodule Livebook.Notebook do
   defp apply_frame_update(outputs, new_outputs, :append), do: new_outputs ++ outputs
 
   defp add_output([], {idx, {:stdout, text}}),
-    do: [{idx, {:stdout, Livebook.Utils.apply_rewind(text)}}]
+    do: [{idx, {:stdout, normalize_stdout(text)}}]
 
   defp add_output([], output), do: [output]
 
@@ -626,10 +626,27 @@ defmodule Livebook.Notebook do
 
   # Session server keeps all outputs, so we merge consecutive stdouts
   defp add_output([{idx, {:stdout, text}} | tail], {_idx, {:stdout, cont}}) do
-    [{idx, {:stdout, Livebook.Utils.apply_rewind(text <> cont)}} | tail]
+    [{idx, {:stdout, normalize_stdout(text <> cont)}} | tail]
   end
 
   defp add_output(outputs, output), do: [output | outputs]
+
+  @doc """
+  Normalizes a text chunk coming form the standard output.
+
+  Handles CR rawinds and caps output lines.
+  """
+  @spec normalize_stdout(String.t()) :: String.t()
+  def normalize_stdout(text) do
+    text
+    |> Livebook.Utils.apply_rewind()
+    |> Livebook.Utils.cap_lines(max_stdout_lines())
+  end
+
+  @doc """
+  The maximum desired number of lines of the standard output.
+  """
+  def max_stdout_lines(), do: 1_000
 
   @doc """
   Recursively adds index to all outputs, including frames.
