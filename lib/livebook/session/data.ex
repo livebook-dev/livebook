@@ -167,7 +167,8 @@ defmodule Livebook.Session.Data do
           | {:cancel_cell_evaluation, pid(), Cell.id()}
           | {:smart_cell_started, pid(), Cell.id(), Delta.t(), Runtime.js_view(),
              Cell.Smart.editor() | nil}
-          | {:update_smart_cell, pid(), Cell.id(), Cell.Smart.attrs(), Delta.t()}
+          | {:update_smart_cell, pid(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
+             reevaluate :: boolean()}
           | {:erase_outputs, pid()}
           | {:set_notebook_name, pid(), String.t()}
           | {:set_section_name, pid(), Section.id(), String.t()}
@@ -558,12 +559,13 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:update_smart_cell, client_pid, id, attrs, delta}) do
-    with {:ok, %Cell.Smart{} = cell, _section} <-
+  def apply_operation(data, {:update_smart_cell, client_pid, id, attrs, delta, reevaluate}) do
+    with {:ok, %Cell.Smart{} = cell, section} <-
            Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
       |> update_smart_cell(cell, client_pid, attrs, delta)
+      |> maybe_queue_updated_smart_cell(cell, section, reevaluate)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -1249,6 +1251,21 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
     |> add_action({:broadcast_delta, client_pid, updated_cell, :primary, delta})
+  end
+
+  defp maybe_queue_updated_smart_cell({data, _} = data_actions, cell, section, reevaluate) do
+    info = data.cell_infos[cell.id]
+
+    evaluated? = info.eval.status == :ready and info.eval.validity in [:evaluated, :stale]
+
+    if evaluated? and reevaluate do
+      data_actions
+      |> queue_prerequisite_cells_evaluation(cell)
+      |> queue_cell_evaluation(cell, section)
+      |> maybe_evaluate_queued()
+    else
+      data_actions
+    end
   end
 
   defp erase_outputs({data, _} = data_actions) do
