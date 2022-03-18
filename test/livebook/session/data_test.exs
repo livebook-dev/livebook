@@ -2748,7 +2748,7 @@ defmodule Livebook.Session.DataTest do
 
       attrs = %{"text" => "content!"}
       delta2 = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
-      operation = {:update_smart_cell, client_pid, "c1", attrs, delta2}
+      operation = {:update_smart_cell, client_pid, "c1", attrs, delta2, false}
 
       assert {:ok,
               %{
@@ -2758,6 +2758,28 @@ defmodule Livebook.Session.DataTest do
               },
               [{:broadcast_delta, ^client_pid, _cell, :primary, ^delta2}]} =
                Data.apply_operation(data, operation)
+    end
+
+    test "queues the cell when already evaluated and reevaluate is specified" do
+      client_pid = self()
+
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:smart_cell_started, self(), "c1", Delta.new(), %{}, nil},
+          {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
+        ])
+
+      operation = {:update_smart_cell, client_pid, "c1", %{}, Delta.new(), true}
+
+      assert {:ok,
+              %{
+                cell_infos: %{"c1" => %{eval: %{status: :evaluating}}}
+              }, _actions} = Data.apply_operation(data, operation)
     end
   end
 

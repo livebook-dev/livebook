@@ -933,11 +933,11 @@ defmodule Livebook.Session do
     end
   end
 
-  def handle_info({:runtime_smart_cell_update, id, attrs, source}, state) do
+  def handle_info({:runtime_smart_cell_update, id, attrs, source, info}, state) do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, self(), id, attrs, delta}
+        operation = {:update_smart_cell, self(), id, attrs, delta, info.reevaluate}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
