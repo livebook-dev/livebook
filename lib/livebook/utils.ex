@@ -360,13 +360,50 @@ defmodule Livebook.Utils do
       "Hola\r\nHey\r"
   """
   @spec apply_rewind(String.t()) :: String.t()
-  def apply_rewind(string) when is_binary(string) do
-    string
-    |> String.split("\n")
-    |> Enum.map(fn line ->
-      String.replace(line, ~r/^.*\r([^\r].*)$/, "\\1")
-    end)
-    |> Enum.join("\n")
+  def apply_rewind(text) when is_binary(text) do
+    apply_rewind(text, "", "")
+  end
+
+  defp apply_rewind(<<?\n, rest::binary>>, acc, line),
+    do: apply_rewind(rest, <<acc::binary, line::binary, ?\n>>, "")
+
+  defp apply_rewind(<<?\r, byte, rest::binary>>, acc, _line) when byte != ?\n,
+    do: apply_rewind(rest, acc, <<byte>>)
+
+  defp apply_rewind(<<byte, rest::binary>>, acc, line),
+    do: apply_rewind(rest, acc, <<line::binary, byte>>)
+
+  defp apply_rewind("", acc, line), do: acc <> line
+
+  @doc ~S"""
+  Limits `text` to last `max_lines`.
+
+  Replaces the removed lines with `"..."`.
+
+  ## Examples
+
+      iex> Livebook.Utils.cap_lines("Line 1\nLine 2\nLine 3\nLine 4", 2)
+      "...\nLine 3\nLine 4"
+
+      iex> Livebook.Utils.cap_lines("Line 1\nLine 2", 2)
+      "Line 1\nLine 2"
+
+      iex> Livebook.Utils.cap_lines("Line 1\nLine 2", 3)
+      "Line 1\nLine 2"
+  """
+  @spec cap_lines(String.t(), non_neg_integer()) :: String.t()
+  def cap_lines(text, max_lines) do
+    text
+    |> :binary.matches("\n")
+    |> Enum.at(-max_lines)
+    |> case do
+      nil ->
+        text
+
+      {pos, _len} ->
+        <<_ignore::binary-size(pos), rest::binary>> = text
+        "..." <> rest
+    end
   end
 
   @doc """

@@ -1,3 +1,5 @@
+import { scrollToEnd } from "../lib/utils";
+
 /**
  * A hook used to scroll to the bottom of an element whenever it
  * receives LV update.
@@ -12,7 +14,7 @@ const ScrollOnUpdate = {
   },
 
   scroll() {
-    this.el.scrollTop = this.el.scrollHeight;
+    scrollToEnd(this.el);
   },
 };
 

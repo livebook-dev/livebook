@@ -1,10 +1,16 @@
 import HyperList from "hyperlist";
 import {
+  getAttributeOrDefault,
   getAttributeOrThrow,
   parseBoolean,
   parseInteger,
 } from "../lib/attribute";
-import { findChildOrThrow, getLineHeight, isScrolledToEnd } from "../lib/utils";
+import {
+  findChildOrThrow,
+  getLineHeight,
+  isScrolledToEnd,
+  scrollToEnd,
+} from "../lib/utils";
 
 /**
  * A hook used to render text lines as a virtual list, so that only
@@ -16,7 +22,13 @@ import { findChildOrThrow, getLineHeight, isScrolledToEnd } from "../lib/utils";
  *     this height enables scrolling
  *
  *   * `data-follow` - whether to automatically scroll to the bottom as
- *     new lines appear
+ *     new lines appear. Defaults to false
+ *
+ *   * `data-max-lines` - the maximum number of lines to keep in the DOM.
+ *     By default all lines are kept
+ *
+ *   * `data-ignore-trailing-empty-line` - whether to ignore the last
+ *     line if it is empty. Defaults to false
  *
  * The element should have two children:
  *
@@ -34,32 +46,58 @@ const VirtualizedLines = {
     this.templateEl = findChildOrThrow(this.el, "[data-template]");
     this.contentEl = findChildOrThrow(this.el, "[data-content]");
 
+    this.capLines();
+
     const config = this.hyperListConfig();
     this.virtualizedList = new HyperList(this.contentEl, config);
+
+    if (this.props.follow) {
+      scrollToEnd(this.contentEl);
+    }
   },
 
   updated() {
     this.props = this.getProps();
 
-    const scrollToEnd = this.props.follow && isScrolledToEnd(this.contentEl);
+    this.capLines();
+
+    const shouldScrollToEnd =
+      this.props.follow && isScrolledToEnd(this.contentEl);
 
     const config = this.hyperListConfig();
     this.virtualizedList.refresh(this.contentEl, config);
 
-    if (scrollToEnd) {
-      this.contentEl.scrollTop = this.contentEl.scrollHeight;
+    if (shouldScrollToEnd) {
+      scrollToEnd(this.contentEl);
     }
   },
 
   getProps() {
     return {
       maxHeight: getAttributeOrThrow(this.el, "data-max-height", parseInteger),
-      follow: getAttributeOrThrow(this.el, "data-follow", parseBoolean),
+      follow: getAttributeOrDefault(
+        this.el,
+        "data-follow",
+        false,
+        parseBoolean
+      ),
+      maxLines: getAttributeOrDefault(
+        this.el,
+        "data-max-lines",
+        null,
+        parseInteger
+      ),
+      ignoreTrailingEmptyLine: getAttributeOrDefault(
+        this.el,
+        "data-ignore-trailing-empty-line",
+        false,
+        parseBoolean
+      ),
     };
   },
 
   hyperListConfig() {
-    const lineEls = this.templateEl.querySelectorAll("[data-line]");
+    const lineEls = this.getLineElements();
     const numberOfLines = lineEls.length;
 
     const height = Math.min(
@@ -88,6 +126,38 @@ const VirtualizedLines = {
         }
       },
     };
+  },
+
+  getLineElements() {
+    const lineEls = Array.from(this.templateEl.querySelectorAll("[data-line]"));
+
+    if (lineEls.length === 0) {
+      return [];
+    }
+
+    const lastLineEl = lineEls[lineEls.length - 1];
+
+    if (this.props.ignoreTrailingEmptyLine && lastLineEl.innerText === "") {
+      return lineEls.slice(0, -1);
+    } else {
+      return lineEls;
+    }
+  },
+
+  capLines() {
+    if (this.props.maxLines) {
+      const lineEls = Array.from(
+        this.templateEl.querySelectorAll("[data-line]")
+      );
+      const ignoredLineEls = lineEls.slice(0, -this.props.maxLines);
+
+      const [first, ...rest] = ignoredLineEls;
+      rest.forEach((lineEl) => lineEl.remove());
+
+      if (first) {
+        first.innerHTML = "...";
+      }
+    }
   },
 };
 

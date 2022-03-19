@@ -15,20 +15,13 @@ defmodule LivebookWeb.Output.StdoutComponent do
     if text do
       text = (socket.assigns.last_line || "") <> text
 
-      # Captured output usually has a trailing newline that we ignore
-      # for HTML conversion, since each line is an HTML block anyway
-      trailing_newline? = String.ends_with?(text, "\n")
-      text = String.replace_suffix(text, "\n", "")
-
-      text = Livebook.Utils.apply_rewind(text)
+      text = Livebook.Notebook.normalize_stdout(text)
 
       last_line =
         case Livebook.Utils.split_at_last_occurrence(text, "\n") do
           :error -> text
           {:ok, _, last_line} -> last_line
         end
-
-      last_line = last_line <> if(trailing_newline?, do: "\n", else: "")
 
       {html_lines, modifiers} =
         LivebookWeb.Helpers.ANSI.ansi_string_to_html_lines_step(text, socket.assigns.modifiers)
@@ -54,7 +47,9 @@ defmodule LivebookWeb.Output.StdoutComponent do
       class="relative"
       phx-hook="VirtualizedLines"
       data-max-height="300"
-      data-follow={to_string(@follow)}>
+      data-follow="true"
+      data-max-lines={Livebook.Notebook.max_stdout_lines()}
+      data-ignore-trailing-empty-line="true">
       <%# Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent %>
       <%# Note 2: We use comments to avoid inserting unintended whitespace %>
       <div data-template class="hidden" id={"virtualized-text-#{@id}-template"}><%#

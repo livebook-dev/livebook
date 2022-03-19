@@ -66,6 +66,10 @@ export function isScrolledToEnd(element) {
   );
 }
 
+export function scrollToEnd(element) {
+  element.scrollTop = element.scrollHeight;
+}
+
 /**
  * Transforms a UTF8 string into base64 encoding.
  */

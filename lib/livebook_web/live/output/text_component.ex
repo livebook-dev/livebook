@@ -7,8 +7,7 @@ defmodule LivebookWeb.Output.TextComponent do
     <div id={"virtualized-text-#{@id}"}
       class="relative"
       phx-hook="VirtualizedLines"
-      data-max-height="300"
-      data-follow={to_string(@follow)}>
+      data-max-height="300">
       <%# Add a newline to each element, so that multiple lines can be copied properly %>
       <div data-template class="hidden"
         id={"virtualized-text-#{@id}-template"}
