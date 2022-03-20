@@ -58,6 +58,10 @@ defmodule Livebook do
       config :livebook, :data_path, data_path
     end
 
+    if Livebook.Config.force_ssl!("LIVEBOOK_FORCE_SSL") do
+      Keyword.new() |> Plug.SSL.init()
+    end
+
     config :livebook,
            :cookie,
            Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||

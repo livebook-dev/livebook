@@ -198,6 +198,13 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses force ssl setting from env.
+  """
+  def force_ssl!(env) do
+    System.get_env(env, "0") in ~w(true 1)
+  end
+
+  @doc """
   Parses and validates default runtime from env.
   """
   def default_runtime!(env) do
