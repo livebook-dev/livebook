@@ -185,7 +185,7 @@ The following environment variables configure Livebook:
     disable it.
 
   * LIVEBOOK_FORCE_SSL - force SSL connections and enable HSTS.
-  Ensuring no data is ever sent via http, always redirect to https.
+    Ensuring no data is ever sent via http, always redirect to https.
 
 <!-- Environment variables -->
 
