@@ -311,6 +311,13 @@ defmodule Livebook.Runtime.EvaluatorTest do
   end
 
   describe "binding order" do
+    test "orders binding from the same evaluation alphabetically", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, "b = 1; a = 1; c = 1", :code_1)
+
+      {:ok, %{binding: binding}} = Evaluator.fetch_evaluation_context(evaluator, :code_1)
+      assert [:a, :b, :c] == Enum.map(binding, &elem(&1, 0))
+    end
+
     test "keeps binding in evaluation order, starting from most recent", %{evaluator: evaluator} do
       Evaluator.evaluate_code(evaluator, "b = 1", :code_1)
       Evaluator.evaluate_code(evaluator, "a = 1", :code_2, :code_1)

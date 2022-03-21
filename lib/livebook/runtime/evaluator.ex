@@ -456,6 +456,9 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(_error), do: false
 
   defp reorder_binding(binding, prev_binding) do
+    # We keep the order of existing binding entries and move
+    # the new ones to the beginning, ordered alphabetically
+
     binding_map = Map.new(binding)
 
     prev_idx =
