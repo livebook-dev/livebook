@@ -456,12 +456,26 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(_error), do: false
 
   defp reorder_binding(binding, prev_binding) do
+    binding_map = Map.new(binding)
+
     prev_idx =
       prev_binding
+      |> Enum.filter(fn {key, prev_val} ->
+        val = binding_map[key]
+        same?(val, prev_val)
+      end)
       |> Enum.with_index()
       |> Map.new(fn {{key, _val}, idx} -> {key, idx} end)
 
     Enum.sort_by(binding, fn {key, _val} -> {prev_idx[key] || -1, key} end)
+  end
+
+  defp same?(left, right) do
+    if Code.ensure_loaded?(:erts_debug) and function_exported?(:erts_debug, :same, 2) do
+      :erts_debug.same(left, right)
+    else
+      left == right
+    end
   end
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
