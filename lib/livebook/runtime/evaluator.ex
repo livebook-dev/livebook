@@ -322,6 +322,7 @@ defmodule Livebook.Runtime.Evaluator do
     {result_context, result, code_error} =
       case eval(code, context.binding, context.env) do
         {:ok, value, binding, env} ->
+          binding = reorder_binding(binding, context.binding)
           result_context = %{binding: binding, env: env, id: random_id()}
           result = {:ok, value}
           {result_context, result, nil}
@@ -453,6 +454,24 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(%TokenMissingError{}), do: true
   defp code_error?(%CompileError{}), do: true
   defp code_error?(_error), do: false
+
+  defp reorder_binding(binding, prev_binding) do
+    # We keep the order of existing binding entries and move the new
+    # ones to the beginning
+
+    binding_map = Map.new(binding)
+
+    unchanged_binding =
+      Enum.filter(prev_binding, fn {key, prev_val} ->
+        val = binding_map[key]
+        :erts_debug.same(val, prev_val)
+      end)
+
+    unchanged_binding
+    |> Enum.reduce(binding_map, fn {key, _}, acc -> Map.delete(acc, key) end)
+    |> Map.to_list()
+    |> Kernel.++(unchanged_binding)
+  end
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
   # TODO: Remove else branch once we depend on the versions below

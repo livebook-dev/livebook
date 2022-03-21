@@ -310,6 +310,27 @@ defmodule Livebook.Runtime.EvaluatorTest do
     end
   end
 
+  describe "binding order" do
+    test "keeps binding in evaluation order, starting from most recent", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, "b = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, "a = 1", :code_2, :code_1)
+      Evaluator.evaluate_code(evaluator, "c = 1", :code_3, :code_2)
+      Evaluator.evaluate_code(evaluator, "x = 1", :code_4, :code_3)
+
+      {:ok, %{binding: binding}} = Evaluator.fetch_evaluation_context(evaluator, :code_4)
+      assert [:x, :c, :a, :b] == Enum.map(binding, &elem(&1, 0))
+    end
+
+    test "treats rebound names as new", %{evaluator: evaluator} do
+      Evaluator.evaluate_code(evaluator, "b = 1", :code_1)
+      Evaluator.evaluate_code(evaluator, "a = 1", :code_2, :code_1)
+      Evaluator.evaluate_code(evaluator, "b = 2", :code_3, :code_2)
+
+      {:ok, %{binding: binding}} = Evaluator.fetch_evaluation_context(evaluator, :code_3)
+      assert [:b, :a] == Enum.map(binding, &elem(&1, 0))
+    end
+  end
+
   # Helpers
 
   # Some of the code passed to Evaluator above is expected
