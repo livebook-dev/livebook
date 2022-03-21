@@ -461,24 +461,18 @@ defmodule Livebook.Runtime.Evaluator do
 
     binding_map = Map.new(binding)
 
-    prev_idx =
-      prev_binding
-      |> Enum.filter(fn {key, prev_val} ->
+    unchanged_binding =
+      Enum.filter(prev_binding, fn {key, prev_val} ->
         val = binding_map[key]
-        same?(val, prev_val)
+        :erts_debug.same(val, prev_val)
       end)
-      |> Enum.with_index()
-      |> Map.new(fn {{key, _val}, idx} -> {key, idx} end)
 
-    Enum.sort_by(binding, fn {key, _val} -> {prev_idx[key] || -1, key} end)
-  end
+    unchanged_keys = for {key, _} <- unchanged_binding, into: MapSet.new(), do: key
 
-  defp same?(left, right) do
-    if Code.ensure_loaded?(:erts_debug) and function_exported?(:erts_debug, :same, 2) do
-      :erts_debug.same(left, right)
-    else
-      left == right
-    end
+    binding
+    |> Enum.reject(fn {key, _} -> MapSet.member?(unchanged_keys, key) end)
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Kernel.++(unchanged_binding)
   end
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
