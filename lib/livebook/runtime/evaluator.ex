@@ -471,7 +471,7 @@ defmodule Livebook.Runtime.Evaluator do
 
     binding
     |> Enum.reject(fn {key, _} -> MapSet.member?(unchanged_keys, key) end)
-    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.sort()
     |> Kernel.++(unchanged_binding)
   end
 
