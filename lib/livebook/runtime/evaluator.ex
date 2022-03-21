@@ -322,6 +322,7 @@ defmodule Livebook.Runtime.Evaluator do
     {result_context, result, code_error} =
       case eval(code, context.binding, context.env) do
         {:ok, value, binding, env} ->
+          binding = reorder_binding(binding, context.binding)
           result_context = %{binding: binding, env: env, id: random_id()}
           result = {:ok, value}
           {result_context, result, nil}
@@ -453,6 +454,15 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(%TokenMissingError{}), do: true
   defp code_error?(%CompileError{}), do: true
   defp code_error?(_error), do: false
+
+  defp reorder_binding(binding, prev_binding) do
+    prev_idx =
+      prev_binding
+      |> Enum.with_index()
+      |> Map.new(fn {{key, _val}, idx} -> {key, idx} end)
+
+    Enum.sort_by(binding, fn {key, _val} -> {prev_idx[key] || -1, key} end)
+  end
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
   # TODO: Remove else branch once we depend on the versions below
