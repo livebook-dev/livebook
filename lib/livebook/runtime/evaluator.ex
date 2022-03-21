@@ -456,8 +456,8 @@ defmodule Livebook.Runtime.Evaluator do
   defp code_error?(_error), do: false
 
   defp reorder_binding(binding, prev_binding) do
-    # We keep the order of existing binding entries and move
-    # the new ones to the beginning, ordered alphabetically
+    # We keep the order of existing binding entries and move the new
+    # ones to the beginning
 
     binding_map = Map.new(binding)
 
@@ -467,11 +467,9 @@ defmodule Livebook.Runtime.Evaluator do
         :erts_debug.same(val, prev_val)
       end)
 
-    unchanged_keys = for {key, _} <- unchanged_binding, into: MapSet.new(), do: key
-
-    binding
-    |> Enum.reject(fn {key, _} -> MapSet.member?(unchanged_keys, key) end)
-    |> Enum.sort()
+    unchanged_binding
+    |> Enum.reduce(binding_map, fn {key, _}, acc -> Map.delete(acc, key) end)
+    |> Map.to_list()
     |> Kernel.++(unchanged_binding)
   end
 
