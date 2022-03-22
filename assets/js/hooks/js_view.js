@@ -57,6 +57,7 @@ const JSView = {
     this.childToken = randomToken();
     this.childReadyPromise = null;
     this.childReady = false;
+    this.initReceived = false;
 
     this.initTimeout = setTimeout(() => this.handleInitTimeout(), 2_000);
 
@@ -318,6 +319,7 @@ const JSView = {
 
   handleServerInit(payload) {
     this.clearInitTimeout();
+    this.initReceived = true;
 
     this.childReadyPromise.then(() => {
       this.postMessage({ type: "init", data: payload });
@@ -325,6 +327,10 @@ const JSView = {
   },
 
   handleServerEvent(event, payload) {
+    if (!this.initReceived) {
+      return;
+    }
+
     this.childReadyPromise.then(() => {
       this.postMessage({ type: "event", event, payload });
     });
