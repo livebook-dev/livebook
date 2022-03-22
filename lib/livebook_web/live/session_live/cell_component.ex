@@ -134,7 +134,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
               </div>
 
             <% :dead -> %>
-              <div class="p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg">
+              <div class="info-box">
                 Evaluate and install dependencies to show the contents of this Smart cell.
               </div>
 

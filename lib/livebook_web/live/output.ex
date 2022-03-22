@@ -65,7 +65,8 @@ defmodule LivebookWeb.Output do
     live_component(LivebookWeb.JSViewComponent,
       id: id,
       js_view: js_info.js_view,
-      session_id: session_id
+      session_id: session_id,
+      timeout_message: "Output data no longer available, please reevaluate this cell"
     )
   end
 

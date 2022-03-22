@@ -45,6 +45,9 @@ import { initializeIframeSource } from "./js_view/iframe";
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
  *
+ *   * `data-timeout-message` - the message to show when the initial
+ *     data does not load
+ *
  */
 const JSView = {
   mounted() {
@@ -54,6 +57,8 @@ const JSView = {
     this.childToken = randomToken();
     this.childReadyPromise = null;
     this.childReady = false;
+
+    this.initTimeout = setTimeout(() => this.handleInitTimeout(), 2_000);
 
     this.channel = getChannel(this.props.sessionId);
 
@@ -132,6 +137,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
+      timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
 
@@ -295,7 +301,24 @@ const JSView = {
     }
   },
 
+  handleInitTimeout() {
+    this.initTimeoutContainer = document.createElement("div");
+    this.initTimeoutContainer.classList.add("info-box");
+    this.el.prepend(this.initTimeoutContainer);
+    this.initTimeoutContainer.textContent = this.props.timeoutMessage;
+  },
+
+  clearInitTimeout() {
+    clearTimeout(this.initTimeout);
+
+    if (this.initTimeoutContainer) {
+      this.initTimeoutContainer.remove();
+    }
+  },
+
   handleServerInit(payload) {
+    this.clearInitTimeout();
+
     this.childReadyPromise.then(() => {
       this.postMessage({ type: "init", data: payload });
     });
