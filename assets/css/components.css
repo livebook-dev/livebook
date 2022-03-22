@@ -238,4 +238,8 @@
   .error-box {
     @apply rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium;
   }
+
+  .info-box {
+    @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
+  }
 }

@@ -1,5 +1,5 @@
 import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
-import { randomToken } from "../lib/utils";
+import { randomId, randomToken } from "../lib/utils";
 import {
   getChannel,
   transportDecode,
@@ -45,14 +45,21 @@ import { initializeIframeSource } from "./js_view/iframe";
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
  *
+ *   * `data-timeout-message` - the message to show when the initial
+ *     data does not load
+ *
  */
 const JSView = {
   mounted() {
     this.props = this.getProps();
 
+    this.id = randomId();
     this.childToken = randomToken();
     this.childReadyPromise = null;
     this.childReady = false;
+    this.initReceived = false;
+
+    this.initTimeout = setTimeout(() => this.handleInitTimeout(), 2_000);
 
     this.channel = getChannel(this.props.sessionId);
 
@@ -73,10 +80,13 @@ const JSView = {
 
     // Channel events
 
-    const initRef = this.channel.on(`init:${this.props.ref}`, (raw) => {
-      const [, payload] = transportDecode(raw);
-      this.handleServerInit(payload);
-    });
+    const initRef = this.channel.on(
+      `init:${this.props.ref}:${this.id}`,
+      (raw) => {
+        const [, payload] = transportDecode(raw);
+        this.handleServerInit(payload);
+      }
+    );
 
     const eventRef = this.channel.on(`event:${this.props.ref}`, (raw) => {
       const [[event], payload] = transportDecode(raw);
@@ -91,7 +101,7 @@ const JSView = {
     );
 
     this.unsubscribeFromChannelEvents = () => {
-      this.channel.off(`init:${this.props.ref}`, initRef);
+      this.channel.off(`init:${this.props.ref}:${this.id}`, initRef);
       this.channel.off(`event:${this.props.ref}`, eventRef);
       this.channel.off(`error:${this.props.ref}`, errorRef);
     };
@@ -99,6 +109,7 @@ const JSView = {
     this.channel.push("connect", {
       session_token: this.props.sessionToken,
       ref: this.props.ref,
+      id: this.id,
     });
   },
 
@@ -127,6 +138,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
+      timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
 
@@ -290,13 +302,35 @@ const JSView = {
     }
   },
 
+  handleInitTimeout() {
+    this.initTimeoutContainer = document.createElement("div");
+    this.initTimeoutContainer.classList.add("info-box");
+    this.el.prepend(this.initTimeoutContainer);
+    this.initTimeoutContainer.textContent = this.props.timeoutMessage;
+  },
+
+  clearInitTimeout() {
+    clearTimeout(this.initTimeout);
+
+    if (this.initTimeoutContainer) {
+      this.initTimeoutContainer.remove();
+    }
+  },
+
   handleServerInit(payload) {
+    this.clearInitTimeout();
+    this.initReceived = true;
+
     this.childReadyPromise.then(() => {
       this.postMessage({ type: "init", data: payload });
     });
   },
 
   handleServerEvent(event, payload) {
+    if (!this.initReceived) {
+      return;
+    }
+
     this.childReadyPromise.then(() => {
       this.postMessage({ type: "event", event, payload });
     });

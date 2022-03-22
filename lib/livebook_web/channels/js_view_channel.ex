@@ -3,21 +3,23 @@ defmodule LivebookWeb.JSViewChannel do
 
   @impl true
   def join("js_view", %{"session_id" => session_id}, socket) do
-    {:ok, assign(socket, session_id: session_id, ref_with_pid: %{}, ref_with_count: %{})}
+    {:ok, assign(socket, session_id: session_id, ref_with_info: %{})}
   end
 
   @impl true
-  def handle_in("connect", %{"session_token" => session_token, "ref" => ref}, socket) do
+  def handle_in("connect", %{"session_token" => session_token, "ref" => ref, "id" => id}, socket) do
     {:ok, data} = Phoenix.Token.verify(LivebookWeb.Endpoint, "js view", session_token)
     %{pid: pid} = data
 
     send(pid, {:connect, self(), %{origin: self(), ref: ref}})
 
-    ref_with_pid = Map.put(socket.assigns.ref_with_pid, ref, pid)
-    ref_with_count = Map.update(socket.assigns.ref_with_count, ref, 1, &(&1 + 1))
-    socket = assign(socket, ref_with_pid: ref_with_pid, ref_with_count: ref_with_count)
+    socket =
+      update_in(socket.assigns.ref_with_info[ref], fn
+        nil -> %{pid: pid, count: 1, connect_queue: [id]}
+        info -> %{info | count: info.count + 1, connect_queue: info.connect_queue ++ [id]}
+      end)
 
-    if socket.assigns.ref_with_count[ref] == 1 do
+    if socket.assigns.ref_with_info[ref].count == 1 do
       Livebook.Session.subscribe_to_runtime_events(
         socket.assigns.session_id,
         "js_live",
@@ -32,26 +34,24 @@ defmodule LivebookWeb.JSViewChannel do
 
   def handle_in("event", raw, socket) do
     {[event, ref], payload} = transport_decode!(raw)
-    pid = socket.assigns.ref_with_pid[ref]
+    pid = socket.assigns.ref_with_info[ref].pid
     send(pid, {:event, event, payload, %{origin: self(), ref: ref}})
     {:noreply, socket}
   end
 
   def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
-      if socket.assigns.ref_with_count[ref] == 1 do
+      if socket.assigns.ref_with_info[ref].count == 1 do
         Livebook.Session.unsubscribe_from_runtime_events(
           socket.assigns.session_id,
           "js_live",
           ref
         )
 
-        {_, ref_with_count} = Map.pop!(socket.assigns.ref_with_count, ref)
-        {_, ref_with_pid} = Map.pop!(socket.assigns.ref_with_pid, ref)
-        assign(socket, ref_with_count: ref_with_count, ref_with_pid: ref_with_pid)
+        {_, socket} = pop_in(socket.assigns.ref_with_info[ref])
+        socket
       else
-        ref_with_count = Map.update!(socket.assigns.ref_with_count, ref, &(&1 - 1))
-        assign(socket, ref_with_count: ref_with_count)
+        update_in(socket.assigns.ref_with_info[ref], &%{&1 | count: &1.count - 1})
       end
 
     {:noreply, socket}
@@ -59,7 +59,16 @@ defmodule LivebookWeb.JSViewChannel do
 
   @impl true
   def handle_info({:connect_reply, payload, %{ref: ref}}, socket) do
-    with {:error, error} <- try_push(socket, "init:#{ref}", nil, payload) do
+    # Multiple connections for the same reference may be establish,
+    # the replies come sequentially and we dispatch them according
+    # to the clients queue
+
+    {id, socket} =
+      get_and_update_in(socket.assigns.ref_with_info[ref].connect_queue, fn [id | queue] ->
+        {id, queue}
+      end)
+
+    with {:error, error} <- try_push(socket, "init:#{ref}:#{id}", nil, payload) do
       message = "Failed to serialize initial widget data, " <> error
       push(socket, "error:#{ref}", %{"message" => message})
     end

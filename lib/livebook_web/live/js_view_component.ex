@@ -2,6 +2,14 @@ defmodule LivebookWeb.JSViewComponent do
   use LivebookWeb, :live_component
 
   @impl true
+  def update(assigns, socket) do
+    {:ok,
+     socket
+     |> assign(assigns)
+     |> assign_new(:timeout_message, fn -> "Not available" end)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div id={"js-output-#{@id}-#{@js_view.ref}"}
@@ -12,7 +20,8 @@ defmodule LivebookWeb.JSViewComponent do
       data-js-path={@js_view.assets.js_path}
       data-session-token={session_token(@js_view.pid)}
       data-session-id={@session_id}
-      data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}>
+      data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}
+      data-timeout-message={@timeout_message}>
     </div>
     """
   end
