@@ -1,5 +1,5 @@
 import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
-import { randomToken } from "../lib/utils";
+import { randomId, randomToken } from "../lib/utils";
 import {
   getChannel,
   transportDecode,
@@ -50,6 +50,7 @@ const JSView = {
   mounted() {
     this.props = this.getProps();
 
+    this.id = randomId();
     this.childToken = randomToken();
     this.childReadyPromise = null;
     this.childReady = false;
@@ -73,10 +74,13 @@ const JSView = {
 
     // Channel events
 
-    const initRef = this.channel.on(`init:${this.props.ref}`, (raw) => {
-      const [, payload] = transportDecode(raw);
-      this.handleServerInit(payload);
-    });
+    const initRef = this.channel.on(
+      `init:${this.props.ref}:${this.id}`,
+      (raw) => {
+        const [, payload] = transportDecode(raw);
+        this.handleServerInit(payload);
+      }
+    );
 
     const eventRef = this.channel.on(`event:${this.props.ref}`, (raw) => {
       const [[event], payload] = transportDecode(raw);
@@ -91,7 +95,7 @@ const JSView = {
     );
 
     this.unsubscribeFromChannelEvents = () => {
-      this.channel.off(`init:${this.props.ref}`, initRef);
+      this.channel.off(`init:${this.props.ref}:${this.id}`, initRef);
       this.channel.off(`event:${this.props.ref}`, eventRef);
       this.channel.off(`error:${this.props.ref}`, errorRef);
     };
@@ -99,6 +103,7 @@ const JSView = {
     this.channel.push("connect", {
       session_token: this.props.sessionToken,
       ref: this.props.ref,
+      id: this.id,
     });
   },
 
