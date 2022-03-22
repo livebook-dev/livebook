@@ -29,6 +29,14 @@ defmodule Livebook.SessionTest do
 
       assert Session.file_name_for_download(session) == "cats_guide_to_life"
     end
+
+    test "removes non-ascii characters from notebook name", %{session: session} do
+      Session.set_notebook_name(session.pid, "Notebook 😺")
+      # Get the updated struct
+      session = Session.get_by_pid(session.pid)
+
+      assert Session.file_name_for_download(session) == "notebook"
+    end
   end
 
   describe "set_notebook_attributes/2" do

@@ -1400,8 +1400,9 @@ defmodule Livebook.Session do
   defp notebook_name_to_file_name(notebook_name) do
     notebook_name
     |> String.downcase()
-    |> String.replace(~r/\s+/, "_")
-    |> String.replace(~r/[^\w]/, "")
+    |> String.replace(~r/[^\s\w]/u, "")
+    |> String.trim()
+    |> String.replace(~r/\s+/u, "_")
     |> case do
       "" -> "untitled_notebook"
       name -> name
