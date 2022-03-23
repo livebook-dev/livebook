@@ -85,10 +85,13 @@ defmodule LivebookWeb.Endpoint do
 
   plug :force_ssl
 
-  @plug_ssl Plug.SSL.init([])
   def force_ssl(conn, _opts) do
-    if Application.get_env(:livebook, :force_ssl, false) do
-      Plug.SSL.call(conn, @plug_ssl)
+    force_ssl = Application.get_env(:livebook, :force_ssl, false)
+    force_ssl_host = Application.get_env(:livebook, :force_ssl_host, nil)
+
+    if force_ssl || force_ssl_host do
+      plug_ssl = Plug.SSL.init(host: force_ssl_host)
+      Plug.SSL.call(conn, plug_ssl)
     else
       conn
     end

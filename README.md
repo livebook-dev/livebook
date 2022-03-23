@@ -187,6 +187,9 @@ The following environment variables configure Livebook:
   * LIVEBOOK_FORCE_SSL - force SSL connections and enable HSTS.
     Ensuring no data is ever sent via http, always redirect to https.
 
+  * LIVEBOOK_FORCE_SSL_HOST - set a new host to redirect to if the request's scheme is `http`. 
+    Defaults to nil.
+
 <!-- Environment variables -->
 
 If running Livebook as a Docker image or an Elixir release, [the environment
