@@ -184,8 +184,8 @@ The following environment variables configure Livebook:
     Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
     disable it.
 
-  * LIVEBOOK_FORCE_SSL_HOST - set a new host to redirect to if the request's scheme is `http`. 
-    Defaults to nil.
+  * LIVEBOOK_FORCE_SSL_HOST - set a host to redirect to if the request is not over HTTP.
+    Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
 <!-- Environment variables -->
 
