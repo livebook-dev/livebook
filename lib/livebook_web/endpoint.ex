@@ -54,6 +54,8 @@ defmodule LivebookWeb.Endpoint do
     file_provider: AssetsMemoryProvider,
     gzip: true
 
+  plug :force_ssl
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
@@ -82,6 +84,17 @@ defmodule LivebookWeb.Endpoint do
   plug LivebookWeb.ConfiguredPlug
 
   plug LivebookWeb.Router
+
+  @plug_ssl Plug.SSL.init(host: {Application, :get_env, [:livebook, :force_ssl_host, nil]})
+  def force_ssl(conn, _opts) do
+    force_ssl_host = Application.get_env(:livebook, :force_ssl_host, nil)
+
+    if force_ssl_host do
+      Plug.SSL.call(conn, @plug_ssl)
+    else
+      conn
+    end
+  end
 
   def access_struct_url() do
     base =
