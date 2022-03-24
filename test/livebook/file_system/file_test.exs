@@ -30,6 +30,12 @@ defmodule Livebook.FileSystem.FileTest do
     end
   end
 
+  describe "local/1" do
+    test "uses the globally configured local file system instance" do
+      assert FileSystem.File.local("/path").file_system == Livebook.Config.local_filesystem()
+    end
+  end
+
   describe "relative/2" do
     test "ignores the file path if an absolute path is given" do
       file_system = FileSystem.Local.new()
