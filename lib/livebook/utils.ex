@@ -1,6 +1,8 @@
 defmodule Livebook.Utils do
   @moduledoc false
 
+  require Logger
+
   @type id :: binary()
 
   @doc """
@@ -308,14 +310,31 @@ defmodule Livebook.Utils do
   Opens the given `url` in the browser.
   """
   def browser_open(url) do
-    {cmd, args} =
+    win_cmd_args = ["/c", "start", String.replace(url, "&", "^&")]
+
+    cmd_args =
       case :os.type() do
-        {:win32, _} -> {"cmd", ["/c", "start", String.replace(url, "&", "^&")]}
-        {:unix, :darwin} -> {"open", [url]}
-        {:unix, _} -> {"xdg-open", [url]}
+        {:win32, _} ->
+          {"cmd", win_cmd_args}
+
+        {:unix, :darwin} ->
+          {"open", [url]}
+
+        {:unix, _} ->
+          cond do
+            System.find_executable("xdg-open") -> {"xdg-open", [url]}
+            # When inside WSL
+            System.find_executable("cmd.exe") -> {"cmd.exe", win_cmd_args}
+            true -> nil
+          end
       end
 
-    System.cmd(cmd, args)
+    case cmd_args do
+      {cmd, args} -> System.cmd(cmd, args)
+      nil -> Logger.warn("could not open the browser, no open command found in the system")
+    end
+
+    :ok
   end
 
   @doc """
