@@ -106,7 +106,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element("button", "+ Markdown")
+      |> element("button", "Markdown")
       |> render_click()
 
       assert %{notebook: %{sections: [%{cells: [%Cell.Markdown{}]}]}} =
