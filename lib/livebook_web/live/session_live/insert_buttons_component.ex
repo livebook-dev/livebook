@@ -52,7 +52,6 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                   phx-value-kind={smart_cell_definition.kind}
                   phx-value-section_id={@section_id}
                   phx-value-cell_id={@cell_id}>
-                  <.remix_icon icon="flashlight-line" />
                   <span class="font-medium"><%= smart_cell_definition.name %></span>
                 </button>
               <% end %>
