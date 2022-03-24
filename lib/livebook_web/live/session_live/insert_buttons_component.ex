@@ -37,7 +37,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <span class="font-medium">Section</span>
             </button>
             <%= if @smart_cell_definitions != [] do %>
-              <div class="h-[0.5px] bg-gray-200"></div>
+              <div class="h-[1px] my-2 bg-gray-200"></div>
               <%= for smart_cell_definition <- Enum.sort_by(@smart_cell_definitions, & &1.name) do %>
                 <button class="menu-item text-gray-500"
                   role="menuitem"
