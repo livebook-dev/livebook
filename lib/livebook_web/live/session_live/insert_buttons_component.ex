@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
           >+ Code</button>
-        <.menu id={"#{@id}-insert-menu"} position="left">
+        <.menu id={"#{@id}-block-menu"} position="left">
           <:toggle>
             <button class="button-base button-small">+ Block</button>
           </:toggle>
@@ -36,8 +36,14 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <.remix_icon icon="h-2" />
               <span class="font-medium">Section</span>
             </button>
-            <%= if @smart_cell_definitions != [] do %>
-              <div class="h-[1px] my-2 bg-gray-200"></div>
+          </:content>
+        </.menu>
+        <%= if @smart_cell_definitions != [] do %>
+          <.menu id={"#{@id}-smart-menu"} position="left">
+            <:toggle>
+              <button class="button-base button-small">+ Smart</button>
+            </:toggle>
+            <:content>
               <%= for smart_cell_definition <- Enum.sort_by(@smart_cell_definitions, & &1.name) do %>
                 <button class="menu-item text-gray-500"
                   role="menuitem"
@@ -50,9 +56,9 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                   <span class="font-medium"><%= smart_cell_definition.name %></span>
                 </button>
               <% end %>
-            <% end %>
-          </:content>
-        </.menu>
+            </:content>
+          </.menu>
+        <% end %>
       </div>
     </div>
     """
