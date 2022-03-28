@@ -105,4 +105,28 @@ defmodule Livebook.Notebook.Export.ElixirTest do
 
     assert expected_document == document
   end
+
+  describe "setup cell" do
+    test "includes the leading setup cell when it has content" do
+      notebook =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            sections: [%{Notebook.Section.new() | name: "Section 1"}]
+        }
+        |> Notebook.put_setup_cell(%{Notebook.Cell.new(:code) | source: "Mix.install([...])"})
+
+      expected_document = """
+      # Title: My Notebook
+
+      Mix.install([...])
+
+      # ── Section 1 ──
+      """
+
+      document = Export.Elixir.notebook_to_elixir(notebook)
+
+      assert expected_document == document
+    end
+  end
 end

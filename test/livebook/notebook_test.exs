@@ -92,7 +92,8 @@ defmodule Livebook.NotebookTest do
                "c4" => "c3",
                "c3" => "c2",
                "c2" => "c1",
-               "c1" => nil
+               "c1" => "setup",
+               "setup" => nil
              }
     end
 
@@ -108,7 +109,8 @@ defmodule Livebook.NotebookTest do
 
       assert Notebook.cell_dependency_graph(notebook) == %{
                "c2" => "c1",
-               "c1" => nil
+               "c1" => "setup",
+               "setup" => nil
              }
     end
 
@@ -150,7 +152,8 @@ defmodule Livebook.NotebookTest do
                "c4" => "c3",
                "c3" => "c2",
                "c2" => "c1",
-               "c1" => nil
+               "c1" => "setup",
+               "setup" => nil
              }
     end
 
@@ -183,7 +186,8 @@ defmodule Livebook.NotebookTest do
 
       assert Notebook.cell_dependency_graph(notebook) == %{
                "c2" => "c1",
-               "c1" => nil
+               "c1" => "setup",
+               "setup" => nil
              }
     end
 
@@ -227,7 +231,8 @@ defmodule Livebook.NotebookTest do
                "c4" => "c2",
                "c3" => "c1",
                "c2" => "c1",
-               "c1" => nil
+               "c1" => "setup",
+               "setup" => nil
              }
     end
 
@@ -250,7 +255,8 @@ defmodule Livebook.NotebookTest do
       assert Notebook.cell_dependency_graph(notebook, cell_filter: &Cell.evaluable?/1) ==
                %{
                  "c3" => "c1",
-                 "c1" => nil
+                 "c1" => "setup",
+                 "setup" => nil
                }
     end
   end

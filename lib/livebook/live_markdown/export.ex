@@ -44,6 +44,8 @@ defmodule Livebook.LiveMarkdown.Export do
   end
 
   defp render_notebook(notebook, ctx) do
+    %{setup_section: %{cells: [setup_cell]}} = notebook
+
     comments =
       Enum.map(notebook.leading_comments, fn
         [line] -> ["<!-- ", line, " -->"]
@@ -51,12 +53,14 @@ defmodule Livebook.LiveMarkdown.Export do
       end)
 
     name = ["# ", notebook.name]
+    setup_cell = render_setup_cell(setup_cell, ctx)
     sections = Enum.map(notebook.sections, &render_section(&1, notebook, ctx))
 
     metadata = notebook_metadata(notebook)
 
     notebook_with_metadata =
-      [name | sections]
+      [name, setup_cell | sections]
+      |> Enum.reject(&is_nil/1)
       |> Enum.intersperse("\n\n")
       |> prepend_metadata(metadata)
 
@@ -102,6 +106,9 @@ defmodule Livebook.LiveMarkdown.Export do
     parent_idx = Notebook.section_index(notebook, section.parent_id)
     %{"branch_parent_index" => parent_idx}
   end
+
+  defp render_setup_cell(%{source: ""}, _ctx), do: nil
+  defp render_setup_cell(cell, ctx), do: render_cell(cell, ctx)
 
   defp render_cell(%Cell.Markdown{} = cell, _ctx) do
     metadata = cell_metadata(cell)

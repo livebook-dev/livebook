@@ -67,4 +67,13 @@ defmodule Livebook.Notebook.Cell do
   end
 
   def find_inputs_in_output(_output), do: []
+
+  @doc """
+  Checks if the given cell is the setup code cell.
+  """
+  @spec setup?(t()) :: boolean()
+  def setup?(cell)
+
+  def setup?(%Cell.Code{id: "setup"}), do: true
+  def setup?(_cell), do: false
 end

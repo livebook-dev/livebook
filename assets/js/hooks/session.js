@@ -475,11 +475,15 @@ const Session = {
    * Enters insert mode when a markdown cell is double-clicked.
    */
   handleDocumentDoubleClick(event) {
-    const markdownCell = event.target.closest(
-      `[data-element="cell"][data-type="markdown"]`
-    );
+    const cell = event.target.closest(`[data-element="cell"]`);
+    const type = cell && cell.getAttribute("data-type");
 
-    if (markdownCell && this.focusedId && !this.insertMode) {
+    if (
+      type &&
+      ["markdown", "setup"].includes(type) &&
+      this.focusedId &&
+      !this.insertMode
+    ) {
       this.setInsertMode(true);
     }
   },

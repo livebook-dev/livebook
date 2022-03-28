@@ -114,6 +114,9 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "queueing cell evaluation", %{conn: conn, session: session} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      evaluate_setup(session.pid)
+
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(50)")
 
@@ -125,6 +128,19 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert %{cell_infos: %{^cell_id => %{eval: %{status: :evaluating}}}} =
                Session.get_data(session.pid)
+    end
+
+    test "reevaluting the setup cell", %{conn: conn, session: session} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      evaluate_setup(session.pid)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      view
+      |> element(~s{[data-element="session"]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => "setup"})
+
+      assert_receive {:operation, {:set_runtime, _pid, %{} = _runtime}}
     end
 
     test "cancelling cell evaluation", %{conn: conn, session: session} do
@@ -314,6 +330,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "outputs" do
     test "stdout output update", %{conn: conn, session: session} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      evaluate_setup(session.pid)
+
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
@@ -332,6 +351,9 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "frame output update", %{conn: conn, session: session} do
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      evaluate_setup(session.pid)
+
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code)
 
@@ -895,6 +917,11 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.insert_cell(session_pid, section_id, 0, type, %{source: content})
     %{notebook: %{sections: [%{cells: [cell]}]}} = Session.get_data(session_pid)
     cell.id
+  end
+
+  defp evaluate_setup(session_pid) do
+    Session.queue_cell_evaluation(session_pid, "setup")
+    assert_receive {:operation, {:add_cell_evaluation_response, _, "setup", _, _}}
   end
 
   defp insert_cell_with_output(session_pid, section_id, output) do

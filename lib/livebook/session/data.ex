@@ -221,20 +221,20 @@ defmodule Livebook.Session.Data do
   end
 
   defp initial_section_infos(notebook) do
-    for section <- notebook.sections,
+    for section <- Notebook.all_sections(notebook),
         into: %{},
         do: {section.id, new_section_info()}
   end
 
   defp initial_cell_infos(notebook) do
-    for section <- notebook.sections,
+    for section <- Notebook.all_sections(notebook),
         cell <- section.cells,
         into: %{},
         do: {cell.id, new_cell_info(cell, %{})}
   end
 
   defp initial_input_values(notebook) do
-    for section <- notebook.sections,
+    for section <- Notebook.all_sections(notebook),
         cell <- section.cells,
         Cell.evaluable?(cell),
         output <- cell.outputs,
@@ -372,7 +372,8 @@ defmodule Livebook.Session.Data do
   end
 
   def apply_operation(data, {:delete_cell, _client_pid, id}) do
-    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         false <- Cell.setup?(cell) do
       data
       |> with_actions()
       |> delete_cell(cell, section)
@@ -380,6 +381,8 @@ defmodule Livebook.Session.Data do
       |> update_smart_cell_bases(data)
       |> set_dirty()
       |> wrap_ok()
+    else
+      _ -> :error
     end
   end
 
@@ -400,6 +403,7 @@ defmodule Livebook.Session.Data do
 
   def apply_operation(data, {:move_cell, _client_pid, id, offset}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
+         false <- Cell.setup?(cell),
          true <- offset != 0,
          true <- can_move_cell_by?(data, cell, section, offset) do
       data
@@ -1014,7 +1018,8 @@ defmodule Livebook.Session.Data do
     main_flow_evaluating? = main_flow_evaluating?(data)
 
     {awaiting_branch_sections, awaiting_regular_sections} =
-      data.notebook.sections
+      data.notebook
+      |> Notebook.all_sections()
       |> Enum.filter(&section_awaits_evaluation?(data, &1.id))
       |> Enum.split_with(& &1.parent_id)
 
@@ -1055,7 +1060,9 @@ defmodule Livebook.Session.Data do
   end
 
   defp main_flow_evaluating?(data) do
-    Enum.any?(data.notebook.sections, fn section ->
+    data.notebook
+    |> Notebook.all_sections()
+    |> Enum.any?(fn section ->
       section.parent_id == nil and section_evaluating?(data, section.id)
     end)
   end
@@ -1066,7 +1073,9 @@ defmodule Livebook.Session.Data do
   end
 
   defp any_section_evaluating?(data) do
-    Enum.any?(data.notebook.sections, fn section ->
+    data.notebook
+    |> Notebook.all_sections()
+    |> Enum.any?(fn section ->
       section_evaluating?(data, section.id)
     end)
   end
@@ -1124,11 +1133,14 @@ defmodule Livebook.Session.Data do
 
   defp clear_all_evaluation({data, _} = data_actions) do
     data_actions
-    |> reduce(data.notebook.sections, &clear_section_evaluation/2)
+    |> reduce(Notebook.all_sections(data.notebook), &clear_section_evaluation/2)
   end
 
   defp clear_main_evaluation({data, _} = data_actions) do
-    regular_sections = Enum.filter(data.notebook.sections, &(&1.parent_id == nil))
+    regular_sections =
+      data.notebook
+      |> Notebook.all_sections()
+      |> Enum.filter(&(&1.parent_id == nil))
 
     data_actions
     |> reduce(regular_sections, &clear_section_evaluation/2)
@@ -1448,7 +1460,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp dead_smart_cells_with_section(data) do
-    for section <- data.notebook.sections,
+    for section <- Notebook.all_sections(data.notebook),
         %Cell.Smart{} = cell <- section.cells,
         info = data.cell_infos[cell.id],
         info.status == :dead,

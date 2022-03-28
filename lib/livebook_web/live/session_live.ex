@@ -137,7 +137,7 @@ defmodule LivebookWeb.SessionLive do
       <div class="grow overflow-y-auto relative" data-element="notebook">
         <div data-element="js-view-iframes" phx-update="ignore" id="js-view-iframes"></div>
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-element="notebook-content">
-          <div class="flex items-center pb-4 mb-6 space-x-4 border-b border-gray-200"
+          <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-element="notebook-headline"
             data-focusable-id="notebook"
             id="notebook"
@@ -190,7 +190,14 @@ defmodule LivebookWeb.SessionLive do
               </:content>
             </.menu>
           </div>
-          <div class="flex flex-col w-full space-y-16">
+          <div>
+            <.live_component module={LivebookWeb.SessionLive.CellComponent}
+              id={@data_view.setup_cell_view.id}
+              session_id={@session.id}
+              runtime={@data_view.runtime}
+              cell_view={@data_view.setup_cell_view} />
+          </div>
+          <div class="mt-8 flex flex-col w-full space-y-16">
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button-base button-small"
@@ -715,6 +722,17 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
+    data = socket.private.data
+
+    socket =
+      with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
+           true <- Cell.setup?(cell),
+           false <- data.cell_infos[cell.id].eval.validity == :fresh do
+        maybe_restart_runtime(socket)
+      else
+        _ -> socket
+      end
+
     Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
@@ -761,21 +779,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("restart_runtime", %{}, socket) do
-    socket =
-      if runtime = socket.private.data.runtime do
-        case Runtime.duplicate(runtime) do
-          {:ok, new_runtime} ->
-            Session.connect_runtime(socket.assigns.session.pid, new_runtime)
-            clear_flash(socket, :error)
-
-          {:error, message} ->
-            put_flash(socket, :error, "Failed to setup runtime - #{message}")
-        end
-      else
-        socket
-      end
-
-    {:noreply, socket}
+    {:noreply, maybe_restart_runtime(socket)}
   end
 
   def handle_event("connect_default_runtime", %{}, socket) do
@@ -1312,6 +1316,19 @@ defmodule LivebookWeb.SessionLive do
   defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
   defp autofocus_cell_id(_notebook), do: nil
 
+  defp maybe_restart_runtime(%{private: %{data: %{runtime: nil}}} = socket), do: socket
+
+  defp maybe_restart_runtime(%{private: %{data: data}} = socket) do
+    case Runtime.duplicate(data.runtime) do
+      {:ok, new_runtime} ->
+        Session.connect_runtime(socket.assigns.session.pid, new_runtime)
+        clear_flash(socket, :error)
+
+      {:error, message} ->
+        put_flash(socket, :error, "Failed to setup runtime - #{message}")
+    end
+  end
+
   # Builds view-specific structure of data by cherry-picking
   # only the relevant attributes.
   # We then use `@data_view` in the templates and consequently
@@ -1340,6 +1357,7 @@ defmodule LivebookWeb.SessionLive do
         data.clients_map
         |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
+      setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries
     }
@@ -1497,7 +1515,7 @@ defmodule LivebookWeb.SessionLive do
       {:apply_cell_delta, _pid, _cell_id, _tag, _delta, _revision} ->
         update_dirty_status(data_view, data)
 
-      {:update_smart_cell, _pid, _cell_id, _cell_state, _delta} ->
+      {:update_smart_cell, _pid, _cell_id, _cell_state, _delta, _reevaluate} ->
         update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly
