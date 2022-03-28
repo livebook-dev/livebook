@@ -1,5 +1,11 @@
 # Introduction to Nx
 
+```elixir
+Mix.install([
+  {:nx, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "nx", override: true}
+])
+```
+
 ## Numerical Elixir
 
 Elixir's primary numerical datatypes and structures are not optimized
@@ -71,20 +77,8 @@ type. To interact with them, Nx relies on tensor-aware operators rather
 than `Enum.map/2` and `Enum.reduce/3`.
 
 In this section, we'll look at some of the various tools for
-creating and interacting with tensors.
-
-To get started, we'll first need to include the Nx dependency.
-In Livebook, we can simply use Mix install. At the time of this writing,
-there's no Hex package for Nx, so we'll use a git
-dependency, like this:
-
-```elixir
-Mix.install([
-  {:nx, "~> 0.1.0-dev", github: "elixir-nx/nx", sparse: "nx", override: true}
-])
-```
-
-The IEx helpers will assist our exploration of the core tensor concepts.
+creating and interacting with tensors. The IEx helpers will assist our
+exploration of the core tensor concepts.
 
 ```elixir
 import IEx.Helpers
