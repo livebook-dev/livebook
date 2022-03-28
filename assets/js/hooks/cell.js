@@ -259,7 +259,7 @@ const Cell = {
       const source = this.liveEditors.primary.getSource();
       const digest = md5Base64(source);
       const changed = this.props.evaluationDigest !== digest;
-      cellStatus.toggleAttribute("data-js-changed", changed);
+      this.el.toggleAttribute("data-js-changed", changed);
     }
   },
 

@@ -82,12 +82,12 @@ solely client-side operations.
   @apply opacity-100 pointer-events-auto;
 }
 
-[data-element="cell"] [data-element="cell-status"][data-js-changed] {
+[data-element="cell"][data-js-changed] [data-element="cell-status"] {
   @apply italic;
 }
 
-[data-element="cell"]
-  [data-element="cell-status"]:not([data-js-changed])
+[data-element="cell"]:not([data-js-changed])
+  [data-element="cell-status"]
   [data-element="change-indicator"] {
   @apply invisible;
 }
@@ -138,10 +138,10 @@ solely client-side operations.
 }
 
 [data-element="session"]:not([data-js-insert-mode])
-  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"])
+  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]):not([data-js-changed])
   [data-element="editor-box"],
 [data-element="session"]
-  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]):not([data-js-focused])
+  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]):not([data-js-changed]):not([data-js-focused])
   [data-element="editor-box"] {
   @apply h-0 overflow-hidden;
 }
@@ -151,6 +151,9 @@ solely client-side operations.
   [data-element="enable-insert-mode-button"],
 [data-element="session"]
   [data-element="cell"][data-type="setup"][data-eval-validity="fresh"]
+  [data-element="enable-insert-mode-button"],
+[data-element="session"]
+  [data-element="cell"][data-type="setup"][data-js-changed]
   [data-element="enable-insert-mode-button"] {
   @apply hidden;
 }
@@ -160,6 +163,9 @@ solely client-side operations.
   [data-element="info-box"],
 [data-element="session"]
   [data-element="cell"][data-type="setup"][data-eval-validity="fresh"]
+  [data-element="info-box"],
+[data-element="session"]
+  [data-element="cell"][data-type="setup"][data-js-changed]
   [data-element="info-box"] {
   @apply hidden;
 }
