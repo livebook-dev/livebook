@@ -174,19 +174,23 @@ const Cell = {
     });
 
     if (tag === "primary") {
+      const source = liveEditor.getSource();
+
+      this.el.toggleAttribute("data-js-empty", source === "");
+
+      liveEditor.onChange((newSource) => {
+        this.el.toggleAttribute("data-js-empty", newSource === "");
+      });
+
       // Setup markdown rendering
       if (this.props.type === "markdown") {
         const markdownContainer = this.el.querySelector(
           `[data-element="markdown-container"]`
         );
-        const markdown = new Markdown(
-          markdownContainer,
-          liveEditor.getSource(),
-          {
-            baseUrl: this.props.sessionPath,
-            emptyText: "Empty markdown cell",
-          }
-        );
+        const markdown = new Markdown(markdownContainer, source, {
+          baseUrl: this.props.sessionPath,
+          emptyText: "Empty markdown cell",
+        });
 
         liveEditor.onChange((newSource) => {
           markdown.setContent(newSource);

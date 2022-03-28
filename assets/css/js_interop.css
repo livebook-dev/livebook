@@ -138,10 +138,10 @@ solely client-side operations.
 }
 
 [data-element="session"]:not([data-js-insert-mode])
-  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]):not([data-js-changed])
+  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]:not([data-js-empty])):not([data-js-changed])
   [data-element="editor-box"],
 [data-element="session"]
-  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]):not([data-js-changed]):not([data-js-focused])
+  [data-element="cell"][data-type="setup"]:not([data-eval-validity="fresh"]:not([data-js-empty])):not([data-js-changed]):not([data-js-focused])
   [data-element="editor-box"] {
   @apply h-0 overflow-hidden;
 }
@@ -150,7 +150,7 @@ solely client-side operations.
   [data-element="cell"][data-type="setup"][data-js-focused]
   [data-element="enable-insert-mode-button"],
 [data-element="session"]
-  [data-element="cell"][data-type="setup"][data-eval-validity="fresh"]
+  [data-element="cell"][data-type="setup"][data-eval-validity="fresh"]:not([data-js-empty])
   [data-element="enable-insert-mode-button"],
 [data-element="session"]
   [data-element="cell"][data-type="setup"][data-js-changed]
@@ -162,7 +162,7 @@ solely client-side operations.
   [data-element="cell"][data-type="setup"][data-js-focused]
   [data-element="info-box"],
 [data-element="session"]
-  [data-element="cell"][data-type="setup"][data-eval-validity="fresh"]
+  [data-element="cell"][data-type="setup"][data-eval-validity="fresh"]:not([data-js-empty])
   [data-element="info-box"],
 [data-element="session"]
   [data-element="cell"][data-type="setup"][data-js-changed]

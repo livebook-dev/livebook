@@ -13,7 +13,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-type={@cell_view.type}
       data-session-path={Routes.session_path(@socket, :page, @session_id)}
       data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
-      data-eval-validity={get_in(@cell_view, [:eval, :validity])}>
+      data-eval-validity={get_in(@cell_view, [:eval, :validity])}
+      data-js-empty={empty?(@cell_view.source_view)}>
       <%= render_cell(assigns) %>
     </div>
     """
