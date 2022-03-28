@@ -1,5 +1,14 @@
 # Runtime introspection with VegaLite
 
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.2"},
+  {:kino, "~> 0.5.0"}
+])
+
+alias VegaLite, as: Vl
+```
+
 ## Introduction
 
 In this notebook, we will use `Kino` and `VegaLite`
@@ -7,23 +16,9 @@ to introspect and plot how our system behaves over
 time. If you are not familiar with VegaLite, [read
 its introductory notebook](/explore/notebooks/intro-to-vega-lite).
 
-## Setup
-
-Let's add `:vega_lite` and `:kino` as dependencies:
-
-```elixir
-Mix.install([
-  {:vega_lite, "~> 0.1.2"},
-  {:kino, "~> 0.5.0"}
-])
-```
-
-Let's also define a convenience shortcut for the
-VegaLite module:
-
-```elixir
-alias VegaLite, as: Vl
-```
+You can see both dependencies listed in the setup cell above.
+We also define a convenience shortcut for the `VegaLite` module,
+let's run the setup and we are ready to go!
 
 ## Connecting to a remote node
 
