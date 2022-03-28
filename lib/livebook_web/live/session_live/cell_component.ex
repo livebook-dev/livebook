@@ -112,7 +112,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <.cell_body>
       <div data-element="info-box">
         <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 font-medium rounded-lg">
-          <span>Notebook setup</span>
+          <span>Notebook dependencies and setup</span>
           <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
         </div>
       </div>
