@@ -16,6 +16,7 @@ defmodule Livebook.Notebook do
   defstruct [
     :name,
     :version,
+    :setup_section,
     :sections,
     :leading_comments,
     :persist_outputs,
@@ -30,6 +31,7 @@ defmodule Livebook.Notebook do
   @type t :: %__MODULE__{
           name: String.t(),
           version: String.t(),
+          setup_section: Section.t(),
           sections: list(Section.t()),
           leading_comments: list(list(line :: String.t())),
           persist_outputs: boolean(),
@@ -47,12 +49,22 @@ defmodule Livebook.Notebook do
     %__MODULE__{
       name: "Untitled notebook",
       version: @version,
+      setup_section: %{Section.new() | id: "setup-section", name: "Setup", cells: []},
       sections: [],
       leading_comments: [],
       persist_outputs: default_persist_outputs(),
       autosave_interval_s: default_autosave_interval_s(),
       output_counter: 0
     }
+    |> put_setup_cell(Cell.new(:code))
+  end
+
+  @doc """
+  Sets the given cell as the setup cell.
+  """
+  @spec put_setup_cell(t(), Cell.Code.t()) :: t()
+  def put_setup_cell(notebook, %Cell.Code{} = cell) do
+    put_in(notebook.setup_section.cells, [%{cell | id: "setup"}])
   end
 
   @doc """
@@ -80,11 +92,21 @@ defmodule Livebook.Notebook do
   end
 
   @doc """
+  Returns all notebook sections, including the implicit ones.
+  """
+  @spec all_sections(t()) :: list(Section.t())
+  def all_sections(notebook) do
+    get_in(notebook, [access_all_sections()])
+  end
+
+  @doc """
   Finds notebook section by id.
   """
   @spec fetch_section(t(), Section.id()) :: {:ok, Section.t()} | :error
   def fetch_section(notebook, section_id) do
-    Enum.find_value(notebook.sections, :error, fn section ->
+    notebook
+    |> all_sections()
+    |> Enum.find_value(:error, fn section ->
       section.id == section_id && {:ok, section}
     end)
   end
@@ -95,7 +117,7 @@ defmodule Livebook.Notebook do
   @spec fetch_cell_and_section(t(), Cell.id()) :: {:ok, Cell.t(), Section.t()} | :error
   def fetch_cell_and_section(notebook, cell_id) do
     for(
-      section <- notebook.sections,
+      section <- all_sections(notebook),
       cell <- section.cells,
       cell.id == cell_id,
       do: {cell, section}
@@ -206,7 +228,7 @@ defmodule Livebook.Notebook do
   def update_cell(notebook, cell_id, fun) do
     update_in(
       notebook,
-      [Access.key(:sections), Access.all(), Access.key(:cells), access_by_id(cell_id)],
+      [access_all_sections(), Access.all(), Access.key(:cells), access_by_id(cell_id)],
       fun
     )
   end
@@ -218,7 +240,7 @@ defmodule Livebook.Notebook do
   def update_cells(notebook, fun) do
     update_in(
       notebook,
-      [Access.key(:sections), Access.all(), Access.key(:cells), Access.all()],
+      [access_all_sections(), Access.all(), Access.key(:cells), Access.all()],
       fun
     )
   end
@@ -229,13 +251,13 @@ defmodule Livebook.Notebook do
   @spec update_reduce_cells(t(), acc, (Cell.t(), acc -> {Cell.t(), acc})) :: {t(), acc}
         when acc: term()
   def update_reduce_cells(notebook, acc, fun) do
-    {sections, acc} =
-      Enum.map_reduce(notebook.sections, acc, fn section, acc ->
+    {[setup_section | sections], acc} =
+      Enum.map_reduce([notebook.setup_section | notebook.sections], acc, fn section, acc ->
         {cells, acc} = Enum.map_reduce(section.cells, acc, fun)
         {%{section | cells: cells}, acc}
       end)
 
-    {%{notebook | sections: sections}, acc}
+    {%{notebook | setup_section: setup_section, sections: sections}, acc}
   end
 
   @doc """
@@ -243,7 +265,21 @@ defmodule Livebook.Notebook do
   """
   @spec update_section(t(), Section.id(), (Section.t() -> Section.t())) :: t()
   def update_section(notebook, section_id, fun) do
-    update_in(notebook, [Access.key(:sections), access_by_id(section_id)], fun)
+    update_in(notebook, [access_all_sections(), access_by_id(section_id)], fun)
+  end
+
+  defp access_all_sections() do
+    fn
+      :get, %__MODULE__{} = notebook, next ->
+        next.([notebook.setup_section | notebook.sections])
+
+      :get_and_update, %__MODULE__{} = notebook, next ->
+        {gets, [setup_section | sections]} = next.([notebook.setup_section | notebook.sections])
+        {gets, %{notebook | setup_section: setup_section, sections: sections}}
+
+      _op, data, _next ->
+        raise "access_all_sections/0 expected %Livebook.Notebook{}, got: #{inspect(data)}"
+    end
   end
 
   @doc """
@@ -375,7 +411,7 @@ defmodule Livebook.Notebook do
   """
   @spec cells_with_section(t()) :: list({Cell.t(), Section.t()})
   def cells_with_section(notebook) do
-    for section <- notebook.sections,
+    for section <- all_sections(notebook),
         cell <- section.cells,
         do: {cell, section}
   end
@@ -469,7 +505,8 @@ defmodule Livebook.Notebook do
   """
   @spec cell_dependency_graph(t()) :: Graph.t(Cell.id())
   def cell_dependency_graph(notebook, opts \\ []) do
-    notebook.sections
+    notebook
+    |> all_sections()
     |> Enum.reduce(
       {%{}, nil, %{}},
       fn section, {graph, prev_regular_section, last_id_by_section} ->
@@ -535,7 +572,9 @@ defmodule Livebook.Notebook do
   """
   @spec find_asset_info(t(), String.t()) :: (asset_info :: map()) | nil
   def find_asset_info(notebook, hash) do
-    Enum.find_value(notebook.sections, fn section ->
+    notebook
+    |> all_sections()
+    |> Enum.find_value(fn section ->
       Enum.find_value(section.cells, fn
         %Cell.Smart{js_view: %{assets: %{hash: ^hash} = assets_info}} ->
           assets_info
@@ -671,7 +710,7 @@ defmodule Livebook.Notebook do
   """
   @spec find_frame_outputs(t(), String.t()) :: list(Cell.indexed_output())
   def find_frame_outputs(notebook, frame_ref) do
-    for section <- notebook.sections,
+    for section <- all_sections(notebook),
         %{outputs: outputs} <- section.cells,
         output <- outputs,
         frame_output <- do_find_frame_outputs(output, frame_ref),

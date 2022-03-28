@@ -845,10 +845,9 @@ defmodule Livebook.LiveMarkdown.ImportTest do
            } = notebook
   end
 
-  test "import notebook with parent section being a branching section  itself produces a warning" do
+  test "importing notebook with parent section being a branching section itself produces a warning" do
     markdown = """
     # My Notebook
-
 
     ## Section 1
 
@@ -894,5 +893,58 @@ defmodule Livebook.LiveMarkdown.ImportTest do
                }
              ]
            } = notebook
+  end
+
+  describe "setup cell" do
+    test "imports a leading setup cell" do
+      markdown = """
+      # My Notebook
+
+      ```elixir
+      Mix.install([...])
+      ```
+
+      ## Section 1
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               setup_section: %{
+                 cells: [
+                   %Cell.Code{id: "setup", source: "Mix.install([...])"}
+                 ]
+               },
+               sections: [
+                 %Notebook.Section{
+                   name: "Section 1",
+                   cells: []
+                 }
+               ]
+             } = notebook
+    end
+
+    test "does not add an implicit section when there is just setup cell" do
+      markdown = """
+      # My Notebook
+
+      ```elixir
+      Mix.install([...])
+      ```
+      """
+
+      {notebook, []} = Import.notebook_from_livemd(markdown)
+
+      assert %Notebook{
+               name: "My Notebook",
+               setup_section: %{
+                 cells: [
+                   %Cell.Code{id: "setup", source: "Mix.install([...])"}
+                 ]
+               },
+               sections: []
+             } = notebook
+    end
   end
 end

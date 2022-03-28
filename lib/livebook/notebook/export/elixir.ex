@@ -13,10 +13,14 @@ defmodule Livebook.Notebook.Export.Elixir do
   end
 
   defp render_notebook(notebook) do
+    %{setup_section: %{cells: [setup_cell]} = setup_section} = notebook
+
     name = ["# Title: ", notebook.name]
+    setup_cell = render_setup_cell(setup_cell, setup_section)
     sections = Enum.map(notebook.sections, &render_section(&1, notebook))
 
-    [name | sections]
+    [name, setup_cell | sections]
+    |> Enum.reject(&is_nil/1)
     |> Enum.intersperse("\n\n")
   end
 
@@ -39,6 +43,9 @@ defmodule Livebook.Notebook.Export.Elixir do
     [name | cells]
     |> Enum.intersperse("\n\n")
   end
+
+  defp render_setup_cell(%{source: ""}, _section), do: nil
+  defp render_setup_cell(cell, section), do: render_cell(cell, section)
 
   defp render_cell(%Cell.Markdown{} = cell, _section) do
     cell.source

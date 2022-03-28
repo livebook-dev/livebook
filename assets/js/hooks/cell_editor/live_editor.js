@@ -28,9 +28,9 @@ class LiveEditor {
     this.language = language;
     this.intellisense = intellisense;
     this.readOnly = readOnly;
-    this._onChange = null;
-    this._onBlur = null;
-    this._onCursorSelectionChange = null;
+    this._onChange = [];
+    this._onBlur = [];
+    this._onCursorSelectionChange = [];
     this._remoteUserByClientPid = {};
 
     this._mountEditor();
@@ -49,7 +49,7 @@ class LiveEditor {
 
     this.editorClient.onDelta((delta) => {
       this.source = delta.applyToString(this.source);
-      this._onChange && this._onChange(this.source);
+      this._onChange.forEach((callback) => callback(this.source));
     });
 
     this.editor.onDidFocusEditorWidget(() => {
@@ -58,12 +58,13 @@ class LiveEditor {
 
     this.editor.onDidBlurEditorWidget(() => {
       this.editor.updateOptions({ matchBrackets: "never" });
-      this._onBlur && this._onBlur();
+      this._onBlur.forEach((callback) => callback());
     });
 
     this.editor.onDidChangeCursorSelection((event) => {
-      this._onCursorSelectionChange &&
-        this._onCursorSelectionChange(event.selection);
+      this._onCursorSelectionChange.forEach((callback) =>
+        callback(event.selection)
+      );
     });
   }
 
@@ -78,21 +79,21 @@ class LiveEditor {
    * Registers a callback called with a new cell content whenever it changes.
    */
   onChange(callback) {
-    this._onChange = callback;
+    this._onChange.push(callback);
   }
 
   /**
    * Registers a callback called with a new cursor selection whenever it changes.
    */
   onCursorSelectionChange(callback) {
-    this._onCursorSelectionChange = callback;
+    this._onCursorSelectionChange.push(callback);
   }
 
   /**
    * Registers a callback called whenever the editor loses focus.
    */
   onBlur(callback) {
-    this._onBlur = callback;
+    this._onBlur.push(callback);
   }
 
   focus() {

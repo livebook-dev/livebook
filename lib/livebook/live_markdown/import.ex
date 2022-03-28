@@ -209,10 +209,9 @@ defmodule Livebook.LiveMarkdown.Import do
 
   defp take_outputs(ast, outputs), do: {outputs, ast}
 
-  # Builds a notebook from the list of elements obtained in the previous step.
-  # Note that the list of elements is reversed:
-  # first we group elements by traversing Earmark AST top-down
-  # and then aggregate elements into data strictures going bottom-up.
+  # Builds a notebook from the list of elements obtained in the
+  # previous step. The elements are in reversed order, because we
+  # want to aggregate them into data structures going bottom-up.
   defp build_notebook(elems) do
     build_notebook(elems, _cells = [], _sections = [], _messages = [], _output_counter = 0)
   end
@@ -281,39 +280,21 @@ defmodule Livebook.LiveMarkdown.Import do
     build_notebook(elems, cells, sections, messages ++ [warning], output_counter)
   end
 
-  defp build_notebook(
-         [{:section_name, name} | elems],
-         cells,
-         sections,
-         messages,
-         output_counter
-       ) do
+  defp build_notebook([{:section_name, name} | elems], cells, sections, messages, output_counter) do
     {metadata, elems} = grab_metadata(elems)
     attrs = section_metadata_to_attrs(metadata)
     section = %{Notebook.Section.new() | name: name, cells: cells} |> Map.merge(attrs)
     build_notebook(elems, [], [section | sections], messages, output_counter)
   end
 
-  # If there are section-less cells, put them in a default one.
-  defp build_notebook(
-         [{:notebook_name, _name} | _] = elems,
-         cells,
-         sections,
-         messages,
-         output_counter
-       )
-       when cells != [] do
-    section = %{Notebook.Section.new() | cells: cells}
-    build_notebook(elems, [], [section | sections], messages, output_counter)
-  end
+  defp build_notebook(elems, cells, sections, messages, output_counter) do
+    # At this point we expect the heading, otherwise we use the default
+    {name, elems} =
+      case elems do
+        [{:notebook_name, name} | elems] -> {name, elems}
+        [] -> {nil, []}
+      end
 
-  # If there are section-less cells, put them in a default one.
-  defp build_notebook([] = elems, cells, sections, messages, output_counter) when cells != [] do
-    section = %{Notebook.Section.new() | cells: cells}
-    build_notebook(elems, [], [section | sections], messages, output_counter)
-  end
-
-  defp build_notebook([{:notebook_name, name} | elems], [], sections, messages, output_counter) do
     {metadata, elems} = grab_metadata(elems)
     # If there are any non-metadata comments we keep them
     {comments, elems} = grab_leading_comments(elems)
@@ -330,24 +311,34 @@ defmodule Livebook.LiveMarkdown.Import do
 
     attrs = notebook_metadata_to_attrs(metadata)
 
+    # We identify a single leading cell as the setup cell, in any
+    # other case all extra cells are put in a default section
+    {setup_cell, extra_sections} =
+      case cells do
+        [] -> {nil, []}
+        [%Notebook.Cell.Code{} = setup_cell] when name != nil -> {setup_cell, []}
+        extra_cells -> {nil, [%{Notebook.Section.new() | cells: extra_cells}]}
+      end
+
     notebook =
       %{
         Notebook.new()
-        | name: name,
-          sections: sections,
+        | sections: extra_sections ++ sections,
           leading_comments: comments,
           output_counter: output_counter
       }
+      |> maybe_put_name(name)
+      |> maybe_put_setup_cell(setup_cell)
       |> Map.merge(attrs)
 
     {notebook, messages}
   end
 
-  # If there's no explicit notebook heading, use the defaults.
-  defp build_notebook([], [], sections, messages, output_counter) do
-    notebook = %{Notebook.new() | sections: sections, output_counter: output_counter}
-    {notebook, messages}
-  end
+  defp maybe_put_name(notebook, nil), do: notebook
+  defp maybe_put_name(notebook, name), do: %{notebook | name: name}
+
+  defp maybe_put_setup_cell(notebook, nil), do: notebook
+  defp maybe_put_setup_cell(notebook, cell), do: Notebook.put_setup_cell(notebook, cell)
 
   # Takes optional leading metadata JSON object and returns {metadata, rest}.
   defp grab_metadata([{:metadata, metadata} | elems]) do

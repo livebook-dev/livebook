@@ -311,7 +311,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "formats code in Code cells" do
+  test "formats code in code cells" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -347,7 +347,7 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     assert expected_document == document
   end
 
-  test "does not format code in Code cells which have formatting disabled" do
+  test "does not format code in code cells which have formatting disabled" do
     notebook = %{
       Notebook.new()
       | name: "My Notebook",
@@ -998,6 +998,32 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     document = Export.notebook_to_livemd(notebook)
 
     assert expected_document == document
+  end
+
+  describe "setup cell" do
+    test "includes the leading setup cell when it has content" do
+      notebook =
+        %{
+          Notebook.new()
+          | name: "My Notebook",
+            sections: [%{Notebook.Section.new() | name: "Section 1"}]
+        }
+        |> Notebook.put_setup_cell(%{Notebook.Cell.new(:code) | source: "Mix.install([...])"})
+
+      expected_document = """
+      # My Notebook
+
+      ```elixir
+      Mix.install([...])
+      ```
+
+      ## Section 1
+      """
+
+      document = Export.notebook_to_livemd(notebook)
+
+      assert expected_document == document
+    end
   end
 
   defp spawn_widget_with_data(ref, data) do
