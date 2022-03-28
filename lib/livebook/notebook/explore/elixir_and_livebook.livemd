@@ -47,11 +47,12 @@ Sometimes you need a dependency or two and notebooks are no exception to this.
 In Livebook, you can use [`Mix.install/2`](https://hexdocs.pm/mix/Mix.html#install/2)
 to bring dependencies into your notebook! This approach is especially useful when
 sharing notebooks because everyone will be able to get the same dependencies.
-Let's try this out:
 
-**Note:** compiling dependencies may use a reasonable amount of memory. If you are
-hosting Livebook, make sure you have enough memory allocated to the Livebook
-instance, otherwise the command below will fail.
+Installing dependencies is a one-off setup operation and for those we use a special
+setup cell. Copy the code below, then scroll to the very top of the notebook,
+double-click on "Notebook dependencies and setup", add and run the code.
+
+<!-- livebook:{"force_markdown":true} -->
 
 ```elixir
 Mix.install([
@@ -59,9 +60,17 @@ Mix.install([
 ])
 ```
 
-[Kino](https://github.com/elixir-nx/kino) is a library that
-allows you to control parts of Livebook directly from the Elixir
-code. Let's use it to print a data table:
+**Note:** compiling dependencies may use a reasonable amount of memory. If you are
+hosting Livebook, make sure you have enough memory allocated to the Livebook
+instance, otherwise the command below will fail.
+
+<!-- livebook:{"break_markdown":true} -->
+
+### Kino
+
+The package we installed is [Kino](https://github.com/elixir-nx/kino) - a library
+that allows you to control parts of Livebook directly from the Elixir code. Let's
+use it to print a data table:
 
 ```elixir
 data = [
@@ -81,11 +90,6 @@ command goes beyond simply installing dependencies, it also caches
 them, consolidates protocols, and more. Check
 [its documentation](https://hexdocs.pm/mix/Mix.html#install/2)
 to learn more.
-
-Finally, keep in mind that `Mix.install/2` can be called only once
-per runtime, so if you need to modify the dependencies, you should
-go to the notebook runtime configuration and **reconnect** the current
-runtime. Let's learn how to do that.
 
 ## Runtimes
 
