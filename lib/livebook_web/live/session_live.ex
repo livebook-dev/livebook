@@ -435,7 +435,7 @@ defmodule LivebookWeb.SessionLive do
             <.labeled_text label="Type" text={runtime_type_label(@empty_default_runtime)} />
           </div>
           <div class="flex space-x-2">
-            <button class="button-base button-blue" phx-click="connect_default_runtime">
+            <button class="button-base button-blue" phx-click="start_default_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Connect</span>
             </button>
@@ -790,19 +790,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, maybe_restart_runtime(socket)}
   end
 
-  def handle_event("connect_default_runtime", %{}, socket) do
-    {runtime_module, args} = Livebook.Config.default_runtime()
+  def handle_event("start_default_runtime", %{}, socket) do
+    {:noreply, start_default_runtime(socket)}
+  end
 
-    socket =
-      case apply(runtime_module, :init, args) do
-        {:ok, runtime} ->
-          Session.connect_runtime(socket.assigns.session.pid, runtime)
-          socket
-
-        {:error, message} ->
-          put_flash(socket, :error, "Failed to setup runtime - #{message}")
-      end
-
+  def handle_event("setup_default_runtime", %{}, socket) do
+    socket = start_default_runtime(socket)
+    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
     {:noreply, socket}
   end
 
@@ -1324,6 +1318,19 @@ defmodule LivebookWeb.SessionLive do
   defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
   defp autofocus_cell_id(_notebook), do: nil
 
+  defp start_default_runtime(socket) do
+    {runtime_module, args} = Livebook.Config.default_runtime()
+
+    case apply(runtime_module, :init, args) do
+      {:ok, runtime} ->
+        Session.connect_runtime(socket.assigns.session.pid, runtime)
+        socket
+
+      {:error, message} ->
+        put_flash(socket, :error, "Failed to start runtime - #{message}")
+    end
+  end
+
   defp maybe_restart_runtime(%{private: %{data: %{runtime: nil}}} = socket), do: socket
 
   defp maybe_restart_runtime(%{private: %{data: data}} = socket) do
@@ -1333,7 +1340,7 @@ defmodule LivebookWeb.SessionLive do
         clear_flash(socket, :error)
 
       {:error, message} ->
-        put_flash(socket, :error, "Failed to setup runtime - #{message}")
+        put_flash(socket, :error, "Failed to start runtime - #{message}")
     end
   end
 

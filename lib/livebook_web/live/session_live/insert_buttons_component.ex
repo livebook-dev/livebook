@@ -40,9 +40,19 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
         </.menu>
         <%= cond do %>
           <% @runtime == nil -> %>
-            <span class="tooltip right" data-tooltip={"Please start a runtime (or run any cell)\nto see the available smart cells"}>
-              <button class="button-base button-small" disabled>+ Smart</button>
-            </span>
+            <button class="button-base button-small"
+              phx-click={
+                with_confirm(
+                  JS.push("setup_default_runtime"),
+                  title: "Setup runtime",
+                  description: ~s'''
+                  To see the available smart cells, you need to start a runtime.
+                  Do you want to start and setup the default one?
+                  ''',
+                  confirm_text: "Setup runtime",
+                  confirm_icon: "play-line"
+                )
+              }>+ Smart</button>
 
           <% @smart_cell_definitions == [] -> %>
             <span class="tooltip right" data-tooltip="No smart cells available">
