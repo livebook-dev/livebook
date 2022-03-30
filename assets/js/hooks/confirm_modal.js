@@ -10,6 +10,8 @@ const ConfirmModal = {
     const descriptionEl = this.el.querySelector("[data-description]");
     const confirmIconEl = this.el.querySelector("[data-confirm-icon]");
     const confirmTextEl = this.el.querySelector("[data-confirm-text]");
+    const confirmButtonEl = this.el.querySelector("[data-confirm-button]");
+    const actionsEl = this.el.querySelector("[data-actions]");
     const optOutEl = this.el.querySelector("[data-opt-out]");
     const optOutElCheckbox = optOutEl.querySelector("input");
 
@@ -18,8 +20,14 @@ const ConfirmModal = {
     this.handleConfirmRequest = (event) => {
       confirmEvent = event;
 
-      const { title, description, confirm_text, confirm_icon, opt_out_id } =
-        event.detail;
+      const {
+        title,
+        description,
+        confirm_text,
+        confirm_icon,
+        danger,
+        opt_out_id,
+      } = event.detail;
 
       if (opt_out_id && optedOutIds.includes(opt_out_id)) {
         liveSocket.execJS(event.target, event.detail.on_confirm);
@@ -33,6 +41,11 @@ const ConfirmModal = {
         } else {
           confirmIconEl.className = "hidden";
         }
+
+        confirmButtonEl.classList.toggle("button-red", danger);
+        confirmButtonEl.classList.toggle("button-blue", !danger);
+        actionsEl.classList.toggle("flex-row-reverse", danger);
+        actionsEl.classList.toggle("space-x-reverse", danger);
 
         optOutElCheckbox.checked = false;
         optOutEl.classList.toggle("hidden", !opt_out_id);

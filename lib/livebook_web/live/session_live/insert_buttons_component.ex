@@ -50,7 +50,8 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                   Do you want to start and setup the default one?
                   ''',
                   confirm_text: "Setup runtime",
-                  confirm_icon: "play-line"
+                  confirm_icon: "play-line",
+                  danger: false
                 )
               }>+ Smart</button>
 
@@ -94,7 +95,8 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       Do you want to add it as a dependency and restart the runtime?
       ''',
       confirm_text: "Add and restart",
-      confirm_icon: "add-line"
+      confirm_icon: "add-line",
+      danger: false
     )
   end
 
