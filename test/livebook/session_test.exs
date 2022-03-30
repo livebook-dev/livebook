@@ -134,6 +134,75 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "add_smart_cell_dependencies/2" do
+    test "applies source change to the setup cell to include the smart cell dependency",
+         %{session: session} do
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      Session.connect_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions,
+         [
+           %{
+             kind: "text",
+             name: "Text",
+             requirement: %{name: "Kino", dependencies: [{:kino, "~> 0.5.0"}]}
+           }
+         ]}
+      )
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+      Session.add_smart_cell_dependencies(session.pid, "text")
+
+      session_pid = session.pid
+      assert_receive {:operation, {:apply_cell_delta, ^session_pid, "setup", :primary, _delta, 1}}
+
+      assert %{
+               notebook: %{
+                 setup_section: %{
+                   cells: [
+                     %{
+                       source: """
+                       Mix.install([
+                         {:kino, "~> 0.5.0"}
+                       ])\
+                       """
+                     }
+                   ]
+                 }
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "broadcasts an error if modifying the setup source fails" do
+      notebook = Notebook.new() |> Notebook.update_cell("setup", &%{&1 | source: "[,]"})
+      session = start_session(notebook: notebook)
+
+      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      Session.connect_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions,
+         [
+           %{
+             kind: "text",
+             name: "Text",
+             requirement: %{name: "Kino", dependencies: [{:kino, "~> 0.5.0"}]}
+           }
+         ]}
+      )
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+      Session.add_smart_cell_dependencies(session.pid, "text")
+
+      assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
+    end
+  end
+
   describe "queue_cell_evaluation/2" do
     test "triggers evaluation and sends update operation once it finishes",
          %{session: session} do
@@ -577,7 +646,10 @@ defmodule Livebook.SessionTest do
       runtime = Livebook.Runtime.NoopRuntime.new()
       Session.connect_runtime(session.pid, runtime)
 
-      send(session.pid, {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text"}]})
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
@@ -601,7 +673,10 @@ defmodule Livebook.SessionTest do
       runtime = Livebook.Runtime.NoopRuntime.new()
       Session.connect_runtime(session.pid, runtime)
 
-      send(session.pid, {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text"}]})
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
 
       server_pid = self()
 

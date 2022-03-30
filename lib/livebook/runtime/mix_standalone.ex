@@ -56,7 +56,7 @@ defmodule Livebook.Runtime.MixStandalone do
              :ok <- run_mix_task("compile", project_path, output_emitter),
              eval = child_node_eval_string(),
              port = start_elixir_mix_node(elixir_path, child_node, eval, argv, project_path),
-             {:ok, server_pid} <- parent_init_sequence(child_node, port, output_emitter) do
+             {:ok, server_pid} <- parent_init_sequence(child_node, port, emitter: output_emitter) do
           runtime = %__MODULE__{
             node: child_node,
             server_pid: server_pid,
@@ -187,5 +187,9 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
 
   def stop_smart_cell(runtime, ref) do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+  end
+
+  def add_dependencies(_runtime, code, dependencies) do
+    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
   end
 end

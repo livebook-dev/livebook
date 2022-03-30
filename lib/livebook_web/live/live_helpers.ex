@@ -99,16 +99,19 @@ defmodule LivebookWeb.LiveHelpers do
             Don't show this message again
           </span>
         </label>
-        <div class="mt-8 flex justify-end space-x-2">
-          <button class="button-base button-red"
-            phx-click={hide_modal(@id) |> JS.dispatch("lb:confirm", to: "##{@id}")}>
-            <i aria-hidden="true" data-confirm-icon></i>
-            <span data-confirm-text></span>
-          </button>
-          <button class="button-base button-outlined-gray"
-            phx-click={hide_modal(@id)}>
-            Cancel
-          </button>
+        <div class="mt-8 flex justify-end">
+          <div class="flex space-x-2" data-actions>
+            <button class="button-base button-outlined-gray"
+              phx-click={hide_modal(@id)}>
+              Cancel
+            </button>
+            <button class="button-base"
+              phx-click={hide_modal(@id) |> JS.dispatch("lb:confirm", to: "##{@id}")}
+              data-confirm-button>
+              <i aria-hidden="true" data-confirm-icon></i>
+              <span data-confirm-text></span>
+            </button>
+          </div>
         </div>
       </div>
     </.modal>
@@ -129,6 +132,8 @@ defmodule LivebookWeb.LiveHelpers do
     * `:confirm_text` - text of the confirm button. Defaults to `"Yes"`
 
     * `:confirm_icon` - icon in the confirm button. Optional
+
+    * `:danger` - whether the action is destructive or regular. Defaults to `true`
 
     * `:opt_out_id` - enables the "Don't show this message again"
       checkbox. Once checked by the user, the confirmation with this
@@ -154,7 +159,14 @@ defmodule LivebookWeb.LiveHelpers do
     opts =
       Keyword.validate!(
         opts,
-        [:confirm_icon, :description, :opt_out_id, title: "Are you sure?", confirm_text: "Yes"]
+        [
+          :confirm_icon,
+          :description,
+          :opt_out_id,
+          title: "Are you sure?",
+          confirm_text: "Yes",
+          danger: true
+        ]
       )
 
     JS.dispatch(js, "lb:confirm_request",
@@ -164,6 +176,7 @@ defmodule LivebookWeb.LiveHelpers do
         description: Keyword.fetch!(opts, :description),
         confirm_text: opts[:confirm_text],
         confirm_icon: opts[:confirm_icon],
+        danger: opts[:danger],
         opt_out_id: opts[:opt_out_id]
       }
     )

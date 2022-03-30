@@ -34,7 +34,11 @@ defmodule Livebook.Runtime.Embedded do
     # as we already do it for the Livebook application globally
     # (see Livebook.Application.start/2).
 
-    server_pid = ErlDist.initialize(node(), unload_modules_on_termination: false)
+    server_pid =
+      ErlDist.initialize(node(),
+        node_manager_opts: [unload_modules_on_termination: false]
+      )
+
     {:ok, %__MODULE__{node: node(), server_pid: server_pid}}
   end
 end
@@ -93,5 +97,9 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
 
   def stop_smart_cell(runtime, ref) do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+  end
+
+  def add_dependencies(_runtime, code, dependencies) do
+    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
   end
 end

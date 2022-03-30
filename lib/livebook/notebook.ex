@@ -64,7 +64,7 @@ defmodule Livebook.Notebook do
   """
   @spec put_setup_cell(t(), Cell.Code.t()) :: t()
   def put_setup_cell(notebook, %Cell.Code{} = cell) do
-    put_in(notebook.setup_section.cells, [%{cell | id: "setup"}])
+    put_in(notebook.setup_section.cells, [%{cell | id: Cell.setup_cell_id()}])
   end
 
   @doc """

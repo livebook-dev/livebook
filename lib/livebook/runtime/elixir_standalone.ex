@@ -16,6 +16,27 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid()
         }
 
+  kino_dep = {:kino, github: "livebook-dev/kino"}
+  vega_lite_dep = {:vega_lite, "~> 0.1.3"}
+
+  @extra_smart_cell_definitions [
+    %{
+      kind: "Elixir.Kino.SmartCell.DBConnection",
+      name: "Database connection",
+      requirement: %{name: "Kino", dependencies: [kino_dep]}
+    },
+    %{
+      kind: "Elixir.Kino.SmartCell.SQL",
+      name: "SQL query",
+      requirement: %{name: "Kino", dependencies: [kino_dep]}
+    },
+    %{
+      kind: "Elixir.Kino.SmartCell.ChartBuilder",
+      name: "Chart builder",
+      requirement: %{name: "Kino", dependencies: [kino_dep, vega_lite_dep]}
+    }
+  ]
+
   @doc """
   Starts a new Elixir node (i.e. a system process) and initializes
   it with Livebook-specific modules and processes.
@@ -36,9 +57,13 @@ defmodule Livebook.Runtime.ElixirStandalone do
     Utils.temporarily_register(self(), child_node, fn ->
       argv = [parent_node]
 
+      init_opts = [
+        runtime_server_opts: [extra_smart_cell_definitions: @extra_smart_cell_definitions]
+      ]
+
       with {:ok, elixir_path} <- find_elixir_executable(),
            port = start_elixir_node(elixir_path, child_node, child_node_eval_string(), argv),
-           {:ok, server_pid} <- parent_init_sequence(child_node, port) do
+           {:ok, server_pid} <- parent_init_sequence(child_node, port, init_opts: init_opts) do
         runtime = %__MODULE__{
           node: child_node,
           server_pid: server_pid
@@ -120,5 +145,9 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
 
   def stop_smart_cell(runtime, ref) do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+  end
+
+  def add_dependencies(_runtime, code, dependencies) do
+    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
   end
 end

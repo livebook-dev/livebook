@@ -311,6 +311,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends smart cell dependency addition request to the server.
+  """
+  @spec add_smart_cell_dependencies(pid(), String.t()) :: :ok
+  def add_smart_cell_dependencies(pid, kind) do
+    GenServer.cast(pid, {:add_smart_cell_dependencies, self(), kind})
+  end
+
+  @doc """
   Sends cell evaluation request to the server.
   """
   @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
@@ -728,6 +736,16 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_cast({:add_smart_cell_dependencies, _client_pid, kind}, state) do
+    state =
+      case Enum.find(state.data.smart_cell_definitions, &(&1.kind == kind)) do
+        %{requirement: %{dependencies: dependencies}} -> add_dependencies(state, dependencies)
+        _ -> state
+      end
+
+    {:noreply, state}
+  end
+
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
     operation = {:queue_cells_evaluation, client_pid, [cell_id]}
     {:noreply, handle_operation(state, operation)}
@@ -1086,6 +1104,35 @@ defmodule Livebook.Session do
   defp do_connect_runtime(runtime, state) do
     runtime_monitor_ref = Runtime.connect(runtime, runtime_broadcast_to: state.worker_pid)
     %{state | runtime_monitor_ref: runtime_monitor_ref}
+  end
+
+  defp add_dependencies(%{data: %{runtime: nil}} = state, _dependencies), do: state
+
+  defp add_dependencies(state, dependencies) do
+    {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
+    source = cell.source
+
+    case Runtime.add_dependencies(state.data.runtime, source, dependencies) do
+      {:ok, ^source} ->
+        state
+
+      {:ok, new_source} ->
+        delta = Livebook.JSInterop.diff(cell.source, new_source)
+        revision = state.data.cell_infos[cell.id].sources.primary.revision + 1
+
+        handle_operation(
+          state,
+          {:apply_cell_delta, self(), cell.id, :primary, delta, revision}
+        )
+
+      {:error, message} ->
+        broadcast_error(
+          state.session_id,
+          "failed to add dependencies to the setup cell, reason:\n\n#{message}"
+        )
+
+        state
+    end
   end
 
   # Given any operation on `Livebook.Session.Data`, the process

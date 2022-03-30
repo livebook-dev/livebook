@@ -28,8 +28,11 @@ defmodule Livebook.Runtime.Attached do
 
     case Node.ping(node) do
       :pong ->
-        opts = [parent_node: node()]
-        server_pid = Livebook.Runtime.ErlDist.initialize(node, opts)
+        server_pid =
+          Livebook.Runtime.ErlDist.initialize(node,
+            node_manager_opts: [parent_node: node()]
+          )
+
         {:ok, %__MODULE__{node: node, cookie: cookie, server_pid: server_pid}}
 
       :pang ->
@@ -95,5 +98,9 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
 
   def stop_smart_cell(runtime, ref) do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+  end
+
+  def add_dependencies(_runtime, code, dependencies) do
+    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
   end
 end

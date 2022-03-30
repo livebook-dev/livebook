@@ -12,6 +12,7 @@ defmodule Livebook.Session.DataTest do
 
   @eval_resp {:ok, [1, 2, 3]}
   @eval_meta %{evaluation_time_ms: 10}
+  @smart_cell_definitions [%{kind: "text", name: "Text", requirement: nil}]
 
   describe "new/1" do
     test "called with no arguments defaults to a blank notebook" do
@@ -440,7 +441,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]}
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions}
         ])
 
       operation = {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
@@ -457,7 +458,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil}
         ])
 
@@ -796,7 +797,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, self(), "c1", Delta.new(), %{}, nil}
         ])
@@ -815,7 +816,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
           evaluate_cells_operations(["setup"]),
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", @eval_resp, @eval_meta}
@@ -907,7 +908,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:delete_cell, self(), "c1"},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]}
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions}
         ])
 
       operation = {:restore_cell, self(), "c1"}
@@ -2324,7 +2325,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
           evaluate_cells_operations(["setup"]),
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -2646,7 +2647,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
 
@@ -2665,7 +2666,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
 
@@ -2692,7 +2693,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, self(), "c1", delta1, %{}, nil}
         ])
@@ -2719,7 +2720,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:set_runtime, self(), NoopRuntime.new()},
           evaluate_cells_operations(["setup"]),
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, self(), "c1", Delta.new(), %{}, nil},
           {:queue_cells_evaluation, self(), ["c1"]},
@@ -2992,18 +2993,6 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns an error given non-joined client pid" do
-      data =
-        data_after_operations!([
-          {:insert_section, self(), 0, "s1"},
-          {:insert_cell, self(), "s1", 0, :code, "c1", %{}}
-        ])
-
-      delta = Delta.new() |> Delta.insert("cats")
-      operation = {:apply_cell_delta, self(), "c1", :primary, delta, 1}
-      assert :error = Data.apply_operation(data, operation)
-    end
-
     test "returns an error given invalid revision" do
       data =
         data_after_operations!([
@@ -3018,10 +3007,27 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
+    test "returns an error given non-joined client pid and older revision" do
+      client1_pid = IEx.Helpers.pid(0, 0, 0)
+
+      delta1 = Delta.new() |> Delta.insert("cats")
+
+      data =
+        data_after_operations!([
+          {:client_join, client1_pid, User.new()},
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:apply_cell_delta, client1_pid, "c1", :primary, delta1, 1}
+        ])
+
+      delta = Delta.new() |> Delta.insert("cats")
+      operation = {:apply_cell_delta, self(), "c1", :primary, delta, 1}
+      assert :error = Data.apply_operation(data, operation)
+    end
+
     test "updates cell source according to the given delta" do
       data =
         data_after_operations!([
-          {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}}
         ])
@@ -3141,7 +3147,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 1, :smart, "c1", %{kind: "text"}},
           {:set_runtime, self(), NoopRuntime.new()},
-          {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]},
+          {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c1", Delta.new(), %{},
            %{language: "text", placement: :bottom, source: ""}}
         ])
@@ -3436,7 +3442,7 @@ defmodule Livebook.Session.DataTest do
           {:set_runtime, self(), NoopRuntime.new()}
         ])
 
-      operation = {:set_smart_cell_definitions, self(), [%{kind: "text", name: "Text"}]}
+      operation = {:set_smart_cell_definitions, self(), @smart_cell_definitions}
 
       assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}}, _actions} =
                Data.apply_operation(data, operation)
