@@ -1319,8 +1319,8 @@ defmodule Livebook.Session.Data do
       %{sources: _} = info ->
         update_in(
           info.sources,
-          &Map.map(&1, fn {_, source_info} ->
-            put_in(source_info.revision_by_client_pid[client_pid], source_info.revision)
+          &Map.new(&1, fn {key, source_info} ->
+            {key, put_in(source_info.revision_by_client_pid[client_pid], source_info.revision)}
           end)
         )
 
@@ -1345,9 +1345,9 @@ defmodule Livebook.Session.Data do
       %{sources: _} = info ->
         update_in(
           info.sources,
-          &Map.map(&1, fn {_, source_info} ->
+          &Map.new(&1, fn {key, source_info} ->
             {_, source_info} = pop_in(source_info.revision_by_client_pid[client_pid])
-            purge_deltas(source_info)
+            {key, purge_deltas(source_info)}
           end)
         )
 

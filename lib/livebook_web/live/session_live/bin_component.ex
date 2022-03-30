@@ -51,7 +51,7 @@ defmodule LivebookWeb.SessionLive.BinComponent do
           <% end %>
         </div>
         <%= cond do %>
-          <%= @bin_entries == [] -> %>
+          <% @bin_entries == [] -> %>
             <div class="p-5 py-24 flex flex-col gap-3 space-x-4 items-center">
               <div>
                 <.remix_icon icon="delete-bin-6-line" class="text-gray-700 text-xl bg-gray-100 p-3 rounded-full" />
