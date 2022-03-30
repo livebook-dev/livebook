@@ -41,12 +41,12 @@ if Mix.target() == :app do
 
       wx = :wx.new()
       frame = :wxFrame.new(wx, -1, app_name, size: size)
+      :wxFrame.show(frame)
 
       if os == :macos do
         fixup_macos_menubar(frame, app_name)
       end
 
-      :wxFrame.show(frame)
       :wxFrame.connect(frame, :command_menu_selected, skip: true)
       :wxFrame.connect(frame, :close_window, skip: true)
 
@@ -122,7 +122,14 @@ if Mix.target() == :app do
     defp fixup_macos_menubar(frame, app_name) do
       menubar = :wxMenuBar.new()
       :wxFrame.setMenuBar(frame, menubar)
+
       menu = :wxMenuBar.oSXGetAppleMenu(menubar)
+
+      # without this, for some reason setting the title later will make it non-bold
+      :wxMenu.getTitle(menu)
+
+      # this is useful in dev, not needed when bundled in .app
+      :wxMenu.setTitle(menu, app_name)
 
       menu
       |> :wxMenu.findItem(@wx_id_osx_hide)
