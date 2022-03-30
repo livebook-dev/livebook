@@ -134,7 +134,7 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "add_smart_cell_dependency/2" do
+  describe "add_smart_cell_dependencies/2" do
     test "applies source change to the setup cell to include the smart cell dependency",
          %{session: session} do
       {:ok, runtime} = Livebook.Runtime.Embedded.init()
@@ -147,14 +147,14 @@ defmodule Livebook.SessionTest do
            %{
              kind: "text",
              name: "Text",
-             requirement: %{name: "Kino", dependency: {:kino, "~> 0.5.0"}}
+             requirement: %{name: "Kino", dependencies: [{:kino, "~> 0.5.0"}]}
            }
          ]}
       )
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
-      Session.add_smart_cell_dependency(session.pid, "text")
+      Session.add_smart_cell_dependencies(session.pid, "text")
 
       session_pid = session.pid
       assert_receive {:operation, {:apply_cell_delta, ^session_pid, "setup", :primary, _delta, 1}}
@@ -190,16 +190,16 @@ defmodule Livebook.SessionTest do
            %{
              kind: "text",
              name: "Text",
-             requirement: %{name: "Kino", dependency: {:kino, "~> 0.5.0"}}
+             requirement: %{name: "Kino", dependencies: [{:kino, "~> 0.5.0"}]}
            }
          ]}
       )
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
-      Session.add_smart_cell_dependency(session.pid, "text")
+      Session.add_smart_cell_dependencies(session.pid, "text")
 
-      assert_receive {:error, "failed to add dependency to the setup cell, reason:" <> _}
+      assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
     end
   end
 

@@ -3,11 +3,11 @@ defmodule Livebook.Runtime.CodeTest do
 
   alias Livebook.Runtime
 
-  @dep {:kino, "~> 0.5.0"}
+  @kino {:kino, "~> 0.5.0"}
 
-  describe "add_mix_dependency/2" do
+  describe "add_mix_deps/2" do
     test "prepends Mix.install/2 call if there is none" do
-      assert Runtime.Code.add_mix_dependency("", @dep) ==
+      assert Runtime.Code.add_mix_deps("", [@kino]) ==
                {:ok,
                 """
                 Mix.install([
@@ -15,7 +15,7 @@ defmodule Livebook.Runtime.CodeTest do
                 ])\
                 """}
 
-      assert Runtime.Code.add_mix_dependency("# Comment", @dep) ==
+      assert Runtime.Code.add_mix_deps("# Comment", [@kino]) ==
                {:ok,
                 """
                 Mix.install([
@@ -25,7 +25,7 @@ defmodule Livebook.Runtime.CodeTest do
                 # Comment\
                 """}
 
-      assert Runtime.Code.add_mix_dependency(
+      assert Runtime.Code.add_mix_deps(
                """
                # Outer comment
                for key <- [:key1, :key2] do
@@ -35,7 +35,7 @@ defmodule Livebook.Runtime.CodeTest do
 
                # Final comment\
                """,
-               @dep
+               [@kino]
              ) ==
                {:ok,
                 """
@@ -54,13 +54,13 @@ defmodule Livebook.Runtime.CodeTest do
     end
 
     test "appends dependency to an existing Mix.install/2 call" do
-      assert Runtime.Code.add_mix_dependency(
+      assert Runtime.Code.add_mix_deps(
                """
                Mix.install([
                  {:req, "~> 0.2.0"}
                ])\
                """,
-               @dep
+               [@kino]
              ) ==
                {:ok,
                 """
@@ -70,7 +70,7 @@ defmodule Livebook.Runtime.CodeTest do
                 ])\
                 """}
 
-      assert Runtime.Code.add_mix_dependency(
+      assert Runtime.Code.add_mix_deps(
                """
                # Outer comment
                Mix.install([
@@ -82,7 +82,7 @@ defmodule Livebook.Runtime.CodeTest do
                # Result
                :ok\
                """,
-               @dep
+               [@kino]
              ) ==
                {:ok,
                 """
@@ -106,7 +106,7 @@ defmodule Livebook.Runtime.CodeTest do
       ])\
       """
 
-      assert Runtime.Code.add_mix_dependency(code, @dep) == {:ok, code}
+      assert Runtime.Code.add_mix_deps(code, [@kino]) == {:ok, code}
 
       code = """
       Mix.install([
@@ -114,16 +114,43 @@ defmodule Livebook.Runtime.CodeTest do
       ])\
       """
 
-      assert Runtime.Code.add_mix_dependency(code, @dep) == {:ok, code}
+      assert Runtime.Code.add_mix_deps(code, [@kino]) == {:ok, code}
+    end
+
+    test "given multiple dependencies adds the missing ones" do
+      assert Runtime.Code.add_mix_deps(
+               """
+               Mix.install([
+                 {:kino, "~> 0.5.2"}
+               ])\
+               """,
+               [{:vega_lite, "~> 0.1.3"}, {:kino, "~> 0.5.0"}, {:req, "~> 0.2.0"}]
+             ) ==
+               {:ok,
+                """
+                Mix.install([
+                  {:kino, "~> 0.5.2"},
+                  {:vega_lite, "~> 0.1.3"},
+                  {:req, "~> 0.2.0"}
+                ])\
+                """}
+
+      code = """
+      Mix.install([
+        {:kino, "~> 0.5.2", runtime: false}
+      ])\
+      """
+
+      assert Runtime.Code.add_mix_deps(code, [@kino]) == {:ok, code}
     end
 
     test "returns an error if the code has a syntax error" do
-      assert Runtime.Code.add_mix_dependency(
+      assert Runtime.Code.add_mix_deps(
                """
                # Comment
                [,1]
                """,
-               @dep
+               [@kino]
              ) ==
                {:error,
                 """

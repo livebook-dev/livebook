@@ -99,7 +99,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def add_dependency(_runtime, code, dependency) do
-    Livebook.Runtime.Code.add_mix_dependency(code, dependency)
+  def add_dependencies(_runtime, code, dependencies) do
+    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
   end
 end

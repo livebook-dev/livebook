@@ -22,17 +22,17 @@ defmodule Livebook.Runtime.ElixirStandalone do
     %{
       kind: "Elixir.Kino.SmartCell.DBConnection",
       name: "Database connection",
-      requirement: %{name: "Kino", dependency: kino_dep}
+      requirement: %{name: "Kino", dependencies: [kino_dep]}
     },
     %{
       kind: "Elixir.Kino.SmartCell.SQL",
       name: "SQL query",
-      requirement: %{name: "Kino", dependency: kino_dep}
+      requirement: %{name: "Kino", dependencies: [kino_dep]}
     },
     %{
       kind: "Elixir.Kino.SmartCell.ChartBuilder",
       name: "Chart builder",
-      requirement: %{name: "Kino", dependency: kino_dep}
+      requirement: %{name: "Kino", dependencies: [kino_dep]}
     }
   ]
 
@@ -146,7 +146,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def add_dependency(_runtime, code, dependency) do
-    Livebook.Runtime.Code.add_mix_dependency(code, dependency)
+  def add_dependencies(_runtime, code, dependencies) do
+    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
   end
 end

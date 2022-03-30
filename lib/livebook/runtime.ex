@@ -189,13 +189,13 @@ defprotocol Livebook.Runtime do
     * `{:runtime_smart_cell_definitions, list(smart_cell_definition())}`
 
   Additionally, the runtime may report extra definitions that require
-  installing an external package, as described by `:requirement`.
-  Also see `add_dependency/3`.
+  installing external packages, as described by `:requirement`. Also
+  see `add_dependencies/3`.
   """
   @type smart_cell_definition :: %{
           kind: String.t(),
           name: String.t(),
-          requirement: nil | %{name: String.t(), dependency: dependency()}
+          requirement: nil | %{name: String.t(), dependencies: list(dependency())}
         }
 
   @type dependency :: term()
@@ -406,8 +406,9 @@ defprotocol Livebook.Runtime do
   def stop_smart_cell(runtime, ref)
 
   @doc """
-  Updates the given source code to install the given dependency.
+  Updates the given source code to install the given dependencies.
   """
-  @spec add_dependency(t(), String.t(), dependency()) :: {:ok, String.t()} | {:error, String.t()}
-  def add_dependency(runtime, code, dependency)
+  @spec add_dependencies(t(), String.t(), list(dependency())) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def add_dependencies(runtime, code, dependencies)
 end

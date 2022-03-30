@@ -76,7 +76,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
 
   defp on_smart_cell_click(%{requirement: %{}} = definition, section_id, cell_id) do
     with_confirm(
-      JS.push("add_smart_cell_dependency", value: %{kind: definition.kind})
+      JS.push("add_smart_cell_dependencies", value: %{kind: definition.kind})
       |> insert_smart_cell(definition, section_id, cell_id),
       title: "Add package",
       description: ~s'''

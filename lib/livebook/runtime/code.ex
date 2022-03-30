@@ -3,12 +3,12 @@ defmodule Livebook.Runtime.Code do
 
   @doc """
   Finds or adds a `Mix.install/2` call to `code` and modifies it to
-  include the given Mix dependency.
+  include the given Mix deps.
   """
-  @spec add_mix_dependency(String.t(), tuple()) :: {:ok, String.t()} | {:error, String.t()}
-  def add_mix_dependency(code, dependency) do
+  @spec add_mix_deps(String.t(), list(tuple())) :: {:ok, String.t()} | {:error, String.t()}
+  def add_mix_deps(code, deps) do
     with {:ok, ast, comments} <- string_to_quoted_with_comments(code),
-         {:ok, ast} <- insert_dependency(ast, dependency),
+         {:ok, ast} <- insert_deps(ast, deps),
          do: {:ok, format(ast, comments)}
   end
 
@@ -27,14 +27,13 @@ defmodule Livebook.Runtime.Code do
     end
   end
 
-  defp insert_dependency(ast, dependency) do
-    dep_name = elem(dependency, 0)
-    dep_node = {:__block__, [], [Macro.escape(dependency)]}
+  defp insert_deps(ast, deps) do
+    with :error <- update_install(ast, deps) do
+      dep_nodes = Enum.map(deps, &dep_node/1)
 
-    with :error <- update_install(ast, dep_name, dep_node) do
       install_node =
         {{:., [], [{:__aliases__, [], [:Mix]}, :install]}, [],
-         [{:__block__, [newlines: 1], [[dep_node]]}]}
+         [{:__block__, [newlines: 1], [dep_nodes]}]}
 
       {:ok, prepend_node(ast, install_node)}
     end
@@ -57,42 +56,44 @@ defmodule Livebook.Runtime.Code do
 
   defp update_install(
          {{:., _, [{:__aliases__, _, [:Mix]}, :install]} = target, meta1,
-          [{:__block__, meta2, [deps]} | args]},
-         dep_name,
-         dep_node
+          [{:__block__, meta2, [dep_nodes]} | args]},
+         deps
        ) do
-    if has_dep?(deps, dep_name) do
-      {:ok, {target, meta1, [{:__block__, meta2, [deps]} | args]}}
+    new_dep_nodes = for dep <- deps, not has_dep?(dep_nodes, dep), do: dep_node(dep)
+    {:ok, {target, meta1, [{:__block__, meta2, [dep_nodes ++ new_dep_nodes]} | args]}}
+  end
+
+  defp update_install({:__block__, meta, nodes}, deps) do
+    {nodes, found} =
+      Enum.map_reduce(nodes, _found = false, fn
+        node, false ->
+          case update_install(node, deps) do
+            {:ok, node} -> {node, true}
+            _ -> {node, false}
+          end
+
+        node, true ->
+          {node, true}
+      end)
+
+    if found do
+      {:ok, {:__block__, meta, nodes}}
     else
-      {:ok, {target, meta1, [{:__block__, meta2, [deps ++ [dep_node]]} | args]}}
+      :error
     end
   end
 
-  defp update_install({:__block__, meta, nodes}, dep_name, dep_node) do
-    nodes
-    |> Enum.map_reduce(:error, fn
-      node, :error ->
-        case update_install(node, dep_name, dep_node) do
-          {:ok, node} -> {node, :ok}
-          error -> {node, error}
-        end
+  defp update_install(_node, _deps), do: :error
 
-      node, result ->
-        {node, result}
-    end)
-    |> case do
-      {nodes, :ok} -> {:ok, {:__block__, meta, nodes}}
-      {_, error} -> error
-    end
-  end
+  defp has_dep?(deps, dep) do
+    name = elem(dep, 0)
 
-  defp update_install(_node, _dep_name, _dep_node), do: :error
-
-  defp has_dep?(deps, name) do
     Enum.any?(deps, fn
       {:__block__, _, [{{:__block__, _, [^name]}, _}]} -> true
       {:{}, _, [{:__block__, _, [^name]} | _]} -> true
       _ -> false
     end)
   end
+
+  defp dep_node(dep), do: {:__block__, [], [Macro.escape(dep)]}
 end

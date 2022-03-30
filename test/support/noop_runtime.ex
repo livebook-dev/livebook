@@ -28,6 +28,6 @@ defmodule Livebook.Runtime.NoopRuntime do
     def start_smart_cell(_, _, _, _, _), do: :ok
     def set_smart_cell_base_locator(_, _, _), do: :ok
     def stop_smart_cell(_, _), do: :ok
-    def add_dependency(_, code, _), do: {:ok, code}
+    def add_dependencies(_, code, _), do: {:ok, code}
   end
 end

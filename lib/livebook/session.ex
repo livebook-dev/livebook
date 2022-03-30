@@ -313,9 +313,9 @@ defmodule Livebook.Session do
   @doc """
   Sends smart cell dependency addition request to the server.
   """
-  @spec add_smart_cell_dependency(pid(), String.t()) :: :ok
-  def add_smart_cell_dependency(pid, kind) do
-    GenServer.cast(pid, {:add_smart_cell_dependency, self(), kind})
+  @spec add_smart_cell_dependencies(pid(), String.t()) :: :ok
+  def add_smart_cell_dependencies(pid, kind) do
+    GenServer.cast(pid, {:add_smart_cell_dependencies, self(), kind})
   end
 
   @doc """
@@ -736,10 +736,10 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_cast({:add_smart_cell_dependency, _client_pid, kind}, state) do
+  def handle_cast({:add_smart_cell_dependencies, _client_pid, kind}, state) do
     state =
       case Enum.find(state.data.smart_cell_definitions, &(&1.kind == kind)) do
-        %{requirement: %{dependency: dependency}} -> add_dependency(state, dependency)
+        %{requirement: %{dependencies: dependencies}} -> add_dependencies(state, dependencies)
         _ -> state
       end
 
@@ -1106,13 +1106,13 @@ defmodule Livebook.Session do
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
 
-  defp add_dependency(%{data: %{runtime: nil}} = state, _dependency), do: state
+  defp add_dependencies(%{data: %{runtime: nil}} = state, _dependencies), do: state
 
-  defp add_dependency(state, dependency) do
+  defp add_dependencies(state, dependencies) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
     source = cell.source
 
-    case Runtime.add_dependency(state.data.runtime, source, dependency) do
+    case Runtime.add_dependencies(state.data.runtime, source, dependencies) do
       {:ok, ^source} ->
         state
 
@@ -1128,7 +1128,7 @@ defmodule Livebook.Session do
       {:error, message} ->
         broadcast_error(
           state.session_id,
-          "failed to add dependency to the setup cell, reason:\n\n#{message}"
+          "failed to add dependencies to the setup cell, reason:\n\n#{message}"
         )
 
         state
