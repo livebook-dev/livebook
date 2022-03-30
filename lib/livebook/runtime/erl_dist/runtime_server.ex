@@ -570,9 +570,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   defp scan_binding_after_evaluation(state, locator) do
     update_in(state.smart_cells, fn smart_cells ->
-      Map.map(smart_cells, fn
-        {ref, %{base_locator: ^locator} = info} -> scan_binding_async(ref, info, state)
-        {_, info} -> info
+      Map.new(smart_cells, fn
+        {ref, %{base_locator: ^locator} = info} ->
+          {ref, scan_binding_async(ref, info, state)}
+
+        other ->
+          other
       end)
     end)
   end
