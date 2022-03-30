@@ -17,6 +17,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
         }
 
   kino_dep = {:kino, github: "livebook-dev/kino"}
+  vega_lite_dep = {:vega_lite, "~> 0.1.3"}
 
   @extra_smart_cell_definitions [
     %{
@@ -32,7 +33,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
     %{
       kind: "Elixir.Kino.SmartCell.ChartBuilder",
       name: "Chart builder",
-      requirement: %{name: "Kino", dependencies: [kino_dep]}
+      requirement: %{name: "Kino", dependencies: [kino_dep, vega_lite_dep]}
     }
   ]
 
