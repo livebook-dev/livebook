@@ -723,8 +723,12 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event("add_smart_cell_dependencies", %{"kind" => kind}, socket) do
     Session.add_smart_cell_dependencies(socket.assigns.session.pid, kind)
-    socket = maybe_restart_runtime(socket)
-    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+
+    {status, socket} = maybe_restart_runtime(socket)
+
+    if status == :ok do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    end
 
     {:noreply, socket}
   end
@@ -732,16 +736,18 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     data = socket.private.data
 
-    socket =
+    {status, socket} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
            true <- Cell.setup?(cell),
            false <- data.cell_infos[cell.id].eval.validity == :fresh do
         maybe_restart_runtime(socket)
       else
-        _ -> socket
+        _ -> {:ok, socket}
       end
 
-    Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
+    if status == :ok do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, cell_id)
+    end
 
     {:noreply, socket}
   end
@@ -787,16 +793,22 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("restart_runtime", %{}, socket) do
-    {:noreply, maybe_restart_runtime(socket)}
+    {_, socket} = maybe_restart_runtime(socket)
+    {:noreply, socket}
   end
 
   def handle_event("start_default_runtime", %{}, socket) do
-    {:noreply, start_default_runtime(socket)}
+    {_, socket} = start_default_runtime(socket)
+    {:noreply, socket}
   end
 
   def handle_event("setup_default_runtime", %{}, socket) do
-    socket = start_default_runtime(socket)
-    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    {status, socket} = start_default_runtime(socket)
+
+    if status == :ok do
+      Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+    end
+
     {:noreply, socket}
   end
 
@@ -1324,23 +1336,23 @@ defmodule LivebookWeb.SessionLive do
     case apply(runtime_module, :init, args) do
       {:ok, runtime} ->
         Session.connect_runtime(socket.assigns.session.pid, runtime)
-        socket
+        {:ok, socket}
 
       {:error, message} ->
-        put_flash(socket, :error, "Failed to start runtime - #{message}")
+        {:error, put_flash(socket, :error, "Failed to start runtime - #{message}")}
     end
   end
 
-  defp maybe_restart_runtime(%{private: %{data: %{runtime: nil}}} = socket), do: socket
+  defp maybe_restart_runtime(%{private: %{data: %{runtime: nil}}} = socket), do: {:ok, socket}
 
   defp maybe_restart_runtime(%{private: %{data: data}} = socket) do
     case Runtime.duplicate(data.runtime) do
       {:ok, new_runtime} ->
         Session.connect_runtime(socket.assigns.session.pid, new_runtime)
-        clear_flash(socket, :error)
+        {:ok, clear_flash(socket, :error)}
 
       {:error, message} ->
-        put_flash(socket, :error, "Failed to start runtime - #{message}")
+        {:error, put_flash(socket, :error, "Failed to start runtime - #{message}")}
     end
   end
 
