@@ -641,7 +641,13 @@ defmodule Livebook.Session.Data do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          source_info <- data.cell_infos[cell_id].sources[tag],
          true <- 0 < revision and revision <= source_info.revision + 1,
-         true <- Map.has_key?(data.clients_map, client_pid) do
+         # We either need to know the client, so that we can transform
+         # the delta, or the delta must apply to the latest revision,
+         # in which case no transformation is necessary. The latter is
+         # useful when we want to apply changes programatically
+         true <-
+           Map.has_key?(data.clients_map, client_pid) or
+             revision == source_info.revision + 1 do
       data
       |> with_actions()
       |> apply_delta(client_pid, cell, tag, delta, revision)
@@ -1375,12 +1381,16 @@ defmodule Livebook.Session.Data do
       |> Map.update!(:deltas, &(&1 ++ [transformed_new_delta]))
       |> Map.update!(:revision, &(&1 + 1))
 
-    # Before receiving acknowledgement, the client receives all
-    # the other deltas, so we can assume they are in sync with
-    # the server and have the same revision.
     source_info =
-      put_in(source_info.revision_by_client_pid[client_pid], source_info.revision)
-      |> purge_deltas()
+      if Map.has_key?(source_info.revision_by_client_pid, client_pid) do
+        # Before receiving acknowledgement, the client receives all
+        # the other deltas, so we can assume they are in sync with
+        # the server and have the same revision.
+        put_in(source_info.revision_by_client_pid[client_pid], source_info.revision)
+        |> purge_deltas()
+      else
+        source_info
+      end
 
     updated_cell =
       update_in(cell, source_access(cell, tag), fn
@@ -1446,7 +1456,12 @@ defmodule Livebook.Session.Data do
   defp maybe_start_smart_cells({data, _} = data_actions) do
     if data.runtime do
       dead_cells = dead_smart_cells_with_section(data)
-      kinds = Enum.map(data.smart_cell_definitions, & &1.kind)
+
+      kinds =
+        for definition <- data.smart_cell_definitions,
+            definition.requirement == nil,
+            do: definition.kind
+
       cells_ready_to_start = Enum.filter(dead_cells, fn {cell, _} -> cell.kind in kinds end)
 
       reduce(data_actions, cells_ready_to_start, fn data_actions, {cell, section} ->

@@ -187,11 +187,18 @@ defprotocol Livebook.Runtime do
   the updated list as
 
     * `{:runtime_smart_cell_definitions, list(smart_cell_definition())}`
+
+  Additionally, the runtime may report extra definitions that require
+  installing an external package, as described by `:requirement`.
+  Also see `add_dependency/3`.
   """
   @type smart_cell_definition :: %{
           kind: String.t(),
-          name: String.t()
+          name: String.t(),
+          requirement: nil | %{name: String.t(), dependency: dependency()}
         }
+
+  @type dependency :: term()
 
   @typedoc """
   A JavaScript view definition.
@@ -397,4 +404,10 @@ defprotocol Livebook.Runtime do
   """
   @spec stop_smart_cell(t(), smart_cell_ref()) :: :ok
   def stop_smart_cell(runtime, ref)
+
+  @doc """
+  Updates the given source code to install the given dependency.
+  """
+  @spec add_dependency(t(), String.t(), dependency()) :: {:ok, String.t()} | {:error, String.t()}
+  def add_dependency(runtime, code, dependency)
 end

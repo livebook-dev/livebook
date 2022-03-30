@@ -721,6 +721,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("add_smart_cell_dependency", %{"kind" => kind}, socket) do
+    Session.add_smart_cell_dependency(socket.assigns.session.pid, kind)
+    socket = maybe_restart_runtime(socket)
+    Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
+
+    {:noreply, socket}
+  end
+
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     data = socket.private.data
 

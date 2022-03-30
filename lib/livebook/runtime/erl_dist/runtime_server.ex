@@ -35,6 +35,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     * `:smart_cell_definitions_module` - the module to read smart
       cell definitions from, it needs to export a `definitions/0`
       function. Defaults to `Kino.SmartCell`
+
+    * `:extra_smart_cell_definitions` - a list of predefined smart
+      cell definitions, that may be currently be unavailable, but
+      should be reported together with their requirements
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -192,9 +196,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        smart_cell_supervisor: nil,
        smart_cell_gl: nil,
        smart_cells: %{},
-       smart_cell_definitions: [],
+       smart_cell_definitions: nil,
        smart_cell_definitions_module:
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
+       extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil
      }}
   end
@@ -495,8 +500,16 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if smart_cell_definitions == state.smart_cell_definitions do
       state
     else
-      defs = Enum.map(smart_cell_definitions, &Map.take(&1, [:kind, :name]))
-      send(state.owner, {:runtime_smart_cell_definitions, defs})
+      available_defs =
+        for definition <- smart_cell_definitions,
+            do: %{kind: definition.kind, name: definition.name, requirement: nil}
+
+      defs = Enum.uniq_by(available_defs ++ state.extra_smart_cell_definitions, & &1.kind)
+
+      if defs != [] do
+        send(state.owner, {:runtime_smart_cell_definitions, defs})
+      end
+
       %{state | smart_cell_definitions: smart_cell_definitions}
     end
   end
