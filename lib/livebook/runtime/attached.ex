@@ -44,6 +44,13 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   alias Livebook.Runtime.ErlDist
 
+  def describe(runtime) do
+    [
+      {"Type", "Attached"},
+      {"Node name", Atom.to_string(runtime.node)}
+    ]
+  end
+
   def connect(runtime, opts \\ []) do
     ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
@@ -100,7 +107,13 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
+  def fixed_dependencies?(_runtime), do: true
+
+  def add_dependencies(_runtime, _code, _dependencies) do
+    raise "not supported"
+  end
+
+  def search_dependencies(_runtime, _send_to, _search) do
+    raise "not supported"
   end
 end

@@ -54,7 +54,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
+           default_runtime_type: default_runtime_type()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -68,6 +68,16 @@ defmodule LivebookWeb.SessionLive do
       :error ->
         {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
     end
+  end
+
+  defp default_runtime_type() do
+    {module, _args} = Livebook.Config.default_runtime()
+
+    module
+    |> struct()
+    |> Runtime.describe()
+    |> List.keyfind!("Type", 0)
+    |> elem(1)
   end
 
   # Puts the given assigns in `socket.private`,
@@ -131,7 +141,11 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} self={@self} />
         </div>
         <div data-element="runtime-info">
-          <.runtime_info data_view={@data_view} session={@session} socket={@socket} empty_default_runtime={@empty_default_runtime} />
+          <.runtime_info
+            data_view={@data_view}
+            session={@session}
+            socket={@socket}
+            default_runtime_type={@default_runtime_type} />
         </div>
       </div>
       <div class="grow overflow-y-auto relative" data-element="notebook">
@@ -313,6 +327,18 @@ defmodule LivebookWeb.SessionLive do
           tab={@tab} />
       </.modal>
     <% end %>
+
+    <%= if @live_action == :dependency_search do %>
+      <.modal id="dependency-search-modal" show class="w-full max-w-xl" patch={@self_path}>
+        <%= live_render @socket, LivebookWeb.SessionLive.DependencySearchLive,
+              id: "dependency-search",
+              session: %{
+                "session" => @session,
+                "runtime" => @data_view.runtime,
+                "return_to" => @self_path
+              } %>
+      </.modal>
+    <% end %>
     """
   end
 
@@ -414,8 +440,9 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col mt-2 space-y-4">
         <%= if @data_view.runtime do %>
           <div class="flex flex-col space-y-3">
-            <.labeled_text label="Type" text={runtime_type_label(@data_view.runtime)} />
-            <.labeled_text label="Node name" text={@data_view.runtime.node} one_line={true} />
+            <%= for {label, value} <- Runtime.describe(@data_view.runtime) do %>
+              <.labeled_text label={label} text={value} one_line={true} />
+            <% end %>
           </div>
           <div class="flex flex-col space-y-3">
             <div class="flex space-x-2">
@@ -432,7 +459,7 @@ defmodule LivebookWeb.SessionLive do
           </div>
         <% else %>
           <div class="flex flex-col space-y-3">
-            <.labeled_text label="Type" text={runtime_type_label(@empty_default_runtime)} />
+            <.labeled_text label="Type" text={@default_runtime_type} />
           </div>
           <div class="flex space-x-2">
             <button class="button-base button-blue" phx-click="start_default_runtime">
@@ -493,11 +520,6 @@ defmodule LivebookWeb.SessionLive do
     </div>
     """
   end
-
-  defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
-  defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
-  defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
-  defp runtime_type_label(%Runtime.Embedded{}), do: "Embedded"
 
   defp session_status(%{status: :evaluating} = assigns) do
     ~H"""

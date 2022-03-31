@@ -7,12 +7,9 @@ defmodule Livebook.Runtime.Embedded do
   # where there is no option of starting a separate
   # Elixir runtime.
 
-  defstruct [:node, :server_pid]
+  defstruct [:server_pid]
 
-  @type t :: %__MODULE__{
-          node: node(),
-          server_pid: pid()
-        }
+  @type t :: %__MODULE__{server_pid: pid()}
 
   alias Livebook.Runtime.ErlDist
 
@@ -39,12 +36,16 @@ defmodule Livebook.Runtime.Embedded do
         node_manager_opts: [unload_modules_on_termination: false]
       )
 
-    {:ok, %__MODULE__{node: node(), server_pid: server_pid}}
+    {:ok, %__MODULE__{server_pid: server_pid}}
   end
 end
 
 defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   alias Livebook.Runtime.ErlDist
+
+  def describe(_runtime) do
+    [{"Type", "Embedded"}]
+  end
 
   def connect(runtime, opts \\ []) do
     ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
@@ -99,7 +100,13 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
+  def fixed_dependencies?(_runtime), do: true
+
+  def add_dependencies(_runtime, _code, _dependencies) do
+    raise "not supported"
+  end
+
+  def search_dependencies(_runtime, _send_to, _search) do
+    raise "not supported"
   end
 end

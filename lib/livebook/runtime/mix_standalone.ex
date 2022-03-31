@@ -136,6 +136,14 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   alias Livebook.Runtime.ErlDist
 
+  def describe(runtime) do
+    [
+      {"Type", "Mix standalone"},
+      {"Node name", Atom.to_string(runtime.node)},
+      {"Project", runtime.project_path}
+    ]
+  end
+
   def connect(runtime, opts \\ []) do
     ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
@@ -189,7 +197,13 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
+  def fixed_dependencies?(_runtime), do: true
+
+  def add_dependencies(_runtime, _code, _dependencies) do
+    raise "not supported"
+  end
+
+  def search_dependencies(_runtime, _send_to, _search) do
+    raise "not supported"
   end
 end

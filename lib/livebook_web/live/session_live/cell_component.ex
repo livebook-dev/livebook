@@ -105,6 +105,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:primary>
       <:secondary>
         <.enable_insert_mode_button />
+        <.dependency_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.setup_cell_info />
       </:secondary>
@@ -360,6 +361,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Convert to Code cell">
       <button class="icon-button"
         aria-label="toggle source"
+        data-link-dependency-search
         phx-click={
           with_confirm(
             JS.push("convert_smart_cell", value: %{cell_id: @cell_id}),
@@ -373,6 +375,49 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.remix_icon icon="arrow-up-down-line" class="text-xl" />
       </button>
     </span>
+    """
+  end
+
+  defp dependency_search_button(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @runtime == nil -> %>
+        <span class="tooltip top" data-tooltip="Add dependency (sd)">
+          <button class="icon-button"
+            aria-lable="add dependency"
+            data-btn-dependency-search
+            phx-click={
+              with_confirm(
+                JS.push("start_default_runtime"),
+                title: "Start runtime",
+                description: "To search dependencies, you need to start a runtime. Do you want to start the default one?",
+                confirm_text: "Start runtime",
+                confirm_icon: "play-line",
+                danger: false
+              )
+            }>
+            <.remix_icon icon="play-list-add-line" class="text-xl" />
+          </button>
+        </span>
+
+      <% Livebook.Runtime.fixed_dependencies?(@runtime) -> %>
+        <span class="tooltip top" data-tooltip="This runtime does not support adding dependencies">
+          <button class="icon-button" disabled>
+            <.remix_icon icon="play-list-add-line" class="text-xl" />
+          </button>
+        </span>
+
+      <% true -> %>
+        <span class="tooltip top" data-tooltip="Add dependency (sd)">
+          <%= live_patch to: Routes.session_path(@socket, :dependency_search, @session_id),
+                class: "icon-button",
+                aria_label: "add dependency",
+                role: "button",
+                data_btn_dependency_search: true do %>
+            <.remix_icon icon="play-list-add-line" class="text-xl" />
+          <% end %>
+        </span>
+    <% end %>
     """
   end
 

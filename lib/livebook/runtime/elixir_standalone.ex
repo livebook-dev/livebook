@@ -94,6 +94,13 @@ end
 defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   alias Livebook.Runtime.ErlDist
 
+  def describe(runtime) do
+    [
+      {"Type", "Elixir standalone"},
+      {"Node name", Atom.to_string(runtime.node)}
+    ]
+  end
+
   def connect(runtime, opts \\ []) do
     ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
@@ -147,7 +154,13 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
+  def fixed_dependencies?(_runtime), do: false
+
   def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
+    Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+  end
+
+  def search_dependencies(_runtime, send_to, search) do
+    Livebook.Runtime.Dependencies.search_dependencies(send_to, search)
   end
 end

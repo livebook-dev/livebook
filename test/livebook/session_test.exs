@@ -137,7 +137,7 @@ defmodule Livebook.SessionTest do
   describe "add_smart_cell_dependencies/2" do
     test "applies source change to the setup cell to include the smart cell dependency",
          %{session: session} do
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      runtime = Livebook.Runtime.NoopRuntime.new()
       Session.connect_runtime(session.pid, runtime)
 
       send(
@@ -180,7 +180,7 @@ defmodule Livebook.SessionTest do
       notebook = Notebook.new() |> Notebook.update_cell("setup", &%{&1 | source: "[,]"})
       session = start_session(notebook: notebook)
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      runtime = Livebook.Runtime.NoopRuntime.new()
       Session.connect_runtime(session.pid, runtime)
 
       send(
@@ -305,7 +305,7 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      runtime = Livebook.Runtime.NoopRuntime.new()
       Session.connect_runtime(session.pid, runtime)
 
       assert_receive {:operation, {:set_runtime, ^pid, ^runtime}}
@@ -317,7 +317,7 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
+      runtime = Livebook.Runtime.NoopRuntime.new()
       Session.connect_runtime(session.pid, runtime)
 
       # Calling twice can happen in a race, make sure it doesn't crash

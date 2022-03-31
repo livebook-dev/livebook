@@ -311,11 +311,19 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends smart cell dependency addition request to the server.
+  Sends smart cell dependencies addition request to the server.
   """
   @spec add_smart_cell_dependencies(pid(), String.t()) :: :ok
   def add_smart_cell_dependencies(pid, kind) do
-    GenServer.cast(pid, {:add_smart_cell_dependencies, self(), kind})
+    GenServer.cast(pid, {:add_smart_cell_dependencies, kind})
+  end
+
+  @doc """
+  Sends dependencies addition request to the server.
+  """
+  @spec add_dependencies(pid(), list(Runtime.dependency())) :: :ok
+  def add_dependencies(pid, dependencies) do
+    GenServer.cast(pid, {:add_dependencies, dependencies})
   end
 
   @doc """
@@ -736,14 +744,18 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_cast({:add_smart_cell_dependencies, _client_pid, kind}, state) do
+  def handle_cast({:add_smart_cell_dependencies, kind}, state) do
     state =
       case Enum.find(state.data.smart_cell_definitions, &(&1.kind == kind)) do
-        %{requirement: %{dependencies: dependencies}} -> add_dependencies(state, dependencies)
+        %{requirement: %{dependencies: dependencies}} -> do_add_dependencies(state, dependencies)
         _ -> state
       end
 
     {:noreply, state}
+  end
+
+  def handle_cast({:add_dependencies, dependencies}, state) do
+    {:noreply, do_add_dependencies(state, dependencies)}
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
@@ -1106,9 +1118,9 @@ defmodule Livebook.Session do
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
 
-  defp add_dependencies(%{data: %{runtime: nil}} = state, _dependencies), do: state
+  defp do_add_dependencies(%{data: %{runtime: nil}} = state, _dependencies), do: state
 
-  defp add_dependencies(state, dependencies) do
+  defp do_add_dependencies(state, dependencies) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
     source = cell.source
 
@@ -1385,7 +1397,7 @@ defmodule Livebook.Session do
       notebook = state.data.notebook
 
       {:ok, pid} =
-        Task.start(fn ->
+        Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
           content = LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
           send(pid, {:save_finished, self(), result, file, default?})

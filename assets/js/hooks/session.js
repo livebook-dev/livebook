@@ -329,6 +329,8 @@ const Session = {
         this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "b"])) {
         this.showBin();
+      } else if (keyBuffer.tryMatch(["s", "d"])) {
+        this.showDependencySearch();
       } else if (keyBuffer.tryMatch(["e", "x"])) {
         this.cancelFocusedCellEvaluation();
       } else if (keyBuffer.tryMatch(["0", "0"])) {
@@ -650,6 +652,13 @@ const Session = {
 
   showBin() {
     this.pushEvent("show_bin", {});
+  },
+
+  showDependencySearch() {
+    this.setFocusedEl("setup");
+
+    const actionEl = this.el.querySelector(`[data-btn-dependency-search]`);
+    actionEl && actionEl.click();
   },
 
   saveNotebook() {

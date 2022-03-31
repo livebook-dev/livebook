@@ -98,8 +98,9 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
       %{seq: ["s", "s"], desc: "Toggle sections panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
-      %{seq: ["s", "r"], desc: "Show runtime settings"},
+      %{seq: ["s", "r"], desc: "Show runtime panel"},
       %{seq: ["s", "b"], desc: "Show bin"},
+      %{seq: ["s", "d"], desc: "Show dependency search"},
       %{seq: ["0", "0"], desc: "Restart current runtime"}
     ],
     universal: [

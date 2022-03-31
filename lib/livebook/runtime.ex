@@ -200,6 +200,17 @@ defprotocol Livebook.Runtime do
 
   @type dependency :: term()
 
+  @type search_dependencies_response ::
+          {:ok, list(search_dependencies_entry())} | {:error, String.t()}
+
+  @type search_dependencies_entry :: %{
+          name: String.t(),
+          version: String.t(),
+          description: String.t() | nil,
+          url: String.t() | nil,
+          dependency: dependency()
+        }
+
   @typedoc """
   A JavaScript view definition.
 
@@ -218,6 +229,14 @@ defprotocol Livebook.Runtime do
   @type smart_cell_ref :: String.t()
 
   @type smart_cell_attrs :: map()
+
+  @doc """
+  Returns relevant information about the runtime.
+
+  Every runtime is expected to have an item with the `"Type"` label.
+  """
+  @spec describe(t()) :: list({label :: String.t(), String.t()})
+  def describe(runtime)
 
   @doc """
   Connects the caller to the given runtime.
@@ -406,9 +425,32 @@ defprotocol Livebook.Runtime do
   def stop_smart_cell(runtime, ref)
 
   @doc """
+  Returns true if the given runtime by definition has only a specific
+  set of dependencies.
+
+  Note that if restarting the runtime allows for installing different
+  dependencies, the dependencies are not considered fixed.
+
+  When dependencies are fixed, the following functions are allowed to
+  raise an implementation error: `add_dependencies/3`, `search_dependencies/3`.
+  """
+  @spec fixed_dependencies?(t()) :: boolean()
+  def fixed_dependencies?(runtime)
+
+  @doc """
   Updates the given source code to install the given dependencies.
   """
   @spec add_dependencies(t(), String.t(), list(dependency())) ::
           {:ok, String.t()} | {:error, String.t()}
   def add_dependencies(runtime, code, dependencies)
+
+  @doc """
+  Looks up packages matching the given search.
+
+  The response is sent to the `send_to` process as
+
+    * `{:runtime_search_dependencies_response, ref, response}`.
+  """
+  @spec search_dependencies(t(), pid(), String.t()) :: reference()
+  def search_dependencies(runtime, send_to, search)
 end
