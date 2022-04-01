@@ -43,7 +43,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         </span>
       <% end %>
 
-      <%= if @runtime do %>
+      <%= if Livebook.Runtime.connected?(@runtime) do %>
         <.global_status
           status={elem(@global_status, 0)}
           cell_id={elem(@global_status, 1)} />

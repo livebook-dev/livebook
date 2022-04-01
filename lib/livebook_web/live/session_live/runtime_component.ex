@@ -12,14 +12,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   def update(assigns, socket) do
     assigns =
       if socket.assigns.type == nil do
-        type =
-          if assigns.runtime do
-            runtime_type(assigns.runtime)
-          else
-            {runtime_module, _args} = Livebook.Config.default_runtime()
-            runtime_module |> struct() |> runtime_type()
-          end
-
+        type = runtime_type(assigns.runtime)
         Map.put(assigns, :type, type)
       else
         assigns

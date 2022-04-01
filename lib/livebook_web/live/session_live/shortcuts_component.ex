@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["s", "r"], desc: "Show runtime panel"},
       %{seq: ["s", "b"], desc: "Show bin"},
       %{seq: ["s", "d"], desc: "Show dependency search"},
-      %{seq: ["0", "0"], desc: "Restart current runtime"}
+      %{seq: ["0", "0"], desc: "Reconnect current runtime"}
     ],
     universal: [
       %{

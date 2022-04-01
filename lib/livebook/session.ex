@@ -439,14 +439,13 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Connects to the given runtime.
+  Sends runtime update to the server.
 
-  Note that this results in initializing the corresponding remote node
-  with modules and processes required for evaluation.
+  If the runtime is connected, the session takes the ownership.
   """
-  @spec connect_runtime(pid(), Runtime.t()) :: :ok
-  def connect_runtime(pid, runtime) do
-    GenServer.cast(pid, {:connect_runtime, self(), runtime})
+  @spec set_runtime(pid(), Runtime.t()) :: :ok
+  def set_runtime(pid, runtime) do
+    GenServer.cast(pid, {:set_runtime, self(), runtime})
   end
 
   @doc """
@@ -628,8 +627,8 @@ defmodule Livebook.Session do
         assets_info == nil ->
           {:error, "unknown hash"}
 
-        runtime == nil ->
-          {:error, "no runtime"}
+        not Runtime.connected?(runtime) ->
+          {:error, "runtime not started"}
 
         true ->
           {:ok, runtime, assets_info.archive_path}
@@ -654,13 +653,17 @@ defmodule Livebook.Session do
   end
 
   def handle_call({:disconnect_runtime, client_pid}, _from, state) do
-    if old_runtime = state.data.runtime do
-      Runtime.disconnect(old_runtime)
-    end
+    state =
+      if Runtime.connected?(state.data.runtime) do
+        {:ok, runtime} = Runtime.disconnect(state.data.runtime)
 
-    {:reply, :ok,
-     %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, client_pid, nil})}
+        %{state | runtime_monitor_ref: nil}
+        |> handle_operation({:set_runtime, client_pid, runtime})
+      else
+        state
+      end
+
+    {:reply, :ok, state}
   end
 
   @impl true
@@ -831,12 +834,17 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:connect_runtime, client_pid, runtime}, state) do
-    if old_runtime = state.data.runtime do
-      Runtime.disconnect(old_runtime)
+  def handle_cast({:set_runtime, client_pid, runtime}, state) do
+    if Runtime.connected?(state.data.runtime) do
+      {:ok, _} = Runtime.disconnect(state.data.runtime)
     end
 
-    state = do_connect_runtime(runtime, state)
+    state =
+      if Runtime.connected?(runtime) do
+        own_runtime(runtime, state)
+      else
+        state
+      end
 
     {:noreply, handle_operation(state, {:set_runtime, client_pid, runtime})}
   end
@@ -871,7 +879,7 @@ defmodule Livebook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, self(), nil})}
+     |> handle_operation({:set_runtime, self(), Livebook.Runtime.duplicate(state.data.runtime)})}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
@@ -1113,12 +1121,10 @@ defmodule Livebook.Session do
     end)
   end
 
-  defp do_connect_runtime(runtime, state) do
-    runtime_monitor_ref = Runtime.connect(runtime, runtime_broadcast_to: state.worker_pid)
+  defp own_runtime(runtime, state) do
+    runtime_monitor_ref = Runtime.take_ownership(runtime, runtime_broadcast_to: state.worker_pid)
     %{state | runtime_monitor_ref: runtime_monitor_ref}
   end
-
-  defp do_add_dependencies(%{data: %{runtime: nil}} = state, _dependencies), do: state
 
   defp do_add_dependencies(state, dependencies) do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
@@ -1177,7 +1183,7 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
-    if runtime do
+    if Runtime.connected?(runtime) do
       state
     else
       state
@@ -1271,17 +1277,15 @@ defmodule Livebook.Session do
     Enum.reduce(actions, state, &handle_action(&2, &1))
   end
 
-  defp handle_action(state, :start_runtime) do
-    {runtime_module, args} = Livebook.Config.default_runtime()
-
-    case apply(runtime_module, :init, args) do
+  defp handle_action(state, :connect_runtime) do
+    case Runtime.connect(state.data.runtime) do
       {:ok, runtime} ->
-        state = do_connect_runtime(runtime, state)
+        state = own_runtime(runtime, state)
         handle_operation(state, {:set_runtime, self(), runtime})
 
       {:error, error} ->
-        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
-        handle_operation(state, {:set_runtime, self(), nil})
+        broadcast_error(state.session_id, "failed to connect runtime - #{error}")
+        handle_operation(state, {:set_runtime, self(), state.data.runtime})
     end
   end
 
@@ -1311,7 +1315,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:stop_evaluation, section}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       Runtime.drop_container(state.data.runtime, container_ref_for_section(section))
     end
 
@@ -1319,7 +1323,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:forget_evaluation, cell, section}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       Runtime.forget_evaluation(state.data.runtime, {container_ref_for_section(section), cell.id})
     end
 
@@ -1327,7 +1331,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:start_smart_cell, cell, section}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       base_locator = find_base_locator(state.data, cell, section, existing: true)
       Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
     end
@@ -1336,7 +1340,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       base_locator =
         case parent do
           nil ->
@@ -1353,7 +1357,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:stop_smart_cell, cell}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       Runtime.stop_smart_cell(state.data.runtime, cell.id)
     end
 

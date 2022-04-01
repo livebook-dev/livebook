@@ -390,8 +390,8 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       insert_section(session.pid)
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -528,8 +528,8 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -913,7 +913,7 @@ defmodule LivebookWeb.SessionLiveTest do
              ]}
         )
 
-      Session.connect_runtime(session.pid, runtime)
+      Session.set_runtime(session.pid, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
 
@@ -932,7 +932,7 @@ defmodule LivebookWeb.SessionLiveTest do
       runtime =
         Livebook.Runtime.NoopRuntime.new(search_dependencies_response: {:error, "request failed"})
 
-      Session.connect_runtime(session.pid, runtime)
+      Session.set_runtime(session.pid, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
 

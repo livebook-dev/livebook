@@ -239,34 +239,54 @@ defprotocol Livebook.Runtime do
   def describe(runtime)
 
   @doc """
-  Connects the caller to the given runtime.
+  Synchronously initializes the given runtime.
 
-  The caller becomes the runtime owner, which makes it the target
-  for most of the runtime messages and ties the runtime life to the
-  Sets the caller as runtime owner.
+  This function starts the necessary resources and processes.
+  """
+  @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
+  def connect(runtime)
+
+  @doc """
+  Checks if the given runtime is in a connected state.
+  """
+  @spec connected?(t()) :: boolean()
+  def connected?(runtime)
+
+  @doc """
+  Sets the caller as the runtime owner.
+
+  The runtime owner is the target for most of the runtime messages
+  and the runtime lifetime is tied to the owner.
 
   It is advised for each runtime to have a leading process that is
   coupled to the lifetime of the underlying runtime resources. In
-  such case the `connect` function may start monitoring this process
-  and return the monitor reference. This way the caller is notified
-  when the runtime goes down by listening to the :DOWN message with
-  that reference.
+  such case the `take_ownership/2` function may start monitoring this
+  process and return the monitor reference. This way the owner is
+  notified when the runtime goes down by listening to the :DOWN
+  message with that reference.
 
   ## Options
 
     * `:runtime_broadcast_to` - the process to send runtime broadcast
       events to. Defaults to the owner
   """
-  @spec connect(t(), keyword()) :: reference()
-  def connect(runtime, opts \\ [])
+  @spec take_ownership(t(), keyword()) :: reference()
+  def take_ownership(runtime, opts \\ [])
 
   @doc """
-  Disconnects the current owner from the runtime.
-
-  This should cleanup the underlying node/processes.
+  Synchronously disconnects the runtime and cleans up the underlying
+  resources.
   """
-  @spec disconnect(t()) :: :ok
+  @spec disconnect(t()) :: {:ok, t()}
   def disconnect(runtime)
+
+  @doc """
+  Returns a fresh runtime of the same type with the same configuration.
+
+  Note that the runtime is in a stopped state.
+  """
+  @spec duplicate(Runtime.t()) :: Runtime.t()
+  def duplicate(runtime)
 
   @doc """
   Asynchronously parses and evaluates the given code.
@@ -352,13 +372,6 @@ defprotocol Livebook.Runtime do
   """
   @spec handle_intellisense(t(), pid(), reference(), intellisense_request(), locator()) :: :ok
   def handle_intellisense(runtime, send_to, ref, request, base_locator)
-
-  @doc """
-  Synchronously starts a runtime of the same type with the same
-  parameters.
-  """
-  @spec duplicate(Runtime.t()) :: {:ok, Runtime.t()} | {:error, String.t()}
-  def duplicate(runtime)
 
   @doc """
   Returns true if the given runtime is self-contained.

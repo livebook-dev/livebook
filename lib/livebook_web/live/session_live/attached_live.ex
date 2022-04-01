@@ -84,14 +84,19 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
     node = Utils.node_from_name(data["name"])
     cookie = String.to_atom(data["cookie"])
 
-    case Runtime.Attached.init(node, cookie) do
+    runtime = Runtime.Attached.new(node, cookie)
+
+    case Runtime.connect(runtime) do
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session.pid, runtime)
+        Session.set_runtime(socket.assigns.session.pid, runtime)
         {:noreply, assign(socket, data: initial_data(runtime), error_message: nil)}
 
-      {:error, error} ->
-        message = runtime_error_to_message(error)
-        {:noreply, assign(socket, data: data, error_message: message)}
+      {:error, message} ->
+        {:noreply,
+         assign(socket,
+           data: data,
+           error_message: Livebook.Utils.upcase_first(message)
+         )}
     end
   end
 
@@ -118,6 +123,4 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
   defp name_placeholder do
     if longname = Livebook.Config.longname(), do: "test@#{longname}", else: "test"
   end
-
-  defp runtime_error_to_message(:unreachable), do: "Node unreachable"
 end

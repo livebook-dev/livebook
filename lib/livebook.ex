@@ -46,9 +46,10 @@ defmodule Livebook do
       config :livebook, :iframe_port, port
     end
 
-    if runtime = Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") do
-      config :livebook, :default_runtime, runtime
-    end
+    config :livebook,
+           :default_runtime,
+           Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
+             Livebook.Runtime.ElixirStandalone.new()
 
     if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do
       config :livebook, :home, home

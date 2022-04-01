@@ -334,7 +334,7 @@ const Session = {
       } else if (keyBuffer.tryMatch(["e", "x"])) {
         this.cancelFocusedCellEvaluation();
       } else if (keyBuffer.tryMatch(["0", "0"])) {
-        this.restartRuntime();
+        this.reconnectRuntime();
       } else if (keyBuffer.tryMatch(["Escape", "Escape"])) {
         this.setFocusedEl(null);
       } else if (keyBuffer.tryMatch(["?"])) {
@@ -710,8 +710,8 @@ const Session = {
     }
   },
 
-  restartRuntime() {
-    this.pushEvent("restart_runtime", {});
+  reconnectRuntime() {
+    this.pushEvent("reconnect_runtime", {});
   },
 
   showShortcuts() {

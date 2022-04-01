@@ -6,6 +6,11 @@ Livebook.Runtime.ErlDist.NodeManager.start(
   unload_modules_on_termination: false
 )
 
+# Use the embedded runtime in tests by default, so they are
+# cheaper to run. Other runtimes can be tested by starting
+# and setting them explicitly
+Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new())
+
 # Disable autosaving
 Livebook.Storage.current().insert(:settings, "global", autosave_path: nil)
 

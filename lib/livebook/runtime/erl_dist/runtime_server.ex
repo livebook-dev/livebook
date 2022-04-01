@@ -53,7 +53,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   ## Options
 
-  See `Livebook.Runtime.connect/2` for the list of available
+  See `Livebook.Runtime.take_ownership/2` for the list of available
   options.
   """
   @spec attach(pid(), pid(), keyword()) :: :ok

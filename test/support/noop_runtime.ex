@@ -4,10 +4,13 @@ defmodule Livebook.Runtime.NoopRuntime do
   # A runtime that doesn't do any actual evaluation,
   # thus not requiring any underlying resources.
 
-  defstruct [:search_dependencies_response]
+  defstruct [:started, :search_dependencies_response]
 
   def new(opts \\ []) do
-    %__MODULE__{search_dependencies_response: opts[:search_dependencies_response]}
+    %__MODULE__{
+      started: false,
+      search_dependencies_response: opts[:search_dependencies_response]
+    }
   end
 
   defimpl Livebook.Runtime do
@@ -15,13 +18,22 @@ defmodule Livebook.Runtime.NoopRuntime do
       [{"Type", "Noop"}]
     end
 
-    def connect(_, _), do: make_ref()
-    def disconnect(_), do: :ok
+    def connect(runtime), do: {:ok, %{runtime | started: true}}
+    def connected?(runtime), do: runtime.started
+    def take_ownership(_, _), do: make_ref()
+    def disconnect(runtime), do: {:ok, %{runtime | started: false}}
+
+    def duplicate(runtime) do
+      Livebook.Runtime.NoopRuntime.new(
+        search_dependencies_response: runtime.search_dependencies_response
+      )
+    end
+
     def evaluate_code(_, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
     def drop_container(_, _), do: :ok
     def handle_intellisense(_, _, _, _, _), do: :ok
-    def duplicate(_), do: {:ok, Livebook.Runtime.NoopRuntime.new()}
+
     def standalone?(_), do: false
     def read_file(_, _), do: raise("not implemented")
     def start_smart_cell(_, _, _, _, _), do: :ok

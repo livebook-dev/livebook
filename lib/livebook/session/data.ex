@@ -47,7 +47,7 @@ defmodule Livebook.Session.Data do
           cell_infos: %{Cell.id() => cell_info()},
           input_values: %{input_id() => term()},
           bin_entries: list(cell_bin_entry()),
-          runtime: Runtime.t() | nil,
+          runtime: Runtime.t(),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{pid() => User.id()},
           users_map: %{User.id() => User.t()}
@@ -179,14 +179,14 @@ defmodule Livebook.Session.Data do
           | {:report_cell_revision, pid(), Cell.id(), cell_source_tag(), cell_revision()}
           | {:set_cell_attributes, pid(), Cell.id(), map()}
           | {:set_input_value, pid(), input_id(), value :: term()}
-          | {:set_runtime, pid(), Runtime.t() | nil}
+          | {:set_runtime, pid(), Runtime.t()}
           | {:set_smart_cell_definitions, pid(), list(Runtime.smart_cell_definition())}
           | {:set_file, pid(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, pid(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, pid()}
 
   @type action ::
-          :start_runtime
+          :connect_runtime
           | {:start_evaluation, Cell.t(), Section.t()}
           | {:stop_evaluation, Section.t()}
           | {:forget_evaluation, Cell.t(), Section.t()}
@@ -208,7 +208,7 @@ defmodule Livebook.Session.Data do
       cell_infos: initial_cell_infos(notebook),
       input_values: initial_input_values(notebook),
       bin_entries: [],
-      runtime: nil,
+      runtime: Livebook.Config.default_runtime(),
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{}
@@ -450,7 +450,7 @@ defmodule Livebook.Session.Data do
         |> queue_prerequisite_cells_evaluation(cell)
         |> queue_cell_evaluation(cell, section)
       end)
-      |> maybe_start_runtime(data)
+      |> maybe_connect_runtime(data)
       |> maybe_evaluate_queued()
       |> compute_snapshots_and_validity()
       |> wrap_ok()
@@ -1005,9 +1005,10 @@ defmodule Livebook.Session.Data do
     |> set_section_info!(section.id, evaluating_cell_id: nil)
   end
 
-  defp maybe_start_runtime({data, _} = data_actions, prev_data) do
-    if data.runtime == nil and not any_cell_queued?(prev_data) and any_cell_queued?(data) do
-      add_action(data_actions, :start_runtime)
+  defp maybe_connect_runtime({data, _} = data_actions, prev_data) do
+    if not Runtime.connected?(data.runtime) and not any_cell_queued?(prev_data) and
+         any_cell_queued?(data) do
+      add_action(data_actions, :connect_runtime)
     else
       data_actions
     end
@@ -1017,50 +1018,52 @@ defmodule Livebook.Session.Data do
     Enum.any?(data.section_infos, fn {_section_id, info} -> info.evaluation_queue != [] end)
   end
 
-  # Don't trigger evaluation if we don't have a runtime started yet
-  defp maybe_evaluate_queued({%{runtime: nil}, _} = data_actions), do: data_actions
-
   defp maybe_evaluate_queued({data, _} = data_actions) do
-    main_flow_evaluating? = main_flow_evaluating?(data)
+    if Runtime.connected?(data.runtime) do
+      main_flow_evaluating? = main_flow_evaluating?(data)
 
-    {awaiting_branch_sections, awaiting_regular_sections} =
-      data.notebook
-      |> Notebook.all_sections()
-      |> Enum.filter(&section_awaits_evaluation?(data, &1.id))
-      |> Enum.split_with(& &1.parent_id)
+      {awaiting_branch_sections, awaiting_regular_sections} =
+        data.notebook
+        |> Notebook.all_sections()
+        |> Enum.filter(&section_awaits_evaluation?(data, &1.id))
+        |> Enum.split_with(& &1.parent_id)
 
-    data_actions =
-      reduce(data_actions, awaiting_branch_sections, fn {data, _} = data_actions, section ->
-        %{evaluation_queue: [id | _]} = data.section_infos[section.id]
+      data_actions =
+        reduce(data_actions, awaiting_branch_sections, fn {data, _} = data_actions, section ->
+          %{evaluation_queue: [id | _]} = data.section_infos[section.id]
 
-        {:ok, parent} = Notebook.fetch_section(data.notebook, section.parent_id)
+          {:ok, parent} = Notebook.fetch_section(data.notebook, section.parent_id)
 
-        prev_cell_section =
-          data.notebook
-          |> Notebook.parent_cells_with_section(id)
-          |> Enum.find_value(parent, fn {cell, section} ->
-            Cell.evaluable?(cell) && section
-          end)
+          prev_cell_section =
+            data.notebook
+            |> Notebook.parent_cells_with_section(id)
+            |> Enum.find_value(parent, fn {cell, section} ->
+              Cell.evaluable?(cell) && section
+            end)
 
-        prev_section_queued? =
-          prev_cell_section != nil and
-            data.section_infos[prev_cell_section.id].evaluation_queue != []
+          prev_section_queued? =
+            prev_cell_section != nil and
+              data.section_infos[prev_cell_section.id].evaluation_queue != []
 
-        # If evaluating this cell requires interaction with the main flow,
-        # we keep the cell queued. In case of the Elixir runtimes the
-        # evaluation context needs to be copied between evaluation processes
-        # and this requires the main flow to be free of work.
-        if prev_cell_section != section and (main_flow_evaluating? or prev_section_queued?) do
-          data_actions
-        else
-          evaluate_next_cell_in_section(data_actions, section)
-        end
-      end)
+          # If evaluating this cell requires interaction with the main flow,
+          # we keep the cell queued. In case of the Elixir runtimes the
+          # evaluation context needs to be copied between evaluation processes
+          # and this requires the main flow to be free of work.
+          if prev_cell_section != section and (main_flow_evaluating? or prev_section_queued?) do
+            data_actions
+          else
+            evaluate_next_cell_in_section(data_actions, section)
+          end
+        end)
 
-    if awaiting_regular_sections != [] and not main_flow_evaluating? do
-      section = hd(awaiting_regular_sections)
-      evaluate_next_cell_in_section(data_actions, section)
+      if awaiting_regular_sections != [] and not main_flow_evaluating? do
+        section = hd(awaiting_regular_sections)
+        evaluate_next_cell_in_section(data_actions, section)
+      else
+        data_actions
+      end
     else
+      # Don't trigger evaluation if we don't have a runtime started yet
       data_actions
     end
   end
@@ -1437,7 +1440,7 @@ defmodule Livebook.Session.Data do
   defp set_runtime(data_actions, prev_data, runtime) do
     {data, _} = data_actions = set!(data_actions, runtime: runtime, smart_cell_definitions: [])
 
-    if prev_data.runtime == nil and data.runtime != nil do
+    if not Runtime.connected?(prev_data.runtime) and Runtime.connected?(data.runtime) do
       data_actions
       |> maybe_evaluate_queued()
     else
@@ -1454,7 +1457,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp maybe_start_smart_cells({data, _} = data_actions) do
-    if data.runtime do
+    if Runtime.connected?(data.runtime) do
       dead_cells = dead_smart_cells_with_section(data)
 
       kinds =
