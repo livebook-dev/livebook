@@ -21,18 +21,22 @@ defmodule Livebook do
 
   In case you use the Embedded runtime and support installing dependencies
   with `Mix.install/2`, you can make those discoverable in the
-  dependency search, by configuring entries like this:
+  dependency search, by configuring a loader function:
 
       config :livebook, Livebook.Runtime.Embedded,
-        dependency_entries: [
-          %{
-            dependency: {:kino, "~> 0.5.2"},
-            description: "Interactive widgets for Livebook",
-            name: "kino",
-            url: "https://hex.pm/packages/kino",
-            version: "0.5.2"
-          }
-        ]
+        load_dependency_entries: {Loader, :dependency_entries, []}
+
+  The function should return a list of entries like this:
+
+      [
+        %{
+          dependency: {:kino, "~> 0.5.2"},
+          description: "Interactive widgets for Livebook",
+          name: "kino",
+          url: "https://hex.pm/packages/kino",
+          version: "0.5.2"
+        }
+      ]
 
   ### Custom explore notebooks
 

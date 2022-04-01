@@ -11,17 +11,23 @@ Livebook.Runtime.ErlDist.NodeManager.start(
 # and setting them explicitly
 Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new())
 
+defmodule Livebook.Runtime.Embedded.Dependencies do
+  def entries() do
+    [
+      %{
+        dependency: {:kino, "~> 0.5.2"},
+        description: "Interactive widgets for Livebook",
+        name: "kino",
+        url: "https://hex.pm/packages/kino",
+        version: "0.5.2"
+      }
+    ]
+  end
+end
+
 # Enable dependency saerch for the embedded runtime
 Application.put_env(:livebook, Livebook.Runtime.Embedded,
-  dependency_entries: [
-    %{
-      dependency: {:kino, "~> 0.5.2"},
-      description: "Interactive widgets for Livebook",
-      name: "kino",
-      url: "https://hex.pm/packages/kino",
-      version: "0.5.2"
-    }
-  ]
+  load_dependency_entries: {Livebook.Runtime.Embedded.Dependencies, :entries, []}
 )
 
 # Disable autosaving
