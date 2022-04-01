@@ -390,8 +390,8 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       insert_section(session.pid)
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -528,8 +528,8 @@ defmodule LivebookWeb.SessionLiveTest do
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, "Process.sleep(10)")
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
+      Session.set_runtime(session.pid, runtime)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -893,6 +893,24 @@ defmodule LivebookWeb.SessionLiveTest do
                "Cannot navigate, because multiple sessions were found for #{notebook_url}"
 
       Session.close([index_session.pid, notebook_session1.pid, notebook_session2.pid])
+    end
+  end
+
+  describe "dependency search" do
+    test "lists search entries", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
+
+      [search_view] = live_children(view)
+
+      # Search the predefined dependencies in the embedded runtime
+      search_view
+      |> element(~s{form[phx-change="search"]})
+      |> render_change(%{"search" => "ki"})
+
+      page = render(view)
+      assert page =~ "kino"
+      assert page =~ "Interactive widgets for Livebook"
+      assert page =~ "0.5.2"
     end
   end
 

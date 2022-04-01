@@ -3,13 +3,80 @@ defmodule Livebook do
   Livebook is an interactive notebook system for Elixir.
 
   This module includes the public API.
+
+  ## Configuration
+
+  See `config_runtime/0` for bootstrapping the default runtime
+  configuration. There are several public configuration entries that
+  you can customize.
+
+  ### Custom plugs
+
+  You can list a number of plugs to call directly before the Livebook
+  router
+
+      config :livebook, :plugs, [{CustomPlug, []}]
+
+  ### Embedded runtime dependencies
+
+  In case you use the Embedded runtime and support installing dependencies
+  with `Mix.install/2`, you can make those discoverable in the
+  dependency search, by configuring a loader function:
+
+      config :livebook, Livebook.Runtime.Embedded,
+        load_dependency_entries: {Loader, :dependency_entries, []}
+
+  The function should return a list of entries like this:
+
+      [
+        %{
+          dependency: {:kino, "~> 0.5.2"},
+          description: "Interactive widgets for Livebook",
+          name: "kino",
+          url: "https://hex.pm/packages/kino",
+          version: "0.5.2"
+        }
+      ]
+
+  ### Custom explore notebooks
+
+  **Note that this is compile time configuration.**
+
+  A list of additional notebooks to include in the Explore section.
+
+  Note that the notebooks are loaded and embedded in a compiled module,
+  so the paths are accessed at compile time only.
+
+      config :livebook, :explore_notebooks, [
+        %{
+          # Required notebook path
+          path: "/path/to/notebook.livemd",
+          # Optional notebook identifier for URLs, as in /explore/notebooks/{slug}
+          # By default the slug is inferred from file name, so there is no need to set it
+          slug: "my-notebook"
+          # Optional list of images
+          image_paths: [
+            # This image can be sourced as images/myimage.jpg in the notebook
+            "/path/to/myimage.jpg"
+          ],
+          # Optional details for the notebook card. If omitted, the notebook
+          # is hidden in the UI, but still accessible under /explore/notebooks/{slug}
+          details: %{
+            cover_path: "/path/to/logo.png",
+            description: "My custom notebook that showcases some amazing stuff."
+          }
+        },
+        %{
+          path: "/path/to/other_notebook.livemd"
+        }
+      ]
   """
 
   @doc """
-  Executes Livebook's config/runtime.exs.
+  Executes Livebook's `config/runtime.exs`.
 
   If you use Livebook as a dependency, you can add the following
-  to your `config/runtime.exs` to trigger Livebook's config/runtime.exs
+  to your `config/runtime.exs` to trigger Livebook's `config/runtime.exs`
   configuration:
 
       Livebook.config_runtime()
@@ -46,9 +113,10 @@ defmodule Livebook do
       config :livebook, :iframe_port, port
     end
 
-    if runtime = Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") do
-      config :livebook, :default_runtime, runtime
-    end
+    config :livebook,
+           :default_runtime,
+           Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
+             Livebook.Runtime.ElixirStandalone.new()
 
     if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do
       config :livebook, :home, home

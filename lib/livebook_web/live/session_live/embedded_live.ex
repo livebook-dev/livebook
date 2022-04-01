@@ -41,8 +41,8 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
 
   @impl true
   def handle_event("init", _params, socket) do
-    {:ok, runtime} = Runtime.Embedded.init()
-    Session.connect_runtime(socket.assigns.session.pid, runtime)
+    {:ok, runtime} = Runtime.Embedded.new() |> Runtime.connect()
+    Session.set_runtime(socket.assigns.session.pid, runtime)
     {:noreply, socket}
   end
 

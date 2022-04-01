@@ -53,8 +53,7 @@ defmodule LivebookWeb.SessionLive do
            self: self(),
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
-           page_title: get_page_title(data.notebook.name),
-           empty_default_runtime: Livebook.Config.default_runtime() |> elem(0) |> struct()
+           page_title: get_page_title(data.notebook.name)
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -131,7 +130,7 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} self={@self} />
         </div>
         <div data-element="runtime-info">
-          <.runtime_info data_view={@data_view} session={@session} socket={@socket} empty_default_runtime={@empty_default_runtime} />
+          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
         </div>
       </div>
       <div class="grow overflow-y-auto relative" data-element="notebook">
@@ -313,6 +312,18 @@ defmodule LivebookWeb.SessionLive do
           tab={@tab} />
       </.modal>
     <% end %>
+
+    <%= if @live_action == :dependency_search do %>
+      <.modal id="dependency-search-modal" show class="w-full max-w-xl" patch={@self_path}>
+        <%= live_render @socket, LivebookWeb.SessionLive.DependencySearchLive,
+              id: "dependency-search",
+              session: %{
+                "session" => @session,
+                "runtime" => @data_view.runtime,
+                "return_to" => @self_path
+              } %>
+      </.modal>
+    <% end %>
     """
   end
 
@@ -412,30 +423,24 @@ defmodule LivebookWeb.SessionLive do
         <% end %>
       </div>
       <div class="flex flex-col mt-2 space-y-4">
-        <%= if @data_view.runtime do %>
-          <div class="flex flex-col space-y-3">
-            <.labeled_text label="Type" text={runtime_type_label(@data_view.runtime)} />
-            <.labeled_text label="Node name" text={@data_view.runtime.node} one_line={true} />
-          </div>
-          <div class="flex flex-col space-y-3">
-            <div class="flex space-x-2">
-              <button class="button-base button-blue" phx-click="restart_runtime">
-                <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
-                <span>Reconnect</span>
-              </button>
-              <button class="button-base button-outlined-red"
-                type="button"
-                phx-click="disconnect_runtime">
-                Disconnect
-              </button>
-            </div>
-          </div>
-        <% else %>
-          <div class="flex flex-col space-y-3">
-            <.labeled_text label="Type" text={runtime_type_label(@empty_default_runtime)} />
-          </div>
-          <div class="flex space-x-2">
-            <button class="button-base button-blue" phx-click="start_default_runtime">
+        <div class="flex flex-col space-y-3">
+          <%= for {label, value} <- Runtime.describe(@data_view.runtime) do %>
+            <.labeled_text label={label} text={value} one_line={true} />
+          <% end %>
+        </div>
+        <div class="flex space-x-2">
+          <%= if Runtime.connected?(@data_view.runtime) do %>
+            <button class="button-base button-blue" phx-click="reconnect_runtime">
+              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+              <span>Reconnect</span>
+            </button>
+            <button class="button-base button-outlined-red"
+              type="button"
+              phx-click="disconnect_runtime">
+              Disconnect
+            </button>
+          <% else %>
+            <button class="button-base button-blue" phx-click="connect_runtime">
               <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
               <span>Connect</span>
             </button>
@@ -443,8 +448,8 @@ defmodule LivebookWeb.SessionLive do
                   class: "button-base button-outlined-gray bg-transparent" do  %>
               Configure
             <% end %>
-          </div>
-        <% end %>
+          <% end %>
+        </div>
         <%= if uses_memory?(@session.memory_usage) do %>
           <.memory_info memory_usage={@session.memory_usage} />
         <% else %>
@@ -493,11 +498,6 @@ defmodule LivebookWeb.SessionLive do
     </div>
     """
   end
-
-  defp runtime_type_label(%Runtime.ElixirStandalone{}), do: "Elixir standalone"
-  defp runtime_type_label(%Runtime.MixStandalone{}), do: "Mix standalone"
-  defp runtime_type_label(%Runtime.Attached{}), do: "Attached"
-  defp runtime_type_label(%Runtime.Embedded{}), do: "Embedded"
 
   defp session_status(%{status: :evaluating} = assigns) do
     ~H"""
@@ -724,7 +724,7 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("add_smart_cell_dependencies", %{"kind" => kind}, socket) do
     Session.add_smart_cell_dependencies(socket.assigns.session.pid, kind)
 
-    {status, socket} = maybe_restart_runtime(socket)
+    {status, socket} = maybe_reconnect_runtime(socket)
 
     if status == :ok do
       Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
@@ -740,7 +740,7 @@ defmodule LivebookWeb.SessionLive do
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
            true <- Cell.setup?(cell),
            false <- data.cell_infos[cell.id].eval.validity == :fresh do
-        maybe_restart_runtime(socket)
+        maybe_reconnect_runtime(socket)
       else
         _ -> {:ok, socket}
       end
@@ -792,18 +792,18 @@ defmodule LivebookWeb.SessionLive do
      push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session.id))}
   end
 
-  def handle_event("restart_runtime", %{}, socket) do
-    {_, socket} = maybe_restart_runtime(socket)
+  def handle_event("reconnect_runtime", %{}, socket) do
+    {_, socket} = maybe_reconnect_runtime(socket)
     {:noreply, socket}
   end
 
-  def handle_event("start_default_runtime", %{}, socket) do
-    {_, socket} = start_default_runtime(socket)
+  def handle_event("connect_runtime", %{}, socket) do
+    {_, socket} = connect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("setup_default_runtime", %{}, socket) do
-    {status, socket} = start_default_runtime(socket)
+    {status, socket} = connect_runtime(socket)
 
     if status == :ok do
       Session.queue_cell_evaluation(socket.assigns.session.pid, Cell.setup_cell_id())
@@ -837,7 +837,7 @@ defmodule LivebookWeb.SessionLive do
     data = socket.private.data
 
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
-      if data.runtime do
+      if Runtime.connected?(data.runtime) do
         ref = make_ref()
         base_locator = Session.find_base_locator(data, cell, section, existing: true)
         Runtime.handle_intellisense(data.runtime, self(), ref, request, base_locator)
@@ -1330,29 +1330,32 @@ defmodule LivebookWeb.SessionLive do
   defp autofocus_cell_id(%Notebook{sections: [%{cells: [%{id: id, source: ""}]}]}), do: id
   defp autofocus_cell_id(_notebook), do: nil
 
-  defp start_default_runtime(socket) do
-    {runtime_module, args} = Livebook.Config.default_runtime()
-
-    case apply(runtime_module, :init, args) do
+  defp connect_runtime(socket) do
+    case Runtime.connect(socket.private.data.runtime) do
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session.pid, runtime)
+        Session.set_runtime(socket.assigns.session.pid, runtime)
         {:ok, socket}
 
       {:error, message} ->
-        {:error, put_flash(socket, :error, "Failed to start runtime - #{message}")}
+        {:error, put_flash(socket, :error, "Failed to connect runtime - #{message}")}
     end
   end
 
-  defp maybe_restart_runtime(%{private: %{data: %{runtime: nil}}} = socket), do: {:ok, socket}
+  defp maybe_reconnect_runtime(%{private: %{data: data}} = socket) do
+    if Runtime.connected?(data.runtime) do
+      data.runtime
+      |> Runtime.duplicate()
+      |> Runtime.connect()
+      |> case do
+        {:ok, new_runtime} ->
+          Session.set_runtime(socket.assigns.session.pid, new_runtime)
+          {:ok, clear_flash(socket, :error)}
 
-  defp maybe_restart_runtime(%{private: %{data: data}} = socket) do
-    case Runtime.duplicate(data.runtime) do
-      {:ok, new_runtime} ->
-        Session.connect_runtime(socket.assigns.session.pid, new_runtime)
-        {:ok, clear_flash(socket, :error)}
-
-      {:error, message} ->
-        {:error, put_flash(socket, :error, "Failed to start runtime - #{message}")}
+        {:error, message} ->
+          {:error, put_flash(socket, :error, "Failed to connect runtime - #{message}")}
+      end
+    else
+      {:ok, socket}
     end
   end
 

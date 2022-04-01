@@ -12,36 +12,40 @@ defmodule Livebook.Runtime.MixStandalone do
   alias Livebook.Utils.Emitter
 
   @type t :: %__MODULE__{
-          node: node(),
-          server_pid: pid(),
-          project_path: String.t()
+          project_path: String.t(),
+          node: node() | nil,
+          server_pid: pid() | nil
         }
 
   @doc """
-  Starts a new Elixir node (i.e. a system process) and initializes
-  it with Livebook-specific modules and processes.
-
-  The node is started together with a Mix environment appropriate
-  for the given `project_path`. The setup may involve
-  long-running steps (like fetching dependencies, compiling the project),
-  so the initialization is asynchronous. This function spawns and links
-  a process responsible for initialization, which then uses `emitter`
-  to emit the following notifications:
-
-  * `{:output, string}` - arbitrary output/info sent as the initialization proceeds
-  * `{:ok, runtime}` - a final message indicating successful initialization
-  * `{:error, message}` - a final message indicating failure
-
-  If no process calls `Runtime.connect/1` for a period of time,
-  the node automatically terminates. Whoever connects, becomes the owner
-  and as soon as it terminates, the node terminates as well.
-  The node may also be terminated manually by using `Runtime.disconnect/1`.
-
-  Note: to start the node it is required that both `elixir` and `mix` are
-  recognised executables within the system.
+  Returns a new runtime instance.
   """
-  @spec init_async(String.t(), Emitter.t()) :: :ok
-  def init_async(project_path, emitter) do
+  @spec new(String.t()) :: t()
+  def new(project_path) do
+    %__MODULE__{project_path: project_path}
+  end
+
+  @doc """
+  Starts a new Elixir node (a system process) and initializes it with
+  Livebook-specific modules and processes.
+
+  The node is started together with a Mix environment at the given
+  `project_path`. The setup may involve long-running steps (like
+  fetching dependencies, compiling the project), so the initialization
+  is asynchronous. This function spawns and links a process responsible
+  for initialization, which then uses `emitter` to emit the following
+  notifications:
+
+    * `{:output, string}` - arbitrary output/info sent as the initialization proceeds
+    * `{:ok, runtime}` - a final message indicating successful initialization
+    * `{:error, message}` - a final message indicating failure
+
+  Note: to start the node it is required that both `elixir` and `mix`
+  are recognised executables within the system.
+  """
+  @spec connect_async(t(), Emitter.t()) :: :ok
+  def connect_async(runtime, emitter) do
+    %{project_path: project_path} = runtime
     output_emitter = Emitter.mapper(emitter, fn output -> {:output, output} end)
 
     spawn_link(fn ->
@@ -57,12 +61,7 @@ defmodule Livebook.Runtime.MixStandalone do
              eval = child_node_eval_string(),
              port = start_elixir_mix_node(elixir_path, child_node, eval, argv, project_path),
              {:ok, server_pid} <- parent_init_sequence(child_node, port, emitter: output_emitter) do
-          runtime = %__MODULE__{
-            node: child_node,
-            server_pid: server_pid,
-            project_path: project_path
-          }
-
+          runtime = %{runtime | node: child_node, server_pid: server_pid}
           Emitter.emit(emitter, {:ok, runtime})
         else
           {:error, error} ->
@@ -75,18 +74,18 @@ defmodule Livebook.Runtime.MixStandalone do
   end
 
   @doc """
-  A synchronous version of of `init_async/2`.
+  A synchronous version of of `connect_async/2`.
   """
-  @spec init(String.t()) :: {:ok, t()} | {:error, String.t()}
-  def init(project_path) do
+  @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
+  def connect(runtime) do
     %{ref: ref} = emitter = Livebook.Utils.Emitter.new(self())
 
-    init_async(project_path, emitter)
+    connect_async(runtime, emitter)
 
-    await_init(ref, [])
+    await_connect(ref, [])
   end
 
-  defp await_init(ref, outputs) do
+  defp await_connect(ref, outputs) do
     receive do
       {:emitter, ^ref, message} -> message
     end
@@ -99,7 +98,7 @@ defmodule Livebook.Runtime.MixStandalone do
         {:error, message}
 
       {:output, output} ->
-        await_init(ref, [output | outputs])
+        await_connect(ref, [output | outputs])
     end
   end
 
@@ -134,62 +133,83 @@ defmodule Livebook.Runtime.MixStandalone do
 end
 
 defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
-  alias Livebook.Runtime.ErlDist
+  alias Livebook.Runtime.ErlDist.RuntimeServer
 
-  def connect(runtime, opts \\ []) do
-    ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
+  def describe(runtime) do
+    [
+      {"Type", "Mix standalone"},
+      {"Project", runtime.project_path}
+    ] ++
+      if connected?(runtime) do
+        [{"Node name", Atom.to_string(runtime.node)}]
+      else
+        []
+      end
+  end
+
+  def connect(runtime) do
+    Livebook.Runtime.MixStandalone.connect(runtime)
+  end
+
+  def connected?(runtime) do
+    runtime.server_pid != nil
+  end
+
+  def take_ownership(runtime, opts \\ []) do
+    RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
   end
 
   def disconnect(runtime) do
-    ErlDist.RuntimeServer.stop(runtime.server_pid)
-  end
-
-  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
-    ErlDist.RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
-  end
-
-  def forget_evaluation(runtime, locator) do
-    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, locator)
-  end
-
-  def drop_container(runtime, container_ref) do
-    ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
-  end
-
-  def handle_intellisense(runtime, send_to, ref, request, base_locator) do
-    ErlDist.RuntimeServer.handle_intellisense(
-      runtime.server_pid,
-      send_to,
-      ref,
-      request,
-      base_locator
-    )
+    :ok = RuntimeServer.stop(runtime.server_pid)
+    {:ok, %{runtime | node: nil, server_pid: nil}}
   end
 
   def duplicate(runtime) do
-    Livebook.Runtime.MixStandalone.init(runtime.project_path)
+    Livebook.Runtime.MixStandalone.new(runtime.project_path)
+  end
+
+  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
+  end
+
+  def forget_evaluation(runtime, locator) do
+    RuntimeServer.forget_evaluation(runtime.server_pid, locator)
+  end
+
+  def drop_container(runtime, container_ref) do
+    RuntimeServer.drop_container(runtime.server_pid, container_ref)
+  end
+
+  def handle_intellisense(runtime, send_to, ref, request, base_locator) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, ref, request, base_locator)
   end
 
   def standalone?(_runtime), do: true
 
   def read_file(runtime, path) do
-    ErlDist.RuntimeServer.read_file(runtime.server_pid, path)
+    RuntimeServer.read_file(runtime.server_pid, path)
   end
 
   def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
-    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
   end
 
   def set_smart_cell_base_locator(runtime, ref, base_locator) do
-    ErlDist.RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
+    RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
   end
 
   def stop_smart_cell(runtime, ref) do
-    ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+    RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
+  def fixed_dependencies?(_runtime), do: true
+
+  def add_dependencies(_runtime, _code, _dependencies) do
+    raise "not supported"
+  end
+
+  def search_dependencies(_runtime, _send_to, _search) do
+    raise "not supported"
   end
 end

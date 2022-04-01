@@ -8,8 +8,6 @@ defmodule Livebook.Session.DataTest do
   alias Livebook.Notebook.Cell
   alias Livebook.Users.User
 
-  alias Livebook.Runtime.NoopRuntime
-
   @eval_resp {:ok, [1, 2, 3]}
   @eval_meta %{evaluation_time_ms: 10}
   @smart_cell_definitions [%{kind: "text", name: "Text", requirement: nil}]
@@ -222,7 +220,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -248,7 +246,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2", "c3"]}
         ])
@@ -333,7 +331,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -360,7 +358,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2", "c3"]}
         ])
@@ -427,7 +425,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()}
+          {:set_runtime, self(), connected_noop_runtime()}
         ])
 
       operation = {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
@@ -440,7 +438,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions}
         ])
 
@@ -457,7 +455,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil}
         ])
@@ -532,7 +530,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
@@ -565,7 +563,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
           # Evaluate both cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
@@ -588,7 +586,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -615,7 +613,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -657,7 +655,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -706,7 +704,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -726,7 +724,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           # Evaluate both cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
@@ -746,7 +744,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
           # Evaluate both cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"])
         ])
 
@@ -765,7 +763,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :markdown, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           # Evaluate the Code cell
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c2"])
         ])
 
@@ -782,7 +780,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -796,7 +794,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, self(), "c1", Delta.new(), %{}, nil}
@@ -814,7 +812,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil},
@@ -907,7 +905,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:delete_cell, self(), "c1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions}
         ])
 
@@ -947,7 +945,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -966,7 +964,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           {:insert_cell, self(), "s1", 3, :code, "c4", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
         ])
 
@@ -1000,7 +998,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           {:insert_cell, self(), "s1", 3, :code, "c4", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
         ])
 
@@ -1058,7 +1056,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -1078,7 +1076,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :markdown, "c2", %{}},
           # Evaluate the Code cell
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -1100,7 +1098,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           # Evaluate the Code cell
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -1124,7 +1122,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :markdown, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c3"])
         ])
 
@@ -1151,7 +1149,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s3", 0, :code, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
         ])
 
@@ -1183,7 +1181,7 @@ defmodule Livebook.Session.DataTest do
           {:set_section_parent, self(), "s3", "s2"},
           {:set_section_parent, self(), "s4", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4", "c5"])
         ])
 
@@ -1212,7 +1210,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -1252,7 +1250,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
           {:insert_cell, self(), "s2", 1, :code, "c4", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
         ])
 
@@ -1290,7 +1288,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
           {:insert_cell, self(), "s2", 1, :code, "c4", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
         ])
 
@@ -1328,7 +1326,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s2", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -1349,7 +1347,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s2", 0, :markdown, "c2", %{}},
           # Evaluate the Code cell
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -1372,7 +1370,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
           # Evaluate the Code cell
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -1400,7 +1398,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:insert_cell, self(), "s4", 0, :markdown, "c4", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c3"])
         ])
 
@@ -1428,7 +1426,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s4", 0, :code, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"])
         ])
 
@@ -1505,7 +1503,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1514,7 +1512,7 @@ defmodule Livebook.Session.DataTest do
       assert :error = Data.apply_operation(data, operation)
     end
 
-    test "returns start runtime action if there is no runtime and this is the first evaluation" do
+    test "returns connect runtime action if there is no runtime and this is the first evaluation" do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
@@ -1527,7 +1525,7 @@ defmodule Livebook.Session.DataTest do
               %{
                 cell_infos: %{"c1" => %{eval: %{status: :queued}}},
                 section_infos: %{"s1" => %{evaluating_cell_id: nil, evaluation_queue: ["c1"]}}
-              }, [:start_runtime]} = Data.apply_operation(data, operation)
+              }, [:connect_runtime]} = Data.apply_operation(data, operation)
     end
 
     test "only queues the cell if runtime start has already been requested" do
@@ -1558,7 +1556,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"])
         ])
 
@@ -1576,7 +1574,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"])
         ])
 
@@ -1592,7 +1590,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1613,7 +1611,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1640,7 +1638,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
           {:insert_cell, self(), "s2", 1, :code, "c4", %{}},
           # Evaluate first 2 cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
           # Evaluate the first cell, so the second becomes stale
           evaluate_cells_operations(["c1"])
@@ -1684,7 +1682,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s3", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"])
         ])
 
@@ -1717,7 +1715,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c3"]}
         ])
@@ -1745,7 +1743,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -1771,7 +1769,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
           {:queue_cells_evaluation, self(), ["c4"]}
         ])
@@ -1801,7 +1799,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2"]}
         ])
@@ -1822,7 +1820,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1846,7 +1844,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1870,7 +1868,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -1893,7 +1891,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:set_notebook_attributes, self(), %{persist_outputs: true}},
@@ -1912,7 +1910,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1937,7 +1935,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -1957,7 +1955,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           # Evaluate the first cell
           evaluate_cells_operations(["c1"]),
@@ -1981,7 +1979,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -2004,7 +2002,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -2032,7 +2030,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
           # Evaluate all cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"]),
           # Queue the first cell again
           {:queue_cells_evaluation, self(), ["c1"]}
@@ -2063,7 +2061,7 @@ defmodule Livebook.Session.DataTest do
           {:set_section_parent, self(), "s3", "s2"},
           {:set_section_parent, self(), "s4", "s1"},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3", "c4"]),
           # Queue the second cell again
           {:queue_cells_evaluation, self(), ["c2"]}
@@ -2093,7 +2091,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           {:set_cell_attributes, self(), "c3", %{reevaluate_automatically: true}},
           # Evaluate all cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"]),
           # Queue the first cell again
           {:queue_cells_evaluation, self(), ["c1"]}
@@ -2118,7 +2116,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:set_cell_attributes, self(), "c2", %{reevaluate_automatically: true}},
           # Evaluate all cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -2142,7 +2140,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2170,7 +2168,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -2193,7 +2191,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:set_notebook_attributes, self(), %{persist_outputs: true}},
@@ -2213,7 +2211,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]}
         ])
@@ -2230,7 +2228,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2251,7 +2249,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2275,7 +2273,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2302,7 +2300,7 @@ defmodule Livebook.Session.DataTest do
           {:set_section_parent, self(), "s3", "s1"},
           {:insert_cell, self(), "s2", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s3", 0, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2323,7 +2321,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :smart, "c2", %{kind: "text"}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c2", Delta.new(), %{}, nil},
@@ -2370,7 +2368,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -2398,7 +2396,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2", "c3"]}
         ])
@@ -2427,7 +2425,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
           {:insert_cell, self(), "s2", 1, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
           {:queue_cells_evaluation, self(), ["c3"]}
         ])
@@ -2461,7 +2459,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
           {:queue_cells_evaluation, self(), ["c3", "c4"]}
         ])
@@ -2497,7 +2495,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"])
         ])
 
@@ -2513,7 +2511,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2", "c3"]}
         ])
@@ -2540,7 +2538,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -2562,7 +2560,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 2, "s3"},
           {:insert_cell, self(), "s3", 0, :code, "c4", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2", "c3", "c4"]}
         ])
@@ -2591,7 +2589,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]}
         ])
@@ -2614,7 +2612,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2", "c3"]}
         ])
@@ -2646,7 +2644,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
@@ -2665,7 +2663,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}}
         ])
@@ -2692,7 +2690,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
           {:smart_cell_started, self(), "c1", delta1, %{}, nil}
@@ -2718,7 +2716,7 @@ defmodule Livebook.Session.DataTest do
       data =
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
@@ -2746,7 +2744,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 1, "s2"},
           {:insert_cell, self(), "s2", 0, :code, "c3", %{}},
           {:set_section_parent, self(), "s2", "s1"},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1"]),
           {:queue_cells_evaluation, self(), ["c2", "c3"]}
         ])
@@ -2774,7 +2772,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :markdown, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c3"])
         ])
 
@@ -3146,7 +3144,7 @@ defmodule Livebook.Session.DataTest do
           {:client_join, self(), User.new()},
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 1, :smart, "c1", %{kind: "text"}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:set_smart_cell_definitions, self(), @smart_cell_definitions},
           {:smart_cell_started, self(), "c1", Delta.new(), %{},
            %{language: "text", placement: :bottom, source: ""}}
@@ -3287,7 +3285,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           # Evaluate cells
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
           evaluate_cells_operations(["c1"])
         ])
@@ -3320,7 +3318,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta}
@@ -3342,7 +3340,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           {:insert_cell, self(), "s1", 3, :code, "c4", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -3367,7 +3365,7 @@ defmodule Livebook.Session.DataTest do
     test "updates data with the given runtime" do
       data = Data.new()
 
-      runtime = NoopRuntime.new()
+      runtime = connected_noop_runtime()
       operation = {:set_runtime, self(), runtime}
 
       assert {:ok, %{runtime: ^runtime}, []} = Data.apply_operation(data, operation)
@@ -3380,7 +3378,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1", "c2"]},
           # Second section with evaluating and queued cells
@@ -3390,7 +3388,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, self(), ["c3", "c4"]}
         ])
 
-      runtime = NoopRuntime.new()
+      runtime = connected_noop_runtime()
       operation = {:set_runtime, self(), runtime}
 
       assert {:ok,
@@ -3416,7 +3414,7 @@ defmodule Livebook.Session.DataTest do
           {:queue_cells_evaluation, self(), ["setup"]}
         ])
 
-      runtime = NoopRuntime.new()
+      runtime = connected_noop_runtime()
       operation = {:set_runtime, self(), runtime}
 
       assert {:ok,
@@ -3439,7 +3437,7 @@ defmodule Livebook.Session.DataTest do
         data_after_operations!([
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :smart, "c1", %{kind: "text"}},
-          {:set_runtime, self(), NoopRuntime.new()}
+          {:set_runtime, self(), connected_noop_runtime()}
         ])
 
       operation = {:set_smart_cell_definitions, self(), @smart_cell_definitions}
@@ -3489,7 +3487,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
           {:insert_cell, self(), "s1", 4, :code, "c4", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup"]),
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "c1", {:input, input}, @eval_meta},
@@ -3511,7 +3509,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"]),
           # Modify cell 2
           {:client_join, self(), User.new()},
@@ -3527,7 +3525,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c3"]),
           # Insert a fresh cell between cell 1 and cell 3
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}}
@@ -3542,7 +3540,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_section, self(), 0, "s1"},
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2"]),
           # Reevaluate cell 1
           evaluate_cells_operations(["c1"])
@@ -3558,7 +3556,7 @@ defmodule Livebook.Session.DataTest do
           {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
           {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
           {:insert_cell, self(), "s1", 2, :code, "c3", %{}},
-          {:set_runtime, self(), NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           evaluate_cells_operations(["setup", "c1", "c2", "c3"])
         ])
 
@@ -3577,5 +3575,10 @@ defmodule Livebook.Session.DataTest do
         ]
       )
     ]
+  end
+
+  defp connected_noop_runtime() do
+    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+    runtime
   end
 end

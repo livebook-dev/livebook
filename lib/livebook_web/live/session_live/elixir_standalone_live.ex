@@ -36,9 +36,11 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
 
   @impl true
   def handle_event("init", _params, socket) do
-    case Runtime.ElixirStandalone.init() do
+    Runtime.ElixirStandalone.new()
+    |> Runtime.connect()
+    |> case do
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session.pid, runtime)
+        Session.set_runtime(socket.assigns.session.pid, runtime)
         {:noreply, assign(socket, error_message: nil)}
 
       {:error, message} ->

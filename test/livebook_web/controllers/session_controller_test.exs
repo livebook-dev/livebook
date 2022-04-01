@@ -193,7 +193,8 @@ defmodule LivebookWeb.SessionControllerTest do
   defp start_session_and_request_asset(conn, notebook, hash) do
     {:ok, session} = Sessions.create_session(notebook: notebook)
     # We need runtime in place to actually copy the archive
-    Session.connect_runtime(session.pid, Livebook.Runtime.NoopRuntime.new())
+    {:ok, runtime} = Livebook.Runtime.Embedded.new() |> Livebook.Runtime.connect()
+    Session.set_runtime(session.pid, runtime)
 
     conn = get(conn, Routes.session_path(conn, :show_asset, session.id, hash, ["main.js"]))
 

@@ -5,15 +5,16 @@ defmodule Livebook.Runtime.ElixirStandalone do
   #
   # Livebook is responsible for starting and terminating the node.
   # Most importantly we have to make sure the started node doesn't
-  # stay in the system when the session or the entire Livebook terminates.
+  # stay in the system when the session or the entire Livebook
+  # terminates.
 
   import Livebook.Runtime.StandaloneInit
 
   alias Livebook.Utils
 
   @type t :: %__MODULE__{
-          node: node(),
-          server_pid: pid()
+          node: node() | nil,
+          server_pid: pid() | nil
         }
 
   kino_dep = {:kino, github: "livebook-dev/kino"}
@@ -38,19 +39,27 @@ defmodule Livebook.Runtime.ElixirStandalone do
   ]
 
   @doc """
-  Starts a new Elixir node (i.e. a system process) and initializes
-  it with Livebook-specific modules and processes.
+  Returns a new runtime instance.
+  """
+  @spec new() :: t()
+  def new() do
+    %__MODULE__{}
+  end
 
-  If no process calls `Runtime.connect/1` for a period of time,
-  the node automatically terminates. Whoever connects, becomes the owner
-  and as soon as it terminates, the node terminates as well.
-  The node may also be terminated manually by using `Runtime.disconnect/1`.
+  @doc """
+  Starts a new Elixir node (a system process) and initializes it with
+  Livebook-specific modules and processes.
+
+  If no process calls `Runtime.take_ownership/1` for a period of time,
+  the node automatically terminates. Whoever takes the ownersihp,
+  becomes the owner and as soon as it terminates, the node terminates
+  as well. The node may also be terminated by calling `Runtime.disconnect/1`.
 
   Note: to start the node it is required that `elixir` is a recognised
   executable within the system.
   """
-  @spec init() :: {:ok, t()} | {:error, String.t()}
-  def init() do
+  @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
+  def connect(runtime) do
     parent_node = node()
     child_node = child_node_name(parent_node)
 
@@ -64,15 +73,10 @@ defmodule Livebook.Runtime.ElixirStandalone do
       with {:ok, elixir_path} <- find_elixir_executable(),
            port = start_elixir_node(elixir_path, child_node, child_node_eval_string(), argv),
            {:ok, server_pid} <- parent_init_sequence(child_node, port, init_opts: init_opts) do
-        runtime = %__MODULE__{
-          node: child_node,
-          server_pid: server_pid
-        }
-
+        runtime = %{runtime | node: child_node, server_pid: server_pid}
         {:ok, runtime}
       else
-        {:error, error} ->
-          {:error, error}
+        {:error, error} -> {:error, error}
       end
     end)
   end
@@ -92,62 +96,80 @@ defmodule Livebook.Runtime.ElixirStandalone do
 end
 
 defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
-  alias Livebook.Runtime.ErlDist
+  alias Livebook.Runtime.ErlDist.RuntimeServer
 
-  def connect(runtime, opts \\ []) do
-    ErlDist.RuntimeServer.attach(runtime.server_pid, self(), opts)
+  def describe(runtime) do
+    [{"Type", "Elixir standalone"}] ++
+      if connected?(runtime) do
+        [{"Node name", Atom.to_string(runtime.node)}]
+      else
+        []
+      end
+  end
+
+  def connect(runtime) do
+    Livebook.Runtime.ElixirStandalone.connect(runtime)
+  end
+
+  def connected?(runtime) do
+    runtime.server_pid != nil
+  end
+
+  def take_ownership(runtime, opts \\ []) do
+    RuntimeServer.attach(runtime.server_pid, self(), opts)
     Process.monitor(runtime.server_pid)
   end
 
   def disconnect(runtime) do
-    ErlDist.RuntimeServer.stop(runtime.server_pid)
-  end
-
-  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
-    ErlDist.RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
-  end
-
-  def forget_evaluation(runtime, locator) do
-    ErlDist.RuntimeServer.forget_evaluation(runtime.server_pid, locator)
-  end
-
-  def drop_container(runtime, container_ref) do
-    ErlDist.RuntimeServer.drop_container(runtime.server_pid, container_ref)
-  end
-
-  def handle_intellisense(runtime, send_to, ref, request, base_locator) do
-    ErlDist.RuntimeServer.handle_intellisense(
-      runtime.server_pid,
-      send_to,
-      ref,
-      request,
-      base_locator
-    )
+    :ok = RuntimeServer.stop(runtime.server_pid)
+    {:ok, %{runtime | node: nil, server_pid: nil}}
   end
 
   def duplicate(_runtime) do
-    Livebook.Runtime.ElixirStandalone.init()
+    Livebook.Runtime.ElixirStandalone.new()
+  end
+
+  def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
+    RuntimeServer.evaluate_code(runtime.server_pid, code, locator, base_locator, opts)
+  end
+
+  def forget_evaluation(runtime, locator) do
+    RuntimeServer.forget_evaluation(runtime.server_pid, locator)
+  end
+
+  def drop_container(runtime, container_ref) do
+    RuntimeServer.drop_container(runtime.server_pid, container_ref)
+  end
+
+  def handle_intellisense(runtime, send_to, ref, request, base_locator) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, ref, request, base_locator)
   end
 
   def standalone?(_runtime), do: true
 
   def read_file(runtime, path) do
-    ErlDist.RuntimeServer.read_file(runtime.server_pid, path)
+    RuntimeServer.read_file(runtime.server_pid, path)
   end
 
   def start_smart_cell(runtime, kind, ref, attrs, base_locator) do
-    ErlDist.RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
+    RuntimeServer.start_smart_cell(runtime.server_pid, kind, ref, attrs, base_locator)
   end
 
   def set_smart_cell_base_locator(runtime, ref, base_locator) do
-    ErlDist.RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
+    RuntimeServer.set_smart_cell_base_locator(runtime.server_pid, ref, base_locator)
   end
 
   def stop_smart_cell(runtime, ref) do
-    ErlDist.RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
+    RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
+  def fixed_dependencies?(_runtime), do: false
+
   def add_dependencies(_runtime, code, dependencies) do
-    Livebook.Runtime.Code.add_mix_deps(code, dependencies)
+    Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
+  end
+
+  def search_dependencies(_runtime, send_to, search) do
+    Livebook.Runtime.Dependencies.search_dependencies_on_hex(send_to, search)
   end
 end

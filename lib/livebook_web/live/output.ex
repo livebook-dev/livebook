@@ -99,11 +99,11 @@ defmodule LivebookWeb.Output do
     assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
 
     ~H"""
-    <div class="flex flex-col space-y-4" role="complementary" aria-label="runtime restart required">
+    <div class="flex flex-col space-y-4" role="complementary" aria-label="runtime reconnect required">
       <%= render_error(@formatted) %>
       <%= if @is_standalone do %>
         <div>
-          <button class="button-base button-gray" phx-click="restart_runtime">
+          <button class="button-base button-gray" phx-click="reconnect_runtime">
             Reconnect runtime
           </button>
         </div>

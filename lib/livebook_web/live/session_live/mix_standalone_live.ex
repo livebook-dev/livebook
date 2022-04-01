@@ -84,7 +84,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         {:noreply, add_output(socket, output)}
 
       {:ok, runtime} ->
-        Session.connect_runtime(socket.assigns.session.pid, runtime)
+        Session.set_runtime(socket.assigns.session.pid, runtime)
         {:noreply, socket |> assign(status: :finished) |> add_output("Connected successfully")}
 
       {:error, error} ->
@@ -100,7 +100,8 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   defp handle_init(socket) do
     emitter = Utils.Emitter.new(self())
-    Runtime.MixStandalone.init_async(socket.assigns.file.path, emitter)
+    runtime = Runtime.MixStandalone.new(socket.assigns.file.path)
+    Runtime.MixStandalone.connect_async(runtime, emitter)
     {:noreply, assign(socket, status: :initializing, emitter: emitter)}
   end
 

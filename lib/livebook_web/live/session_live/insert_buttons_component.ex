@@ -39,15 +39,15 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           </:content>
         </.menu>
         <%= cond do %>
-          <% @runtime == nil -> %>
+          <% not Livebook.Runtime.connected?(@runtime) -> %>
             <button class="button-base button-small"
               phx-click={
                 with_confirm(
                   JS.push("setup_default_runtime"),
                   title: "Setup runtime",
                   description: ~s'''
-                  To see the available smart cells, you need to start a runtime.
-                  Do you want to start and setup the default one?
+                  To see the available smart cells, you need a connected runtime.
+                  Do you want to connect and setup the default one?
                   ''',
                   confirm_text: "Setup runtime",
                   confirm_icon: "play-line",
@@ -92,9 +92,9 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       title: "Add package",
       description: ~s'''
       The “#{definition.name}“ smart cell requires #{definition.requirement.name}.
-      Do you want to add it as a dependency and restart the runtime?
+      Do you want to add it as a dependency and reinstall dependencies?
       ''',
-      confirm_text: "Add and restart",
+      confirm_text: "Add and reinstall",
       confirm_icon: "add-line",
       danger: false
     )

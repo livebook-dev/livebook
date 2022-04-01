@@ -200,6 +200,17 @@ defprotocol Livebook.Runtime do
 
   @type dependency :: term()
 
+  @type search_dependencies_response ::
+          {:ok, list(search_dependencies_entry())} | {:error, String.t()}
+
+  @type search_dependencies_entry :: %{
+          name: String.t(),
+          version: String.t(),
+          description: String.t() | nil,
+          url: String.t() | nil,
+          dependency: dependency()
+        }
+
   @typedoc """
   A JavaScript view definition.
 
@@ -220,34 +231,62 @@ defprotocol Livebook.Runtime do
   @type smart_cell_attrs :: map()
 
   @doc """
-  Connects the caller to the given runtime.
+  Returns relevant information about the runtime.
 
-  The caller becomes the runtime owner, which makes it the target
-  for most of the runtime messages and ties the runtime life to the
-  Sets the caller as runtime owner.
+  Every runtime is expected to have an item with the `"Type"` label.
+  """
+  @spec describe(t()) :: list({label :: String.t(), String.t()})
+  def describe(runtime)
+
+  @doc """
+  Synchronously initializes the given runtime.
+
+  This function starts the necessary resources and processes.
+  """
+  @spec connect(t()) :: {:ok, t()} | {:error, String.t()}
+  def connect(runtime)
+
+  @doc """
+  Checks if the given runtime is in a connected state.
+  """
+  @spec connected?(t()) :: boolean()
+  def connected?(runtime)
+
+  @doc """
+  Sets the caller as the runtime owner.
+
+  The runtime owner is the target for most of the runtime messages
+  and the runtime lifetime is tied to the owner.
 
   It is advised for each runtime to have a leading process that is
   coupled to the lifetime of the underlying runtime resources. In
-  such case the `connect` function may start monitoring this process
-  and return the monitor reference. This way the caller is notified
-  when the runtime goes down by listening to the :DOWN message with
-  that reference.
+  such case the `take_ownership/2` function may start monitoring this
+  process and return the monitor reference. This way the owner is
+  notified when the runtime goes down by listening to the :DOWN
+  message with that reference.
 
   ## Options
 
     * `:runtime_broadcast_to` - the process to send runtime broadcast
       events to. Defaults to the owner
   """
-  @spec connect(t(), keyword()) :: reference()
-  def connect(runtime, opts \\ [])
+  @spec take_ownership(t(), keyword()) :: reference()
+  def take_ownership(runtime, opts \\ [])
 
   @doc """
-  Disconnects the current owner from the runtime.
-
-  This should cleanup the underlying node/processes.
+  Synchronously disconnects the runtime and cleans up the underlying
+  resources.
   """
-  @spec disconnect(t()) :: :ok
+  @spec disconnect(t()) :: {:ok, t()}
   def disconnect(runtime)
+
+  @doc """
+  Returns a fresh runtime of the same type with the same configuration.
+
+  Note that the runtime is in a stopped state.
+  """
+  @spec duplicate(Runtime.t()) :: Runtime.t()
+  def duplicate(runtime)
 
   @doc """
   Asynchronously parses and evaluates the given code.
@@ -335,13 +374,6 @@ defprotocol Livebook.Runtime do
   def handle_intellisense(runtime, send_to, ref, request, base_locator)
 
   @doc """
-  Synchronously starts a runtime of the same type with the same
-  parameters.
-  """
-  @spec duplicate(Runtime.t()) :: {:ok, Runtime.t()} | {:error, String.t()}
-  def duplicate(runtime)
-
-  @doc """
   Returns true if the given runtime is self-contained.
 
   A standalone runtime always starts fresh and frees all resources
@@ -406,9 +438,32 @@ defprotocol Livebook.Runtime do
   def stop_smart_cell(runtime, ref)
 
   @doc """
+  Returns true if the given runtime by definition has only a specific
+  set of dependencies.
+
+  Note that if restarting the runtime allows for installing different
+  dependencies, the dependencies are not considered fixed.
+
+  When dependencies are fixed, the following functions are allowed to
+  raise an implementation error: `add_dependencies/3`, `search_dependencies/3`.
+  """
+  @spec fixed_dependencies?(t()) :: boolean()
+  def fixed_dependencies?(runtime)
+
+  @doc """
   Updates the given source code to install the given dependencies.
   """
   @spec add_dependencies(t(), String.t(), list(dependency())) ::
           {:ok, String.t()} | {:error, String.t()}
   def add_dependencies(runtime, code, dependencies)
+
+  @doc """
+  Looks up packages matching the given search.
+
+  The response is sent to the `send_to` process as
+
+    * `{:runtime_search_dependencies_response, ref, response}`.
+  """
+  @spec search_dependencies(t(), pid(), String.t()) :: reference()
+  def search_dependencies(runtime, send_to, search)
 end

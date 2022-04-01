@@ -137,8 +137,8 @@ defmodule Livebook.SessionTest do
   describe "add_smart_cell_dependencies/2" do
     test "applies source change to the setup cell to include the smart cell dependency",
          %{session: session} do
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
       send(
         session.pid,
@@ -180,8 +180,8 @@ defmodule Livebook.SessionTest do
       notebook = Notebook.new() |> Notebook.update_cell("setup", &%{&1 | source: "[,]"})
       session = start_session(notebook: notebook)
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
       send(
         session.pid,
@@ -305,8 +305,8 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
       assert_receive {:operation, {:set_runtime, ^pid, ^runtime}}
     end
@@ -317,14 +317,16 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      assert_receive {:operation, {:set_runtime, ^pid, _}}
 
       # Calling twice can happen in a race, make sure it doesn't crash
       Session.disconnect_runtime(session.pid)
       Session.disconnect_runtime([session.pid])
 
-      assert_receive {:operation, {:set_runtime, ^pid, nil}}
+      assert_receive {:operation, {:set_runtime, ^pid, runtime}}
+      refute Runtime.connected?(runtime)
     end
   end
 
@@ -537,18 +539,19 @@ defmodule Livebook.SessionTest do
 
   test "if the runtime node goes down, notifies the subscribers" do
     session = start_session()
-    {:ok, runtime} = Runtime.ElixirStandalone.init()
+    {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
 
     Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
     # Wait for the runtime to be set
-    Session.connect_runtime(session.pid, runtime)
+    Session.set_runtime(session.pid, runtime)
     assert_receive {:operation, {:set_runtime, _, ^runtime}}
 
     # Terminate the other node, the session should detect that
     Node.spawn(runtime.node, System, :halt, [])
 
-    assert_receive {:operation, {:set_runtime, _, nil}}
+    assert_receive {:operation, {:set_runtime, _, runtime}}
+    refute Runtime.connected?(runtime)
     assert_receive {:info, "runtime node terminated unexpectedly"}
   end
 
@@ -643,8 +646,8 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = Livebook.Runtime.NoopRuntime.new()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
       send(
         session.pid,
@@ -670,8 +673,8 @@ defmodule Livebook.SessionTest do
       notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = Livebook.Runtime.NoopRuntime.new()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
       send(
         session.pid,
@@ -756,7 +759,7 @@ defmodule Livebook.SessionTest do
 
       data =
         data_after_operations!(data, [
-          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:queue_cells_evaluation, self(), ["c1"]},
           {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, %{evaluation_time_ms: 10}},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
@@ -822,5 +825,10 @@ defmodule Livebook.SessionTest do
     assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :code, cell_id, _attrs}}
 
     {section_id, cell_id}
+  end
+
+  defp connected_noop_runtime() do
+    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+    runtime
   end
 end
