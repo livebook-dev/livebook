@@ -4,13 +4,10 @@ defmodule Livebook.Runtime.NoopRuntime do
   # A runtime that doesn't do any actual evaluation,
   # thus not requiring any underlying resources.
 
-  defstruct [:started, :search_dependencies_response]
+  defstruct [:started]
 
-  def new(opts \\ []) do
-    %__MODULE__{
-      started: false,
-      search_dependencies_response: opts[:search_dependencies_response]
-    }
+  def new() do
+    %__MODULE__{started: false}
   end
 
   defimpl Livebook.Runtime do
@@ -22,12 +19,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def connected?(runtime), do: runtime.started
     def take_ownership(_, _), do: make_ref()
     def disconnect(runtime), do: {:ok, %{runtime | started: false}}
-
-    def duplicate(runtime) do
-      Livebook.Runtime.NoopRuntime.new(
-        search_dependencies_response: runtime.search_dependencies_response
-      )
-    end
+    def duplicate(_), do: Livebook.Runtime.NoopRuntime.new()
 
     def evaluate_code(_, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
@@ -46,14 +38,6 @@ defmodule Livebook.Runtime.NoopRuntime do
       Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
     end
 
-    def search_dependencies(runtime, send_to, _search) do
-      ref = make_ref()
-
-      if response = runtime.search_dependencies_response do
-        send(send_to, {:runtime_search_dependencies_response, ref, response})
-      end
-
-      ref
-    end
+    def search_dependencies(_, _, _), do: make_ref()
   end
 end

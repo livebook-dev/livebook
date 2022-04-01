@@ -898,52 +898,19 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "dependency search" do
     test "lists search entries", %{conn: conn, session: session} do
-      runtime =
-        Livebook.Runtime.NoopRuntime.new(
-          search_dependencies_response:
-            {:ok,
-             [
-               %{
-                 dependency: {:kino, "~> 0.5.2"},
-                 description: "Interactive widgets for Livebook",
-                 name: "kino",
-                 url: "https://hex.pm/packages/kino",
-                 version: "0.5.2"
-               }
-             ]}
-        )
-
-      Session.set_runtime(session.pid, runtime)
-
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
 
       [search_view] = live_children(view)
 
+      # Search the predefined dependencies in the embedded runtime
       search_view
       |> element(~s{form[phx-change="search"]})
-      |> render_change(%{"search" => "kino"})
+      |> render_change(%{"search" => "ki"})
 
       page = render(view)
+      assert page =~ "kino"
       assert page =~ "Interactive widgets for Livebook"
       assert page =~ "0.5.2"
-    end
-
-    test "shows a search error", %{conn: conn, session: session} do
-      runtime =
-        Livebook.Runtime.NoopRuntime.new(search_dependencies_response: {:error, "request failed"})
-
-      Session.set_runtime(session.pid, runtime)
-
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
-
-      [dependencies_view] = live_children(view)
-
-      dependencies_view
-      |> element(~s{form[phx-change="search"]})
-      |> render_change(%{"search" => "kino"})
-
-      page = render(view)
-      assert page =~ "Request failed"
     end
   end
 
