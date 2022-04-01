@@ -110,13 +110,27 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.stop_smart_cell(runtime.server_pid, ref)
   end
 
-  def fixed_dependencies?(_runtime), do: false
+  def fixed_dependencies?(_runtime) do
+    dependency_entries() == []
+  end
 
   def add_dependencies(_runtime, code, dependencies) do
     Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
   end
 
   def search_dependencies(_runtime, send_to, search) do
-    Livebook.Runtime.Dependencies.search_dependencies(send_to, search)
+    Livebook.Runtime.Dependencies.search_dependencies_entries(
+      dependency_entries(),
+      send_to,
+      search
+    )
+  end
+
+  defp dependency_entries() do
+    config()[:dependency_entries] || []
+  end
+
+  defp config() do
+    Application.get_env(:livebook, Livebook.Runtime.Embedded, [])
   end
 end

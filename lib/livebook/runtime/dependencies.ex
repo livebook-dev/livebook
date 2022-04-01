@@ -173,6 +173,22 @@ defmodule Livebook.Runtime.Dependencies do
   end
 
   @doc """
+  Implements `Livebook.Runtime.search_dependencies/3` by searching
+  through the given list of entries.
+  """
+  @spec search_dependencies_entries(
+          list(Livebook.Runtime.search_dependencies_entry()),
+          pid(),
+          String.t()
+        ) :: reference()
+  def search_dependencies_entries(entries, send_to, search) do
+    ref = make_ref()
+    entries = Enum.filter(entries, &String.starts_with?(&1.name, search))
+    send(send_to, {:runtime_search_dependencies_response, ref, {:ok, entries}})
+    ref
+  end
+
+  @doc """
   Searches for packages on Hex and returns them as dependency entries.
 
   ## Options
