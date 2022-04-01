@@ -21,7 +21,7 @@ defmodule Livebook do
 
   In case you use the Embedded runtime and support installing dependencies
   with `Mix.install/2`, you can make those discoverable in the
-  dpeendency search, by configuring entries like this:
+  dependency search, by configuring entries like this:
 
       config :livebook, Livebook.Runtime.Embedded,
         dependency_entries: [
