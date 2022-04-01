@@ -56,7 +56,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
           <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
           <button class="button-base button-blue"
             type="submit"
-            disabled={@uploads.cell_image.entries == [] or @name == ""}>
+            disabled={@uploads.cell_image.entries == []}>
             Upload
           </button>
         </div>
@@ -79,7 +79,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       path = Path.expand(path)
       upload_file = FileSystem.File.local(path)
       ext = Path.extname(entry.client_name)
-      filename = name <> ext
+      filename = if name == "", do: entry.client_name, else: name <> ext
       destination_file = FileSystem.File.resolve(images_dir, filename)
 
       result =
