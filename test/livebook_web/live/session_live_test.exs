@@ -906,7 +906,7 @@ defmodule LivebookWeb.SessionLiveTest do
                %{
                  dependency: {:kino, "~> 0.5.2"},
                  description: "Interactive widgets for Livebook",
-                 name: "ecto",
+                 name: "kino",
                  url: "https://hex.pm/packages/kino",
                  version: "0.5.2"
                }

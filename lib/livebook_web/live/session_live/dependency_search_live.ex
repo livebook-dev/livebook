@@ -7,16 +7,20 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
         %{"session" => session, "runtime" => runtime, "return_to" => return_to},
         socket
       ) do
-    {:ok,
-     assign(socket,
-       session: session,
-       runtime: runtime,
-       return_to: return_to,
-       search: "",
-       search_ref: nil,
-       entries: [],
-       error_message: nil
-     )}
+    socket =
+      assign(socket,
+        session: session,
+        runtime: runtime,
+        return_to: return_to,
+        search: "",
+        search_ref: nil,
+        entries: [],
+        error_message: nil
+      )
+
+    socket = if connected?(socket), do: do_search(socket, ""), else: socket
+
+    {:ok, socket}
   end
 
   @impl true
@@ -92,15 +96,7 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
 
   @impl true
   def handle_event("search", %{"search" => search}, socket) do
-    socket =
-      if String.length(search) >= 2 do
-        search_ref = Livebook.Runtime.search_dependencies(socket.assigns.runtime, self(), search)
-        assign(socket, search_ref: search_ref)
-      else
-        assign(socket, search_ref: nil, entries: [], error_message: nil)
-      end
-
-    {:noreply, socket}
+    {:noreply, do_search(socket, search)}
   end
 
   @impl true
@@ -139,6 +135,11 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp do_search(socket, search) do
+    search_ref = Livebook.Runtime.search_dependencies(socket.assigns.runtime, self(), search)
+    assign(socket, search_ref: search_ref, search: search)
+  end
 
   defp add_dependency(socket, dependency) do
     Livebook.Session.add_dependencies(socket.assigns.session.pid, [dependency])

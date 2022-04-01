@@ -170,6 +170,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   end
 
   def search_dependencies(_runtime, send_to, search) do
-    Livebook.Runtime.Dependencies.search_dependencies(send_to, search)
+    Livebook.Runtime.Dependencies.search_dependencies_hex(send_to, search)
   end
 end

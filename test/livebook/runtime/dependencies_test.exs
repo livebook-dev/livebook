@@ -248,6 +248,12 @@ defmodule Livebook.Runtime.DependenciesTest do
 
       assert Dependencies.search_hex("ecto", api_url: api_url) == {:error, "unexpected response"}
     end
+
+    test "returns an empty list for an empty search", %{bypass: bypass} do
+      api_url = api_url(bypass.port)
+
+      assert Dependencies.search_hex("", api_url: api_url) == {:ok, []}
+    end
   end
 
   defp api_url(port), do: "http://localhost:#{port}/api"

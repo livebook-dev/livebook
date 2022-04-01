@@ -160,8 +160,8 @@ defmodule Livebook.Runtime.Dependencies do
   Implements `Livebook.Runtime.search_dependencies/3` on top of
   `search_hex/2`.
   """
-  @spec search_dependencies(pid(), String.t()) :: reference()
-  def search_dependencies(send_to, search) do
+  @spec search_dependencies_hex(pid(), String.t()) :: reference()
+  def search_dependencies_hex(send_to, search) do
     ref = make_ref()
 
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
@@ -180,7 +180,11 @@ defmodule Livebook.Runtime.Dependencies do
       * `:api_url` - the base URL for Hex API requests. Optional
   """
   @spec search_hex(String.t(), keyword()) :: Livebook.Runtime.search_dependencies_response()
-  def search_hex(search, opts \\ []) do
+  def search_hex(search, opts \\ [])
+
+  def search_hex("", _opts), do: {:ok, []}
+
+  def search_hex(search, opts) do
     api_url = opts[:api_url] || "https://hex.pm/api"
 
     params = %{"search" => "name:#{search}*", "sort" => "downloads"}
