@@ -160,8 +160,8 @@ defmodule Livebook.Runtime.Dependencies do
   Implements `Livebook.Runtime.search_dependencies/3` on top of
   `search_hex/2`.
   """
-  @spec search_dependencies_hex(pid(), String.t()) :: reference()
-  def search_dependencies_hex(send_to, search) do
+  @spec search_dependencies_on_hex(pid(), String.t()) :: reference()
+  def search_dependencies_on_hex(send_to, search) do
     ref = make_ref()
 
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
@@ -176,12 +176,12 @@ defmodule Livebook.Runtime.Dependencies do
   Implements `Livebook.Runtime.search_dependencies/3` by searching
   through the given list of entries.
   """
-  @spec search_dependencies_entries(
+  @spec search_dependencies_in_entries(
           list(Livebook.Runtime.search_dependencies_entry()),
           pid(),
           String.t()
         ) :: reference()
-  def search_dependencies_entries(entries, send_to, search) do
+  def search_dependencies_in_entries(entries, send_to, search) do
     ref = make_ref()
     entries = Enum.filter(entries, &String.starts_with?(&1.name, search))
     send(send_to, {:runtime_search_dependencies_response, ref, {:ok, entries}})

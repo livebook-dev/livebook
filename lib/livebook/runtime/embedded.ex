@@ -121,7 +121,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   def search_dependencies(_runtime, send_to, search) do
     {mod, fun, args} = config()[:load_dependency_entries]
     entries = apply(mod, fun, args)
-    Livebook.Runtime.Dependencies.search_dependencies_entries(entries, send_to, search)
+    Livebook.Runtime.Dependencies.search_dependencies_in_entries(entries, send_to, search)
   end
 
   defp config() do
