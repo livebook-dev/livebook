@@ -118,6 +118,14 @@ defmodule Livebook do
            Livebook.Config.default_runtime!("LIVEBOOK_DEFAULT_RUNTIME") ||
              Livebook.Runtime.ElixirStandalone.new()
 
+    config :livebook,
+           :runtime_modules,
+           [
+             Livebook.Runtime.ElixirStandalone,
+             Livebook.Runtime.MixStandalone,
+             Livebook.Runtime.Attached
+           ]
+
     if home = Livebook.Config.writable_dir!("LIVEBOOK_HOME") do
       config :livebook, :home, home
     end

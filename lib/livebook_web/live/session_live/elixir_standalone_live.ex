@@ -5,6 +5,10 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
+    unless Livebook.Config.enable_runtime(Livebook.Runtime.ElixirStandalone) do
+      raise "Now allow runtime module"
+    end
+
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
     end

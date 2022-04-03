@@ -412,6 +412,19 @@ defmodule LivebookWeb.SessionLiveTest do
   describe "runtime settings" do
     test "connecting to elixir standalone updates connect button to reconnect",
          %{conn: conn, session: session} do
+      runtime_modules = Application.get_env(:livebook, :runtime_modules)
+
+      Application.put_env(:livebook, :runtime_modules, [
+        Livebook.Runtime.ElixirStandalone,
+        Livebook.Runtime.MixStandalone,
+        Livebook.Runtime.Attached,
+        Livebook.Runtime.Embedded
+      ])
+
+      on_exit(fn ->
+        Application.put_env(:livebook, :runtime_modules, runtime_modules)
+      end)
+
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
