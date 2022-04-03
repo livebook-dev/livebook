@@ -51,13 +51,15 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
             phx-target={@myself}>
             Attached node
           </.choice_button>
-          <.choice_button
-            active={@type == "embedded"}
-            phx-click="set_runtime_type"
-            phx-value-type="embedded"
-            phx-target={@myself}>
-            Embedded
-          </.choice_button>
+          <%= if Application.get_env(:livebook, :embedded_runtime_enabled) do %>
+            <.choice_button
+              active={@type == "embedded"}
+              phx-click="set_runtime_type"
+              phx-value-type="embedded"
+              phx-target={@myself}>
+              Embedded
+            </.choice_button>
+          <% end %>
         </div>
         <div>
           <%= live_render @socket, live_view_for_type(@type),

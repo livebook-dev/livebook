@@ -433,6 +433,20 @@ defmodule LivebookWeb.SessionLiveTest do
       assert page =~ "Reconnect"
       assert page =~ "Disconnect"
     end
+
+    test "hide embedded runtime type button when defaults.", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
+
+      refute view |> element("button", "Embedded") |> has_element?()
+    end
+
+    test "show embedded runtime type button when :embedded_runtime_enabled is true",
+         %{conn: conn, session: session} do
+      Application.put_env(:livebook, :embedded_runtime_enabled, true)
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
+
+      assert view |> element("button", "Embedded") |> has_element?()
+    end
   end
 
   describe "persistence settings" do
