@@ -433,14 +433,37 @@ defmodule LivebookWeb.SessionLiveTest do
       assert page =~ "Reconnect"
       assert page =~ "Disconnect"
     end
+  end
 
-    test "hide embedded runtime type button when defaults.", %{conn: conn, session: session} do
+  describe "runtime settings - allow Embedded" do
+    setup do
+      default_runtime = Application.get_env(:livebook, :default_runtime)
+      Application.put_env(:livebook, :default_runtime, Livebook.Runtime.ElixirStandalone.new())
+      Application.put_env(:livebook, :embedded_runtime_enabled, false)
+
+      on_exit(fn ->
+        Application.put_env(:livebook, :default_runtime, default_runtime)
+      end)
+
+      :ok
+    end
+
+    test "hide embedded runtime button when :default_runtime is Elixir Standalone",
+         %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
 
       refute view |> element("button", "Embedded") |> has_element?()
     end
 
-    test "show embedded runtime type button when :embedded_runtime_enabled is true",
+    test "show embedded runtime button when :default_runtime is Embedded.",
+         %{conn: conn, session: session} do
+      Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new())
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
+
+      assert view |> element("button", "Embedded") |> has_element?()
+    end
+
+    test "show embedded runtime button when :embedded_runtime_enabled is true",
          %{conn: conn, session: session} do
       Application.put_env(:livebook, :embedded_runtime_enabled, true)
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")

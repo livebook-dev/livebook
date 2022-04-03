@@ -27,6 +27,17 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the enable embedded runtime module.
+  """
+  @spec embedded_runtime_enabled() :: boolean()
+  def embedded_runtime_enabled() do
+    case default_runtime() do
+      %Livebook.Runtime.Embedded{} -> true
+      _other -> Application.fetch_env!(:livebook, :embedded_runtime_enabled)
+    end
+  end
+
+  @doc """
   Returns the authentication mode.
   """
   @spec auth_mode() :: auth_mode()
