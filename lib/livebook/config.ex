@@ -27,17 +27,6 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the enable embedded runtime module.
-  """
-  @spec embedded_runtime_enabled() :: boolean()
-  def embedded_runtime_enabled() do
-    case default_runtime() do
-      %Livebook.Runtime.Embedded{} -> true
-      _other -> Application.fetch_env!(:livebook, :embedded_runtime_enabled)
-    end
-  end
-
-  @doc """
   Returns the authentication mode.
   """
   @spec auth_mode() :: auth_mode()
@@ -213,13 +202,6 @@ defmodule Livebook.Config do
   """
   def force_ssl_host!(env) do
     System.get_env(env)
-  end
-
-  @doc """
-  Parses embedded runtime setting from env.
-  """
-  def embedded_runtime_enabled!(env) do
-    System.get_env(env, "0") in ~w(true 1)
   end
 
   @doc """

@@ -131,10 +131,6 @@ defmodule Livebook do
     end
 
     config :livebook,
-           :embedded_runtime_enabled,
-           Livebook.Config.embedded_runtime_enabled!("LIVEBOOK_EMBEDDED_RUNTIME_ENABLED")
-
-    config :livebook,
            :cookie,
            Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
              Livebook.Config.cookie!("RELEASE_COOKIE") ||
