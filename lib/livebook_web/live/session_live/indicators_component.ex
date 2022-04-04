@@ -4,7 +4,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col items-center space-y-2" data-element="notebook-indicators">
+    <div class="flex flex-col items-center space-y-2" data-el-notebook-indicators>
       <%= if @file do %>
         <%= if @dirty do %>
           <%= if @autosave_interval_s do %>
@@ -58,7 +58,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <% end %>
 
       <%# Note: this indicator is shown/hidden using CSS based on the current mode %>
-      <span class="tooltip left" data-tooltip="Insert mode" data-element="insert-mode-indicator">
+      <span class="tooltip left" data-tooltip="Insert mode" data-el-insert-mode-indicator>
         <span class="text-sm font-medium text-gray-400 cursor-default">
           ins
         </span>
@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     <span class="tooltip left" data-tooltip="Go to evaluating cell">
       <button class="border-blue-400 icon-button icon-outlined-button hover:bg-blue-50 focus:bg-blue-50"
         aria-label="go to evaluating cell"
-        data-element="focus-cell-button"
+        data-el-focus-cell-button
         data-target={@cell_id}>
         <.remix_icon icon="loader-3-line" class="text-xl text-blue-500 animate-spin" />
       </button>
@@ -85,7 +85,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     <span class="tooltip left" data-tooltip="Go to last evaluated cell">
       <button class="border-green-bright-300 icon-button icon-outlined-button hover:bg-green-bright-50 focus:bg-green-bright-50"
         aria-label="go to last evaluated cell"
-        data-element="focus-cell-button"
+        data-el-focus-cell-button
         data-target={@cell_id}>
         <.remix_icon icon="loader-3-line" class="text-xl text-green-bright-400" />
       </button>
@@ -98,7 +98,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     <span class="tooltip left" data-tooltip="Go to first stale cell">
       <button class="border-yellow-bright-200 icon-button icon-outlined-button hover:bg-yellow-bright-50 focus:bg-yellow-bright-50"
         aria-label="go to first stale cell"
-        data-element="focus-cell-button"
+        data-el-focus-cell-button
         data-target={@cell_id}>
         <.remix_icon icon="loader-3-line" class="text-xl text-yellow-bright-300" />
       </button>

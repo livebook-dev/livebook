@@ -165,9 +165,9 @@ const JSView = {
     this.iframe = document.createElement("iframe");
     this.iframe.className = "w-full h-0 absolute z-[1]";
 
-    const notebookEl = document.querySelector(`[data-element="notebook"]`);
+    const notebookEl = document.querySelector(`[data-el-notebook]`);
     const notebookContentEl = notebookEl.querySelector(
-      `[data-element="notebook-content"]`
+      `[data-el-notebook-content]`
     );
 
     // Most placeholder position changes are accompanied by changes to the
@@ -219,7 +219,7 @@ const JSView = {
 
   repositionIframe() {
     const { iframe, iframePlaceholder } = this;
-    const notebookEl = document.querySelector(`[data-element="notebook"]`);
+    const notebookEl = document.querySelector(`[data-el-notebook]`);
 
     if (iframePlaceholder.offsetParent === null) {
       // When the placeholder is hidden, we hide the iframe as well
@@ -239,9 +239,7 @@ const JSView = {
   },
 
   loadIframe() {
-    const iframesEl = document.querySelector(
-      `[data-element="js-view-iframes"]`
-    );
+    const iframesEl = document.querySelector(`[data-el-js-view-iframes]`);
     initializeIframeSource(this.iframe, this.props.iframePort).then(() => {
       iframesEl.appendChild(this.iframe);
     });

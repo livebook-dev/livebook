@@ -109,7 +109,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <input type="checkbox" name="session_ids[]" value={session.id}
               aria-label={session.notebook_name}
               class="checkbox-base hidden mr-3"
-              data-element="bulk-edit-member"
+              data-el-bulk-edit-member
               phx-click={JS.dispatch("lb:session_list:on_selection_change")}>
           </div>
           <div class="grow flex flex-col items-start">
@@ -218,7 +218,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
             <span>Edit</span>
           </button>
           <button class="hidden w-28 button-base button-outlined-gray px-4 py-1 flex justify-between items-center"
-            data-element="bulk-edit-member"
+            data-el-bulk-edit-member
             type="button">
             <span>Actions</span>
             <.remix_icon icon="arrow-down-s-line" class="text-lg leading-none align-middle ml-1" />
@@ -264,14 +264,14 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   def toggle_edit(:on) do
-    JS.remove_class("hidden", to: "[data-element='bulk-edit-member']")
+    JS.remove_class("hidden", to: "[data-el-bulk-edit-member]")
     |> JS.add_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:session_list:on_selection_change")
     |> sr_message("bulk actions available")
   end
 
   def toggle_edit(:off) do
-    JS.add_class("hidden", to: "[data-element='bulk-edit-member']")
+    JS.add_class("hidden", to: "[data-el-bulk-edit-member]")
     |> JS.remove_class("hidden", to: "#toggle-edit")
     |> JS.dispatch("lb:uncheck", to: "[name='session_ids[]']")
     |> JS.dispatch("lb:session_list:on_selection_change")

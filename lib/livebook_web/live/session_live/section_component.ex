@@ -3,9 +3,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
 
   def render(assigns) do
     ~H"""
-    <section data-element="section" data-section-id={@section_view.id}>
+    <section data-el-section data-section-id={@section_view.id}>
       <div class="flex space-x-4 items-center"
-        data-element="section-headline"
+        data-el-section-headline
         id={@section_view.id}
         data-focusable-id={@section_view.id}
         phx-hook="Headline"
@@ -14,9 +14,9 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         <h2 class="grow text-gray-800 font-semibold text-2xl px-1 -ml-1 rounded-lg border border-transparent whitespace-pre-wrap cursor-text"
           tabindex="0"
           id={@section_view.html_id}
-          data-element="heading"
+          data-el-heading
           spellcheck="false"><%= @section_view.name %></h2>
-        <div class="flex space-x-2 items-center" data-element="section-actions"
+        <div class="flex space-x-2 items-center" data-el-section-actions
           role="toolbar"
           aria-label="section actions">
           <span class="tooltip top" data-tooltip="Link">

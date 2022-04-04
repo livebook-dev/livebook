@@ -36,7 +36,7 @@ defmodule LivebookWeb.SidebarHelpers do
     <span class="tooltip right distant" data-tooltip={@label}>
       <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
         aria-label={@label}
-        data-element={@data_element}>
+        {@button_attrs}>
         <.remix_icon icon={@icon} />
       </button>
     </span>

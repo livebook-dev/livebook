@@ -9,7 +9,7 @@ const CellEditor = {
       `cell_editor_init:${this.props.cellId}:${this.props.tag}`,
       ({ source_view, language, intellisense, read_only }) => {
         const editorContainer = this.el.querySelector(
-          `[data-element="editor-container"]`
+          `[data-el-editor-container]`
         );
 
         // Remove the content placeholder

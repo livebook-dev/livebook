@@ -35,7 +35,7 @@ const Cell = {
 
     if (this.props.type === "code") {
       const amplifyButton = this.el.querySelector(
-        `[data-element="amplify-outputs-button"]`
+        `[data-el-amplify-outputs-button]`
       );
       amplifyButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-amplified");
@@ -44,7 +44,7 @@ const Cell = {
 
     if (this.props.type === "smart") {
       const toggleSourceButton = this.el.querySelector(
-        `[data-element="toggle-source-button"]`
+        `[data-el-toggle-source-button]`
       );
       toggleSourceButton.addEventListener("click", (event) => {
         this.el.toggleAttribute("data-js-source-visible");
@@ -185,7 +185,7 @@ const Cell = {
       // Setup markdown rendering
       if (this.props.type === "markdown") {
         const markdownContainer = this.el.querySelector(
-          `[data-element="markdown-container"]`
+          `[data-el-markdown-container]`
         );
         const markdown = new Markdown(markdownContainer, source, {
           baseUrl: this.props.sessionPath,
@@ -254,10 +254,9 @@ const Cell = {
   },
 
   updateChangeIndicator() {
-    const cellStatus = this.el.querySelector(`[data-element="cell-status"]`);
+    const cellStatus = this.el.querySelector(`[data-el-cell-status]`);
     const indicator =
-      cellStatus &&
-      cellStatus.querySelector(`[data-element="change-indicator"]`);
+      cellStatus && cellStatus.querySelector(`[data-el-change-indicator]`);
 
     if (indicator && this.props.evaluationDigest) {
       const source = this.liveEditors.primary.getSource();

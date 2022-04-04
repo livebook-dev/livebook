@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     <div class="relative top-0.5 m-0 flex justify-center"
       role="toolbar"
       aria-label="insert new"
-      data-element="insert-buttons">
+      data-el-insert-buttons>
       <div class={"w-full absolute z-10 focus-within:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"}>
         <button class="button-base button-small"
           phx-click="insert_cell_below"

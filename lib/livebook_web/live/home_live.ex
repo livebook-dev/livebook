@@ -85,7 +85,7 @@ defmodule LivebookWeb.HomeLive do
             </.live_component>
           </div>
 
-          <div class="py-12" data-element="explore-section" role="region" aria-label="explore section">
+          <div class="py-12" data-el-explore-section role="region" aria-label="explore section">
             <div class="mb-4 flex justify-between items-center">
               <h2 class="uppercase font-semibold text-gray-500">
                 Explore
