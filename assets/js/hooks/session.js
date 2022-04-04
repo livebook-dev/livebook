@@ -405,7 +405,7 @@ const Session = {
    */
   handleDocumentMouseDown(event) {
     // If the click is outside the notebook element, keep the focus as is
-    if (!event.target.closest(`[data-element="notebook"]`)) {
+    if (!event.target.closest(`[data-el-notebook]`)) {
       if (this.insertMode) {
         this.setInsertMode(false);
       }
@@ -413,7 +413,7 @@ const Session = {
     }
 
     // When clicking an insert button, keep focus and insert mode as is
-    if (event.target.closest(`[data-element="insert-buttons"] button`)) {
+    if (event.target.closest(`[data-el-insert-buttons] button`)) {
       return;
     }
 
@@ -427,7 +427,7 @@ const Session = {
     }
 
     // If a cell action is clicked, keep the insert mode as is
-    if (event.target.closest(`[data-element="actions"]`)) {
+    if (event.target.closest(`[data-el-actions]`)) {
       return;
     }
 
@@ -440,7 +440,7 @@ const Session = {
   editableElementClicked(event, focusableEl) {
     if (focusableEl) {
       const editableElement = event.target.closest(
-        `[data-element="editor-container"], [data-element="heading"]`
+        `[data-el-editor-container], [data-el-heading]`
       );
       return editableElement && focusableEl.contains(editableElement);
     }
@@ -468,7 +468,7 @@ const Session = {
    * Enters insert mode when markdown edit action is clicked.
    */
   handleDocumentClick(event) {
-    if (event.target.closest(`[data-element="enable-insert-mode-button"]`)) {
+    if (event.target.closest(`[data-el-enable-insert-mode-button]`)) {
       this.setInsertMode(true);
     }
   },
@@ -477,7 +477,7 @@ const Session = {
    * Enters insert mode when a markdown cell is double-clicked.
    */
   handleDocumentDoubleClick(event) {
-    const cell = event.target.closest(`[data-element="cell"]`);
+    const cell = event.target.closest(`[data-el-cell]`);
     const type = cell && cell.getAttribute("data-type");
 
     if (
@@ -494,9 +494,7 @@ const Session = {
    * Handles section link clicks in the section list.
    */
   handleSectionsListClick(event) {
-    const sectionButton = event.target.closest(
-      `[data-element="sections-list-item"]`
-    );
+    const sectionButton = event.target.closest(`[data-el-sections-list-item]`);
     if (sectionButton) {
       const sectionId = sectionButton.getAttribute("data-section-id");
       const section = this.getSectionById(sectionId);
@@ -508,20 +506,18 @@ const Session = {
    * Handles client link clicks in the clients list.
    */
   handleClientsListClick(event) {
-    const clientListItem = event.target.closest(
-      `[data-element="clients-list-item"]`
-    );
+    const clientListItem = event.target.closest(`[data-el-clients-list-item]`);
 
     if (clientListItem) {
       const clientPid = clientListItem.getAttribute("data-client-pid");
 
-      const clientLink = event.target.closest(`[data-element="client-link"]`);
+      const clientLink = event.target.closest(`[data-el-client-link]`);
       if (clientLink) {
         this.handleClientLinkClick(clientPid);
       }
 
       const clientFollowToggle = event.target.closest(
-        `[data-element="client-follow-toggle"]`
+        `[data-el-client-follow-toggle]`
       );
       if (clientFollowToggle) {
         this.handleClientFollowToggleClick(clientPid, clientListItem);
@@ -535,7 +531,7 @@ const Session = {
 
   handleClientFollowToggleClick(clientPid, clientListItem) {
     const followedClientListItem = this.el.querySelector(
-      `[data-element="clients-list-item"][data-js-followed]`
+      `[data-el-clients-list-item][data-js-followed]`
     );
 
     if (followedClientListItem) {
@@ -563,7 +559,7 @@ const Session = {
    * Handles button clicks within cell indicators section.
    */
   handleCellIndicatorsClick(event) {
-    const button = event.target.closest(`[data-element="focus-cell-button"]`);
+    const button = event.target.closest(`[data-el-focus-cell-button]`);
     if (button) {
       const cellId = button.getAttribute("data-target");
       this.setFocusedEl(cellId);
@@ -603,7 +599,7 @@ const Session = {
    */
   updateSectionListHighlight() {
     const currentListItem = this.el.querySelector(
-      `[data-element="sections-list-item"][data-js-is-viewed]`
+      `[data-el-sections-list-item][data-js-is-viewed]`
     );
 
     if (currentListItem) {
@@ -622,7 +618,7 @@ const Session = {
     if (viewedSection) {
       const sectionId = viewedSection.getAttribute("data-section-id");
       const listItem = this.el.querySelector(
-        `[data-element="sections-list-item"][data-section-id="${sectionId}"]`
+        `[data-el-sections-list-item][data-section-id="${sectionId}"]`
       );
       listItem.setAttribute("data-js-is-viewed", "");
     }
@@ -651,7 +647,8 @@ const Session = {
   },
 
   showBin() {
-    this.pushEvent("show_bin", {});
+    const actionEl = this.el.querySelector(`[data-btn-show-bin]`);
+    actionEl && actionEl.click();
   },
 
   showDependencySearch() {
@@ -715,7 +712,8 @@ const Session = {
   },
 
   showShortcuts() {
-    this.pushEvent("show_shortcuts", {});
+    const actionEl = this.el.querySelector(`[data-btn-show-shortcuts]`);
+    actionEl && actionEl.click();
   },
 
   isInsertModeAvailable() {
@@ -803,8 +801,8 @@ const Session = {
       if (focusElement) {
         // Focus the primary content in the focusable element, this is important for screen readers
         const contentEl =
-          el.querySelector(`[data-element="cell-body"]`) ||
-          el.querySelector(`[data-element="heading"]`) ||
+          el.querySelector(`[data-el-cell-body]`) ||
+          el.querySelector(`[data-el-heading]`) ||
           el;
         contentEl.focus({ preventScroll: true });
       }
@@ -866,9 +864,7 @@ const Session = {
 
   handleSectionInserted(sectionId) {
     const section = this.getSectionById(sectionId);
-    const headlineEl = section.querySelector(
-      `[data-element="section-headline"]`
-    );
+    const headlineEl = section.querySelector(`[data-el-section-headline]`);
     const { focusableId } = headlineEl.dataset;
     this.setFocusedEl(focusableId);
     this.setInsertMode(true);
@@ -1081,7 +1077,7 @@ const Session = {
 
   getSectionIdByFocusableId(focusableId) {
     const el = this.getFocusableEl(focusableId);
-    const section = el.closest(`[data-element="section"]`);
+    const section = el.closest(`[data-el-section]`);
     return section && section.getAttribute("data-section-id");
   },
 
@@ -1091,17 +1087,17 @@ const Session = {
   },
 
   getSections() {
-    return Array.from(this.el.querySelectorAll(`[data-element="section"]`));
+    return Array.from(this.el.querySelectorAll(`[data-el-section]`));
   },
 
   getSectionById(sectionId) {
     return this.el.querySelector(
-      `[data-element="section"][data-section-id="${sectionId}"]`
+      `[data-el-section][data-section-id="${sectionId}"]`
     );
   },
 
   getElement(name) {
-    return this.el.querySelector(`[data-element="${name}"]`);
+    return this.el.querySelector(`[data-el-${name}]`);
   },
 };
 

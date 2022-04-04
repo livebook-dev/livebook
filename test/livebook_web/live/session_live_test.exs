@@ -123,7 +123,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       assert %{cell_infos: %{^cell_id => %{eval: %{status: :evaluating}}}} =
@@ -137,7 +137,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => "setup"})
 
       assert_receive {:operation, {:set_runtime, _pid, %{} = _runtime}}
@@ -150,11 +150,11 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("cancel_cell_evaluation", %{"cell_id" => cell_id})
 
       assert %{cell_infos: %{^cell_id => %{eval: %{status: :ready}}}} =
@@ -168,7 +168,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("insert_cell_below", %{"cell_id" => cell_id, "type" => "markdown"})
 
       assert %{notebook: %{sections: [%{cells: [_first_cell, %Cell.Markdown{}]}]}} =
@@ -182,7 +182,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("insert_cell_below", %{"section_id" => section_id, "type" => "markdown"})
 
       assert %{notebook: %{sections: [%{cells: [%Cell.Markdown{}, _first_cell]}]}} =
@@ -196,7 +196,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("delete_cell", %{"cell_id" => cell_id})
 
       assert %{notebook: %{sections: [%{cells: []}]}} = Session.get_data(session.pid)
@@ -245,7 +245,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-element="outputs-container"] form/)
+      |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"value" => "10"})
 
       assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
@@ -274,7 +274,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-element="outputs-container"] form/)
+      |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"value" => "line\r\nline"})
 
       assert %{input_values: %{"input1" => "line\nline"}} = Session.get_data(session.pid)
@@ -312,7 +312,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-element="outputs-container"] form/)
+      |> element(~s/[data-el-outputs-container] form/)
       |> render_change(%{"value" => "sherlock"})
 
       # The new value is on the page
@@ -321,7 +321,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert %{input_values: %{"input1" => "initial"}} = Session.get_data(session.pid)
 
       view
-      |> element(~s/[data-element="outputs-container"] button/, "Send")
+      |> element(~s/[data-el-outputs-container] button/, "Send")
       |> render_click()
 
       assert_receive {:event, :form_ref, %{data: %{name: "sherlock"}, type: :submit}}
@@ -512,7 +512,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("intellisense_request", %{
         "cell_id" => cell_id,
         "type" => "completion",
@@ -534,7 +534,7 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s{[data-element="session"]})
+      |> element(~s{[data-el-session]})
       |> render_hook("intellisense_request", %{
         "cell_id" => cell_id,
         "type" => "completion",

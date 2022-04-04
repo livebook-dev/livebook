@@ -52,7 +52,7 @@ const Headline = {
   },
 
   initializeHeadingEl() {
-    const headingEl = this.el.querySelector(`[data-element="heading"]`);
+    const headingEl = this.el.querySelector(`[data-el-heading]`);
 
     if (headingEl === this.headingEl) {
       return;

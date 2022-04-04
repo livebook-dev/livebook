@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col relative"
-      data-element="cell"
+      data-el-cell
       id={"cell-#{@cell_view.id}"}
       phx-hook="Cell"
       data-cell-id={@cell_view.id}
@@ -33,7 +33,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div class="pb-4" data-element="editor-box">
+      <div class="pb-4" data-el-editor-box>
         <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
           id={"#{@cell_view.id}-primary"}
           cell_id={@cell_view.id}
@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           language="markdown" />
       </div>
       <div class="markdown"
-        data-element="markdown-container"
+        data-el-markdown-container
         id={"markdown-container-#{@cell_view.id}"}
         phx-update="ignore">
         <.content_skeleton empty={empty?(@cell_view.source_view)} />
@@ -111,13 +111,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div data-element="info-box">
+      <div data-el-info-box>
         <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 font-medium rounded-lg">
           <span>Notebook dependencies and setup</span>
           <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
         </div>
       </div>
-      <div data-element="editor-box">
+      <div data-el-editor-box>
         <div class="relative">
           <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
             id={"#{@cell_view.id}-primary"}
@@ -162,7 +162,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:secondary>
     </.cell_actions>
     <.cell_body>
-      <div data-element="ui-box">
+      <div data-el-ui-box>
         <%= case @cell_view.status do %>
           <% :started -> %>
             <div class={"flex #{if(@cell_view.editor && @cell_view.editor.placement == :top, do: "flex-col-reverse", else: "flex-col")}"}>
@@ -195,7 +195,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <.cell_status id={"#{@cell_view.id}-1"} cell_view={@cell_view} />
         </div>
       </div>
-      <div data-element="editor-box">
+      <div data-el-editor-box>
         <div class="relative">
           <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
             id={"#{@cell_view.id}-primary"}
@@ -227,13 +227,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
     ~H"""
     <div class="mb-1 flex items-center justify-between">
-      <div class="relative z-20 flex items-center justify-end space-x-2" data-element="actions" data-primary>
+      <div class="relative z-20 flex items-center justify-end space-x-2" data-el-actions data-primary>
         <%= render_slot(@primary) %>
       </div>
       <div class="relative z-20 flex items-center justify-end space-x-2"
         role="toolbar"
         aria-label="cell actions"
-        data-element="actions">
+        data-el-actions>
         <%= render_slot(@secondary) %>
       </div>
     </div>
@@ -244,8 +244,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
          also we actually want to make this element tab-focusable -->
-    <div class="flex relative" data-element="cell-body" tabindex="0">
-      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-element="cell-focus-indicator">
+    <div class="flex relative" data-el-cell-body tabindex="0">
+      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator>
       </div>
       <div class="w-full">
         <%= render_slot(@inner_block) %>
@@ -324,7 +324,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp enable_insert_mode_button(assigns) do
     ~H"""
-    <span class="tooltip top" data-tooltip="Edit content" data-element="enable-insert-mode-button">
+    <span class="tooltip top" data-tooltip="Edit content" data-el-enable-insert-mode-button>
       <button class="icon-button" aria-label="edit content">
         <.remix_icon icon="pencil-line" class="text-xl" />
       </button>
@@ -334,7 +334,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp insert_image_button(assigns) do
     ~H"""
-    <span class="tooltip top" data-tooltip="Insert image" data-element="insert-image-button">
+    <span class="tooltip top" data-tooltip="Insert image" data-el-insert-image-button>
       <%= live_patch to: Routes.session_path(@socket, :cell_upload, @session_id, @cell_id),
             class: "icon-button",
             aria_label: "insert image",
@@ -347,10 +347,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp toggle_source_button(assigns) do
     ~H"""
-    <span class="tooltip top" data-tooltip="Toggle source" data-element="toggle-source-button">
+    <span class="tooltip top" data-tooltip="Toggle source" data-el-toggle-source-button>
       <button class="icon-button" aria-label="toggle source">
-        <.remix_icon icon="code-line" class="text-xl" data-element="show-code-icon" />
-        <.remix_icon icon="pencil-line" class="text-xl" data-element="show-ui-icon" />
+        <.remix_icon icon="code-line" class="text-xl" data-el-show-code-icon />
+        <.remix_icon icon="pencil-line" class="text-xl" data-el-show-ui-icon />
       </button>
     </span>
     """
@@ -414,11 +414,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   def amplify_output_button(assigns) do
     ~H"""
-    <span class="tooltip top" data-tooltip="Amplify output" data-element="amplify-outputs-button">
+    <span class="tooltip top" data-tooltip="Amplify output" data-el-amplify-outputs-button>
       <button class="icon-button"
         aria-label="amplify outputs">
-        <.remix_icon icon="zoom-in-line" class="text-xl" data-element="zoom-in-icon" />
-        <.remix_icon icon="zoom-out-line" class="text-xl" data-element="zoom-out-icon" />
+        <.remix_icon icon="zoom-in-line" class="text-xl" data-el-zoom-in-icon />
+        <.remix_icon icon="zoom-out-line" class="text-xl" data-el-zoom-out-icon />
       </button>
     </span>
     """
@@ -488,7 +488,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp setup_cell_info(assigns) do
     ~H"""
-    <span class="tooltip top"
+    <span class="tooltip left"
       data-tooltip={
         ~s'''
         The setup cell includes code that initializes the notebook
@@ -506,7 +506,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp evaluation_outputs(assigns) do
     ~H"""
     <div class="flex flex-col"
-      data-element="outputs-container"
+      data-el-outputs-container
       id={"outputs-#{@cell_view.id}-#{@cell_view.eval.outputs_batch_number}"}
       phx-update="append">
       <LivebookWeb.Output.outputs
@@ -584,10 +584,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <div class={"#{if(@tooltip, do: "tooltip")} bottom distant-medium"} data-tooltip={@tooltip}>
       <div class="flex items-center space-x-1">
-        <div class="flex text-xs text-gray-400" data-element="cell-status">
+        <div class="flex text-xs text-gray-400" data-el-cell-status>
           <%= render_slot(@inner_block) %>
           <%= if @change_indicator do %>
-            <span data-element="change-indicator">*</span>
+            <span data-el-change-indicator>*</span>
           <% end %>
         </div>
         <span class="flex relative h-3 w-3">

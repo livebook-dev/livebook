@@ -42,7 +42,7 @@ defmodule LivebookWeb.SessionLive.CellEditorComponent do
       phx-hook="CellEditor"
       data-cell-id={@cell_id}
       data-tag={@tag}>
-      <div class="py-3 rounded-lg bg-editor" data-element="editor-container">
+      <div class="py-3 rounded-lg bg-editor" data-el-editor-container>
         <div class="px-8">
           <.content_skeleton bg_class="bg-gray-500" empty={empty?(@source_view)} />
         </div>

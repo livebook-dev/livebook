@@ -12,7 +12,7 @@ defmodule LivebookWeb.Output do
     ~H"""
     <%= for {idx, output} <- Enum.reverse(@outputs) do %>
       <div class="max-w-full" id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
-        data-element="output"
+        data-el-output
         data-border={border?(output)}
         data-wrapper={wrapper?(output)}>
         <%= render_output(output, %{

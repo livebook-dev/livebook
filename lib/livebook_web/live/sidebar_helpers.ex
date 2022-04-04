@@ -36,7 +36,7 @@ defmodule LivebookWeb.SidebarHelpers do
     <span class="tooltip right distant" data-tooltip={@label}>
       <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
         aria-label={@label}
-        data-element={@data_element}>
+        {@button_attrs}>
         <.remix_icon icon={@icon} />
       </button>
     </span>
@@ -44,11 +44,13 @@ defmodule LivebookWeb.SidebarHelpers do
   end
 
   def link_item(assigns) do
+    assigns = assign_new(assigns, :link_attrs, fn -> [] end)
+
     ~H"""
     <span class="tooltip right distant" data-tooltip={@label}>
-      <%= live_patch to: @path,
+      <%= live_patch [to: @path,
             class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@active, do: "text-gray-50 bg-gray-700")}",
-            aria_label: @label do %>
+            aria_label: @label] ++ @link_attrs do %>
         <.remix_icon icon={@icon} class="text-2xl" />
       <% end %>
     </span>

@@ -108,12 +108,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @spec handle_intellisense(
           pid(),
           pid(),
-          reference(),
           Runtime.intellisense_request(),
           Runtime.locator()
-        ) :: :ok
-  def handle_intellisense(pid, send_to, ref, request, base_locator) do
+        ) :: reference()
+  def handle_intellisense(pid, send_to, request, base_locator) do
+    ref = make_ref()
     GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, base_locator})
+    ref
   end
 
   @doc """

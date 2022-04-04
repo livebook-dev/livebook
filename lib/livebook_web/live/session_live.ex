@@ -90,7 +90,7 @@ defmodule LivebookWeb.SessionLive do
     ~H"""
     <div class="flex grow h-full"
       id={"session-#{@session.id}"}
-      data-element="session"
+      data-el-session
       phx-hook="Session"
       data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
@@ -99,45 +99,47 @@ defmodule LivebookWeb.SessionLive do
         <SidebarHelpers.button_item
           icon="booklet-fill"
           label="Sections (ss)"
-          data_element="sections-list-toggle" />
+          button_attrs={[data_el_sections_list_toggle: true]} />
         <SidebarHelpers.button_item
           icon="group-fill"
           label="Connected users (su)"
-          data_element="clients-list-toggle" />
+          button_attrs={[data_el_clients_list_toggle: true]} />
         <SidebarHelpers.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
-          data_element="runtime-info-toggle" />
+          button_attrs={[data_el_runtime_info_toggle: true]} />
         <SidebarHelpers.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
           path={Routes.session_path(@socket, :bin, @session.id)}
-          active={@live_action == :bin} />
+          active={@live_action == :bin}
+          link_attrs={[data_btn_show_bin: true]} />
         <SidebarHelpers.break_item />
         <SidebarHelpers.link_item
           icon="keyboard-box-fill"
           label="Keyboard shortcuts (?)"
           path={Routes.session_path(@socket, :shortcuts, @session.id)}
-          active={@live_action == :shortcuts} />
+          active={@live_action == :shortcuts}
+          link_attrs={[data_btn_show_shortcuts: true]} />
         <SidebarHelpers.user_item current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
-        data-element="side-panel">
-        <div data-element="sections-list">
+        data-el-side-panel>
+        <div data-el-sections-list>
           <.sections_list data_view={@data_view} />
         </div>
-        <div data-element="clients-list">
+        <div data-el-clients-list>
           <.clients_list data_view={@data_view} self={@self} />
         </div>
-        <div data-element="runtime-info">
+        <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
         </div>
       </div>
-      <div class="grow overflow-y-auto relative" data-element="notebook">
-        <div data-element="js-view-iframes" phx-update="ignore" id="js-view-iframes"></div>
-        <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-element="notebook-content">
+      <div class="grow overflow-y-auto relative" data-el-notebook>
+        <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+        <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-el-notebook-content>
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
-            data-element="notebook-headline"
+            data-el-notebook-headline
             data-focusable-id="notebook"
             id="notebook"
             phx-hook="Headline"
@@ -146,7 +148,7 @@ defmodule LivebookWeb.SessionLive do
             <h1 class="grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
               tabindex="0"
               id="notebook-heading"
-              data-element="heading"
+              data-el-heading
               spellcheck="false"><%= @data_view.notebook_name %></h1>
             <.menu id="session-menu">
               <:toggle>
@@ -337,7 +339,7 @@ defmodule LivebookWeb.SessionLive do
         <%= for section_item <- @data_view.sections_items do %>
           <div class="flex items-center">
             <button class="grow flex items-center text-gray-500 hover:text-gray-900 text-left"
-              data-element="sections-list-item"
+              data-el-sections-list-item
               data-section-id={section_item.id}>
               <span class="flex items-center space-x-1">
                 <span><%= section_item.name %></span>
@@ -379,24 +381,24 @@ defmodule LivebookWeb.SessionLive do
         <%= for {client_pid, user} <- @data_view.clients do %>
           <div class="flex items-center justify-between space-x-2"
             id={"clients-list-item-#{inspect(client_pid)}"}
-            data-element="clients-list-item"
+            data-el-clients-list-item
             data-client-pid={inspect(client_pid)}>
             <button class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
               disabled={client_pid == @self}
-              data-element="client-link">
+              data-el-client-link>
               <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
               <span><%= user.name || "Anonymous" %></span>
             </button>
             <%= if client_pid != @self do %>
               <span class="tooltip left" data-tooltip="Follow this user"
-                data-element="client-follow-toggle"
+                data-el-client-follow-toggle
                 data-meta="follow">
                 <button class="icon-button" aria-label="follow this user">
                   <.remix_icon icon="pushpin-line" class="text-lg" />
                 </button>
               </span>
               <span class="tooltip left" data-tooltip="Unfollow this user"
-                data-element="client-follow-toggle"
+                data-el-client-follow-toggle
                 data-meta="unfollow">
                 <button class="icon-button" aria-label="unfollow this user">
                   <.remix_icon icon="pushpin-fill" class="text-lg" />
@@ -501,7 +503,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp session_status(%{status: :evaluating} = assigns) do
     ~H"""
-    <button data-element="focus-cell-button" data-target={@cell_id}>
+    <button data-el-focus-cell-button data-target={@cell_id}>
       <.status_indicator circle_class="bg-blue-500" animated_circle_class="bg-blue-400">
       </.status_indicator>
     </button>
@@ -510,7 +512,7 @@ defmodule LivebookWeb.SessionLive do
 
   defp session_status(%{status: :stale} = assigns) do
     ~H"""
-    <button data-element="focus-cell-button" data-target={@cell_id}>
+    <button data-el-focus-cell-button data-target={@cell_id}>
       <.status_indicator circle_class="bg-yellow-bright-200">
       </.status_indicator>
     </button>
@@ -782,16 +784,6 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_event("show_shortcuts", %{}, socket) do
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session.id))}
-  end
-
-  def handle_event("show_bin", %{}, socket) do
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session.id))}
-  end
-
   def handle_event("reconnect_runtime", %{}, socket) do
     {_, socket} = maybe_reconnect_runtime(socket)
     {:noreply, socket}
@@ -838,9 +830,8 @@ defmodule LivebookWeb.SessionLive do
 
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id) do
       if Runtime.connected?(data.runtime) do
-        ref = make_ref()
         base_locator = Session.find_base_locator(data, cell, section, existing: true)
-        Runtime.handle_intellisense(data.runtime, self(), ref, request, base_locator)
+        ref = Runtime.handle_intellisense(data.runtime, self(), request, base_locator)
 
         {:reply, %{"ref" => inspect(ref)}, socket}
       else
