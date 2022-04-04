@@ -488,7 +488,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp setup_cell_info(assigns) do
     ~H"""
-    <span class="tooltip top"
+    <span class="tooltip left"
       data-tooltip={
         ~s'''
         The setup cell includes code that initializes the notebook
