@@ -471,6 +471,22 @@ const Session = {
     if (event.target.closest(`[data-el-enable-insert-mode-button]`)) {
       this.setInsertMode(true);
     }
+
+    const hash = window.location.hash;
+
+    if (hash) {
+      const htmlId = hash.replace(/^#/, "");
+      const hashEl = document.getElementById(htmlId);
+
+      // Remove hash from the URL when the user clicks somewhere else on the page
+      if (!hashEl.contains(event.target) && !event.target.closest(`a`)) {
+        history.pushState(
+          null,
+          document.title,
+          window.location.pathname + window.location.search
+        );
+      }
+    }
   },
 
   /**
@@ -575,17 +591,17 @@ const Session = {
 
     if (hash) {
       const htmlId = hash.replace(/^#/, "");
-      const element = document.getElementById(htmlId);
+      const hashEl = document.getElementById(htmlId);
 
-      if (element) {
-        const focusableEl = element.closest("[data-focusable-id]");
+      if (hashEl) {
+        const focusableEl = hashEl.closest("[data-focusable-id]");
 
         if (focusableEl) {
           this.setFocusedEl(focusableEl.dataset.focusableId);
         } else {
           // Explicitly scroll to the target element
           // after the loading finishes
-          element.scrollIntoView();
+          hashEl.scrollIntoView();
         }
       }
     } else if (this.props.autofocusCellId) {
