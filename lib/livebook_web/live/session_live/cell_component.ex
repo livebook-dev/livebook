@@ -88,8 +88,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <.evaluation_outputs
         cell_view={@cell_view}
         socket={@socket}
-        session_id={@session_id}
-        runtime={@runtime} />
+        session_id={@session_id} />
     </.cell_body>
     """
   end
@@ -133,8 +132,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.evaluation_outputs
           cell_view={@cell_view}
           socket={@socket}
-          session_id={@session_id}
-          runtime={@runtime} />
+          session_id={@session_id} />
       </div>
     </.cell_body>
     """
@@ -213,8 +211,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       <.evaluation_outputs
         cell_view={@cell_view}
         socket={@socket}
-        session_id={@session_id}
-        runtime={@runtime} />
+        session_id={@session_id} />
     </.cell_body>
     """
   end
@@ -514,8 +511,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         dom_id_map={%{}}
         socket={@socket}
         session_id={@session_id}
-        runtime={@runtime}
-        cell_validity={@cell_view.eval.validity}
         input_values={@cell_view.eval.input_values} />
     </div>
     """

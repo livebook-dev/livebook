@@ -10,7 +10,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatterTest do
 
   test "gracefully handles errors in the inspect protocol" do
     result = %Livebook.TestModules.BadInspect{}
-    assert {:error, error, :other} = DefaultFormatter.format_result({:ok, result})
+    assert {:error, error} = DefaultFormatter.format_result({:ok, result})
     assert error =~ ":bad_return"
   end
 end

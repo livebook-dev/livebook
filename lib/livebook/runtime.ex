@@ -57,7 +57,7 @@ defprotocol Livebook.Runtime do
           # A control element
           | {:control, attrs :: map()}
           # Internal output format for errors
-          | {:error, message :: binary(), type :: :other | :runtime_restart_required}
+          | {:error, message :: binary()}
 
   @typedoc """
   Additional information about a complted evaluation.

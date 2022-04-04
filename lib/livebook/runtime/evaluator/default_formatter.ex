@@ -27,7 +27,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   def format_result({:error, kind, error, stacktrace}) do
     formatted = format_error(kind, error, stacktrace)
-    {:error, formatted, error_type(error)}
+    {:error, formatted}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
@@ -57,7 +57,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     catch
       kind, error ->
         formatted = format_error(kind, error, __STACKTRACE__)
-        {:error, formatted, :other}
+        {:error, formatted}
     end
   end
 
@@ -84,19 +84,6 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
       # tuple: :light_black,
       reset: :reset
     ]
-  end
-
-  defp error_type(error) do
-    cond do
-      mix_install_vm_error?(error) -> :runtime_restart_required
-      true -> :other
-    end
-  end
-
-  defp mix_install_vm_error?(exception) do
-    is_struct(exception, Mix.Error) and
-      Exception.message(exception) =~
-        "Mix.install/2 can only be called with the same dependencies"
   end
 
   defp format_error(kind, error, stacktrace) do
