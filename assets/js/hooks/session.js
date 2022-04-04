@@ -651,7 +651,8 @@ const Session = {
   },
 
   showBin() {
-    this.pushEvent("show_bin", {});
+    const actionEl = this.el.querySelector(`[data-btn-show-bin]`);
+    actionEl && actionEl.click();
   },
 
   showDependencySearch() {
@@ -715,7 +716,8 @@ const Session = {
   },
 
   showShortcuts() {
-    this.pushEvent("show_shortcuts", {});
+    const actionEl = this.el.querySelector(`[data-btn-show-shortcuts]`);
+    actionEl && actionEl.click();
   },
 
   isInsertModeAvailable() {

@@ -112,13 +112,15 @@ defmodule LivebookWeb.SessionLive do
           icon="delete-bin-6-fill"
           label="Bin (sb)"
           path={Routes.session_path(@socket, :bin, @session.id)}
-          active={@live_action == :bin} />
+          active={@live_action == :bin}
+          link_attrs={[data_btn_show_bin: true]} />
         <SidebarHelpers.break_item />
         <SidebarHelpers.link_item
           icon="keyboard-box-fill"
           label="Keyboard shortcuts (?)"
           path={Routes.session_path(@socket, :shortcuts, @session.id)}
-          active={@live_action == :shortcuts} />
+          active={@live_action == :shortcuts}
+          link_attrs={[data_btn_show_shortcuts: true]} />
         <SidebarHelpers.user_item current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
@@ -780,16 +782,6 @@ defmodule LivebookWeb.SessionLive do
          to: Routes.session_path(socket, :file_settings, socket.assigns.session.id)
        )}
     end
-  end
-
-  def handle_event("show_shortcuts", %{}, socket) do
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :shortcuts, socket.assigns.session.id))}
-  end
-
-  def handle_event("show_bin", %{}, socket) do
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :bin, socket.assigns.session.id))}
   end
 
   def handle_event("reconnect_runtime", %{}, socket) do
