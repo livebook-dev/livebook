@@ -134,27 +134,15 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  describe "add_smart_cell_dependencies/2" do
-    test "applies source change to the setup cell to include the smart cell dependency",
+  describe "add_dependencies/2" do
+    test "applies source change to the setup cell to include the given dependencies",
          %{session: session} do
       runtime = connected_noop_runtime()
       Session.set_runtime(session.pid, runtime)
 
-      send(
-        session.pid,
-        {:runtime_smart_cell_definitions,
-         [
-           %{
-             kind: "text",
-             name: "Text",
-             requirement: %{name: "Kino", dependencies: [{:kino, "~> 0.5.0"}]}
-           }
-         ]}
-      )
-
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
-      Session.add_smart_cell_dependencies(session.pid, "text")
+      Session.add_dependencies(session.pid, [{:kino, "~> 0.5.0"}])
 
       session_pid = session.pid
       assert_receive {:operation, {:apply_cell_delta, ^session_pid, "setup", :primary, _delta, 1}}
@@ -183,21 +171,9 @@ defmodule Livebook.SessionTest do
       runtime = connected_noop_runtime()
       Session.set_runtime(session.pid, runtime)
 
-      send(
-        session.pid,
-        {:runtime_smart_cell_definitions,
-         [
-           %{
-             kind: "text",
-             name: "Text",
-             requirement: %{name: "Kino", dependencies: [{:kino, "~> 0.5.0"}]}
-           }
-         ]}
-      )
-
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
-      Session.add_smart_cell_dependencies(session.pid, "text")
+      Session.add_dependencies(session.pid, [{:kino, "~> 0.5.0"}])
 
       assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
     end

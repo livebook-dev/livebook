@@ -233,6 +233,18 @@
     @apply pointer-events-none opacity-50;
   }
 
+  .submenu {
+    @apply relative;
+  }
+
+  .submenu:not(:hover):not(:focus-within) .submenu-wrapper {
+    @apply hidden;
+  }
+
+  .submenu-wrapper {
+    @apply absolute -top-2 right-0 translate-x-full pl-2;
+  }
+
   /* Boxes */
 
   .error-box {

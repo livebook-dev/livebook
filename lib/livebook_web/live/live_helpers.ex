@@ -464,6 +464,33 @@ defmodule LivebookWeb.LiveHelpers do
   end
 
   @doc """
+  A menu item that shows a submenu on hover.
+
+  This component should be used within `menu/1` content.
+
+  ## Example
+
+      <.submenu>
+        <button class"menu-item" role="menuitem">Submenu</button>
+        <:content>
+          <button class"menu-item" role="menuitem">Option 1</button>
+        <.:content>
+      </.submenu>
+  """
+  def submenu(assigns) do
+    ~H"""
+    <div class="submenu">
+      <%= render_slot(@inner_block) %>
+      <div class="submenu-wrapper">
+        <menu class="menu relative mt-0">
+          <%= render_slot(@content) %>
+        </menu>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Creates a live region with the given role.
 
   ## Examples

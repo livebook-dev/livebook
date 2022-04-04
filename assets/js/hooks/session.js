@@ -80,7 +80,6 @@ const Session = {
     // DOM events
 
     this._handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
-    this._handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
     this._handleDocumentMouseDown = this.handleDocumentMouseDown.bind(this);
     this._handleDocumentFocus = this.handleDocumentFocus.bind(this);
     this._handleDocumentClick = this.handleDocumentClick.bind(this);

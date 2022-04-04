@@ -67,11 +67,10 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               </:toggle>
               <:content>
                 <%= for definition <- Enum.sort_by(@smart_cell_definitions, & &1.name) do %>
-                  <button class="menu-item text-gray-500"
-                    role="menuitem"
-                    phx-click={on_smart_cell_click(definition, @section_id, @cell_id)}>
-                    <span class="font-medium"><%= definition.name %></span>
-                  </button>
+                  <.smart_cell_insert_button
+                    definition={definition}
+                    section_id={@section_id}
+                    cell_id={@cell_id} />
                 <% end %>
               </:content>
             </.menu>
@@ -81,13 +80,44 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
     """
   end
 
-  defp on_smart_cell_click(%{requirement: nil} = definition, section_id, cell_id) do
+  defp smart_cell_insert_button(%{definition: %{requirement: %{variants: [_, _ | _]}}} = assigns) do
+    ~H"""
+    <.submenu>
+      <button class="menu-item text-gray-500" role="menuitem">
+        <span class="font-medium"><%= @definition.name %></span>
+      </button>
+      <:content>
+        <%= for {variant, idx} <- Enum.with_index(@definition.requirement.variants) do %>
+          <button class="menu-item text-gray-500"
+            role="menuitem"
+            phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}>
+            <span class="font-medium"><%= variant.name %></span>
+          </button>
+        <% end %>
+      </:content>
+    </.submenu>
+    """
+  end
+
+  defp smart_cell_insert_button(assigns) do
+    ~H"""
+    <button class="menu-item text-gray-500"
+      role="menuitem"
+      phx-click={on_smart_cell_click(@definition, 0, @section_id, @cell_id)}>
+      <span class="font-medium"><%= @definition.name %></span>
+    </button>
+    """
+  end
+
+  defp on_smart_cell_click(%{requirement: nil} = definition, _variant_idx, section_id, cell_id) do
     insert_smart_cell(definition, section_id, cell_id)
   end
 
-  defp on_smart_cell_click(%{requirement: %{}} = definition, section_id, cell_id) do
+  defp on_smart_cell_click(%{requirement: %{}} = definition, variant_idx, section_id, cell_id) do
     with_confirm(
-      JS.push("add_smart_cell_dependencies", value: %{kind: definition.kind})
+      JS.push("add_smart_cell_dependencies",
+        value: %{kind: definition.kind, variant_idx: variant_idx}
+      )
       |> insert_smart_cell(definition, section_id, cell_id),
       title: "Add package",
       description: ~s'''
