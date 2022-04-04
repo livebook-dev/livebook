@@ -1064,17 +1064,17 @@ const Session = {
 
   isCell(focusableId) {
     const el = this.getFocusableEl(focusableId);
-    return el.dataset.element === "cell";
+    return el.hasAttribute("data-el-cell");
   },
 
   isSection(focusableId) {
     const el = this.getFocusableEl(focusableId);
-    return el.dataset.element === "section-headline";
+    return el.hasAttribute("data-el-section-headline");
   },
 
   isNotebook(focusableId) {
     const el = this.getFocusableEl(focusableId);
-    return el.dataset.element === "notebook-headline";
+    return el.hasAttribute("data-el-notebook-headline");
   },
 
   getFocusableEl(focusableId) {
