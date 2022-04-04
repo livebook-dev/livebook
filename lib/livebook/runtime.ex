@@ -195,7 +195,16 @@ defprotocol Livebook.Runtime do
   @type smart_cell_definition :: %{
           kind: String.t(),
           name: String.t(),
-          requirement: nil | %{name: String.t(), dependencies: list(dependency())}
+          requirement: nil | smart_cell_requirement()
+        }
+
+  @type smart_cell_requirement :: %{
+          name: String.t(),
+          variants:
+            list(%{
+              name: String.t(),
+              dependencies: list(dependency())
+            })
         }
 
   @type dependency :: term()

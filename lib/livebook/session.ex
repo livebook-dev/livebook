@@ -311,14 +311,6 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends smart cell dependencies addition request to the server.
-  """
-  @spec add_smart_cell_dependencies(pid(), String.t()) :: :ok
-  def add_smart_cell_dependencies(pid, kind) do
-    GenServer.cast(pid, {:add_smart_cell_dependencies, kind})
-  end
-
-  @doc """
   Sends dependencies addition request to the server.
   """
   @spec add_dependencies(pid(), list(Runtime.dependency())) :: :ok
@@ -741,16 +733,6 @@ defmodule Livebook.Session do
           {:insert_cell, client_pid, section.id, index, :code, Utils.random_id(), attrs}
         )
       else
-        _ -> state
-      end
-
-    {:noreply, state}
-  end
-
-  def handle_cast({:add_smart_cell_dependencies, kind}, state) do
-    state =
-      case Enum.find(state.data.smart_cell_definitions, &(&1.kind == kind)) do
-        %{requirement: %{dependencies: dependencies}} -> do_add_dependencies(state, dependencies)
         _ -> state
       end
 

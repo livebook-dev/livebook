@@ -18,23 +18,38 @@ defmodule Livebook.Runtime.ElixirStandalone do
         }
 
   kino_dep = {:kino, github: "livebook-dev/kino"}
-  vega_lite_dep = {:vega_lite, "~> 0.1.3"}
 
   @extra_smart_cell_definitions [
     %{
       kind: "Elixir.Kino.SmartCell.DBConnection",
       name: "Database connection",
-      requirement: %{name: "Kino", dependencies: [kino_dep]}
+      requirement: %{
+        name: "Kino",
+        variants: [
+          %{name: "PostgreSQL", dependencies: [kino_dep, {:postgrex, "~> 0.16.1"}]},
+          %{name: "MySQL", dependencies: [kino_dep, {:myxql, "~> 0.6.1"}]}
+        ]
+      }
     },
     %{
       kind: "Elixir.Kino.SmartCell.SQL",
       name: "SQL query",
-      requirement: %{name: "Kino", dependencies: [kino_dep]}
+      requirement: %{
+        name: "Kino",
+        variants: [
+          %{name: "Default", dependencies: [kino_dep]}
+        ]
+      }
     },
     %{
       kind: "Elixir.Kino.SmartCell.ChartBuilder",
       name: "Chart builder",
-      requirement: %{name: "Kino", dependencies: [kino_dep, vega_lite_dep]}
+      requirement: %{
+        name: "Kino",
+        variants: [
+          %{name: "Default", dependencies: [kino_dep, {:vega_lite, "~> 0.1.3"}]}
+        ]
+      }
     }
   ]
 

@@ -209,15 +209,19 @@
   /* Toggleable menu */
 
   .menu {
+    @apply relative;
+  }
+
+  .menu-content {
     @apply absolute z-30 rounded-lg bg-white flex flex-col py-2 mt-1;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 
-  .menu.right {
+  .menu-content.right {
     @apply right-0;
   }
 
-  .menu.left {
+  .menu-content.left {
     @apply left-0;
   }
 
@@ -231,6 +235,18 @@
 
   .menu-item--disabled {
     @apply pointer-events-none opacity-50;
+  }
+
+  .submenu {
+    @apply relative;
+  }
+
+  .submenu:not(:hover):not(:focus-within) .submenu-content {
+    @apply hidden;
+  }
+
+  .submenu-content {
+    @apply absolute -top-2 right-0 translate-x-full pl-2;
   }
 
   /* Boxes */

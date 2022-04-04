@@ -723,8 +723,16 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("add_smart_cell_dependencies", %{"kind" => kind}, socket) do
-    Session.add_smart_cell_dependencies(socket.assigns.session.pid, kind)
+  def handle_event(
+        "add_smart_cell_dependencies",
+        %{"kind" => kind, "variant_idx" => variant_idx},
+        socket
+      ) do
+    with %{requirement: %{variants: variants}} <-
+           Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
+         {:ok, %{dependencies: dependencies}} <- Enum.fetch(variants, variant_idx) do
+      Session.add_dependencies(socket.assigns.session.pid, dependencies)
+    end
 
     {status, socket} = maybe_reconnect_runtime(socket)
 
