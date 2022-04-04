@@ -24,7 +24,7 @@ defmodule Livebook.Runtime.NoopRuntime do
     def evaluate_code(_, _, _, _, _ \\ []), do: :ok
     def forget_evaluation(_, _), do: :ok
     def drop_container(_, _), do: :ok
-    def handle_intellisense(_, _, _, _, _), do: :ok
+    def handle_intellisense(_, _, _, _), do: make_ref()
 
     def standalone?(_), do: false
     def read_file(_, _), do: raise("not implemented")

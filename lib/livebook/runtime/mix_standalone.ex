@@ -181,8 +181,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
     RuntimeServer.drop_container(runtime.server_pid, container_ref)
   end
 
-  def handle_intellisense(runtime, send_to, ref, request, base_locator) do
-    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, ref, request, base_locator)
+  def handle_intellisense(runtime, send_to, request, base_locator) do
+    RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
   end
 
   def standalone?(_runtime), do: true

@@ -370,8 +370,8 @@ defprotocol Livebook.Runtime do
   The given `base_locator` idenfities an evaluation that may be
   used as the context when resolving the request (if relevant).
   """
-  @spec handle_intellisense(t(), pid(), reference(), intellisense_request(), locator()) :: :ok
-  def handle_intellisense(runtime, send_to, ref, request, base_locator)
+  @spec handle_intellisense(t(), pid(), intellisense_request(), locator()) :: reference()
+  def handle_intellisense(runtime, send_to, request, base_locator)
 
   @doc """
   Returns true if the given runtime is self-contained.
