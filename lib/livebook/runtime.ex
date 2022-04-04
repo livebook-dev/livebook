@@ -374,16 +374,6 @@ defprotocol Livebook.Runtime do
   def handle_intellisense(runtime, send_to, request, base_locator)
 
   @doc """
-  Returns true if the given runtime is self-contained.
-
-  A standalone runtime always starts fresh and frees all resources
-  on termination. This may not be the case for for runtimes that
-  connect to an external running system and use it for code evaluation.
-  """
-  @spec standalone?(Runtime.t()) :: boolean()
-  def standalone?(runtime)
-
-  @doc """
   Reads file at the given absolute path within the runtime file system.
   """
   @spec read_file(Runtime.t(), String.t()) :: {:ok, binary()} | {:error, String.t()}
