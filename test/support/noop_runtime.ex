@@ -26,7 +26,6 @@ defmodule Livebook.Runtime.NoopRuntime do
     def drop_container(_, _), do: :ok
     def handle_intellisense(_, _, _, _), do: make_ref()
 
-    def standalone?(_), do: false
     def read_file(_, _), do: raise("not implemented")
     def start_smart_cell(_, _, _, _, _), do: :ok
     def set_smart_cell_base_locator(_, _, _), do: :ok

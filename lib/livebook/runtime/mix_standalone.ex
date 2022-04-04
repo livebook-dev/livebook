@@ -185,8 +185,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
     RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
   end
 
-  def standalone?(_runtime), do: true
-
   def read_file(runtime, path) do
     RuntimeServer.read_file(runtime.server_pid, path)
   end

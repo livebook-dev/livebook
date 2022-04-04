@@ -19,8 +19,6 @@ defmodule LivebookWeb.Output do
               id: "output-#{idx}",
               socket: @socket,
               session_id: @session_id,
-              runtime: @runtime,
-              cell_validity: @cell_validity,
               input_values: @input_values
             }) %>
       </div>
@@ -91,35 +89,12 @@ defmodule LivebookWeb.Output do
     live_component(Output.ControlComponent, id: id, attrs: attrs, input_values: input_values)
   end
 
-  defp render_output({:error, formatted, :runtime_restart_required}, %{
-         runtime: runtime,
-         cell_validity: cell_validity
-       })
-       when runtime != nil and cell_validity == :evaluated do
-    assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
+  defp render_output({:error, formatted}, %{}) do
+    assigns = %{message: formatted}
 
     ~H"""
-    <div class="flex flex-col space-y-4" role="complementary" aria-label="runtime reconnect required">
-      <%= render_error(@formatted) %>
-      <%= if @is_standalone do %>
-        <div>
-          <button class="button-base button-gray" phx-click="reconnect_runtime">
-            Reconnect runtime
-          </button>
-        </div>
-      <% else %>
-        <div class="text-red-600">
-          <span class="font-semibold">Note:</span>
-          This operation requires restarting the runtime, but we cannot
-          do it automatically for the current runtime
-        </div>
-      <% end %>
-    </div>
+    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error"><%= ansi_string_to_html(@message) %></div>
     """
-  end
-
-  defp render_output({:error, formatted, _type}, %{}) do
-    render_error(formatted)
   end
 
   # TODO: remove on Livebook v0.7
@@ -141,14 +116,6 @@ defmodule LivebookWeb.Output do
     Unknown output format: #{inspect(output)}. If you're using Kino,
     you may want to update Kino and Livebook to the latest version.
     """)
-  end
-
-  defp render_error(message) do
-    assigns = %{message: message}
-
-    ~H"""
-    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error"><%= ansi_string_to_html(@message) %></div>
-    """
   end
 
   defp render_error_message(message) do

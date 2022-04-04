@@ -92,8 +92,6 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     RuntimeServer.handle_intellisense(runtime.server_pid, send_to, request, base_locator)
   end
 
-  def standalone?(_runtime), do: false
-
   def read_file(runtime, path) do
     RuntimeServer.read_file(runtime.server_pid, path)
   end
