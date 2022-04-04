@@ -446,8 +446,7 @@ defmodule LivebookWeb.LiveHelpers do
       |> assign_new(:secondary_click, fn -> false end)
 
     ~H"""
-    <div class="relative"
-      id={@id}>
+    <div class="menu" id={@id}>
       <div
         phx-click={not @disabled && JS.toggle(to: "##{@id}-content")}
         phx-click-away={JS.hide(to: "##{@id}-content")}
@@ -456,7 +455,7 @@ defmodule LivebookWeb.LiveHelpers do
         phx-key="escape">
         <%= render_slot(@toggle) %>
       </div>
-      <menu id={"#{@id}-content"} class={"hidden menu #{@position}"} role="menu">
+      <menu id={"#{@id}-content"} class={"hidden menu-content #{@position}"} role="menu">
         <%= render_slot(@content) %>
       </menu>
     </div>
@@ -481,8 +480,8 @@ defmodule LivebookWeb.LiveHelpers do
     ~H"""
     <div class="submenu">
       <%= render_slot(@inner_block) %>
-      <div class="submenu-wrapper">
-        <menu class="menu relative mt-0">
+      <div class="submenu-content">
+        <menu class="menu-content relative mt-0">
           <%= render_slot(@content) %>
         </menu>
       </div>
