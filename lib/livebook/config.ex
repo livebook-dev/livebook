@@ -27,6 +27,15 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns if the runtime module is enabled.
+  """
+  @spec runtime_enabled?(module()) :: boolean()
+  def runtime_enabled?(runtime) do
+    runtime in Application.fetch_env!(:livebook, :runtime_modules) or
+      runtime == default_runtime().__struct__
+  end
+
+  @doc """
   Returns the authentication mode.
   """
   @spec auth_mode() :: auth_mode()

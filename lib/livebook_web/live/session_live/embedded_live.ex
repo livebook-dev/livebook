@@ -5,6 +5,10 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
+    unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Embedded) do
+      raise "runtime module not allowed"
+    end
+
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
     end

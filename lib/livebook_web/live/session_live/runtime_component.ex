@@ -30,34 +30,42 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
       </h3>
       <div class="w-full flex-col space-y-5">
         <div class="flex space-x-4">
-          <.choice_button
-            active={@type == "elixir_standalone"}
-            phx-click="set_runtime_type"
-            phx-value-type="elixir_standalone"
-            phx-target={@myself}>
-            Elixir standalone
-          </.choice_button>
-          <.choice_button
-            active={@type == "mix_standalone"}
-            phx-click="set_runtime_type"
-            phx-value-type="mix_standalone"
-            phx-target={@myself}>
-            Mix standalone
-          </.choice_button>
-          <.choice_button
-            active={@type == "attached"}
-            phx-click="set_runtime_type"
-            phx-value-type="attached"
-            phx-target={@myself}>
-            Attached node
-          </.choice_button>
-          <.choice_button
-            active={@type == "embedded"}
-            phx-click="set_runtime_type"
-            phx-value-type="embedded"
-            phx-target={@myself}>
-            Embedded
-          </.choice_button>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.ElixirStandalone) do %>
+            <.choice_button
+              active={@type == "elixir_standalone"}
+              phx-click="set_runtime_type"
+              phx-value-type="elixir_standalone"
+              phx-target={@myself}>
+              Elixir standalone
+            </.choice_button>
+          <% end %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.MixStandalone) do %>
+            <.choice_button
+              active={@type == "mix_standalone"}
+              phx-click="set_runtime_type"
+              phx-value-type="mix_standalone"
+              phx-target={@myself}>
+              Mix standalone
+            </.choice_button>
+          <% end %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.Attached) do %>
+            <.choice_button
+              active={@type == "attached"}
+              phx-click="set_runtime_type"
+              phx-value-type="attached"
+              phx-target={@myself}>
+              Attached node
+            </.choice_button>
+          <% end %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.Embedded) do %>
+            <.choice_button
+              active={@type == "embedded"}
+              phx-click="set_runtime_type"
+              phx-value-type="embedded"
+              phx-target={@myself}>
+              Embedded
+            </.choice_button>
+          <% end %>
         </div>
         <div>
           <%= live_render @socket, live_view_for_type(@type),
