@@ -212,17 +212,26 @@
     @apply relative;
   }
 
-  .menu-content {
-    @apply absolute z-30 rounded-lg bg-white flex flex-col py-2 mt-1;
+  .menu__content {
+    @apply absolute z-[100] rounded-lg bg-white flex flex-col py-2 mt-1;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 
-  .menu-content.right {
+  .menu__content--right {
     @apply right-0;
   }
 
-  .menu-content.left {
+  .menu__content--left {
     @apply left-0;
+  }
+
+  .menu:not(.menu--open) > .menu__overlay,
+  .menu:not(.menu--open) > .menu__content {
+    @apply hidden;
+  }
+
+  .menu.menu--open > .menu__overlay {
+    @apply fixed z-[90] inset-0;
   }
 
   .menu-item {
@@ -241,11 +250,11 @@
     @apply relative;
   }
 
-  .submenu:not(:hover):not(:focus-within) .submenu-content {
+  .submenu:not(:hover):not(:focus-within) .submenu__content {
     @apply hidden;
   }
 
-  .submenu-content {
+  .submenu__content {
     @apply absolute -top-2 right-0 translate-x-full pl-2;
   }
 

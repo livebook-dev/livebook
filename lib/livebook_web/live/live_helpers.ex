@@ -448,14 +448,17 @@ defmodule LivebookWeb.LiveHelpers do
     ~H"""
     <div class="menu" id={@id}>
       <div
-        phx-click={not @disabled && JS.toggle(to: "##{@id}-content")}
-        phx-click-away={JS.hide(to: "##{@id}-content")}
+        phx-click={not @disabled && JS.add_class("menu--open", to: "##{@id}")}
         data-contextmenu-trigger-click={@secondary_click}
-        phx-window-keydown={JS.hide(to: "##{@id}-content")}
+        phx-window-keydown={JS.remove_class("menu--open", to: "##{@id}")}
         phx-key="escape">
         <%= render_slot(@toggle) %>
       </div>
-      <menu id={"#{@id}-content"} class={"hidden menu-content #{@position}"} role="menu">
+      <div class="menu__overlay"
+        phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}></div>
+      <menu class={"menu__content menu__content--#{@position}"}
+        role="menu"
+        phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}}>
         <%= render_slot(@content) %>
       </menu>
     </div>
@@ -473,15 +476,15 @@ defmodule LivebookWeb.LiveHelpers do
         <button class"menu-item" role="menuitem">Submenu</button>
         <:content>
           <button class"menu-item" role="menuitem">Option 1</button>
-        <.:content>
+        </:content>
       </.submenu>
   """
   def submenu(assigns) do
     ~H"""
     <div class="submenu">
       <%= render_slot(@inner_block) %>
-      <div class="submenu-content">
-        <menu class="menu-content relative mt-0">
+      <div class="submenu__content">
+        <menu class="menu__content relative mt-0">
           <%= render_slot(@content) %>
         </menu>
       </div>
