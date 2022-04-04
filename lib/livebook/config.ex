@@ -27,11 +27,12 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns the enable runtime module.
+  Returns if the runtime module is enabled.
   """
-  @spec enable_runtime(Livebook.Runtime.t()) :: boolean()
-  def enable_runtime(runtime) do
-    runtime in Application.fetch_env!(:livebook, :runtime_modules) or runtime == default_runtime()
+  @spec runtime_enabled?(module()) :: boolean()
+  def runtime_enabled?(runtime) do
+    runtime in Application.fetch_env!(:livebook, :runtime_modules) or
+      runtime == default_runtime().__struct__
   end
 
   @doc """

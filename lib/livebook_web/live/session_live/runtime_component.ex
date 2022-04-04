@@ -30,7 +30,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
       </h3>
       <div class="w-full flex-col space-y-5">
         <div class="flex space-x-4">
-          <%= if Livebook.Config.enable_runtime(Livebook.Runtime.ElixirStandalone) do %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.ElixirStandalone) do %>
             <.choice_button
               active={@type == "elixir_standalone"}
               phx-click="set_runtime_type"
@@ -39,7 +39,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               Elixir standalone
             </.choice_button>
           <% end %>
-          <%= if Livebook.Config.enable_runtime(Livebook.Runtime.MixStandalone) do %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.MixStandalone) do %>
             <.choice_button
               active={@type == "mix_standalone"}
               phx-click="set_runtime_type"
@@ -48,7 +48,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               Mix standalone
             </.choice_button>
           <% end %>
-          <%= if Livebook.Config.enable_runtime(Livebook.Runtime.Attached) do %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.Attached) do %>
             <.choice_button
               active={@type == "attached"}
               phx-click="set_runtime_type"
@@ -57,7 +57,7 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               Attached node
             </.choice_button>
           <% end %>
-          <%= if Livebook.Config.enable_runtime(Livebook.Runtime.Embedded) do %>
+          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.Embedded) do %>
             <.choice_button
               active={@type == "embedded"}
               phx-click="set_runtime_type"

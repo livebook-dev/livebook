@@ -5,8 +5,8 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
 
   @impl true
   def mount(_params, %{"session" => session, "current_runtime" => current_runtime}, socket) do
-    unless Livebook.Config.enable_runtime(Livebook.Runtime.Attached) do
-      raise "Now allow runtime module"
+    unless Livebook.Config.runtime_enabled?(Livebook.Runtime.Attached) do
+      raise "runtime module not allowed"
     end
 
     if connected?(socket) do
