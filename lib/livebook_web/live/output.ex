@@ -28,7 +28,7 @@ defmodule LivebookWeb.Output do
 
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
-  defp border?({:error, _message, _type}), do: true
+  defp border?({:error, _message}), do: true
   defp border?(_output), do: false
 
   defp wrapper?({:frame, _outputs, _info}), do: true
