@@ -18,6 +18,8 @@ defmodule Livebook.Notebook.Cell do
 
   @type indexed_output :: {non_neg_integer(), Livebook.Runtime.output()}
 
+  @type comment :: %{user: Livebook.Users.User.t(), message: String.t()}
+
   @doc """
   Returns an empty cell of the given type.
   """
