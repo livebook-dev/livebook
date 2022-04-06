@@ -279,6 +279,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends comment on cell request to the server.
+  """
+  @spec comment_cell(pid(), Cell.id(), Cell.comment()) :: :ok
+  def comment_cell(pid, cell_id, comment) do
+    GenServer.cast(pid, {:comment_cell, self(), cell_id, comment})
+  end
+
+  @doc """
   Sends cell restoration request to the server.
   """
   @spec restore_cell(pid(), Cell.id()) :: :ok
@@ -701,6 +709,11 @@ defmodule Livebook.Session do
 
   def handle_cast({:delete_cell, client_pid, cell_id}, state) do
     operation = {:delete_cell, client_pid, cell_id}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:comment_cell, client_pid, cell_id, comment}, state) do
+    operation = {:comment_cell, client_pid, cell_id, comment}
     {:noreply, handle_operation(state, operation)}
   end
 
