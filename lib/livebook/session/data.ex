@@ -61,18 +61,21 @@ defmodule Livebook.Session.Data do
   @type cell_info :: markdown_cell_info() | code_cell_info() | smart_cell_info()
 
   @type markdown_cell_info :: %{
-          sources: %{primary: cell_source_info()}
+          sources: %{primary: cell_source_info()},
+          comments: list(String.t())
         }
 
   @type code_cell_info :: %{
           sources: %{primary: cell_source_info()},
-          eval: cell_eval_info()
+          eval: cell_eval_info(),
+          comments: list(String.t())
         }
 
   @type smart_cell_info :: %{
           sources: %{primary: cell_source_info(), secondary: cell_source_info()},
           eval: cell_eval_info(),
-          status: smart_cell_status()
+          status: smart_cell_status(),
+          comments: list(String.t())
         }
 
   @type cell_source_tag :: atom()
@@ -383,6 +386,16 @@ defmodule Livebook.Session.Data do
       |> wrap_ok()
     else
       _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:comment_cell, _client_pid, id, comment}) do
+    with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> comment_cell(cell, section, comment)
+      |> set_dirty()
+      |> wrap_ok()
     end
   end
 
@@ -833,6 +846,18 @@ defmodule Livebook.Session.Data do
       ]
     )
     |> delete_cell_info(cell)
+  end
+
+  defp comment_cell({data, _} = data_actions, cell, _section, comment) do
+    data_actions
+    |> set!(
+      notebook:
+        Notebook.update_cell(
+          data.notebook,
+          cell.id,
+          &Map.update!(&1, :comments, fn comments -> [comment | comments] end)
+        )
+    )
   end
 
   defp pristine_evaluation?(eval_info) do
@@ -1634,6 +1659,7 @@ defmodule Livebook.Session.Data do
   defp new_cell_info(%Cell.Code{}, clients_map) do
     %{
       sources: %{primary: new_source_info(clients_map)},
+      comments: [],
       eval: new_eval_info()
     }
   end
