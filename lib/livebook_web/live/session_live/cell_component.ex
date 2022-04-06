@@ -32,7 +32,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view} current_user={@current_user}>
       <div class="pb-4" data-el-editor-box>
         <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
           id={"#{@cell_view.id}-primary"}
@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view} current_user={@current_user}>
       <div class="relative">
         <.live_component module={LivebookWeb.SessionLive.CellEditorComponent}
           id={"#{@cell_view.id}-primary"}
@@ -109,7 +109,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.setup_cell_info />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view} current_user={@current_user}>
       <div data-el-info-box>
         <div class="p-3 flex items-center justify-between border border-gray-200 text-sm text-gray-400 font-medium rounded-lg">
           <span>Notebook dependencies and setup</span>
@@ -159,7 +159,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         <.delete_cell_button cell_id={@cell_view.id} />
       </:secondary>
     </.cell_actions>
-    <.cell_body>
+    <.cell_body cell_view={@cell_view} current_user={@current_user}>
       <div data-el-ui-box>
         <%= case @cell_view.status do %>
           <% :started -> %>
@@ -239,15 +239,26 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp cell_body(assigns) do
+    container_class = if length(Access.get(assigns, :comments, [])) >= 1, do: "h-fit", else: ""
+
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
          also we actually want to make this element tab-focusable -->
-    <div class="flex relative" data-el-cell-body tabindex="0">
-      <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator>
+    <div class="relative">
+      <div class={"#{container_class} flex-1 flex"}>
+        <div class="flex-1 flex relative mr-3" data-el-cell-body tabindex="0">
+          <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator>
+          </div>
+          <div class="w-full">
+            <%= render_slot(@inner_block) %>
+          </div>
+        </div>
       </div>
-      <div class="w-full">
-        <%= render_slot(@inner_block) %>
-      </div>
+
+      <.live_component module={LivebookWeb.SessionLive.DiscussionComponent}
+        id={"#{@cell_view.id}-discussion"}
+        cell_view={@cell_view}
+        current_user={@current_user} />
     </div>
     """
   end

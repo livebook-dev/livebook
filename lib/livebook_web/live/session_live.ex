@@ -6,6 +6,7 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [format_bytes: 1]
 
   alias LivebookWeb.SidebarHelpers
+  alias LivebookWeb.SessionLive.DiscussionComponent
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
   alias Livebook.JSInterop
@@ -196,7 +197,8 @@ defmodule LivebookWeb.SessionLive do
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
               runtime={@data_view.runtime}
-              cell_view={@data_view.setup_cell_view} />
+              cell_view={@data_view.setup_cell_view}
+              current_user={@current_user} />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
             <%= if @data_view.section_views == [] do %>
@@ -214,7 +216,8 @@ defmodule LivebookWeb.SessionLive do
                   session_id={@session.id}
                   runtime={@data_view.runtime}
                   smart_cell_definitions={@data_view.smart_cell_definitions}
-                  section_view={section_view} />
+                  section_view={section_view}
+                  current_user={@current_user} />
             <% end %>
             <div style="height: 80vh"></div>
           </div>
@@ -631,6 +634,24 @@ defmodule LivebookWeb.SessionLive do
            ) do
       Session.insert_cell(socket.assigns.session.pid, section.id, index, type, attrs)
     end
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "comment_cell",
+        %{"cell_view_id" => cell_view_id, "value" => value, "ctrl_key" => ctrl_key?},
+        socket
+      ) do
+    cell_comment = %{
+      user: socket.assigns.current_user,
+      message: value
+    }
+
+    Session.comment_cell(socket.assigns.session.pid, cell_view_id, cell_comment)
+
+    # FIXME: this does not work
+    if ctrl_key?, do: DiscussionComponent.toggle_maximized(cell_view_id)
 
     {:noreply, socket}
   end
@@ -1463,7 +1484,8 @@ defmodule LivebookWeb.SessionLive do
     %{
       id: cell.id,
       type: :markdown,
-      source_view: source_view(cell.source, info.sources.primary)
+      source_view: source_view(cell.source, info.sources.primary),
+      comments: cell.comments
     }
   end
 
@@ -1475,7 +1497,8 @@ defmodule LivebookWeb.SessionLive do
       type: :code,
       source_view: source_view(cell.source, info.sources.primary),
       eval: eval_info_to_view(cell, info.eval, data),
-      reevaluate_automatically: cell.reevaluate_automatically
+      reevaluate_automatically: cell.reevaluate_automatically,
+      comments: cell.comments
     }
   end
 
@@ -1495,7 +1518,8 @@ defmodule LivebookWeb.SessionLive do
             language: cell.editor.language,
             placement: cell.editor.placement,
             source_view: source_view(cell.editor.source, info.sources.secondary)
-          }
+          },
+      comments: cell.comments
     }
   end
 

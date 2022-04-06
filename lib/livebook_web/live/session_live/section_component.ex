@@ -110,7 +110,8 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                 id={cell_view.id}
                 session_id={@session_id}
                 runtime={@runtime}
-                cell_view={cell_view} />
+                cell_view={cell_view}
+                current_user={@current_user} />
             <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
                 id={"insert-buttons-#{@section_view.id}-#{index}"}
                 persistent={false}
