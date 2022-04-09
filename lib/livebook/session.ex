@@ -1073,17 +1073,17 @@ defmodule Livebook.Session do
     with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
       if source_exists? do
         with {:ok, destination_exists?} <- FileSystem.File.exists?(images_dir) do
-          if not destination_exists? do
-            # If the directory doesn't exist, we can just change
-            # the directory name, which is more efficient if
-            # available in the given file system
-            FileSystem.File.rename(source, images_dir)
-          else
+          if destination_exists? do
             # If the directory exists, we use copy to place
             # the images there
             with :ok <- FileSystem.File.copy(source, images_dir) do
               FileSystem.File.remove(source)
             end
+          else
+            # If the directory doesn't exist, we can just change
+            # the directory name, which is more efficient if
+            # available in the given file system
+            FileSystem.File.rename(source, images_dir)
           end
         end
       else

@@ -39,8 +39,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpers do
 
   def text_from_ast(ast) when is_list(ast) do
     ast
-    |> Enum.map(&text_from_ast/1)
-    |> Enum.join("")
+    |> Enum.map_join(&text_from_ast/1)
   end
 
   def text_from_ast(ast) when is_binary(ast), do: ast

@@ -323,8 +323,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.S3 do
   defp encode_key(key) do
     key
     |> String.split("/")
-    |> Enum.map(fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
-    |> Enum.join("/")
+    |> Enum.map_join("/", fn segment -> URI.encode(segment, &URI.char_unreserved?/1) end)
   end
 
   defp request_response_to_error(error)
