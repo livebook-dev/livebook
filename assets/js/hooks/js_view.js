@@ -95,8 +95,8 @@ const JSView = {
 
     const errorRef = this.channel.on(
       `error:${this.props.ref}`,
-      ({ message }) => {
-        this.handleServerError(message);
+      ({ message, init }) => {
+        this.handleServerError(message, init);
       }
     );
 
@@ -334,7 +334,11 @@ const JSView = {
     });
   },
 
-  handleServerError(message) {
+  handleServerError(message, init) {
+    if (init) {
+      this.clearInitTimeout();
+    }
+
     if (!this.errorContainer) {
       this.errorContainer = document.createElement("div");
       this.errorContainer.classList.add("error-box", "mb-4");

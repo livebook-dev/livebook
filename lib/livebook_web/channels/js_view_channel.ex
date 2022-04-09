@@ -70,7 +70,7 @@ defmodule LivebookWeb.JSViewChannel do
 
     with {:error, error} <- try_push(socket, "init:#{ref}:#{id}", nil, payload) do
       message = "Failed to serialize initial widget data, " <> error
-      push(socket, "error:#{ref}", %{"message" => message})
+      push(socket, "error:#{ref}", %{"message" => message, "init" => true})
     end
 
     {:noreply, socket}
