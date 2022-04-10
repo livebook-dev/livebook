@@ -108,9 +108,6 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
   end
 
   defp new_comment_input(assigns) do
-    # NOTE: Server event "add_cell_comment" is sent by the JS hook directly.
-    #       See 'assets/js/hooks/comment_input.js'.
-
     ~H"""
     <input
       id={"comment-input-#{@cell_view_id}"}
