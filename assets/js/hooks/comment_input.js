@@ -5,25 +5,7 @@
  * automatically when using keyboard shortcuts ('Enter' key).
  */
 const CommentInput = {
-  cellViewId() {
-    return this.el.getAttribute("cell_view_id");
-  },
-
-  beforeUpdate() {
-    this.el.focus();
-  },
-
-  updated() {
-    this.el.focus();
-  },
-
   mounted() {
-    this.el.focus();
-
-    this.el.addEventListener("phx:focus", (event) => {
-      document.getElementById(event.target.id).focus();
-    });
-
     this.el.addEventListener("keydown", (event) => {
       if ("Enter" === event.key && !event.shiftKey) {
         const value = this.el.value;
@@ -40,6 +22,10 @@ const CommentInput = {
         this.el.value = "";
       }
     });
+  },
+
+  cellViewId() {
+    return this.el.getAttribute("cell_view_id");
   },
 };
 

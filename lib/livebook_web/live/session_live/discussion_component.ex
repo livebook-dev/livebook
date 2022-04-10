@@ -129,7 +129,7 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
 
   def toggle_maximized(js \\ %JS{}, cell_view_id) do
     js
-    |> JS.dispatch("phx:focus", to: "#comment_input_#{cell_view_id}")
+    |> JS.dispatch("lb:focus", to: "#comment_input_#{cell_view_id}")
     |> JS.toggle(to: "#discussion_minimized_#{cell_view_id}")
     |> JS.toggle(to: "#discussion_maximized_#{cell_view_id}")
   end
