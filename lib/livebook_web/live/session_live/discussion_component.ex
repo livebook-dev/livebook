@@ -7,7 +7,7 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
   def render(assigns) do
     ~H"""
     <div id={"discussion-#{@cell_view.id}"} class="absolute top-0 -right-12">
-      <div id={"discussion-minimized-#{@cell_view.id}"} class="block flex flex-col text-xs">
+      <div id={"discussion-minimized-#{@cell_view.id}"} class="block absolute top-0 right-0 flex flex-col text-xs">
         <.avatars cell_view={@cell_view} direction={:vertical} />
       </div>
 
@@ -62,7 +62,7 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
 
   defp new_comment(assigns) do
     ~H"""
-    <div class="flex items-center p-2 border border-gray-300 rounded-b">
+    <div class="flex items-center p-2 bg-white border border-gray-300 rounded-b">
       <.user_avatar user={@current_user} />
       <.new_comment_input cell_view_id={@cell_view.id} />
     </div>
@@ -77,12 +77,12 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
       end
 
     ~H"""
-    <div class={"#{stacked_class} flex overflow-hidden"}>
+    <div class={"flex items-center overflow-hidden #{stacked_class}"}>
       <%= for %{user: user, message: _message} <-
         @cell_view.comments
         |> Enum.reverse()
         |> Enum.uniq_by(fn %{user: %{id: id}} -> id end) do %>
-        <.user_avatar user={user} class="h-8 w-8 border-2 border-white" />
+        <.user_avatar user={user} class="outline outline-2 outline-white group-hover:outline-gray-200 group-focus:outline-gray-200" />
       <% end %>
     </div>
     """
