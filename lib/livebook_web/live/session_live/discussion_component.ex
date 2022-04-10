@@ -1,9 +1,9 @@
 defmodule LivebookWeb.SessionLive.DiscussionComponent do
-  use LivebookWeb, :live_component
+  use Phoenix.Component
 
+  alias Phoenix.LiveView.JS
   alias LivebookWeb.UserHelpers
 
-  @impl true
   def render(assigns) do
     ~H"""
     <div id={"discussion-#{@cell_view.id}"} class="absolute top-0 -right-12">

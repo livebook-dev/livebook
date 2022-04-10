@@ -257,7 +257,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </div>
       </div>
 
-      <.live_component module={LivebookWeb.SessionLive.DiscussionComponent}
+      <LivebookWeb.SessionLive.DiscussionComponent.render
         id={"#{@cell_view.id}-discussion"}
         cell_view={@cell_view}
         current_user={@current_user} />
