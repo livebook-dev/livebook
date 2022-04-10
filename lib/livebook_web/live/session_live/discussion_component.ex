@@ -47,7 +47,7 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
     ~H"""
     <!-- NOTE: We display the list in reverse order with flex-col-reverse to auto scroll down once the list is displayed.
                The markup has to be in reverse order too to preserve the original order. -->
-    <ul class="max-h-60 overflow-y-auto flex flex-col-reverse p-2 bg-gray-200 border-x border-gray-300 scrollbar-thin hover:scrollbar-thumb-gray-300 scrollbar-track-gray-200">
+    <ul class="max-h-60 overflow-y-auto flex flex-col-reverse p-2 bg-gray-200 border-x border-gray-300 tiny-scrollbar">
       <%= if @cell_view.comments == [] do %>
         <p class="p-2 text-gray-400">No comments yet.</p>
       <% else %>
