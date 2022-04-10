@@ -639,7 +639,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event(
-        "comment_cell",
+        "add_cell_comment",
         %{"cell_view_id" => cell_view_id, "value" => value, "ctrl_key" => ctrl_key?},
         socket
       ) do
@@ -648,7 +648,7 @@ defmodule LivebookWeb.SessionLive do
       message: value
     }
 
-    Session.comment_cell(socket.assigns.session.pid, cell_view_id, cell_comment)
+    Session.add_cell_comment(socket.assigns.session.pid, cell_view_id, cell_comment)
 
     # FIXME: this does not work
     if ctrl_key?, do: DiscussionComponent.toggle_maximized(cell_view_id)

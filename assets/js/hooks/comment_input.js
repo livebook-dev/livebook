@@ -28,9 +28,9 @@ const CommentInput = {
       if ("Enter" === event.key && !event.shiftKey) {
         const value = this.el.value;
 
-        // send server event to add a comment
+        // send server event to add a cell comment
         value &&
-          this.pushEvent("comment_cell", {
+          this.pushEvent("add_cell_comment", {
             value,
             ctrl_key: event.ctrlKey,
             cell_view_id: this.cellViewId(),

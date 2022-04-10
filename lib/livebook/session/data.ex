@@ -389,11 +389,11 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:comment_cell, _client_pid, id, comment}) do
+  def apply_operation(data, {:add_cell_comment, _client_pid, id, comment}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
-      |> comment_cell(cell, section, comment)
+      |> add_cell_comment(cell, section, comment)
       |> set_dirty()
       |> wrap_ok()
     end
@@ -848,7 +848,7 @@ defmodule Livebook.Session.Data do
     |> delete_cell_info(cell)
   end
 
-  defp comment_cell({data, _} = data_actions, cell, _section, comment) do
+  defp add_cell_comment({data, _} = data_actions, cell, _section, comment) do
     data_actions
     |> set!(
       notebook:
