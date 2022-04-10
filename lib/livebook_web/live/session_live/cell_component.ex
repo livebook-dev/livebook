@@ -239,13 +239,15 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp cell_body(assigns) do
-    container_class = if length(Access.get(assigns, :comments, [])) >= 1, do: "h-fit", else: ""
+    assigns =
+      assigns
+      |> assign_new(:comments, fn -> [] end)
 
     ~H"""
     <!-- By setting tabindex we can programmatically focus this element,
          also we actually want to make this element tab-focusable -->
     <div class="relative">
-      <div class={"#{container_class} flex-1 flex"}>
+      <div class={"flex-1 flex #{if @comments != [], do: "h-fit"}"}>
         <div class="flex-1 flex relative mr-3" data-el-cell-body tabindex="0">
           <div class="w-1 h-full rounded-lg absolute top-0 -left-3" data-el-cell-focus-indicator>
           </div>
