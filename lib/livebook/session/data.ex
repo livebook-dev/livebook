@@ -61,21 +61,18 @@ defmodule Livebook.Session.Data do
   @type cell_info :: markdown_cell_info() | code_cell_info() | smart_cell_info()
 
   @type markdown_cell_info :: %{
-          sources: %{primary: cell_source_info()},
-          comments: list(String.t())
+          sources: %{primary: cell_source_info()}
         }
 
   @type code_cell_info :: %{
           sources: %{primary: cell_source_info()},
-          eval: cell_eval_info(),
-          comments: list(String.t())
+          eval: cell_eval_info()
         }
 
   @type smart_cell_info :: %{
           sources: %{primary: cell_source_info(), secondary: cell_source_info()},
           eval: cell_eval_info(),
-          status: smart_cell_status(),
-          comments: list(String.t())
+          status: smart_cell_status()
         }
 
   @type cell_source_tag :: atom()
@@ -1659,7 +1656,6 @@ defmodule Livebook.Session.Data do
   defp new_cell_info(%Cell.Code{}, clients_map) do
     %{
       sources: %{primary: new_source_info(clients_map)},
-      comments: [],
       eval: new_eval_info()
     }
   end
