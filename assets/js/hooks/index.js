@@ -13,7 +13,6 @@ import ScrollOnUpdate from "./scroll_on_update";
 import Session from "./session";
 import Timer from "./timer";
 import UserForm from "./user_form";
-import CommentInput from "./comment_input";
 import VirtualizedLines from "./virtualized_lines";
 
 export default {
@@ -32,6 +31,5 @@ export default {
   Session,
   Timer,
   UserForm,
-  CommentInput,
   VirtualizedLines,
 };

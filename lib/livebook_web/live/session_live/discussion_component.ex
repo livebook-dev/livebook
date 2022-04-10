@@ -6,12 +6,12 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"#{@cell_view.id}-discussion"} class="absolute top-0 -right-12">
-      <div id={"discussion_minimized_#{@cell_view.id}"} class="block flex flex-col text-xs">
+    <div id={"discussion-#{@cell_view.id}"} class="absolute top-0 -right-12">
+      <div id={"discussion-minimized-#{@cell_view.id}"} class="block flex flex-col text-xs">
         <.avatars cell_view={@cell_view} direction={:vertical} />
       </div>
 
-      <div id={"discussion_maximized_#{@cell_view.id}"} class="hidden absolute -top-px -right-[225px] flex flex-col text-xs z-10 mr-4">
+      <div id={"discussion-maximized-#{@cell_view.id}"} class="hidden absolute -top-px -right-[225px] flex flex-col text-xs z-10 mr-4">
         <.avatars cell_view={@cell_view} direction={:horizontal} />
         <.comments cell_view={@cell_view} current_user={@current_user} />
         <.new_comment cell_view={@cell_view} current_user={@current_user} />
@@ -27,14 +27,12 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
         :horizontal -> "border border-gray-300 rounded-t"
       end
 
-    has_comments? = not Enum.empty?(assigns.cell_view.comments)
-
     ~H"""
     <div
-      phx-click={toggle_maximized(@cell_view.id)}
+      phx-click={js_toggle_maximized(@cell_view.id)}
       class={"#{wrapper_class} flex items-center group hover:bg-gray-200 focus:bg-gray-200 p-2"}
     >
-      <%= if has_comments? do %>
+      <%= if @cell_view.comments != [] do %>
         <.stacked_avatars cell_view={@cell_view} direction={@direction} />
       <% end %>
 
@@ -52,7 +50,7 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
         <p class="p-2 text-gray-400">No comments yet.</p>
       <% else %>
         <%= for {%{user: user, message: message}, index} <- Enum.with_index(@cell_view.comments) do %>
-          <li id={"#{user.name}-#{message}-#{index}"} class="flex items-center my-1 first:mb-0 last:mt-0">
+          <li id={"comment-#{user.name}-#{message}-#{index}"} class="flex items-center my-1 first:mb-0 last:mt-0">
             <.user_avatar user={user} />
             <p class="ml-2 p-2 bg-white rounded"><%= message %></p>
           </li>
@@ -115,22 +113,30 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
 
     ~H"""
     <input
-      id={"comment_input_#{@cell_view_id}"}
+      id={"comment-input-#{@cell_view_id}"}
+      aria-label="comment input"
       class="flex-1 p-2 rounded"
-      required
-      autofocus
-      cell_view_id={@cell_view_id}
       type="text"
       placeholder="Write a comment..."
-      phx-hook="CommentInput"
+      phx-keydown={js_add_cell_comment(@cell_view_id)}
+      phx-key="enter"
+      required
+      autofocus
+      autocomplete="off"
     />
     """
   end
 
-  def toggle_maximized(js \\ %JS{}, cell_view_id) do
+  defp js_add_cell_comment(js \\ %JS{}, cell_view_id) do
     js
-    |> JS.dispatch("lb:focus", to: "#comment_input_#{cell_view_id}")
-    |> JS.toggle(to: "#discussion_minimized_#{cell_view_id}")
-    |> JS.toggle(to: "#discussion_maximized_#{cell_view_id}")
+    |> JS.push("add_cell_comment", value: %{cell_view_id: cell_view_id})
+    |> JS.dispatch("lb:set_value", detail: %{value: ""})
+  end
+
+  defp js_toggle_maximized(js \\ %JS{}, cell_view_id) do
+    js
+    |> JS.dispatch("lb:focus", to: "#comment-input-#{cell_view_id}")
+    |> JS.toggle(to: "#discussion-minimized-#{cell_view_id}")
+    |> JS.toggle(to: "#discussion-maximized-#{cell_view_id}")
   end
 end

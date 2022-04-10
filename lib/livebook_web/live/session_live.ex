@@ -6,7 +6,6 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [format_bytes: 1]
 
   alias LivebookWeb.SidebarHelpers
-  alias LivebookWeb.SessionLive.DiscussionComponent
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
   alias Livebook.JSInterop
@@ -640,18 +639,13 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "add_cell_comment",
-        %{"cell_view_id" => cell_view_id, "value" => value, "ctrl_key" => ctrl_key?},
+        %{"cell_view_id" => cell_view_id, "value" => value},
         socket
       ) do
-    cell_comment = %{
+    Session.add_cell_comment(socket.assigns.session.pid, cell_view_id, %{
       user: socket.assigns.current_user,
       message: value
-    }
-
-    Session.add_cell_comment(socket.assigns.session.pid, cell_view_id, cell_comment)
-
-    # FIXME: this does not work
-    if ctrl_key?, do: DiscussionComponent.toggle_maximized(cell_view_id)
+    })
 
     {:noreply, socket}
   end
