@@ -72,8 +72,8 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
   defp stacked_avatars(assigns) do
     stacked_class =
       case assigns.direction do
-        :vertical -> "flex-col -space-y-2 mb-1"
-        :horizontal -> "-space-x-2 mr-1"
+        :vertical -> "flex-col -space-y-1.5 mb-1"
+        :horizontal -> "-space-x-1.5 mr-1"
       end
 
     ~H"""
