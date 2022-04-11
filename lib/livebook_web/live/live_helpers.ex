@@ -82,11 +82,7 @@ defmodule LivebookWeb.LiveHelpers do
   Renders the confirmation modal for `with_confirm/3`.
   """
   def confirm_modal(assigns) do
-    # TODO: this ensures unique ids when navigating across LVs.
-    # Remove once https://github.com/phoenixframework/phoenix_live_view/issues/1903
-    # is resolved
-    lv_id = self() |> :erlang.term_to_binary() |> Base.encode32(padding: false)
-    assigns = assign_new(assigns, :id, fn -> "confirm-modal-#{lv_id}" end)
+    assigns = assign_new(assigns, :id, fn -> "confirm-modal" end)
 
     ~H"""
     <.modal id={@id} class="w-full max-w-xl" phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
