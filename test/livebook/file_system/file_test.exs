@@ -33,7 +33,7 @@ defmodule Livebook.FileSystem.FileTest do
 
   describe "local/1" do
     test "uses the globally configured local file system instance" do
-      assert FileSystem.File.local("/path").file_system == Livebook.Config.local_filesystem()
+      assert FileSystem.File.local(p("/path")).file_system == Livebook.Config.local_filesystem()
     end
   end
 

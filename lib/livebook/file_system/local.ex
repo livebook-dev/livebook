@@ -168,12 +168,24 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
         containing_dir = Path.dirname(destination_path)
 
         with :ok <- File.mkdir_p(containing_dir),
-             :ok <- File.rename(source_path, destination_path) do
+             :ok <- rename_or_move(source_path, destination_path) do
           :ok
         else
           {:error, error} ->
             FileSystem.Utils.posix_error(error)
         end
+      end
+    end
+  end
+
+  defp rename_or_move(source_path, destination_path) do
+    with {:error, :exdev} <- File.rename(source_path, destination_path) do
+      # For files on different file systems, try to copy and remove instead
+      with {:ok, _paths} <- File.cp_r(source_path, destination_path),
+           {:ok, _paths} <- File.rm_rf(source_path) do
+        :ok
+      else
+        {:error, error, _paths} -> {:error, error}
       end
     end
   end
