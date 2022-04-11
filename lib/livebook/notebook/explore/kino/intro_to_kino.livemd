@@ -1,18 +1,19 @@
 # Introduction to Kino
 
-## Setup
-
-In this notebook we will explore the possibilities that
-[`kino`](https://github.com/elixir-nx/kino) brings
-into your notebooks. Kino can be thought of as Livebook's
-friend that instructs it how to render certain widgets
-and interact with them. Let's install it:
-
 ```elixir
 Mix.install([
   {:kino, "~> 0.5.0"}
 ])
 ```
+
+## Introduction
+
+In this notebook we will explore the possibilities that
+[`kino`](https://github.com/elixir-nx/kino) brings
+into your notebooks. Kino can be thought of as Livebook's
+friend that instructs it how to render certain widgets
+and interact with them. You can see `kino` listed as a
+dependency above, let's run the setup cell and get started!
 
 <!-- livebook:{"branch_parent_index":0} -->
 

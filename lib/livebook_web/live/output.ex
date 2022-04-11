@@ -12,15 +12,13 @@ defmodule LivebookWeb.Output do
     ~H"""
     <%= for {idx, output} <- Enum.reverse(@outputs) do %>
       <div class="max-w-full" id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
-        data-element="output"
+        data-el-output
         data-border={border?(output)}
         data-wrapper={wrapper?(output)}>
         <%= render_output(output, %{
               id: "output-#{idx}",
               socket: @socket,
               session_id: @session_id,
-              runtime: @runtime,
-              cell_validity: @cell_validity,
               input_values: @input_values
             }) %>
       </div>
@@ -30,7 +28,7 @@ defmodule LivebookWeb.Output do
 
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
-  defp border?({:error, _message, _type}), do: true
+  defp border?({:error, _message}), do: true
   defp border?(_output), do: false
 
   defp wrapper?({:frame, _outputs, _info}), do: true
@@ -38,14 +36,14 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
-    live_component(Output.StdoutComponent, id: id, text: text, follow: true)
+    live_component(Output.StdoutComponent, id: id, text: text)
   end
 
   defp render_output({:text, text}, %{id: id}) do
     assigns = %{id: id, text: text}
 
     ~H"""
-    <Output.TextComponent.render id={@id} content={@text} follow={false} />
+    <Output.TextComponent.render id={@id} content={@text} />
     """
   end
 
@@ -65,7 +63,8 @@ defmodule LivebookWeb.Output do
     live_component(LivebookWeb.JSViewComponent,
       id: id,
       js_view: js_info.js_view,
-      session_id: session_id
+      session_id: session_id,
+      timeout_message: "Output data no longer available, please reevaluate this cell"
     )
   end
 
@@ -90,35 +89,12 @@ defmodule LivebookWeb.Output do
     live_component(Output.ControlComponent, id: id, attrs: attrs, input_values: input_values)
   end
 
-  defp render_output({:error, formatted, :runtime_restart_required}, %{
-         runtime: runtime,
-         cell_validity: cell_validity
-       })
-       when runtime != nil and cell_validity == :evaluated do
-    assigns = %{formatted: formatted, is_standalone: Livebook.Runtime.standalone?(runtime)}
+  defp render_output({:error, formatted}, %{}) do
+    assigns = %{message: formatted}
 
     ~H"""
-    <div class="flex flex-col space-y-4" role="complementary" aria-label="runtime restart required">
-      <%= render_error(@formatted) %>
-      <%= if @is_standalone do %>
-        <div>
-          <button class="button-base button-gray" phx-click="restart_runtime">
-            Reconnect runtime
-          </button>
-        </div>
-      <% else %>
-        <div class="text-red-600">
-          <span class="font-semibold">Note:</span>
-          This operation requires restarting the runtime, but we cannot
-          do it automatically for the current runtime
-        </div>
-      <% end %>
-    </div>
+    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error"><%= ansi_string_to_html(@message) %></div>
     """
-  end
-
-  defp render_output({:error, formatted, _type}, %{}) do
-    render_error(formatted)
   end
 
   # TODO: remove on Livebook v0.7
@@ -140,14 +116,6 @@ defmodule LivebookWeb.Output do
     Unknown output format: #{inspect(output)}. If you're using Kino,
     you may want to update Kino and Livebook to the latest version.
     """)
-  end
-
-  defp render_error(message) do
-    assigns = %{message: message}
-
-    ~H"""
-    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error"><%= ansi_string_to_html(@message) %></div>
-    """
   end
 
   defp render_error_message(message) do

@@ -115,7 +115,7 @@ export default class Delta {
       }
     }
 
-    return delta.__trim();
+    return delta._trim();
   }
 
   /**
@@ -163,10 +163,10 @@ export default class Delta {
       }
     }
 
-    return delta.__trim();
+    return delta._trim();
   }
 
-  __trim() {
+  _trim() {
     if (this.ops.length > 0 && isRetain(this.ops[this.ops.length - 1])) {
       this.ops.pop();
     }

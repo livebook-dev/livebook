@@ -233,7 +233,7 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s{[data-element="explore-section"] a}, "Welcome to Livebook")
+             |> element(~s{[data-el-explore-section] a}, "Welcome to Livebook")
              |> render_click()
              |> follow_redirect(conn)
 

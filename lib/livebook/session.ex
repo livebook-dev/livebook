@@ -311,6 +311,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends dependencies addition request to the server.
+  """
+  @spec add_dependencies(pid(), list(Runtime.dependency())) :: :ok
+  def add_dependencies(pid, dependencies) do
+    GenServer.cast(pid, {:add_dependencies, dependencies})
+  end
+
+  @doc """
   Sends cell evaluation request to the server.
   """
   @spec queue_cell_evaluation(pid(), Cell.id()) :: :ok
@@ -380,9 +388,15 @@ defmodule Livebook.Session do
   @doc """
   Sends a cell delta to apply to the server.
   """
-  @spec apply_cell_delta(pid(), Cell.id(), Delta.t(), Data.cell_revision()) :: :ok
-  def apply_cell_delta(pid, cell_id, delta, revision) do
-    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, delta, revision})
+  @spec apply_cell_delta(
+          pid(),
+          Cell.id(),
+          Data.cell_source_tag(),
+          Delta.t(),
+          Data.cell_revision()
+        ) :: :ok
+  def apply_cell_delta(pid, cell_id, tag, delta, revision) do
+    GenServer.cast(pid, {:apply_cell_delta, self(), cell_id, tag, delta, revision})
   end
 
   @doc """
@@ -390,9 +404,14 @@ defmodule Livebook.Session do
 
   This helps to remove old deltas that are no longer necessary.
   """
-  @spec report_cell_revision(pid(), Cell.id(), Data.cell_revision()) :: :ok
-  def report_cell_revision(pid, cell_id, revision) do
-    GenServer.cast(pid, {:report_cell_revision, self(), cell_id, revision})
+  @spec report_cell_revision(
+          pid(),
+          Cell.id(),
+          Data.cell_source_tag(),
+          Data.cell_revision()
+        ) :: :ok
+  def report_cell_revision(pid, cell_id, tag, revision) do
+    GenServer.cast(pid, {:report_cell_revision, self(), cell_id, tag, revision})
   end
 
   @doc """
@@ -412,14 +431,13 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Connects to the given runtime.
+  Sends runtime update to the server.
 
-  Note that this results in initializing the corresponding remote node
-  with modules and processes required for evaluation.
+  If the runtime is connected, the session takes the ownership.
   """
-  @spec connect_runtime(pid(), Runtime.t()) :: :ok
-  def connect_runtime(pid, runtime) do
-    GenServer.cast(pid, {:connect_runtime, self(), runtime})
+  @spec set_runtime(pid(), Runtime.t()) :: :ok
+  def set_runtime(pid, runtime) do
+    GenServer.cast(pid, {:set_runtime, self(), runtime})
   end
 
   @doc """
@@ -601,8 +619,8 @@ defmodule Livebook.Session do
         assets_info == nil ->
           {:error, "unknown hash"}
 
-        runtime == nil ->
-          {:error, "no runtime"}
+        not Runtime.connected?(runtime) ->
+          {:error, "runtime not started"}
 
         true ->
           {:ok, runtime, assets_info.archive_path}
@@ -627,13 +645,17 @@ defmodule Livebook.Session do
   end
 
   def handle_call({:disconnect_runtime, client_pid}, _from, state) do
-    if old_runtime = state.data.runtime do
-      Runtime.disconnect(old_runtime)
-    end
+    state =
+      if Runtime.connected?(state.data.runtime) do
+        {:ok, runtime} = Runtime.disconnect(state.data.runtime)
 
-    {:reply, :ok,
-     %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, client_pid, nil})}
+        %{state | runtime_monitor_ref: nil}
+        |> handle_operation({:set_runtime, client_pid, runtime})
+      else
+        state
+      end
+
+    {:reply, :ok, state}
   end
 
   @impl true
@@ -717,6 +739,10 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_cast({:add_dependencies, dependencies}, state) do
+    {:noreply, do_add_dependencies(state, dependencies)}
+  end
+
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
     operation = {:queue_cells_evaluation, client_pid, [cell_id]}
     {:noreply, handle_operation(state, operation)}
@@ -770,13 +796,13 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:apply_cell_delta, client_pid, cell_id, delta, revision}, state) do
-    operation = {:apply_cell_delta, client_pid, cell_id, delta, revision}
+  def handle_cast({:apply_cell_delta, client_pid, cell_id, tag, delta, revision}, state) do
+    operation = {:apply_cell_delta, client_pid, cell_id, tag, delta, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:report_cell_revision, client_pid, cell_id, revision}, state) do
-    operation = {:report_cell_revision, client_pid, cell_id, revision}
+  def handle_cast({:report_cell_revision, client_pid, cell_id, tag, revision}, state) do
+    operation = {:report_cell_revision, client_pid, cell_id, tag, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -790,12 +816,17 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:connect_runtime, client_pid, runtime}, state) do
-    if old_runtime = state.data.runtime do
-      Runtime.disconnect(old_runtime)
+  def handle_cast({:set_runtime, client_pid, runtime}, state) do
+    if Runtime.connected?(state.data.runtime) do
+      {:ok, _} = Runtime.disconnect(state.data.runtime)
     end
 
-    state = do_connect_runtime(runtime, state)
+    state =
+      if Runtime.connected?(runtime) do
+        own_runtime(runtime, state)
+      else
+        state
+      end
 
     {:noreply, handle_operation(state, {:set_runtime, client_pid, runtime})}
   end
@@ -830,7 +861,7 @@ defmodule Livebook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, self(), nil})}
+     |> handle_operation({:set_runtime, self(), Livebook.Runtime.duplicate(state.data.runtime)})}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
@@ -914,7 +945,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, info.source)
-        operation = {:smart_cell_started, self(), id, delta, info.js_view}
+        operation = {:smart_cell_started, self(), id, delta, info.js_view, info.editor}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -922,11 +953,11 @@ defmodule Livebook.Session do
     end
   end
 
-  def handle_info({:runtime_smart_cell_update, id, cell_state, source}, state) do
+  def handle_info({:runtime_smart_cell_update, id, attrs, source, info}, state) do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, self(), id, cell_state, delta}
+        operation = {:update_smart_cell, self(), id, attrs, delta, info.reevaluate}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1042,17 +1073,17 @@ defmodule Livebook.Session do
     with {:ok, source_exists?} <- FileSystem.File.exists?(source) do
       if source_exists? do
         with {:ok, destination_exists?} <- FileSystem.File.exists?(images_dir) do
-          if not destination_exists? do
-            # If the directory doesn't exist, we can just change
-            # the directory name, which is more efficient if
-            # available in the given file system
-            FileSystem.File.rename(source, images_dir)
-          else
+          if destination_exists? do
             # If the directory exists, we use copy to place
             # the images there
             with :ok <- FileSystem.File.copy(source, images_dir) do
               FileSystem.File.remove(source)
             end
+          else
+            # If the directory doesn't exist, we can just change
+            # the directory name, which is more efficient if
+            # available in the given file system
+            FileSystem.File.rename(source, images_dir)
           end
         end
       else
@@ -1072,9 +1103,36 @@ defmodule Livebook.Session do
     end)
   end
 
-  defp do_connect_runtime(runtime, state) do
-    runtime_monitor_ref = Runtime.connect(runtime, runtime_broadcast_to: state.worker_pid)
+  defp own_runtime(runtime, state) do
+    runtime_monitor_ref = Runtime.take_ownership(runtime, runtime_broadcast_to: state.worker_pid)
     %{state | runtime_monitor_ref: runtime_monitor_ref}
+  end
+
+  defp do_add_dependencies(state, dependencies) do
+    {:ok, cell, _} = Notebook.fetch_cell_and_section(state.data.notebook, Cell.setup_cell_id())
+    source = cell.source
+
+    case Runtime.add_dependencies(state.data.runtime, source, dependencies) do
+      {:ok, ^source} ->
+        state
+
+      {:ok, new_source} ->
+        delta = Livebook.JSInterop.diff(cell.source, new_source)
+        revision = state.data.cell_infos[cell.id].sources.primary.revision + 1
+
+        handle_operation(
+          state,
+          {:apply_cell_delta, self(), cell.id, :primary, delta, revision}
+        )
+
+      {:error, message} ->
+        broadcast_error(
+          state.session_id,
+          "failed to add dependencies to the setup cell, reason:\n\n#{message}"
+        )
+
+        state
+    end
   end
 
   # Given any operation on `Livebook.Session.Data`, the process
@@ -1107,7 +1165,7 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
-    if runtime do
+    if Runtime.connected?(runtime) do
       state
     else
       state
@@ -1181,23 +1239,35 @@ defmodule Livebook.Session do
     state
   end
 
+  defp after_operation(
+         state,
+         _prev_state,
+         {:apply_cell_delta, _client_pid, cell_id, tag, _delta, _revision}
+       ) do
+    with :secondary <- tag,
+         {:ok, %Cell.Smart{} = cell, _section} <-
+           Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
+      send(cell.js_view.pid, {:editor_source, cell.editor.source})
+    end
+
+    state
+  end
+
   defp after_operation(state, _prev_state, _operation), do: state
 
   defp handle_actions(state, actions) do
     Enum.reduce(actions, state, &handle_action(&2, &1))
   end
 
-  defp handle_action(state, :start_runtime) do
-    {runtime_module, args} = Livebook.Config.default_runtime()
-
-    case apply(runtime_module, :init, args) do
+  defp handle_action(state, :connect_runtime) do
+    case Runtime.connect(state.data.runtime) do
       {:ok, runtime} ->
-        state = do_connect_runtime(runtime, state)
+        state = own_runtime(runtime, state)
         handle_operation(state, {:set_runtime, self(), runtime})
 
       {:error, error} ->
-        broadcast_error(state.session_id, "failed to setup runtime - #{error}")
-        handle_operation(state, {:set_runtime, self(), nil})
+        broadcast_error(state.session_id, "failed to connect runtime - #{error}")
+        handle_operation(state, {:set_runtime, self(), state.data.runtime})
     end
   end
 
@@ -1209,7 +1279,14 @@ defmodule Livebook.Session do
       end
 
     file = path <> "#cell"
-    opts = [file: file]
+
+    smart_cell_ref =
+      case cell do
+        %Cell.Smart{} -> cell.id
+        _ -> nil
+      end
+
+    opts = [file: file, smart_cell_ref: smart_cell_ref]
 
     locator = {container_ref_for_section(section), cell.id}
     base_locator = find_base_locator(state.data, cell, section)
@@ -1220,7 +1297,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:stop_evaluation, section}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       Runtime.drop_container(state.data.runtime, container_ref_for_section(section))
     end
 
@@ -1228,7 +1305,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:forget_evaluation, cell, section}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       Runtime.forget_evaluation(state.data.runtime, {container_ref_for_section(section), cell.id})
     end
 
@@ -1236,7 +1313,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:start_smart_cell, cell, section}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       base_locator = find_base_locator(state.data, cell, section, existing: true)
       Runtime.start_smart_cell(state.data.runtime, cell.kind, cell.id, cell.attrs, base_locator)
     end
@@ -1245,7 +1322,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:set_smart_cell_base, cell, section, parent}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       base_locator =
         case parent do
           nil ->
@@ -1262,7 +1339,7 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:stop_smart_cell, cell}) do
-    if state.data.runtime do
+    if Runtime.connected?(state.data.runtime) do
       Runtime.stop_smart_cell(state.data.runtime, cell.id)
     end
 
@@ -1306,7 +1383,7 @@ defmodule Livebook.Session do
       notebook = state.data.notebook
 
       {:ok, pid} =
-        Task.start(fn ->
+        Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
           content = LiveMarkdown.notebook_to_livemd(notebook)
           result = FileSystem.File.write(file, content)
           send(pid, {:save_finished, self(), result, file, default?})
@@ -1368,8 +1445,9 @@ defmodule Livebook.Session do
   defp notebook_name_to_file_name(notebook_name) do
     notebook_name
     |> String.downcase()
-    |> String.replace(~r/\s+/, "_")
-    |> String.replace(~r/[^\w]/, "")
+    |> String.replace(~r/[^\s\w]/u, "")
+    |> String.trim()
+    |> String.replace(~r/\s+/u, "_")
     |> case do
       "" -> "untitled_notebook"
       name -> name

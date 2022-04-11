@@ -7,8 +7,7 @@ defmodule LivebookWeb.Output.TextComponent do
     <div id={"virtualized-text-#{@id}"}
       class="relative"
       phx-hook="VirtualizedLines"
-      data-max-height="300"
-      data-follow={to_string(@follow)}>
+      data-max-height="300">
       <%# Add a newline to each element, so that multiple lines can be copied properly %>
       <div data-template class="hidden"
         id={"virtualized-text-#{@id}-template"}
@@ -18,7 +17,7 @@ defmodule LivebookWeb.Output.TextComponent do
         phx-update="ignore"></div>
       <div class="absolute right-2 top-0 z-10">
         <button class="icon-button bg-gray-100"
-          data-element="clipcopy"
+          data-el-clipcopy
           phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}>
           <.remix_icon icon="clipboard-line" class="text-lg" />
         </button>

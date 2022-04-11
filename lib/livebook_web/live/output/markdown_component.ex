@@ -6,7 +6,7 @@ defmodule LivebookWeb.Output.MarkdownComponent do
     socket = assign(socket, assigns)
 
     {:ok,
-     push_event(socket, "markdown-renderer:#{socket.assigns.id}:content", %{
+     push_event(socket, "markdown_renderer:#{socket.assigns.id}:content", %{
        content: socket.assigns.content
      })}
   end

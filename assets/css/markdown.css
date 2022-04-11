@@ -145,13 +145,13 @@
 
 /* Overrides for user-entered markdown */
 
-[data-element="cell"][data-type="markdown"] .markdown h1,
-[data-element="cell"][data-type="markdown"] .markdown h2 {
+[data-el-cell][data-type="markdown"] .markdown h1,
+[data-el-cell][data-type="markdown"] .markdown h2 {
   font-size: 0;
 }
 
-[data-element="cell"][data-type="markdown"] .markdown h1:after,
-[data-element="cell"][data-type="markdown"] .markdown h2:after {
+[data-el-cell][data-type="markdown"] .markdown h1:after,
+[data-el-cell][data-type="markdown"] .markdown h2:after {
   @apply text-red-400 text-base font-medium;
   content: "warning: heading levels 1 and 2 are reserved for notebook and section names, please use heading 3 and above.";
 }

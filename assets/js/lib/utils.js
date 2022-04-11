@@ -12,6 +12,11 @@ export function isEditableElement(element) {
   );
 }
 
+export function isElementInViewport(element) {
+  const box = element.getBoundingClientRect();
+  return box.bottom >= 0 && box.top <= window.innerHeight;
+}
+
 export function clamp(n, x, y) {
   return Math.min(Math.max(n, x), y);
 }
@@ -51,6 +56,18 @@ export function smoothlyScrollToElement(element) {
   } else {
     element.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+}
+
+export function isScrolledToEnd(element) {
+  // See https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollHeight#determine_if_an_element_has_been_totally_scrolled
+  return (
+    Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) <
+    1
+  );
+}
+
+export function scrollToEnd(element) {
+  element.scrollTop = element.scrollHeight;
 }
 
 /**

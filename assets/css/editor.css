@@ -151,7 +151,7 @@ Also some spacing adjustments.
 
 /* When in the first line, we want to display cursor and label in the same line */
 .monaco-cursor-widget-container.inline {
-  display: flex;
+  display: flex !important;
 }
 
 .monaco-cursor-widget-container.inline .monaco-cursor-widget-label {

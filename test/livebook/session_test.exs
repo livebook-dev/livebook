@@ -29,6 +29,14 @@ defmodule Livebook.SessionTest do
 
       assert Session.file_name_for_download(session) == "cats_guide_to_life"
     end
+
+    test "removes non-ascii characters from notebook name", %{session: session} do
+      Session.set_notebook_name(session.pid, "Notebook 😺")
+      # Get the updated struct
+      session = Session.get_by_pid(session.pid)
+
+      assert Session.file_name_for_download(session) == "notebook"
+    end
   end
 
   describe "set_notebook_attributes/2" do
@@ -126,6 +134,51 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "add_dependencies/2" do
+    test "applies source change to the setup cell to include the given dependencies",
+         %{session: session} do
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+      Session.add_dependencies(session.pid, [{:kino, "~> 0.5.0"}])
+
+      session_pid = session.pid
+      assert_receive {:operation, {:apply_cell_delta, ^session_pid, "setup", :primary, _delta, 1}}
+
+      assert %{
+               notebook: %{
+                 setup_section: %{
+                   cells: [
+                     %{
+                       source: """
+                       Mix.install([
+                         {:kino, "~> 0.5.0"}
+                       ])\
+                       """
+                     }
+                   ]
+                 }
+               }
+             } = Session.get_data(session.pid)
+    end
+
+    test "broadcasts an error if modifying the setup source fails" do
+      notebook = Notebook.new() |> Notebook.update_cell("setup", &%{&1 | source: "[,]"})
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+
+      Session.add_dependencies(session.pid, [{:kino, "~> 0.5.0"}])
+
+      assert_receive {:error, "failed to add dependencies to the setup cell, reason:" <> _}
+    end
+  end
+
   describe "queue_cell_evaluation/2" do
     test "triggers evaluation and sends update operation once it finishes",
          %{session: session} do
@@ -190,8 +243,10 @@ defmodule Livebook.SessionTest do
       delta = Delta.new() |> Delta.insert("cats")
       revision = 1
 
-      Session.apply_cell_delta(session.pid, cell_id, delta, revision)
-      assert_receive {:operation, {:apply_cell_delta, ^pid, ^cell_id, ^delta, ^revision}}
+      Session.apply_cell_delta(session.pid, cell_id, :primary, delta, revision)
+
+      assert_receive {:operation,
+                      {:apply_cell_delta, ^pid, ^cell_id, :primary, ^delta, ^revision}}
     end
   end
 
@@ -203,8 +258,8 @@ defmodule Livebook.SessionTest do
       {_section_id, cell_id} = insert_section_and_cell(session.pid)
       revision = 1
 
-      Session.report_cell_revision(session.pid, cell_id, revision)
-      assert_receive {:operation, {:report_cell_revision, ^pid, ^cell_id, ^revision}}
+      Session.report_cell_revision(session.pid, cell_id, :primary, revision)
+      assert_receive {:operation, {:report_cell_revision, ^pid, ^cell_id, :primary, ^revision}}
     end
   end
 
@@ -226,8 +281,8 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
       assert_receive {:operation, {:set_runtime, ^pid, ^runtime}}
     end
@@ -238,14 +293,16 @@ defmodule Livebook.SessionTest do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
       pid = self()
 
-      {:ok, runtime} = Livebook.Runtime.Embedded.init()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+      assert_receive {:operation, {:set_runtime, ^pid, _}}
 
       # Calling twice can happen in a race, make sure it doesn't crash
       Session.disconnect_runtime(session.pid)
       Session.disconnect_runtime([session.pid])
 
-      assert_receive {:operation, {:set_runtime, ^pid, nil}}
+      assert_receive {:operation, {:set_runtime, ^pid, runtime}}
+      refute Runtime.connected?(runtime)
     end
   end
 
@@ -458,18 +515,19 @@ defmodule Livebook.SessionTest do
 
   test "if the runtime node goes down, notifies the subscribers" do
     session = start_session()
-    {:ok, runtime} = Runtime.ElixirStandalone.init()
+    {:ok, runtime} = Runtime.ElixirStandalone.new() |> Runtime.connect()
 
     Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
     # Wait for the runtime to be set
-    Session.connect_runtime(session.pid, runtime)
+    Session.set_runtime(session.pid, runtime)
     assert_receive {:operation, {:set_runtime, _, ^runtime}}
 
     # Terminate the other node, the session should detect that
     Node.spawn(runtime.node, System, :halt, [])
 
-    assert_receive {:operation, {:set_runtime, _, nil}}
+    assert_receive {:operation, {:set_runtime, _, runtime}}
+    refute Runtime.connected?(runtime)
     assert_receive {:info, "runtime node terminated unexpectedly"}
   end
 
@@ -561,32 +619,62 @@ defmodule Livebook.SessionTest do
   describe "smart cells" do
     test "notifies subcribers when a smart cell starts and passes source diff as delta" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
-
-      notebook = %{
-        Notebook.new()
-        | sections: [
-            %{Notebook.Section.new() | cells: [smart_cell]}
-          ]
-      }
-
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
       session = start_session(notebook: notebook)
 
-      runtime = Livebook.Runtime.NoopRuntime.new()
-      Session.connect_runtime(session.pid, runtime)
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
 
-      send(session.pid, {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text"}]})
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
 
       Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
 
       send(
         session.pid,
-        {:runtime_smart_cell_started, smart_cell.id, %{source: "content!", js_view: %{}}}
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "content!", js_view: %{}, editor: nil}}
       )
 
       delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
       cell_id = smart_cell.id
 
-      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, ^delta, %{}, nil}}
+    end
+
+    test "sends an event to the smart cell server when the editor source changes" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      server_pid = self()
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{
+           source: "content",
+           js_view: %{ref: smart_cell.id, pid: server_pid, assets: %{}},
+           editor: %{language: nil, placement: :bottom, source: "content"}
+         }}
+      )
+
+      Session.register_client(session.pid, self(), Livebook.Users.User.new())
+
+      delta = Delta.new() |> Delta.retain(7) |> Delta.insert("!")
+      Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, 1)
+
+      assert_receive {:editor_source, "content!"}
     end
   end
 
@@ -626,35 +714,10 @@ defmodule Livebook.SessionTest do
     end
 
     test "given cell in main flow returns nil if there is no previous cell" do
-      cell1 = %{Cell.new(:markdown) | id: "c1"}
-      section1 = %{Section.new() | id: "s1", cells: [cell1]}
-
-      cell2 = %{Cell.new(:code) | id: "c2"}
-      section2 = %{Section.new() | id: "s2", cells: [cell2]}
-
-      notebook = %{Notebook.new() | sections: [section1, section2]}
+      %{setup_section: %{cells: [setup_cell]} = setup_section} = notebook = Notebook.new()
       data = Data.new(notebook)
 
-      assert {:main_flow, nil} = Session.find_base_locator(data, cell2, section2)
-    end
-
-    test "given cell in branching section returns nil in that section if there is no previous cell" do
-      cell1 = %{Cell.new(:markdown) | id: "c1"}
-      section1 = %{Section.new() | id: "s1", cells: [cell1]}
-
-      cell2 = %{Cell.new(:code) | id: "c2"}
-
-      section2 = %{
-        Section.new()
-        | id: "s2",
-          parent_id: "s1",
-          cells: [cell2]
-      }
-
-      notebook = %{Notebook.new() | sections: [section1, section2]}
-      data = Data.new(notebook)
-
-      assert {"s2", nil} = Session.find_base_locator(data, cell2, section2)
+      assert {:main_flow, nil} = Session.find_base_locator(data, setup_cell, setup_section)
     end
 
     test "when :existing is set ignores fresh and aborted cells" do
@@ -672,8 +735,9 @@ defmodule Livebook.SessionTest do
 
       data =
         data_after_operations!(data, [
-          {:set_runtime, self(), Livebook.Runtime.NoopRuntime.new()},
+          {:set_runtime, self(), connected_noop_runtime()},
           {:queue_cells_evaluation, self(), ["c1"]},
+          {:add_cell_evaluation_response, self(), "setup", {:ok, nil}, %{evaluation_time_ms: 10}},
           {:add_cell_evaluation_response, self(), "c1", {:ok, nil}, %{evaluation_time_ms: 10}}
         ])
 
@@ -737,5 +801,10 @@ defmodule Livebook.SessionTest do
     assert_receive {:operation, {:insert_cell, _, ^section_id, 0, :code, cell_id, _attrs}}
 
     {section_id, cell_id}
+  end
+
+  defp connected_noop_runtime() do
+    {:ok, runtime} = Livebook.Runtime.NoopRuntime.new() |> Livebook.Runtime.connect()
+    runtime
   end
 end

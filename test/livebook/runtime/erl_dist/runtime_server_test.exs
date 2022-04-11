@@ -135,9 +135,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/5 given completion request" do
     test "provides basic completion when no evaluation reference is given", %{pid: pid} do
       request = {:completion, "System.ver"}
-      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, nil})
 
-      assert_receive {:runtime_intellisense_response, :ref, ^request,
+      assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "version/0"}]}}
     end
 
@@ -151,15 +151,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       assert_receive {:runtime_evaluation_response, :e1, _, %{evaluation_time_ms: _time_ms}}
 
       request = {:completion, "num"}
-      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, :e1})
 
-      assert_receive {:runtime_intellisense_response, :ref, ^request,
+      assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "number"}]}}
 
       request = {:completion, "ANSI.brigh"}
-      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, :e1})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, :e1})
 
-      assert_receive {:runtime_intellisense_response, :ref, ^request,
+      assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{items: [%{label: "bright/0"}]}}
     end
   end
@@ -167,9 +167,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/5 given details request" do
     test "responds with identifier details", %{pid: pid} do
       request = {:details, "System.version", 10}
-      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, nil})
 
-      assert_receive {:runtime_intellisense_response, :ref, ^request,
+      assert_receive {:runtime_intellisense_response, ^ref, ^request,
                       %{range: %{from: 1, to: 15}, contents: [_]}}
     end
   end
@@ -177,9 +177,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   describe "handle_intellisense/5 given format request" do
     test "responds with a formatted code", %{pid: pid} do
       request = {:format, "System.version"}
-      RuntimeServer.handle_intellisense(pid, self(), :ref, request, {:c1, nil})
+      ref = RuntimeServer.handle_intellisense(pid, self(), request, {:c1, nil})
 
-      assert_receive {:runtime_intellisense_response, :ref, ^request, %{code: "System.version()"}}
+      assert_receive {:runtime_intellisense_response, ^ref, ^request, %{code: "System.version()"}}
     end
   end
 
@@ -216,9 +216,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
         {:ok, pid,
          %{
-           js_view: %{ref: info.ref, pid: pid, assets: %{}},
            source: "source",
-           scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_result) end
+           js_view: %{ref: info.ref, pid: pid, assets: %{}},
+           editor: nil,
+           scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_ping) end,
+           scan_eval_result: fn pid, _result -> send(pid, :scan_eval_result_ping) end
          }}
       end
 
@@ -251,24 +253,31 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     @tag opts: @opts
     test "once started scans binding and sends the result to the cell server", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
     test "scans binding when a new base locator is set", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
       RuntimeServer.set_smart_cell_base_locator(pid, "ref", {:c2, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
     end
 
     @tag opts: @opts
     test "scans binding when the base locator is evaluated", %{pid: pid} do
       RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, :e1})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
       RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil})
-      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_result}
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}
+    end
+
+    @tag opts: @opts
+    test "scans evaluation result when the smart cell is evaluated", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil}, smart_cell_ref: "ref")
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_eval_result_ping}
     end
   end
 end

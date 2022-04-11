@@ -15,6 +15,7 @@
 
   .font-editor {
     font-family: "JetBrains Mono", "Droid Sans Mono", "monospace";
+    font-variant-ligatures: none;
     font-size: 14px;
   }
 

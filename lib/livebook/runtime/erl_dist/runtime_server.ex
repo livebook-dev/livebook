@@ -35,6 +35,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     * `:smart_cell_definitions_module` - the module to read smart
       cell definitions from, it needs to export a `definitions/0`
       function. Defaults to `Kino.SmartCell`
+
+    * `:extra_smart_cell_definitions` - a list of predefined smart
+      cell definitions, that may be currently be unavailable, but
+      should be reported together with their requirements
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts)
@@ -49,7 +53,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   ## Options
 
-  See `Livebook.Runtime.connect/2` for the list of available
+  See `Livebook.Runtime.take_ownership/2` for the list of available
   options.
   """
   @spec attach(pid(), pid(), keyword()) :: :ok
@@ -104,12 +108,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @spec handle_intellisense(
           pid(),
           pid(),
-          reference(),
           Runtime.intellisense_request(),
           Runtime.locator()
-        ) :: :ok
-  def handle_intellisense(pid, send_to, ref, request, base_locator) do
+        ) :: reference()
+  def handle_intellisense(pid, send_to, request, base_locator) do
+    ref = make_ref()
     GenServer.cast(pid, {:handle_intellisense, send_to, ref, request, base_locator})
+    ref
   end
 
   @doc """
@@ -192,9 +197,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        smart_cell_supervisor: nil,
        smart_cell_gl: nil,
        smart_cells: %{},
-       smart_cell_definitions: [],
+       smart_cell_definitions: nil,
        smart_cell_definitions_module:
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
+       extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil
      }}
   end
@@ -221,11 +227,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
      |> handle_down_scan_binding(message)}
   end
 
-  def handle_info({:evaluation_finished, pid, evaluation_ref}, state) do
+  def handle_info({:evaluation_finished, locator}, state) do
     {:noreply,
      state
      |> report_smart_cell_definitions()
-     |> scan_binding_after_evaluation(pid, evaluation_ref)}
+     |> scan_binding_after_evaluation(locator)}
   end
 
   def handle_info(:memory_usage, state) do
@@ -286,7 +292,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast(
-        {:evaluate_code, code, {container_ref, evaluation_ref}, base_locator, opts},
+        {:evaluate_code, code, {container_ref, evaluation_ref} = locator, base_locator, opts},
         state
       ) do
     state = ensure_evaluator(state, container_ref)
@@ -306,7 +312,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           nil
       end
 
-    opts = Keyword.put(opts, :notify_to, self())
+    {smart_cell_ref, opts} = Keyword.pop(opts, :smart_cell_ref)
+    smart_cell_info = smart_cell_ref && state.smart_cells[smart_cell_ref]
+
+    myself = self()
+
+    opts =
+      Keyword.put(opts, :on_finish, fn result ->
+        with %{scan_eval_result: scan_eval_result} when scan_eval_result != nil <- smart_cell_info do
+          try do
+            smart_cell_info.scan_eval_result.(smart_cell_info.pid, result)
+          rescue
+            error -> Logger.error("scanning evaluation result raised an error: #{inspect(error)}")
+          end
+        end
+
+        send(myself, {:evaluation_finished, locator})
+      end)
 
     Evaluator.evaluate_code(
       state.evaluators[container_ref],
@@ -360,11 +382,18 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
              {definition.module, %{ref: ref, attrs: attrs, target_pid: state.owner}}
            ) do
         {:ok, pid, info} ->
-          %{js_view: js_view, source: source, scan_binding: scan_binding} = info
+          %{
+            source: source,
+            js_view: js_view,
+            editor: editor,
+            scan_binding: scan_binding,
+            scan_eval_result: scan_eval_result
+          } = info
 
           send(
             state.owner,
-            {:runtime_smart_cell_started, ref, %{js_view: js_view, source: source}}
+            {:runtime_smart_cell_started, ref,
+             %{source: source, js_view: js_view, editor: editor}}
           )
 
           info = %{
@@ -372,13 +401,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             scan_binding: scan_binding,
             base_locator: base_locator,
             scan_binding_pending: false,
-            scan_binding_monitor_ref: nil
+            scan_binding_monitor_ref: nil,
+            scan_eval_result: scan_eval_result
           }
 
           info = scan_binding_async(ref, info, state)
           put_in(state.smart_cells[ref], info)
 
-        _ ->
+        {:error, error} ->
+          Logger.error("failed to start smart cell, reason: #{inspect(error)}")
           state
       end
 
@@ -470,8 +501,16 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     if smart_cell_definitions == state.smart_cell_definitions do
       state
     else
-      defs = Enum.map(smart_cell_definitions, &Map.take(&1, [:kind, :name]))
-      send(state.owner, {:runtime_smart_cell_definitions, defs})
+      available_defs =
+        for definition <- smart_cell_definitions,
+            do: %{kind: definition.kind, name: definition.name, requirement: nil}
+
+      defs = Enum.uniq_by(available_defs ++ state.extra_smart_cell_definitions, & &1.kind)
+
+      if defs != [] do
+        send(state.owner, {:runtime_smart_cell_definitions, defs})
+      end
+
       %{state | smart_cell_definitions: smart_cell_definitions}
     end
   end
@@ -543,16 +582,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end)
   end
 
-  defp scan_binding_after_evaluation(state, pid, evaluation_ref) do
-    {container_ref, _} =
-      Enum.find(state.evaluators, fn {_container_ref, evaluator} -> evaluator.pid == pid end)
-
-    locator = {container_ref, evaluation_ref}
-
+  defp scan_binding_after_evaluation(state, locator) do
     update_in(state.smart_cells, fn smart_cells ->
-      Map.map(smart_cells, fn
-        {ref, %{base_locator: ^locator} = info} -> scan_binding_async(ref, info, state)
-        {_, info} -> info
+      Map.new(smart_cells, fn
+        {ref, %{base_locator: ^locator} = info} ->
+          {ref, scan_binding_async(ref, info, state)}
+
+        other ->
+          other
       end)
     end)
   end

@@ -1,16 +1,16 @@
 # Building a chat app with Kino.Control
 
-## Setup
-
-In this notebook, we will build a chat application using
-[`kino`](https://github.com/livebook-dev/kino). Let's
-install it and get started:
-
 ```elixir
 Mix.install([
   {:kino, "~> 0.5.0"}
 ])
 ```
+
+## Introduction
+
+In this notebook, we will build a chat application using
+[`kino`](https://github.com/livebook-dev/kino). First, let's
+have a look at the building blocks that we will need!
 
 ## Kino.Control
 

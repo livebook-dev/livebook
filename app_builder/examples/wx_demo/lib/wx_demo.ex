@@ -21,6 +21,7 @@ defmodule WxDemo.Window do
 
   # https://github.com/erlang/otp/blob/OTP-24.1.2/lib/wx/include/wx.hrl#L1314
   @wx_id_exit 5006
+  @wx_id_osx_hide 5250
 
   def start_link(_) do
     {:wx_ref, _, _, pid} = :wx_object.start_link(__MODULE__, [], [])
@@ -45,19 +46,19 @@ defmodule WxDemo.Window do
 
   @impl true
   def init(_) do
-    title = "WxDemo"
+    app_name = "WxDemo"
 
     true = Process.register(self(), __MODULE__)
     os = os()
     wx = :wx.new()
-    frame = :wxFrame.new(wx, -1, title, size: {100, 100})
+    frame = :wxFrame.new(wx, -1, app_name, size: {100, 100})
 
     if os == :macos do
-      fixup_macos_menubar(frame, title)
+      fixup_macos_menubar(frame, app_name)
     end
 
     :wxFrame.show(frame)
-    :wxFrame.connect(frame, :command_menu_selected)
+    :wxFrame.connect(frame, :command_menu_selected, skip: true)
     :wxFrame.connect(frame, :close_window, skip: true)
 
     case os do
@@ -84,6 +85,12 @@ defmodule WxDemo.Window do
     {:stop, :shutdown, state}
   end
 
+  # ignore other menu events
+  @impl true
+  def handle_event({:wx, _, _, _, {:wxCommand, :command_menu_selected, _, _, _}}, state) do
+    {:noreply, state}
+  end
+
   @impl true
   def handle_info(event, state) do
     show_dialog(state, inspect(event))
@@ -97,22 +104,21 @@ defmodule WxDemo.Window do
     |> :wxDialog.showModal()
   end
 
-  defp fixup_macos_menubar(frame, title) do
+  # 1. WxeApp attaches event handler to "Quit" menu item that does nothing (to not accidentally bring
+  #    down the VM). Let's create a fresh menu bar without that caveat.
+  # 2. Fix app name
+  defp fixup_macos_menubar(frame, app_name) do
     menubar = :wxMenuBar.new()
-    # :wxMenuBar.setAutoWindowMenu(false)
     :wxFrame.setMenuBar(frame, menubar)
-
-    # App Menu
     menu = :wxMenuBar.oSXGetAppleMenu(menubar)
 
-    # Remove all items except for quit
-    for item <- :wxMenu.getMenuItems(menu) do
-      if :wxMenuItem.getId(item) == @wx_id_exit do
-        :wxMenuItem.setText(item, "Quit #{title}\tCtrl+Q")
-      else
-        :wxMenu.delete(menu, item)
-      end
-    end
+    menu
+    |> :wxMenu.findItem(@wx_id_osx_hide)
+    |> :wxMenuItem.setItemLabel("Hide #{app_name}\tCtrl+H")
+
+    menu
+    |> :wxMenu.findItem(@wx_id_exit)
+    |> :wxMenuItem.setItemLabel("Quit #{app_name}\tCtrl+Q")
   end
 
   defp os() do

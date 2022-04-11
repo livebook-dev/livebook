@@ -31,9 +31,7 @@ defmodule LivebookWeb.Helpers.ANSI do
   end
 
   defp modifiers_to_css(modifiers) do
-    modifiers
-    |> Enum.map(&modifier_to_css/1)
-    |> Enum.join()
+    Enum.map_join(modifiers, &modifier_to_css/1)
   end
 
   defp modifier_to_css({:font_weight, :bold}), do: "font-weight: 600;"

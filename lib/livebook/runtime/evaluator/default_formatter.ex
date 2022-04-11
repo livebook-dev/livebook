@@ -10,24 +10,24 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   require Logger
 
   @impl true
-  def format_response({:ok, :"do not show this result in output"}) do
+  def format_result({:ok, :"do not show this result in output"}) do
     # Functions in the `IEx.Helpers` module return this specific value
     # to indicate no result should be printed in the iex shell,
     # so we respect that as well.
     :ignored
   end
 
-  def format_response({:ok, {:module, _, _, _} = value}) do
+  def format_result({:ok, {:module, _, _, _} = value}) do
     to_inspect_output(value, limit: 10)
   end
 
-  def format_response({:ok, value}) do
+  def format_result({:ok, value}) do
     to_output(value)
   end
 
-  def format_response({:error, kind, error, stacktrace}) do
+  def format_result({:error, kind, error, stacktrace}) do
     formatted = format_error(kind, error, stacktrace)
-    {:error, formatted, error_type(error)}
+    {:error, formatted}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
@@ -57,7 +57,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     catch
       kind, error ->
         formatted = format_error(kind, error, __STACKTRACE__)
-        {:error, formatted, :other}
+        {:error, formatted}
     end
   end
 
@@ -84,19 +84,6 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
       # tuple: :light_black,
       reset: :reset
     ]
-  end
-
-  defp error_type(error) do
-    cond do
-      mix_install_vm_error?(error) -> :runtime_restart_required
-      true -> :other
-    end
-  end
-
-  defp mix_install_vm_error?(exception) do
-    is_struct(exception, Mix.Error) and
-      Exception.message(exception) =~
-        "Mix.install/2 can only be called with the same dependencies"
   end
 
   defp format_error(kind, error, stacktrace) do

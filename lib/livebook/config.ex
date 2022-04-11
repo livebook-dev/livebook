@@ -21,9 +21,18 @@ defmodule Livebook.Config do
   Returns the runtime module and `init` args used to start
   the default runtime.
   """
-  @spec default_runtime() :: {Livebook.Runtime.t(), list()}
+  @spec default_runtime() :: Livebook.Runtime.t()
   def default_runtime() do
     Application.fetch_env!(:livebook, :default_runtime)
+  end
+
+  @doc """
+  Returns if the runtime module is enabled.
+  """
+  @spec runtime_enabled?(module()) :: boolean()
+  def runtime_enabled?(runtime) do
+    runtime in Application.fetch_env!(:livebook, :runtime_modules) or
+      runtime == default_runtime().__struct__
   end
 
   @doc """
@@ -198,6 +207,13 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Parses force ssl host setting from env.
+  """
+  def force_ssl_host!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
   Parses and validates default runtime from env.
   """
   def default_runtime!(env) do
@@ -212,15 +228,15 @@ defmodule Livebook.Config do
   def default_runtime!(context, runtime) do
     case runtime do
       "standalone" ->
-        {Livebook.Runtime.ElixirStandalone, []}
+        Livebook.Runtime.ElixirStandalone.new()
 
       "embedded" ->
-        {Livebook.Runtime.Embedded, []}
+        Livebook.Runtime.Embedded.new()
 
       "mix" ->
         case mix_path(File.cwd!()) do
           {:ok, path} ->
-            {Livebook.Runtime.MixStandalone, [path]}
+            Livebook.Runtime.MixStandalone.new(path)
 
           :error ->
             abort!(
@@ -231,7 +247,7 @@ defmodule Livebook.Config do
       "mix:" <> path ->
         case mix_path(path) do
           {:ok, path} ->
-            {Livebook.Runtime.MixStandalone, [path]}
+            Livebook.Runtime.MixStandalone.new(path)
 
           :error ->
             abort!(~s{"#{path}" does not point to a Mix project})
@@ -239,7 +255,7 @@ defmodule Livebook.Config do
 
       "attached:" <> config ->
         {node, cookie} = parse_connection_config!(config)
-        {Livebook.Runtime.Attached, [node, cookie]}
+        Livebook.Runtime.Attached.new(node, cookie)
 
       other ->
         abort!(

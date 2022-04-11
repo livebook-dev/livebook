@@ -1,7 +1,7 @@
 defmodule LivebookWeb.PageHelpers do
   use Phoenix.Component
 
-  import LivebookWeb.Helpers
+  import LivebookWeb.LiveHelpers
 
   alias LivebookWeb.Router.Helpers, as: Routes
 

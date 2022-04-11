@@ -80,18 +80,25 @@ defmodule Livebook.Runtime.StandaloneInit do
   Performs the parent side of the initialization contract.
 
   Should be called by the initializing process on the parent node.
+
+  ## Options
+
+    * `:emitter` - an emitter through which all child outpt is passed
+
+    * `:init_opts` - see `Livebook.Runtime.ErlDist.initialize/2`
   """
-  @spec parent_init_sequence(node(), port(), Emitter.t() | nil) ::
-          {:ok, pid()} | {:error, String.t()}
-  def parent_init_sequence(child_node, port, emitter \\ nil) do
+  @spec parent_init_sequence(node(), port(), keyword()) :: {:ok, pid()} | {:error, String.t()}
+  def parent_init_sequence(child_node, port, opts \\ []) do
     port_ref = Port.monitor(port)
+
+    emitter = opts[:emitter]
 
     loop = fn loop ->
       receive do
         {:node_started, init_ref, ^child_node, primary_pid} ->
           Port.demonitor(port_ref)
 
-          server_pid = Livebook.Runtime.ErlDist.initialize(child_node)
+          server_pid = Livebook.Runtime.ErlDist.initialize(child_node, opts[:init_opts] || [])
 
           send(primary_pid, {:node_initialized, init_ref})
 

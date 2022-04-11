@@ -1,6 +1,12 @@
 # Custom Kinos with Elixir and JavaScript
 
-## Setup
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Introduction
 
 Starting from version v0.5, Livebook allows developers to implement
 their own kinos. This allows developers to bring their own ideas to
@@ -8,14 +14,6 @@ life and extend Livebook in unexpected ways.
 
 There are two types of custom kinos: static, via `Kino.JS`, and dynamic,
 via `Kino.JS.Live`. We will learn to implement both in this notebook.
-
-First, let's install `kino`:
-
-```elixir
-Mix.install([
-  {:kino, "~> 0.5.0"}
-])
-```
 
 ## HTML rendering with Kino.JS
 

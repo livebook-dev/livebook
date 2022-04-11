@@ -209,16 +209,29 @@
   /* Toggleable menu */
 
   .menu {
-    @apply absolute z-30 rounded-lg bg-white flex flex-col py-2 mt-1;
+    @apply relative;
+  }
+
+  .menu__content {
+    @apply absolute z-[100] rounded-lg bg-white flex flex-col py-2 mt-1;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 
-  .menu.right {
+  .menu__content--right {
     @apply right-0;
   }
 
-  .menu.left {
+  .menu__content--left {
     @apply left-0;
+  }
+
+  .menu:not(.menu--open) > .menu__overlay,
+  .menu:not(.menu--open) > .menu__content {
+    @apply hidden;
+  }
+
+  .menu.menu--open > .menu__overlay {
+    @apply fixed z-[90] inset-0;
   }
 
   .menu-item {
@@ -233,9 +246,25 @@
     @apply pointer-events-none opacity-50;
   }
 
+  .submenu {
+    @apply relative;
+  }
+
+  .submenu:not(:hover):not(:focus-within) .submenu__content {
+    @apply hidden;
+  }
+
+  .submenu__content {
+    @apply absolute -top-2 right-0 translate-x-full pl-2;
+  }
+
   /* Boxes */
 
   .error-box {
     @apply rounded-lg px-4 py-2 bg-red-100 text-red-400 font-medium;
+  }
+
+  .info-box {
+    @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
   }
 }

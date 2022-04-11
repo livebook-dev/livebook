@@ -45,7 +45,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input(%{attrs: %{type: :select}} = assigns) do
     ~H"""
     <select
-      data-element="input"
+      data-el-input
       class="input input-select"
       name="value">
       <%= for {{key, label}, idx} <- Enum.with_index(@attrs.options) do %>
@@ -61,7 +61,7 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <div class="mt-1">
       <.switch_checkbox
-        data-element="input"
+        data-el-input
         name="value"
         checked={@value} />
     </div>
@@ -73,7 +73,7 @@ defmodule LivebookWeb.Output.InputComponent do
     <div class="flex items-center space-x-2">
       <div><%= @attrs.min %></div>
       <input type="range"
-        data-element="input"
+        data-el-input
         class="input-range"
         name="value"
         value={@value}
@@ -93,7 +93,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input(%{attrs: %{type: :textarea}} = assigns) do
     ~H"""
     <textarea
-      data-element="input"
+      data-el-input
       class="input min-h-[200px] tiny-scrollbar"
       name="value"
       phx-debounce="300"
@@ -107,7 +107,7 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <.with_password_toggle id={"#{@id}-password-toggle"}>
       <input type="password"
-        data-element="input"
+        data-el-input
         class="input w-auto bg-gray-50"
         name="value"
         value={@value}
@@ -123,7 +123,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input(%{attrs: %{type: type}} = assigns) when type in [:number, :color, :url, :text] do
     ~H"""
     <input type={html_input_type(@attrs.type)}
-      data-element="input"
+      data-el-input
       class={"input w-auto #{if(@error, do: "input--error")}"}
       name="value"
       value={to_string(@value)}

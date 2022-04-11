@@ -1,6 +1,12 @@
 # Multiplayer pong game from scratch
 
-## Setup
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+## Introduction
 
 In this notebook, we are going to learn more about
 [`Kino.Control`](https://hexdocs.pm/kino/Kino.Control.html)
@@ -8,14 +14,6 @@ and [`Kino.Image`](https://hexdocs.pm/kino/Kino.Image.html).
 Specifically, we will be building the the [Pong](https://en.wikipedia.org/wiki/Pong)
 game directly in Livebook. Not only that, we will actually
 make it multiplayer!
-
-Let's get started and install `kino`:
-
-```elixir
-Mix.install([
-  {:kino, "~> 0.5.0"}
-])
-```
 
 ## Painting the scene
 
