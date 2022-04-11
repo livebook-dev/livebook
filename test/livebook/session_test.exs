@@ -346,7 +346,7 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, file)
 
       # Wait for the session to deal with the files
-      Process.sleep(100)
+      Process.sleep(500)
 
       assert {:ok, true} =
                FileSystem.File.exists?(FileSystem.File.resolve(tmp_dir, "images/test.jpg"))
@@ -368,7 +368,7 @@ defmodule Livebook.SessionTest do
       Session.set_file(session.pid, nil)
 
       # Wait for the session to deal with the files
-      Process.sleep(200)
+      Process.sleep(500)
 
       assert {:ok, true} = FileSystem.File.exists?(image_file)
 

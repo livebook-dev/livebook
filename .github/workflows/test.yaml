@@ -32,7 +32,7 @@ jobs:
       - name: Check warnings
         run: mix compile --warnings-as-errors
       - name: Run tests
-        run: elixir --cookie "COOKIEFORTESTS" -S mix test
+        run: mix test
       - name: Install Node
         uses: actions/setup-node@v2
         with:
@@ -50,3 +50,41 @@ jobs:
         run: npm run format-check --prefix assets
       - name: Run assets tests
         run: npm test --prefix assets
+  windows:
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      MIX_ENV: test
+    steps:
+      - name: Configure Git
+        run: git config --global core.autocrlf input
+      - uses: actions/checkout@v2
+      - name: Install Erlang & Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: '24.0'
+          elixir-version: '1.13.0'
+      - name: Start epmd
+        run: cmd /c "START /b epmd"
+        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-12.0.4/bin
+      # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
+      - name: Add tar.exe
+        run: |
+          "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+      - name: Cache Mix
+        uses: actions/cache@v2
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-
+      - name: Install mix dependencies
+        run: mix deps.get
+      - name: Check formatting
+        run: mix format --check-formatted
+      - name: Check warnings
+        run: mix compile --warnings-as-errors
+      - name: Run tests
+        run: mix test

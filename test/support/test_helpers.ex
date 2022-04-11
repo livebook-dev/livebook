@@ -39,4 +39,9 @@ defmodule Livebook.TestHelpers do
       end
     end)
   end
+
+  @doc """
+  Converts a Unix-like absolute path into OS-compatible absolute path.
+  """
+  defmacro p("/" <> path), do: Path.expand("/") <> path
 end

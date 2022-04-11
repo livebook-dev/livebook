@@ -3451,7 +3451,7 @@ defmodule Livebook.Session.DataTest do
     test "updates data with the given path" do
       data = Data.new()
 
-      file = Livebook.FileSystem.File.local("/path/to/file.livemd")
+      file = Livebook.FileSystem.File.local(p("/path/to/file.livemd"))
       operation = {:set_file, self(), file}
 
       assert {:ok, %{file: ^file}, []} = Data.apply_operation(data, operation)

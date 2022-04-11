@@ -16,10 +16,12 @@ defmodule LivebookWeb.HomeLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element("button", "New notebook")
+             |> element(~s/[role="navigation"] button/, "New notebook")
              |> render_click()
 
     assert to =~ "/sessions/"
+
+    close_session_by_path(to)
   end
 
   describe "file selection" do
@@ -55,6 +57,8 @@ defmodule LivebookWeb.HomeLiveTest do
                       |> render_click()
 
       assert to =~ "/sessions/"
+
+      close_session_by_path(to)
     end
 
     @tag :tmp_dir
@@ -173,6 +177,7 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook - fork"
 
+      close_session_by_path(to)
       Session.close(session.pid)
     end
 
@@ -192,8 +197,6 @@ defmodule LivebookWeb.HomeLiveTest do
       |> render_click()
 
       refute render(view) =~ session.id
-
-      Session.close(session.pid)
     end
 
     test "close all selected sessions using bulk action", %{conn: conn} do
@@ -237,10 +240,10 @@ defmodule LivebookWeb.HomeLiveTest do
              |> render_click()
              |> follow_redirect(conn)
 
-    assert to =~ "/sessions/"
-
     {:ok, view, _} = live(conn, to)
     assert render(view) =~ "Welcome to Livebook"
+
+    close_session_by_path(to)
   end
 
   describe "notebook import" do
@@ -255,10 +258,12 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      {path, _flash} = assert_redirect(view, 1000)
+      {path, _flash} = assert_redirect(view, 5000)
 
       {:ok, view, _} = live(conn, path)
       assert render(view) =~ "My notebook"
+
+      close_session_by_path(path)
     end
 
     test "should show info flash with information about the imported notebook", %{conn: conn} do
@@ -272,10 +277,12 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      {_path, flash} = assert_redirect(view, 1000)
+      {path, flash} = assert_redirect(view, 5000)
 
       assert flash["info"] =~
                "You have imported a notebook, no code has been executed so far. You should read and evaluate code as needed."
+
+      close_session_by_path(path)
     end
 
     test "should show warning flash when the imported notebook have errors", %{conn: conn} do
@@ -292,10 +299,12 @@ defmodule LivebookWeb.HomeLiveTest do
       |> element("form", "Import")
       |> render_submit(%{data: %{content: notebook_content}})
 
-      {_path, flash} = assert_redirect(view, 1000)
+      {path, flash} = assert_redirect(view, 5000)
 
       assert flash["warning"] =~
                "We found problems while importing the file and tried to autofix them:\n- Downgrading all headings, because 3 instances of heading 1 were found"
+
+      close_session_by_path(path)
     end
   end
 
@@ -316,6 +325,8 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
+
+      close_session_by_path(to)
     end
 
     @tag :tmp_dir
@@ -329,6 +340,8 @@ defmodule LivebookWeb.HomeLiveTest do
 
       {:ok, view, _} = live(conn, to)
       assert render(view) =~ "My notebook"
+
+      close_session_by_path(to)
     end
 
     test "redirects to the import form on error", %{conn: conn} do
@@ -363,13 +376,15 @@ defmodule LivebookWeb.HomeLiveTest do
     test "opens a file when livebook file is passed", %{conn: conn, tmp_dir: tmp_dir} do
       notebook_path = Path.join(tmp_dir, "notebook.livemd")
 
-      :ok = File.write(notebook_path, "# Notebook OPEN section")
+      :ok = File.write(notebook_path, "# My notebook")
 
       assert {:error, {:live_redirect, %{flash: %{}, to: to}}} =
                live(conn, "/open?path=#{notebook_path}")
 
       {:ok, view, _} = live(conn, to)
-      assert render(view) =~ "Notebook OPEN section"
+      assert render(view) =~ "My notebook"
+
+      close_session_by_path(to)
     end
   end
 
@@ -386,5 +401,10 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     path
+  end
+
+  defp close_session_by_path("/sessions/" <> session_id) do
+    {:ok, session} = Sessions.fetch_session(session_id)
+    Session.close(session.pid)
   end
 end

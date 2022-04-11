@@ -249,7 +249,7 @@ defmodule Livebook.Utils do
     url
     |> URI.parse()
     |> Map.update!(:path, fn path ->
-      path |> Path.dirname() |> Path.join(relative_path) |> Path.expand()
+      Livebook.FileSystem.Utils.resolve_unix_like_path(path, relative_path)
     end)
     |> URI.to_string()
   end
@@ -444,20 +444,20 @@ defmodule Livebook.Utils do
   end
 
   @doc """
-  Returns a URL (including localhost) to open the given `url` as a notebook
+  Returns a URL (including localhost) to open the given `path` as a notebook
 
-      iex> Livebook.Utils.notebook_open_url("https://example.com/foo.livemd")
-      "http://localhost:4002/open?path=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+      iex> Livebook.Utils.notebook_open_url("/data/foo.livemd")
+      "http://localhost:4002/open?path=%2Fdata%2Ffoo.livemd"
 
-      iex> Livebook.Utils.notebook_open_url("https://my_host", "https://example.com/foo.livemd")
-      "https://my_host/open?path=https%3A%2F%2Fexample.com%2Ffoo.livemd"
+      iex> Livebook.Utils.notebook_open_url("https://my_host", "/data/foo.livemd")
+      "https://my_host/open?path=%2Fdata%2Ffoo.livemd"
 
   """
-  def notebook_open_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), url) do
+  def notebook_open_url(base_url \\ LivebookWeb.Endpoint.access_struct_url(), path) do
     base_url
     |> URI.parse()
     |> Map.replace!(:path, "/open")
-    |> append_query("path=#{URI.encode_www_form(url)}")
+    |> append_query("path=#{URI.encode_www_form(path)}")
     |> URI.to_string()
   end
 

@@ -8,9 +8,11 @@ defmodule Livebook.FileSystem.LocalTest do
 
   describe "new/1" do
     test "raises when :default_path is not a directory" do
-      assert_raise ArgumentError, ~s{expected a directory path, got: "/notebook.livemd"}, fn ->
-        Local.new(default_path: "/notebook.livemd")
-      end
+      assert_raise ArgumentError,
+                   ~s{expected a directory path, got: "#{p("/notebook.livemd")}"},
+                   fn ->
+                     Local.new(default_path: p("/notebook.livemd"))
+                   end
     end
   end
 
@@ -21,8 +23,8 @@ defmodule Livebook.FileSystem.LocalTest do
     end
 
     test "returns custom directory path if configured" do
-      file_system = Local.new(default_path: "/dir/")
-      assert FileSystem.default_path(file_system) == "/dir/"
+      file_system = Local.new(default_path: p("/dir/"))
+      assert FileSystem.default_path(file_system) == p("/dir/")
     end
   end
 
@@ -489,25 +491,29 @@ defmodule Livebook.FileSystem.LocalTest do
     test "resolves relative paths" do
       file_system = Local.new()
 
-      assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", "")
-      assert "/dir/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "file.txt")
-      assert "/dir/nested/" = FileSystem.resolve_path(file_system, "/dir/", "nested/")
-      assert "/dir/" = FileSystem.resolve_path(file_system, "/dir/", ".")
-      assert "/" = FileSystem.resolve_path(file_system, "/dir/", "..")
+      assert p("/dir/") = FileSystem.resolve_path(file_system, p("/dir/"), "")
+      assert p("/dir/file.txt") = FileSystem.resolve_path(file_system, p("/dir/"), "file.txt")
+      assert p("/dir/nested/") = FileSystem.resolve_path(file_system, p("/dir/"), "nested/")
+      assert p("/dir/") = FileSystem.resolve_path(file_system, p("/dir/"), ".")
+      assert p("/") = FileSystem.resolve_path(file_system, p("/dir/"), "..")
 
-      assert "/file.txt" =
-               FileSystem.resolve_path(file_system, "/dir/", "nested/../.././file.txt")
+      assert p("/file.txt") =
+               FileSystem.resolve_path(file_system, p("/dir/"), "nested/../.././file.txt")
     end
 
     test "resolves absolute paths" do
       file_system = Local.new()
 
-      assert "/" = FileSystem.resolve_path(file_system, "/dir/", "/")
-      assert "/file.txt" = FileSystem.resolve_path(file_system, "/dir/", "/file.txt")
-      assert "/nested/" = FileSystem.resolve_path(file_system, "/dir/", "/nested/")
+      assert p("/") = FileSystem.resolve_path(file_system, p("/dir/"), p("/"))
+      assert p("/file.txt") = FileSystem.resolve_path(file_system, p("/dir/"), p("/file.txt"))
+      assert p("/nested/") = FileSystem.resolve_path(file_system, p("/dir/"), p("/nested/"))
 
-      assert "/nested/file.txt" =
-               FileSystem.resolve_path(file_system, "/dir/", "///nested///other/..///file.txt")
+      assert p("/nested/file.txt") =
+               FileSystem.resolve_path(
+                 file_system,
+                 p("/dir/"),
+                 p("///nested///other/..///file.txt")
+               )
     end
   end
 end

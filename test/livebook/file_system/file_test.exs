@@ -18,60 +18,61 @@ defmodule Livebook.FileSystem.FileTest do
       file_system = FileSystem.Local.new()
 
       assert_raise ArgumentError,
-                   ~s{expected an expanded absolute path, got: "/dir/nested/../file.txt"},
+                   ~s{expected an expanded absolute path, got: "#{p("/dir/nested/../file.txt")}"},
                    fn ->
-                     FileSystem.File.new(file_system, "/dir/nested/../file.txt")
+                     FileSystem.File.new(file_system, p("/dir/nested/../file.txt"))
                    end
     end
 
     test "uses default file system path if non is given" do
-      file_system = FileSystem.Local.new(default_path: "/dir/")
-      assert %FileSystem.File{path: "/dir/"} = FileSystem.File.new(file_system)
+      default_path = p("/dir/")
+      file_system = FileSystem.Local.new(default_path: default_path)
+      assert %FileSystem.File{path: ^default_path} = FileSystem.File.new(file_system)
     end
   end
 
   describe "local/1" do
     test "uses the globally configured local file system instance" do
-      assert FileSystem.File.local("/path").file_system == Livebook.Config.local_filesystem()
+      assert FileSystem.File.local(p("/path")).file_system == Livebook.Config.local_filesystem()
     end
   end
 
   describe "relative/2" do
     test "ignores the file path if an absolute path is given" do
       file_system = FileSystem.Local.new()
-      file = FileSystem.File.new(file_system, "/dir/nested/file.txt")
+      file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: "/other/file.txt"} =
-               FileSystem.File.resolve(file, "/other/file.txt")
+      assert %FileSystem.File{file_system: ^file_system, path: p("/other/file.txt")} =
+               FileSystem.File.resolve(file, p("/other/file.txt"))
     end
 
     test "resolves a relative path against a regular file" do
       file_system = FileSystem.Local.new()
-      file = FileSystem.File.new(file_system, "/dir/nested/file.txt")
+      file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: "/dir/other/other_file.txt"} =
+      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/other/other_file.txt")} =
                FileSystem.File.resolve(file, "../other/other_file.txt")
     end
 
     test "resolves a relative path against a directory file" do
       file_system = FileSystem.Local.new()
-      dir = FileSystem.File.new(file_system, "/dir/nested/")
+      dir = FileSystem.File.new(file_system, p("/dir/nested/"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: "/dir/nested/file.txt"} =
+      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/nested/file.txt")} =
                FileSystem.File.resolve(dir, "file.txt")
     end
 
     test "resolves a relative directory path" do
       file_system = FileSystem.Local.new()
-      file = FileSystem.File.new(file_system, "/dir/nested/file.txt")
+      file = FileSystem.File.new(file_system, p("/dir/nested/file.txt"))
 
-      assert %FileSystem.File{file_system: ^file_system, path: "/dir/other/"} =
+      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/other/")} =
                FileSystem.File.resolve(file, "../other/")
 
-      assert %FileSystem.File{file_system: ^file_system, path: "/dir/nested/"} =
+      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/nested/")} =
                FileSystem.File.resolve(file, ".")
 
-      assert %FileSystem.File{file_system: ^file_system, path: "/dir/"} =
+      assert %FileSystem.File{file_system: ^file_system, path: p("/dir/")} =
                FileSystem.File.resolve(file, "..")
     end
   end
@@ -80,10 +81,10 @@ defmodule Livebook.FileSystem.FileTest do
     test "returns true if file path has a trailing slash" do
       file_system = FileSystem.Local.new()
 
-      dir = FileSystem.File.new(file_system, "/dir/")
+      dir = FileSystem.File.new(file_system, p("/dir/"))
       assert FileSystem.File.dir?(dir)
 
-      file = FileSystem.File.new(file_system, "/dir/file.txt")
+      file = FileSystem.File.new(file_system, p("/dir/file.txt"))
       refute FileSystem.File.dir?(file)
     end
   end
@@ -92,10 +93,10 @@ defmodule Livebook.FileSystem.FileTest do
     test "returns true if file path has no trailing slash" do
       file_system = FileSystem.Local.new()
 
-      dir = FileSystem.File.new(file_system, "/dir/")
+      dir = FileSystem.File.new(file_system, p("/dir/"))
       refute FileSystem.File.regular?(dir)
 
-      file = FileSystem.File.new(file_system, "/dir/file.txt")
+      file = FileSystem.File.new(file_system, p("/dir/file.txt"))
       assert FileSystem.File.regular?(file)
     end
   end
@@ -104,10 +105,10 @@ defmodule Livebook.FileSystem.FileTest do
     test "returns path basename" do
       file_system = FileSystem.Local.new()
 
-      dir = FileSystem.File.new(file_system, "/dir/")
+      dir = FileSystem.File.new(file_system, p("/dir/"))
       assert FileSystem.File.name(dir) == "dir"
 
-      file = FileSystem.File.new(file_system, "/dir/file.txt")
+      file = FileSystem.File.new(file_system, p("/dir/file.txt"))
       assert FileSystem.File.name(file) == "file.txt"
     end
   end
@@ -116,21 +117,23 @@ defmodule Livebook.FileSystem.FileTest do
     test "given a directory, returns the parent directory" do
       file_system = FileSystem.Local.new()
 
-      dir = FileSystem.File.new(file_system, "/parent/dir/")
-      assert FileSystem.File.new(file_system, "/parent/") == FileSystem.File.containing_dir(dir)
+      dir = FileSystem.File.new(file_system, p("/parent/dir/"))
+
+      assert FileSystem.File.new(file_system, p("/parent/")) ==
+               FileSystem.File.containing_dir(dir)
     end
 
     test "given a file, returns the containing directory" do
       file_system = FileSystem.Local.new()
 
-      file = FileSystem.File.new(file_system, "/dir/file.txt")
-      assert FileSystem.File.new(file_system, "/dir/") == FileSystem.File.containing_dir(file)
+      file = FileSystem.File.new(file_system, p("/dir/file.txt"))
+      assert FileSystem.File.new(file_system, p("/dir/")) == FileSystem.File.containing_dir(file)
     end
 
     test "given the root directory, returns itself" do
       file_system = FileSystem.Local.new()
 
-      file = FileSystem.File.new(file_system, "/")
+      file = FileSystem.File.new(file_system, p("/"))
       assert file == FileSystem.File.containing_dir(file)
     end
   end
