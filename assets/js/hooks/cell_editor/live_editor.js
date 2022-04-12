@@ -28,10 +28,35 @@ class LiveEditor {
     this.language = language;
     this.intellisense = intellisense;
     this.readOnly = readOnly;
+    this._onMount = [];
     this._onChange = [];
     this._onBlur = [];
     this._onCursorSelectionChange = [];
     this._remoteUserByClientPid = {};
+
+    const serverAdapter = new HookServerAdapter(hook, cellId, tag);
+    this.editorClient = new EditorClient(serverAdapter, revision);
+
+    this.editorClient.onDelta((delta) => {
+      this.source = delta.applyToString(this.source);
+      this._onChange.forEach((callback) => callback(this.source));
+    });
+  }
+
+  /**
+   * Checks if an editor instance has been mounted in the DOM.
+   */
+  isMounted() {
+    return !!this.editor;
+  }
+
+  /**
+   * Mounts and configures an editor instance in the DOM.
+   */
+  mount() {
+    if (this.isMounted()) {
+      throw new Error("The editor is already mounted");
+    }
 
     this._mountEditor();
 
@@ -39,18 +64,7 @@ class LiveEditor {
       this._setupIntellisense();
     }
 
-    const serverAdapter = new HookServerAdapter(hook, cellId, tag);
-    const editorAdapter = new MonacoEditorAdapter(this.editor);
-    this.editorClient = new EditorClient(
-      serverAdapter,
-      editorAdapter,
-      revision
-    );
-
-    this.editorClient.onDelta((delta) => {
-      this.source = delta.applyToString(this.source);
-      this._onChange.forEach((callback) => callback(this.source));
-    });
+    this.editorClient.setEditorAdapter(new MonacoEditorAdapter(this.editor));
 
     this.editor.onDidFocusEditorWidget(() => {
       this.editor.updateOptions({ matchBrackets: "always" });
@@ -66,6 +80,14 @@ class LiveEditor {
         callback(event.selection)
       );
     });
+
+    this._onMount.forEach((callback) => callback());
+  }
+
+  _ensureMounted() {
+    if (!this.isMounted()) {
+      this.mount();
+    }
   }
 
   /**
@@ -73,6 +95,13 @@ class LiveEditor {
    */
   getSource() {
     return this.source;
+  }
+
+  /**
+   * Registers a callback called with the editor is mounted in DOM.
+   */
+  onMount(callback) {
+    this._onMount.push(callback);
   }
 
   /**
@@ -97,16 +126,22 @@ class LiveEditor {
   }
 
   focus() {
+    this._ensureMounted();
+
     this.editor.focus();
   }
 
   blur() {
+    this._ensureMounted();
+
     if (this.editor.hasTextFocus()) {
       document.activeElement.blur();
     }
   }
 
   insert(text) {
+    this._ensureMounted();
+
     const range = this.editor.getSelection();
     this.editor
       .getModel()
@@ -117,13 +152,15 @@ class LiveEditor {
    * Performs necessary cleanup actions.
    */
   dispose() {
-    // Explicitly destroy the editor instance and its text model.
-    this.editor.dispose();
+    if (this.isMounted()) {
+      // Explicitly destroy the editor instance and its text model.
+      this.editor.dispose();
 
-    const model = this.editor.getModel();
+      const model = this.editor.getModel();
 
-    if (model) {
-      model.dispose();
+      if (model) {
+        model.dispose();
+      }
     }
   }
 
@@ -131,6 +168,8 @@ class LiveEditor {
    * Either adds or moves remote user cursor to the new position.
    */
   updateUserSelection(client, selection) {
+    this._ensureMounted();
+
     if (this._remoteUserByClientPid[client.pid]) {
       this._remoteUserByClientPid[client.pid].update(selection);
     } else {
@@ -147,6 +186,8 @@ class LiveEditor {
    * Removes remote user cursor.
    */
   removeUserSelection(client) {
+    this._ensureMounted();
+
     if (this._remoteUserByClientPid[client.pid]) {
       this._remoteUserByClientPid[client.pid].dispose();
       delete this._remoteUserByClientPid[client.pid];
@@ -159,6 +200,8 @@ class LiveEditor {
    * To clear an existing marker `null` error is also supported.
    */
   setCodeErrorMarker(error) {
+    this._ensureMounted();
+
     const owner = "livebook.error.syntax";
 
     if (error) {
