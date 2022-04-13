@@ -12,8 +12,6 @@ const CellEditor = {
           `[data-el-editor-container]`
         );
 
-        // Remove the content placeholder
-        editorContainer.firstElementChild.remove();
         const editorEl = document.createElement("div");
         editorContainer.appendChild(editorEl);
 
@@ -28,6 +26,11 @@ const CellEditor = {
           intellisense,
           read_only
         );
+
+        this.liveEditor.onMount(() => {
+          // Remove the content placeholder
+          editorContainer.querySelector(`[data-el-skeleton]`).remove();
+        });
 
         this.el.dispatchEvent(
           new CustomEvent("lb:cell:editor_created", {

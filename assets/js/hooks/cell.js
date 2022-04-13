@@ -156,6 +156,18 @@ const Cell = {
 
     this.updateInsertModeAvailability();
 
+    if (this.props.type !== "markdown") {
+      // For markdown cells the editor is mounted lazily when needed,
+      // for other cells we mount the editor eagerly, however mounting
+      // is a synchronous operation and is relatively expensive, so we
+      // defer it to run after the current event handlers
+      setTimeout(() => {
+        if (!liveEditor.isMounted()) {
+          liveEditor.mount();
+        }
+      }, 0);
+    }
+
     if (liveEditor === this.currentEditor()) {
       // Once the editor is created, reflect the current insert mode state
       this.maybeFocusCurrentEditor(true);

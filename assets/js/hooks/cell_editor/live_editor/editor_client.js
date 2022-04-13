@@ -3,7 +3,7 @@
  * which is responsible for controlling client-server communication
  * and synchronizing the sent/received changes.
  *
- * This class takes `serverAdapter` and `editorAdapter` objects
+ * This class uses `serverAdapter` and `editorAdapter` objects
  * that encapsulate the logic relevant for each part.
  *
  * ## Changes synchronization
@@ -21,18 +21,11 @@
  * deltas and applied to the editor.
  */
 export default class EditorClient {
-  constructor(serverAdapter, editorAdapter, revision) {
+  constructor(serverAdapter, revision) {
     this.serverAdapter = serverAdapter;
-    this.editorAdapter = editorAdapter;
     this.revision = revision;
     this.state = new Synchronized(this);
     this._onDelta = null;
-
-    this.editorAdapter.onDelta((delta) => {
-      this._handleClientDelta(delta);
-      // This delta comes from the editor, so it has already been applied.
-      this._emitDelta(delta);
-    });
 
     this.serverAdapter.onDelta((delta) => {
       this._handleServerDelta(delta);
@@ -40,6 +33,22 @@ export default class EditorClient {
 
     this.serverAdapter.onAcknowledgement(() => {
       this._handleServerAcknowledgement();
+    });
+  }
+
+  /**
+   * Plugs in the editor adapter.
+   *
+   * The adapter may be set at a later point after initialization, in
+   * case the editor is mounted lazily.
+   */
+  setEditorAdapter(editorAdapter) {
+    this.editorAdapter = editorAdapter;
+
+    this.editorAdapter.onDelta((delta) => {
+      this._handleClientDelta(delta);
+      // This delta comes from the editor, so it has already been applied.
+      this._emitDelta(delta);
     });
   }
 
@@ -72,7 +81,7 @@ export default class EditorClient {
   }
 
   applyDelta(delta) {
-    this.editorAdapter.applyDelta(delta);
+    this.editorAdapter && this.editorAdapter.applyDelta(delta);
     // This delta comes from the server and we have just applied it to the editor.
     this._emitDelta(delta);
   }
