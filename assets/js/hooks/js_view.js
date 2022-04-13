@@ -106,11 +106,17 @@ const JSView = {
       this.channel.off(`error:${this.props.ref}`, errorRef);
     };
 
-    this.channel.push("connect", {
-      session_token: this.props.sessionToken,
-      ref: this.props.ref,
-      id: this.id,
-    });
+    this.channel.push(
+      "connect",
+      {
+        session_token: this.props.sessionToken,
+        ref: this.props.ref,
+        id: this.id,
+      },
+      // If the client is very busy with executing JS we may reach the
+      // default timeout of 10s, so we increase it
+      30_000
+    );
   },
 
   updated() {
