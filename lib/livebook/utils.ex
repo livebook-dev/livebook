@@ -193,6 +193,30 @@ defmodule Livebook.Utils do
   @spec valid_hex_color?(String.t()) :: boolean()
   def valid_hex_color?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
 
+  @doc ~S"""
+  Validates if the given string forms valid CLI flags.
+
+  ## Examples
+
+      iex> Livebook.Utils.valid_cli_flags?("")
+      true
+
+      iex> Livebook.Utils.valid_cli_flags?("--arg1 value --arg2 'value'")
+      true
+
+      iex> Livebook.Utils.valid_cli_flags?("--arg1 \"")
+      false
+  """
+  @spec valid_cli_flags?(String.t()) :: boolean()
+  def valid_cli_flags?(flags) do
+    try do
+      OptionParser.split(flags)
+      true
+    rescue
+      _ -> false
+    end
+  end
+
   @doc """
   Changes the first letter in the given string to upper case.
 

@@ -155,7 +155,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   defp matching_runtime?(_runtime, _path), do: false
 
   defp data_valid?(data) do
-    mix_project_root?(data.file.path)
+    mix_project_root?(data.file.path) and Livebook.Utils.valid_cli_flags?(data.flags)
   end
 
   defp mix_project_root?(path) do
