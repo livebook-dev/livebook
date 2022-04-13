@@ -262,6 +262,10 @@ class LiveEditor {
       // of the line we would get "defmodule" as a word completion.
       wordBasedSuggestions: !this.intellisense,
       parameterHints: this.intellisense && settings.editor_auto_signature,
+      wordWrap:
+        this.language === "markdown" && settings.editor_markdown_word_wrap
+          ? "on"
+          : "off",
     });
 
     this.editor.addAction({

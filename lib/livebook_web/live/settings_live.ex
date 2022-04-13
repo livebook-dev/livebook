@@ -121,6 +121,10 @@ defmodule LivebookWeb.SettingsLive do
                   name="editor_high_contrast"
                   label="Use high contrast theme"
                   checked={false} />
+                <.switch_checkbox
+                  name="editor_markdown_word_wrap"
+                  label="Wrap words in Markdown"
+                  checked={false} />
               </div>
             </div>
           </div>

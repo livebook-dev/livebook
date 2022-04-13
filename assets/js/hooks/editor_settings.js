@@ -23,6 +23,9 @@ const EditorSettings = {
     const editorHighContrastCheckbox = this.el.querySelector(
       `[name="editor_high_contrast"][value="true"]`
     );
+    const editorMarkdownWordWrapCheckbox = this.el.querySelector(
+      `[name="editor_markdown_word_wrap"][value="true"]`
+    );
 
     editorAutoCompletionCheckbox.checked = settings.editor_auto_completion;
     editorAutoSignatureCheckbox.checked = settings.editor_auto_signature;
@@ -30,6 +33,7 @@ const EditorSettings = {
       settings.editor_font_size === EDITOR_FONT_SIZE.large ? true : false;
     editorHighContrastCheckbox.checked =
       settings.editor_theme === EDITOR_THEME.highContrast ? true : false;
+    editorMarkdownWordWrapCheckbox.checked = settings.editor_markdown_word_wrap;
 
     editorAutoCompletionCheckbox.addEventListener("change", (event) => {
       settingsStore.update({ editor_auto_completion: event.target.checked });
@@ -53,6 +57,10 @@ const EditorSettings = {
           ? EDITOR_THEME.highContrast
           : EDITOR_THEME.default,
       });
+    });
+
+    editorMarkdownWordWrapCheckbox.addEventListener("change", (event) => {
+      settingsStore.update({ editor_markdown_word_wrap: event.target.checked });
     });
   },
 };
