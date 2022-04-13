@@ -13,6 +13,7 @@ defmodule LivebookWeb.SessionLive.CellEditorComponent do
       |> assign(assigns)
       |> assign_new(:intellisense, fn -> false end)
       |> assign_new(:read_only, fn -> false end)
+      |> assign_new(:rounded, fn -> :both end)
 
     socket =
       if not connected?(socket) or socket.assigns.initialized do
@@ -42,7 +43,7 @@ defmodule LivebookWeb.SessionLive.CellEditorComponent do
       phx-hook="CellEditor"
       data-cell-id={@cell_id}
       data-tag={@tag}>
-      <div class="py-3 rounded-lg bg-editor" data-el-editor-container>
+      <div class={"py-3 #{rounded_class(@rounded)} bg-editor"} data-el-editor-container>
         <div class="px-8" data-el-skeleton>
           <.content_skeleton bg_class="bg-gray-500" empty={empty?(@source_view)} />
         </div>
@@ -53,4 +54,8 @@ defmodule LivebookWeb.SessionLive.CellEditorComponent do
 
   defp empty?(%{source: ""} = _source_view), do: true
   defp empty?(_source_view), do: false
+
+  defp rounded_class(:both), do: "rounded-lg"
+  defp rounded_class(:top), do: "rounded-t-lg"
+  defp rounded_class(:bottom), do: "rounded-b-lg"
 end
