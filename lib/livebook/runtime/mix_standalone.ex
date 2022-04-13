@@ -1,5 +1,5 @@
 defmodule Livebook.Runtime.MixStandalone do
-  defstruct [:node, :server_pid, :project_path]
+  defstruct [:node, :server_pid, :project_path, :flags]
 
   # A runtime backed by a standalone Elixir node managed by Livebook.
   #
@@ -13,6 +13,7 @@ defmodule Livebook.Runtime.MixStandalone do
 
   @type t :: %__MODULE__{
           project_path: String.t(),
+          flags: String.t(),
           node: node() | nil,
           server_pid: pid() | nil
         }
@@ -20,9 +21,9 @@ defmodule Livebook.Runtime.MixStandalone do
   @doc """
   Returns a new runtime instance.
   """
-  @spec new(String.t()) :: t()
-  def new(project_path) do
-    %__MODULE__{project_path: project_path}
+  @spec new(String.t(), String.t()) :: t()
+  def new(project_path, flags \\ "") do
+    %__MODULE__{project_path: project_path, flags: flags}
   end
 
   @doc """
@@ -46,6 +47,7 @@ defmodule Livebook.Runtime.MixStandalone do
   @spec connect_async(t(), Emitter.t()) :: :ok
   def connect_async(runtime, emitter) do
     %{project_path: project_path} = runtime
+    flags = OptionParser.split(runtime.flags)
     output_emitter = Emitter.mapper(emitter, fn output -> {:output, output} end)
 
     spawn_link(fn ->
@@ -59,7 +61,8 @@ defmodule Livebook.Runtime.MixStandalone do
              :ok <- run_mix_task("deps.get", project_path, output_emitter),
              :ok <- run_mix_task("compile", project_path, output_emitter),
              eval = child_node_eval_string(),
-             port = start_elixir_mix_node(elixir_path, child_node, eval, argv, project_path),
+             port =
+               start_elixir_mix_node(elixir_path, child_node, flags, eval, argv, project_path),
              {:ok, server_pid} <- parent_init_sequence(child_node, port, emitter: output_emitter) do
           runtime = %{runtime | node: child_node, server_pid: server_pid}
           Emitter.emit(emitter, {:ok, runtime})
@@ -115,7 +118,7 @@ defmodule Livebook.Runtime.MixStandalone do
     end
   end
 
-  defp start_elixir_mix_node(elixir_path, node_name, eval, argv, project_path) do
+  defp start_elixir_mix_node(elixir_path, node_name, flags, eval, argv, project_path) do
     # Here we create a port to start the system process in a non-blocking way.
     Port.open({:spawn_executable, elixir_path}, [
       :binary,
@@ -127,7 +130,8 @@ defmodule Livebook.Runtime.MixStandalone do
       cd: project_path,
       args:
         elixir_flags(node_name) ++
-          ["-S", "mix", "run", "--eval", eval, "--" | Enum.map(argv, &to_string/1)]
+          ["-S", "mix", "run", "--eval", eval | flags] ++
+          ["--" | Enum.map(argv, &to_string/1)]
     ])
   end
 end
@@ -138,13 +142,11 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   def describe(runtime) do
     [
       {"Type", "Mix standalone"},
-      {"Project", runtime.project_path}
-    ] ++
-      if connected?(runtime) do
-        [{"Node name", Atom.to_string(runtime.node)}]
-      else
-        []
-      end
+      {"Project", runtime.project_path},
+      runtime.flags != "" && {"Flags", runtime.flags},
+      connected?(runtime) && {"Node name", Atom.to_string(runtime.node)}
+    ]
+    |> Enum.filter(&is_tuple/1)
   end
 
   def connect(runtime) do
@@ -166,7 +168,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   end
 
   def duplicate(runtime) do
-    Livebook.Runtime.MixStandalone.new(runtime.project_path)
+    Livebook.Runtime.MixStandalone.new(runtime.project_path, runtime.flags)
   end
 
   def evaluate_code(runtime, code, locator, base_locator, opts \\ []) do
