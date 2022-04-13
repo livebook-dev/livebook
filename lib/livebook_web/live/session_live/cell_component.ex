@@ -174,7 +174,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                   cell_id={@cell_view.id}
                   tag="secondary"
                   source_view={@cell_view.editor.source_view}
-                  language={@cell_view.editor.language} />
+                  language={@cell_view.editor.language}
+                  rounded={@cell_view.editor.placement} />
               <% end %>
             </div>
 
