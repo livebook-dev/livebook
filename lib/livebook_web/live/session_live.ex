@@ -639,10 +639,10 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "add_cell_comment",
-        %{"cell_view_id" => cell_view_id, "value" => value},
+        %{"cell_id" => cell_id, "value" => value},
         socket
       ) do
-    Session.add_cell_comment(socket.assigns.session.pid, cell_view_id, %{
+    Session.add_cell_comment(socket.assigns.session.pid, cell_id, %{
       user: socket.assigns.current_user,
       message: value
     })

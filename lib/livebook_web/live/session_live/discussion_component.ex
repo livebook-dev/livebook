@@ -64,7 +64,7 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
     ~H"""
     <div class="flex items-center p-2 bg-white border border-gray-300 rounded-b">
       <.user_avatar user={@current_user} />
-      <.new_comment_input cell_view_id={@cell_view.id} />
+      <.new_comment_input cell_id={@cell_view.id} />
     </div>
     """
   end
@@ -110,12 +110,12 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
   defp new_comment_input(assigns) do
     ~H"""
     <input
-      id={"comment-input-#{@cell_view_id}"}
+      id={"comment-input-#{@cell_id}"}
       aria-label="comment input"
       class="flex-1 p-2 rounded"
       type="text"
       placeholder="Write a comment..."
-      phx-keydown={js_add_cell_comment(@cell_view_id)}
+      phx-keydown={js_add_cell_comment(@cell_id)}
       phx-key="enter"
       required
       autofocus
@@ -124,16 +124,16 @@ defmodule LivebookWeb.SessionLive.DiscussionComponent do
     """
   end
 
-  defp js_add_cell_comment(js \\ %JS{}, cell_view_id) do
+  defp js_add_cell_comment(js \\ %JS{}, cell_id) do
     js
-    |> JS.push("add_cell_comment", value: %{cell_view_id: cell_view_id})
+    |> JS.push("add_cell_comment", value: %{cell_id: cell_id})
     |> JS.dispatch("lb:set_value", detail: %{value: ""})
   end
 
-  defp js_toggle_maximized(js \\ %JS{}, cell_view_id) do
+  defp js_toggle_maximized(js \\ %JS{}, cell_id) do
     js
-    |> JS.dispatch("lb:focus", to: "#comment-input-#{cell_view_id}")
-    |> JS.toggle(to: "#discussion-minimized-#{cell_view_id}")
-    |> JS.toggle(to: "#discussion-maximized-#{cell_view_id}")
+    |> JS.dispatch("lb:focus", to: "#comment-input-#{cell_id}")
+    |> JS.toggle(to: "#discussion-minimized-#{cell_id}")
+    |> JS.toggle(to: "#discussion-maximized-#{cell_id}")
   end
 end
