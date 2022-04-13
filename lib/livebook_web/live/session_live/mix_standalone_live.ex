@@ -136,7 +136,12 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
   end
 
   defp initial_data(%Runtime.MixStandalone{project_path: project_path, flags: flags}) do
-    %{file: FileSystem.File.local(project_path), flags: flags}
+    file =
+      project_path
+      |> FileSystem.Utils.ensure_dir_path()
+      |> FileSystem.File.local()
+
+    %{file: file, flags: flags}
   end
 
   defp initial_data(_runtime) do
