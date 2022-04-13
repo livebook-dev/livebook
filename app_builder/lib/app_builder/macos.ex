@@ -111,7 +111,7 @@ defmodule AppBuilder.MacOS do
 
     File.mkdir_p!("tmp")
     launcher_src_path = "tmp/Launcher.swift"
-    File.write!(launcher_src_path, launcher(additional_paths))
+    File.write!(launcher_src_path, launcher(release, additional_paths))
     launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
     File.mkdir_p!(Path.dirname(launcher_path))
 
@@ -133,7 +133,7 @@ defmodule AppBuilder.MacOS do
     release
   end
 
-  defp launcher(additional_paths) do
+  defp launcher(release, additional_paths) do
     additional_paths = Enum.map_join(additional_paths, ":", &"\\(resourcePath)#{&1}")
 
     """
@@ -149,7 +149,7 @@ defmodule AppBuilder.MacOS do
     let logFile = FileHandle(forUpdatingAtPath: logPath)
     logFile?.seekToEndOfFile()
 
-    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/mac_app", ofType: "")!
+    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/#{release.name}", ofType: "")!
 
     let resourcePath = Bundle.main.resourcePath ?? ""
     let additionalPaths = "#{additional_paths}"

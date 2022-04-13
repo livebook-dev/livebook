@@ -5,8 +5,8 @@ defmodule Livebook.MixProject do
   @version "0.5.2"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.13.2"
-  @app_otp_version "24.2"
+  @app_elixir_version "1.13.4"
+  @app_otp_version "24.3"
 
   def project do
     [
@@ -29,15 +29,10 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications:
-        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
-          extra_applications(Mix.target()),
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
       env: Application.get_all_env(:livebook)
     ]
   end
-
-  defp extra_applications(:app), do: [:wx]
-  defp extra_applications(_), do: []
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
@@ -176,7 +171,10 @@ defmodule Livebook.MixProject do
     name: "Livebook",
     version: @version,
     logo_path: "rel/app/mac-icon.png",
-    additional_paths: ["/rel/vendor/bin", "/rel/vendor/elixir/bin"],
+    additional_paths: [
+      "/rel/erts-#{:erlang.system_info(:version)}/bin",
+      "/rel/vendor/elixir/bin"
+    ],
     url_schemes: ["livebook"],
     document_types: [
       %{

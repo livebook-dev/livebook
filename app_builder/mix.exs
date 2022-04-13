@@ -13,7 +13,7 @@ defmodule AppBuilder.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :eex, :inets, :ssl, :crypto]
+      extra_applications: [:logger, :eex, :inets, :ssl, :crypto, :wx]
     ]
   end
 
