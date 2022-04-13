@@ -8,12 +8,21 @@
     </div>
 
     <div class="max-w-2xl text-center text-gray-300">
+    <%= if @auth_mode == :password do %>
       Type password to access the Livebook.
+    <% else %>
+      Please check out the console for authentication URL
+      or type the token directly here.
+    <% end %>
     </div>
     <div class="text-2xl text-gray-50 w-full pt-2">
       <form method="post" class="flex flex-col space-y-4 items-center">
         <input type="hidden" value="<%= Phoenix.Controller.get_csrf_token() %>" name="_csrf_token"/>
-        <input type="password" name="password" class="input" placeholder="Password" autofocus />
+        <%= if @auth_mode == :password do %>
+          <input type="password" name="password" class="input" placeholder="Password" autofocus />
+        <% else %>
+          <input type="text" name="token" class="input" placeholder="Token" autofocus />
+        <% end %>
         <button type="submit" class="button-base button-blue">
           Authenticate
         </button>
