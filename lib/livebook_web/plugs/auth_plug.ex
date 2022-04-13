@@ -1,7 +1,3 @@
-defmodule LivebookWeb.InvalidTokenError do
-  defexception plug_status: 401, message: "invalid token"
-end
-
 defmodule LivebookWeb.AuthPlug do
   @moduledoc false
 
@@ -55,9 +51,7 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp authenticate(conn, :password) do
-    conn
-    |> redirect(to: "/authenticate")
-    |> halt()
+    redirect_to_authenticate(conn)
   end
 
   defp authenticate(conn, :token) do
@@ -70,8 +64,14 @@ defmodule LivebookWeb.AuthPlug do
       |> redirect(to: path_with_query(conn.request_path, query_params))
       |> halt()
     else
-      raise LivebookWeb.InvalidTokenError
+      redirect_to_authenticate(conn)
     end
+  end
+
+  defp redirect_to_authenticate(conn) do
+    conn
+    |> redirect(to: "/authenticate")
+    |> halt()
   end
 
   defp path_with_query(path, params) when params == %{}, do: path
