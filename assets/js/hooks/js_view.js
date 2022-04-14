@@ -1,5 +1,5 @@
 import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
-import { randomId, randomToken } from "../lib/utils";
+import { isElementHidden, randomId, randomToken } from "../lib/utils";
 import {
   getChannel,
   transportDecode,
@@ -227,7 +227,7 @@ const JSView = {
     const { iframe, iframePlaceholder } = this;
     const notebookEl = document.querySelector(`[data-el-notebook]`);
 
-    if (iframePlaceholder.offsetParent === null) {
+    if (isElementHidden(iframePlaceholder)) {
       // When the placeholder is hidden, we hide the iframe as well
       iframe.classList.add("hidden");
     } else {

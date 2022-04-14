@@ -438,7 +438,7 @@ defmodule LivebookWeb.LiveHelpers do
     assigns =
       assigns
       |> assign_new(:disabled, fn -> false end)
-      |> assign_new(:position, fn -> "right" end)
+      |> assign_new(:position, fn -> "bottom-right" end)
       |> assign_new(:secondary_click, fn -> false end)
 
     ~H"""
@@ -452,7 +452,7 @@ defmodule LivebookWeb.LiveHelpers do
       </div>
       <div class="menu__overlay"
         phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}></div>
-      <menu class={"menu__content menu__content--#{@position}"}
+      <menu class={"menu__content #{menu_content_class(@position)}"}
         role="menu"
         phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}}>
         <%= render_slot(@content) %>
@@ -460,6 +460,11 @@ defmodule LivebookWeb.LiveHelpers do
     </div>
     """
   end
+
+  defp menu_content_class("top-left"), do: "menu__content--top-left"
+  defp menu_content_class("top-right"), do: "menu__content--top-right"
+  defp menu_content_class("bottom-left"), do: "menu__content--bottom-left"
+  defp menu_content_class("bottom-right"), do: "menu__content--bottom-right"
 
   @doc """
   A menu item that shows a submenu on hover.

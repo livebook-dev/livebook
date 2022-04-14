@@ -198,7 +198,7 @@ defmodule LivebookWeb.SessionLive do
               runtime={@data_view.runtime}
               cell_view={@data_view.setup_cell_view} />
           </div>
-          <div class="mt-8 flex flex-col w-full space-y-16">
+          <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
             <%= if @data_view.section_views == [] do %>
               <div class="flex justify-center">
                 <button class="button-base button-small"

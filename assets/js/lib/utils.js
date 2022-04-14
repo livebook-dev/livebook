@@ -17,6 +17,10 @@ export function isElementInViewport(element) {
   return box.bottom >= 0 && box.top <= window.innerHeight;
 }
 
+export function isElementHidden(element) {
+  return element.offsetParent === null;
+}
+
 export function clamp(n, x, y) {
   return Math.min(Math.max(n, x), y);
 }

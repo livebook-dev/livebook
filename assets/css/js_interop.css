@@ -259,3 +259,28 @@ solely client-side operations.
 [phx-hook="VirtualizedLines"]:not(:hover) [data-el-clipcopy] {
   @apply hidden;
 }
+
+[data-el-session][data-js-code-zen] [data-el-section-headline],
+[data-el-session][data-js-code-zen] [data-el-section-subheadline],
+[data-el-session][data-js-code-zen] [data-el-cell][data-type="markdown"],
+[data-el-session][data-js-code-zen] [data-el-actions],
+[data-el-session][data-js-code-zen] [data-el-insert-buttons] {
+  @apply hidden;
+}
+
+[data-el-session][data-js-code-zen] [data-el-sections-container] {
+  @apply space-y-0 mt-0;
+}
+
+[data-el-session][data-js-code-zen][data-js-no-outputs]
+  [data-el-outputs-container] {
+  @apply hidden;
+}
+
+[data-el-session][data-js-code-zen] [data-el-code-zen-enable] {
+  @apply hidden;
+}
+
+[data-el-session]:not([data-js-code-zen]) [data-el-focus-mode-options] {
+  @apply hidden;
+}

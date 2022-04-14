@@ -213,16 +213,24 @@
   }
 
   .menu__content {
-    @apply absolute z-[100] rounded-lg bg-white flex flex-col py-2 mt-1;
+    @apply absolute z-[100] rounded-lg bg-white flex flex-col py-2;
     box-shadow: 0px 15px 99px rgba(13, 24, 41, 0.15);
   }
 
-  .menu__content--right {
-    @apply right-0;
+  .menu__content--top-right {
+    @apply top-0 right-0 transform -translate-y-full -mt-1;
   }
 
-  .menu__content--left {
-    @apply left-0;
+  .menu__content--top-left {
+    @apply top-0 left-0 transform -translate-y-full -mt-1;
+  }
+
+  .menu__content--bottom-right {
+    @apply bottom-0 right-0 transform translate-y-full -mb-1;
+  }
+
+  .menu__content--bottom-left {
+    @apply bottom-0 left-0 transform translate-y-full -mb-1;
   }
 
   .menu:not(.menu--open) > .menu__overlay,
