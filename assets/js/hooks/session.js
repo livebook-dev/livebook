@@ -379,7 +379,7 @@ const Session = {
         !this.codeZen && this.insertCellBelowFocused("markdown");
       } else if (keyBuffer.tryMatch(["M"])) {
         !this.codeZen && this.insertCellAboveFocused("markdown");
-      } else if (keyBuffer.tryMatch(["<"])) {
+      } else if (keyBuffer.tryMatch(["z"])) {
         this.setCodeZen(!this.codeZen);
       }
     }

@@ -70,7 +70,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   defp code_zen_indicator(assigns) do
     ~H"""
-    <span class="tooltip left" data-tooltip="Enter code zen (<)" data-el-code-zen-enable>
+    <span class="tooltip left" data-tooltip="Enter code zen (z)" data-el-code-zen-enable>
       <button class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
         aria-label="enter code zen"
         data-el-code-zen-enable-button>
