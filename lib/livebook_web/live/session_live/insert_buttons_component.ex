@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
           >+ Code</button>
-        <.menu id={"#{@id}-block-menu"} position="left">
+        <.menu id={"#{@id}-block-menu"} position="bottom-left">
           <:toggle>
             <button class="button-base button-small">+ Block</button>
           </:toggle>
@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
             </span>
 
           <% true -> %>
-            <.menu id={"#{@id}-smart-menu"} position="left">
+            <.menu id={"#{@id}-smart-menu"} position="bottom-left">
               <:toggle>
                 <button class="button-base button-small">+ Smart</button>
               </:toggle>

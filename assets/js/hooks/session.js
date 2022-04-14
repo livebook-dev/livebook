@@ -7,6 +7,7 @@ import {
   setFavicon,
   cancelEvent,
   isElementInViewport,
+  isElementHidden,
 } from "../lib/utils";
 import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
@@ -68,6 +69,7 @@ const Session = {
 
     this.focusedId = null;
     this.insertMode = false;
+    this.codeFocusMode = false;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientPid = {};
@@ -119,6 +121,21 @@ const Session = {
 
     this.getElement("notebook-indicators").addEventListener("click", (event) =>
       this.handleCellIndicatorsClick(event)
+    );
+
+    this.getElement("code-focus-mode-enable-button").addEventListener(
+      "click",
+      (event) => this.setCodeFocusMode(true)
+    );
+
+    this.getElement("code-focus-mode-disable-button").addEventListener(
+      "click",
+      (event) => this.setCodeFocusMode(false)
+    );
+
+    this.getElement("code-focus-mode-outputs-toggle").addEventListener(
+      "click",
+      (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
 
     window.addEventListener(
@@ -359,9 +376,11 @@ const Session = {
       } else if (keyBuffer.tryMatch(["N"])) {
         this.insertCellAboveFocused("code");
       } else if (keyBuffer.tryMatch(["m"])) {
-        this.insertCellBelowFocused("markdown");
+        !this.codeFocusMode && this.insertCellBelowFocused("markdown");
       } else if (keyBuffer.tryMatch(["M"])) {
-        this.insertCellAboveFocused("markdown");
+        !this.codeFocusMode && this.insertCellAboveFocused("markdown");
+      } else if (keyBuffer.tryMatch(["<"])) {
+        this.setCodeFocusMode(!this.codeFocusMode);
       }
     }
   },
@@ -852,6 +871,28 @@ const Session = {
     });
   },
 
+  setCodeFocusMode(enabled) {
+    this.codeFocusMode = enabled;
+
+    if (enabled) {
+      this.el.setAttribute("data-js-code-focus-mode", "");
+    } else {
+      this.el.removeAttribute("data-js-code-focus-mode");
+    }
+
+    if (this.focusedId) {
+      const visibleId = this.ensureVisibleFocusableEl(this.focusedId);
+
+      if (visibleId !== this.focused) {
+        this.setFocusedEl(visibleId, { scroll: false });
+      }
+
+      if (visibleId) {
+        this.getFocusableEl(visibleId).scrollIntoView({ block: "center" });
+      }
+    }
+  },
+
   // Server event handlers
 
   handleCellInserted(cellId) {
@@ -863,7 +904,12 @@ const Session = {
 
   handleCellDeleted(cellId, siblingCellId) {
     if (this.focusedId === cellId) {
-      this.setFocusedEl(siblingCellId);
+      if (this.codeFocusMode) {
+        const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
+        this.setFocusedEl(visibleSiblingId);
+      } else {
+        this.setFocusedEl(siblingCellId);
+      }
     }
   },
 
@@ -1061,6 +1107,20 @@ const Session = {
     }
   },
 
+  ensureVisibleFocusableEl(cellId) {
+    const focusableEl = this.getFocusableEl(cellId);
+    const allFocusableEls = Array.from(
+      this.el.querySelectorAll(`[data-focusable-id]`)
+    );
+    const idx = allFocusableEls.indexOf(focusableEl);
+    const visibleSibling = [
+      ...allFocusableEls.slice(idx, -1),
+      ...allFocusableEls.slice(0, idx).reverse(),
+    ].find((el) => !isElementHidden(el));
+
+    return visibleSibling && visibleSibling.getAttribute("data-focusable-id");
+  },
+
   isCell(focusableId) {
     const el = this.getFocusableEl(focusableId);
     return el.hasAttribute("data-el-cell");
@@ -1081,7 +1141,9 @@ const Session = {
   },
 
   getFocusableEls() {
-    return Array.from(this.el.querySelectorAll(`[data-focusable-id]`));
+    return Array.from(this.el.querySelectorAll(`[data-focusable-id]`)).filter(
+      (el) => !isElementHidden(el)
+    );
   },
 
   getFocusableIds() {

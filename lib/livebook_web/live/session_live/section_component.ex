@@ -89,7 +89,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         </div>
       </div>
       <%= if @section_view.parent do %>
-        <h3 class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800">
+        <h3 class="mt-1 flex items-end space-x-1 text-sm font-semibold text-gray-800" data-el-section-subheadline>
           <span class="tooltip bottom" data-tooltip={"This section branches out from the main flow\nand can be evaluated in parallel"}>
             <.remix_icon icon="git-branch-line" class="text-lg font-normal flip-horizontally leading-none" />
           </span>
