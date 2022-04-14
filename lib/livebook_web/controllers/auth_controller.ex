@@ -8,10 +8,10 @@ defmodule LivebookWeb.AuthController do
   defp require_unauthenticated(conn, _opts) do
     auth_mode = Livebook.Config.auth_mode()
 
-    cond do
-      auth_mode not in [:password, :token] -> redirect_home(conn)
-      AuthPlug.authenticated?(conn, auth_mode) -> redirect_home(conn)
-      true -> conn
+    if auth_mode not in [:password, :token] or AuthPlug.authenticated?(conn, auth_mode) do
+      redirect_home(conn)
+    else
+      conn
     end
   end
 

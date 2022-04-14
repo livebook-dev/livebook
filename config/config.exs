@@ -19,15 +19,12 @@ config :mime, :types, %{
   "text/plain" => ["livemd"]
 }
 
-# Sets the default storage backend
-config :livebook, :storage, Livebook.Storage.Ets
-
-# Sets the default authentication mode to token
-config :livebook, :authentication_mode, :token
-
-config :livebook, :plugs, []
-
-config :livebook, :explore_notebooks, []
+config :livebook,
+  authentication_mode: :token,
+  explore_notebooks: [],
+  plugs: [],
+  shutdown_enabled: false,
+  storage: Livebook.Storage.Ets
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

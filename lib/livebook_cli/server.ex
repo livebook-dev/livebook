@@ -45,7 +45,7 @@ defmodule LivebookCLI.Server do
                            explicitly for the given notebook, defaults to standalone
                            Supported options:
                              * standalone - Elixir standalone
-                             * mix[:PATH] - Mix standalone
+                             * mix[:PATH][:FLAGS] - Mix standalone
                              * attached:NODE:COOKIE - Attached
                              * embedded - Embedded
       --home               The home path for the Livebook instance

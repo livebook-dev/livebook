@@ -98,6 +98,14 @@ defmodule Livebook.Config do
     end
   end
 
+  @doc """
+  Returns whether the shutdown feature is enabled.
+  """
+  @spec shutdown_enabled?() :: boolean()
+  def shutdown_enabled?() do
+    Application.fetch_env!(:livebook, :shutdown_enabled)
+  end
+
   ## Parsing
 
   @doc """
@@ -202,8 +210,11 @@ defmodule Livebook.Config do
   @doc """
   Parses token auth setting from env.
   """
-  def token_enabled!(env) do
-    System.get_env(env, "1") in ~w(true 1)
+  def boolean!(env, default \\ false) do
+    case System.get_env(env) do
+      nil -> default
+      var -> var in ~w(true 1)
+    end
   end
 
   @doc """
@@ -244,10 +255,16 @@ defmodule Livebook.Config do
             )
         end
 
-      "mix:" <> path ->
+      "mix:" <> config ->
+        {path, flags} = parse_mix_config!(config)
+
         case mix_path(path) do
           {:ok, path} ->
-            Livebook.Runtime.MixStandalone.new(path)
+            if Livebook.Utils.valid_cli_flags?(flags) do
+              Livebook.Runtime.MixStandalone.new(path, flags)
+            else
+              abort!(~s{"#{flags}" is not a valid flag sequence})
+            end
 
           :error ->
             abort!(~s{"#{path}" does not point to a Mix project})
@@ -261,6 +278,13 @@ defmodule Livebook.Config do
         abort!(
           ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
         )
+    end
+  end
+
+  defp parse_mix_config!(config) do
+    case String.split(config, ":", parts: 2) do
+      [path] -> {path, ""}
+      [path, flags] -> {path, flags}
     end
   end
 
