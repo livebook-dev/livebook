@@ -260,27 +260,27 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-session][data-js-code-focus-mode] [data-el-section-headline],
-[data-el-session][data-js-code-focus-mode] [data-el-section-subheadline],
-[data-el-session][data-js-code-focus-mode] [data-el-cell][data-type="markdown"],
-[data-el-session][data-js-code-focus-mode] [data-el-actions],
-[data-el-session][data-js-code-focus-mode] [data-el-insert-buttons] {
+[data-el-session][data-js-code-zen] [data-el-section-headline],
+[data-el-session][data-js-code-zen] [data-el-section-subheadline],
+[data-el-session][data-js-code-zen] [data-el-cell][data-type="markdown"],
+[data-el-session][data-js-code-zen] [data-el-actions],
+[data-el-session][data-js-code-zen] [data-el-insert-buttons] {
   @apply hidden;
 }
 
-[data-el-session][data-js-code-focus-mode] [data-el-sections-container] {
+[data-el-session][data-js-code-zen] [data-el-sections-container] {
   @apply space-y-0 mt-0;
 }
 
-[data-el-session][data-js-code-focus-mode][data-js-no-outputs]
+[data-el-session][data-js-code-zen][data-js-no-outputs]
   [data-el-outputs-container] {
   @apply hidden;
 }
 
-[data-el-session][data-js-code-focus-mode] [data-el-code-focus-mode-enable] {
+[data-el-session][data-js-code-zen] [data-el-code-zen-enable] {
   @apply hidden;
 }
 
-[data-el-session]:not([data-js-code-focus-mode]) [data-el-focus-mode-options] {
+[data-el-session]:not([data-js-code-zen]) [data-el-focus-mode-options] {
   @apply hidden;
 }

@@ -69,7 +69,7 @@ const Session = {
 
     this.focusedId = null;
     this.insertMode = false;
-    this.codeFocusMode = false;
+    this.codeZen = false;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
     this.lastLocationReportByClientPid = {};
@@ -123,17 +123,17 @@ const Session = {
       this.handleCellIndicatorsClick(event)
     );
 
-    this.getElement("code-focus-mode-enable-button").addEventListener(
+    this.getElement("code-zen-enable-button").addEventListener(
       "click",
-      (event) => this.setCodeFocusMode(true)
+      (event) => this.setCodeZen(true)
     );
 
-    this.getElement("code-focus-mode-disable-button").addEventListener(
+    this.getElement("code-zen-disable-button").addEventListener(
       "click",
-      (event) => this.setCodeFocusMode(false)
+      (event) => this.setCodeZen(false)
     );
 
-    this.getElement("code-focus-mode-outputs-toggle").addEventListener(
+    this.getElement("code-zen-outputs-toggle").addEventListener(
       "click",
       (event) => this.el.toggleAttribute("data-js-no-outputs")
     );
@@ -376,11 +376,11 @@ const Session = {
       } else if (keyBuffer.tryMatch(["N"])) {
         this.insertCellAboveFocused("code");
       } else if (keyBuffer.tryMatch(["m"])) {
-        !this.codeFocusMode && this.insertCellBelowFocused("markdown");
+        !this.codeZen && this.insertCellBelowFocused("markdown");
       } else if (keyBuffer.tryMatch(["M"])) {
-        !this.codeFocusMode && this.insertCellAboveFocused("markdown");
+        !this.codeZen && this.insertCellAboveFocused("markdown");
       } else if (keyBuffer.tryMatch(["<"])) {
-        this.setCodeFocusMode(!this.codeFocusMode);
+        this.setCodeZen(!this.codeZen);
       }
     }
   },
@@ -871,13 +871,13 @@ const Session = {
     });
   },
 
-  setCodeFocusMode(enabled) {
-    this.codeFocusMode = enabled;
+  setCodeZen(enabled) {
+    this.codeZen = enabled;
 
     if (enabled) {
-      this.el.setAttribute("data-js-code-focus-mode", "");
+      this.el.setAttribute("data-js-code-zen", "");
     } else {
-      this.el.removeAttribute("data-js-code-focus-mode");
+      this.el.removeAttribute("data-js-code-zen");
     }
 
     if (this.focusedId) {
@@ -904,7 +904,7 @@ const Session = {
 
   handleCellDeleted(cellId, siblingCellId) {
     if (this.focusedId === cellId) {
-      if (this.codeFocusMode) {
+      if (this.codeZen) {
         const visibleSiblingId = this.ensureVisibleFocusableEl(siblingCellId);
         this.setFocusedEl(visibleSiblingId);
       } else {

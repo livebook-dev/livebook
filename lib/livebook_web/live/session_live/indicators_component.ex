@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col items-center space-y-2" data-el-notebook-indicators>
-      <.focus_mode_indicator />
+      <.code_zen_indicator />
       <%= if @file do %>
         <%= if @dirty do %>
           <%= if @autosave_interval_s do %>
@@ -68,12 +68,12 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     """
   end
 
-  defp focus_mode_indicator(assigns) do
+  defp code_zen_indicator(assigns) do
     ~H"""
-    <span class="tooltip left" data-tooltip="Enter code focus mode" data-el-code-focus-mode-enable>
+    <span class="tooltip left" data-tooltip="Enter code zen" data-el-code-zen-enable>
       <button class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="enter code focus mode"
-        data-el-code-focus-mode-enable-button>
+        aria-label="enter code zen"
+        data-el-code-zen-enable-button>
         <.remix_icon icon="code-line" class="text-xl text-gray-400" />
       </button>
     </span>
@@ -81,22 +81,22 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <.menu id="focus-mode-menu" position="top-right">
         <:toggle>
           <button class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
-            aria-label="code focus mode options">
+            aria-label="code zen options">
             <.remix_icon icon="code-line" class="text-xl text-green-bright-400" />
           </button>
         </:toggle>
         <:content>
           <button class="menu-item text-gray-500"
             role="menuitem"
-            data-el-code-focus-mode-outputs-toggle>
+            data-el-code-zen-outputs-toggle>
             <.remix_icon icon="layout-bottom-2-line" />
             <span class="font-medium">Toggle outputs</span>
           </button>
           <button class="menu-item text-gray-500"
             role="menuitem"
-            data-el-code-focus-mode-disable-button>
+            data-el-code-zen-disable-button>
             <.remix_icon icon="close-line" />
-            <span class="font-medium">Exit code focus mode</span>
+            <span class="font-medium">Exit code zen</span>
           </button>
         </:content>
       </.menu>
