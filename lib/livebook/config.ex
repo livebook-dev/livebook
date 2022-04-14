@@ -98,6 +98,14 @@ defmodule Livebook.Config do
     end
   end
 
+  @doc """
+  Returns whether the shutdown feature is enabled.
+  """
+  @spec shutdown_enabled?() :: boolean()
+  def shutdown_enabled?() do
+    Application.fetch_env!(:livebook, :shutdown_enabled)
+  end
+
   ## Parsing
 
   @doc """
@@ -202,8 +210,11 @@ defmodule Livebook.Config do
   @doc """
   Parses token auth setting from env.
   """
-  def token_enabled!(env) do
-    System.get_env(env, "1") in ~w(true 1)
+  def boolean!(env, default \\ false) do
+    case System.get_env(env) do
+      nil -> default
+      var -> var in ~w(true 1)
+    end
   end
 
   @doc """

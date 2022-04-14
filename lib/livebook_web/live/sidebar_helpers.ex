@@ -58,7 +58,7 @@ defmodule LivebookWeb.SidebarHelpers do
   end
 
   def shutdown_item(assigns) do
-    if :code.get_mode() == :interactive do
+    if Livebook.Config.shutdown_enabled?() do
       ~H"""
       <span class="tooltip right distant" data-tooltip="Shutdown">
         <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
@@ -121,13 +121,17 @@ defmodule LivebookWeb.SidebarHelpers do
   end
 
   def shared_home_handlers(socket) do
-    attach_hook(socket, :shutdown, :handle_event, fn
-      "shutdown", _params, socket ->
-        System.stop()
-        {:halt, put_flash(socket, :info, "Livebook is shutting down. You can close this page.")}
+    if Livebook.Config.shutdown_enabled?() do
+      attach_hook(socket, :shutdown, :handle_event, fn
+        "shutdown", _params, socket ->
+          System.stop()
+          {:halt, put_flash(socket, :info, "Livebook is shutting down. You can close this page.")}
 
-      _event, _params, socket ->
-        {:cont, socket}
-    end)
+        _event, _params, socket ->
+          {:cont, socket}
+      end)
+    else
+      socket
+    end
   end
 end
