@@ -72,7 +72,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     ~H"""
     <span class="tooltip left" data-tooltip="Enter code focus mode" data-el-code-focus-mode-enable>
       <button class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-        aria-label="focus mode options"
+        aria-label="enter code focus mode"
         data-el-code-focus-mode-enable-button>
         <.remix_icon icon="code-line" class="text-xl text-gray-400" />
       </button>
@@ -81,7 +81,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
       <.menu id="focus-mode-menu" position="top-right">
         <:toggle>
           <button class="icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50"
-            aria-label="focus mode options">
+            aria-label="code focus mode options">
             <.remix_icon icon="code-line" class="text-xl text-green-bright-400" />
           </button>
         </:toggle>
