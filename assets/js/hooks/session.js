@@ -357,7 +357,11 @@ const Session = {
         this.showShortcuts();
       } else if (
         keyBuffer.tryMatch(["i"]) ||
-        (event.target === document.body && this.focusedId && key === "Enter")
+        (event.target.matches(
+          `body, [data-el-cell-body], [data-el-heading], [data-focusable-id]`
+        ) &&
+          this.focusedId &&
+          key === "Enter")
       ) {
         cancelEvent(event);
         if (this.isInsertModeAvailable()) {
