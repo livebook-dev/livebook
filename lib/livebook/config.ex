@@ -98,6 +98,14 @@ defmodule Livebook.Config do
     end
   end
 
+  @doc """
+  Returns whether the shutdown feature is enabled.
+  """
+  @spec shutdown_enabled?() :: boolean()
+  def shutdown_enabled?() do
+    Application.fetch_env!(:livebook, :shutdown_enabled)
+  end
+
   ## Parsing
 
   @doc """
