@@ -244,10 +244,16 @@ defmodule Livebook.Config do
             )
         end
 
-      "mix:" <> path ->
+      "mix:" <> config ->
+        {path, flags} = parse_mix_config!(config)
+
         case mix_path(path) do
           {:ok, path} ->
-            Livebook.Runtime.MixStandalone.new(path)
+            if Livebook.Utils.valid_cli_flags?(flags) do
+              Livebook.Runtime.MixStandalone.new(path, flags)
+            else
+              abort!(~s{"#{flags}" is not a valid flag sequence})
+            end
 
           :error ->
             abort!(~s{"#{path}" does not point to a Mix project})
@@ -261,6 +267,13 @@ defmodule Livebook.Config do
         abort!(
           ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
         )
+    end
+  end
+
+  defp parse_mix_config!(config) do
+    case String.split(config, ":", parts: 2) do
+      [path] -> {path, ""}
+      [path, flags] -> {path, flags}
     end
   end
 

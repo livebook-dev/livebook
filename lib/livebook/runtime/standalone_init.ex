@@ -110,7 +110,7 @@ defmodule Livebook.Runtime.StandaloneInit do
           loop.(loop)
 
         {:DOWN, ^port_ref, :port, _object, _reason} ->
-          {:error, "Elixir process terminated unexpectedly"}
+          {:error, "Elixir terminated unexpectedly, please check the terminal for errors"}
       after
         # Use a longer timeout to account for longer child node startup,
         # as may happen when starting with Mix.

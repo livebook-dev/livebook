@@ -20,8 +20,9 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
        session: session,
        status: :initial,
        current_runtime: current_runtime,
-       file: initial_file(current_runtime),
+       data: initial_data(current_runtime),
        outputs: [],
+       outputs_version: 0,
        emitter: nil
      ), temporary_assigns: [outputs: []]}
   end
@@ -41,27 +42,40 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         inside a Mix project because the dependencies of the project
         itself have been installed instead.
       </p>
-      <%= if @status == :initial do %>
+      <%= if @status != :initializing do %>
         <div class="h-full h-52">
           <.live_component module={LivebookWeb.FileSelectComponent}
               id="mix-project-dir"
-              file={@file}
+              file={@data.file}
               extnames={[]}
               running_files={[]}
-              submit_event={if(disabled?(@file.path), do: nil, else: :init)}
+              submit_event={if(data_valid?(@data), do: :init, else: nil)}
               file_system_select_disabled={true} />
         </div>
-        <button class="button-base button-blue" phx-click="init" disabled={disabled?(@file.path)}>
-          <%= if(matching_runtime?(@current_runtime, @file.path), do: "Reconnect", else: "Connect") %>
-        </button>
+        <form phx-change="validate" phx-submit="init">
+          <div>
+            <div class="input-label"><code>mix run</code> command-line flags</div>
+            <input class="input"
+              type="text"
+              name="flags"
+              value={@data.flags}
+              spellcheck="false"
+              autocomplete="off" />
+          </div>
+          <button class="mt-5 button-base button-blue"
+            type="submit"
+            disabled={not data_valid?(@data)}>
+            <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>
+          </button>
+        </form>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
           <pre><code class="max-h-40 overflow-y-auto tiny-scrollbar"
-            id="mix-standalone-init-output"
+            id={"mix-standalone-init-output-#{@outputs_version}"}
             phx-update="append"
             phx-hook="ScrollOnUpdate"
-            ><%= for {output, i} <- @outputs do %><span id={"output-#{i}"}><%= ansi_string_to_html(output) %></span><% end %></code></pre>
+            ><%= for {output, i} <- @outputs do %><span id={"mix-standalone-init-output-#{@outputs_version}-#{i}"}><%= ansi_string_to_html(output) %></span><% end %></code></pre>
         </div>
       <% end %>
     </div>
@@ -73,9 +87,13 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
     handle_init(socket)
   end
 
+  def handle_event("validate", %{"flags" => flags}, socket) do
+    {:noreply, update(socket, :data, &%{&1 | flags: flags})}
+  end
+
   @impl true
   def handle_info({:set_file, file, _info}, socket) do
-    {:noreply, assign(socket, :file, file)}
+    {:noreply, update(socket, :data, &%{&1 | file: file})}
   end
 
   def handle_info(:init, socket) do
@@ -104,31 +122,40 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
 
   defp handle_init(socket) do
     emitter = Utils.Emitter.new(self())
-    runtime = Runtime.MixStandalone.new(socket.assigns.file.path)
+    runtime = Runtime.MixStandalone.new(socket.assigns.data.file.path, socket.assigns.data.flags)
     Runtime.MixStandalone.connect_async(runtime, emitter)
-    {:noreply, assign(socket, status: :initializing, emitter: emitter)}
+
+    {:noreply,
+     socket
+     |> assign(status: :initializing, emitter: emitter, outputs: [])
+     |> update(:outputs_version, &(&1 + 1))}
   end
 
   defp add_output(socket, output) do
     assign(socket, outputs: socket.assigns.outputs ++ [{output, Utils.random_id()}])
   end
 
-  defp initial_file(%Runtime.MixStandalone{} = current_runtime) do
-    FileSystem.File.local(current_runtime.project_path)
+  defp initial_data(%Runtime.MixStandalone{project_path: project_path, flags: flags}) do
+    file =
+      project_path
+      |> FileSystem.Utils.ensure_dir_path()
+      |> FileSystem.File.local()
+
+    %{file: file, flags: flags}
   end
 
-  defp initial_file(_runtime) do
-    Livebook.Config.local_filesystem_home()
+  defp initial_data(_runtime) do
+    %{file: Livebook.Config.local_filesystem_home(), flags: ""}
   end
 
-  defp matching_runtime?(%Runtime.MixStandalone{} = runtime, path) do
-    Path.expand(runtime.project_path) == Path.expand(path)
+  defp matching_runtime?(%Runtime.MixStandalone{} = runtime, data) do
+    Path.expand(runtime.project_path) == Path.expand(data.file.path)
   end
 
   defp matching_runtime?(_runtime, _path), do: false
 
-  defp disabled?(path) do
-    not mix_project_root?(path)
+  defp data_valid?(data) do
+    mix_project_root?(data.file.path) and Livebook.Utils.valid_cli_flags?(data.flags)
   end
 
   defp mix_project_root?(path) do
