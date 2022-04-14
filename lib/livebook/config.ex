@@ -202,8 +202,11 @@ defmodule Livebook.Config do
   @doc """
   Parses token auth setting from env.
   """
-  def token_enabled!(env) do
-    System.get_env(env, "1") in ~w(true 1)
+  def boolean!(env, default \\ false) do
+    case System.get_env(env) do
+      nil -> default
+      var -> var in ~w(true 1)
+    end
   end
 
   @doc """

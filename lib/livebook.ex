@@ -102,7 +102,7 @@ defmodule Livebook do
       password = Livebook.Config.password!("LIVEBOOK_PASSWORD") ->
         config :livebook, authentication_mode: :password, password: password
 
-      Livebook.Config.token_enabled!("LIVEBOOK_TOKEN_ENABLED") ->
+      Livebook.Config.boolean!("LIVEBOOK_TOKEN_ENABLED", true) ->
         config :livebook, token: Livebook.Utils.random_id()
 
       true ->
@@ -111,6 +111,10 @@ defmodule Livebook do
 
     if port = Livebook.Config.port!("LIVEBOOK_IFRAME_PORT") do
       config :livebook, :iframe_port, port
+    end
+
+    if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
+      config :livebook, :shutdown_enabled, true
     end
 
     config :livebook,
