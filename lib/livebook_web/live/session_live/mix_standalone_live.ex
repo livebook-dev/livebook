@@ -54,7 +54,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         </div>
         <form phx-change="validate" phx-submit="init">
           <div>
-            <div class="input-label">Mix run flags</div>
+            <div class="input-label"><code>mix run</code> command-line flags</div>
             <input class="input"
               type="text"
               name="flags"
