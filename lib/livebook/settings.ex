@@ -100,7 +100,7 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns the user preference for update check.
+  Returns whether the user wants to see update notifications.
   """
   @spec update_notifications_enabled?() :: boolean()
   def update_notifications_enabled?() do
@@ -111,7 +111,7 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Sets the user preference for update check.
+  Sets user preference for update notifications.
   """
   @spec set_update_notifications_enabled(boolean()) :: :ok
   def set_update_notifications_enabled(enabled) do
