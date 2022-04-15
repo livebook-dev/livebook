@@ -26,10 +26,10 @@ defmodule Livebook.UpdateCheck do
     current_version = Application.spec(:livebook, :vsn) |> List.to_string()
     latest_version = get_version()
 
-    if latest_version in [nil, current_version] do
-      nil
-    else
+    if latest_version && Version.compare(current_version, latest_version) == :lt do
       latest_version
+    else
+      nil
     end
   end
 
