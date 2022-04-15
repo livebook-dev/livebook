@@ -72,12 +72,10 @@ defmodule LivebookWeb.AuthPlugTest do
     test "redirects to referer on valid authentication", %{conn: conn} do
       referer = "/import?url=example.com"
 
-      conn =
-        conn
-        |> merge_private(plug_session: %{})
-        |> put_session(:redirect_to, referer)
-        |> post(Routes.auth_path(conn, :authenticate), token: "grumpycat")
+      conn = get(conn, referer)
+      assert redirected_to(conn) == "/authenticate"
 
+      conn = post(conn, "/authenticate", token: "grumpycat")
       assert redirected_to(conn) == referer
     end
 
@@ -137,12 +135,10 @@ defmodule LivebookWeb.AuthPlugTest do
     test "redirects to referer on valid authentication", %{conn: conn} do
       referer = "/import?url=example.com"
 
-      conn =
-        conn
-        |> merge_private(plug_session: %{})
-        |> put_session(:redirect_to, referer)
-        |> post(Routes.auth_path(conn, :authenticate), password: "grumpycat")
+      conn = get(conn, referer)
+      assert redirected_to(conn) == "/authenticate"
 
+      conn = post(conn, "/authenticate", password: "grumpycat")
       assert redirected_to(conn) == referer
     end
 
