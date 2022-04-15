@@ -155,6 +155,17 @@ defmodule Livebook do
              :app_service_url,
              Livebook.Config.app_service_url!("LIVEBOOK_APP_SERVICE_URL")
     end
+
+    case Livebook.Config.update_instructions_url!("LIVEBOOK_UPDATE_INSTRUCTIONS_URL") do
+      nil ->
+        :ok
+
+      :disabled ->
+        config :livebook, :update_check_enabled, false
+
+      url ->
+        config :livebook, :update_instructions_url, url
+    end
   end
 
   @doc """

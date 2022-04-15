@@ -26,7 +26,9 @@ config :livebook,
   explore_notebooks: [],
   plugs: [],
   shutdown_enabled: false,
-  storage: Livebook.Storage.Ets
+  storage: Livebook.Storage.Ets,
+  update_check_enabled: true,
+  update_instructions_url: "https://livebook.dev/#install"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

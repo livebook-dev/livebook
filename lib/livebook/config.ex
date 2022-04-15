@@ -122,6 +122,22 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :app_service_url)
   end
 
+  @doc """
+  Returns whether the update check is enabled.
+  """
+  @spec update_check_enabled?() :: boolean()
+  def update_check_enabled?() do
+    Application.fetch_env!(:livebook, :update_check_enabled)
+  end
+
+  @doc """
+  Returns the update check URL.
+  """
+  @spec update_instructions_url() :: String.t()
+  def update_instructions_url() do
+    Application.fetch_env!(:livebook, :update_instructions_url)
+  end
+
   ## Parsing
 
   @doc """
@@ -252,6 +268,19 @@ defmodule Livebook.Config do
   """
   def app_service_url!(env) do
     System.get_env(env)
+  end
+
+  @doc """
+  Parses update instructions url from env.
+
+  When the env is set to "0", returns `:disabled`.
+  """
+  def update_instructions_url!(env) do
+    case System.get_env(env) do
+      nil -> nil
+      "0" -> :disabled
+      url -> url
+    end
   end
 
   @doc """

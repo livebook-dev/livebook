@@ -16,6 +16,10 @@ defmodule LivebookWeb.HomeLive do
     sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
+    new_version =
+      if Livebook.Settings.update_notifications_enabled?(),
+        do: Livebook.UpdateCheck.new_version()
+
     {:ok,
      socket
      |> SidebarHelpers.shared_home_handlers()
@@ -25,7 +29,9 @@ defmodule LivebookWeb.HomeLive do
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
-       page_title: "Livebook"
+       page_title: "Livebook",
+       new_version: new_version,
+       update_instructions_url: Livebook.Config.update_instructions_url()
      )}
   end
 
@@ -39,6 +45,7 @@ defmodule LivebookWeb.HomeLive do
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
+          <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
           <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
                       sm:flex-row sm:space-y-0 sm:justify-between">
             <div class="text-2xl text-gray-800 font-semibold">
@@ -152,6 +159,24 @@ defmodule LivebookWeb.HomeLive do
     else
       []
     end
+  end
+
+  defp update_notification(%{version: nil} = assigns), do: ~H""
+
+  defp update_notification(assigns) do
+    ~H"""
+    <div class="flex justify-between items-center border-b border-gray-200 pb-4 text-gray-700">
+      <span>
+        Livebook v<%= @version %> available! Check out the
+        <a class="font-semibold"
+          href={"https://github.com/livebook-dev/livebook/releases/tag/v#{@version}"}
+          target="_blank">release notes</a> 🚀
+      </span>
+      <a class="button-base button-outlined-blue"
+        href={@instructions_url}
+        target="_blank">Update</a>
+    </div>
+    """
   end
 
   @impl true
