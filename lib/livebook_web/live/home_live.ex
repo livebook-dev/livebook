@@ -25,7 +25,9 @@ defmodule LivebookWeb.HomeLive do
        file_info: %{exists: true, access: :read_write},
        sessions: sessions,
        notebook_infos: notebook_infos,
-       page_title: "Livebook"
+       page_title: "Livebook",
+       app_service_url: Livebook.Config.app_service_url(),
+       memory: Livebook.SystemResources.memory()
      )}
   end
 
@@ -39,6 +41,7 @@ defmodule LivebookWeb.HomeLive do
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
+          <.memory_notification memory={@memory} app_service_url={@app_service_url} />
           <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
                       sm:flex-row sm:space-y-0 sm:justify-between">
             <div class="text-2xl text-gray-800 font-semibold">
@@ -104,7 +107,7 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
           </div>
-          <div class="py-12" role="region" aria-label="running sessions">
+          <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
               sessions={@sessions}/>
@@ -152,6 +155,23 @@ defmodule LivebookWeb.HomeLive do
     else
       []
     end
+  end
+
+  defp memory_notification(assigns) do
+    ~H"""
+    <%= if @app_service_url && @memory.free < 30_000_000 do %>
+      <div class="flex justify-between items-center border-b border-gray-200 pb-4 text-gray-700">
+        <span class="flex items-end">
+          <.remix_icon icon="alarm-warning-line" class="text-xl mr-2" />
+          <span>
+          Less than 30 MB of memory left, consider adding more resources to
+          <a class="font-semibold" href={@app_service_url} target="_blank">the instance</a>
+          or closing <a class="font-semibold" href="#running-sessions">running sessions</a>.
+          </span>
+        </span>
+      </div>
+    <% end %>
+    """
   end
 
   @impl true
