@@ -16,7 +16,7 @@ defmodule LivebookWeb.SettingsLive do
          file: autosave_dir(),
          dialog_opened?: false
        },
-       update_notifications_enabled: Livebook.Settings.update_notifications_enabled?(),
+       update_check_enabled: Livebook.UpdateCheck.enabled?(),
        page_title: "Livebook - Settings"
      )}
   end
@@ -82,9 +82,9 @@ defmodule LivebookWeb.SettingsLive do
             </h2>
             <form phx-change="save" onsubmit="return false;">
               <.switch_checkbox
-                name="update_notifications_enabled"
+                name="update_check_enabled"
                 label="Show available Livebook updates"
-                checked={@update_notifications_enabled} />
+                checked={@update_check_enabled} />
             </form>
           </div>
           <!-- Autosave path configuration -->
@@ -264,10 +264,10 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, file_systems: file_systems)}
   end
 
-  def handle_event("save", %{"update_notifications_enabled" => enabled}, socket) do
+  def handle_event("save", %{"update_check_enabled" => enabled}, socket) do
     enabled = enabled == "true"
-    Livebook.Settings.set_update_notifications_enabled(enabled)
-    {:noreply, assign(socket, :update_notifications_enabled, enabled)}
+    Livebook.UpdateCheck.set_enabled(enabled)
+    {:noreply, assign(socket, :update_check_enabled, enabled)}
   end
 
   @impl true

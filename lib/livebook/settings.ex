@@ -100,21 +100,21 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Returns whether the user wants to see update notifications.
+  Returns whether the update check is enabled.
   """
-  @spec update_notifications_enabled?() :: boolean()
-  def update_notifications_enabled?() do
-    case storage().fetch_key(:settings, "global", :update_notifications_enabled) do
+  @spec update_check_enabled?() :: boolean()
+  def update_check_enabled?() do
+    case storage().fetch_key(:settings, "global", :update_check_enabled) do
       {:ok, value} -> value
       :error -> true
     end
   end
 
   @doc """
-  Sets user preference for update notifications.
+  Sets whether the update check is enabled.
   """
-  @spec set_update_notifications_enabled(boolean()) :: :ok
-  def set_update_notifications_enabled(enabled) do
-    storage().insert(:settings, "global", update_notifications_enabled: enabled)
+  @spec set_update_check_enabled(boolean()) :: :ok
+  def set_update_check_enabled(enabled) do
+    storage().insert(:settings, "global", update_check_enabled: enabled)
   end
 end

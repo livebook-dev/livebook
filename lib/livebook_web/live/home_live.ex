@@ -16,10 +16,6 @@ defmodule LivebookWeb.HomeLive do
     sessions = Sessions.list_sessions()
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
-    new_version =
-      if Livebook.Settings.update_notifications_enabled?(),
-        do: Livebook.UpdateCheck.new_version()
-
     {:ok,
      socket
      |> SidebarHelpers.shared_home_handlers()
@@ -30,7 +26,7 @@ defmodule LivebookWeb.HomeLive do
        sessions: sessions,
        notebook_infos: notebook_infos,
        page_title: "Livebook",
-       new_version: new_version,
+       new_version: Livebook.UpdateCheck.new_version(),
        update_instructions_url: Livebook.Config.update_instructions_url()
      )}
   end
@@ -165,16 +161,14 @@ defmodule LivebookWeb.HomeLive do
 
   defp update_notification(assigns) do
     ~H"""
-    <div class="flex justify-between items-center border-b border-gray-200 pb-4 text-gray-700">
-      <span>
-        Livebook v<%= @version %> available! Check out the
-        <a class="font-semibold"
-          href={"https://github.com/livebook-dev/livebook/releases/tag/v#{@version}"}
-          target="_blank">release notes</a> 🚀
-      </span>
-      <a class="button-base button-outlined-blue"
-        href={@instructions_url}
-        target="_blank">Update</a>
+    <div class="border-b border-gray-200 pb-4 text-gray-700">
+      Livebook v<%= @version %> available! Check out the news on
+      <a class="font-semibold" href="https://livebook.dev/" target="_blank">livebook.dev</a>
+      <%= if @instructions_url do %>
+        and follow the
+        <a class="font-semibold" href={@instructions_url} target="_blank">update instructions</a>
+      <% end %>
+      🚀
     </div>
     """
   end

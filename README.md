@@ -197,8 +197,7 @@ The following environment variables configure Livebook:
     disable it.
 
   * LIVEBOOK_UPDATE_INSTRUCTIONS_URL - sets the URL to direct the user to for
-    updating Livebook when a new version becomes available. Defaults to livebook.dev.
-    Set it to 0 to disable the update check.
+    updating Livebook when a new version becomes available.
 
 <!-- Environment variables -->
 
