@@ -53,7 +53,9 @@ defmodule LivebookWeb.SettingsLive do
                 <%= if app_name = Livebook.Config.app_service_name() do %>
                   <.labeled_text label="Application">
                     <%= if app_url = Livebook.Config.app_service_url() do %>
-                      <a href={app_url} target="_blank"><%= app_name %></a>
+                      <a href={app_url} class="underline hover:no-underline" target="_blank">
+                        <%= app_name %>
+                      </a>
                     <% else %>
                       <%= app_name %>
                     <% end %>
