@@ -20,7 +20,7 @@ if Mix.target() == :app do
       GenServer.start_link(__MODULE__, arg, name: @name)
     end
 
-    taskbar_icon_path = "static/images/taskbar_icon.png"
+    taskbar_icon_path = "rel/app/taskbar_icon.png"
     @external_resource taskbar_icon_path
     @taskbar_icon File.read!(taskbar_icon_path)
 
