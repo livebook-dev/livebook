@@ -1,3 +1,5 @@
+<!-- Note: for feature requests, use the "Ideas" section in the Discussions tab! -->
+
 ## Environment
 
 <!-- Note: you can also find versions at the /dashboard route of your Livebook. -->
