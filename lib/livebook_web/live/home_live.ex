@@ -107,7 +107,7 @@ defmodule LivebookWeb.HomeLive do
               <% end %>
             </div>
           </div>
-          <div class="py-12" role="region" aria-label="running sessions">
+          <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
               sessions={@sessions}/>
@@ -166,7 +166,7 @@ defmodule LivebookWeb.HomeLive do
           <span>
           Less than 30 MB of memory left, consider adding more resources to
           <a class="font-semibold" href={@app_service_url} target="_blank">the instance</a>
-          or closing sessions below.
+          or closing <a class="font-semibold" href="#running-sessions">running sessions</a>.
           </span>
         </span>
       </div>
