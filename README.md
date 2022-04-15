@@ -190,6 +190,10 @@ The following environment variables configure Livebook:
   * LIVEBOOK_FORCE_SSL_HOST - set a host to redirect to if the request is not over HTTP.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
+  * LIVEBOOK_APP_SERVICE_NAME - set a application service name.
+
+  * LIVEBOOK_APP_SERVICE_URL - set a application service url.
+
 <!-- Environment variables -->
 
 If running Livebook as a Docker image or an Elixir release, [the environment

@@ -147,6 +147,14 @@ defmodule Livebook do
            Livebook.Config.cookie!("LIVEBOOK_COOKIE") ||
              Livebook.Config.cookie!("RELEASE_COOKIE") ||
              Livebook.Utils.random_cookie()
+
+    if app_service_name = Livebook.Config.app_service_name!("LIVEBOOK_APP_SERVICE_NAME") do
+      config :livebook, :app_service_name, app_service_name
+
+      config :livebook,
+             :app_service_url,
+             Livebook.Config.app_service_url!("LIVEBOOK_APP_SERVICE_URL")
+    end
   end
 
   @doc """
