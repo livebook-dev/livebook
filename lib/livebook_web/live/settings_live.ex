@@ -51,19 +51,22 @@ defmodule LivebookWeb.SettingsLive do
             <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
               <div class="flex items-center space-x-12">
                 <%= if app_name = Livebook.Config.app_service_name() do %>
-                  <div class="flex flex-col space-y-1">
-                    <span class="text-sm text-gray-500">Application</span>
-                    <span class="text-gray-800 text-sm font-semibold">
-                      <%= if app_url = Livebook.Config.app_service_url() do %>
-                        <a href={app_url} target="_blank"><%= app_name %></a>
-                      <% else %>
+                  <.labeled_text label="Application">
+                    <%= if app_url = Livebook.Config.app_service_url() do %>
+                      <a href={app_url} class="underline hover:no-underline" target="_blank">
                         <%= app_name %>
-                      <% end %>
-                    </span>
-                  </div>
+                      </a>
+                    <% else %>
+                      <%= app_name %>
+                    <% end %>
+                  </.labeled_text>
                 <% end %>
-                <.labeled_text label="Livebook" text={"v#{Application.spec(:livebook, :vsn)}"} />
-                <.labeled_text label="Elixir" text={"v#{System.version()}"} />
+                <.labeled_text label="Livebook">
+                  v<%= Application.spec(:livebook, :vsn) %>
+                </.labeled_text>
+                <.labeled_text label="Elixir">
+                  v<%= System.version() %>
+                </.labeled_text>
               </div>
 
               <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),

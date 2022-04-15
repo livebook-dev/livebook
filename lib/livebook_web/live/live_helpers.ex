@@ -345,7 +345,7 @@ defmodule LivebookWeb.LiveHelpers do
 
   ## Examples
 
-      <.labeled_text label="Name" text="Sherlock Holmes" />
+      <.labeled_text label="Name">Sherlock Holmes</.labeled_text>
   """
   def labeled_text(assigns) do
     assigns = assign_new(assigns, :one_line, fn -> false end)
@@ -356,7 +356,7 @@ defmodule LivebookWeb.LiveHelpers do
         <%= @label %>
       </span>
       <span class={"text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"}>
-        <%= @text %>
+        <%= render_slot(@inner_block) %>
       </span>
     </div>
     """
