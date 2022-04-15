@@ -37,14 +37,6 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag token: "grumpycat"
-    test "store referer in session with key :redirect_to if exist current path", %{conn: conn} do
-      current_path = "/import?ur=example.com"
-      conn = get(conn, current_path)
-      assert redirected_to(conn) == "/authenticate"
-      assert get_session(conn, :redirect_to) == current_path
-    end
-
-    @tag token: "grumpycat"
     test "redirects to the same path when valid token is provided in query params", %{conn: conn} do
       conn = get(conn, "/?token=grumpycat")
 
@@ -112,14 +104,6 @@ defmodule LivebookWeb.AuthPlugTest do
     test "redirects to '/authenticate' if not authenticated", %{conn: conn} do
       conn = get(conn, "/")
       assert redirected_to(conn) == "/authenticate"
-    end
-
-    @tag password: "grumpycat"
-    test "store referer in session with key :redirect_to if exist current path", %{conn: conn} do
-      current_path = "/import?ur=example.com"
-      conn = get(conn, current_path)
-      assert redirected_to(conn) == "/authenticate"
-      assert get_session(conn, :redirect_to) == current_path
     end
 
     @tag password: "grumpycat"
