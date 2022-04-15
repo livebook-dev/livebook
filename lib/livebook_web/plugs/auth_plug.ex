@@ -70,6 +70,10 @@ defmodule LivebookWeb.AuthPlug do
 
   defp redirect_to_authenticate(conn) do
     conn
+    |> then(fn
+      %{method: "GET"} -> put_session(conn, :redirect_to, current_path(conn))
+      conn -> conn
+    end)
     |> redirect(to: "/authenticate")
     |> halt()
   end

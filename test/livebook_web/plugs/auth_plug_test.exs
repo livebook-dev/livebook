@@ -59,6 +59,39 @@ defmodule LivebookWeb.AuthPlugTest do
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
     end
+
+    @tag token: "grumpycat"
+    test "redirects to referer on valid authentication", %{conn: conn} do
+      referer = "/import?url=example.com"
+
+      conn = get(conn, referer)
+      assert redirected_to(conn) == "/authenticate"
+
+      conn = post(conn, "/authenticate", token: "grumpycat")
+      assert redirected_to(conn) == referer
+    end
+
+    @tag token: "grumpycat"
+    test "redirects back to '/authenticate' on invalid token", %{conn: conn} do
+      conn = post(conn, Routes.auth_path(conn, :authenticate), token: "invalid token")
+      assert html_response(conn, 200) =~ "Authentication required"
+
+      conn = get(conn, "/")
+      assert redirected_to(conn) == "/authenticate"
+    end
+
+    @tag token: "grumpycat"
+    test "persists authentication across requests (via /authenticate)", %{conn: conn} do
+      conn = post(conn, Routes.auth_path(conn, :authenticate), token: "grumpycat")
+      assert get_session(conn, "80:token")
+
+      conn = get(conn, "/")
+      assert conn.status == 200
+      assert conn.resp_body =~ "New notebook"
+
+      conn = get(conn, "/authenticate")
+      assert redirected_to(conn) == "/"
+    end
   end
 
   describe "password authentication" do
@@ -80,6 +113,17 @@ defmodule LivebookWeb.AuthPlugTest do
 
       conn = get(conn, "/")
       assert html_response(conn, 200) =~ "New notebook"
+    end
+
+    @tag password: "grumpycat"
+    test "redirects to referer on valid authentication", %{conn: conn} do
+      referer = "/import?url=example.com"
+
+      conn = get(conn, referer)
+      assert redirected_to(conn) == "/authenticate"
+
+      conn = post(conn, "/authenticate", password: "grumpycat")
+      assert redirected_to(conn) == referer
     end
 
     @tag password: "grumpycat"
