@@ -37,6 +37,14 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag token: "grumpycat"
+    test "store referer in session with key :redirect_to if exist current path", %{conn: conn} do
+      current_path = "/import?ur=example.com"
+      conn = get(conn, current_path)
+      assert redirected_to(conn) == "/authenticate"
+      assert get_session(conn, :redirect_to) == current_path
+    end
+
+    @tag token: "grumpycat"
     test "redirects to the same path when valid token is provided in query params", %{conn: conn} do
       conn = get(conn, "/?token=grumpycat")
 
@@ -59,6 +67,41 @@ defmodule LivebookWeb.AuthPlugTest do
       assert conn.status == 200
       assert conn.resp_body =~ "New notebook"
     end
+
+    @tag token: "grumpycat"
+    test "redirects to referer on valid authentication", %{conn: conn} do
+      referer = "/import?url=example.com"
+
+      conn =
+        conn
+        |> merge_private(plug_session: %{})
+        |> put_session(:redirect_to, referer)
+        |> post(Routes.auth_path(conn, :authenticate), token: "grumpycat")
+
+      assert redirected_to(conn) == referer
+    end
+
+    @tag token: "grumpycat"
+    test "redirects back to '/authenticate' on invalid token", %{conn: conn} do
+      conn = post(conn, Routes.auth_path(conn, :authenticate), token: "invalid token")
+      assert html_response(conn, 200) =~ "Authentication required"
+
+      conn = get(conn, "/")
+      assert redirected_to(conn) == "/authenticate"
+    end
+
+    @tag token: "grumpycat"
+    test "persists authentication across requests (via /authenticate)", %{conn: conn} do
+      conn = post(conn, Routes.auth_path(conn, :authenticate), token: "grumpycat")
+      assert get_session(conn, "80:token")
+
+      conn = get(conn, "/")
+      assert conn.status == 200
+      assert conn.resp_body =~ "New notebook"
+
+      conn = get(conn, "/authenticate")
+      assert redirected_to(conn) == "/"
+    end
   end
 
   describe "password authentication" do
@@ -74,12 +117,33 @@ defmodule LivebookWeb.AuthPlugTest do
     end
 
     @tag password: "grumpycat"
+    test "store referer in session with key :redirect_to if exist current path", %{conn: conn} do
+      current_path = "/import?ur=example.com"
+      conn = get(conn, current_path)
+      assert redirected_to(conn) == "/authenticate"
+      assert get_session(conn, :redirect_to) == current_path
+    end
+
+    @tag password: "grumpycat"
     test "redirects to '/' on valid authentication", %{conn: conn} do
       conn = post(conn, Routes.auth_path(conn, :authenticate), password: "grumpycat")
       assert redirected_to(conn) == "/"
 
       conn = get(conn, "/")
       assert html_response(conn, 200) =~ "New notebook"
+    end
+
+    @tag password: "grumpycat"
+    test "redirects to referer on valid authentication", %{conn: conn} do
+      referer = "/import?url=example.com"
+
+      conn =
+        conn
+        |> merge_private(plug_session: %{})
+        |> put_session(:redirect_to, referer)
+        |> post(Routes.auth_path(conn, :authenticate), password: "grumpycat")
+
+      assert redirected_to(conn) == referer
     end
 
     @tag password: "grumpycat"

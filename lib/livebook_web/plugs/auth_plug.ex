@@ -14,14 +14,7 @@ defmodule LivebookWeb.AuthPlug do
     mode = Livebook.Config.auth_mode()
 
     if authenticated?(conn, mode) do
-      if redirect_to = get_session(conn, :redirect_to) do
-        conn
-        |> delete_session(:redirect_to)
-        |> redirect(to: redirect_to)
-        |> halt()
-      else
-        conn
-      end
+      conn
     else
       authenticate(conn, mode)
     end
@@ -58,9 +51,7 @@ defmodule LivebookWeb.AuthPlug do
   end
 
   defp authenticate(conn, :password) do
-    conn
-    |> put_redirect_path_in_session()
-    |> redirect_to_authenticate()
+    redirect_to_authenticate(conn)
   end
 
   defp authenticate(conn, :token) do
@@ -73,20 +64,16 @@ defmodule LivebookWeb.AuthPlug do
       |> redirect(to: path_with_query(conn.request_path, query_params))
       |> halt()
     else
-      conn
-      |> put_redirect_path_in_session()
-      |> redirect_to_authenticate()
+      redirect_to_authenticate(conn)
     end
-  end
-
-  defp put_redirect_path_in_session(
-         %{request_path: request_path, query_params: query_params} = conn
-       ) do
-    put_session(conn, :redirect_to, path_with_query(request_path, query_params))
   end
 
   defp redirect_to_authenticate(conn) do
     conn
+    |> then(fn
+      %{method: "GET"} -> put_session(conn, :redirect_to, current_path(conn))
+      conn -> conn
+    end)
     |> redirect(to: "/authenticate")
     |> halt()
   end

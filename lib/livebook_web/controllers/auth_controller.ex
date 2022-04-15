@@ -9,7 +9,7 @@ defmodule LivebookWeb.AuthController do
     auth_mode = Livebook.Config.auth_mode()
 
     if auth_mode not in [:password, :token] or AuthPlug.authenticated?(conn, auth_mode) do
-      redirect_home(conn)
+      redirect_to(conn)
     else
       conn
     end
@@ -23,7 +23,7 @@ defmodule LivebookWeb.AuthController do
     conn = AuthPlug.store(conn, :password, password)
 
     if AuthPlug.authenticated?(conn, :password) do
-      redirect_home(conn)
+      redirect_to(conn)
     else
       index(conn, %{})
     end
@@ -33,15 +33,23 @@ defmodule LivebookWeb.AuthController do
     conn = AuthPlug.store(conn, :token, token)
 
     if AuthPlug.authenticated?(conn, :token) do
-      redirect_home(conn)
+      redirect_to(conn)
     else
       index(conn, %{})
     end
   end
 
-  defp redirect_home(conn) do
+  defp redirect_to(conn) do
     conn
-    |> redirect(to: "/")
+    |> then(fn conn ->
+      if redirect_to = get_session(conn, :redirect_to) do
+        conn
+        |> delete_session(:redirect_to)
+        |> redirect(to: redirect_to)
+      else
+        redirect(conn, to: "/")
+      end
+    end)
     |> halt()
   end
 end
