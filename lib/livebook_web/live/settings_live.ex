@@ -55,7 +55,7 @@ defmodule LivebookWeb.SettingsLive do
                     <span class="text-sm text-gray-500">Application</span>
                     <span class="text-gray-800 text-sm font-semibold">
                       <%= if app_url = Livebook.Config.app_service_url() do %>
-                        <a href={app_url}><%= app_name %></a>
+                        <a href={app_url} target="_blank"><%= app_name %></a>
                       <% else %>
                         <%= app_name %>
                       <% end %>

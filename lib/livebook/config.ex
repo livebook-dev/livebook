@@ -111,7 +111,7 @@ defmodule Livebook.Config do
   """
   @spec app_service_name() :: String.t() | nil
   def app_service_name() do
-    Application.get_env(:livebook, :app_service_name)
+    Application.fetch_env!(:livebook, :app_service_name)
   end
 
   @doc """
@@ -119,7 +119,7 @@ defmodule Livebook.Config do
   """
   @spec app_service_url() :: String.t() | nil
   def app_service_url() do
-    Application.get_env(:livebook, :app_service_url)
+    Application.fetch_env!(:livebook, :app_service_url)
   end
 
   ## Parsing

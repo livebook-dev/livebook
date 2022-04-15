@@ -24,7 +24,9 @@ config :livebook,
   explore_notebooks: [],
   plugs: [],
   shutdown_enabled: false,
-  storage: Livebook.Storage.Ets
+  storage: Livebook.Storage.Ets,
+  app_service_name: nil,
+  app_service_url: nil
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
