@@ -145,6 +145,12 @@ Livebook if said token is supplied as part of the URL.
 
 The following environment variables configure Livebook:
 
+  * LIVEBOOK_APP_SERVICE_NAME - sets the application name used by the cloud
+    provider to aid debugging.
+
+  * LIVEBOOK_APP_SERVICE_URL - sets the application url to manage this
+    Livebook instance within the cloud provider platform.
+
   * LIVEBOOK_COOKIE - sets the cookie for running Livebook in a cluster.
     Defaults to a random string that is generated on boot.
 
@@ -156,6 +162,9 @@ The following environment variables configure Livebook:
     "standalone" (Elixir standalone), "mix[:PATH][:FLAGS]" (Mix standalone),
     "attached:NODE:COOKIE" (Attached node) or "embedded" (Embedded).
     Defaults to "standalone".
+
+  * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTP.
+    Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
   * LIVEBOOK_HOME - sets the home path for the Livebook instance. This is the
     default path used on file selection screens and others. Defaults to the
@@ -186,9 +195,6 @@ The following environment variables configure Livebook:
   * LIVEBOOK_TOKEN_ENABLED - controls whether token authentication is enabled.
     Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
     disable it.
-
-  * LIVEBOOK_FORCE_SSL_HOST - set a host to redirect to if the request is not over HTTP.
-    Note it does not apply when accessing Livebook via localhost. Defaults to nil.
 
 <!-- Environment variables -->
 

@@ -20,6 +20,8 @@ config :mime, :types, %{
 }
 
 config :livebook,
+  app_service_name: nil,
+  app_service_url: nil,
   authentication_mode: :token,
   explore_notebooks: [],
   plugs: [],

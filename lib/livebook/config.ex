@@ -106,6 +106,22 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :shutdown_enabled)
   end
 
+  @doc """
+  Returns the application service name.
+  """
+  @spec app_service_name() :: String.t() | nil
+  def app_service_name() do
+    Application.fetch_env!(:livebook, :app_service_name)
+  end
+
+  @doc """
+  Returns the application service url.
+  """
+  @spec app_service_url() :: String.t() | nil
+  def app_service_url() do
+    Application.fetch_env!(:livebook, :app_service_url)
+  end
+
   ## Parsing
 
   @doc """
@@ -221,6 +237,20 @@ defmodule Livebook.Config do
   Parses force ssl host setting from env.
   """
   def force_ssl_host!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses application service name from env.
+  """
+  def app_service_name!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses application service url from env.
+  """
+  def app_service_url!(env) do
     System.get_env(env)
   end
 
