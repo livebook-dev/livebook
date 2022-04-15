@@ -23,7 +23,7 @@ defmodule Livebook.Application do
         [
           # Start the storage module
           Livebook.Storage.current(),
-          # Periodid measurement of system resources
+          # Periodic measurement of system resources
           Livebook.SystemResources,
           # Start the tracker server on this node
           {Livebook.Tracker, pubsub_server: Livebook.PubSub},
