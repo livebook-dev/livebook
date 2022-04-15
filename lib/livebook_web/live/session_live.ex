@@ -427,7 +427,7 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col mt-2 space-y-4">
         <div class="flex flex-col space-y-3">
           <%= for {label, value} <- Runtime.describe(@data_view.runtime) do %>
-            <.labeled_text label={label} text={value} one_line={true} />
+            <.labeled_text label={label} one_line><%= value %></.labeled_text>
           <% end %>
         </div>
         <div class="flex space-x-2">

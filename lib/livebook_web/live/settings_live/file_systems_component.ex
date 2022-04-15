@@ -41,14 +41,14 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
 
   defp file_system_info(%{file_system: %FileSystem.Local{}} = assigns) do
     ~H"""
-    <.labeled_text label="Type" text="Local disk" />
+    <.labeled_text label="Type">Local disk</.labeled_text>
     """
   end
 
   defp file_system_info(%{file_system: %FileSystem.S3{}} = assigns) do
     ~H"""
-    <.labeled_text label="Type" text="S3" />
-    <.labeled_text label="Bucket URL" text={@file_system.bucket_url} />
+    <.labeled_text label="Type">S3</.labeled_text>
+    <.labeled_text label="Bucket URL"><%= @file_system.bucket_url %></.labeled_text>
     """
   end
 end
