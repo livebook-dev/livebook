@@ -166,14 +166,20 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <div class="px-2 py-2 bg-blue-200 text-gray-900 text-sm text-center">
       <span>
-        Livebook v<%= @version %> available! Check out the news on
-        <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">
-          livebook.dev
-        </a>
+        Livebook v<%= @version %> available!
         <%= if @instructions_url do %>
+          Check out the news on
+          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">
+            livebook.dev
+          </a>
           and follow the
           <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@instructions_url} target="_blank">
             update instructions
+          </a>
+        <% else %>
+          Check out the news and installation steps on
+          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">
+            livebook.dev
           </a>
         <% end %>
         🚀
