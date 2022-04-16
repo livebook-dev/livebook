@@ -178,9 +178,7 @@ defmodule LivebookWeb.HomeLive do
           </a>
         <% else %>
           Check out the news and installation steps on
-          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">
-            livebook.dev
-          </a>
+          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">livebook.dev</a>
         <% end %>
         🚀
       </span>
@@ -192,14 +190,11 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <%= if @app_service_url && @memory.free < 30_000_000 do %>
       <div class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center">
+        <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
         Less than 30 MB of memory left, consider
-        <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@app_service_url} target="_blank">
-          adding more resources to the instance
-        </a>
+        <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@app_service_url} target="_blank">adding more resources to the instance</a>
         or closing
-        <a class="font-medium border-b border-gray-900 hover:border-transparent" href="#running-sessions">
-          running sessions
-        </a>.
+        <a class="font-medium border-b border-gray-900 hover:border-transparent" href="#running-sessions">running sessions</a>
       </div>
     <% end %>
     """

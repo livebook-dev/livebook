@@ -18,6 +18,8 @@ defmodule Livebook.Application do
         LivebookWeb.Telemetry,
         # Start the PubSub system
         {Phoenix.PubSub, name: Livebook.PubSub},
+        # Start a supervisor for Livebook tasks
+        {Task.Supervisor, name: Livebook.TaskSupervisor},
         # Start the storage module
         Livebook.Storage.current(),
         # Start the periodic version check
@@ -28,8 +30,6 @@ defmodule Livebook.Application do
         {Livebook.Tracker, pubsub_server: Livebook.PubSub},
         # Start the supervisor dynamically managing sessions
         {DynamicSupervisor, name: Livebook.SessionSupervisor, strategy: :one_for_one},
-        # Start a supervisor for Livebook tasks
-        {Task.Supervisor, name: Livebook.TaskSupervisor},
         # Start the server responsible for associating files with sessions
         Livebook.Session.FileGuard,
         # Start the Node Pool for managing node names

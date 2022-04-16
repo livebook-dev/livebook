@@ -45,27 +45,21 @@ defmodule Livebook.UpdateCheck do
 
   @impl true
   def init({}) do
-    send(self(), :check)
+    state = %{
+      enabled: Livebook.Settings.update_check_enabled?(),
+      new_version: nil,
+      timer_ref: nil
+    }
 
-    {:ok,
-     %{
-       enabled: Livebook.Settings.update_check_enabled?(),
-       new_version: nil,
-       timer_ref: nil
-     }}
+    {:ok, schedule_check(state, 0)}
   end
 
   @impl true
   def handle_cast({:set_enabled, enabled}, state) do
     Livebook.Settings.set_update_check_enabled(enabled)
-
-    state = cancel_timer(state)
-
-    if enabled do
-      send(self(), :check)
-    end
-
-    {:noreply, %{state | enabled: enabled}}
+    state = %{state | enabled: enabled}
+    state = state |> cancel_check() |> schedule_check(0)
+    {:noreply, state}
   end
 
   @impl true
@@ -81,29 +75,41 @@ defmodule Livebook.UpdateCheck do
 
   @impl true
   def handle_info(:check, state) do
-    state =
-      if state.enabled do
-        case fetch_latest_version() do
-          {:ok, version} ->
-            new_version = if newer?(version), do: version
-            timer_ref = Process.send_after(self(), :check, @day_in_ms)
-            %{state | new_version: new_version, timer_ref: timer_ref}
+    myself = self()
 
-          {:error, error} ->
-            Logger.error("version check failed, #{error}")
-            timer_ref = Process.send_after(self(), :check, @hour_in_ms)
-            %{state | timer_ref: timer_ref}
-        end
-      else
-        state
+    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
+      send(myself, {:check_response, fetch_latest_version()})
+    end)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:check_response, response}, state) do
+    state =
+      case response do
+        {:ok, version} ->
+          new_version = if newer?(version), do: version
+          state = %{state | new_version: new_version}
+          schedule_check(state, @day_in_ms)
+
+        {:error, error} ->
+          Logger.error("version check failed, #{error}")
+          schedule_check(state, @hour_in_ms)
       end
 
     {:noreply, state}
   end
 
-  defp cancel_timer(%{timer_ref: nil} = state), do: state
+  defp schedule_check(%{enabled: false} = state, _time), do: state
 
-  defp cancel_timer(state) do
+  defp schedule_check(state, time) do
+    timer_ref = Process.send_after(self(), :check, time)
+    %{state | timer_ref: timer_ref}
+  end
+
+  defp cancel_check(%{timer_ref: nil} = state), do: state
+
+  defp cancel_check(state) do
     if Process.cancel_timer(state.timer_ref) == false do
       receive do
         :check -> :ok
