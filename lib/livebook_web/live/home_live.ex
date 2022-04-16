@@ -192,9 +192,9 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <%= if @app_service_url && @memory.free < 30_000_000 do %>
       <div class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center">
-        Less than 30 MB of memory left, consider adding more resources to
+        Less than 30 MB of memory left, consider
         <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@app_service_url} target="_blank">
-          the instance
+          adding more resources to the instance
         </a>
         or closing
         <a class="font-medium border-b border-gray-900 hover:border-transparent" href="#running-sessions">
