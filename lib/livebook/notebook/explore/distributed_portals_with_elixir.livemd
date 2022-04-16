@@ -701,6 +701,7 @@ and execute it:
 ```elixir
 IO.inspect node()
 IO.inspect Node.get_cookie()
+:ok
 ```
 
 Now paste the result of the other node name and its cookie in the variables below:
@@ -717,20 +718,9 @@ Node.set_cookie(other_node, other_cookie)
 Node.connect(other_node)
 ```
 
-If it returns true, it means it connected as expected. The code above uses
-`IO.gets/1` to read the input values, as we did earlier in this notebook,
-then removes the trailing newline, and converts the strings to atoms. We
-did so using the pipe operator `|>`, which gets the result of the previous
-function and passes it as first argument to the next function. For example,
-the first line is equivalent to `String.to_atom(String.trim(IO.gets("Other node: ")))`,
-but it is much more readable as a pipeline.
-
-Notice we also stored the name of the other node in a `other_node` variable
-for convenience.
-
-Now we are ready to start a distributed transfer. The first step is to go
-to the other notebook and shoot a door. You can try calling the following
-there:
+If it returns true, it means it connected as expected and we are ready to start a
+distributed transfer. The first step is to go to the other notebook and shoot a door.
+You can try calling the following there:
 
 <!-- livebook:{"force_markdown":true} -->
 
