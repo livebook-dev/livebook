@@ -12,6 +12,10 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   @impl true
+  def update(%{memory_timestamp: ts}, socket) do
+    {:ok, assign(socket, :memory_timestamp, ts)}
+  end
+
   def update(assigns, socket) do
     {sessions, assigns} = Map.pop!(assigns, :sessions)
 
@@ -297,7 +301,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   def refresh_memory_info do
-    send_update(SessionListComponent, memory_timestamp: System.os_time(), id: "session-list")
+    send_update(__MODULE__, memory_timestamp: System.os_time(), id: "session-list")
   end
 
   def toggle_edit(:on) do
