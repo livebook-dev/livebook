@@ -10,7 +10,7 @@ export function registerTopbar() {
 
   window.addEventListener("phx:page-loading-start", () => {
     if (!topBarScheduled) {
-      topBarScheduled = setTimeout(() => topbar.show(), 200);
+      topBarScheduled = setTimeout(() => topbar.show(), 500);
     }
   });
 
