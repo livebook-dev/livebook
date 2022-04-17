@@ -24,12 +24,14 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:secondary>
-        <.enable_insert_mode_button />
-        <.insert_image_button cell_id={@cell_view.id} session_id={@session_id} socket={@socket} />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
+        <%= if @write? do %>
+          <.enable_insert_mode_button />
+          <.insert_image_button cell_id={@cell_view.id} session_id={@session_id} socket={@socket} />
+          <.cell_link_button cell_id={@cell_view.id} />
+          <.move_cell_up_button cell_id={@cell_view.id} />
+          <.move_cell_down_button cell_id={@cell_view.id} />
+          <.delete_cell_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
