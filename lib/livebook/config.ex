@@ -122,6 +122,14 @@ defmodule Livebook.Config do
     Application.fetch_env!(:livebook, :app_service_url)
   end
 
+  @doc """
+  Returns the update check URL.
+  """
+  @spec update_instructions_url() :: String.t() | nil
+  def update_instructions_url() do
+    Application.get_env(:livebook, :update_instructions_url)
+  end
+
   ## Parsing
 
   @doc """
@@ -251,6 +259,13 @@ defmodule Livebook.Config do
   Parses application service url from env.
   """
   def app_service_url!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses update instructions url from env.
+  """
+  def update_instructions_url!(env) do
     System.get_env(env)
   end
 

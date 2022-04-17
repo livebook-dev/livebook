@@ -196,6 +196,9 @@ The following environment variables configure Livebook:
     Enabled by default unless `LIVEBOOK_PASSWORD` is set. Set it to "false" to
     disable it.
 
+  * LIVEBOOK_UPDATE_INSTRUCTIONS_URL - sets the URL to direct the user to for
+    updating Livebook when a new version becomes available.
+
 <!-- Environment variables -->
 
 If running Livebook as a Docker image or an Elixir release, [the environment

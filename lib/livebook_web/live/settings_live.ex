@@ -7,17 +7,16 @@ defmodule LivebookWeb.SettingsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    file_systems = Livebook.Settings.file_systems()
-
     {:ok,
      socket
      |> SidebarHelpers.shared_home_handlers()
      |> assign(
-       file_systems: file_systems,
+       file_systems: Livebook.Settings.file_systems(),
        autosave_path_state: %{
          file: autosave_dir(),
          dialog_opened?: false
        },
+       update_check_enabled: Livebook.UpdateCheck.enabled?(),
        page_title: "Livebook - Settings"
      )}
   end
@@ -45,9 +44,9 @@ defmodule LivebookWeb.SettingsLive do
 
           <!-- System details -->
           <div class="flex flex-col space-y-4">
-            <h1 class="text-xl text-gray-800 font-semibold">
+            <h2 class="text-xl text-gray-800 font-semibold">
               About
-            </h1>
+            </h2>
             <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
               <div class="flex items-center space-x-12">
                 <%= if app_name = Livebook.Config.app_service_name() do %>
@@ -75,6 +74,18 @@ defmodule LivebookWeb.SettingsLive do
                 <span>Open dashboard</span>
               <% end %>
             </div>
+          </div>
+          <!-- Preferences -->
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-semibold">
+              Preferences
+            </h2>
+            <form phx-change="save" onsubmit="return false;">
+              <.switch_checkbox
+                name="update_check_enabled"
+                label="Show available Livebook updates"
+                checked={@update_check_enabled} />
+            </form>
           </div>
           <!-- Autosave path configuration -->
           <div class="flex flex-col space-y-4">
@@ -251,6 +262,12 @@ defmodule LivebookWeb.SettingsLive do
     Livebook.Settings.remove_file_system(file_system_id)
     file_systems = Livebook.Settings.file_systems()
     {:noreply, assign(socket, file_systems: file_systems)}
+  end
+
+  def handle_event("save", %{"update_check_enabled" => enabled}, socket) do
+    enabled = enabled == "true"
+    Livebook.UpdateCheck.set_enabled(enabled)
+    {:noreply, assign(socket, :update_check_enabled, enabled)}
   end
 
   @impl true

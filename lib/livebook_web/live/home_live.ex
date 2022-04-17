@@ -26,6 +26,8 @@ defmodule LivebookWeb.HomeLive do
        sessions: sessions,
        notebook_infos: notebook_infos,
        page_title: "Livebook",
+       new_version: Livebook.UpdateCheck.new_version(),
+       update_instructions_url: Livebook.Config.update_instructions_url(),
        app_service_url: Livebook.Config.app_service_url(),
        memory: Livebook.SystemResources.memory()
      )}
@@ -39,9 +41,10 @@ defmodule LivebookWeb.HomeLive do
       <SidebarHelpers.sidebar>
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
-      <div class="grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-lg w-full mx-auto px-4 pb-8 space-y-4">
-          <.memory_notification memory={@memory} app_service_url={@app_service_url} />
+      <div class="grow overflow-y-auto">
+        <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
+        <.memory_notification memory={@memory} app_service_url={@app_service_url} />
+        <div class="max-w-screen-lg w-full mx-auto px-8 pt-8 pb-32 space-y-4">
           <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
                       sm:flex-row sm:space-y-0 sm:justify-between">
             <div class="text-2xl text-gray-800 font-semibold">
@@ -157,18 +160,41 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
+  defp update_notification(%{version: nil} = assigns), do: ~H""
+
+  defp update_notification(assigns) do
+    ~H"""
+    <div class="px-2 py-2 bg-blue-200 text-gray-900 text-sm text-center">
+      <span>
+        Livebook v<%= @version %> available!
+        <%= if @instructions_url do %>
+          Check out the news on
+          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">
+            livebook.dev
+          </a>
+          and follow the
+          <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@instructions_url} target="_blank">
+            update instructions
+          </a>
+        <% else %>
+          Check out the news and installation steps on
+          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">livebook.dev</a>
+        <% end %>
+        🚀
+      </span>
+    </div>
+    """
+  end
+
   defp memory_notification(assigns) do
     ~H"""
     <%= if @app_service_url && @memory.free < 30_000_000 do %>
-      <div class="flex justify-between items-center border-b border-gray-200 pb-4 text-gray-700">
-        <span class="flex items-end">
-          <.remix_icon icon="alarm-warning-line" class="text-xl mr-2" />
-          <span>
-          Less than 30 MB of memory left, consider adding more resources to
-          <a class="font-semibold" href={@app_service_url} target="_blank">the instance</a>
-          or closing <a class="font-semibold" href="#running-sessions">running sessions</a>.
-          </span>
-        </span>
+      <div class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center">
+        <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
+        Less than 30 MB of memory left, consider
+        <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@app_service_url} target="_blank">adding more resources to the instance</a>
+        or closing
+        <a class="font-medium border-b border-gray-900 hover:border-transparent" href="#running-sessions">running sessions</a>
       </div>
     <% end %>
     """

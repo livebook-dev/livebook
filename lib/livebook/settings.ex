@@ -13,7 +13,7 @@ defmodule Livebook.Settings do
   @doc """
   Returns the current autosave path.
   """
-  @spec autosave_path() :: String.t() | nil
+  @spec autosave_path() :: String.t()
   def autosave_path() do
     case storage().fetch_key(:settings, "global", :autosave_path) do
       {:ok, value} -> value
@@ -97,5 +97,24 @@ defmodule Livebook.Settings do
       {:ok, fs} -> fs
       {:error, message} -> raise ArgumentError, "invalid S3 filesystem: #{message}"
     end
+  end
+
+  @doc """
+  Returns whether the update check is enabled.
+  """
+  @spec update_check_enabled?() :: boolean()
+  def update_check_enabled?() do
+    case storage().fetch_key(:settings, "global", :update_check_enabled) do
+      {:ok, value} -> value
+      :error -> true
+    end
+  end
+
+  @doc """
+  Sets whether the update check is enabled.
+  """
+  @spec set_update_check_enabled(boolean()) :: :ok
+  def set_update_check_enabled(enabled) do
+    storage().insert(:settings, "global", update_check_enabled: enabled)
   end
 end
