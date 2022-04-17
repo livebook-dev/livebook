@@ -48,7 +48,8 @@ defmodule Livebook.UpdateCheck do
     state = %{
       enabled: Livebook.Settings.update_check_enabled?(),
       new_version: nil,
-      timer_ref: nil
+      timer_ref: nil,
+      request_ref: nil
     }
 
     {:ok, schedule_check(state, 0)}
@@ -75,16 +76,13 @@ defmodule Livebook.UpdateCheck do
 
   @impl true
   def handle_info(:check, state) do
-    myself = self()
-
-    Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
-      send(myself, {:check_response, fetch_latest_version()})
-    end)
-
-    {:noreply, state}
+    task = Task.Supervisor.async_nolink(Livebook.TaskSupervisor, &fetch_latest_version/0)
+    {:noreply, %{state | request_ref: task.ref}}
   end
 
-  def handle_info({:check_response, response}, state) do
+  def handle_info({ref, response}, %{request_ref: ref} = state) do
+    Process.demonitor(ref, [:flush])
+
     state =
       case response do
         {:ok, version} ->
@@ -97,8 +95,15 @@ defmodule Livebook.UpdateCheck do
           schedule_check(state, @hour_in_ms)
       end
 
-    {:noreply, state}
+    {:noreply, %{state | request_ref: nil}}
   end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, %{request_ref: ref} = state) do
+    Logger.error("version check failed, reason: #{inspect(reason)}")
+    {:noreply, %{state | request_ref: nil} |> schedule_check(@hour_in_ms)}
+  end
+
+  def handle_info(_msg, state), do: {:noreply, state}
 
   defp schedule_check(%{enabled: false} = state, _time), do: state
 
