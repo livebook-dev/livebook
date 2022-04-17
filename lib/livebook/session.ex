@@ -46,7 +46,17 @@ defmodule Livebook.Session do
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at, :memory_usage]
+  defstruct [
+    :id,
+    :pid,
+    :origin,
+    :notebook_name,
+    :file,
+    :images_dir,
+    :created_at,
+    :memory_usage,
+    :policy
+  ]
 
   use GenServer, restart: :temporary
 
@@ -66,7 +76,8 @@ defmodule Livebook.Session do
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          policy: policy()
         }
 
   @type state :: %{
@@ -77,7 +88,8 @@ defmodule Livebook.Session do
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          policy: policy()
         }
 
   @type memory_usage ::
@@ -85,6 +97,8 @@ defmodule Livebook.Session do
             runtime: Livebook.Runtime.runtime_memory() | nil,
             system: Livebook.SystemResources.memory()
           }
+
+  @type policy :: %{write?: boolean(), execute?: boolean(), comment?: boolean()}
 
   @typedoc """
   An id assigned to every running session process.
@@ -212,6 +226,14 @@ defmodule Livebook.Session do
         end
       end
     end
+  end
+
+  @doc """
+  Sends policy update to the server.
+  """
+  @spec set_share_mode(pid()) :: :ok
+  def set_share_mode(pid) do
+    GenServer.call(pid, :set_share_mode)
   end
 
   @doc """
@@ -540,6 +562,7 @@ defmodule Livebook.Session do
         save_task_pid: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
+        policy: %{write?: true, execute?: true, comment?: true},
         worker_pid: worker_pid
       }
 
@@ -654,6 +677,14 @@ defmodule Livebook.Session do
       else
         state
       end
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:set_share_mode, _from, state) do
+    state = Map.put(state, :policy, %{write?: false, execute?: false, comment?: false})
+    session = self_from_state(state)
+    Livebook.Sessions.update_session(session)
 
     {:reply, :ok, state}
   end
@@ -984,7 +1015,8 @@ defmodule Livebook.Session do
       file: state.data.file,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
-      memory_usage: state.memory_usage
+      memory_usage: state.memory_usage,
+      policy: state.policy
     }
   end
 

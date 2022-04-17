@@ -41,7 +41,10 @@ defmodule LivebookWeb.Router do
 
   live_session :default, on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook] do
     scope "/", LivebookWeb do
-      pipe_through [:browser, :auth]
+      pipe_through [:browser]
+      live "/public/sessions/:id", SessionLive, :shared_page
+
+      pipe_through [:auth]
 
       live "/", HomeLive, :page
       live "/home/import/:tab", HomeLive, :import

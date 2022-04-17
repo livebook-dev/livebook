@@ -175,6 +175,12 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
+                <button class="menu-item text-gray-500"
+                  role="menuitem"
+                  phx-click="share_session">
+                  <.remix_icon icon="share-line" />
+                  <span class="font-medium">Share</span>
+                </button>
                 <a class="menu-item text-gray-500"
                   role="menuitem"
                   href={live_dashboard_process_path(@socket, @session.pid)}
@@ -196,7 +202,9 @@ defmodule LivebookWeb.SessionLive do
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
               runtime={@data_view.runtime}
-              cell_view={@data_view.setup_cell_view} />
+              cell_view={@data_view.setup_cell_view}
+              write?={@live_action != :shared_page || @session.policy.write?}
+              execute?={@live_action != :shared_page || @session.policy.execute?} />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
             <%= if @data_view.section_views == [] do %>
@@ -214,7 +222,11 @@ defmodule LivebookWeb.SessionLive do
                   session_id={@session.id}
                   runtime={@data_view.runtime}
                   smart_cell_definitions={@data_view.smart_cell_definitions}
-                  section_view={section_view} />
+                  section_view={section_view}
+                  write?={@live_action != :shared_page || @session.policy.write?}
+                  execute?={@live_action != :shared_page || @session.policy.execute?}
+                  comment?={@live_action != :shared_page || @session.policy.comment?}
+                   />
             <% end %>
             <div style="height: 80vh"></div>
           </div>
@@ -898,6 +910,17 @@ defmodule LivebookWeb.SessionLive do
       end
 
     {:reply, %{code: formatted}, socket}
+  end
+
+  def handle_event("share_session", %{}, socket) do
+    %{id: session_id, pid: pid} = socket.assigns.session
+    # Fetch the data, as we don't keep cells' source in the state
+    Session.set_share_mode(pid)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Session has been shared")
+     |> push_redirect(to: Routes.session_path(socket, :shared_page, session_id))}
   end
 
   @impl true

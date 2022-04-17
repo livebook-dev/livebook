@@ -39,7 +39,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           cell_id={@cell_view.id}
           tag="primary"
           source_view={@cell_view.source_view}
-          language="markdown" />
+          language="markdown"
+          read_only={!@write?} />
       </div>
       <div class="markdown"
         data-el-markdown-container
@@ -55,21 +56,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:primary>
-        <.cell_evaluation_button
-          session_id={@session_id}
-          socket={@socket}
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-          reevaluate_automatically={@cell_view.reevaluate_automatically} />
+        <%= if @execute? do %>
+          <.cell_evaluation_button
+            session_id={@session_id}
+            socket={@socket}
+            cell_id={@cell_view.id}
+            validity={@cell_view.eval.validity}
+            status={@cell_view.eval.status}
+            reevaluate_automatically={@cell_view.reevaluate_automatically} />
+        <% end %>
       </:primary>
       <:secondary>
         <.amplify_output_button />
-        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
+        <%= if @write? do %>
+          <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+          <.cell_link_button cell_id={@cell_view.id} />
+          <.move_cell_up_button cell_id={@cell_view.id} />
+          <.move_cell_down_button cell_id={@cell_view.id} />
+          <.delete_cell_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -80,7 +85,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           tag="primary"
           source_view={@cell_view.source_view}
           language="elixir"
-          intellisense />
+          intellisense
+          read_only={!@write?} />
         <div class="absolute bottom-2 right-2">
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
         </div>
@@ -97,16 +103,20 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:primary>
-        <.setup_cell_evaluation_button
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status} />
+        <%= if @execute? do %>
+          <.setup_cell_evaluation_button
+            cell_id={@cell_view.id}
+            validity={@cell_view.eval.validity}
+            status={@cell_view.eval.status} />
+        <% end %>
       </:primary>
       <:secondary>
+        <%= if @write? do %>
         <.enable_insert_mode_button />
         <.dependency_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.setup_cell_info />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -142,21 +152,25 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:primary>
-        <.cell_evaluation_button
-          session_id={@session_id}
-          socket={@socket}
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-          reevaluate_automatically={false} />
+        <%= if @execute? do %>
+          <.cell_evaluation_button
+            session_id={@session_id}
+            socket={@socket}
+            cell_id={@cell_view.id}
+            validity={@cell_view.eval.validity}
+            status={@cell_view.eval.status}
+            reevaluate_automatically={false} />
+        <% end %>
       </:primary>
       <:secondary>
         <.toggle_source_button />
-        <.convert_smart_cell_button cell_id={@cell_view.id} />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
+        <%= if @write? do %>
+          <.convert_smart_cell_button cell_id={@cell_view.id} />
+          <.cell_link_button cell_id={@cell_view.id} />
+          <.move_cell_up_button cell_id={@cell_view.id} />
+          <.move_cell_down_button cell_id={@cell_view.id} />
+          <.delete_cell_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -175,7 +189,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                   tag="secondary"
                   source_view={@cell_view.editor.source_view}
                   language={@cell_view.editor.language}
-                  rounded={@cell_view.editor.placement} />
+                  rounded={@cell_view.editor.placement}
+                  read_only={!@write?} />
               <% end %>
             </div>
 
