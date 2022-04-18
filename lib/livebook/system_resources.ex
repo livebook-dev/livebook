@@ -46,13 +46,16 @@ defmodule Livebook.SystemResources do
 
   @impl true
   def handle_cast(:update, state) do
-    measure()
+    memory = measure()
+    Phoenix.PubSub.local_broadcast(Livebook.PubSub, "system_resources", {:memory_update, memory})
     {:noreply, state}
   end
 
   defp measure() do
-    memory = :memsup.get_system_memory_data()
-    :ets.insert(@name, {:memory, %{total: memory[:total_memory], free: memory[:free_memory]}})
+    memory_data = :memsup.get_system_memory_data()
+    memory = %{total: memory_data[:total_memory], free: memory_data[:free_memory]}
+    :ets.insert(@name, {:memory, memory})
+    memory
   end
 
   defp schedule() do

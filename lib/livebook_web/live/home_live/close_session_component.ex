@@ -33,7 +33,6 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
   @impl true
   def handle_event("close", %{}, socket) do
     Livebook.Session.close(socket.assigns.session.pid)
-    SessionListComponent.refresh_memory_info()
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 end
