@@ -10,7 +10,7 @@ defmodule LivebookWeb.SessionLive.EmbeddedLive do
     end
 
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
     end
 
     {:ok, assign(socket, session: session, current_runtime: current_runtime)}

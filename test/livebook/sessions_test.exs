@@ -10,7 +10,7 @@ defmodule Livebook.SessionsTest do
     end
 
     test "broadcasts a message to subscribers" do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
+      Sessions.subscribe()
       {:ok, %{id: id}} = Sessions.create_session()
       assert_receive {:session_created, %{id: ^id}}
     end
@@ -38,7 +38,7 @@ defmodule Livebook.SessionsTest do
   describe "update_session/1" do
     test "broadcasts a message to subscribers" do
       {:ok, %{id: id} = session} = Sessions.create_session()
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
+      Sessions.subscribe()
       updated_session = %{session | notebook_name: "New name"}
       Livebook.Sessions.update_session(updated_session)
       assert_receive {:session_updated, %{id: ^id, notebook_name: "New name"}}

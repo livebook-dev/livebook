@@ -5,7 +5,7 @@ defmodule LivebookWeb.UserHook do
 
   def on_mount(:default, _params, %{"current_user_id" => current_user_id} = session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{current_user_id}")
+      Livebook.Users.subscribe(current_user_id)
     end
 
     socket =

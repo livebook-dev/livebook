@@ -114,7 +114,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "queueing cell evaluation", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
@@ -131,7 +131,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "reevaluting the setup cell", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -238,7 +238,7 @@ defmodule LivebookWeb.SessionLiveTest do
         destination: test
       }
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -267,7 +267,7 @@ defmodule LivebookWeb.SessionLiveTest do
         destination: test
       }
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -305,7 +305,7 @@ defmodule LivebookWeb.SessionLiveTest do
         reset_on_submit: []
       }
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       insert_cell_with_output(session.pid, section_id, {:control, form_control})
 
@@ -330,7 +330,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "outputs" do
     test "stdout output update", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
@@ -351,7 +351,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "frame output update", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
@@ -414,7 +414,7 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       view
       |> element("button", "Elixir standalone")
@@ -599,7 +599,7 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       user1 = create_user_with_name("Jake Peralta")
 
@@ -635,7 +635,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       assert render(view) =~ "Jake Peralta"
 

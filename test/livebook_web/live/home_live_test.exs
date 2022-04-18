@@ -129,7 +129,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "updates UI whenever a session is added or deleted", %{conn: conn} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
+      Sessions.subscribe()
 
       {:ok, view, _} = live(conn, "/")
 

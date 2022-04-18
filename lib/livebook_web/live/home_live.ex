@@ -10,8 +10,8 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def mount(params, _session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "system_resources")
+      Livebook.Sessions.subscribe()
+      Livebook.SystemResources.subscribe()
     end
 
     sessions = Sessions.list_sessions()

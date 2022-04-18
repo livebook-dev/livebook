@@ -14,8 +14,6 @@ defmodule Livebook.Sessions do
   Spawns a new `Session` process with the given options.
 
   Makes the session globally visible within the session tracker.
-
-  `{:session_created, session}` gets broadcasted under the "tracker_sessions" topic.
   """
   @spec create_session(keyword()) :: {:ok, Session.t()} | {:error, any()}
   def create_session(opts \\ []) do
@@ -73,11 +71,24 @@ defmodule Livebook.Sessions do
 
   @doc """
   Updates the given session info across the cluster.
-
-  `{:session_updated, session}` gets broadcasted under the "tracker_sessions" topic.
   """
   @spec update_session(Session.t()) :: :ok | {:error, any()}
   def update_session(session) do
     Livebook.Tracker.update_session(session)
+  end
+
+  @doc """
+  Subscribes to update in sessions list.
+
+  ## Messages
+
+    * `{:session_created, session}`
+    * `{:session_updated, session}`
+    * `{:session_closed, session}`
+
+  """
+  @spec subscribe() :: :ok | {:error, term()}
+  def subscribe() do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
   end
 end

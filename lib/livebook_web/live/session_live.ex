@@ -19,7 +19,7 @@ defmodule LivebookWeb.SessionLive do
         data =
           if connected?(socket) do
             data = Session.register_client(session_pid, self(), socket.assigns.current_user)
-            Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+            Session.subscribe(session_id)
 
             data
           else
