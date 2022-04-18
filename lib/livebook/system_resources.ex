@@ -47,7 +47,7 @@ defmodule Livebook.SystemResources do
   @impl true
   def handle_cast(:update, state) do
     memory = measure()
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "system_resources", {:memory_update, memory})
+    Phoenix.PubSub.local_broadcast(Livebook.PubSub, "system_resources", {:memory_update, memory})
     {:noreply, state}
   end
 
