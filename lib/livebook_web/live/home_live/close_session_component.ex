@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.CloseSessionComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.HomeLive.SessionListComponent, only: [toggle_edit: 1]
+  alias LivebookWeb.HomeLive.SessionListComponent
 
   @impl true
   def render(assigns) do
@@ -20,7 +20,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
       </p>
       <div class="mt-8 flex justify-end space-x-2">
         <button class="button-base button-red" role="button"
-          phx-click={toggle_edit(:off) |> JS.push("close", target: @myself)}>
+          phx-click={SessionListComponent.toggle_edit(:off) |> JS.push("close", target: @myself)}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           Close session
         </button>
@@ -33,6 +33,7 @@ defmodule LivebookWeb.HomeLive.CloseSessionComponent do
   @impl true
   def handle_event("close", %{}, socket) do
     Livebook.Session.close(socket.assigns.session.pid)
+    SessionListComponent.refresh_memory_info()
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 end

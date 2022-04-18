@@ -4,12 +4,18 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   import Livebook.Utils, only: [format_bytes: 1]
   import LivebookWeb.SessionHelpers
 
+  alias Livebook.{Session, Notebook}
+
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, order_by: "date"), temporary_assigns: [memory: nil]}
+    {:ok, assign(socket, order_by: "date")}
   end
 
   @impl true
+  def update(%{memory_timestamp: ts}, socket) do
+    {:ok, assign(socket, :memory_timestamp, ts)}
+  end
+
   def update(assigns, socket) do
     {sessions, assigns} = Map.pop!(assigns, :sessions)
 
@@ -27,7 +33,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
       |> assign(
         sessions: sessions,
         show_autosave_note?: show_autosave_note?,
-        memory: Livebook.SystemResources.memory()
+        memory_timestamp: System.os_time()
       )
 
     {:ok, socket}
@@ -44,7 +50,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </h2>
         </div>
         <div class="flex flex-row">
-          <.memory_info memory={@memory} />
+          <.memory_info memory_timestamp={@memory_timestamp} />
           <%= if @sessions != [] do %>
             <.edit_sessions sessions={@sessions} socket={@socket}/>
           <% end %>
@@ -71,7 +77,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
         </div>
       </div>
       <.session_list sessions={@sessions} socket={@socket}
-        show_autosave_note?={@show_autosave_note?} />
+        show_autosave_note?={@show_autosave_note?} myself={@myself} />
     </form>
     """
   end
@@ -148,6 +154,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 type="button"
                 role="menuitem"
                 phx-click="fork_session"
+                phx-target={@myself}
                 phx-value-id={session.id}>
                 <.remix_icon icon="git-branch-line" />
                 <span class="font-medium">Fork</span>
@@ -163,6 +170,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
                 type="button"
                 disabled={!session.memory_usage.runtime}
                 role="menuitem"
+                phx-target={@myself}
                 phx-click={toggle_edit(:off) |> JS.push("disconnect_runtime")}
                 phx-value-id={session.id}>
                 <.remix_icon icon="shut-down-line" />
@@ -182,7 +190,8 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     """
   end
 
-  defp memory_info(%{memory: %{free: free, total: total}} = assigns) do
+  defp memory_info(assigns) do
+    %{free: free, total: total} = Livebook.SystemResources.memory()
     used = total - free
     percentage = Float.round(used / total * 100, 2)
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
@@ -258,9 +267,41 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     {:noreply, assign(socket, sessions: sessions, order_by: order_by)}
   end
 
+  def handle_event("fork_session", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    %{images_dir: images_dir} = session
+    data = Session.get_data(session.pid)
+    notebook = Notebook.forked(data.notebook)
+
+    origin =
+      if data.file do
+        {:file, data.file}
+      else
+        data.origin
+      end
+
+    {:noreply,
+     create_session(socket,
+       notebook: notebook,
+       copy_images_from: images_dir,
+       origin: origin
+     )}
+  end
+
+  def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
+    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
+    Session.disconnect_runtime(session.pid)
+    refresh_memory_info()
+    {:noreply, socket}
+  end
+
   def format_creation_date(created_at) do
     time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
     time_words <> " ago"
+  end
+
+  def refresh_memory_info do
+    send_update(__MODULE__, memory_timestamp: System.os_time(), id: "session-list")
   end
 
   def toggle_edit(:on) do

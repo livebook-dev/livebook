@@ -1,7 +1,7 @@
 defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   use LivebookWeb, :live_component
 
-  import LivebookWeb.HomeLive.SessionListComponent, only: [toggle_edit: 1]
+  alias LivebookWeb.HomeLive.SessionListComponent
 
   @impl true
   def render(assigns) do
@@ -13,7 +13,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
       <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions}/>
       <div class="mt-8 flex justify-end space-x-2">
         <button class="button-base button-red" role="button"
-          phx-click={toggle_edit(:off) |> JS.push(@action, target: @myself)}>
+          phx-click={SessionListComponent.toggle_edit(:off) |> JS.push(@action, target: @myself)}>
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           <%= button_label(@action) %>
         </button>
@@ -54,6 +54,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
     |> Enum.map(& &1.pid)
     |> Livebook.Session.close()
 
+    SessionListComponent.refresh_memory_info()
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 
@@ -63,6 +64,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
     |> Enum.map(& &1.pid)
     |> Livebook.Session.disconnect_runtime()
 
+    SessionListComponent.refresh_memory_info()
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 

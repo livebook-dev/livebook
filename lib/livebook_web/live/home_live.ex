@@ -292,33 +292,6 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, push_patch(socket, to: Routes.home_path(socket, :edit_sessions, "close_all"))}
   end
 
-  def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    Session.disconnect_runtime(session.pid)
-    {:noreply, socket}
-  end
-
-  def handle_event("fork_session", %{"id" => session_id}, socket) do
-    session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
-    %{images_dir: images_dir} = session
-    data = Session.get_data(session.pid)
-    notebook = Notebook.forked(data.notebook)
-
-    origin =
-      if data.file do
-        {:file, data.file}
-      else
-        data.origin
-      end
-
-    {:noreply,
-     create_session(socket,
-       notebook: notebook,
-       copy_images_from: images_dir,
-       origin: origin
-     )}
-  end
-
   def handle_event("open_autosave_directory", %{}, socket) do
     file =
       Livebook.Settings.autosave_path()
