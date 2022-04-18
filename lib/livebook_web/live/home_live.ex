@@ -11,6 +11,7 @@ defmodule LivebookWeb.HomeLive do
   def mount(params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Livebook.PubSub, "tracker_sessions")
+      Phoenix.PubSub.subscribe(Livebook.PubSub, "system_resources")
     end
 
     sessions = Sessions.list_sessions()
@@ -113,7 +114,8 @@ defmodule LivebookWeb.HomeLive do
           <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
             <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
               id="session-list"
-              sessions={@sessions}/>
+              sessions={@sessions}
+              memory={@memory} />
           </div>
         </div>
       </div>
@@ -333,6 +335,10 @@ defmodule LivebookWeb.HomeLive do
   def handle_info({:import_content, content, session_opts}, socket) do
     socket = import_content(socket, content, session_opts)
     {:noreply, socket}
+  end
+
+  def handle_info({:memory_update, memory}, socket) do
+    {:noreply, assign(socket, memory: memory)}
   end
 
   defp files(sessions) do

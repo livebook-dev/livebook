@@ -13,7 +13,7 @@ defmodule Livebook.Settings do
   @doc """
   Returns the current autosave path.
   """
-  @spec autosave_path() :: String.t()
+  @spec autosave_path() :: String.t() | nil
   def autosave_path() do
     case storage().fetch_key(:settings, "global", :autosave_path) do
       {:ok, value} -> value

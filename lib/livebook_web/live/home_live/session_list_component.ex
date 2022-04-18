@@ -12,10 +12,6 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   @impl true
-  def update(%{memory_timestamp: ts}, socket) do
-    {:ok, assign(socket, :memory_timestamp, ts)}
-  end
-
   def update(assigns, socket) do
     {sessions, assigns} = Map.pop!(assigns, :sessions)
 
@@ -30,11 +26,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(
-        sessions: sessions,
-        show_autosave_note?: show_autosave_note?,
-        memory_timestamp: System.os_time()
-      )
+      |> assign(sessions: sessions, show_autosave_note?: show_autosave_note?)
 
     {:ok, socket}
   end
@@ -50,7 +42,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
           </h2>
         </div>
         <div class="flex flex-row">
-          <.memory_info memory_timestamp={@memory_timestamp} />
+          <.memory_info memory={@memory} />
           <%= if @sessions != [] do %>
             <.edit_sessions sessions={@sessions} socket={@socket}/>
           <% end %>
@@ -191,7 +183,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   end
 
   defp memory_info(assigns) do
-    %{free: free, total: total} = Livebook.SystemResources.memory()
+    %{free: free, total: total} = assigns.memory
     used = total - free
     percentage = Float.round(used / total * 100, 2)
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
@@ -291,17 +283,12 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
   def handle_event("disconnect_runtime", %{"id" => session_id}, socket) do
     session = Enum.find(socket.assigns.sessions, &(&1.id == session_id))
     Session.disconnect_runtime(session.pid)
-    refresh_memory_info()
     {:noreply, socket}
   end
 
   def format_creation_date(created_at) do
     time_words = created_at |> DateTime.to_naive() |> Livebook.Utils.Time.time_ago_in_words()
     time_words <> " ago"
-  end
-
-  def refresh_memory_info do
-    send_update(__MODULE__, memory_timestamp: System.os_time(), id: "session-list")
   end
 
   def toggle_edit(:on) do
