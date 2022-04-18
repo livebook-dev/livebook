@@ -203,7 +203,7 @@ defmodule AppBuilder.Windows do
     url =
       "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip"
 
-    sha256 = "d7b82e95d2860042c241d9913e14832cf1491f39c4da91286bace39582916dc8"
+    sha256 = "4d2711c5f2527c221a0f54d769f724809b105cf03ef51be6196ee44da136f1ba"
     AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
   end
 
