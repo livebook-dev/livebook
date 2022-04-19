@@ -597,6 +597,7 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_event("append_section", %{}, socket) do
+    authorize_shared_mode(socket, :write)
     idx = length(socket.private.data.notebook.sections)
     Session.insert_section(socket.assigns.session.pid, idx)
 
@@ -610,6 +611,7 @@ defmodule LivebookWeb.SessionLive do
              params["section_id"],
              params["cell_id"]
            ) do
+      authorize_shared_mode(socket, :write)
       Session.insert_section_into(socket.assigns.session.pid, section.id, index)
     end
 
@@ -621,18 +623,21 @@ defmodule LivebookWeb.SessionLive do
         %{"section_id" => section_id, "parent_id" => parent_id},
         socket
       ) do
+    authorize_shared_mode(socket, :write)
     Session.set_section_parent(socket.assigns.session.pid, section_id, parent_id)
 
     {:noreply, socket}
   end
 
   def handle_event("unset_section_parent", %{"section_id" => section_id}, socket) do
+    authorize_shared_mode(socket, :write)
     Session.unset_section_parent(socket.assigns.session.pid, section_id)
 
     {:noreply, socket}
   end
 
   def handle_event("insert_cell_below", params, socket) do
+    authorize_shared_mode(socket, :write)
     {type, attrs} = cell_type_and_attrs_from_params(params)
 
     with {:ok, section, index} <-
@@ -648,12 +653,14 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
+    authorize_shared_mode(socket, :write)
     Session.delete_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
 
   def handle_event("set_notebook_name", %{"value" => name}, socket) do
+    authorize_shared_mode(socket, :write)
     name = normalize_name(name)
     Session.set_notebook_name(socket.assigns.session.pid, name)
 
@@ -661,6 +668,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("set_section_name", %{"metadata" => section_id, "value" => name}, socket) do
+    authorize_shared_mode(socket, :write)
     name = normalize_name(name)
     Session.set_section_name(socket.assigns.session.pid, section_id, name)
 
@@ -691,6 +699,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("move_cell", %{"cell_id" => cell_id, "offset" => offset}, socket) do
+    authorize_shared_mode(socket, :write)
     offset = ensure_integer(offset)
     Session.move_cell(socket.assigns.session.pid, cell_id, offset)
 
@@ -698,6 +707,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("move_section", %{"section_id" => section_id, "offset" => offset}, socket) do
+    authorize_shared_mode(socket, :write)
     offset = ensure_integer(offset)
     Session.move_section(socket.assigns.session.pid, section_id, offset)
 
@@ -705,6 +715,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_section", %{"section_id" => section_id}, socket) do
+    authorize_shared_mode(socket, :write)
+
     socket =
       case Notebook.fetch_section(socket.private.data.notebook, section_id) do
         {:ok, %{cells: []} = section} ->
@@ -884,6 +896,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("erase_outputs", %{}, socket) do
+    authorize_shared_mode(socket, :write)
     Session.erase_outputs(socket.assigns.session.pid)
     {:noreply, socket}
   end
@@ -1663,5 +1676,16 @@ defmodule LivebookWeb.SessionLive do
          value: bytes
        }}
     end)
+  end
+
+  defp authorize_shared_mode(
+         %{assigns: %{live_action: :shared_page, session: %{policy: %{write?: false}}}},
+         :write
+       ) do
+    raise "has no permission"
+  end
+
+  defp authorize_shared_mode(_socket, _permission) do
+    :ok
   end
 end
