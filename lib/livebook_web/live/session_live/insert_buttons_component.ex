@@ -36,6 +36,16 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
               <.remix_icon icon="h-2" />
               <span class="font-medium">Section</span>
             </button>
+            <div class="my-2 border-b border-gray-200"></div>
+            <button class="menu-item text-gray-500"
+              role="menuitem"
+              phx-click="insert_cell_below"
+              phx-value-type="diagram"
+              phx-value-section_id={@section_id}
+              phx-value-cell_id={@cell_id}>
+            <.remix_icon icon="organization-chart" />
+            <span class="font-medium">Diagram</span>
+          </button>
           </:content>
         </.menu>
         <%= cond do %>
