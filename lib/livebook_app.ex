@@ -133,11 +133,7 @@ if Mix.target() == :app do
     def init(_) do
       os = os()
       wx = :wx.new()
-      AppBuilder.setup_wx(@name)
-
-      if os == :macos do
-        :wx.subscribe_events()
-      end
+      AppBuilder.Wx.subscribe_to_app_events(@name)
 
       menu_items = [
         {"Open Browser", key: "ctrl+o", id: wxID_OPEN()},

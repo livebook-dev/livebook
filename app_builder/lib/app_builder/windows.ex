@@ -4,15 +4,21 @@ defmodule AppBuilder.Windows do
   import AppBuilder.Utils
   require EEx
 
-  def send_wx_events(server, "") do
+  def __send_events__(server, input)
+
+  def __send_events__(server, "new_file") do
     send(server, {:new_file, ''})
   end
 
-  def send_wx_events(server, "open_url:" <> url) do
+  def __send_events__(server, "reopen_app") do
+    send(server, {:reopen_app, ''})
+  end
+
+  def __send_events__(server, "open_url:" <> url) do
     send(server, {:open_url, String.to_charlist(url)})
   end
 
-  def send_wx_events(server, "open_file:" <> path) do
+  def __send_events__(server, "open_file:" <> path) do
     path =
       path
       |> String.replace("\\", "/")
@@ -183,12 +189,6 @@ defmodule AppBuilder.Windows do
   root = Left(Wscript.ScriptFullName, Len(Wscript.ScriptFullName) - Len(Wscript.ScriptName))
   script = root & "rel\bin\<%= release.name %>.bat"
 
-  If WScript.Arguments.Count > 0 Then
-    input = WScript.Arguments(0)
-  Else
-    input = ""
-  End If
-
   Set shell = CreateObject("WScript.Shell")
 
   ' Below we run two commands:
@@ -202,15 +202,33 @@ defmodule AppBuilder.Windows do
   Set env = shell.Environment("Process")
   env("PATH") = ".\rel\vendor\elixir\bin;.\rel\erts-<%= release.erts_version %>\bin;" & env("PATH")
 
-  ' We're basically doing:
+  If WScript.Arguments.Count > 0 Then
+    input = WScript.Arguments(0)
+  Else
+    input = "reopen_app"
+  End If
+
+  ' Below, we're basically doing:
   '
-  '     $ bin/release rpc 'AppBuilder.Windows.send_wx_events(MyApp, input)'
+  '     $ bin/release rpc 'AppBuilder.Windows.__send_events__(MyApp, input)'
   '
-  ' We send the input through IO, as opposed through the rpc expression, to avoid RCE.
-  cmd = "echo " & input & " | \""" & script & \""" rpc ""AppBuilder.Windows.send_wx_events(<%= inspect(module) %>, String.trim(IO.read(:line)))\"""
+  ' We send the input through IO, as opposed using the rpc expression, to avoid RCE.
+  cmd = "echo " & input & " | \""" & script & \""" rpc ""AppBuilder.Windows.__send_events__(<%= inspect(module) %>, String.trim(IO.read(:line)))\"""
   code = shell.Run("cmd /c " & cmd, 0)
 
-  ' > bin/release start
+  ' Below, we're basically doing:
+  '
+  '     $ bin/release start
+  '
+  ' We send the input through the environment variable as we can't easily access argv
+  ' when booting through the release script.
+
+  If WScript.Arguments.Count > 0 Then
+    env("APP_BUILDER_INPUT") = WScript.Arguments(0)
+  Else
+    env("APP_BUILDER_INPUT") = "new_file"
+  End If
+
   cmd = \"""" & script & \""" start"
   env("APP_BUILDER_INPUT") = input
   code = shell.Run("cmd /c " & cmd & " >> " & root & "\Logs\<%= app_name %>.log 2>&1", 0)
