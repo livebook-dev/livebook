@@ -159,7 +159,7 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Subscribes to update in sessions list.
+  Subscribes to session messages.
 
   ## Messages
 
