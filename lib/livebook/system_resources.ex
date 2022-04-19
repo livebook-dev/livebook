@@ -17,6 +17,19 @@ defmodule Livebook.SystemResources do
   end
 
   @doc """
+  Subscribes to resource usage updates.
+
+  ## Messages
+
+    * `{:memory_update, memory}`
+
+  """
+  @spec subscribe() :: :ok | {:error, term()}
+  def subscribe() do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "system_resources")
+  end
+
+  @doc """
   Updates the resources kept by this process.
   """
   @spec update() :: :ok

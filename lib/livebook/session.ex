@@ -159,6 +159,24 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Subscribes to update in sessions list.
+
+  ## Messages
+
+    * `:session_closed`
+    * `{:session_updated, session}`
+    * `{:hydrate_bin_entries, entries}`
+    * `{:operation, operation}`
+    * `{:error, error}`
+    * `{:info, info}`
+
+  """
+  @spec subscribe(id()) :: :ok | {:error, term()}
+  def subscribe(session_id) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session_id}")
+  end
+
+  @doc """
   Computes the file name for download.
 
   Note that the name doesn't have any extension.
@@ -1205,7 +1223,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, prev_state, {:client_join, _client_pid, user}) do
     unless Map.has_key?(prev_state.data.users_map, user.id) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user.id}")
+      Livebook.Users.subscribe(user.id)
     end
 
     state
@@ -1215,7 +1233,7 @@ defmodule Livebook.Session do
     user_id = prev_state.data.clients_map[client_pid]
 
     unless Map.has_key?(state.data.users_map, user_id) do
-      Phoenix.PubSub.unsubscribe(Livebook.PubSub, "users:#{user_id}")
+      Livebook.Users.unsubscribe(user_id)
     end
 
     state
