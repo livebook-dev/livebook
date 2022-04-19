@@ -230,7 +230,6 @@ defmodule AppBuilder.Windows do
   End If
 
   cmd = \"""" & script & \""" start"
-  env("APP_BUILDER_INPUT") = input
   code = shell.Run("cmd /c " & cmd & " >> " & root & "\Logs\<%= app_name %>.log 2>&1", 0)
   """
 

@@ -6,10 +6,10 @@ defmodule AppBuilder.Wx do
 
   The possible events are:
 
-    * `{new_file, []}`
-    * `{reopen_app, []}`
-    * `{open_file, path}`
-    * `{open_url, url}`
+    * `{:new_file, []}`
+    * `{:reopen_app, []}`
+    * `{:open_file, path}`
+    * `{:open_url, url}`
 
   On macOS, we simply call `:wx.subscribe_events()`. On Windows,
   we emulate it.
