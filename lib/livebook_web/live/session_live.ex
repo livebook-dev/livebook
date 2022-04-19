@@ -1281,6 +1281,22 @@ defmodule LivebookWeb.SessionLive do
     {:smart, %{kind: kind}}
   end
 
+  defp cell_type_and_attrs_from_params(%{"type" => "diagram"}) do
+    source = """
+    <!-- Learn more at https://mermaid-js.github.io/mermaid -->
+
+    ```mermaid
+    graph TD;
+      A-->B;
+      A-->C;
+      B-->D;
+      C-->D;
+    ```\
+    """
+
+    {:markdown, %{source: source}}
+  end
+
   defp section_with_next_index(notebook, section_id, cell_id)
 
   defp section_with_next_index(notebook, section_id, nil) do
