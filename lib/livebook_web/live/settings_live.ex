@@ -30,9 +30,9 @@ defmodule LivebookWeb.SettingsLive do
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-16">
+        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-20">
           <!-- System settings section -->
-          <div class="flex flex-col space-y-8">
+          <div class="flex flex-col space-y-10">
             <div>
               <PageHelpers.title text="System settings" socket={@socket} />
               <p class="mt-4 text-gray-700">
@@ -42,77 +42,79 @@ defmodule LivebookWeb.SettingsLive do
               </p>
             </div>
 
-          <!-- System details -->
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold">
-              About
-            </h2>
-            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-              <div class="flex items-center space-x-12">
-                <%= if app_name = Livebook.Config.app_service_name() do %>
-                  <.labeled_text label="Application">
-                    <%= if app_url = Livebook.Config.app_service_url() do %>
-                      <a href={app_url} class="underline hover:no-underline" target="_blank">
-                        <%= app_name %>
-                      </a>
-                    <% else %>
-                      <%= app_name %>
-                    <% end %>
-                  </.labeled_text>
-                <% end %>
-                <.labeled_text label="Livebook">
-                  v<%= Application.spec(:livebook, :vsn) %>
-                </.labeled_text>
-                <.labeled_text label="Elixir">
-                  v<%= System.version() %>
-                </.labeled_text>
-              </div>
-
-              <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
-                                class: "button-base button-outlined-gray" do %>
-                <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
-                <span>Open dashboard</span>
-              <% end %>
-            </div>
-          </div>
-          <!-- Preferences -->
-          <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold">
-              Preferences
-            </h2>
-            <form phx-change="save" onsubmit="return false;">
-              <.switch_checkbox
-                name="update_check_enabled"
-                label="Show available Livebook updates"
-                checked={@update_check_enabled} />
-            </form>
-          </div>
-          <!-- Autosave path configuration -->
-          <div class="flex flex-col space-y-4">
-            <div>
+            <!-- System details -->
+            <div class="flex flex-col space-y-2">
               <h2 class="text-xl text-gray-800 font-semibold">
-                Autosave location
+                About
               </h2>
-              <p class="mt-4 text-gray-700">
-                A directory to temporarily keep notebooks until they are persisted.
-              </p>
+              <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center space-x-12">
+                  <%= if app_name = Livebook.Config.app_service_name() do %>
+                    <.labeled_text label="Application">
+                      <%= if app_url = Livebook.Config.app_service_url() do %>
+                        <a href={app_url} class="underline hover:no-underline" target="_blank">
+                          <%= app_name %>
+                        </a>
+                      <% else %>
+                        <%= app_name %>
+                      <% end %>
+                    </.labeled_text>
+                  <% end %>
+                  <.labeled_text label="Livebook">
+                    v<%= Application.spec(:livebook, :vsn) %>
+                  </.labeled_text>
+                  <.labeled_text label="Elixir">
+                    v<%= System.version() %>
+                  </.labeled_text>
+                </div>
+
+                <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
+                                  class: "button-base button-outlined-gray" do %>
+                  <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+                  <span>Open dashboard</span>
+                <% end %>
+              </div>
             </div>
-            <.autosave_path_select state={@autosave_path_state} />
-          </div>
-          <!-- File systems configuration -->
-          <div class="flex flex-col space-y-4">
-            <div class="flex justify-between items-center">
-              <h2 class="text-xl text-gray-800 font-semibold">
+            <!-- Updates -->
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+                Updates
+              </h2>
+              <form class="mt-4" phx-change="save" onsubmit="return false;">
+                <.switch_checkbox
+                  name="update_check_enabled"
+                  label="Show banner when a new Livebook version is available"
+                  checked={@update_check_enabled} />
+              </form>
+            </div>
+            <!-- Autosave path configuration -->
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+                Autosave
+              </h2>
+              <p class="text-gray-700">
+                The directory to keep unsaved notebooks.
+              </p>
+              <.autosave_path_select state={@autosave_path_state} />
+            </div>
+            <!-- File systems configuration -->
+            <div class="flex flex-col space-y-4">
+              <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
                 File systems
               </h2>
-            </div>
+              <p class="mt-4 text-gray-700">
+                File systems are used to store notebooks. The local disk filesystem
+                is visible only to the current machine, but alternative file systems
+                are available, such as S3-based storages.
+              </p>
               <LivebookWeb.SettingsLive.FileSystemsComponent.render
                 file_systems={@file_systems}
                 socket={@socket} />
             </div>
           </div>
+
           <!-- User settings section -->
-          <div class="flex flex-col space-y-8">
+          <div class="flex flex-col space-y-10">
             <div>
               <h1 class="text-3xl text-gray-800 font-semibold">
                 User settings
@@ -124,7 +126,7 @@ defmodule LivebookWeb.SettingsLive do
             </div>
             <!-- Editor configuration -->
             <div class="flex flex-col space-y-4">
-              <h2 class="text-xl text-gray-800 font-semibold">
+              <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
                 Code editor
               </h2>
               <div class="flex flex-col space-y-3"
