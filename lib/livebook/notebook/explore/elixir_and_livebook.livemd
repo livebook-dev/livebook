@@ -62,7 +62,7 @@ Mix.install([
 
 **Note:** compiling dependencies may use a reasonable amount of memory. If you are
 hosting Livebook, make sure you have enough memory allocated to the Livebook
-instance, otherwise the command below will fail.
+instance, otherwise the installation will fail.
 
 <!-- livebook:{"break_markdown":true} -->
 
