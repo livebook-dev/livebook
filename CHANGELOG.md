@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased](https://github.com/livebook-dev/livebook)
+
+### Added
+
+- Code error highlighting on formatting and evaluation ([#948](https://github.com/livebook-dev/livebook/pull/948))
+- Bulk actions in the sessions list ([#939](https://github.com/livebook-dev/livebook/pull/939))
+- Support for opening files and URLs via `livebook server` args ([#947](https://github.com/livebook-dev/livebook/pull/947), [#969](https://github.com/livebook-dev/livebook/pull/969) and [#960](https://github.com/livebook-dev/livebook/pull/960))
+- Persistent user configuration ([#937](https://github.com/livebook-dev/livebook/pull/937), [#1002](https://github.com/livebook-dev/livebook/pull/1002) and [#1017](https://github.com/livebook-dev/livebook/pull/1017))
+- Word wrapping toggle to the editor ([#961](https://github.com/livebook-dev/livebook/pull/961))
+- Option to download notebook source from the sessions list ([#980](https://github.com/livebook-dev/livebook/pull/980))
+- Support for binary payloads in JS outputs ([#982](https://github.com/livebook-dev/livebook/pull/982))
+- Introduced smart cells ([#1029](https://github.com/livebook-dev/livebook/pull/1029), [#1030](https://github.com/livebook-dev/livebook/pull/1030), [#1041](https://github.com/livebook-dev/livebook/pull/1041), [#1048](https://github.com/livebook-dev/livebook/pull/1048), [#1050](https://github.com/livebook-dev/livebook/pull/1050))
+- Confirmation modals ([#1033](https://github.com/livebook-dev/livebook/pull/1033))
+- Introduced desktop app packaging for Windows ([#1032](https://github.com/livebook-dev/livebook/pull/1032))
+- Autosave path configuration on the settings page ([#1019](https://github.com/livebook-dev/livebook/pull/1019))
+- Support for forcing SSL connection ([#1064](https://github.com/livebook-dev/livebook/pull/1064))
+- Introduced a setup cell ([#1075](https://github.com/livebook-dev/livebook/pull/1075))
+- Added cell insert buttons for a list of predefined smart cells ([#1078](https://github.com/livebook-dev/livebook/pull/1078) and [#1090](https://github.com/livebook-dev/livebook/pull/1090))
+- UI for searching and adding new dependencies ([#1081](https://github.com/livebook-dev/livebook/pull/1081))
+- An option for wrapping words in all Markdown editors ([#1107](https://github.com/livebook-dev/livebook/pull/1107))
+- Support for `mix run` flags in the Mix runtime ([#1108](https://github.com/livebook-dev/livebook/pull/1108))
+- Introduced code zen ([#1115](https://github.com/livebook-dev/livebook/pull/1115))
+- Optional instance information when running in the cloud ([#1116](https://github.com/livebook-dev/livebook/pull/1116))
+- Warning when running in the cloud and system memory is low ([#1122](https://github.com/livebook-dev/livebook/pull/1122))
+- Notification when a new Livebook version is available ([#1121](https://github.com/livebook-dev/livebook/pull/1121))
+- Insert button for Markdown cell with a Mermaid diagram ([#1134](https://github.com/livebook-dev/livebook/pull/1134))
+
+### Changed
+
+- Notebook export file name to match notebook file or title ([#870](https://github.com/livebook-dev/livebook/pull/870))
+- Switched importing to opening files in the desktop app ([#995](https://github.com/livebook-dev/livebook/pull/995))
+- Renamed Elixir cell to Code cell ([#1035](https://github.com/livebook-dev/livebook/pull/1035))
+- Use the first cell in viewport as the default for j/k navigation ([#1054](https://github.com/livebook-dev/livebook/pull/1054))
+- Limit standard output to last 1000 lines ([#1063](https://github.com/livebook-dev/livebook/pull/1063))
+- Restructured cell insert buttons ([#1073](https://github.com/livebook-dev/livebook/pull/1073))
+- Allowed inserting images without specifying name in Markdown cells ([#1083](https://github.com/livebook-dev/livebook/pull/1083))
+- Unified authentication to always redirect to the initial URL ([#1104](https://github.com/livebook-dev/livebook/pull/1104) and [#1112](https://github.com/livebook-dev/livebook/pull/1112))
+
+### Removed
+
+- `--open` and `--open-new` CLI flag to `livebook server` in favour of args ([#969](https://github.com/livebook-dev/livebook/pull/969) and [#960](https://github.com/livebook-dev/livebook/pull/960))
+- `--autosave-path` in favour of `--data-path` ([#963](https://github.com/livebook-dev/livebook/pull/963))
+- Disabled font ligatures in Markdown code blocks ([#1072](https://github.com/livebook-dev/livebook/pull/1072))
+- Embedded runtime under the default configuration ([#1084](https://github.com/livebook-dev/livebook/pull/1084))
+
+### Fixed
+
+- Properly handle Cloud Storage S3 API operation responses ([#956](https://github.com/livebook-dev/livebook/pull/956))
+- Access to cookies and other browser APIs inside JS output iframe ([#968](https://github.com/livebook-dev/livebook/pull/968), [#985](https://github.com/livebook-dev/livebook/pull/985) and [#989](https://github.com/livebook-dev/livebook/pull/989))
+- Improved accessibility ([#979](https://github.com/livebook-dev/livebook/pull/979), [#1009](https://github.com/livebook-dev/livebook/pull/1009), [#1007](https://github.com/livebook-dev/livebook/pull/1007) and [#1010](https://github.com/livebook-dev/livebook/pull/1010))
+- Editor input in Chrome when waking up from Windows hibernation ([#1018](https://github.com/livebook-dev/livebook/pull/1018))
+- Improved input performance with multiple Mermaid diagrams in a Markdown cell ([#1023](https://github.com/livebook-dev/livebook/pull/1023))
+- Opening browser from the CLI when running in WSL ([#1074](https://github.com/livebook-dev/livebook/pull/1074))
+
 ## [v0.5.2](https://github.com/livebook-dev/livebook/tree/v0.5.2) (2022-01-27)
 
 ### Added
