@@ -7,7 +7,10 @@ defmodule Standalone do
   """
   @spec copy_otp(Mix.Release.t(), otp_version :: String.t()) :: Mix.Release.t()
   def copy_otp(release, otp_version) do
-    ensure_otp_version(otp_version)
+    if Mix.env() != :dev do
+      ensure_otp_version(otp_version)
+    end
+
     {erts_source, otp_bin_dir, otp_lib_dir} = otp_dirs()
 
     # 1. copy erts/bin

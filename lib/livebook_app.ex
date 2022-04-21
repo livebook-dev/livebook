@@ -1,96 +1,204 @@
 if Mix.target() == :app do
-  defmodule LivebookApp do
+  defmodule WxUtils do
     @moduledoc false
 
-    @behaviour :wx_object
+    defmacro wxID_ANY, do: -1
+    defmacro wxID_OPEN, do: 5000
+    defmacro wxID_EXIT, do: 5006
+    defmacro wxID_OSX_HIDE, do: 5250
+    defmacro wxBITMAP_TYPE_PNG, do: 15
 
-    # https://github.com/erlang/otp/blob/OTP-24.1.2/lib/wx/include/wx.hrl#L1314
-    @wx_id_exit 5006
-    @wx_id_osx_hide 5250
-
-    def start_link(_) do
-      {:wx_ref, _, _, pid} = :wx_object.start_link(__MODULE__, [], [])
-      {:ok, pid}
+    def os do
+      case :os.type() do
+        {:unix, :darwin} -> :macos
+        {:win32, _} -> :windows
+      end
     end
 
-    def child_spec(init_arg) do
-      %{
-        id: __MODULE__,
-        start: {__MODULE__, :start_link, [init_arg]},
-        restart: :transient
-      }
+    def taskbar(title, icon, menu_items) do
+      pid = self()
+      options = if os() == :macos, do: [iconType: 1], else: []
+
+      # skip keyboard shortcuts
+      menu_items =
+        for item <- menu_items do
+          {title, options} = item
+          options = Keyword.delete(options, :key)
+          {title, options}
+        end
+
+      taskbar =
+        :wxTaskBarIcon.new(
+          [
+            createPopupMenu: fn ->
+              menu = menu(menu_items)
+
+              # For some reason, on macOS the menu event must be handled in another process
+              # but on Windows it must be either the same process OR we use the callback.
+              case os() do
+                :macos ->
+                  env = :wx.get_env()
+
+                  Task.start_link(fn ->
+                    :wx.set_env(env)
+                    :wxMenu.connect(menu, :command_menu_selected)
+
+                    receive do
+                      message ->
+                        send(pid, message)
+                    end
+                  end)
+
+                :windows ->
+                  :ok =
+                    :wxMenu.connect(menu, :command_menu_selected,
+                      callback: fn wx, _ ->
+                        send(pid, wx)
+                      end
+                    )
+              end
+
+              menu
+            end
+          ] ++ options
+        )
+
+      :wxTaskBarIcon.setIcon(taskbar, icon, tooltip: title)
+      taskbar
     end
 
-    def windows_connected(url) do
-      url
-      |> String.trim()
-      |> String.trim_leading("\"")
-      |> String.trim_trailing("\"")
-      |> windows_to_wx()
+    def menu(items) do
+      menu = :wxMenu.new()
+
+      Enum.each(items, fn
+        {title, options} ->
+          id = Keyword.get(options, :id, wxID_ANY())
+
+          title =
+            case Keyword.fetch(options, :key) do
+              {:ok, key} ->
+                title <> "\t" <> key
+
+              :error ->
+                title
+            end
+
+          :wxMenu.append(menu, id, title)
+      end)
+
+      menu
     end
+
+    def menubar(app_name, menus) do
+      menubar = :wxMenuBar.new()
+
+      if os() == :macos, do: fixup_macos_menubar(menubar, app_name)
+
+      for {title, menu_items} <- menus do
+        true = :wxMenuBar.append(menubar, menu(menu_items), title)
+      end
+
+      menubar
+    end
+
+    defp fixup_macos_menubar(menubar, app_name) do
+      menu = :wxMenuBar.oSXGetAppleMenu(menubar)
+
+      menu
+      |> :wxMenu.findItem(wxID_OSX_HIDE())
+      |> :wxMenuItem.setItemLabel("Hide #{app_name}\tCtrl+H")
+
+      menu
+      |> :wxMenu.findItem(wxID_EXIT())
+      |> :wxMenuItem.setItemLabel("Quit #{app_name}\tCtrl+Q")
+    end
+  end
+
+  defmodule LivebookApp do
+    @moduledoc false
+    @name __MODULE__
+
+    use GenServer
+    import WxUtils
+
+    def start_link(arg) do
+      GenServer.start_link(__MODULE__, arg, name: @name)
+    end
+
+    taskbar_icon_path = "rel/app/taskbar_icon.png"
+    @external_resource taskbar_icon_path
+    @taskbar_icon File.read!(taskbar_icon_path)
 
     @impl true
     def init(_) do
-      app_name = "Livebook"
-
-      true = Process.register(self(), __MODULE__)
       os = os()
-
-      # TODO: on all platforms either add a basic window with some buttons OR a wxwebview
-      size = if os == :macos, do: {0, 0}, else: {100, 100}
-
       wx = :wx.new()
-      frame = :wxFrame.new(wx, -1, app_name, size: size)
-      :wxFrame.show(frame)
+      AppBuilder.Wx.subscribe_to_app_events(@name)
+
+      menu_items = [
+        {"Open Browser", key: "ctrl+o", id: wxID_OPEN()},
+        {"Quit", key: "ctrl+q", id: wxID_EXIT()}
+      ]
 
       if os == :macos do
-        fixup_macos_menubar(frame, app_name)
+        :wxMenuBar.setAutoWindowMenu(false)
+
+        menubar =
+          menubar("Livebook", [
+            {"File", menu_items}
+          ])
+
+        :ok = :wxMenuBar.connect(menubar, :command_menu_selected, skip: true)
+
+        # TODO: use :wxMenuBar.macSetCommonMenuBar/1 when OTP 25 is out
+        frame = :wxFrame.new(wx, -1, "", size: {0, 0})
+        :wxFrame.show(frame)
+        :wxFrame.setMenuBar(frame, menubar)
       end
 
-      :wxFrame.connect(frame, :command_menu_selected, skip: true)
-      :wxFrame.connect(frame, :close_window, skip: true)
+      # TODO: instead of embedding the icon and copying to tmp, copy the file known location.
+      # It's a bit tricky because it needs to support all the ways of running the app:
+      # 1. MIX_TARGET=app mix phx.server
+      # 2. mix app
+      # 3. mix release app
+      taskbar_icon_path = Path.join(System.tmp_dir!(), "taskbar_icon.png")
+      File.write!(taskbar_icon_path, @taskbar_icon)
+      icon = :wxIcon.new(taskbar_icon_path, type: wxBITMAP_TYPE_PNG())
 
-      case os do
-        :macos ->
-          :wx.subscribe_events()
+      taskbar = taskbar("Livebook", icon, menu_items)
 
-        :windows ->
-          windows_to_wx(System.get_env("LIVEBOOK_URL") || "")
+      if os == :windows do
+        :wxTaskBarIcon.connect(taskbar, :taskbar_left_down,
+          callback: fn _, _ ->
+            open_browser()
+          end
+        )
       end
 
-      state = %{frame: frame}
-      {frame, state}
+      {:ok, nil}
     end
 
     @impl true
-    def handle_event({:wx, @wx_id_exit, _, _, _}, state) do
-      :init.stop()
-      {:stop, :shutdown, state}
+    def handle_info({:wx, wxID_EXIT(), _, _, _}, _state) do
+      System.stop(0)
     end
 
     @impl true
-    def handle_event({:wx, _, _, _, {:wxClose, :close_window}}, state) do
-      :init.stop()
-      {:stop, :shutdown, state}
+    def handle_info({:wx, wxID_OPEN(), _, _, _}, state) do
+      open_browser()
+      {:noreply, state}
     end
 
     # This event is triggered when the application is opened for the first time
     @impl true
     def handle_info({:new_file, ''}, state) do
-      Livebook.Utils.browser_open(LivebookWeb.Endpoint.access_url())
+      open_browser()
       {:noreply, state}
     end
 
-    # TODO: investigate "Universal Links" [1], that is, instead of livebook://foo, we have
-    # https://livebook.dev/foo, which means the link works with and without Livebook.app.
-    #
-    # [1] https://developer.apple.com/documentation/xcode/allowing-apps-and-websites-to-link-to-your-content
     @impl true
-    def handle_info({:open_url, 'livebook://' ++ rest}, state) do
-      "https://#{rest}"
-      |> Livebook.Utils.notebook_import_url()
-      |> Livebook.Utils.browser_open()
-
+    def handle_info({:reopen_app, _}, state) do
+      open_browser()
       {:noreply, state}
     end
 
@@ -99,69 +207,30 @@ if Mix.target() == :app do
       path
       |> List.to_string()
       |> Livebook.Utils.notebook_open_url()
-      |> Livebook.Utils.browser_open()
+      |> open_browser()
 
       {:noreply, state}
     end
 
     @impl true
-    def handle_info({:reopen_app, _}, state) do
-      Livebook.Utils.browser_open(LivebookWeb.Endpoint.access_url())
+    def handle_info({:open_url, 'livebook://' ++ rest}, state) do
+      "https://#{rest}"
+      |> Livebook.Utils.notebook_import_url()
+      |> open_browser()
+
       {:noreply, state}
     end
 
-    # ignore other events
-    @impl true
-    def handle_info(_event, state) do
-      {:noreply, state}
-    end
-
-    # 1. WxeApp attaches event handler to "Quit" menu item that does nothing (to not accidentally bring
-    #    down the VM). Let's create a fresh menu bar without that caveat.
-    # 2. Fix app name
-    defp fixup_macos_menubar(frame, app_name) do
-      menubar = :wxMenuBar.new()
-      :wxFrame.setMenuBar(frame, menubar)
-
-      menu = :wxMenuBar.oSXGetAppleMenu(menubar)
-
-      # without this, for some reason setting the title later will make it non-bold
-      :wxMenu.getTitle(menu)
-
-      # this is useful in dev, not needed when bundled in .app
-      :wxMenu.setTitle(menu, app_name)
-
-      menu
-      |> :wxMenu.findItem(@wx_id_osx_hide)
-      |> :wxMenuItem.setItemLabel("Hide #{app_name}\tCtrl+H")
-
-      menu
-      |> :wxMenu.findItem(@wx_id_exit)
-      |> :wxMenuItem.setItemLabel("Quit #{app_name}\tCtrl+Q")
-    end
-
-    defp os() do
-      case :os.type() do
-        {:unix, :darwin} -> :macos
-        {:win32, _} -> :windows
+    if Mix.env() == :dev do
+      @impl true
+      def handle_info(event, state) do
+        IO.inspect(event)
+        {:noreply, state}
       end
     end
 
-    defp windows_to_wx("") do
-      send(__MODULE__, {:new_file, ''})
-    end
-
-    defp windows_to_wx("livebook://" <> _ = url) do
-      send(__MODULE__, {:open_url, String.to_charlist(url)})
-    end
-
-    defp windows_to_wx(path) do
-      path =
-        path
-        |> String.replace("\\", "/")
-        |> String.to_charlist()
-
-      send(__MODULE__, {:open_file, path})
+    defp open_browser(url \\ LivebookWeb.Endpoint.access_url()) do
+      Livebook.Utils.browser_open(url)
     end
   end
 end
