@@ -99,6 +99,32 @@ defmodule Livebook.Runtime.DependenciesTest do
                 # Result
                 :ok\
                 """}
+
+      assert Dependencies.add_mix_deps(
+               """
+               Mix.install(
+                 [
+                   {:req, "~> 0.2.0"}
+                 ],
+                 system_env: [
+                   # {"XLA_TARGET", "cuda111"}
+                 ]
+               )\
+               """,
+               [@kino]
+             ) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:req, "~> 0.2.0"},
+                    {:kino, "~> 0.5.0"}
+                  ],
+                  system_env: [
+                    # {"XLA_TARGET", "cuda111"}
+                  ]
+                )\
+                """}
     end
 
     test "does not add the dependency if it already exists" do
