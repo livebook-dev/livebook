@@ -1,0 +1,9 @@
+// For format details, see https://aka.ms/devcontainer.json.
+// Also see https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/elixir-phoenix-postgres
+{
+  "name": "Livebook edge",
+  "image": "livebook/livebook:edge",
+  "extensions": ["JakeBecker.elixir-ls"],
+  "forwardPorts": [8080, 8081],
+  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts" }
+}

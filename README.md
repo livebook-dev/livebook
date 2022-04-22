@@ -132,16 +132,23 @@ with [Nerves](https://www.nerves-project.org/).
 
 ### GitHub Codespaces
 
-Livebook also has several `devcontainer.json` files to choose from that will create a GitHub codespace for Livebook:
+Livebook also has several `devcontainer.json` files that allow for launching containers
+on [GitHub Codespaces](https://github.com/features/codespaces) in the following variants:
 
-- Run Livebook (stable) ([`.devcontainer/run-livebook`](./.devcontainer/run-livebook-stable/devcontainer.json))
-  - This devcontainer is for pulling and running the official stable Livebook Docker image from DockerHub, but does not include capabilities for building and contributing to Livebook.
-- Run Livebook (source) ([`.devcontainer/run-livebook-source`](./.devcontainer/run-livebook-source/devcontainer.json))
-  - This devcontainer is for building and running a local Docker image from the Dockerfile in the root of this repo, but does not include capabilities for building and contributing to Livebook.
-- Develop Livebook ([`.devcontainer/develop-livebook`](./.devcontainer/develop-livebook/devcontainer.json))
-  - This devcontainer is for building Livebook from source with a full Elixir/Node.js environment for users who would like to build and contribute to Livebook.
+  * Run Livebook (stable) ([`.devcontainer/run-stable`](./.devcontainer/run-stable/devcontainer.json)) - launches
+    the latest stable version of Livebook. Note that this runs in deployment mode and does
+    not allow for Livebook development.
 
-For more information on GitHub Codespaces, how to configure them, and how to use them, we recommend referring to [the official GitHub codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace).
+  * Run Livebook (edge) ([`.devcontainer/run-edge`](./.devcontainer/run-edge/devcontainer.json)) - launches
+    the edge version of Livebook (matching the main branch). Note that this runs in deployment
+    mode and does not allow for Livebook development.
+
+  * Develop Livebook ([`.devcontainer/dev`](./.devcontainer/dev/devcontainer.json)) - launches
+    a full development environment with the latest Livebook codebase for users who would like
+    to build and contribute to Livebook.
+
+For more information on GitHub Codespaces, how to configure them, and how to use them, we
+recommend referring to [the official GitHub codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace).
 
 ## Security considerations
 
