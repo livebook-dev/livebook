@@ -24,7 +24,7 @@ ENV PATH=${NVM_DIR}/current/bin:${PATH}
 # [Optional, Choice] Node.js version: none, lts/*, 16, 14, 12, 10
 ARG NODE_VERSION="14"
 
-# The vscode-dev-containers above require bash
+# The vscode-dev-containers below require bash
 RUN apt-get install bash
 
 # Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
@@ -52,9 +52,6 @@ RUN apt-get update \
 
 # CSet the user's home directory and then switch to the user
 RUN usermod -md /home/${USER} ${USER}
-USER $USER
-
-RUN mix local.hex --force && mix local.rebar --force
 
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update \
@@ -65,4 +62,5 @@ RUN mix local.hex --force && mix local.rebar --force
 # RUN  mix ...
 WORKDIR /home/livebook
 COPY --chown=livebook ../.. .
-RUN mix dev.setup
+USER $USER
+RUN mix local.hex --force && mix local.rebar --force && mix dev.setup
