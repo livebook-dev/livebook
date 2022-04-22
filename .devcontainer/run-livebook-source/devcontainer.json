@@ -1,28 +1,24 @@
-// This devcontainer is for building the Dockerfile included with the Livebook repo instead of pulling the stable remote Livebook image.
+
+// This devcontainer is for pulling the latest edge/main Livebook image from Docker Hub.
 
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/docker-existing-dockerfile
+// https://github.com/microsoft/vscode-dev-containers/blob/v0.231.6/container-templates/image/.devcontainer/devcontainer.json
 {
-	"name": "Livebook",
+  // Update the 'image' property with your Docker image name.
+  "image": "livebook/livebook:edge",
 
-	// Sets the run context to one level up instead of the .devcontainer folder.
-	"context": "..",
-
-	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"dockerFile": "../Dockerfile",
-
-	// Set *default* container specific settings.json values on container create.
+  // Set *default* container specific settings.json values on container create.
 	"settings": {},
-	
+
 	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [
+  "extensions": [
 		"JakeBecker.elixir-ls"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [8080, 8081],
+  "forwardPorts": [8080, 8081],
 
-	// Uncomment the next line to run commands after the container is created - for example installing curl.
+  // Uncomment the next line to run commands after the container is created - for example installing curl.
 	// "postCreateCommand": "apt-get update && apt-get install -y curl",
 
 	// Uncomment when using a ptrace-based debugger like C++, Go, and Rust

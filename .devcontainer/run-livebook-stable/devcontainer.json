@@ -3,7 +3,6 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/blob/v0.231.6/container-templates/image/.devcontainer/devcontainer.json
 {
-  
   // Update the 'image' property with your Docker image name.
   "image": "livebook/livebook",
 

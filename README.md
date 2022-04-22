@@ -132,7 +132,7 @@ with [Nerves](https://www.nerves-project.org/).
 
 ### GitHub Codespaces
 
-Livebook also has several `devcontainer.json` files to choose from that will create a GitHub odespace for Livebook:
+Livebook also has several `devcontainer.json` files to choose from that will create a GitHub codespace for Livebook:
 
 - Run Livebook (stable) ([`.devcontainer/run-livebook`](./.devcontainer/run-livebook-stable/devcontainer.json))
   - This devcontainer is for pulling and running the official stable Livebook Docker image from DockerHub, but does not include capabilities for building and contributing to Livebook.
