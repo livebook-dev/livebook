@@ -6,5 +6,5 @@
   "extensions": ["JakeBecker.elixir-ls"],
   "forwardPorts": [8080, 8081],
   "remoteUser": "livebook",
-  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts" }
+  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts", "CODESPACE_VSCODE_FOLDER": "/home/livebook" }
 }

@@ -4,10 +4,11 @@
   "name": "Livebook development environment",
   "dockerComposeFile": "docker-compose.yml",
   "service": "livebook",
+  
   "workspaceFolder": "/home/livebook",
   "extensions": ["jakebecker.elixir-ls"],
   "forwardPorts": [8080, 8081],
   // See https://aka.ms/vscode-remote/containers/non-root
   "remoteUser": "livebook",
-  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts" }
+  "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts", "CODESPACE_VSCODE_FOLDER": "/home/livebook" }
 }
