@@ -51,7 +51,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* /tmp/common-setup.sh /tmp/node-setup.sh
 
 # CSet the user's home directory and then switch to the user
-RUN usermod -md /home/${USER} ${USER}
+RUN usermod -md /workspaces/${USER} ${USER}
 
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update \
@@ -60,7 +60,7 @@ RUN usermod -md /home/${USER} ${USER}
 
 # [Optional] Uncomment this line to install additional package.
 # RUN  mix ...
-WORKDIR /home/livebook
+WORKDIR /workspaces/livebook
 COPY --chown=livebook ../.. .
 USER $USER
 RUN mix local.hex --force && mix local.rebar --force && mix dev.setup
