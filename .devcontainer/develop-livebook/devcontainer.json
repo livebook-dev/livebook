@@ -5,7 +5,7 @@
 {
 	"name": "Elixir and Node.js",
 	"dockerComposeFile": "docker-compose.yml",
-	"service": "elixir",
+	"service": "livebook",
 	"workspaceFolder": "/livebook",
 
 	// Set *default* container specific settings.json values on container create.
