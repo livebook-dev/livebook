@@ -1,13 +1,9 @@
 // For format details, see https://aka.ms/devcontainer.json.
 // Also see https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/elixir-phoenix-postgres
 {
-  "name": "Livebook development environment",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "livebook",
-  "workspaceFolder": "/home/livebook",
-  "extensions": ["jakebecker.elixir-ls"],
+  "name": "Livebook edge",
+  "image": "livebook/livebook:edge",
+  "extensions": ["JakeBecker.elixir-ls"],
   "forwardPorts": [8080, 8081],
-  // See https://aka.ms/vscode-remote/containers/non-root
-  "remoteUser": "livebook",
   "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts" }
 }
