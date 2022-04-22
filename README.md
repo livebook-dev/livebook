@@ -132,7 +132,16 @@ with [Nerves](https://www.nerves-project.org/).
 
 ### GitHub Codespaces
 
-Livebook also has several `devcontainer.json` files to choose from that will create a GitHub odespace for Livebook. [The GitHub codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace) has more details on creating and configuring codespaces.
+Livebook also has several `devcontainer.json` files to choose from that will create a GitHub odespace for Livebook:
+
+- Run Livebook (stable) ([`.devcontainer/run-livebook`](./.devcontainer/run-livebook-stable/devcontainer.json))
+  - This devcontainer is for pulling and running the official stable Livebook Docker image from DockerHub, but does not include capabilities for building and contributing to Livebook.
+- Run Livebook (source) ([`.devcontainer/run-livebook-source`](./.devcontainer/run-livebook-source/devcontainer.json))
+  - This devcontainer is for building and running a local Docker image from the Dockerfile in the root of this repo, but does not include capabilities for building and contributing to Livebook.
+- Develop Livebook ([`.devcontainer/develop-livebook`](./.devcontainer/develop-livebook/devcontainer.json))
+  - This devcontainer is for building Livebook from source with a full Elixir/Node.js environment for users who would like to build and contribute to Livebook.
+
+For more information on GitHub Codespaces, how to configure them, and how to use them, we recommend referring to [the official GitHub codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace).
 
 ## Security considerations
 

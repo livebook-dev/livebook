@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  livebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VARIANT: "1.13.4"
+        NODE_VERSION: "14"
+
+    volumes:
+      - ../..:/livebook:cached
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity

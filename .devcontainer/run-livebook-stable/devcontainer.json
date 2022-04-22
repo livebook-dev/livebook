@@ -1,4 +1,4 @@
-// This devcontainer is for pulling the latest Livebook image from Docker Hub.
+// This devcontainer is for pulling the latest stable Livebook image from Docker Hub.
 
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/blob/v0.231.6/container-templates/image/.devcontainer/devcontainer.json
@@ -11,7 +11,9 @@
 	"settings": {},
 
 	// Add the IDs of extensions you want installed when the container is created.
-  "extensions": ["JakeBecker.elixir-ls"],
+  "extensions": [
+		"JakeBecker.elixir-ls"
+	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
   "forwardPorts": [8080, 8081],

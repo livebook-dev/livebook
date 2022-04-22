@@ -1,4 +1,4 @@
-// This devcontainer is for building the Dockerfile included with the Livebook repo instead of pulling the remote Livebook image.
+// This devcontainer is for building the Dockerfile included with the Livebook repo instead of pulling the stable remote Livebook image.
 
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/docker-existing-dockerfile
@@ -15,7 +15,9 @@
 	"settings": {},
 	
 	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": ["JakeBecker.elixir-ls"],
+	"extensions": [
+		"JakeBecker.elixir-ls"
+	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [8080, 8081],
