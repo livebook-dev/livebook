@@ -1,5 +1,3 @@
-# Update the VARIANT arg in docker-compose.yml to pick an Elixir version: 1.9, 1.10, 1.10.4
-
 # This image version needs to match what is in the root Dockerfile.
 FROM hexpm/elixir:1.13.2-erlang-24.1.7-debian-bullseye-20210902-slim
 
