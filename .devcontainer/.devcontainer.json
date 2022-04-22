@@ -1,12 +1,12 @@
-// This devcontainer is for setting up a Elixir/Node.js environment for building and contributing to Livebook.
+// This default devcontainer is for setting up a Elixir/Node.js environment for building and contributing to Livebook.
 
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/elixir-phoenix-postgres
 {
 	"name": "Elixir and Node.js",
 	"dockerComposeFile": "docker-compose.yml",
-	"service": "livebook",
-	"workspaceFolder": "/livebook",
+	"service": "livebook", // This must be the same as the name of the service in the accompanying docker-compose.yml file.
+	"workspaceFolder": "/home/livebook",
 
 	// Set *default* container specific settings.json values on container create.
 	"settings": {},
@@ -27,5 +27,5 @@
 	"remoteUser": "livebook",
 
 	// A set of name-value pairs that sets or overrides environment variables for VS Code (or sub-processes like terminals) but not the container as a whole.
-	"remoteEnv": { "PATH": "${containerEnv:PATH}:/livebook/.mix/escripts" }
+	"remoteEnv": { "PATH": "${containerEnv:PATH}:/home/livebook/.mix/escripts" }
 }

@@ -56,4 +56,6 @@ RUN su ${USERNAME} -c "mix local.hex --force && mix local.rebar --force"
 
 # [Optional] Uncomment this line to install additional package.
 # RUN  mix ...
-RUN mix dev.setup && mix phx.server
+WORKDIR /home/livebook
+COPY .. .
+RUN mix dev.setup
