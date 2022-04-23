@@ -1,9 +1,9 @@
 # This image version needs to match what is in the root Dockerfile.
 FROM livebook/livebook:edge
 
+ENV HOME=/home/livebook
 # GitHub Codespaces put you in a `/workspaces` folder no matter what.
 ENV WORKSPACE_FOLDER=/workspaces/livebook
-WORKDIR $WORKSPACE_FOLDER
 
 # Install the dependencies from the build image (which is discarded in the normal production images)
 RUN apt-get update && apt-get upgrade -y && \
@@ -22,6 +22,9 @@ RUN apt-get update && apt-get upgrade -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
+# Install hex and rebar
+RUN mix local.hex --force && mix local.rebar --force
+
 # Node/nvm setup
 ARG NODE_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/node-debian.sh"
 ARG NODE_SCRIPT_SHA="dev-mode"
@@ -33,11 +36,12 @@ ENV PATH=${NVM_DIR}/current/bin:${PATH}
 RUN curl -sSL ${NODE_SCRIPT_SOURCE} -o /tmp/node-setup.sh && \
     /bin/bash /tmp/node-setup.sh "${NVM_DIR}" "${NODE_VERSION}" "${USERNAME}"
 
+
+WORKDIR ${WORKSPACE_FOLDER}
+
 # Copy everything for development purposes
-COPY .. .
+COPY . .
 
-# Install hex and rebar
-RUN mix local.hex --force && mix local.rebar --force
-
+# Pull dependencies and build/compile
 RUN mix dev.setup
 RUN mix do deps.compile, compile

@@ -5,8 +5,11 @@ services:
     container_name: livebook_dev
     image: livebook_dev:latest
     build:
-      context: ../..
-      dockerfile: .devcontainer/dev/Dockerfile
+      context: ..
+      dockerfile: ./.devcontainer/Dockerfile
+    environment:
+      - LIVEBOOK_HOME=/data
+      - LIVEBOOK_DATA_PATH=/data
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
     ports:
