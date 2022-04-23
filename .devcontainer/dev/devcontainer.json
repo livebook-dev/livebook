@@ -3,7 +3,7 @@
 {
   "name": "Livebook development environment",
   "dockerComposeFile": "docker-compose.yml",
-  "service": "livebook",
+  "service": "livebook_dev",
   "workspaceFolder": "/workspaces/livebook",
   "extensions": ["jakebecker.elixir-ls"],
   "forwardPorts": [8080, 8081],
