@@ -43,5 +43,5 @@ RUN mix local.hex --force && \
 # Build for development
 ENV MIX_ENV=dev
 
-RUN mix.compile
 RUN mix dev.setup
+RUN mix do deps.compile, compile
