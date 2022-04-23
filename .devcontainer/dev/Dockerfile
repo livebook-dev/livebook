@@ -37,11 +37,7 @@ RUN curl -sSL ${NODE_SCRIPT_SOURCE} -o /tmp/node-setup.sh && \
 COPY .. .
 
 # Install hex and rebar
-RUN mix local.hex --force && \
-    mix local.rebar --force
-
-# Build for development
-ENV MIX_ENV=dev
+RUN mix local.hex --force && mix local.rebar --force
 
 RUN mix dev.setup
 RUN mix do deps.compile, compile
