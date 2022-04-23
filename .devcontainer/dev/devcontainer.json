@@ -7,5 +7,8 @@
   "workspaceFolder": "/workspaces/livebook",
   "extensions": ["jakebecker.elixir-ls"],
   "forwardPorts": [8080, 8081],
-  "remoteEnv": { "PATH": "${containerEnv:PATH}:/workspaces/livebook/.mix/escripts" }
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/workspaces/livebook/.mix/escripts",
+    "LOCAL_USER_PATH": "/workspaces/livebook"
+  }
 }

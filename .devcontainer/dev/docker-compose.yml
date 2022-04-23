@@ -9,3 +9,6 @@ services:
       dockerfile: .devcontainer/dev/Dockerfile
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
+    ports:
+      - "8080:8080"
+      - "8081:8081"

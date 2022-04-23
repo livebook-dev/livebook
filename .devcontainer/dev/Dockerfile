@@ -1,5 +1,5 @@
 # This image version needs to match what is in the root Dockerfile.
-FROM livebook/livebook
+FROM livebook/livebook:edge
 
 # GitHub Codespaces put you in a `/workspaces` folder no matter what.
 ENV HOME=/workspaces/livebook
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get upgrade -y && \
         # Bash (for easier shell use)
         bash \
         # Runtime dependencies
-        build-essential ca-certificates libncurses5-dev \
+        build-essential ca-certificates libncurses5-dev inotify-tools \
         # In case someone uses `Mix.install/2` and point to a git repo
         git \
         # Additional standard tools
@@ -43,4 +43,5 @@ RUN mix local.hex --force && \
 # Build for development
 ENV MIX_ENV=dev
 
+RUN mix.compile
 RUN mix dev.setup
