@@ -1,10 +1,8 @@
 # This image version needs to match what is in the root Dockerfile.
 FROM hexpm/elixir:1.13.2-erlang-24.1.7-debian-bullseye-20210902-slim
 
-# This Dockerfile adds a non-root user with sudo access. Update the “remoteUser” property in
-# devcontainer.json to use it. More info: https://aka.ms/vscode-remote/containers/non-root-user.
-ARG USER=livebook
-ARG USER_UID=1000
+ARG USER=root
+ARG USER_UID=0
 ARG USER_GID=$USER_UID
 
 # Options for common package install script
@@ -21,13 +19,14 @@ ENV NVM_DIR=/usr/local/share/nvm
 ENV NVM_SYMLINK_CURRENT=true
 ENV PATH=${NVM_DIR}/current/bin:${PATH}
 
-# [Optional, Choice] Node.js version: none, lts/*, 16, 14, 12, 10
 ARG NODE_VERSION="14"
+
+WORKDIR /workspaces/root
 
 # The vscode-dev-containers below require bash
 RUN apt-get install bash
 
-# Install needed packages and setup non-root user. Use a separate RUN statement to add your own dependencies.
+# Install needed packages. Use a separate RUN statement to add your own dependencies.
 RUN apt-get update \
   && export DEBIAN_FRONTEND=noninteractive \
   && apt-get -y install --no-install-recommends curl ca-certificates 2>&1 \
@@ -57,7 +56,5 @@ RUN apt-get update \
 
 # [Optional] Uncomment this line to install additional package.
 # RUN  mix ...
-WORKDIR /workspaces/livebook
-COPY --chown=livebook ../.. .
-USER $USER
+COPY ../.. .
 RUN mix local.hex --force && mix local.rebar --force && mix dev.setup
