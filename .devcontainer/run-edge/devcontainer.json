@@ -8,7 +8,9 @@
   "otherPortsAttributes": {
     "onAutoForward": "ignore"
   },
-  "postCreateCommand": "/app/bin/livebook start",
+  // Codespaces doesn't have a good way to execute a command as soon as a container starts (any CMD in the Dockerfile is ignored),
+  // so the only thing we can do is link the executable to the workspaces directory for easier use.
+  "postCreateCommand": "ln -sf /app/bin/livebook /workspaces/livebook",
   "settings": {
     // Needed because of: https://github.com/microsoft/vscode/issues/102057#issuecomment-657728467
     "debug.javascript.autoAttachFilter": "onlyWithFlag",
