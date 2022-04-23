@@ -2,8 +2,8 @@
 FROM livebook/livebook:edge
 
 # GitHub Codespaces put you in a `/workspaces` folder no matter what.
-ENV HOME=/workspaces/livebook
-WORKDIR $HOME
+ENV WORKSPACE_FOLDER=/workspaces/livebook
+WORKDIR $WORKSPACE_FOLDER
 
 # Install the dependencies from the build image (which is discarded in the normal production images)
 RUN apt-get update && apt-get upgrade -y && \

@@ -5,7 +5,7 @@
   "image": "livebook/livebook:edge",
   "extensions": ["JakeBecker.elixir-ls"],
   "forwardPorts": [8080, 8081],
-  "postCreateCommand": "/app/bin/livebook start",
+  "workspaceFolder": "/data",
   "settings": {
     // Needed because of: https://github.com/microsoft/vscode/issues/102057#issuecomment-657728467
     "debug.javascript.autoAttachFilter": "onlyWithFlag",
