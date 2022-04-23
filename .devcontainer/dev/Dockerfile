@@ -21,7 +21,7 @@ ENV PATH=${NVM_DIR}/current/bin:${PATH}
 
 ARG NODE_VERSION="14"
 
-WORKDIR /workspaces/root
+WORKDIR /workspaces/livebook
 
 # The vscode-dev-containers below require bash
 RUN apt-get install bash
@@ -56,5 +56,6 @@ RUN apt-get update \
 
 # [Optional] Uncomment this line to install additional package.
 # RUN  mix ...
-COPY ../.. .
+
+# We don't need a COPY command because Codespaces does that for us
 RUN mix local.hex --force && mix local.rebar --force && mix dev.setup
