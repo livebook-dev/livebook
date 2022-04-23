@@ -310,12 +310,5 @@ we defined for our counter.
 Kino.Counter.bump(counter)
 ```
 
-## Final words
-
-Congratulations, you finished our "course" on Kino! Throughout
-those guides, you mastered Kino's API and learned how to use its
-building blocks to build a chat app and a multiplayer pong game.
-
-Then, in this notebook, you learned how you can take Kino anywhere
-you want by implementing your own kinos with Elixir and JavaScript.
-We are looking forward to see what you can build with it! 🚀
+In the next notebook we will get back to those concepts and
+[extend Livebook with custom Smart cells](/explore/notebooks/smart-cells)!

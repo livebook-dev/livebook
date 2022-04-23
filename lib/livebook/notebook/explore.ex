@@ -105,6 +105,10 @@ defmodule Livebook.Notebook.Explore do
     %{
       ref: :kino_custom_kinos,
       path: Path.join(__DIR__, "explore/kino/custom_kinos.livemd")
+    },
+    %{
+      ref: :kino_smart_cells,
+      path: Path.join(__DIR__, "explore/kino/smart_cells.livemd")
     }
   ]
 
@@ -210,7 +214,8 @@ defmodule Livebook.Notebook.Explore do
         :kino_vm_introspection,
         :kino_chat_app,
         :kino_pong,
-        :kino_custom_kinos
+        :kino_custom_kinos,
+        :kino_smart_cells
       ]
     }
   ]
