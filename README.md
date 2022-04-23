@@ -30,11 +30,7 @@ Livebook comes with a series of introductory notebooks to get you up and running
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
-From time to time, we also publish some videos for new Livebook releases:
-
-  * [Livebook's initial announcement by José Valim](https://www.youtube.com/watch?v=RKvqc-UEe34), also featuring [Nx](https://github.com/elixir-nx/nx) and [Axon](https://github.com/elixir-nx/axon)
-
-  * [New in Livebook v0.2 by José Valim](https://www.youtube.com/watch?v=MOTEgF-wIEI), exploring inputs, charts of mathematical formulas, and live display of runtime metrics
+For screencasts and updates, check out [news.livebook.dev](https://news.livebook.dev/).
 
 ## Usage
 
