@@ -6,9 +6,13 @@
   "service": "livebook_dev",
   "workspaceFolder": "/workspaces/livebook",
   "extensions": ["jakebecker.elixir-ls"],
-  "forwardPorts": [8080, 8081],
-  "devPort": 8080,
-	"postCreateCommand": "mix local.hex --force && mix local.rebar --force && mix dev.setup && mix do deps.compile, compile",
+  "forwardPorts": [4000, 4001, 8080, 8081],
+  
+  // The final codespace container is missing hex/rebar/dependencies without these create commands, despite what the Dockerfile suggests
+	"onCreateCommand": "mix local.hex --force && mix local.rebar --force",
+  "updateContentCommand": "mix dev.setup && mix do deps.compile, compile",
+  "postCreateCommand": "mix phx.server",
+
   "settings": {
     // Needed because of: https://github.com/microsoft/vscode/issues/102057#issuecomment-657728467
     "debug.javascript.autoAttachFilter": "onlyWithFlag",
