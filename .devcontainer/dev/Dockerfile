@@ -1,61 +1,33 @@
 # This image version needs to match what is in the root Dockerfile.
-FROM hexpm/elixir:1.13.2-erlang-24.1.7-debian-bullseye-20210902-slim
+FROM livebook/livebook:edge
 
-ARG USER=root
-ARG USER_UID=0
-ARG USER_GID=$USER_UID
+# GitHub Codespaces put you in a `/workspaces` folder no matter what.
+ENV HOME=/workspaces/livebook
+WORKDIR $HOME
 
-# Options for common package install script
-ARG INSTALL_ZSH="true"
-ARG UPGRADE_PACKAGES="true"
-ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/v0.231.6/script-library/common-debian.sh"
-ARG COMMON_SCRIPT_SHA="3c3543c8aa1f3adba62ae1a9e204846f8448c4cbfee1bce1edaf2a9fefac85df"
+# Install the dependencies from the build image (which is discarded in the normal production images)
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install --no-install-recommends -y \
+        # Runtime dependencies
+        build-essential ca-certificates libncurses5-dev \
+        # In case someone uses `Mix.install/2` and point to a git repo
+        git \
+        # Additional standard tools
+        wget \
+        # In case someone uses Torchx for Nx
+        cmake && \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
 
-# [Optional] Setup nodejs
-ARG NODE_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/main/script-library/node-debian.sh"
-ARG NODE_SCRIPT_SHA="dev-mode"
-ARG NODE_VERSION="none"
-ENV NVM_DIR=/usr/local/share/nvm
-ENV NVM_SYMLINK_CURRENT=true
-ENV PATH=${NVM_DIR}/current/bin:${PATH}
-
-ARG NODE_VERSION="14"
-
-WORKDIR /workspaces/livebook
-
-# The vscode-dev-containers below require bash
-RUN apt-get install bash
-
-# Install needed packages. Use a separate RUN statement to add your own dependencies.
-RUN apt-get update \
-  && export DEBIAN_FRONTEND=noninteractive \
-  && apt-get -y install --no-install-recommends curl ca-certificates 2>&1 \
-  && curl -sSL ${COMMON_SCRIPT_SOURCE} -o /tmp/common-setup.sh \
-  && ([ "${COMMON_SCRIPT_SHA}" = "dev-mode" ] || (echo "${COMMON_SCRIPT_SHA} */tmp/common-setup.sh" | sha256sum -c -)) \
-  && /bin/bash /tmp/common-setup.sh "${INSTALL_ZSH}" "${USER}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" \
-  #
-  # [Optional] Install Node.js for use with web applications
-  && if [ "$NODE_VERSION" != "none" ]; then \
-  curl -sSL ${NODE_SCRIPT_SOURCE} -o /tmp/node-setup.sh \
-  && ([ "${NODE_SCRIPT_SHA}" = "dev-mode" ] || (echo "${NODE_SCRIPT_SHA} */tmp/node-setup.sh" | sha256sum -c -)) \
-  && /bin/bash /tmp/node-setup.sh "${NVM_DIR}" "${NODE_VERSION}" "${USER}"; \
-  fi \
-  #
-  # Install dependencies
-  && apt-get install -y build-essential inotify-tools \
-  #
-  # Clean up
-  && apt-get autoremove -y \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/* /tmp/common-setup.sh /tmp/node-setup.sh
-
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update \
-#     && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
-
-# [Optional] Uncomment this line to install additional package.
-# RUN  mix ...
-
+# Copy everything for development purposes
 COPY .. .
-RUN mix local.hex --force && mix local.rebar --force && mix dev.setup
+
+# Install hex and rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
+# Build for development
+ENV MIX_ENV=dev
+
+RUN mix dev.setup
