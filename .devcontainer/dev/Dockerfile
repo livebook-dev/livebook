@@ -15,7 +15,7 @@ RUN apt-get update && apt-get upgrade -y && \
         # In case someone uses `Mix.install/2` and point to a git repo
         git \
         # Additional standard tools
-        wget \
+        curl wget \
         # In case someone uses Torchx for Nx
         cmake && \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
