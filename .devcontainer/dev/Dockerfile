@@ -21,8 +21,7 @@ ENV PATH=${NVM_DIR}/current/bin:${PATH}
 
 ARG NODE_VERSION="14"
 
-ENV HOME=/workspaces/livebook
-WORKDIR $HOME
+WORKDIR /workspaces/livebook
 
 # The vscode-dev-containers below require bash
 RUN apt-get install bash

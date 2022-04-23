@@ -5,6 +5,3 @@ services:
     build:
       context: ../..
       dockerfile: .devcontainer/dev/Dockerfile
-
-    volumes:
-      - ../..:/workspaces/library:cached
