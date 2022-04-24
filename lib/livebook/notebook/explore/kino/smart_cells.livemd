@@ -1,0 +1,434 @@
+# Exploring Smart cells
+
+```elixir
+Mix.install([
+  {:kino, github: "livebook-dev/kino"},
+  {:jason, "~> 1.3"}
+])
+```
+
+## Introduction
+
+So far we discussed how Livebook supports interactive outputs and
+covered creating custom outputs with Kino. Livebook v0.6 opens up
+the door to a whole new category of extensions that we call Smart
+cells ⚡
+
+Just like the Code and Markdown cells, Smart cells are building
+blocks for our notebooks. A Smart cell provides a user interface
+specifically designed for a particular task. Under the hood, each
+Smart cell is just a regular piece of code, however the code is
+generated automatically based on the UI interactions.
+
+Smart cells allow for accomplishing high-level tasks faster, without
+writing any code, yet, without sacrificing code! This characteristic
+makes them a productivity boost and also a great learning tool.
+
+Go ahead, place your cursor between cells and click on the <kbd>+ Smart</kbd>
+button, you should see a list of suggested Smart cells. Feel free
+to try them out!
+
+As with outputs, we can define custom Smart cells through Kino,
+and that's what we're going to explore in this notebook!
+
+## Basic concepts
+
+Smart cells consist of UI and state, which we implement using `Kino.JS`
+and `Kino.JS.Live` that we talked about in the previous guide. The
+additional element is code generation. Let's have a look at a simple
+Smart cell that lets the user type text and generates code for printing
+that text.
+
+```elixir
+defmodule Kino.Kino.PrintCell do
+  use Kino.JS
+  use Kino.JS.Live
+  use Kino.SmartCell, name: "Print"
+
+  @impl true
+  def init(attrs, ctx) do
+    ctx = assign(ctx, text: attrs["text"] || "")
+    {:ok, ctx}
+  end
+
+  @impl true
+  def handle_connect(ctx) do
+    {:ok, %{text: ctx.assigns.text}, ctx}
+  end
+
+  @impl true
+  def handle_event("update_text", text, ctx) do
+    broadcast_event(ctx, "update_text", text)
+    {:noreply, assign(ctx, text: text)}
+  end
+
+  @impl true
+  def to_attrs(ctx) do
+    %{"text" => ctx.assigns.text}
+  end
+
+  @impl true
+  def to_source(attrs) do
+    quote do
+      IO.puts(unquote(attrs["text"]))
+    end
+    |> Kino.SmartCell.quoted_to_string()
+  end
+
+  asset "main.js" do
+    """
+    export function init(ctx, payload) {
+      root.innerHTML = `
+        <div>Say what?</div>
+        <input type="text" id="text" />
+      `;
+
+      const textEl = document.getElementById("text");
+      textEl.value = payload.text;
+
+      ctx.handleEvent("update_text", (text) => {
+        textEl.value = text;
+      });
+
+      textEl.addEventListener("blur", (event) => {
+        ctx.pushEvent("update_text", event.target.value);
+      });
+    }
+    """
+  end
+end
+
+Kino.SmartCell.register(Kino.Kino.PrintCell)
+```
+
+Most of the implementation includes regular `Kino.JS.Live` bits
+that should feel familiar, specifically `init/2`, `handle_connect/1`,
+`handle_event/3` and the JS module. Let's go through the new parts.
+
+Firstly, we add `use Kino.SmartCell` and specify the name of our
+Smart cell, that's the name that will show up in Livebook.
+
+Next, we define the `to_attrs/1` callback responsible for serializing
+the Smart cell state. The attributes are stored in the notebook source
+as JSON. When opening an existing notebook, a Smart cell is started
+and receives the attributes as the first argument to the `init/2`
+callback to restore the relevant state. On initial start an empty map
+is given.
+
+The other new callback is `to_source/1`. It is used to generate source
+code based on the Smart cell attributes. Elixir has built in support
+for source code manipulation, that's why in our example we use the
+`quote` construct, instead of a less robust string interpolation.
+
+Finally, we register our new smart cell using `Kino.SmartCell.register/1`,
+so that Livebook picks it up. Note that in practice we would put the
+Smart cell in a package and we would register it in `application.ex`
+when starting the application.
+
+<!-- livebook:{"break_markdown":true} -->
+
+Now let's try out the new cell! We already inserted one below, but you
+can add more with the <kbd>+ Smart</kbd> button.
+
+<!-- livebook:{"attrs":{"text":"something"},"kind":"Elixir.Kino.Kino.PrintCell","livebook_object":"smart_cell"} -->
+
+```elixir
+IO.puts("something")
+```
+
+Focus the Smart cell and click the "Source" icon. You should see the
+generated source code, however the editor is in read-only mode. Now
+switch back to the Smart cell UI, modify the input and see how the
+source code changes. You can evaluate the cell, as with a regular
+Code cell.
+
+## Collaborative editor
+
+Livebook puts a strong emphasis on collaboration and Smart cells
+are no exception. The above cell works fine with multiple users,
+however the changes to the input are atomic, so if users edit it
+simultaneously, one would override the other. This behaviour is
+alright for small parameter inputs, however some cells may require
+editing a larger chunk of text, such as an SQL query or JSON data.
+
+Livebook already provides a collaborative editor for the Code and
+Markdown cells. Fortunately, a Smart cell can opt-in for an editor
+as well! To showcase this feature, let's build a cell on top of
+`System.shell/2`.
+
+```elixir
+defmodule Kino.Kino.ShellCell do
+  use Kino.JS
+  use Kino.JS.Live
+  use Kino.SmartCell, name: "Shell script"
+
+  @impl true
+  def init(_attrs, ctx) do
+    {:ok, ctx, editor: [attribute: "source"]}
+  end
+
+  @impl true
+  def handle_connect(ctx) do
+    {:ok, %{}, ctx}
+  end
+
+  @impl true
+  def to_attrs(_ctx) do
+    %{}
+  end
+
+  @impl true
+  def to_source(attrs) do
+    quote do
+      System.shell(
+        unquote(quoted_multiline(attrs["source"])),
+        into: IO.stream(),
+        stderr_to_stdout: true
+      )
+      |> elem(1)
+    end
+    |> Kino.SmartCell.quoted_to_string()
+  end
+
+  defp quoted_multiline(string) do
+    {:<<>>, [delimiter: ~s["""]], [string <> "\n"]}
+  end
+
+  asset "main.js" do
+    """
+    export function init(ctx, payload) {
+      ctx.importCSS("main.css");
+
+      root.innerHTML = `
+        <div class="app">
+          Shell script
+        </div>
+      `;
+    }
+    """
+  end
+
+  asset "main.css" do
+    """
+    .app {
+      padding: 8px 16px;
+      border: solid 1px #cad5e0;
+      border-radius: 0.5rem 0.5rem 0 0;
+      border-bottom: none;
+    }
+    """
+  end
+end
+
+Kino.SmartCell.register(Kino.Kino.ShellCell)
+```
+
+The tuple returned from `init/2` has an optional third element that
+we use to configure the Smart cell. To enable the editor, all we need
+is a configuration option! The editor is fully managed by Livebook,
+separately from the Smart cell UI and the editor content is placed in
+`attrs` under the name specified with `:attribute`. This way we can
+access it in `to_source/1`.
+
+In this example we don't need any other attributes, so in the UI we
+only show the cell name.
+
+<!-- livebook:{"attrs":{"source":"echo \"There you are:\"\nls -dlh $(pwd)\nexit 1"},"kind":"Elixir.Kino.Kino.ShellCell","livebook_object":"smart_cell"} -->
+
+```elixir
+System.shell(
+  """
+  echo "There you are:"
+  ls -dlh $(pwd)
+  exit 1
+  """,
+  into: IO.stream(),
+  stderr_to_stdout: true
+)
+|> elem(1)
+```
+
+## Stepping it up
+
+Now that we discussed both regular inputs and the collaborative editor,
+it's time to put it all together. For our final example we will build
+a Smart cell that takes JSON data and generates an Elixir code with a
+matching data structure assigned to a user-defined variable.
+
+```elixir
+defmodule Kino.JSONConverterCell do
+  use Kino.JS
+  use Kino.JS.Live
+  use Kino.SmartCell, name: "JSON converter"
+
+  @impl true
+  def init(attrs, ctx) do
+    ctx =
+      assign(ctx,
+        variable: Kino.SmartCell.prefixed_var_name("data", attrs["data"])
+      )
+
+    {:ok, ctx, editor: [attribute: "json", language: "json"]}
+  end
+
+  @impl true
+  def handle_connect(ctx) do
+    {:ok, %{variable: ctx.assigns.variable}, ctx}
+  end
+
+  @impl true
+  def handle_event("update_variable", variable, ctx) do
+    ctx =
+      if Kino.SmartCell.valid_variable_name?(variable) do
+        assign(ctx, variable: variable)
+      else
+        ctx
+      end
+
+    broadcast_event(ctx, "update_variable", ctx.assigns.variable)
+
+    {:noreply, ctx}
+  end
+
+  @impl true
+  def to_attrs(ctx) do
+    %{"variable" => ctx.assigns.variable}
+  end
+
+  @impl true
+  def to_source(attrs) do
+    case Jason.decode(attrs["json"]) do
+      {:ok, data} ->
+        quote do
+          unquote(quoted_var(attrs["variable"])) = unquote(Macro.escape(data))
+          :ok
+        end
+        |> Kino.SmartCell.quoted_to_string()
+
+      _ ->
+        ""
+    end
+  end
+
+  defp quoted_var(nil), do: nil
+  defp quoted_var(string), do: {String.to_atom(string), [], nil}
+
+  asset "main.js" do
+    """
+    export function init(ctx, payload) {
+      ctx.importCSS("main.css");
+      ctx.importCSS("https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap");
+
+      root.innerHTML = `
+        <div class="app">
+          <label class="label">Parse JSON to</label>
+          <input class="input" type="text" name="variable" />
+        </div>
+      `;
+
+      const variableEl = ctx.root.querySelector(`[name="variable"]`);
+      variableEl.value = payload.variable;
+
+      variableEl.addEventListener("blur", (event) => {
+        ctx.pushEvent("update_variable", event.target.value);
+      });
+
+      ctx.handleEvent("update_variable", (variable) => {
+        variableEl.value = variable;
+      });
+    }
+    """
+  end
+
+  asset "main.css" do
+    """
+    .app {
+      font-family: "Inter";
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background-color: #ecf0ff;
+      padding: 8px 16px;
+      border: solid 1px #cad5e0;
+      border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    .label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #445668;
+      text-transform: uppercase;
+    }
+
+    .input {
+      padding: 8px 12px;
+      background-color: #f8fafc;
+      font-size: 0.875rem;
+      border: 1px solid #e1e8f0;
+      border-radius: 0.5rem;
+      color: #445668;
+      min-width: 150px;
+    }
+
+    .input:focus {
+      outline: none;
+    }
+    """
+  end
+end
+
+Kino.SmartCell.register(Kino.JSONConverterCell)
+```
+
+In this case, one of the attributes is a variable name, so we use
+`Kino.SmartCell.prefixed_var_name/2`. For a fresh cell it will
+generate a default variable name that isn't already taken by another
+Smart cell. You can test this by inserting another JSON cell, where
+the variable name should default to `data2`.
+
+This time we also added some proper styling to show a Smart cell in
+its full glory!
+
+<!-- livebook:{"attrs":{"json":"[\n  {\n    \"id\": 1,\n    \"name\": \"livebook\",\n    \"url\": \"https://github.com/livebook-dev/livebook\",\n    \"topics\": [\n      \"elixir\",\n      \"visualization\",\n      \"realtime\",\n      \"collaborative\",\n      \"notebooks\"\n    ]\n  },\n  {\n    \"id\": 2,\n    \"name\": \"kino\",\n    \"url\": \"https://github.com/livebook-dev/kino\",\n    \"topics\": [\n      \"charts\",\n      \"elixir\",\n      \"livebook\"\n    ]\n  }\n]","variable":"data"},"kind":"Elixir.Kino.JSONConverterCell","livebook_object":"smart_cell"} -->
+
+```elixir
+data = [
+  %{
+    "id" => 1,
+    "name" => "livebook",
+    "topics" => ["elixir", "visualization", "realtime", "collaborative", "notebooks"],
+    "url" => "https://github.com/livebook-dev/livebook"
+  },
+  %{
+    "id" => 2,
+    "name" => "kino",
+    "topics" => ["charts", "elixir", "livebook"],
+    "url" => "https://github.com/livebook-dev/kino"
+  }
+]
+
+:ok
+```
+
+This cell accomplishes a coding task that would otherwise be tedious
+without parsing the JSON from a string. We could further extend the
+cell with options to convert keys to snake case or use atoms!
+
+We went through a couple examples, however there is even more power
+to Smart cells than that! One feature we haven't discussed is access
+to notebook variables and evaluation results. Those allow for
+making the UI data-driven!
+
+Hopefully this notebook gives you a good overview of the Smart cells'
+potential, now it's your turn to unlock it ⚡
+
+## Final words
+
+Congratulations, you finished our "course" on Kino! Throughout
+those guides, you first mastered Kino's API and learned how to
+use its building blocks to build a chat app and a multiplayer
+pong game.
+
+Then, you learned how you can take Kino anywhere you want by
+implementing your own kinos and cells with Elixir and JavaScript.
+We are looking forward to see what you can build with it! 🚀
