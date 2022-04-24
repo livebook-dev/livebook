@@ -130,26 +130,14 @@ If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBon
 check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
 with [Nerves](https://www.nerves-project.org/).
 
-### GitHub Codespaces
+### GitHub Codespaces (development)
 
-Livebook also has several `devcontainer.json` files that allow for launching containers
-on [GitHub Codespaces](https://github.com/features/codespaces) in the following variants:
+Livebook also has a `devcontainer.json` file for launching containers
+on [GitHub Codespaces](https://github.com/features/codespaces) for development
+purposes. Once booted, you can invoke `mix phx.server` in the terminal to start
+your own Livebook session.
 
-  * Develop Livebook ([`.devcontainer/devcontainer.json`](./.devcontainer/dev/devcontainer.json)) - launches
-    a full development environment with the latest Livebook codebase for users who would like
-    to build and contribute to Livebook.
-    * *This is the default `devcontainer.json` when creating a new codespace.*
-
-  * Run Livebook (stable) ([`.devcontainer/run-stable/devcontainer.json`](./.devcontainer/run-stable/devcontainer.json)) - launches
-    the latest stable version of Livebook. Note that this runs in deployment mode and does
-    not allow for Livebook development.
-
-  * Run Livebook (edge) ([`.devcontainer/run-edge/devcontainer.json`](./.devcontainer/run-edge/devcontainer.json)) - launches
-    the edge version of Livebook (matching the main branch). Note that this runs in deployment
-    mode and does not allow for Livebook development.
-
-For more information on GitHub Codespaces, how to configure them, and how to use them, we
-recommend referring to [the official GitHub codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace).
+Check [the official GitHub Codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace) to learn more.
 
 ## Security considerations
 
