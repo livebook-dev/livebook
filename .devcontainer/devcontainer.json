@@ -6,7 +6,7 @@
   "service": "livebook_dev",
 
   // Despite being required to set workspaceFolder, it doesn't actually do anything and you end up in /workspaces/livebook no matter what.
-  "workspaceFolder": "/root",
+  "workspaceFolder": "/workspaces/livebook",
 
   "extensions": ["jakebecker.elixir-ls"],
   "forwardPorts": [4000, 4001, 8080, 8081],
