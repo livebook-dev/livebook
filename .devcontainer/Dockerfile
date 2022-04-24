@@ -2,8 +2,12 @@
 FROM livebook/livebook:edge
 
 ENV HOME=/home/livebook
+ENV PATH ${PATH}:${HOME}/.mix/escripts
+
 # GitHub Codespaces put you in a `/workspaces` folder no matter what.
 ENV WORKSPACE_FOLDER=/workspaces/livebook
+
+WORKDIR ${WORKSPACE_FOLDER}
 
 # Install the dependencies from the build image (which is discarded in the normal production images)
 RUN apt-get update && apt-get upgrade -y && \
@@ -35,9 +39,6 @@ ENV PATH=${NVM_DIR}/current/bin:${PATH}
 
 RUN curl -sSL ${NODE_SCRIPT_SOURCE} -o /tmp/node-setup.sh && \
     /bin/bash /tmp/node-setup.sh "${NVM_DIR}" "${NODE_VERSION}" "${USERNAME}"
-
-
-WORKDIR ${WORKSPACE_FOLDER}
 
 # Copy everything for development purposes
 COPY . .
