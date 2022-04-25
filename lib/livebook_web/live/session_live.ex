@@ -578,6 +578,8 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
+    assert_live_action_access!(socket)
+
     if socket.assigns.policy.edit do
       path_parts =
         Enum.map(path_parts, fn
