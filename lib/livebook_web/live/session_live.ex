@@ -562,14 +562,12 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
     assert_live_action_access!(socket)
-    assert_policy!(socket, :edit)
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket) do
     assert_live_action_access!(socket)
-    assert_policy!(socket, :read)
     {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
     first_section_id = hd(socket.private.data.notebook.sections).id
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
@@ -580,28 +578,34 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
-    assert_live_action_access!(socket)
-    assert_policy!(socket, :read)
+    try do
+      assert_live_action_access!(socket)
+    catch
+      _ ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "policy not allowed")
+         |> push_redirect(to: Routes.home_path(socket, :page))}
+    else
+      _ ->
+        path_parts =
+          Enum.map(path_parts, fn
+            "__parent__" -> ".."
+            part -> part
+          end)
 
-    path_parts =
-      Enum.map(path_parts, fn
-        "__parent__" -> ".."
-        part -> part
-      end)
-
-    path = Path.join(path_parts)
-    {:noreply, handle_relative_path(socket, path)}
+        path = Path.join(path_parts)
+        {:noreply, handle_relative_path(socket, path)}
+    end
   end
 
   def handle_params(%{"tab" => tab}, _url, socket) do
     assert_live_action_access!(socket)
-    assert_policy!(socket, :read)
     {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
     assert_live_action_access!(socket)
-    assert_policy!(socket, :read)
     {:noreply, socket}
   end
 
