@@ -17,16 +17,6 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col space-y-6">
-      <p class="text-gray-700">
-        <span class="font-semibold">Note:</span>
-        the script export is available as a convenience, rather than
-        an exact reproduction of the notebook and in some cases it may
-        not even compile. For example, if you define a macro in one cell
-        and import it in another cell, it works fine in Livebook,
-        because each cell is compiled separately. However, when running
-        the script it gets compiled as a whole and consequently doing so
-        doesn't work. Additionally, branching sections are commented out.
-      </p>
       <div class="flex flex-col space-y-1">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-700 font-semibold">

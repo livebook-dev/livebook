@@ -15,11 +15,13 @@ defmodule Livebook.Notebook.Export.Elixir do
   defp render_notebook(notebook) do
     %{setup_section: %{cells: [setup_cell]} = setup_section} = notebook
 
+    prelude = "# Run as: iex --dot-iex path/to/notebook.exs"
+
     name = ["# Title: ", notebook.name]
     setup_cell = render_setup_cell(setup_cell, setup_section)
     sections = Enum.map(notebook.sections, &render_section(&1, notebook))
 
-    [name, setup_cell | sections]
+    [prelude, name, setup_cell | sections]
     |> Enum.reject(&is_nil/1)
     |> Enum.intersperse("\n\n")
   end
