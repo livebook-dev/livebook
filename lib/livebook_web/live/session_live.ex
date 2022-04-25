@@ -578,24 +578,17 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
-    try do
-      assert_live_action_access!(socket)
-    catch
-      _ ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "policy not allowed")
-         |> push_redirect(to: Routes.home_path(socket, :page))}
-    else
-      _ ->
-        path_parts =
-          Enum.map(path_parts, fn
-            "__parent__" -> ".."
-            part -> part
-          end)
+    if socket.assigns.policy.edit do
+      path_parts =
+        Enum.map(path_parts, fn
+          "__parent__" -> ".."
+          part -> part
+        end)
 
-        path = Path.join(path_parts)
-        {:noreply, handle_relative_path(socket, path)}
+      path = Path.join(path_parts)
+      {:noreply, handle_relative_path(socket, path)}
+    else
+      {:noreply, socket |> put_flash(:error, "No access to navigate") |> redirect_to_self()}
     end
   end
 
