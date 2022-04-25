@@ -79,7 +79,13 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp assign_policy(socket) do
-    assign(socket, policy: %{read: false, execute: false, comment: false, edit: false})
+    policy =
+      case socket.assigns.live_action do
+        :shared_page -> %{read: true, execute: true, comment: true, edit: true}
+        _ -> %{read: false, execute: false, comment: false, edit: false}
+      end
+
+    assign(socket, policy: policy)
   end
 
   defp platform_from_socket(socket) do
@@ -555,12 +561,14 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
-    assert_policy!(socket, :read)
+    assert_live_action_access!(socket)
+    assert_policy!(socket, :edit)
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket) do
+    assert_live_action_access!(socket)
     assert_policy!(socket, :read)
     {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
     first_section_id = hd(socket.private.data.notebook.sections).id
@@ -572,6 +580,7 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
+    assert_live_action_access!(socket)
     assert_policy!(socket, :read)
 
     path_parts =
@@ -585,11 +594,13 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"tab" => tab}, _url, socket) do
+    assert_live_action_access!(socket)
     assert_policy!(socket, :read)
     {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
+    assert_live_action_access!(socket)
     assert_policy!(socket, :read)
     {:noreply, socket}
   end
@@ -604,13 +615,14 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("insert_section_below", params, socket) do
+    assert_policy!(socket, :edit)
+
     with {:ok, section, index} <-
            section_with_next_index(
              socket.private.data.notebook,
              params["section_id"],
              params["cell_id"]
            ) do
-      assert_policy!(socket, :edit)
       Session.insert_section_into(socket.assigns.session.pid, section.id, index)
     end
 
@@ -652,7 +664,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :read)
     Session.delete_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
@@ -754,7 +766,7 @@ defmodule LivebookWeb.SessionLive do
         %{"kind" => kind, "variant_idx" => variant_idx},
         socket
       ) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :execute)
 
     with %{requirement: %{variants: variants}} <-
            Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
@@ -856,7 +868,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("intellisense_request", %{"cell_id" => cell_id} = params, socket) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :read)
 
     request =
       case params do
@@ -919,7 +931,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("location_report", report, socket) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :read)
 
     Phoenix.PubSub.broadcast_from(
       Livebook.PubSub,
@@ -929,21 +941,6 @@ defmodule LivebookWeb.SessionLive do
     )
 
     {:noreply, socket}
-  end
-
-  def handle_event("format_code", %{"code" => code}, socket) do
-    assert_policy!(socket, :edit)
-
-    formatted =
-      try do
-        code
-        |> Code.format_string!()
-        |> IO.iodata_to_binary()
-      rescue
-        _ -> code
-      end
-
-    {:reply, %{code: formatted}, socket}
   end
 
   @impl true
@@ -1694,5 +1691,11 @@ defmodule LivebookWeb.SessionLive do
     end
 
     :ok
+  end
+
+  defp assert_live_action_access!(socket) do
+    if socket.assigns.live_action == :shared_page do
+      raise "not allowed"
+    end
   end
 end
