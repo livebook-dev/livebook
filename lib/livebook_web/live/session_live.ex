@@ -81,8 +81,8 @@ defmodule LivebookWeb.SessionLive do
   defp assign_policy(socket) do
     policy =
       case socket.assigns.live_action do
-        :shared_page -> %{read: true, execute: true, comment: true, edit: true}
-        _ -> %{read: false, execute: false, comment: false, edit: false}
+        :shared_page -> %{read: true, execute: false, comment: false, edit: false}
+        _ -> %{read: true, execute: true, comment: true, edit: true}
       end
 
     assign(socket, policy: policy)
@@ -1686,16 +1686,23 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def assert_policy!(socket, key) do
-    if socket.assigns.policy |> Map.fetch!(key) do
+    unless socket.assigns.policy |> Map.fetch!(key) do
       raise "policy not allowed"
     end
 
     :ok
   end
 
-  defp assert_live_action_access!(socket) do
-    if socket.assigns.live_action == :shared_page do
-      raise "not allowed"
+  defp assert_live_action_access!(%{assigns: %{live_action: live_action}} = socket) do
+    cond do
+      live_action in [:page, :file_settings, :runtime_settings, :bin] ->
+        assert_policy!(socket, :edit)
+
+      live_action in [:shared_page, :catch_all, :dependency_search] ->
+        assert_policy!(socket, :read)
+
+      true ->
+        raise "unknown live_action: #{inspect(live_action)}"
     end
   end
 end
