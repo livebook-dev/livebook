@@ -24,7 +24,7 @@ We can implement it using [`Kino.JS`](https://hexdocs.pm/kino/Kino.JS.html)
 in less than 15 LOC:
 
 ```elixir
-defmodule Kino.HTML do
+defmodule KinoGuide.HTML do
   use Kino.JS
 
   def new(html) when is_binary(html) do
@@ -46,7 +46,7 @@ Let's break it down.
 To define a custom kino we need to create a new module,
 conventionally under the `Kino.` prefix, so that the end
 user can easily autocomplete all available kinos. In
-this case we went with `Kino.HTML`.
+this case we went with `KinoGuide.HTML`.
 
 We start by adding `use Kino.JS`, which makes our module
 asset-aware. In particular, it allows us to use the `asset/2`
@@ -70,7 +70,7 @@ for the end user.
 Let's give our Kino a try:
 
 ```elixir
-Kino.HTML.new("""
+KinoGuide.HTML.new("""
 <h3>Look!</h3>
 
 <p>I wrote this HTML from <strong>Kino</strong>!</p>
@@ -113,7 +113,7 @@ for handling any messages sent via `Kino.JS.Live.cast/2`. Here is how
 the code will look like:
 
 ```elixir
-defmodule Kino.Leaflet do
+defmodule KinoGuide.Leaflet do
   use Kino.JS
   use Kino.JS.Live
 
@@ -198,7 +198,7 @@ the page and you should see all of the markers still in place. Feel
 free to try this out in separte browser tabs too!
 
 ```elixir
-map = Kino.Leaflet.new({51.505, -0.09}, 13)
+map = KinoGuide.Leaflet.new({51.505, -0.09}, 13)
 ```
 
 The below cell marks a random location, so you can evaluate it
@@ -207,7 +207,7 @@ multiple times for better results.
 ```elixir
 delta = fn -> (:rand.uniform() - 0.5) * 0.05 end
 
-Kino.Leaflet.add_marker(map, {51.505 + delta.(), -0.09 + delta.()})
+KinoGuide.Leaflet.add_marker(map, {51.505 + delta.(), -0.09 + delta.()})
 ```
 
 We barely scratched the surface of maps, the Leaflet API alone is extremely
@@ -224,7 +224,7 @@ Let's build a counter that can be incremented both through Elixir
 calls and client interactions.
 
 ```elixir
-defmodule Kino.Counter do
+defmodule KinoGuide.Counter do
   use Kino.JS
   use Kino.JS.Live
 
@@ -297,7 +297,7 @@ to the server via `pushEvent`.
 Let's render our counter!
 
 ```elixir
-counter = Kino.Counter.new(0)
+counter = KinoGuide.Counter.new(0)
 ```
 
 As an experiment you can open another browser tab to verify
@@ -307,7 +307,7 @@ In addition to client events we can also use the Elixir API
 we defined for our counter.
 
 ```elixir
-Kino.Counter.bump(counter)
+KinoGuide.Counter.bump(counter)
 ```
 
 In the next notebook we will get back to those concepts and
