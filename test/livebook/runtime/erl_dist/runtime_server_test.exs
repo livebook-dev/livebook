@@ -206,7 +206,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
   end
 
   describe "smart cells" do
-    defmodule Kino.SmartCell.Dumb do
+    defmodule Kino.DumbCell do
       use GenServer
 
       # Every smart cell needs a child_spec, we use the GenServer default
@@ -238,7 +238,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
 
     defmodule Kino.SmartCell do
       def definitions() do
-        [%{kind: "dumb", module: Kino.SmartCell.Dumb, name: "Test smart cell"}]
+        [%{kind: "dumb", module: Kino.DumbCell, name: "Test smart cell"}]
       end
     end
 

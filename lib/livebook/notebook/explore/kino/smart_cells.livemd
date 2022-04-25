@@ -40,7 +40,7 @@ Smart cell that lets the user type text and generates code for printing
 that text.
 
 ```elixir
-defmodule Kino.Kino.PrintCell do
+defmodule KinoGuide.PrintCell do
   use Kino.JS
   use Kino.JS.Live
   use Kino.SmartCell, name: "Print"
@@ -98,7 +98,7 @@ defmodule Kino.Kino.PrintCell do
   end
 end
 
-Kino.SmartCell.register(Kino.Kino.PrintCell)
+Kino.SmartCell.register(KinoGuide.PrintCell)
 ```
 
 Most of the implementation includes regular `Kino.JS.Live` bits
@@ -130,7 +130,7 @@ when starting the application.
 Now let's try out the new cell! We already inserted one below, but you
 can add more with the <kbd>+ Smart</kbd> button.
 
-<!-- livebook:{"attrs":{"text":"something"},"kind":"Elixir.Kino.Kino.PrintCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":{"text":"something"},"kind":"Elixir.KinoGuide.PrintCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 IO.puts("something")
@@ -157,7 +157,7 @@ as well! To showcase this feature, let's build a cell on top of
 `System.shell/2`.
 
 ```elixir
-defmodule Kino.Kino.ShellCell do
+defmodule KinoGuide.ShellCell do
   use Kino.JS
   use Kino.JS.Live
   use Kino.SmartCell, name: "Shell script"
@@ -220,7 +220,7 @@ defmodule Kino.Kino.ShellCell do
   end
 end
 
-Kino.SmartCell.register(Kino.Kino.ShellCell)
+Kino.SmartCell.register(KinoGuide.ShellCell)
 ```
 
 The tuple returned from `init/2` has an optional third element that
@@ -233,7 +233,7 @@ access it in `to_source/1`.
 In this example we don't need any other attributes, so in the UI we
 only show the cell name.
 
-<!-- livebook:{"attrs":{"source":"echo \"There you are:\"\nls -dlh $(pwd)\nexit 1"},"kind":"Elixir.Kino.Kino.ShellCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":{"source":"echo \"There you are:\"\nls -dlh $(pwd)\nexit 1"},"kind":"Elixir.KinoGuide.ShellCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 System.shell(
@@ -256,7 +256,7 @@ a Smart cell that takes JSON data and generates an Elixir code with a
 matching data structure assigned to a user-defined variable.
 
 ```elixir
-defmodule Kino.JSONConverterCell do
+defmodule KinoGuide.JSONConverterCell do
   use Kino.JS
   use Kino.JS.Live
   use Kino.SmartCell, name: "JSON converter"
@@ -377,7 +377,7 @@ defmodule Kino.JSONConverterCell do
   end
 end
 
-Kino.SmartCell.register(Kino.JSONConverterCell)
+Kino.SmartCell.register(KinoGuide.JSONConverterCell)
 ```
 
 In this case, one of the attributes is a variable name, so we use
@@ -389,7 +389,7 @@ the variable name should default to `data2`.
 This time we also added some proper styling to show a Smart cell in
 its full glory!
 
-<!-- livebook:{"attrs":{"json":"[\n  {\n    \"id\": 1,\n    \"name\": \"livebook\",\n    \"url\": \"https://github.com/livebook-dev/livebook\",\n    \"topics\": [\n      \"elixir\",\n      \"visualization\",\n      \"realtime\",\n      \"collaborative\",\n      \"notebooks\"\n    ]\n  },\n  {\n    \"id\": 2,\n    \"name\": \"kino\",\n    \"url\": \"https://github.com/livebook-dev/kino\",\n    \"topics\": [\n      \"charts\",\n      \"elixir\",\n      \"livebook\"\n    ]\n  }\n]","variable":"data"},"kind":"Elixir.Kino.JSONConverterCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":{"json":"[\n  {\n    \"id\": 1,\n    \"name\": \"livebook\",\n    \"url\": \"https://github.com/livebook-dev/livebook\",\n    \"topics\": [\n      \"elixir\",\n      \"visualization\",\n      \"realtime\",\n      \"collaborative\",\n      \"notebooks\"\n    ]\n  },\n  {\n    \"id\": 2,\n    \"name\": \"kino\",\n    \"url\": \"https://github.com/livebook-dev/kino\",\n    \"topics\": [\n      \"charts\",\n      \"elixir\",\n      \"livebook\"\n    ]\n  }\n]","variable":"data"},"kind":"Elixir.KinoGuide.JSONConverterCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 data = [
