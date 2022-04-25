@@ -44,5 +44,4 @@ RUN curl -sSL ${NODE_SCRIPT_SOURCE} -o /tmp/node-setup.sh && \
 COPY . .
 
 # Pull dependencies and build/compile
-RUN mix dev.setup
-RUN mix do deps.compile, compile
+RUN mix do dev.setup, deps.compile, compile
