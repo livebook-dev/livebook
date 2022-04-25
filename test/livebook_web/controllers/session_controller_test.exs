@@ -133,6 +133,8 @@ defmodule LivebookWeb.SessionControllerTest do
       assert get_resp_header(conn, "content-type") == ["text/plain"]
 
       assert conn.resp_body == """
+             # Run as: iex --dot-iex path/to/notebook.exs
+
              # Title: Untitled notebook
 
              # ── Section ──

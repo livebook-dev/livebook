@@ -76,6 +76,8 @@ defmodule Livebook.Notebook.Export.ElixirTest do
     }
 
     expected_document = """
+    # Run as: iex --dot-iex path/to/notebook.exs
+
     # Title: My Notebook
 
     # ── Section 1 ──
@@ -117,6 +119,8 @@ defmodule Livebook.Notebook.Export.ElixirTest do
         |> Notebook.put_setup_cell(%{Notebook.Cell.new(:code) | source: "Mix.install([...])"})
 
       expected_document = """
+      # Run as: iex --dot-iex path/to/notebook.exs
+
       # Title: My Notebook
 
       Mix.install([...])

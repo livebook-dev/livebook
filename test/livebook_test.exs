@@ -15,6 +15,8 @@ defmodule LivebookTest do
     """
 
     assert Livebook.live_markdown_to_elixir(markdown) == """
+           # Run as: iex --dot-iex path/to/notebook.exs
+
            # Title: Lists
 
            # ── Introduction ──

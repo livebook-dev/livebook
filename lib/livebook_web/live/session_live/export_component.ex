@@ -41,7 +41,7 @@ defmodule LivebookWeb.SessionLive.ExportComponent do
           <%= live_patch to: Routes.session_path(@socket, :export, @session.id, "exs"),
                 class: "tab #{if(@tab == "exs", do: "active")}" do %>
             <span class="font-medium">
-              Elixir Script
+              IEx session
             </span>
           <% end %>
         </div>
