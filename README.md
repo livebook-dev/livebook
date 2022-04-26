@@ -126,15 +126,6 @@ If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBon
 check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
 with [Nerves](https://www.nerves-project.org/).
 
-### GitHub Codespaces (development)
-
-Livebook also has a `devcontainer.json` file for launching containers
-on [GitHub Codespaces](https://github.com/features/codespaces) for development
-purposes. Once booted, you can invoke `mix phx.server` in the terminal to start
-your own Livebook session.
-
-Check [the official GitHub Codespaces documentation](https://docs.github.com/en/codespaces/developing-in-codespaces/creating-a-codespace#creating-a-codespace) to learn more.
-
 ## Security considerations
 
 Livebook is built to document and execute code. Anyone with access to a Livebook instance
