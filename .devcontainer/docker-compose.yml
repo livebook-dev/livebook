@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  livebook_dev:
+    container_name: livebook_dev
+    image: livebook_dev:latest
+    build:
+      context: ..
+      dockerfile: ./.devcontainer/Dockerfile
+    environment:
+      - LIVEBOOK_HOME=/data
+      - LIVEBOOK_DATA_PATH=/data
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "4000:4000"
+      - "4001:4001"
