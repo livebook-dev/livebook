@@ -40,8 +40,7 @@ ENV PATH=${NVM_DIR}/current/bin:${PATH}
 RUN curl -sSL ${NODE_SCRIPT_SOURCE} -o /tmp/node-setup.sh && \
     /bin/bash /tmp/node-setup.sh "${NVM_DIR}" "${NODE_VERSION}" "${USERNAME}"
 
-# Copy everything for development purposes
+# On Codespaces the code is automatically copied and we run the setup as a hook,
+# we still do this for the image, so the container can be tested on its own
 COPY . .
-
-# Pull dependencies and build/compile
 RUN mix do dev.setup, deps.compile, compile
