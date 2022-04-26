@@ -1,5 +1,5 @@
 # This image version needs to match what is in the root Dockerfile.
-FROM livebook/livebook:edge
+FROM hexpm/elixir:1.13.2-erlang-24.1.7-debian-bullseye-20210902-slim
 
 ENV HOME=/home/livebook
 ENV PATH ${PATH}:${HOME}/.mix/escripts
