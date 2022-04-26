@@ -1694,10 +1694,18 @@ defmodule LivebookWeb.SessionLive do
 
   defp assert_live_action_access!(%{assigns: %{live_action: live_action}} = socket) do
     cond do
-      live_action in [:page, :file_settings, :runtime_settings, :bin] ->
+      live_action in [
+        :file_settings,
+        :runtime_settings,
+        :bin,
+        :cell_settings,
+        :cell_upload,
+        :delete_section,
+        :dependency_search
+      ] ->
         assert_policy!(socket, :edit)
 
-      live_action in [:shared_page, :catch_all, :dependency_search] ->
+      live_action in [:page, :shared_page, :shortcuts, :export, :catch_all] ->
         assert_policy!(socket, :read)
 
       true ->
