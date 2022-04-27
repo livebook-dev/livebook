@@ -663,7 +663,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("delete_cell", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :read)
+    assert_policy!(socket, :edit)
     Session.delete_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
@@ -703,7 +703,7 @@ defmodule LivebookWeb.SessionLive do
         %{"cell_id" => cell_id, "tag" => tag, "revision" => revision},
         socket
       ) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :read)
     tag = String.to_atom(tag)
     Session.report_cell_revision(socket.assigns.session.pid, cell_id, tag, revision)
 
@@ -765,7 +765,7 @@ defmodule LivebookWeb.SessionLive do
         %{"kind" => kind, "variant_idx" => variant_idx},
         socket
       ) do
-    assert_policy!(socket, :execute)
+    assert_policy!(socket, :edit)
 
     with %{requirement: %{variants: variants}} <-
            Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
