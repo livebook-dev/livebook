@@ -549,14 +549,14 @@ defmodule LivebookWeb.SessionLive do
   end
 
   @impl true
-  def handle_params(%{"cell_id" => cell_id}, _url, socket) do
-    assert_policy!(socket, :read)
+  def handle_params(%{"cell_id" => cell_id}, _url, socket)
+      when socket.assigns.live_action in [:cell_settings, :cell_upload] do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
-  def handle_params(%{"section_id" => section_id}, _url, socket) do
-    assert_policy!(socket, :read)
+  def handle_params(%{"section_id" => section_id}, _url, socket)
+      when socket.assigns.live_action == :delete_section do
     {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
     first_section_id = hd(socket.private.data.notebook.sections).id
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
@@ -567,8 +567,6 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
-    assert_policy!(socket, :read)
-
     if socket.assigns.policy.edit do
       path_parts =
         Enum.map(path_parts, fn
@@ -583,13 +581,12 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  def handle_params(%{"tab" => tab}, _url, socket) do
-    assert_policy!(socket, :read)
+  def handle_params(%{"tab" => tab}, _url, socket)
+      when socket.assigns.live_action == :export do
     {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
-    assert_policy!(socket, :read)
     {:noreply, socket}
   end
 
@@ -1673,7 +1670,7 @@ defmodule LivebookWeb.SessionLive do
     end)
   end
 
-  def assert_policy!(socket, key) do
+  defp assert_policy!(socket, key) do
     unless socket.assigns.policy |> Map.fetch!(key) do
       raise "policy not allowed"
     end
