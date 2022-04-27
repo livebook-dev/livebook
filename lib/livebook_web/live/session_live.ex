@@ -550,13 +550,13 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket) do
-    assert_live_action_access!(socket)
+    assert_policy!(socket, :read)
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket) do
-    assert_live_action_access!(socket)
+    assert_policy!(socket, :read)
     {:ok, section} = Notebook.fetch_section(socket.private.data.notebook, section_id)
     first_section_id = hd(socket.private.data.notebook.sections).id
     {:noreply, assign(socket, section: section, first_section_id: first_section_id)}
@@ -567,7 +567,7 @@ defmodule LivebookWeb.SessionLive do
         _url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
-    assert_live_action_access!(socket)
+    assert_policy!(socket, :read)
 
     if socket.assigns.policy.edit do
       path_parts =
@@ -584,12 +584,12 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_params(%{"tab" => tab}, _url, socket) do
-    assert_live_action_access!(socket)
+    assert_policy!(socket, :read)
     {:noreply, assign(socket, tab: tab)}
   end
 
   def handle_params(_params, _url, socket) do
-    assert_live_action_access!(socket)
+    assert_policy!(socket, :read)
     {:noreply, socket}
   end
 
@@ -1679,26 +1679,5 @@ defmodule LivebookWeb.SessionLive do
     end
 
     :ok
-  end
-
-  defp assert_live_action_access!(%{assigns: %{live_action: live_action}} = socket) do
-    cond do
-      live_action in [
-        :file_settings,
-        :runtime_settings,
-        :bin,
-        :cell_settings,
-        :cell_upload,
-        :delete_section,
-        :dependency_search
-      ] ->
-        assert_policy!(socket, :edit)
-
-      live_action in [:page, :shared_page, :shortcuts, :export, :catch_all] ->
-        assert_policy!(socket, :read)
-
-      true ->
-        raise "unknown live_action: #{inspect(live_action)}"
-    end
   end
 end
