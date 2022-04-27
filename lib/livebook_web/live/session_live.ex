@@ -62,8 +62,7 @@ defmodule LivebookWeb.SessionLive do
            accept: ~w(.jpg .jpeg .png .gif),
            max_entries: 1,
            max_file_size: 5_000_000
-         )
-         |> assign_policy()}
+         )}
 
       :error ->
         {:ok, redirect(socket, to: Routes.home_path(socket, :page))}
@@ -76,16 +75,6 @@ defmodule LivebookWeb.SessionLive do
     Enum.reduce(assigns, socket, fn {key, value}, socket ->
       put_in(socket.private[key], value)
     end)
-  end
-
-  defp assign_policy(socket) do
-    policy =
-      case socket.assigns.live_action do
-        :shared_page -> %{read: true, execute: false, comment: false, edit: false}
-        _ -> %{read: true, execute: true, comment: true, edit: true}
-      end
-
-    assign(socket, policy: policy)
   end
 
   defp platform_from_socket(socket) do
