@@ -910,7 +910,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("erase_outputs", %{}, socket) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :execute)
     Session.erase_outputs(socket.assigns.session.pid)
     {:noreply, socket}
   end
