@@ -29,7 +29,9 @@ const CellEditor = {
 
         this.liveEditor.onMount(() => {
           // Remove the content placeholder
-          editorContainer.querySelector(`[data-el-skeleton]`).remove();
+          const skeletonEl =
+            editorContainer.querySelector(`[data-el-skeleton]`);
+          skeletonEl && skeletonEl.remove();
         });
 
         this.el.dispatchEvent(
@@ -40,6 +42,14 @@ const CellEditor = {
         );
       }
     );
+  },
+
+  disconnected() {
+    // When disconnected, this client is no longer seen by the server
+    // and misses all collaborative changes. On reconnection we want
+    // to clean up and mount a fresh hook, which we force by ensuring
+    // the DOM id doesn't match
+    this.el.removeAttribute("id");
   },
 
   destroyed() {
