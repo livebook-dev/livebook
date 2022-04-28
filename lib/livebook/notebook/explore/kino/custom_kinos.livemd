@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.5.0"}
+  {:kino, "~> 0.6.0"}
 ])
 ```
 
@@ -43,10 +43,8 @@ end
 
 Let's break it down.
 
-To define a custom kino we need to create a new module,
-conventionally under the `Kino.` prefix, so that the end
-user can easily autocomplete all available kinos. In
-this case we went with `KinoGuide.HTML`.
+To define a custom kino we need to create a new module. In
+this case we go with `KinoGuide.HTML`.
 
 We start by adding `use Kino.JS`, which makes our module
 asset-aware. In particular, it allows us to use the `asset/2`

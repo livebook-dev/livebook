@@ -17,37 +17,38 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_dep = {:kino, github: "livebook-dev/kino"}
+  kino_vega_lite_dep = {:kino_vega_lite, "~> 0.1.0"}
+  kino_db_dep = {:kino_db, "~> 0.1.0"}
 
   @extra_smart_cell_definitions [
     %{
-      kind: "Elixir.Kino.SmartCell.DBConnection",
+      kind: "Elixir.KinoDB.ConnectionCell",
       name: "Database connection",
       requirement: %{
-        name: "Kino",
+        name: "KinoDB",
         variants: [
-          %{name: "PostgreSQL", dependencies: [kino_dep, {:postgrex, "~> 0.16.1"}]},
-          %{name: "MySQL", dependencies: [kino_dep, {:myxql, "~> 0.6.1"}]}
+          %{name: "PostgreSQL", dependencies: [kino_db_dep, {:postgrex, "~> 0.16.3"}]},
+          %{name: "MySQL", dependencies: [kino_db_dep, {:myxql, "~> 0.6.2"}]}
         ]
       }
     },
     %{
-      kind: "Elixir.Kino.SmartCell.SQL",
+      kind: "Elixir.KinoDB.SQLCell",
       name: "SQL query",
       requirement: %{
-        name: "Kino",
+        name: "KinoDB",
         variants: [
-          %{name: "Default", dependencies: [kino_dep]}
+          %{name: "Default", dependencies: [kino_db_dep]}
         ]
       }
     },
     %{
-      kind: "Elixir.Kino.SmartCell.ChartBuilder",
-      name: "Chart builder",
+      kind: "Elixir.KinoVegaLite.ChartCell",
+      name: "Chart",
       requirement: %{
-        name: "Kino",
+        name: "KinoVegaLite",
         variants: [
-          %{name: "Default", dependencies: [kino_dep, {:vega_lite, "~> 0.1.3"}]}
+          %{name: "Default", dependencies: [kino_vega_lite_dep]}
         ]
       }
     }

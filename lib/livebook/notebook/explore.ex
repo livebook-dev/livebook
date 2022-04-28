@@ -72,21 +72,6 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/intro_to_nx.livemd"),
-      details: %{
-        description:
-          "Enter Numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
-        cover_url: "/images/nx.png"
-      }
-    },
-    # %{
-    #   path: Path.join(__DIR__, "explore/intro_to_axon.livemd"),
-    #   details: %{
-    #     description: "Build Neural Networks in Elixir using a high-level, composable API.",
-    #     cover_url: "/images/axon.png"
-    #   }
-    # },
-    %{
       ref: :kino_intro,
       path: Path.join(__DIR__, "explore/kino/intro_to_kino.livemd")
     },
