@@ -26,6 +26,8 @@ so it's useful to alias the module as something shorter.
 alias VegaLite, as: Vl
 ```
 
+<!-- livebook:{"branch_parent_index":0} -->
+
 ## The Chart cell
 
 Before we get into exploring all the various chart types, let's have
