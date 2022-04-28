@@ -769,7 +769,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("queue_cell_evaluation", %{"cell_id" => cell_id}, socket) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :execute)
     data = socket.private.data
 
     {status, socket} =
