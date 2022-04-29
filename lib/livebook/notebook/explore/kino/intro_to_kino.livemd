@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.5.0"}
+  {:kino, "~> 0.6.0"}
 ])
 ```
 
@@ -96,16 +96,14 @@ side-by-side. We can actually gather information about these
 processes and render it as a table:
 
 ```elixir
-processes = Process.list() |> Enum.map(&Process.info/1)
-```
+keys = [:registered_name, :initial_call, :reductions, :stack_size]
 
-We can pick the data keys that are relevant for us:
+processes =
+  for pid <- Process.list(),
+      info = Process.info(pid, keys),
+      do: info
 
-```elixir
-Kino.DataTable.new(
-  processes,
-  keys: [:registered_name, :initial_call, :reductions, :stack_size]
-)
+Kino.DataTable.new(processes)
 ```
 
 Now you can use the table above to sort by the number of

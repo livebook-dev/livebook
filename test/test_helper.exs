@@ -22,11 +22,11 @@ defmodule Livebook.Runtime.Embedded.Dependencies do
   def entries() do
     [
       %{
-        dependency: {:kino, "~> 0.5.2"},
-        description: "Interactive widgets for Livebook",
-        name: "kino",
-        url: "https://hex.pm/packages/kino",
-        version: "0.5.2"
+        dependency: {:jason, "~> 1.3.0"},
+        description: "A blazing fast JSON parser and generator in pure Elixir",
+        name: "jason",
+        url: "https://hex.pm/packages/jason",
+        version: "1.3.0"
       }
     ]
   end
