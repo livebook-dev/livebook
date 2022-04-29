@@ -99,9 +99,9 @@ processes and render it as a table:
 keys = [:registered_name, :initial_call, :reductions, :stack_size]
 
 processes =
-  for pid <- Process.list(), info = Process.info(pid) do
-    for key <- keys, into: %{}, do: {key, info[key]}
-  end
+  for pid <- Process.list(),
+      info = Process.info(pid, keys),
+      do: info
 
 Kino.DataTable.new(processes)
 ```
