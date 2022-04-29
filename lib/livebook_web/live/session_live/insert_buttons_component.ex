@@ -134,7 +134,7 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       The “#{definition.name}“ smart cell requires #{definition.requirement.name}.
       Do you want to add it as a dependency and reinstall dependencies?
       ''',
-      confirm_text: "Add and reinstall",
+      confirm_text: "Add and restart",
       confirm_icon: "add-line",
       danger: false
     )
