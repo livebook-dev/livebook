@@ -28,17 +28,18 @@ alias VegaLite, as: Vl
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## The Chart cell
+## The Chart smart cell
 
 Before we get into exploring all the various chart types, let's have
 a look at an awesome feature that comes with `kino_vega_lite` - the
-**Chart** cell!
+**Chart** smart cell!
 
 Coding up a chart usually involves a couple steps. If you don't know
 the API of a particular library, it may be a bit challenging. On the
 other hand, if you know the API in-and-out, it's a rather repetitive
-task. That's where the **Chart** cell comes in, it is a special type
-of cell that magically writes all of the chart code for us. Let's
+task. That's where the **Chart** smart cell comes in, it is a
+high-level UI that helps us write our chart code. It is great
+a tool for learning and for automating our workflows. Let's
 give it a try!
 
 First, we need some data to work with, here's a small excerpt from
@@ -83,9 +84,9 @@ Under cell actions there is a "Source" button, click on it to
 see the source code of your chart. You can even convert it to
 a regular Code cell for further adjustments!
 
-The Chart cell we just saw is in fact one of many **Smart** cells
-that help us automate our workflows ⚡ Not only that, we can create
-custom cells like that, which we explore in detail in the
+The Chart smart cell is one of many smart cells available
+in Livebook ⚡ Not only that, you can create your own smart
+cells too, which we discuss in the
 [Exploring Smart cells](/explore/notebooks/smart-cells) notebook!
 
 <!-- livebook:{"branch_parent_index":0} -->
