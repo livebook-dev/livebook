@@ -79,6 +79,14 @@ defmodule LivebookWeb.Router do
     end
   end
 
+  live_session :shared, on_mount: [LivebookWeb.UserHook, {LivebookWeb.PolicyHook, :shared}] do
+    scope "/", LivebookWeb do
+      pipe_through [:browser]
+
+      live "/public/sessions/:id", SessionLive, :page
+    end
+  end
+
   scope "/" do
     pipe_through [:browser, :auth]
 

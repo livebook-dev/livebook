@@ -142,7 +142,7 @@ defmodule LivebookWeb.SessionLive do
             data-el-notebook-headline
             data-focusable-id="notebook"
             id="notebook"
-            phx-hook="Headline"
+            {if @policy.edit, do: [phx_hook: "Headline"], else: []}
             data-on-value-change="set_notebook_name"
             data-metadata="notebook">
             <h1 class="grow p-1 -ml-1 text-3xl font-semibold text-gray-800 border border-transparent rounded-lg whitespace-pre-wrap"
@@ -196,7 +196,8 @@ defmodule LivebookWeb.SessionLive do
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
               runtime={@data_view.runtime}
-              cell_view={@data_view.setup_cell_view} />
+              cell_view={@data_view.setup_cell_view}
+              policy={@policy} />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
             <%= if @data_view.section_views == [] do %>
@@ -214,7 +215,8 @@ defmodule LivebookWeb.SessionLive do
                   session_id={@session.id}
                   runtime={@data_view.runtime}
                   smart_cell_definitions={@data_view.smart_cell_definitions}
-                  section_view={section_view} />
+                  section_view={section_view}
+                  policy={@policy} />
             <% end %>
             <div style="height: 80vh"></div>
           </div>
