@@ -757,7 +757,8 @@ defmodule LivebookWeb.SessionLive do
 
     with %{requirement: %{variants: variants}} <-
            Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
-         {:ok, %{dependencies: dependencies}} <- Enum.fetch(variants, variant_idx) do
+         {:ok, variant} <- Enum.fetch(variants, variant_idx) do
+      dependencies = Enum.map(variant.packages, & &1.dependency)
       Session.add_dependencies(socket.assigns.session.pid, dependencies)
     end
 

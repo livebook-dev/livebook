@@ -70,6 +70,30 @@ defmodule LivebookWeb.Helpers do
       iex> LivebookWeb.Helpers.pluralize(3, "notebook is not persisted", "notebooks are not persisted")
       "3 notebooks are not persisted"
   """
+  @spec pluralize(non_neg_integer(), String.t(), String.t()) :: String.t()
   def pluralize(1, singular, _plural), do: "1 #{singular}"
   def pluralize(count, _singular, plural), do: "#{count} #{plural}"
+
+  @doc """
+  Returns the text in singular or plural depending on the quantity
+
+  ## Examples
+
+      iex> LivebookWeb.Helpers.format_items(["tea"])
+      "tea"
+
+      iex> LivebookWeb.Helpers.format_items(["tea", "coffee"])
+      "tea and coffee"
+
+      iex> LivebookWeb.Helpers.format_items(["wine", "tea", "coffee"])
+      "wine, tea and coffee"
+  """
+  @spec format_items(list(String.t())) :: String.t()
+  def format_items([]), do: ""
+  def format_items([item]), do: item
+
+  def format_items(list) do
+    {leading, [last]} = Enum.split(list, -1)
+    Enum.join(leading, ", ") <> " and " <> last
+  end
 end

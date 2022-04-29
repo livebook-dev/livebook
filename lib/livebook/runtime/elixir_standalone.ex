@@ -17,18 +17,23 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_vega_lite_dep = {:kino_vega_lite, "~> 0.1.0"}
-  kino_db_dep = {:kino_db, "~> 0.1.0"}
+  kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.0"}}
+  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.0"}}
 
   @extra_smart_cell_definitions [
     %{
       kind: "Elixir.KinoDB.ConnectionCell",
       name: "Database connection",
       requirement: %{
-        name: "KinoDB",
         variants: [
-          %{name: "PostgreSQL", dependencies: [kino_db_dep, {:postgrex, "~> 0.16.3"}]},
-          %{name: "MySQL", dependencies: [kino_db_dep, {:myxql, "~> 0.6.2"}]}
+          %{
+            name: "PostgreSQL",
+            packages: [kino_db, %{name: "postgrex", dependency: {:postgrex, "~> 0.16.3"}}]
+          },
+          %{
+            name: "MySQL",
+            packages: [kino_db, %{name: "myxql", dependency: {:myxql, "~> 0.6.2"}}]
+          }
         ]
       }
     },
@@ -36,9 +41,11 @@ defmodule Livebook.Runtime.ElixirStandalone do
       kind: "Elixir.KinoDB.SQLCell",
       name: "SQL query",
       requirement: %{
-        name: "KinoDB",
         variants: [
-          %{name: "Default", dependencies: [kino_db_dep]}
+          %{
+            name: "Default",
+            packages: [kino_db]
+          }
         ]
       }
     },
@@ -46,9 +53,11 @@ defmodule Livebook.Runtime.ElixirStandalone do
       kind: "Elixir.KinoVegaLite.ChartCell",
       name: "Chart",
       requirement: %{
-        name: "KinoVegaLite",
         variants: [
-          %{name: "Default", dependencies: [kino_vega_lite_dep]}
+          %{
+            name: "Default",
+            packages: [kino_vega_lite]
+          }
         ]
       }
     }
