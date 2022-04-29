@@ -812,6 +812,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("queue_cells_reevaluation", %{}, socket) do
+    assert_policy!(socket, :execute)
+    Session.queue_cells_reevaluation(socket.assigns.session.pid)
+
+    {:noreply, socket}
+  end
+
   def handle_event("save", %{}, socket) do
     assert_policy!(socket, :edit)
 

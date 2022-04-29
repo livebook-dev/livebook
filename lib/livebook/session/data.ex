@@ -1898,4 +1898,35 @@ defmodule Livebook.Session.Data do
         cell.id in cell_ids,
         do: cell.id
   end
+
+  @doc """
+  Returns the list of cell ids for reevaluation.
+
+  The list includes cells that have been evaluated, but the
+  reevaluation flow ends at the first fresh cell in each branch.
+  """
+  @spec cell_ids_for_reevaluation(t()) :: list(Cell.id())
+  def cell_ids_for_reevaluation(data) do
+    data.notebook
+    |> Notebook.evaluable_cells_with_section()
+    |> Enum.reject(fn {cell, _section} -> Cell.setup?(cell) end)
+    |> Enum.reduce_while({[], nil}, fn
+      {_cell, %{id: skip_section_id} = _section}, {ids, skip_section_id} ->
+        {ids, skip_section_id}
+
+      {cell, section}, {ids, _skip_section_id} ->
+        info = data.cell_infos[cell.id]
+
+        if info.eval.validity == :fresh do
+          if section.parent_id do
+            {:cont, {ids, section.parent_id}}
+          else
+            {:halt, {ids, nil}}
+          end
+        else
+          {:cont, {[cell.id | ids], nil}}
+        end
+    end)
+    |> elem(0)
+  end
 end

@@ -130,7 +130,8 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       JS.push("add_smart_cell_dependencies",
         value: %{kind: definition.kind, variant_idx: variant_idx}
       )
-      |> insert_smart_cell(definition, section_id, cell_id),
+      |> insert_smart_cell(definition, section_id, cell_id)
+      |> JS.push("queue_cells_reevaluation"),
       title: "Add packages",
       description:
         case variant.packages do
