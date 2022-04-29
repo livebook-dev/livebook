@@ -43,7 +43,7 @@ a tool for learning and for automating our workflows. Let's
 give it a try!
 
 First, we need some data to work with, here's a small excerpt from
-the popular "Iris" dataset:
+the popular [Iris dataset](https://www.kaggle.com/datasets/uciml/iris):
 
 ```elixir
 iris = [
