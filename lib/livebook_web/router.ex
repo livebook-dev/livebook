@@ -59,6 +59,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
+      live "/sessions/:id/settings/sharing", SessionLive, :sharing_settings
       live "/sessions/:id/bin", SessionLive, :bin
       get "/sessions/:id/export/download/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export

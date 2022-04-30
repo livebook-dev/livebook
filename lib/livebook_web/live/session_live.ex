@@ -175,6 +175,12 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
+                <button class="menu-item text-gray-500"
+                  role="menuitem"
+                  phx-click="sharing_settings">
+                  <.remix_icon icon="share-line" />
+                  <span class="font-medium">Share</span>
+                </button>
                 <a class="menu-item text-gray-500"
                   role="menuitem"
                   href={live_dashboard_process_path(@socket, @session.pid)}
@@ -328,6 +334,14 @@ defmodule LivebookWeb.SessionLive do
                 "runtime" => @data_view.runtime,
                 "return_to" => @self_path
               } %>
+      </.modal>
+    <% end %>
+
+    <%= if @live_action == :sharing_settings do %>
+      <.modal id="sharing-modal" show class="w-full max-w-4xl" patch={@self_path}>
+        <.live_component module={LivebookWeb.SessionLive.SharingComponent}
+          id="sharing"
+          session={@session} />
       </.modal>
     <% end %>
     """
@@ -938,6 +952,15 @@ defmodule LivebookWeb.SessionLive do
     )
 
     {:noreply, socket}
+  end
+
+  def handle_event("sharing_settings", %{}, socket) do
+    assert_policy!(socket, :read)
+
+    {:noreply,
+     push_patch(socket,
+       to: Routes.session_path(socket, :sharing_settings, socket.assigns.session.id)
+     )}
   end
 
   @impl true
