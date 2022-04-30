@@ -102,11 +102,11 @@ defmodule Livebook.Runtime.Dependencies do
 
   ## Examples
 
-      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:kino, "~> 0.5.0"}|)
-      {:ok, {:kino, "~> 0.5.0"}}
+      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0"}|)
+      {:ok, {:jason, "~> 1.3.0"}}
 
-      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:kino, "~> 0.5.0", runtime: false, meta: 'data'}|)
-      {:ok, {:kino, "~> 0.5.0", runtime: false, meta: 'data'}}
+      iex> Livebook.Runtime.Dependencies.parse_term(~s|{:jason, "~> 1.3.0", runtime: false, meta: 'data'}|)
+      {:ok, {:jason, "~> 1.3.0", runtime: false, meta: 'data'}}
 
       iex> Livebook.Runtime.Dependencies.parse_term(~s|%{name: "Jake", numbers: [1, 2, 3.4]}|)
       {:ok, %{name: "Jake", numbers: [1, 2, 3.4]}}

@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Warning when running in the cloud and system memory is low ([#1122](https://github.com/livebook-dev/livebook/pull/1122))
 - Notification when a new Livebook version is available ([#1121](https://github.com/livebook-dev/livebook/pull/1121))
 - Insert button for Markdown cell with a Mermaid diagram ([#1134](https://github.com/livebook-dev/livebook/pull/1134))
+- Taskbar icon for the desktop app ([#1119](https://github.com/livebook-dev/livebook/pull/1119))
+- Notebook discussing Smart cells ([#1141](https://github.com/livebook-dev/livebook/pull/1141))
 
 ### Changed
 

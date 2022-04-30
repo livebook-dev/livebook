@@ -124,21 +124,39 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
   end
 
   defp on_smart_cell_click(%{requirement: %{}} = definition, variant_idx, section_id, cell_id) do
+    variant = Enum.fetch!(definition.requirement.variants, variant_idx)
+
     with_confirm(
       JS.push("add_smart_cell_dependencies",
         value: %{kind: definition.kind, variant_idx: variant_idx}
       )
-      |> insert_smart_cell(definition, section_id, cell_id),
-      title: "Add package",
-      description: ~s'''
-      The “#{definition.name}“ smart cell requires #{definition.requirement.name}.
-      Do you want to add it as a dependency and reinstall dependencies?
-      ''',
-      confirm_text: "Add and reinstall",
+      |> insert_smart_cell(definition, section_id, cell_id)
+      |> JS.push("queue_cells_reevaluation"),
+      title: "Add packages",
+      description:
+        case variant.packages do
+          [%{name: name}] ->
+            ~s'''
+            The <span class="font-semibold">“#{definition.name}“</span>
+            smart cell requires the #{code_tag(name)} package. Do you want to add
+            it as a dependency and restart?
+            '''
+
+          packages ->
+            ~s'''
+            The <span class="font-semibold">“#{definition.name}“</span>
+            smart cell requires the #{packages |> Enum.map(&code_tag(&1.name)) |> format_items()}
+            packages. Do you want to add them as dependencies and restart?
+            '''
+        end,
+      confirm_text: "Add and restart",
       confirm_icon: "add-line",
-      danger: false
+      danger: false,
+      html: true
     )
   end
+
+  defp code_tag(text), do: "<code>#{text}</code>"
 
   defp insert_smart_cell(js \\ %JS{}, definition, section_id, cell_id) do
     JS.push(js, "insert_cell_below",

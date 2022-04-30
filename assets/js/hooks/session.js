@@ -284,6 +284,23 @@ const Session = {
     const key = event.key;
     const keyBuffer = this.keyBuffer;
 
+    // Universal shortcuts
+    if (cmd && shift && !alt && key === "Enter") {
+      cancelEvent(event);
+      this.queueFullCellsEvaluation(true);
+      return;
+    } else if (cmd && !alt && key === "Enter") {
+      cancelEvent(event);
+      if (isEvaluable(this.focusedCellType())) {
+        this.queueFocusedCellEvaluation();
+      }
+      return;
+    } else if (cmd && key === "s") {
+      cancelEvent(event);
+      this.saveNotebook();
+      return;
+    }
+
     if (this.insertMode) {
       keyBuffer.reset();
 
@@ -292,46 +309,23 @@ const Session = {
         if (!this.escapesMonacoWidget(event)) {
           this.escapeInsertMode();
         }
-      } else if (cmd && shift && !alt && key === "Enter") {
-        cancelEvent(event);
-        this.queueFullCellsEvaluation(true);
-      } else if (cmd && !alt && key === "Enter") {
-        cancelEvent(event);
-        if (isEvaluable(this.focusedCellType())) {
-          this.queueFocusedCellEvaluation();
-        }
-      } else if (cmd && key === "s") {
-        cancelEvent(event);
-        this.saveNotebook();
+      }
+      // Ignore keystrokes on input fields
+    } else if (isEditableElement(event.target)) {
+      keyBuffer.reset();
+
+      // Use Escape for universal blur
+      if (key === "Escape") {
+        event.target.blur();
       }
     } else {
-      // Ignore keystrokes on input fields
-      if (isEditableElement(event.target)) {
-        keyBuffer.reset();
-
-        // Use Escape for universal blur
-        if (key === "Escape") {
-          event.target.blur();
-        }
-
-        return;
-      }
-
       keyBuffer.push(event.key);
 
-      if (cmd && key === "s") {
-        cancelEvent(event);
-        this.saveNotebook();
-      } else if (keyBuffer.tryMatch(["d", "d"])) {
+      if (keyBuffer.tryMatch(["d", "d"])) {
         this.deleteFocusedCell();
-      } else if (cmd && shift && !alt && key === "Enter") {
-        this.queueFullCellsEvaluation(true);
       } else if (keyBuffer.tryMatch(["e", "a"])) {
         this.queueFullCellsEvaluation(false);
-      } else if (
-        keyBuffer.tryMatch(["e", "e"]) ||
-        (cmd && !alt && key === "Enter")
-      ) {
+      } else if (keyBuffer.tryMatch(["e", "e"])) {
         if (isEvaluable(this.focusedCellType())) {
           this.queueFocusedCellEvaluation();
         }

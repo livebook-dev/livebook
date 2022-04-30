@@ -905,12 +905,12 @@ defmodule LivebookWeb.SessionLiveTest do
       # Search the predefined dependencies in the embedded runtime
       search_view
       |> element(~s{form[phx-change="search"]})
-      |> render_change(%{"search" => "ki"})
+      |> render_change(%{"search" => "ja"})
 
       page = render(view)
-      assert page =~ "kino"
-      assert page =~ "Interactive widgets for Livebook"
-      assert page =~ "0.5.2"
+      assert page =~ "jason"
+      assert page =~ "A blazing fast JSON parser and generator in pure Elixir"
+      assert page =~ "1.3.0"
     end
   end
 

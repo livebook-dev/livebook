@@ -26,6 +26,7 @@ const ConfirmModal = {
         confirm_text,
         confirm_icon,
         danger,
+        html,
         opt_out_id,
       } = event.detail;
 
@@ -33,7 +34,13 @@ const ConfirmModal = {
         liveSocket.execJS(event.target, event.detail.on_confirm);
       } else {
         titleEl.textContent = title;
-        descriptionEl.textContent = description;
+
+        if (html) {
+          descriptionEl.innerHTML = description;
+        } else {
+          descriptionEl.textContent = description;
+        }
+
         confirmTextEl.textContent = confirm_text;
 
         if (confirm_icon) {

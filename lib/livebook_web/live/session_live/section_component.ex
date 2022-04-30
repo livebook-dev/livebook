@@ -114,17 +114,16 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
                 id={cell_view.id}
                 session_id={@session_id}
                 runtime={@runtime}
+                installing?={@installing?}
                 cell_view={cell_view}
                 policy={@policy} />
-            <%= if @policy.edit do %>
-              <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
-                  id={"insert-buttons-#{@section_view.id}-#{index}"}
-                  persistent={false}
-                  smart_cell_definitions={@smart_cell_definitions}
-                  runtime={@runtime}
-                  section_id={@section_view.id}
-                  cell_id={cell_view.id} />
-            <% end %>
+            <.live_component module={LivebookWeb.SessionLive.InsertButtonsComponent}
+                id={"insert-buttons-#{@section_view.id}-#{index}"}
+                persistent={false}
+                smart_cell_definitions={@smart_cell_definitions}
+                runtime={@runtime}
+                section_id={@section_view.id}
+                cell_id={cell_view.id} />
           <% end %>
         </div>
       </div>

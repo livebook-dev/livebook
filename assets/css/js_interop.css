@@ -113,14 +113,8 @@ solely client-side operations.
 
 [data-el-cell][data-js-amplified]
   [data-el-amplify-outputs-button]
-  [data-el-zoom-in-icon] {
-  @apply hidden;
-}
-
-[data-el-cell]:not([data-js-amplified])
-  [data-el-amplify-outputs-button]
-  [data-el-zoom-out-icon] {
-  @apply hidden;
+  .icon-button {
+  @apply bg-gray-100 text-gray-900;
 }
 
 [data-el-cell][data-type="smart"]:not([data-js-source-visible])
@@ -167,14 +161,10 @@ solely client-side operations.
   @apply hidden;
 }
 
-[data-el-cell][data-type="smart"]:not([data-js-source-visible])
-  [data-el-show-ui-icon] {
-  @apply hidden;
-}
-
 [data-el-cell][data-type="smart"][data-js-source-visible]
-  [data-el-show-code-icon] {
-  @apply hidden;
+  [data-el-toggle-source-button]
+  .icon-button {
+  @apply bg-gray-100 text-gray-900;
 }
 
 [data-el-cell][data-type="smart"][data-js-source-visible]

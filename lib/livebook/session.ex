@@ -372,6 +372,17 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends reevaluation request to the server.
+
+  Schedules evaluation of all cells that have been evaluated
+  previously, until the first fresh cell.
+  """
+  @spec queue_cells_reevaluation(pid()) :: :ok
+  def queue_cells_reevaluation(pid) do
+    GenServer.cast(pid, {:queue_cells_reevaluation, self()})
+  end
+
+  @doc """
   Sends cell evaluation cancellation request to the server.
   """
   @spec cancel_cell_evaluation(pid(), Cell.id()) :: :ok
@@ -789,6 +800,13 @@ defmodule Livebook.Session do
 
   def handle_cast({:queue_full_evaluation, client_pid, forced_cell_ids}, state) do
     cell_ids = Data.cell_ids_for_full_evaluation(state.data, forced_cell_ids)
+
+    operation = {:queue_cells_evaluation, client_pid, cell_ids}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:queue_cells_reevaluation, client_pid}, state) do
+    cell_ids = Data.cell_ids_for_reevaluation(state.data)
 
     operation = {:queue_cells_evaluation, client_pid, cell_ids}
     {:noreply, handle_operation(state, operation)}
