@@ -19,12 +19,12 @@ defmodule Livebook do
 
   ### Embedded runtime dependencies
 
-  In case you use the Embedded runtime and support installing dependencies
-  with `Mix.install/2`, you can make those discoverable in the
-  dependency search, by configuring a loader function:
+  In case you use the Embedded runtime and support installing
+  dependencies with `Mix.install/2`, you can make those discoverable
+  in the package search, by configuring a loader function:
 
       config :livebook, Livebook.Runtime.Embedded,
-        load_dependency_entries: {Loader, :dependency_entries, []}
+        load_packages: {Loader, :packages, []}
 
   The function should return a list of entries like this:
 

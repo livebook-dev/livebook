@@ -896,9 +896,9 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  describe "dependency search" do
+  describe "package search" do
     test "lists search entries", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/package-search")
 
       [search_view] = live_children(view)
 

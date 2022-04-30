@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SessionLive.DependencySearchLive do
+defmodule LivebookWeb.SessionLive.PackageSearchLive do
   use LivebookWeb, :live_view
 
   @impl true
@@ -14,7 +14,7 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
         return_to: return_to,
         search: "",
         search_ref: nil,
-        entries: [],
+        packages: [],
         error_message: nil
       )
 
@@ -28,7 +28,7 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
     ~H"""
     <div class="p-6 pb-4 flex flex-col space-y-8">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Dependency search
+        Search packages
       </h3>
       <p class="text-gray-700">
         Find external packages for your notebook
@@ -50,15 +50,15 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
               <%= @error_message %>
             </div>
 
-          <% @entries == [] -> %>
+          <% @packages == [] -> %>
           <div class="flex h-full items-center justify-center text-gray-600">
             <.remix_icon icon="windy-line" class="text-xl" />
             <div class="ml-2">No results</div>
           </div>
 
         <% true -> %>
-          <%= for {entry, idx} <- Enum.with_index(@entries) do %>
-            <.dependency_entry entry={entry} idx={idx} />
+          <%= for {package, idx} <- Enum.with_index(@packages) do %>
+            <.package package={package} idx={idx} />
           <% end %>
         <% end %>
       </div>
@@ -66,20 +66,20 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
     """
   end
 
-  defp dependency_entry(assigns) do
+  defp package(assigns) do
     ~H"""
     <div class="flex items-center">
       <div class="flex-grow p-2 flex flex-col text-sm">
         <div class="flex text-gray-700">
-          <%= if @entry[:url] do %>
-            <a class="font-semibold" href={@entry[:url]} target="_blank"><%= @entry.name %></a>
+          <%= if @package[:url] do %>
+            <a class="font-semibold" href={@package[:url]} target="_blank"><%= @package.name %></a>
           <% else %>
-            <span class="font-semibold"><%= @entry.name %></span>
+            <span class="font-semibold"><%= @package.name %></span>
           <% end %>
-          <span class="ml-1"><%= @entry.version %></span>
+          <span class="ml-1"><%= @package.version %></span>
         </div>
         <div class="text-gray-600">
-          <%= @entry.description %>
+          <%= @package.description %>
         </div>
       </div>
       <div class="ml-2">
@@ -102,7 +102,7 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
   @impl true
   def handle_event("submit", %{}, socket) do
     socket =
-      case socket.assigns.entries do
+      case socket.assigns.packages do
         [] -> socket
         [first | _] -> add_dependency(socket, first.dependency)
       end
@@ -112,20 +112,20 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
 
   @impl true
   def handle_event("add", %{"idx" => idx}, socket) do
-    entry = Enum.fetch!(socket.assigns.entries, idx)
-    socket = add_dependency(socket, entry.dependency)
+    package = Enum.fetch!(socket.assigns.packages, idx)
+    socket = add_dependency(socket, package.dependency)
     {:noreply, socket}
   end
 
   @impl true
   def handle_info(
-        {:runtime_search_dependencies_response, ref, response},
+        {:runtime_search_packages_response, ref, response},
         %{assigns: %{search_ref: ref}} = socket
       ) do
     socket =
       case response do
-        {:ok, entries} ->
-          assign(socket, entries: entries, error_message: nil)
+        {:ok, packages} ->
+          assign(socket, packages: packages, error_message: nil)
 
         {:error, message} ->
           assign(socket, error_message: Livebook.Utils.upcase_first(message))
@@ -137,7 +137,7 @@ defmodule LivebookWeb.SessionLive.DependencySearchLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp do_search(socket, search) do
-    search_ref = Livebook.Runtime.search_dependencies(socket.assigns.runtime, self(), search)
+    search_ref = Livebook.Runtime.search_packages(socket.assigns.runtime, self(), search)
     assign(socket, search_ref: search_ref, search: search)
   end
 
