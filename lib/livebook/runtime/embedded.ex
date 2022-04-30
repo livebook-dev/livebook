@@ -109,17 +109,17 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
   end
 
   def fixed_dependencies?(_runtime) do
-    not Keyword.has_key?(config(), :load_dependency_entries)
+    not Keyword.has_key?(config(), :load_packages)
   end
 
   def add_dependencies(_runtime, code, dependencies) do
     Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
   end
 
-  def search_dependencies(_runtime, send_to, search) do
-    {mod, fun, args} = config()[:load_dependency_entries]
-    entries = apply(mod, fun, args)
-    Livebook.Runtime.Dependencies.search_dependencies_in_entries(entries, send_to, search)
+  def search_packages(_runtime, send_to, search) do
+    {mod, fun, args} = config()[:load_packages]
+    packages = apply(mod, fun, args)
+    Livebook.Runtime.Dependencies.search_packages_in_list(packages, send_to, search)
   end
 
   defp config() do

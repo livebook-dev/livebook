@@ -208,10 +208,9 @@ defprotocol Livebook.Runtime do
 
   @type dependency :: term()
 
-  @type search_dependencies_response ::
-          {:ok, list(search_dependencies_entry())} | {:error, String.t()}
+  @type search_packages_response :: {:ok, list(package())} | {:error, String.t()}
 
-  @type search_dependencies_entry :: %{
+  @type package :: %{
           name: String.t(),
           version: String.t(),
           description: String.t() | nil,
@@ -443,7 +442,7 @@ defprotocol Livebook.Runtime do
   dependencies, the dependencies are not considered fixed.
 
   When dependencies are fixed, the following functions are allowed to
-  raise an implementation error: `add_dependencies/3`, `search_dependencies/3`.
+  raise an implementation error: `add_dependencies/3`, `search_packages/3`.
   """
   @spec fixed_dependencies?(t()) :: boolean()
   def fixed_dependencies?(runtime)
@@ -460,8 +459,8 @@ defprotocol Livebook.Runtime do
 
   The response is sent to the `send_to` process as
 
-    * `{:runtime_search_dependencies_response, ref, response}`.
+    * `{:runtime_search_packages_response, ref, response}`.
   """
-  @spec search_dependencies(t(), pid(), String.t()) :: reference()
-  def search_dependencies(runtime, send_to, search)
+  @spec search_packages(t(), pid(), String.t()) :: reference()
+  def search_packages(runtime, send_to, search)
 end

@@ -317,10 +317,10 @@ defmodule LivebookWeb.SessionLive do
       </.modal>
     <% end %>
 
-    <%= if @live_action == :dependency_search do %>
-      <.modal id="dependency-search-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <%= live_render @socket, LivebookWeb.SessionLive.DependencySearchLive,
-              id: "dependency-search",
+    <%= if @live_action == :package_search do %>
+      <.modal id="package-search-modal" show class="w-full max-w-xl" patch={@self_path}>
+        <%= live_render @socket, LivebookWeb.SessionLive.PackageSearchLive,
+              id: "package-search",
               session: %{
                 "session" => @session,
                 "runtime" => @data_view.runtime,
