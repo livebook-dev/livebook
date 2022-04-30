@@ -182,7 +182,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           <% :dead -> %>
             <div class="info-box">
               <%= if @installing? do %>
-                Waiting for dependency installation to complete.
+                Waiting for dependency installation to complete...
               <% else %>
                 Run the notebook setup to show the contents of this Smart cell.
               <% end %>
