@@ -40,7 +40,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           tag="primary"
           source_view={@cell_view.source_view}
           language="markdown"
-          read_only={!@policy.edit} />
+          policy={@policy} />
       </div>
       <div class="markdown"
         data-el-markdown-container
@@ -88,7 +88,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           source_view={@cell_view.source_view}
           language="elixir"
           intellisense
-          read_only={!@policy.edit} />
+          policy={@policy} />
         <div class="absolute bottom-2 right-2">
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
         </div>
@@ -136,7 +136,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             tag="primary"
             source_view={@cell_view.source_view}
             language="elixir"
-            intellisense />
+            intellisense
+            policy={@policy} />
           <div class="absolute bottom-2 right-2">
             <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
           </div>
@@ -191,7 +192,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                   tag="secondary"
                   source_view={@cell_view.editor.source_view}
                   language={@cell_view.editor.language}
-                  rounded={@cell_view.editor.placement} />
+                  rounded={@cell_view.editor.placement}
+                  policy={@policy} />
               <% end %>
             </div>
 
