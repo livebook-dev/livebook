@@ -196,6 +196,7 @@ defmodule LivebookWeb.SessionLive do
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
               runtime={@data_view.runtime}
+              installing?={@data_view.installing?}
               cell_view={@data_view.setup_cell_view} />
           </div>
           <div class="mt-8 flex flex-col w-full space-y-16" data-el-sections-container>
@@ -214,6 +215,7 @@ defmodule LivebookWeb.SessionLive do
                   session_id={@session.id}
                   runtime={@data_view.runtime}
                   smart_cell_definitions={@data_view.smart_cell_definitions}
+                  installing?={@data_view.installing?}
                   section_view={section_view} />
             <% end %>
             <div style="height: 80vh"></div>
@@ -755,7 +757,8 @@ defmodule LivebookWeb.SessionLive do
 
     with %{requirement: %{variants: variants}} <-
            Enum.find(socket.private.data.smart_cell_definitions, &(&1.kind == kind)),
-         {:ok, %{dependencies: dependencies}} <- Enum.fetch(variants, variant_idx) do
+         {:ok, variant} <- Enum.fetch(variants, variant_idx) do
+      dependencies = Enum.map(variant.packages, & &1.dependency)
       Session.add_dependencies(socket.assigns.session.pid, dependencies)
     end
 
@@ -805,6 +808,13 @@ defmodule LivebookWeb.SessionLive do
   def handle_event("cancel_cell_evaluation", %{"cell_id" => cell_id}, socket) do
     assert_policy!(socket, :execute)
     Session.cancel_cell_evaluation(socket.assigns.session.pid, cell_id)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("queue_cells_reevaluation", %{}, socket) do
+    assert_policy!(socket, :execute)
+    Session.queue_cells_reevaluation(socket.assigns.session.pid)
 
     {:noreply, socket}
   end
@@ -1430,6 +1440,7 @@ defmodule LivebookWeb.SessionLive do
         data.clients_map
         |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
         |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
+      installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries

@@ -181,7 +181,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
           <% :dead -> %>
             <div class="info-box">
-              Evaluate and install dependencies to show the contents of this Smart cell.
+              <%= if @installing? do %>
+                Waiting for dependency installation to complete...
+              <% else %>
+                Run the notebook setup to show the contents of this Smart cell.
+              <% end %>
             </div>
 
           <% :starting -> %>
@@ -347,8 +351,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <span class="tooltip top" data-tooltip="Toggle source" data-el-toggle-source-button>
       <button class="icon-button" aria-label="toggle source">
-        <.remix_icon icon="code-line" class="text-xl" data-el-show-code-icon />
-        <.remix_icon icon="pencil-line" class="text-xl" data-el-show-ui-icon />
+        <.remix_icon icon="code-line" class="text-xl" />
       </button>
     </span>
     """
@@ -370,7 +373,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             opt_out_id: "convert-smart-cell"
           )
         }>
-        <.remix_icon icon="arrow-up-down-line" class="text-xl" />
+        <.remix_icon icon="pencil-line" class="text-xl" />
       </button>
     </span>
     """
@@ -413,10 +416,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def amplify_output_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Amplify output" data-el-amplify-outputs-button>
-      <button class="icon-button"
-        aria-label="amplify outputs">
-        <.remix_icon icon="zoom-in-line" class="text-xl" data-el-zoom-in-icon />
-        <.remix_icon icon="zoom-out-line" class="text-xl" data-el-zoom-out-icon />
+      <button class="icon-button" aria-label="amplify outputs">
+        <.remix_icon icon="zoom-in-line" class="text-xl" />
       </button>
     </span>
     """

@@ -76,6 +76,10 @@ const JSView = {
       window.addEventListener("message", this._handleWindowMessage);
     });
 
+    this.hiddenInput = document.createElement("input");
+    this.hiddenInput.style.display = "none";
+    this.el.appendChild(this.hiddenInput);
+
     this.loadIframe();
 
     // Channel events
@@ -283,7 +287,11 @@ const JSView = {
         // Replicate the child events on the current element,
         // so that they are detected upstream in the session hook
         const event = this.replicateDomEvent(message.event);
-        this.el.dispatchEvent(event);
+        if (message.isTargetEditable) {
+          this.hiddenInput.dispatchEvent(event);
+        } else {
+          this.el.dispatchEvent(event);
+        }
       } else if (message.type === "event") {
         const { event, payload } = message;
         const raw = transportEncode([event, this.props.ref], payload);

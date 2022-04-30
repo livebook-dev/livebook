@@ -199,11 +199,10 @@ defprotocol Livebook.Runtime do
         }
 
   @type smart_cell_requirement :: %{
-          name: String.t(),
           variants:
             list(%{
               name: String.t(),
-              dependencies: list(dependency())
+              packages: list(%{name: String.t(), dependency: dependency()})
             })
         }
 

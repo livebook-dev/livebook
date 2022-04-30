@@ -3564,6 +3564,80 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "cell_ids_for_reevaluation/2" do
+    test "does not include the setup cell" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:set_runtime, self(), connected_noop_runtime()},
+          evaluate_cells_operations(["setup"])
+        ])
+
+      assert Data.cell_ids_for_reevaluation(data) == []
+    end
+
+    test "includes evaluated cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
+          {:set_runtime, self(), connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2"])
+        ])
+
+      assert Data.cell_ids_for_reevaluation(data) |> Enum.sort() == ["c1", "c2"]
+    end
+
+    test "includes stale cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
+          {:set_runtime, self(), connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2"]),
+          # Reevaluate cell 1
+          evaluate_cells_operations(["c1"])
+        ])
+
+      assert Data.cell_ids_for_reevaluation(data) |> Enum.sort() == ["c1", "c2"]
+    end
+
+    test "stops reevaluation on the first fresh cell" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_cell, self(), "s1", 1, :code, "c2", %{}},
+          {:set_runtime, self(), connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2"]),
+          # Reevaluate cell 1
+          {:insert_cell, self(), "s1", 1, :code, "c3", %{}}
+        ])
+
+      assert Data.cell_ids_for_reevaluation(data) |> Enum.sort() == ["c1"]
+    end
+
+    test "considers each branch separately" do
+      data =
+        data_after_operations!([
+          {:insert_section, self(), 0, "s1"},
+          {:insert_cell, self(), "s1", 0, :code, "c1", %{}},
+          {:insert_section, self(), 1, "s2"},
+          {:insert_cell, self(), "s2", 0, :code, "c2", %{}},
+          {:insert_cell, self(), "s2", 1, :code, "c3", %{}},
+          {:insert_section, self(), 2, "s3"},
+          {:insert_cell, self(), "s3", 0, :code, "c4", %{}},
+          {:set_section_parent, self(), "s2", "s1"},
+          {:set_runtime, self(), connected_noop_runtime()},
+          evaluate_cells_operations(["setup", "c1", "c2", "c4"])
+        ])
+
+      assert Data.cell_ids_for_reevaluation(data) |> Enum.sort() == ["c1", "c2", "c4"]
+    end
+  end
+
   defp evaluate_cells_operations(cell_ids) do
     [
       {:queue_cells_evaluation, self(), cell_ids},
