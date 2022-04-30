@@ -18,8 +18,8 @@ Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.Embedded
 ])
 
-defmodule Livebook.Runtime.Embedded.Dependencies do
-  def entries() do
+defmodule Livebook.Runtime.Embedded.Packages do
+  def list() do
     [
       %{
         dependency: {:jason, "~> 1.3.0"},
@@ -34,7 +34,7 @@ end
 
 # Enable dependency saerch for the embedded runtime
 Application.put_env(:livebook, Livebook.Runtime.Embedded,
-  load_dependency_entries: {Livebook.Runtime.Embedded.Dependencies, :entries, []}
+  load_packages: {Livebook.Runtime.Embedded.Packages, :list, []}
 )
 
 # Disable autosaving

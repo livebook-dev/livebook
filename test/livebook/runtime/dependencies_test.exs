@@ -196,7 +196,7 @@ defmodule Livebook.Runtime.DependenciesTest do
       {:ok, bypass: bypass}
     end
 
-    test "parses the response into dependency entries", %{bypass: bypass} do
+    test "parses the response into a list of packages", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/api/packages", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/json")

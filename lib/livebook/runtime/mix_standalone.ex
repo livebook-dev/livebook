@@ -209,7 +209,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
     raise "not supported"
   end
 
-  def search_dependencies(_runtime, _send_to, _search) do
+  def search_packages(_runtime, _send_to, _search) do
     raise "not supported"
   end
 end

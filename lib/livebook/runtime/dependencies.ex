@@ -157,45 +157,45 @@ defmodule Livebook.Runtime.Dependencies do
   defp unescape_term(_node), do: :error
 
   @doc """
-  Implements `Livebook.Runtime.search_dependencies/3` on top of
+  Implements `Livebook.Runtime.search_packages/3` on top of
   `search_hex/2`.
   """
-  @spec search_dependencies_on_hex(pid(), String.t()) :: reference()
-  def search_dependencies_on_hex(send_to, search) do
+  @spec search_packages_on_hex(pid(), String.t()) :: reference()
+  def search_packages_on_hex(send_to, search) do
     ref = make_ref()
 
     Task.Supervisor.start_child(Livebook.TaskSupervisor, fn ->
       response = search_hex(search)
-      send(send_to, {:runtime_search_dependencies_response, ref, response})
+      send(send_to, {:runtime_search_packages_response, ref, response})
     end)
 
     ref
   end
 
   @doc """
-  Implements `Livebook.Runtime.search_dependencies/3` by searching
-  through the given list of entries.
+  Implements `Livebook.Runtime.search_packages/3` by searching
+  through the given list of packages.
   """
-  @spec search_dependencies_in_entries(
-          list(Livebook.Runtime.search_dependencies_entry()),
+  @spec search_packages_in_list(
+          list(Livebook.Runtime.package()),
           pid(),
           String.t()
         ) :: reference()
-  def search_dependencies_in_entries(entries, send_to, search) do
+  def search_packages_in_list(packages, send_to, search) do
     ref = make_ref()
-    entries = Enum.filter(entries, &String.starts_with?(&1.name, search))
-    send(send_to, {:runtime_search_dependencies_response, ref, {:ok, entries}})
+    packages = Enum.filter(packages, &String.starts_with?(&1.name, search))
+    send(send_to, {:runtime_search_packages_response, ref, {:ok, packages}})
     ref
   end
 
   @doc """
-  Searches for packages on Hex and returns them as dependency entries.
+  Searches for packages on Hex.
 
   ## Options
 
       * `:api_url` - the base URL for Hex API requests. Optional
   """
-  @spec search_hex(String.t(), keyword()) :: Livebook.Runtime.search_dependencies_response()
+  @spec search_hex(String.t(), keyword()) :: Livebook.Runtime.search_packages_response()
   def search_hex(search, opts \\ [])
 
   def search_hex("", _opts), do: {:ok, []}
@@ -209,8 +209,8 @@ defmodule Livebook.Runtime.Dependencies do
     case Livebook.Utils.HTTP.request(:get, url) do
       {:ok, status, _headers, body} ->
         with 200 <- status, {:ok, packages} <- Jason.decode(body) do
-          entries = Enum.map(packages, &package_to_entry/1)
-          {:ok, entries}
+          packages = Enum.map(packages, &parse_package/1)
+          {:ok, packages}
         else
           _ -> {:error, "unexpected response"}
         end
@@ -220,7 +220,7 @@ defmodule Livebook.Runtime.Dependencies do
     end
   end
 
-  defp package_to_entry(package) do
+  defp parse_package(package) do
     {:ok, dependency} = parse_term(package["configs"]["mix.exs"])
 
     %{

@@ -192,7 +192,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
   end
 
-  def search_dependencies(_runtime, send_to, search) do
-    Livebook.Runtime.Dependencies.search_dependencies_on_hex(send_to, search)
+  def search_packages(_runtime, send_to, search) do
+    Livebook.Runtime.Dependencies.search_packages_on_hex(send_to, search)
   end
 end
