@@ -108,12 +108,14 @@ defmodule LivebookWeb.SessionLive do
           icon="cpu-line"
           label="Runtime settings (sr)"
           button_attrs={[data_el_runtime_info_toggle: true]} />
-        <SidebarHelpers.link_item
-          icon="delete-bin-6-fill"
-          label="Bin (sb)"
-          path={Routes.session_path(@socket, :bin, @session.id)}
-          active={@live_action == :bin}
-          link_attrs={[data_btn_show_bin: true]} />
+        <%= if @policy.edit do %>
+          <SidebarHelpers.link_item
+            icon="delete-bin-6-fill"
+            label="Bin (sb)"
+            path={Routes.session_path(@socket, :bin, @session.id)}
+            active={@live_action == :bin}
+            link_attrs={[data_btn_show_bin: true]} />
+        <% end %>
         <SidebarHelpers.break_item />
         <SidebarHelpers.link_item
           icon="keyboard-box-fill"
@@ -126,13 +128,13 @@ defmodule LivebookWeb.SessionLive do
       <div class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-el-side-panel>
         <div data-el-sections-list>
-          <.sections_list data_view={@data_view} />
+          <.sections_list data_view={@data_view} policy={@policy} />
         </div>
         <div data-el-clients-list>
           <.clients_list data_view={@data_view} self={@self} />
         </div>
         <div data-el-runtime-info>
-          <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
+          <.runtime_info data_view={@data_view} session={@session} socket={@socket} policy={@policy} />
         </div>
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
@@ -379,11 +381,13 @@ defmodule LivebookWeb.SessionLive do
           </div>
         <% end %>
       </div>
-      <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-        phx-click="append_section">
-        <.remix_icon icon="add-line" class="text-lg align-center" />
-        <span>New section</span>
-      </button>
+      <%= if @policy.edit do %>
+        <button class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
+          phx-click="append_section">
+          <.remix_icon icon="add-line" class="text-lg align-center" />
+          <span>New section</span>
+        </button>
+      <% end %>
     </div>
     """
   end
@@ -442,9 +446,11 @@ defmodule LivebookWeb.SessionLive do
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Runtime
         </h3>
-        <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-              class: "icon-button" do  %>
-          <.remix_icon icon="settings-3-line text-xl" />
+        <%= if @policy.execute do %>
+          <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
+                class: "icon-button" do  %>
+            <.remix_icon icon="settings-3-line text-xl" />
+          <% end %>
         <% end %>
       </div>
       <div class="flex flex-col mt-2 space-y-4">
@@ -453,28 +459,30 @@ defmodule LivebookWeb.SessionLive do
             <.labeled_text label={label} one_line><%= value %></.labeled_text>
           <% end %>
         </div>
-        <div class="flex space-x-2">
-          <%= if Runtime.connected?(@data_view.runtime) do %>
-            <button class="button-base button-blue" phx-click="reconnect_runtime">
-              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
-              <span>Reconnect</span>
-            </button>
-            <button class="button-base button-outlined-red"
-              type="button"
-              phx-click="disconnect_runtime">
-              Disconnect
-            </button>
-          <% else %>
-            <button class="button-base button-blue" phx-click="connect_runtime">
-              <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
-              <span>Connect</span>
-            </button>
-            <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
-                  class: "button-base button-outlined-gray bg-transparent" do  %>
-              Configure
+        <%= if @policy.execute do %>
+          <div class="flex space-x-2">
+            <%= if Runtime.connected?(@data_view.runtime) do %>
+              <button class="button-base button-blue" phx-click="reconnect_runtime">
+                <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+                <span>Reconnect</span>
+              </button>
+              <button class="button-base button-outlined-red"
+                type="button"
+                phx-click="disconnect_runtime">
+                Disconnect
+              </button>
+            <% else %>
+              <button class="button-base button-blue" phx-click="connect_runtime">
+                <.remix_icon icon="wireless-charging-line" class="align-middle mr-1" />
+                <span>Connect</span>
+              </button>
+              <%= live_patch to: Routes.session_path(@socket, :runtime_settings, @session.id),
+                    class: "button-base button-outlined-gray bg-transparent" do  %>
+                Configure
+              <% end %>
             <% end %>
-          <% end %>
-        </div>
+          </div>
+        <% end %>
         <%= if uses_memory?(@session.memory_usage) do %>
           <.memory_info memory_usage={@session.memory_usage} />
         <% else %>
