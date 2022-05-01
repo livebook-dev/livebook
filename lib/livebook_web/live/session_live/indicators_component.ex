@@ -26,13 +26,15 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             </span>
           <% end %>
         <% else %>
-          <span class="tooltip left" data-tooltip="Notebook saved">
-            <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-                  class: "icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50",
-                  aria_label: "notebook saved, click to open file settings" do %>
-              <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
-            <% end %>
-          </span>
+          <%= if @policy.edit do %>
+            <span class="tooltip left" data-tooltip="Notebook saved">
+              <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
+                    class: "icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50",
+                    aria_label: "notebook saved, click to open file settings" do %>
+                <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
+              <% end %>
+            </span>
+          <% end %>
         <% end %>
       <% else %>
         <span class="tooltip left" data-tooltip="Choose a file to save the notebook">

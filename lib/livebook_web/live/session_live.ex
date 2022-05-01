@@ -163,18 +163,20 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="download-2-line" />
                   <span class="font-medium">Export</span>
                 <% end %>
-                <button class="menu-item text-gray-500"
-                  role="menuitem"
-                  phx-click="erase_outputs">
-                  <.remix_icon icon="eraser-fill" />
-                  <span class="font-medium">Erase outputs</span>
-                </button>
-                <button class="menu-item text-gray-500"
+                <%= if @policy.edit do %>
+                  <button class="menu-item text-gray-500"
+                    role="menuitem"
+                    phx-click="erase_outputs">
+                    <.remix_icon icon="eraser-fill" />
+                    <span class="font-medium">Erase outputs</span>
+                  </button>
+                  <button class="menu-item text-gray-500"
                   role="menuitem"
                   phx-click="fork_session">
                   <.remix_icon icon="git-branch-line" />
                   <span class="font-medium">Fork</span>
                 </button>
+                <% end %>
                 <button class="menu-item text-gray-500"
                   role="menuitem"
                   phx-click="sharing_settings">
@@ -188,11 +190,13 @@ defmodule LivebookWeb.SessionLive do
                   <.remix_icon icon="dashboard-2-line" />
                   <span class="font-medium">See on Dashboard</span>
                 </a>
-                <%= live_redirect to: Routes.home_path(@socket, :close_session, @session.id),
-                      class: "menu-item text-red-600",
-                      role: "menuitem" do %>
-                  <.remix_icon icon="close-circle-line" />
-                  <span class="font-medium">Close</span>
+                <%= if @policy.edit do %>
+                  <%= live_redirect to: Routes.home_path(@socket, :close_session, @session.id),
+                        class: "menu-item text-red-600",
+                        role: "menuitem" do %>
+                    <.remix_icon icon="close-circle-line" />
+                    <span class="font-medium">Close</span>
+                  <% end %>
                 <% end %>
               </:content>
             </.menu>
@@ -238,7 +242,8 @@ defmodule LivebookWeb.SessionLive do
           dirty={@data_view.dirty}
           autosave_interval_s={@data_view.autosave_interval_s}
           runtime={@data_view.runtime}
-          global_status={@data_view.global_status} />
+          global_status={@data_view.global_status}
+          policy={@policy} />
       </div>
     </div>
 
