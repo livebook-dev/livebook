@@ -872,14 +872,17 @@ const Session = {
   setCodeZen(enabled) {
     this.codeZen = enabled;
 
+    // If nothing is focused, use the first cell in the viewport
+    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
+
     if (enabled) {
       this.el.setAttribute("data-js-code-zen", "");
     } else {
       this.el.removeAttribute("data-js-code-zen");
     }
 
-    if (this.focusedId) {
-      const visibleId = this.ensureVisibleFocusableEl(this.focusedId);
+    if (focusedId) {
+      const visibleId = this.ensureVisibleFocusableEl(focusedId);
 
       if (visibleId !== this.focused) {
         this.setFocusedEl(visibleId, { scroll: false });
