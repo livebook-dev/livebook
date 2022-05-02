@@ -1301,7 +1301,8 @@ defmodule Livebook.Session.Data do
     )
     |> update_every_cell_info(fn
       %{eval: _} = info ->
-        update_in(info.eval.outputs_batch_number, &(&1 + 1))
+        info = update_in(info.eval.outputs_batch_number, &(&1 + 1))
+        put_in(info.eval.validity, :fresh)
 
       info ->
         info
