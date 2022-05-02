@@ -447,6 +447,12 @@ const Session = {
       return;
     }
 
+    // If a cell output is clicked, keep the insert mode as is
+    // and remove the focus from editor
+    if (event.target.closest(`[data-el-output]`)) {
+      return;
+    }
+
     // Depending on whether the click targets editor or input disable/enable insert mode
     if (this.insertMode !== insertMode) {
       this.setInsertMode(insertMode);
@@ -456,7 +462,7 @@ const Session = {
   editableElementClicked(event, focusableEl) {
     if (focusableEl) {
       const editableElement = event.target.closest(
-        `[data-el-editor-container], [data-el-heading]`
+        `[data-el-editor-container], [data-el-heading], [data-el-output]`
       );
       return editableElement && focusableEl.contains(editableElement);
     }
