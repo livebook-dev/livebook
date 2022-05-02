@@ -267,6 +267,18 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-session][data-js-code-zen][data-js-no-outputs]
+  [data-el-code-zen-outputs-toggle]
+  [data-label-hide] {
+  @apply hidden;
+}
+
+[data-el-session][data-js-code-zen]:not([data-js-no-outputs])
+  [data-el-code-zen-outputs-toggle]
+  [data-label-show] {
+  @apply hidden;
+}
+
 [data-el-session][data-js-code-zen] [data-el-code-zen-enable] {
   @apply hidden;
 }
