@@ -2754,8 +2754,8 @@ defmodule Livebook.Session.DataTest do
       assert {:ok,
               %{
                 cell_infos: %{
-                  "c1" => %{eval: %{validity: :aborted, status: :ready}},
-                  "c2" => %{eval: %{validity: :aborted, status: :ready}},
+                  "c1" => %{eval: %{validity: :fresh, status: :ready}},
+                  "c2" => %{eval: %{validity: :fresh, status: :ready}},
                   "c3" => %{eval: %{validity: :fresh, status: :ready}}
                 },
                 section_infos: %{
