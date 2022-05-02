@@ -834,19 +834,19 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("reconnect_runtime", %{}, socket) do
-    assert_policy!(socket, :execute)
+    assert_policy!(socket, :edit)
     {_, socket} = maybe_reconnect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("connect_runtime", %{}, socket) do
-    assert_policy!(socket, :execute)
+    assert_policy!(socket, :edit)
     {_, socket} = connect_runtime(socket)
     {:noreply, socket}
   end
 
   def handle_event("setup_default_runtime", %{}, socket) do
-    assert_policy!(socket, :execute)
+    assert_policy!(socket, :edit)
     {status, socket} = connect_runtime(socket)
 
     if status == :ok do
@@ -857,7 +857,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("disconnect_runtime", %{}, socket) do
-    assert_policy!(socket, :execute)
+    assert_policy!(socket, :edit)
     Session.disconnect_runtime(socket.assigns.session.pid)
     {:noreply, socket}
   end
@@ -911,7 +911,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_event("fork_session", %{}, socket) do
-    assert_policy!(socket, :edit)
+    assert_policy!(socket, :read)
     %{pid: pid, images_dir: images_dir} = socket.assigns.session
     # Fetch the data, as we don't keep cells' source in the state
     data = Session.get_data(pid)
