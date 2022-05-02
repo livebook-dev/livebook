@@ -250,7 +250,11 @@ const Cell = {
 
   maybeFocusCurrentEditor(scroll = false) {
     if (this.isFocused && this.insertMode) {
-      this.currentEditor().focus();
+      const editor = this.currentEditor();
+
+      if (!editor) return;
+
+      editor.focus();
 
       if (scroll) {
         // If the element is being scrolled to, focus interrupts it,
