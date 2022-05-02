@@ -90,7 +90,8 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             role="menuitem"
             data-el-code-zen-outputs-toggle>
             <.remix_icon icon="layout-bottom-2-line" />
-            <span class="font-medium">Toggle outputs</span>
+            <span class="font-medium" data-label-show>Show outputs</span>
+            <span class="font-medium" data-label-hide>Hide outputs</span>
           </button>
           <button class="menu-item text-gray-500"
             role="menuitem"
