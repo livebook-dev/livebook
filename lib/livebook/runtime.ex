@@ -411,7 +411,7 @@ defprotocol Livebook.Runtime do
   to the runtime owner whenever attrs and the generated source code
   change.
 
-    * `{:runtime_smart_cell_update, ref, attrs, source}`
+    * `{:runtime_smart_cell_update, ref, attrs, source, %{reevaluate: boolean()}}`
 
   The attrs are persisted and may be used to restore the smart cell
   state later. Note that for persistence they get serialized and

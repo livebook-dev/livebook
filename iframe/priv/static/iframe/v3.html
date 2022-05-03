@@ -28,6 +28,7 @@
           importPromise: null,
           eventHandlers: {},
           eventQueue: [],
+          syncHandler: null,
         };
 
         function postMessage(message) {
@@ -74,6 +75,10 @@
               linkEl.href = url;
               document.head.appendChild(linkEl);
             });
+          },
+
+          handleSync(callback) {
+            state.syncHandler = callback;
           },
         };
 
@@ -128,6 +133,12 @@
             } else {
               state.eventQueue.push({ event, payload });
             }
+          } else if (message.type === "sync") {
+            Promise.resolve(state.syncHandler && state.syncHandler()).then(
+              () => {
+                postMessage({ type: "syncReply" });
+              }
+            );
           }
         }
 

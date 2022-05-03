@@ -39,6 +39,12 @@ defmodule LivebookWeb.JSViewChannel do
     {:noreply, socket}
   end
 
+  def handle_in("ping", %{"ref" => ref}, socket) do
+    pid = socket.assigns.ref_with_info[ref].pid
+    send(pid, {:ping, self(), nil, %{ref: ref}})
+    {:noreply, socket}
+  end
+
   def handle_in("disconnect", %{"ref" => ref}, socket) do
     socket =
       if socket.assigns.ref_with_info[ref].count == 1 do
@@ -73,6 +79,11 @@ defmodule LivebookWeb.JSViewChannel do
       push(socket, "error:#{ref}", %{"message" => message, "init" => true})
     end
 
+    {:noreply, socket}
+  end
+
+  def handle_info({:pong, _, %{ref: ref}}, socket) do
+    push(socket, "pong:#{ref}", %{})
     {:noreply, socket}
   end
 

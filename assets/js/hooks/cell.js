@@ -83,6 +83,11 @@ const Cell = {
     this.unsubscribeFromCellsEvents = globalPubSub.subscribe("cells", (event) =>
       this.handleCellsEvent(event)
     );
+
+    this.unsubscribeFromCellEvents = globalPubSub.subscribe(
+      `cells:${this.props.cellId}`,
+      (event) => this.handleCellEvent(event)
+    );
   },
 
   disconnected() {
@@ -93,6 +98,7 @@ const Cell = {
   destroyed() {
     this.unsubscribeFromNavigationEvents();
     this.unsubscribeFromCellsEvents();
+    this.unsubscribeFromCellEvents();
   },
 
   updated() {
@@ -114,6 +120,11 @@ const Cell = {
         "data-evaluation-digest",
         null
       ),
+      smartCellJSViewRef: getAttributeOrDefault(
+        this.el,
+        "data-smart-cell-js-view-ref",
+        null
+      ),
     };
   },
 
@@ -132,6 +143,12 @@ const Cell = {
       this.handleCellMoved(event.cellId);
     } else if (event.type === "cell_upload") {
       this.handleCellUpload(event.cellId, event.url);
+    }
+  },
+
+  handleCellEvent(event) {
+    if (event.type === "dispatch_queue_evaluation") {
+      this.handleDispatchQueueEvaluation(event.dispatch);
     }
   },
 
@@ -322,6 +339,18 @@ const Cell = {
     if (this.props.cellId === cellId) {
       const markdown = `![](${url})`;
       liveEditor.insert(markdown);
+    }
+  },
+
+  handleDispatchQueueEvaluation(dispatch) {
+    if (this.props.type === "smart" && this.props.smartCellJSViewRef) {
+      // Ensure the smart cell UI is reflected on the server, before the evaluation
+      globalPubSub.broadcast(`js_views:${this.props.smartCellJSViewRef}`, {
+        type: "sync",
+        callback: dispatch,
+      });
+    } else {
+      dispatch();
     }
   },
 

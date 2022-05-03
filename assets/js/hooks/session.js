@@ -488,6 +488,14 @@ const Session = {
       this.setInsertMode(true);
     }
 
+    const evalButton = event.target.closest(
+      `[data-el-queue-cell-evaluation-button]`
+    );
+    if (evalButton) {
+      const cellId = evalButton.getAttribute("data-cell-id");
+      this.queueCellEvaluation(cellId);
+    }
+
     const hash = window.location.hash;
 
     if (hash) {
@@ -700,10 +708,16 @@ const Session = {
     }
   },
 
+  queueCellEvaluation(cellId) {
+    this.dispatchQueueEvaluation(() => {
+      this.pushEvent("queue_cell_evaluation", { cell_id: cellId });
+    });
+  },
+
   queueFocusedCellEvaluation() {
     if (this.focusedId && this.isCell(this.focusedId)) {
-      this.pushEvent("queue_cell_evaluation", {
-        cell_id: this.focusedId,
+      this.dispatchQueueEvaluation(() => {
+        this.pushEvent("queue_cell_evaluation", { cell_id: this.focusedId });
       });
     }
   },
@@ -714,8 +728,10 @@ const Session = {
         ? [this.focusedId]
         : [];
 
-    this.pushEvent("queue_full_evaluation", {
-      forced_cell_ids: forcedCellIds,
+    this.dispatchQueueEvaluation(() => {
+      this.pushEvent("queue_full_evaluation", {
+        forced_cell_ids: forcedCellIds,
+      });
     });
   },
 
@@ -724,10 +740,26 @@ const Session = {
       const sectionId = this.getSectionIdByFocusableId(this.focusedId);
 
       if (sectionId) {
-        this.pushEvent("queue_section_evaluation", {
-          section_id: sectionId,
+        this.dispatchQueueEvaluation(() => {
+          this.pushEvent("queue_section_evaluation", {
+            section_id: sectionId,
+          });
         });
       }
+    }
+  },
+
+  dispatchQueueEvaluation(dispatch) {
+    if (isEvaluable(this.focusedCellType())) {
+      // If an evaluable cell is focused, we forward the evaluation
+      // request to that cell, so it can synchronize itself before
+      // sending the request to the server
+      globalPubSub.broadcast(`cells:${this.focusedId}`, {
+        type: "dispatch_queue_evaluation",
+        dispatch,
+      });
+    } else {
+      dispatch();
     }
   },
 

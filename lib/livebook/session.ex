@@ -1001,6 +1001,18 @@ defmodule Livebook.Session do
     end
   end
 
+  def handle_info({:pong, {:smart_cell_evaluation, cell_id}, _info}, state) do
+    state =
+      with {:ok, cell, section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
+           :evaluating <- state.data.cell_infos[cell.id].eval.status do
+        start_evaluation(state, cell, section)
+      else
+        _ -> state
+      end
+
+    {:noreply, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -1308,28 +1320,20 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, {:start_evaluation, cell, section}) do
-    path =
-      case state.data.file do
-        nil -> ""
-        file -> file.path
-      end
+    info = state.data.cell_infos[cell.id]
 
-    file = path <> "#cell"
+    if is_struct(cell, Cell.Smart) and info.status == :started do
+      # We do a ping and start evaluation only once we get a reply,
+      # this way we make sure we received all relevant source changes
+      send(
+        cell.js_view.pid,
+        {:ping, self(), {:smart_cell_evaluation, cell.id}, %{ref: cell.js_view.ref}}
+      )
 
-    smart_cell_ref =
-      case cell do
-        %Cell.Smart{} -> cell.id
-        _ -> nil
-      end
-
-    opts = [file: file, smart_cell_ref: smart_cell_ref]
-
-    locator = {container_ref_for_section(section), cell.id}
-    base_locator = find_base_locator(state.data, cell, section)
-    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
-
-    evaluation_digest = :erlang.md5(cell.source)
-    handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
+      state
+    else
+      start_evaluation(state, cell, section)
+    end
   end
 
   defp handle_action(state, {:stop_evaluation, section}) do
@@ -1383,6 +1387,31 @@ defmodule Livebook.Session do
   end
 
   defp handle_action(state, _action), do: state
+
+  defp start_evaluation(state, cell, section) do
+    path =
+      case state.data.file do
+        nil -> ""
+        file -> file.path
+      end
+
+    file = path <> "#cell"
+
+    smart_cell_ref =
+      case cell do
+        %Cell.Smart{} -> cell.id
+        _ -> nil
+      end
+
+    opts = [file: file, smart_cell_ref: smart_cell_ref]
+
+    locator = {container_ref_for_section(section), cell.id}
+    base_locator = find_base_locator(state.data, cell, section)
+    Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
+
+    evaluation_digest = :erlang.md5(cell.source)
+    handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
+  end
 
   defp broadcast_operation(session_id, operation) do
     broadcast_message(session_id, {:operation, operation})
