@@ -389,10 +389,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </button>
       </span>
     <% else %>
-      <span class="tooltip top" data-tooltip="Add dependency (sp)">
+      <span class="tooltip top" data-tooltip="Add package (sp)">
         <%= live_patch to: Routes.session_path(@socket, :package_search, @session_id),
               class: "icon-button",
-              aria_label: "add dependency",
+              aria_label: "add package",
               role: "button",
               data_btn_package_search: true do %>
           <.remix_icon icon="play-list-add-line" class="text-xl" />
