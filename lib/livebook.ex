@@ -30,11 +30,11 @@ defmodule Livebook do
 
       [
         %{
-          dependency: {:kino, "~> 0.6.0"},
+          dependency: {:kino, "~> 0.6.1"},
           description: "Interactive widgets for Livebook",
           name: "kino",
           url: "https://hex.pm/packages/kino",
-          version: "0.6.0"
+          version: "0.6.1"
         }
       ]
 

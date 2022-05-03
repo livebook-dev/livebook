@@ -17,8 +17,8 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.0"}}
-  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.0"}}
+  kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.1"}}
+  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.1"}}
 
   @extra_smart_cell_definitions [
     %{
