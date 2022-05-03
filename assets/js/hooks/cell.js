@@ -343,7 +343,7 @@ const Cell = {
   },
 
   handleDispatchQueueEvaluation(dispatch) {
-    if (this.props.type === "smart") {
+    if (this.props.type === "smart" && this.props.smartCellJSViewRef) {
       // Ensure the smart cell UI is reflected on the server, before the evaluation
       globalPubSub.broadcast(`js_views:${this.props.smartCellJSViewRef}`, {
         type: "sync",
