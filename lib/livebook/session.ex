@@ -1322,7 +1322,7 @@ defmodule Livebook.Session do
   defp handle_action(state, {:start_evaluation, cell, section}) do
     info = state.data.cell_infos[cell.id]
 
-    if is_struct(cell, Cell.Smart) and info.status != :dead do
+    if is_struct(cell, Cell.Smart) and info.status == :started do
       # We do a ping and start evaluation only once we get a reply,
       # this way we make sure we received all relevant source changes
       send(
