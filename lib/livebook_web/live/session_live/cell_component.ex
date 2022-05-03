@@ -104,7 +104,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           status={@cell_view.eval.status} />
       </:primary>
       <:secondary>
-        <.enable_insert_mode_button />
         <.package_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.setup_cell_info />

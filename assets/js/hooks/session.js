@@ -520,12 +520,7 @@ const Session = {
     const cell = event.target.closest(`[data-el-cell]`);
     const type = cell && cell.getAttribute("data-type");
 
-    if (
-      type &&
-      ["markdown", "setup"].includes(type) &&
-      this.focusedId &&
-      !this.insertMode
-    ) {
+    if (type && type === "markdown" && this.focusedId && !this.insertMode) {
       this.setInsertMode(true);
     }
   },
