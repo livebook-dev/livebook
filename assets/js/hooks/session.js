@@ -488,6 +488,14 @@ const Session = {
       this.setInsertMode(true);
     }
 
+    const evalButton = event.target.closest(
+      `[data-el-queue-cell-evaluation-button]`
+    );
+    if (evalButton) {
+      const cellId = evalButton.getAttribute("data-cell-id");
+      this.queueCellEvaluation(cellId);
+    }
+
     const hash = window.location.hash;
 
     if (hash) {
@@ -512,12 +520,7 @@ const Session = {
     const cell = event.target.closest(`[data-el-cell]`);
     const type = cell && cell.getAttribute("data-type");
 
-    if (
-      type &&
-      ["markdown", "setup"].includes(type) &&
-      this.focusedId &&
-      !this.insertMode
-    ) {
+    if (type && type === "markdown" && this.focusedId && !this.insertMode) {
       this.setInsertMode(true);
     }
   },
@@ -700,10 +703,16 @@ const Session = {
     }
   },
 
+  queueCellEvaluation(cellId) {
+    this.dispatchQueueEvaluation(() => {
+      this.pushEvent("queue_cell_evaluation", { cell_id: cellId });
+    });
+  },
+
   queueFocusedCellEvaluation() {
     if (this.focusedId && this.isCell(this.focusedId)) {
-      this.pushEvent("queue_cell_evaluation", {
-        cell_id: this.focusedId,
+      this.dispatchQueueEvaluation(() => {
+        this.pushEvent("queue_cell_evaluation", { cell_id: this.focusedId });
       });
     }
   },
@@ -714,8 +723,10 @@ const Session = {
         ? [this.focusedId]
         : [];
 
-    this.pushEvent("queue_full_evaluation", {
-      forced_cell_ids: forcedCellIds,
+    this.dispatchQueueEvaluation(() => {
+      this.pushEvent("queue_full_evaluation", {
+        forced_cell_ids: forcedCellIds,
+      });
     });
   },
 
@@ -724,10 +735,26 @@ const Session = {
       const sectionId = this.getSectionIdByFocusableId(this.focusedId);
 
       if (sectionId) {
-        this.pushEvent("queue_section_evaluation", {
-          section_id: sectionId,
+        this.dispatchQueueEvaluation(() => {
+          this.pushEvent("queue_section_evaluation", {
+            section_id: sectionId,
+          });
         });
       }
+    }
+  },
+
+  dispatchQueueEvaluation(dispatch) {
+    if (isEvaluable(this.focusedCellType())) {
+      // If an evaluable cell is focused, we forward the evaluation
+      // request to that cell, so it can synchronize itself before
+      // sending the request to the server
+      globalPubSub.broadcast(`cells:${this.focusedId}`, {
+        type: "dispatch_queue_evaluation",
+        dispatch,
+      });
+    } else {
+      dispatch();
     }
   },
 
@@ -872,14 +899,17 @@ const Session = {
   setCodeZen(enabled) {
     this.codeZen = enabled;
 
+    // If nothing is focused, use the first cell in the viewport
+    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
+
     if (enabled) {
       this.el.setAttribute("data-js-code-zen", "");
     } else {
       this.el.removeAttribute("data-js-code-zen");
     }
 
-    if (this.focusedId) {
-      const visibleId = this.ensureVisibleFocusableEl(this.focusedId);
+    if (focusedId) {
+      const visibleId = this.ensureVisibleFocusableEl(focusedId);
 
       if (visibleId !== this.focused) {
         this.setFocusedEl(visibleId, { scroll: false });

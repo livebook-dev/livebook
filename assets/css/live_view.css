@@ -18,7 +18,3 @@ iframe[hidden] {
 .phx-loading {
   cursor: wait;
 }
-
-.phx-loading * {
-  pointer-events: none;
-}

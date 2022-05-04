@@ -14,7 +14,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-session-path={Routes.session_path(@socket, :page, @session_id)}
       data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
-      data-js-empty={empty?(@cell_view.source_view)}>
+      data-js-empty={empty?(@cell_view.source_view)}
+      data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}>
       <%= render_cell(assigns) %>
     </div>
     """
@@ -118,7 +119,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       </:primary>
       <:secondary>
         <%= if @policy.edit do %>
-          <.enable_insert_mode_button />
           <.package_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
         <% end %>
         <.cell_link_button cell_id={@cell_view.id} />
@@ -294,8 +294,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_evaluation_button(%{status: :ready} = assigns) do
     ~H"""
     <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-      phx-click="queue_cell_evaluation"
-      phx-value-cell_id={@cell_id}>
+      data-el-queue-cell-evaluation-button
+      data-cell-id={@cell_id}>
       <.remix_icon icon="play-circle-fill" class="text-xl" />
       <span class="text-sm font-medium">
         <%= if(@validity == :evaluated, do: "Reevaluate", else: "Evaluate") %>
@@ -320,8 +320,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp setup_cell_evaluation_button(%{status: :ready} = assigns) do
     ~H"""
     <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-      phx-click="queue_cell_evaluation"
-      phx-value-cell_id={@cell_id}>
+      data-el-queue-cell-evaluation-button
+      data-cell-id={@cell_id}>
       <%= if @validity == :fresh do %>
         <.remix_icon icon="play-circle-fill" class="text-xl" />
         <span class="text-sm font-medium">Setup</span>
@@ -410,10 +410,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </button>
       </span>
     <% else %>
-      <span class="tooltip top" data-tooltip="Add dependency (sp)">
+      <span class="tooltip top" data-tooltip="Add package (sp)">
         <%= live_patch to: Routes.session_path(@socket, :package_search, @session_id),
               class: "icon-button",
-              aria_label: "add dependency",
+              aria_label: "add package",
               role: "button",
               data_btn_package_search: true do %>
           <.remix_icon icon="play-list-add-line" class="text-xl" />
@@ -633,4 +633,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
+
+  defp smart_cell_js_view_ref(%{type: :smart, js_view: %{ref: ref}}), do: ref
+  defp smart_cell_js_view_ref(_cell_view), do: nil
 end

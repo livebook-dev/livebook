@@ -676,6 +676,50 @@ defmodule Livebook.SessionTest do
 
       assert_receive {:editor_source, "content!"}
     end
+
+    test "pings the smart cell before evaluation to await all incoming messages" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "1"}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      Session.subscribe(session.id)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "1", js_view: %{pid: self(), ref: "ref"}, editor: nil}}
+      )
+
+      Session.queue_cell_evaluation(session.pid, smart_cell.id)
+
+      send(
+        session.pid,
+        {:runtime_evaluation_response, "setup", {:ok, ""}, %{evaluation_time_ms: 10}}
+      )
+
+      session_pid = session.pid
+      assert_receive {:ping, ^session_pid, metadata, %{ref: "ref"}}
+
+      # Update the source before replying to ping
+      send(
+        session.pid,
+        {:runtime_smart_cell_update, smart_cell.id, %{}, "2", %{reevaluate: false}}
+      )
+
+      send(session_pid, {:pong, metadata, %{ref: "ref"}})
+
+      cell_id = smart_cell.id
+      new_digest = :erlang.md5("2")
+      assert_receive {:operation, {:evaluation_started, ^session_pid, ^cell_id, ^new_digest}}
+    end
   end
 
   describe "find_base_locator/3" do

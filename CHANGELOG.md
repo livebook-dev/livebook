@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased](https://github.com/livebook-dev/livebook)
+## [v0.6.0](https://github.com/livebook-dev/livebook/tree/v0.6.0) (2022-05-03)
 
 ### Added
 
@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Restructured cell insert buttons ([#1073](https://github.com/livebook-dev/livebook/pull/1073))
 - Allowed inserting images without specifying name in Markdown cells ([#1083](https://github.com/livebook-dev/livebook/pull/1083))
 - Unified authentication to always redirect to the initial URL ([#1104](https://github.com/livebook-dev/livebook/pull/1104) and [#1112](https://github.com/livebook-dev/livebook/pull/1112))
+- Erase outputs action to clear cell indicators ([#1160](https://github.com/livebook-dev/livebook/pull/1160))
 
 ### Removed
 

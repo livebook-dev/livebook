@@ -2,8 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.6.0"},
-  {:kino_vega_lite, "~> 0.1.0"}
+  {:kino, "~> 0.6.1"},
+  {:kino_vega_lite, "~> 0.1.1"}
 ])
 
 alias VegaLite, as: Vl
