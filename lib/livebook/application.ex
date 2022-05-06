@@ -197,14 +197,14 @@ defmodule Livebook.Application do
     port = Livebook.Config.iframe_port()
 
     if server? do
-      livebook_ip = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http][:ip]
+      http = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http]
 
       iframe_opts =
         [
           scheme: :http,
           plug: LivebookWeb.IframeEndpoint,
-          options: [port: port]
-        ] ++ if(livebook_ip, do: [ip: livebook_ip], else: [])
+          port: port
+        ] ++ Keyword.take(http, [:ip])
 
       spec = Plug.Cowboy.child_spec(iframe_opts)
       spec = update_in(spec.start, &{__MODULE__, :start_iframe, [port, &1]})
