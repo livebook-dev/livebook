@@ -1,6 +1,4 @@
 defmodule Livebook.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
@@ -216,21 +214,25 @@ defmodule Livebook.Application do
 
   @doc false
   def start_iframe(port, {m, f, a}) do
-    require Logger
-
     case apply(m, f, a) do
       {:ok, pid} ->
         {:ok, pid}
 
-      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} = error ->
-        Logger.error(
-          "Failed to start Livebook iframe server because port #{port} is already in use"
-        )
+      {:error, {:shutdown, {_, _, {{_, {:error, :eaddrinuse}}, _}}}} = error ->
+        iframe_port_in_use(port)
+        error
 
+      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} = error ->
+        iframe_port_in_use(port)
         error
 
       {:error, _} = error ->
         error
     end
+  end
+
+  defp iframe_port_in_use(port) do
+    require Logger
+    Logger.error("Failed to start Livebook iframe server because port #{port} is already in use")
   end
 end
