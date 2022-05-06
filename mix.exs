@@ -48,7 +48,8 @@ defmodule Livebook.MixProject do
       links: %{
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
-      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+      files:
+        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe)
     ]
   end
 
