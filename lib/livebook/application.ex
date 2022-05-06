@@ -199,10 +199,38 @@ defmodule Livebook.Application do
     port = Livebook.Config.iframe_port()
 
     if server? do
-      # Start the iframe endpoint on a different port
-      [{Plug.Cowboy, scheme: :http, plug: LivebookWeb.IframeEndpoint, options: [port: port]}]
+      iframe_opts = [
+        scheme: :http,
+        plug: LivebookWeb.IframeEndpoint,
+        options: [port: port],
+        ip: Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http][:ip]
+      ]
+
+      spec = Plug.Cowboy.child_spec(iframe_opts)
+      spec = update_in(spec.start, &{__MODULE__, :start_iframe, [port, &1]})
+      [spec]
     else
       []
+    end
+  end
+
+  @doc false
+  def start_iframe(port, {m, f, a}) do
+    require Logger
+
+    case apply(m, f, a) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} = error ->
+        Logger.error(
+          "Failed to start Livebook iframe server because port #{port} is already in use"
+        )
+
+        error
+
+      {:error, _} = error ->
+        error
     end
   end
 end
