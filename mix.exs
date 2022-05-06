@@ -6,7 +6,6 @@ defmodule Livebook.MixProject do
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   @app_elixir_version "1.13.4"
-  @app_otp_version "24.3"
 
   def project do
     [
@@ -169,7 +168,7 @@ defmodule Livebook.MixProject do
     Code.require_file("rel/app/standalone.exs")
 
     release
-    |> Standalone.copy_otp(@app_otp_version)
+    |> Standalone.copy_otp()
     |> Standalone.copy_elixir(@app_elixir_version)
   end
 
