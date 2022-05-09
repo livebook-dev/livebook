@@ -66,7 +66,7 @@ defmodule Livebook.SystemResources do
 
   defp measure() do
     memory_data = :memsup.get_system_memory_data()
-    free_memory = measure_free_memory(Enum.into(memory_data, %{}))
+    free_memory = measure_free_memory(Map.new(memory_data))
     memory = %{total: memory_data[:total_memory], free: free_memory}
     :ets.insert(@name, {:memory, memory})
     memory
