@@ -66,10 +66,20 @@ defmodule Livebook.SystemResources do
 
   defp measure() do
     memory_data = :memsup.get_system_memory_data()
-    memory = %{total: memory_data[:total_memory], free: memory_data[:free_memory]}
+    free_memory = free_memory(Map.new(memory_data))
+    memory = %{total: memory_data[:total_memory], free: free_memory}
     :ets.insert(@name, {:memory, memory})
     memory
   end
+
+  defp free_memory(%{available_memory: available}), do: available
+
+  defp free_memory(%{cached_memory: cached, buffered_memory: buffered, free_memory: free}) do
+    cached + buffered + free
+  end
+
+  defp free_memory(%{free_memory: free}), do: free
+  defp free_memory(_), do: 0
 
   defp schedule() do
     Process.send_after(self(), :measure, 15000)
