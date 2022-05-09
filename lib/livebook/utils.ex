@@ -556,4 +556,17 @@ defmodule Livebook.Utils do
       _ -> default
     end
   end
+
+  @doc """
+  Formats the given IP address as string.
+
+  ## Examples
+
+      iex> Livebook.Utils.ip_to_string({127, 0, 0, 1})
+      "127.0.0.1"
+  """
+  @spec ip_to_string(:inet.ip_address()) :: String.t()
+  def ip_to_string(ip) do
+    ip |> :inet.ntoa() |> List.to_string()
+  end
 end
