@@ -569,12 +569,12 @@ defmodule Livebook.Utils do
       "localhost"
 
       iex> Livebook.Utils.ip_to_host({0, 0, 0, 0})
-      "localhost"
+      "0.0.0.0"
   """
   @spec ip_to_host(:inet.ip_address()) :: String.t()
   def ip_to_host(ip)
 
-  def ip_to_host(ip) when ip in [{127, 0, 0, 1}, {0, 0, 0, 0}], do: "localhost"
+  def ip_to_host({127, 0, 0, 1}), do: "localhost"
 
   def ip_to_host(ip) do
     ip |> :inet.ntoa() |> List.to_string()
