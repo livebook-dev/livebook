@@ -95,7 +95,7 @@ defmodule Livebook do
     end
 
     if ip = Livebook.Config.ip!("LIVEBOOK_IP") do
-      host = Livebook.Utils.ip_to_string(ip)
+      host = Livebook.Utils.ip_to_host(ip)
       config :livebook, LivebookWeb.Endpoint, http: [ip: ip], url: [host: host]
     end
 
