@@ -3,17 +3,8 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   @impl true
   def render(assigns) do
-    # phx-click={if @hide_sidebar, do: "show_sidebar", else: "hide_sidebar"}
     ~H"""
     <div class="flex flex-col items-center space-y-2" data-el-notebook-indicators>
-      <span class="tooltip left" data-tooltip="Toggle sidebar" data-el-code-zen-enable>
-        <button class="icon-button icon-outlined-button border-gray-200 hover:bg-gray-100 focus:bg-gray-100"
-          aria-label="enter code zen"
-          phx-value-toggle={if @hide_sidebar, do: "show", else: "hide"}
-          phx-click="toggle_sidebar">
-          <.remix_icon icon={if @hide_sidebar, do: "toggle-line", else: "toggle-fill"} class="text-xl text-gray-400" />
-        </button>
-      </span>
       <.code_zen_indicator />
       <%= if @file do %>
         <%= if @dirty do %>
