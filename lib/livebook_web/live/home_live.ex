@@ -38,8 +38,23 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
+      <div id="show-sidebar-tooltip" class="hidden fixed top-[1rem] left-[0.5rem]">
+        <span class="tooltip right distant" data-tooltip="show sidebar">
+          <button class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+            aria-label="show sidebar"
+            phx-click={show_sidebar()}>
+            <.remix_icon icon="menu-line" />
+          </button>
+        </span>
+      </div>
       <.live_region role="alert" />
       <SidebarHelpers.sidebar>
+        <div class="visible sm:invisible">
+          <SidebarHelpers.button_item
+            icon="menu-line"
+            label="hide sidebar"
+            button_attrs={[phx_click: hide_sidebar()]} />
+        </div>
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow overflow-y-auto">
@@ -433,5 +448,17 @@ defmodule LivebookWeb.HomeLive do
       {:error, error} ->
         put_flash(socket, :error, Livebook.Utils.upcase_first(error))
     end
+  end
+
+  def hide_sidebar(js \\ %JS{}) do
+    js
+    |> JS.hide(transition: "fade-out", to: "[aria-label=sidebar]")
+    |> JS.show(transition: "fade-in", to: "#show-sidebar-tooltip")
+  end
+
+  def show_sidebar(js \\ %JS{}) do
+    js
+    |> JS.hide(transition: "fade-out", to: "#show-sidebar-tooltip")
+    |> JS.show(transition: "fade-in", to: "[aria-label=sidebar]")
   end
 end
