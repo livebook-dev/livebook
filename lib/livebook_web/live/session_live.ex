@@ -96,10 +96,10 @@ defmodule LivebookWeb.SessionLive do
       data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar hide_sidebar={@hide_sidebar} >
-        <div class="invisible md:visible">
+        <div class="hidden sm:block">
           <SidebarHelpers.logo_item socket={@socket} />
         </div>
-        <div class="visible sm:invisible">
+        <div class="sm:hidden" style="margin-top: 0px">
           <SidebarHelpers.button_item
             icon="menu-line"
             label="hide sidebar"
