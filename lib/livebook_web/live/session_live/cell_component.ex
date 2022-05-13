@@ -612,6 +612,6 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
   defp evaluated_label(_time_ms), do: nil
 
-  defp smart_cell_js_view_ref(%{type: :smart, js_view: %{ref: ref}}), do: ref
+  defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
   defp smart_cell_js_view_ref(_cell_view), do: nil
 end
