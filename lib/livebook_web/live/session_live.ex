@@ -146,15 +146,7 @@ defmodule LivebookWeb.SessionLive do
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
         <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-el-notebook-content>
-          <div id="show-sidebar-tooltip" class="hidden fixed top-[1.5rem] left-[0.5rem]">
-            <span class="tooltip right distant" data-tooltip="show sidebar">
-              <button class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
-                aria-label="show sidebar"
-                phx-click={show_sidebar()}>
-                <.remix_icon icon="menu-line" />
-              </button>
-            </span>
-          </div>
+          <SidebarHelpers.show_sidebar_item />
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-el-notebook-headline
             data-focusable-id="notebook"
@@ -1726,11 +1718,5 @@ defmodule LivebookWeb.SessionLive do
     js
     |> JS.hide(transition: "fade-out", to: "[aria-label=sidebar]")
     |> JS.show(transition: "fade-in", to: "#show-sidebar-tooltip")
-  end
-
-  def show_sidebar(js \\ %JS{}) do
-    js
-    |> JS.hide(transition: "fade-out", to: "#show-sidebar-tooltip")
-    |> JS.show(transition: "fade-in", to: "[aria-label=sidebar]")
   end
 end
