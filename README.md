@@ -1,6 +1,10 @@
-<h1><img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
+<h1>
+  <a href="https://livebook.dev/" target="_blank">
+   <img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400">
+  </a>
+</h1>
 
- [![Hex.pm](https://img.shields.io/hexpm/v/livebook?color=3e64ff)](https://hex.pm/packages/livebook)
+ [![Website](https://img.shields.io/badge/-Website-%23ff87a7)](https://livebook.dev/) [![Hex.pm](https://img.shields.io/hexpm/v/livebook?color=b5a3be)](https://hex.pm/packages/livebook)
 
 Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
@@ -28,24 +32,58 @@ We are actively working on Livebook and you can consult the issues tracker to se
 
 ## Getting started
 
-Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Usage" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
+Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Installation" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
-For screencasts and updates, check out [news.livebook.dev](https://news.livebook.dev/).
+For screencasts and news, check out [news.livebook.dev](https://news.livebook.dev/).
 
-## Usage
+## Installation
 
 We provide several methods for running Livebook,
 pick the one that best fits your use case.
 
-### Running on the cloud
+### On the cloud
 
   * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
 
-### Running locally
+### Desktop app
 
-You can run Livebook on your own machine. You will need
+Coming soon!
+
+### Docker
+
+Running Livebook using Docker is a great option for cloud deployments
+and also for local usage in case you don't have Elixir installed.
+
+```shell
+# Running with the default configuration
+docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
+
+# In order to access and save notebooks directly to your machine
+# you can mount a local directory into the container.
+# Make sure to specify the user with "-u $(id -u):$(id -g)"
+# so that the created files have proper permissions
+docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
+
+# You can configure Livebook using environment variables,
+# for all options see the dedicated "Environment variables" section below
+docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
+```
+
+To try out features from the main branch you can alternatively
+use the `livebook/livebook:edge` image.
+See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
+
+### Embedded devices
+
+If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
+check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
+with [Nerves](https://www.nerves-project.org/).
+
+### Direct installation with Elixir
+
+You can run Livebook on your own machine using just ELixir. You will need
 [Elixir v1.13](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
@@ -85,30 +123,6 @@ install the escript directly from GitHub like this:
 mix escript.install github livebook-dev/livebook
 ```
 
-#### Docker
-
-Running Livebook using Docker is a great option for cloud deployments
-and also for local usage in case you don't have Elixir installed.
-
-```shell
-# Running with the default configuration
-docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
-
-# In order to access and save notebooks directly to your machine
-# you can mount a local directory into the container.
-# Make sure to specify the user with "-u $(id -u):$(id -g)"
-# so that the created files have proper permissions
-docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
-
-# You can configure Livebook using environment variables,
-# for all options see the dedicated "Environment variables" section below
-docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
-```
-
-To try out features from the main branch you can alternatively
-use the `livebook/livebook:edge` image.
-See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
-
 #### Mix
 
 You can run latest Livebook directly with Mix.
@@ -121,12 +135,6 @@ mix deps.get --only prod
 # Run the Livebook server
 MIX_ENV=prod mix phx.server
 ```
-
-### Embedded devices
-
-If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
-check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
-with [Nerves](https://www.nerves-project.org/).
 
 ## Security considerations
 
