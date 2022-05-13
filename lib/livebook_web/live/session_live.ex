@@ -137,7 +137,7 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-        <div class="w-full max-w-screen-lg px-16 mx-auto py-7" data-el-notebook-content>
+        <div class="w-full max-w-screen-lg pl-8 md:pl-16 pr-16 mx-auto py-7" data-el-notebook-content>
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-el-notebook-headline
             data-focusable-id="notebook"
