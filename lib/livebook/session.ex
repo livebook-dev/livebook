@@ -209,14 +209,14 @@ defmodule Livebook.Session do
   def fetch_assets(pid, hash) do
     local_assets_path = local_assets_path(hash)
 
-    if File.exists?(local_assets_path) do
+    if non_empty_dir?(local_assets_path) do
       :ok
     else
       with {:ok, runtime, archive_path} <-
              GenServer.call(pid, {:get_runtime_and_archive_path, hash}, @timeout) do
         fun = fn ->
           # Make sure the file hasn't been fetched by this point
-          unless File.exists?(local_assets_path) do
+          unless non_empty_dir?(local_assets_path) do
             {:ok, archive_binary} = Runtime.read_file(runtime, archive_path)
             extract_archive!(archive_binary, local_assets_path)
           end
@@ -230,6 +230,10 @@ defmodule Livebook.Session do
         end
       end
     end
+  end
+
+  defp non_empty_dir?(path) do
+    match?({:ok, [_ | _]}, File.ls(path))
   end
 
   @doc """
@@ -1067,7 +1071,10 @@ defmodule Livebook.Session do
     FileSystem.File.remove(tmp_dir)
   end
 
-  defp local_assets_path(hash) do
+  @doc """
+  Returns a local path to the directory for all assets for hash.
+  """
+  def local_assets_path(hash) do
     Path.join([livebook_tmp_path(), "assets", encode_path_component(hash)])
   end
 
