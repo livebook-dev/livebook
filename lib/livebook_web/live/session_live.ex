@@ -94,7 +94,7 @@ defmodule LivebookWeb.SessionLive do
       phx-hook="Session"
       data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
-      <SidebarHelpers.sidebar hide_sidebar={@hide_sidebar} >
+      <SidebarHelpers.sidebar>
         <div class="hidden sm:block">
           <SidebarHelpers.logo_item socket={@socket} />
         </div>
@@ -247,8 +247,7 @@ defmodule LivebookWeb.SessionLive do
           dirty={@data_view.dirty}
           autosave_interval_s={@data_view.autosave_interval_s}
           runtime={@data_view.runtime}
-          global_status={@data_view.global_status}
-          hide_sidebar={@hide_sidebar} />
+          global_status={@data_view.global_status} />
       </div>
     </div>
 
