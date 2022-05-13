@@ -241,7 +241,11 @@ defmodule LivebookCLI.Server do
 
   defp opts_to_config([{:ip, ip} | opts], config) do
     ip = Livebook.Config.ip!("--ip", ip)
-    opts_to_config(opts, [{:livebook, LivebookWeb.Endpoint, http: [ip: ip]} | config])
+    host = Livebook.Utils.ip_to_host(ip)
+
+    opts_to_config(opts, [
+      {:livebook, LivebookWeb.Endpoint, http: [ip: ip], url: [host: host]} | config
+    ])
   end
 
   defp opts_to_config([{:home, home} | opts], config) do
