@@ -14,8 +14,6 @@ defmodule LivebookWeb.SidebarHelpers do
   items of various type.
   """
   def sidebar(assigns) do
-    assigns = assign_new(assigns, :hide_sidebar, fn -> false end)
-
     ~H"""
     <nav class="w-16 flex flex-col items-center space-y-4 px-3 py-7 bg-gray-900" aria-label="sidebar">
       <%= render_slot(@inner_block) %>

@@ -53,8 +53,7 @@ defmodule LivebookWeb.SessionLive do
            self: self(),
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
-           page_title: get_page_title(data.notebook.name),
-           hide_sidebar: false
+           page_title: get_page_title(data.notebook.name)
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -955,11 +954,6 @@ defmodule LivebookWeb.SessionLive do
     )
 
     {:noreply, socket}
-  end
-
-  def handle_event("toggle_sidebar", %{"toggle" => toggle}, socket) do
-    assert_policy!(socket, :read)
-    {:noreply, socket |> assign(hide_sidebar: toggle == "hide")}
   end
 
   @impl true
