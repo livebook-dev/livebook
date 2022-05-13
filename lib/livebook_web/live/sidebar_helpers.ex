@@ -152,6 +152,6 @@ defmodule LivebookWeb.SidebarHelpers do
   def show_sidebar(js \\ %JS{}) do
     js
     |> JS.hide(transition: "fade-out", to: "#show-sidebar-tooltip")
-    |> JS.show(transition: "fade-in", to: "[aria-label=sidebar]")
+    |> JS.show(transition: "fade-in", to: "[aria-label=sidebar]", display: "flex")
   end
 end
