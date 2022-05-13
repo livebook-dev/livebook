@@ -99,10 +99,7 @@ defmodule LivebookWeb.SessionLive do
           <SidebarHelpers.logo_item socket={@socket} />
         </div>
         <div class="sm:hidden" style="margin-top: 0px">
-          <SidebarHelpers.button_item
-            icon="menu-line"
-            label="hide sidebar"
-            button_attrs={[phx_click: hide_sidebar()]} />
+          <SidebarHelpers.hide_sidebar_item />
         </div>
         <SidebarHelpers.button_item
           icon="booklet-fill"
@@ -1712,11 +1709,5 @@ defmodule LivebookWeb.SessionLive do
     end
 
     :ok
-  end
-
-  def hide_sidebar(js \\ %JS{}) do
-    js
-    |> JS.hide(transition: "fade-out", to: "[aria-label=sidebar]")
-    |> JS.show(transition: "fade-in", to: "#show-sidebar-tooltip")
   end
 end

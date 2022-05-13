@@ -41,11 +41,8 @@ defmodule LivebookWeb.HomeLive do
       <SidebarHelpers.show_sidebar_item />
       <.live_region role="alert" />
       <SidebarHelpers.sidebar>
-        <div class="visible sm:invisible">
-          <SidebarHelpers.button_item
-            icon="menu-line"
-            label="hide sidebar"
-            button_attrs={[phx_click: hide_sidebar()]} />
+        <div class="sm:hidden">
+          <SidebarHelpers.hide_sidebar_item />
         </div>
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
@@ -440,11 +437,5 @@ defmodule LivebookWeb.HomeLive do
       {:error, error} ->
         put_flash(socket, :error, Livebook.Utils.upcase_first(error))
     end
-  end
-
-  def hide_sidebar(js \\ %JS{}) do
-    js
-    |> JS.hide(transition: "fade-out", to: "[aria-label=sidebar]")
-    |> JS.show(transition: "fade-in", to: "#show-sidebar-tooltip")
   end
 end

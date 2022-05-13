@@ -31,6 +31,18 @@ defmodule LivebookWeb.SidebarHelpers do
     """
   end
 
+  def hide_sidebar_item(assigns) do
+    ~H"""
+    <span class="tooltip right distant" data-tooltip="hide sidebar">
+      <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+        aria-label="hide sidebar"
+        phx-click={hide_sidebar()}>
+        <.remix_icon icon="menu-line" />
+      </button>
+    </span>
+    """
+  end
+
   def show_sidebar_item(assigns) do
     ~H"""
     <div id="show-sidebar-tooltip" class="hidden fixed top-[1rem] left-[0.5rem]">
@@ -147,6 +159,12 @@ defmodule LivebookWeb.SidebarHelpers do
     else
       socket
     end
+  end
+
+  def hide_sidebar(js \\ %JS{}) do
+    js
+    |> JS.hide(transition: "fade-out", to: "[aria-label=sidebar]")
+    |> JS.show(transition: "fade-in", to: "#show-sidebar-tooltip")
   end
 
   def show_sidebar(js \\ %JS{}) do
