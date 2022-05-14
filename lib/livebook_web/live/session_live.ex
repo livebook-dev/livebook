@@ -95,12 +95,8 @@ defmodule LivebookWeb.SessionLive do
       data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
-        <div class="hidden sm:block">
-          <SidebarHelpers.logo_item socket={@socket} />
-        </div>
-        <div class="sm:hidden" style="margin-top: 0px">
-          <SidebarHelpers.hide_sidebar_item />
-        </div>
+        <SidebarHelpers.hide_sidebar_item />
+        <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.button_item
           icon="booklet-fill"
           label="Sections (ss)"
