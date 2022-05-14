@@ -26,12 +26,8 @@ defmodule LivebookWeb.ExploreLive do
     ~H"""
     <div class="flex grow h-full">
       <SidebarHelpers.sidebar>
-        <div class="hidden sm:block">
-          <SidebarHelpers.logo_item socket={@socket} />
-        </div>
-        <div class="sm:hidden" style="margin-top: 0px">
-          <SidebarHelpers.hide_sidebar_item />
-        </div>
+        <SidebarHelpers.hide_sidebar_item />
+        <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow px-6 py-8 overflow-y-auto">

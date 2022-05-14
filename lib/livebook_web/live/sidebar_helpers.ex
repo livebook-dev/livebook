@@ -33,7 +33,7 @@ defmodule LivebookWeb.SidebarHelpers do
 
   def hide_sidebar_item(assigns) do
     ~H"""
-    <span class="tooltip right distant" data-tooltip="hide sidebar">
+    <span class="tooltip right distant sm:hidden" data-tooltip="hide sidebar">
       <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
         aria-label="hide sidebar"
         phx-click={hide_sidebar()}>

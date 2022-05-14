@@ -41,9 +41,7 @@ defmodule LivebookWeb.HomeLive do
       <SidebarHelpers.show_sidebar_item />
       <.live_region role="alert" />
       <SidebarHelpers.sidebar>
-        <div class="sm:hidden">
-          <SidebarHelpers.hide_sidebar_item />
-        </div>
+        <SidebarHelpers.hide_sidebar_item />
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow overflow-y-auto">
