@@ -38,10 +38,8 @@ defmodule LivebookWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <SidebarHelpers.show_sidebar_item />
       <.live_region role="alert" />
       <SidebarHelpers.sidebar>
-        <SidebarHelpers.hide_sidebar_item />
         <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
       </SidebarHelpers.sidebar>
       <div class="grow overflow-y-auto">
