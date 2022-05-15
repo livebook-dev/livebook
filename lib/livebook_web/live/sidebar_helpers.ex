@@ -45,7 +45,7 @@ defmodule LivebookWeb.SidebarHelpers do
 
   def show_sidebar_item(assigns) do
     ~H"""
-    <div id="show-sidebar-tooltip" class="hidden fixed top-[1.75rem] left-[0.75rem]">
+    <div id="show-sidebar-tooltip" class="hidden fixed top-[1.75rem] left-[0.125rem]">
       <span class="tooltip right distant" data-tooltip="show sidebar">
         <button class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
           aria-label="show sidebar"
