@@ -13,7 +13,7 @@ const MarkdownRenderer = {
   mounted() {
     this.props = this.getProps();
 
-    const markdown = new Markdown(this.el, "", {baseUrl: this.props.sessionPath});
+    const markdown = new Markdown(this.el, "", { baseUrl: this.props.sessionPath });
 
     this.handleEvent(
       `markdown_renderer:${this.props.id}:content`,
