@@ -47,8 +47,12 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:markdown, markdown}, %{id: id}) do
-    live_component(Output.MarkdownComponent, id: id, content: markdown)
+  defp render_output({:markdown, markdown}, %{id: id, session_id: session_id}) do
+    live_component(Output.MarkdownComponent,
+      id: id,
+      session_id: session_id,
+      content: markdown
+    )
   end
 
   defp render_output({:image, content, mime_type}, %{id: id}) do
