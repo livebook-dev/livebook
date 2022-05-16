@@ -71,6 +71,8 @@ RUN mix local.hex --force && \
 # can be accessed outside the container by binding ports
 ENV LIVEBOOK_IP 0.0.0.0
 
+ENV LIVEBOOK_HOME=/data
+
 # Copy the release build from the previous stage
 COPY --from=build /app/_build/prod/rel/livebook /app
 
