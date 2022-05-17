@@ -76,8 +76,8 @@ ENV LIVEBOOK_HOME=/data
 # Copy the release build from the previous stage
 COPY --from=build /app/_build/prod/rel/livebook /app
 
-# Make release executables available to any user,
-# in case someone runs the container with `--user`
-RUN find /app -executable -type f -exec chmod +x {} +
+# Make release files available to any user, in case someone
+# runs the container with `--user`
+RUN chmod -R go=u /app
 
 CMD [ "/app/bin/livebook", "start" ]
