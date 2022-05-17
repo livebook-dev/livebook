@@ -17,7 +17,8 @@ defmodule LivebookWeb.Output.MarkdownComponent do
     <div class="markdown"
       id={"markdown-renderer-#{@id}"}
       phx-hook="MarkdownRenderer"
-      data-id={@id}>
+      data-id={@id}
+      data-session-path={Routes.session_path(@socket, :page, @session_id)}>
     </div>
     """
   end
