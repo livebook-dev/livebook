@@ -137,7 +137,16 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-        <SidebarHelpers.indicators_nav_item socket={@socket} session={@session} data_view={@data_view} />
+        <div class="md:hidden">
+          <LivebookWeb.SessionLive.IndicatorsComponent.nav_render
+            socket={@socket}
+            session_id={@session.id}
+            file={@data_view.file}
+            dirty={@data_view.dirty}
+            autosave_interval_s={@data_view.autosave_interval_s}
+            runtime={@data_view.runtime}
+            global_status={@data_view.global_status} />
+        </div>
         <div class="w-full max-w-screen-lg pl-8 md:pl-16 pr-16 mx-auto py-7" data-el-notebook-content>
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-el-notebook-headline
