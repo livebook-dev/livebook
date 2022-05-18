@@ -15,7 +15,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         <.remix_icon icon="menu-line" />
       </button>
       <div class="sm:fixed bottom-[0.4rem] right-[1.5rem]">
-        <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2" data-el-notebook-indicators>
+        <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2" data-el-notebook-indicators>
           <.code_zen_indicator />
           <.persistence_indicator
             file={@file}
