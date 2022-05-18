@@ -95,7 +95,6 @@ defmodule LivebookWeb.SessionLive do
       data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}>
       <SidebarHelpers.sidebar>
-        <SidebarHelpers.hide_sidebar_item />
         <SidebarHelpers.logo_item socket={@socket} />
         <SidebarHelpers.button_item
           icon="booklet-fill"
@@ -138,8 +137,8 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
+        <SidebarHelpers.indicators_nav_item socket={@socket} session={@session} data_view={@data_view} />
         <div class="w-full max-w-screen-lg pl-8 md:pl-16 pr-16 mx-auto py-7" data-el-notebook-content>
-          <SidebarHelpers.show_sidebar_item />
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-el-notebook-headline
             data-focusable-id="notebook"
@@ -224,7 +223,7 @@ defmodule LivebookWeb.SessionLive do
           </div>
         </div>
       </div>
-      <div class="fixed bottom-[0.4rem] right-[1.5rem]">
+      <div class="hidden md:flex fixed bottom-[0.4rem] right-[1.5rem]">
         <LivebookWeb.SessionLive.IndicatorsComponent.render
           socket={@socket}
           session_id={@session.id}

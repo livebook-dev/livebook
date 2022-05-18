@@ -31,29 +31,27 @@ defmodule LivebookWeb.SidebarHelpers do
     """
   end
 
-  def hide_sidebar_item(assigns) do
+  def indicators_nav_item(assigns) do
     ~H"""
-    <span class="tooltip right distant sm:hidden" data-tooltip="hide sidebar">
-      <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
-        aria-label="hide sidebar"
-        phx-click={hide_sidebar()}>
-        <.remix_icon icon="menu-line" />
-      </button>
-    </span>
-    """
-  end
-
-  def show_sidebar_item(assigns) do
-    ~H"""
-    <div id="show-sidebar-tooltip" class="hidden fixed top-[1.75rem] left-[0.0rem]">
-      <span class="tooltip right distant" data-tooltip="show sidebar">
-        <button class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
-          aria-label="show sidebar"
-          phx-click={show_sidebar()}>
-          <.remix_icon icon="menu-line" />
-        </button>
-      </span>
-    </div>
+    <nav class="md:hidden sticky top-0 z-40 flex flex-none w-full py-1 mx-auto bg-white border-b border-gray-200">
+      <div class="container flex flex-wrap justify-between items-center mx-auto">
+        <span class="tooltip right distant">
+          <button class="text-2xl text-gray-400 hover:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center"
+            aria-label="toggle sidebar"
+            phx-click={toggle_sidebar()}>
+            <.remix_icon icon="menu-line" />
+          </button>
+        </span>
+        <LivebookWeb.SessionLive.IndicatorsComponent.horizontal_render
+          socket={@socket}
+          session_id={@session.id}
+          file={@data_view.file}
+          dirty={@data_view.dirty}
+          autosave_interval_s={@data_view.autosave_interval_s}
+          runtime={@data_view.runtime}
+          global_status={@data_view.global_status} />
+      </div>
+    </nav>
     """
   end
 
@@ -161,15 +159,8 @@ defmodule LivebookWeb.SidebarHelpers do
     end
   end
 
-  def hide_sidebar(js \\ %JS{}) do
+  def toggle_sidebar(js \\ %JS{}) do
     js
-    |> JS.hide(to: "[aria-label=sidebar]")
-    |> JS.show(to: "#show-sidebar-tooltip")
-  end
-
-  def show_sidebar(js \\ %JS{}) do
-    js
-    |> JS.hide(to: "#show-sidebar-tooltip")
-    |> JS.show(to: "[aria-label=sidebar]", display: "flex")
+    |> JS.toggle(to: "[aria-label=sidebar]")
   end
 end
