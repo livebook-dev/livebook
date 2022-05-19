@@ -9,12 +9,22 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
   def render(assigns) do
     ~H"""
     <div class="flex items-center justify-between sticky px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
-      <button class="sm:hidden text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center"
-        aria-label="show sidebar"
-        phx-click={JS.toggle(to: ["[data-el-sidebar]", "[data-el-fold-sidebar]", "[data-el-unfold-sidebar]"], display: "flex")}>
-        <.remix_icon icon="menu-fold-line" data-el-fold-sidebar />
-        <.remix_icon icon="menu-unfold-line" class="hidden" data-el-unfold-sidebar />
-      </button>
+      <div class="sm:hidden text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
+        <button
+          aria-label="hide sidebar"
+          data-el-toggle-sidebar
+          phx-click={JS.add_class("hidden sm:d-block", to: "[data-el-sidebar]") |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")}>
+            <.remix_icon icon="menu-fold-line" />
+        </button>
+
+        <button
+          class="hidden"
+          aria-label="show sidebar"
+          data-el-toggle-sidebar
+          phx-click={JS.remove_class("hidden sm:d-block", to: "[data-el-sidebar]") |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")}>
+            <.remix_icon icon="menu-unfold-line" />
+        </button>
+      </div>
       <div class="sm:fixed bottom-[0.4rem] right-[1.5rem]">
         <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2" data-el-notebook-indicators>
           <.code_zen_indicator />
