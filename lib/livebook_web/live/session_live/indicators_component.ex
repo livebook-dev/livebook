@@ -13,7 +13,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
         <button
           aria-label="hide sidebar"
           data-el-toggle-sidebar
-          phx-click={JS.add_class("hidden sm:d-block", to: "[data-el-sidebar]") |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")}>
+          phx-click={JS.add_class("hidden sm:flex", to: "[data-el-sidebar]") |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")}>
             <.remix_icon icon="menu-fold-line" />
         </button>
 
@@ -21,7 +21,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
           class="hidden"
           aria-label="show sidebar"
           data-el-toggle-sidebar
-          phx-click={JS.remove_class("hidden sm:d-block", to: "[data-el-sidebar]") |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")}>
+          phx-click={JS.remove_class("hidden sm:flex", to: "[data-el-sidebar]") |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")}>
             <.remix_icon icon="menu-unfold-line" />
         </button>
       </div>
