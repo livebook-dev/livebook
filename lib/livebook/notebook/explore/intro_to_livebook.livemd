@@ -103,7 +103,7 @@ Livebook also include supports for links, mathematical expressions, and Mermaid 
 
 It is possible to link between Livebooks using Markdown's link syntax.
 For example, `[next chapter](chapter_2.livemd)` could be used to link
-to a Livebook called `chapter_2` in the same directory as the current
+to a Livebook named `chapter_2.livemd` in the same directory as the current
 notebook. Once clicked, Livebook will automatically open up a new session
 to execute the linked notebook.
 
