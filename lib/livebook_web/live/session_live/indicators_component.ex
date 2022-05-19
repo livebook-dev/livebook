@@ -11,8 +11,9 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
     <div class="flex items-center justify-between sticky top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
       <button class="sm:hidden text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center"
         aria-label="show sidebar"
-        phx-click={JS.toggle(to: "[data-el-sidebar]", display: "flex")}>
-        <.remix_icon icon="menu-line" />
+        phx-click={JS.toggle(to: ["[data-el-sidebar]", "[data-el-fold-sidebar]", "[data-el-unfold-sidebar]"], display: "flex")}>
+        <.remix_icon icon="menu-fold-line" data-el-fold-sidebar />
+        <.remix_icon icon="menu-unfold-line" class="hidden" data-el-unfold-sidebar />
       </button>
       <div class="sm:fixed bottom-[0.4rem] right-[1.5rem]">
         <div class="flex flex-row-reverse sm:flex-col items-center justify-end p-2 sm:p-0 space-x-2 space-x-reverse sm:space-x-0 sm:space-y-2" data-el-notebook-indicators>
