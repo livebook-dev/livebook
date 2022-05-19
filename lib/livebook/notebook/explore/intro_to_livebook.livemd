@@ -48,7 +48,7 @@ for _ <- 1..3 do
 end
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Branching sections
 
