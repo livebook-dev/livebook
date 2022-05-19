@@ -15,7 +15,7 @@ defmodule LivebookWeb.SidebarHelpers do
   """
   def sidebar(assigns) do
     ~H"""
-    <nav class="w-16 flex flex-col items-center space-y-4 px-3 py-7 bg-gray-900" aria-label="sidebar">
+    <nav class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-7 bg-gray-900" aria-label="sidebar" data-el-sidebar>
       <%= render_slot(@inner_block) %>
     </nav>
     """

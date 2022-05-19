@@ -137,7 +137,15 @@ defmodule LivebookWeb.SessionLive do
       </div>
       <div class="grow overflow-y-auto relative" data-el-notebook>
         <div data-el-js-view-iframes phx-update="ignore" id="js-view-iframes"></div>
-        <div class="w-full max-w-screen-lg pl-8 md:pl-16 pr-16 mx-auto py-7" data-el-notebook-content>
+        <LivebookWeb.SessionLive.IndicatorsComponent.render
+          socket={@socket}
+          session_id={@session.id}
+          file={@data_view.file}
+          dirty={@data_view.dirty}
+          autosave_interval_s={@data_view.autosave_interval_s}
+          runtime={@data_view.runtime}
+          global_status={@data_view.global_status} />
+        <div class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-7 mx-auto" data-el-notebook-content>
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-el-notebook-headline
             data-focusable-id="notebook"
@@ -221,16 +229,6 @@ defmodule LivebookWeb.SessionLive do
             <div style="height: 80vh"></div>
           </div>
         </div>
-      </div>
-      <div class="fixed bottom-[0.4rem] right-[1.5rem]">
-        <LivebookWeb.SessionLive.IndicatorsComponent.render
-          socket={@socket}
-          session_id={@session.id}
-          file={@data_view.file}
-          dirty={@data_view.dirty}
-          autosave_interval_s={@data_view.autosave_interval_s}
-          runtime={@data_view.runtime}
-          global_status={@data_view.global_status} />
       </div>
     </div>
 
