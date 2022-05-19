@@ -8,7 +8,7 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   def render(assigns) do
     ~H"""
-    <div class="flex items-center justify-between sticky top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
+    <div class="flex items-center justify-between sticky px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
       <button class="sm:hidden text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center"
         aria-label="show sidebar"
         phx-click={JS.toggle(to: ["[data-el-sidebar]", "[data-el-fold-sidebar]", "[data-el-unfold-sidebar]"], display: "flex")}>
