@@ -194,7 +194,7 @@ defmodule Livebook.MixProject do
   defp build_mac_app(release) do
     options =
       [
-        uielement: true
+        is_agent_app: true
       ] ++ @app_options
 
     AppBuilder.build_mac_app(release, options)
@@ -203,7 +203,7 @@ defmodule Livebook.MixProject do
   defp build_mac_app_dmg(release) do
     options =
       [
-        uielement: true,
+        is_agent_app: true,
         codesign: [
           identity: System.fetch_env!("CODESIGN_IDENTITY")
         ],
