@@ -72,7 +72,7 @@ defmodule Standalone do
   end
 
   defp download_elixir_at_destination(destination, version) do
-    url = "https://github.com/elixir-lang/elixir/releases/download/v#{version}/Precompiled.zip"
+    url = "https://repo.hex.pm/builds/elixir/v#{version}-otp-#{System.otp_release()}.zip"
     path = Path.join(System.tmp_dir!(), "elixir_#{version}.zip")
 
     unless File.exists?(path) do
@@ -114,20 +114,5 @@ defmodule Standalone do
 
   defp cp_r!(source, destination) do
     File.cp_r!(source, destination, fn _, _ -> false end)
-  end
-
-  # From https://github.com/fishcakez/dialyze/blob/6698ae582c77940ee10b4babe4adeff22f1b7779/lib/mix/tasks/dialyze.ex#L168
-  defp otp_version do
-    major = :erlang.system_info(:otp_release) |> List.to_string()
-    vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
-
-    try do
-      vsn_file |> File.read!() |> String.split("\n", trim: true)
-    else
-      [full] -> full
-      _ -> major
-    catch
-      :error, _ -> major
-    end
   end
 end
