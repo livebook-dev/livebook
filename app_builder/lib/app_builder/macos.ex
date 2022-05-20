@@ -98,7 +98,8 @@ defmodule AppBuilder.MacOS do
         :info_plist,
         :url_schemes,
         :document_types,
-        :additional_paths
+        :additional_paths,
+        :is_agent_app
       ])
 
     app_name = Keyword.fetch!(options, :name)
@@ -301,7 +302,11 @@ defmodule AppBuilder.MacOS do
     </array>
   <% end %>
 
-    </dict>
+  <%= if options[:is_agent_app] do %>
+    <key>LSUIElement</key>
+    <true/>
+  <% end %>
+  </dict>
   </plist>
   """
 
