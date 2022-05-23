@@ -152,6 +152,22 @@ defmodule LivebookWeb.SessionControllerTest do
 
       assert redirected_to(conn, 301) ==
                Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+
+      {:ok, asset_path} = Session.local_asset_path(hash, "main.js")
+      assert File.exists?(asset_path)
+    end
+
+    test "fetches assets and redirects even on empty asset directories", %{conn: conn} do
+      %{notebook: notebook, hash: hash} = notebook_with_js_output()
+      assets_path = Session.local_assets_path(hash)
+      File.mkdir_p!(assets_path)
+
+      conn = start_session_and_request_asset(conn, notebook, hash)
+
+      assert redirected_to(conn, 301) ==
+               Routes.session_path(conn, :show_cached_asset, hash, ["main.js"])
+
+      assert File.exists?(Path.join(assets_path, "main.js"))
     end
 
     test "skips the session if assets are in cache", %{conn: conn} do

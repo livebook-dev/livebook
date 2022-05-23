@@ -2,11 +2,10 @@ defmodule Livebook.MixProject do
   use Mix.Project
 
   @elixir_requirement "~> 1.13"
-  @version "0.6.0"
+  @version "0.6.1"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   @app_elixir_version "1.13.4"
-  @app_otp_version "24.3"
 
   def project do
     [
@@ -48,7 +47,8 @@ defmodule Livebook.MixProject do
       links: %{
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
-      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+      files:
+        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe)
     ]
   end
 
@@ -168,7 +168,7 @@ defmodule Livebook.MixProject do
     Code.require_file("rel/app/standalone.exs")
 
     release
-    |> Standalone.copy_otp(@app_otp_version)
+    |> Standalone.copy_otp()
     |> Standalone.copy_elixir(@app_elixir_version)
   end
 
@@ -192,12 +192,18 @@ defmodule Livebook.MixProject do
   ]
 
   defp build_mac_app(release) do
-    AppBuilder.build_mac_app(release, @app_options)
+    options =
+      [
+        is_agent_app: true
+      ] ++ @app_options
+
+    AppBuilder.build_mac_app(release, options)
   end
 
   defp build_mac_app_dmg(release) do
     options =
       [
+        is_agent_app: true,
         codesign: [
           identity: System.fetch_env!("CODESIGN_IDENTITY")
         ],

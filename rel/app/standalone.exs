@@ -5,12 +5,8 @@ defmodule Standalone do
   @doc """
   Copies OTP into the release.
   """
-  @spec copy_otp(Mix.Release.t(), otp_version :: String.t()) :: Mix.Release.t()
-  def copy_otp(release, otp_version) do
-    if Mix.env() != :dev do
-      ensure_otp_version(otp_version)
-    end
-
+  @spec copy_otp(Mix.Release.t()) :: Mix.Release.t()
+  def copy_otp(release) do
     {erts_source, otp_bin_dir, otp_lib_dir} = otp_dirs()
 
     # 1. copy erts/bin
@@ -76,7 +72,7 @@ defmodule Standalone do
   end
 
   defp download_elixir_at_destination(destination, version) do
-    url = "https://github.com/elixir-lang/elixir/releases/download/v#{version}/Precompiled.zip"
+    url = "https://repo.hex.pm/builds/elixir/v#{version}-otp-#{System.otp_release()}.zip"
     path = Path.join(System.tmp_dir!(), "elixir_#{version}.zip")
 
     unless File.exists?(path) do
@@ -118,28 +114,5 @@ defmodule Standalone do
 
   defp cp_r!(source, destination) do
     File.cp_r!(source, destination, fn _, _ -> false end)
-  end
-
-  defp ensure_otp_version(expected_otp_version) do
-    actual_otp_version = otp_version()
-
-    if actual_otp_version != expected_otp_version do
-      raise "expected OTP #{expected_otp_version}, got: #{actual_otp_version}"
-    end
-  end
-
-  # From https://github.com/fishcakez/dialyze/blob/6698ae582c77940ee10b4babe4adeff22f1b7779/lib/mix/tasks/dialyze.ex#L168
-  defp otp_version do
-    major = :erlang.system_info(:otp_release) |> List.to_string()
-    vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
-
-    try do
-      vsn_file |> File.read!() |> String.split("\n", trim: true)
-    else
-      [full] -> full
-      _ -> major
-    catch
-      :error, _ -> major
-    end
   end
 end

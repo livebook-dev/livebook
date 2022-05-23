@@ -13,7 +13,9 @@ const MarkdownRenderer = {
   mounted() {
     this.props = this.getProps();
 
-    const markdown = new Markdown(this.el, "");
+    const markdown = new Markdown(this.el, "", {
+      baseUrl: this.props.sessionPath,
+    });
 
     this.handleEvent(
       `markdown_renderer:${this.props.id}:content`,
@@ -26,6 +28,7 @@ const MarkdownRenderer = {
   getProps() {
     return {
       id: getAttributeOrThrow(this.el, "data-id"),
+      sessionPath: getAttributeOrThrow(this.el, "data-session-path"),
     };
   },
 };
