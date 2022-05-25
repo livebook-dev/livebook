@@ -125,7 +125,7 @@ if Mix.target() == :app do
       GenServer.start_link(__MODULE__, arg, name: @name)
     end
 
-    taskbar_icon_path = "rel/app/taskbar_icon.png"
+    taskbar_icon_path = "rel/app/icon.png"
     @external_resource taskbar_icon_path
     @taskbar_icon File.read!(taskbar_icon_path)
 
@@ -161,7 +161,7 @@ if Mix.target() == :app do
       # 1. MIX_TARGET=app mix phx.server
       # 2. mix app
       # 3. mix release app
-      taskbar_icon_path = Path.join(System.tmp_dir!(), "taskbar_icon.png")
+      taskbar_icon_path = Path.join(System.tmp_dir!(), "icon.png")
       File.write!(taskbar_icon_path, @taskbar_icon)
       icon = :wxIcon.new(taskbar_icon_path, type: wxBITMAP_TYPE_PNG())
 
