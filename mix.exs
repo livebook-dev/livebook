@@ -185,6 +185,7 @@ defmodule Livebook.MixProject do
       %{
         name: "LiveMarkdown",
         extensions: ["livemd"],
+        icon_path: "rel/app/icon-macos.png",
         # macos specific
         role: "Editor"
       }

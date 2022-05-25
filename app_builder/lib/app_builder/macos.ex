@@ -126,7 +126,13 @@ defmodule AppBuilder.MacOS do
     ])
 
     logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
-    create_logo(app_bundle_path, logo_path)
+    create_icns(app_bundle_path, logo_path, "AppIcon")
+
+    for type <- options[:document_types] || [] do
+      if path = type[:icon_path] do
+        create_icns(app_bundle_path, path, "#{type.name}Icon")
+      end
+    end
 
     info_plist = options[:info_plist] || info_plist(options)
     File.write!(Path.join([app_bundle_path, "Contents", "Info.plist"]), info_plist)
@@ -180,15 +186,15 @@ defmodule AppBuilder.MacOS do
     """
   end
 
-  defp create_logo(app_bundle_path, logo_source_path) do
-    logo_dest_path = Path.join([app_bundle_path, "Contents", "Resources", "AppIcon.icns"])
+  defp create_icns(app_bundle_path, source_path, name) do
+    dest_path = Path.join([app_bundle_path, "Contents", "Resources", "#{name}.icns"])
 
-    if Path.extname(logo_source_path) == ".icns" do
-      File.cp!(logo_source_path, logo_dest_path)
+    if Path.extname(source_path) == ".icns" do
+      File.cp!(source_path, dest_path)
     else
-      logo_dest_tmp_path = "tmp/AppIcon.iconset"
-      File.rm_rf!(logo_dest_tmp_path)
-      File.mkdir_p!(logo_dest_tmp_path)
+      dest_tmp_path = "tmp/#{name}.iconset"
+      File.rm_rf!(dest_tmp_path)
+      File.mkdir_p!(dest_tmp_path)
 
       sizes = for(i <- [16, 32, 64, 128], j <- [1, 2], do: {i, j}) ++ [{512, 1}]
 
@@ -200,12 +206,12 @@ defmodule AppBuilder.MacOS do
           end
 
         size = size * scale
-        out = "#{logo_dest_tmp_path}/icon_#{size}x#{size}#{suffix}.png"
-        cmd!("sips", ~w(-z #{size} #{size} #{logo_source_path} --out #{out}))
+        out = "#{dest_tmp_path}/icon_#{size}x#{size}#{suffix}.png"
+        cmd!("sips", ~w(-z #{size} #{size} #{source_path} --out #{out}))
       end
 
-      cmd!("iconutil", ~w(-c icns #{logo_dest_tmp_path} -o #{logo_dest_path}))
-      File.rm_rf!(logo_dest_tmp_path)
+      cmd!("iconutil", ~w(-c icns #{dest_tmp_path} -o #{dest_path}))
+      File.rm_rf!(dest_tmp_path)
     end
   end
 
@@ -297,6 +303,10 @@ defmodule AppBuilder.MacOS do
           <string><%= ext %></string>
         <% end %>
         </array>
+      <%= if type[:icon_path] do %>
+        <key>CFBundleTypeIconFile</key>
+        <string><%= type.name %>Icon</string>
+      <% end %>
       </dict>
     <% end %>
     </array>
