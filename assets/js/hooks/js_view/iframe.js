@@ -28,8 +28,8 @@ import { sha256Base64 } from "../../lib/utils";
 
 const IFRAME_SHA256 = "fA00WeO9LAvgpbMz9vKEU0WTr4Uk5bTt/BxKHdweEz8=";
 
-export function initializeIframeSource(iframe, iframePort, iframeUrl) {
-  if (!iframeUrl) iframeUrl = getIframeUrl(iframePort);
+export function initializeIframeSource(iframe, props) {
+  const iframeUrl = getIframeUrl(props);
 
   return verifyIframeSource(iframeUrl).then(() => {
     iframe.sandbox =
@@ -40,7 +40,9 @@ export function initializeIframeSource(iframe, iframePort, iframeUrl) {
   });
 }
 
-function getIframeUrl(iframePort) {
+function getIframeUrl({iframePort: iframePort, iframeUrl: iframeUrl}) {
+  if (iframeUrl) return iframeUrl;
+
   return window.location.protocol === "https:"
     ? "https://livebook.space/iframe/v3.html"
     : `http://${window.location.hostname}:${iframePort}/iframe/v3.html`;
