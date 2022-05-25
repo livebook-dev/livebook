@@ -43,7 +43,7 @@ defmodule AppBuilder.Windows do
         :version,
         :url_schemes,
         :document_types,
-        :logo_path,
+        :icon_path,
         :module
       ])
 
@@ -52,9 +52,9 @@ defmodule AppBuilder.Windows do
     vcredist_path = ensure_vcredistx64()
     File.cp!(vcredist_path, Path.join(tmp_dir, "vcredist_x64.exe"))
 
-    logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
+    icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     app_icon_path = Path.join(tmp_dir, "app_icon.ico")
-    copy_image(logo_path, app_icon_path)
+    copy_image(icon_path, app_icon_path)
 
     erl_exe = Path.join([tmp_dir, "rel", "erts-#{release.erts_version}", "bin", "erl.exe"])
     rcedit_path = ensure_rcedit()

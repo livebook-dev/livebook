@@ -94,7 +94,7 @@ defmodule AppBuilder.MacOS do
       Keyword.validate!(options, [
         :name,
         :version,
-        :logo_path,
+        :icon_path,
         :info_plist,
         :url_schemes,
         :document_types,
@@ -125,8 +125,8 @@ defmodule AppBuilder.MacOS do
       launcher_src_path
     ])
 
-    logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
-    create_icns(app_bundle_path, logo_path, "AppIcon")
+    icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
+    create_icns(app_bundle_path, icon_path, "AppIcon")
 
     for type <- options[:document_types] || [] do
       if path = type[:icon_path] do

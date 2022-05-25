@@ -175,7 +175,7 @@ defmodule Livebook.MixProject do
   @app_options [
     name: "Livebook",
     version: @version,
-    logo_path: "rel/app/icon-macos.png",
+    icon_path: "rel/app/icon-macos.png",
     additional_paths: [
       "/rel/erts-#{:erlang.system_info(:version)}/bin",
       "/rel/vendor/elixir/bin"
