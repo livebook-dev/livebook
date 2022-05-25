@@ -1,4 +1,4 @@
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import { getAttributeOrDefault, getAttributeOrThrow, parseInteger } from "../lib/attribute";
 import { isElementHidden, randomId, randomToken } from "../lib/utils";
 import { globalPubSub } from "../lib/pub_sub";
 import {
@@ -166,7 +166,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
-      iframeUrl: getAttributeOrThrow(this.el, "data-iframe-local-url"),
+      iframeUrl: getAttributeOrDefault(this.el, "data-iframe-local-url", null),
       timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
