@@ -46,8 +46,7 @@ import { initializeIframeSource } from "./js_view/iframe";
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
  *
- *   * `data-iframe-local-url` - the local url where the iframe is
- *     served
+ *   * `data-iframe-url` - an optional location to load the iframe from
  *
  *   * `data-timeout-message` - the message to show when the initial
  *     data does not load
