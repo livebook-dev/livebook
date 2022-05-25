@@ -39,12 +39,4 @@ defmodule LivebookWeb.IframeEndpoint do
       _ -> iframe_port
     end
   end
-
-  @doc """
-  Returns the URL of the iframe endpoint (or nil if none configured).
-  """
-  @spec url() :: String.t() | nil
-  def url() do
-    Livebook.Config.iframe_url()
-  end
 end
