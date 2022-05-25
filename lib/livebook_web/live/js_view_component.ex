@@ -21,6 +21,7 @@ defmodule LivebookWeb.JSViewComponent do
       data-session-token={session_token(@js_view.pid)}
       data-session-id={@session_id}
       data-iframe-local-port={LivebookWeb.IframeEndpoint.port()}
+      data-iframe-local-url={LivebookWeb.IframeEndpoint.url()}
       data-timeout-message={@timeout_message}>
     </div>
     """

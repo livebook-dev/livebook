@@ -46,6 +46,9 @@ import { initializeIframeSource } from "./js_view/iframe";
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
  *
+ *   * `data-iframe-local-url` - the local url where the iframe is
+ *     served
+ *
  *   * `data-timeout-message` - the message to show when the initial
  *     data does not load
  *
@@ -163,6 +166,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
+      iframeUrl: getAttributeOrThrow(this.el, "data-iframe-local-url"),
       timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
@@ -265,7 +269,7 @@ const JSView = {
 
   loadIframe() {
     const iframesEl = document.querySelector(`[data-el-js-view-iframes]`);
-    initializeIframeSource(this.iframe, this.props.iframePort).then(() => {
+    initializeIframeSource(this.iframe, this.props.iframePort, this.props.iframeUrl).then(() => {
       iframesEl.appendChild(this.iframe);
     });
   },

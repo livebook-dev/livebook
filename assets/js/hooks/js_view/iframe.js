@@ -28,8 +28,8 @@ import { sha256Base64 } from "../../lib/utils";
 
 const IFRAME_SHA256 = "fA00WeO9LAvgpbMz9vKEU0WTr4Uk5bTt/BxKHdweEz8=";
 
-export function initializeIframeSource(iframe, iframePort) {
-  const iframeUrl = getIframeUrl(iframePort);
+export function initializeIframeSource(iframe, iframePort, iframeUrl) {
+  if (!iframeUrl) iframeUrl = getIframeUrl(iframePort);
 
   return verifyIframeSource(iframeUrl).then(() => {
     iframe.sandbox =

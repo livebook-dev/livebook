@@ -99,6 +99,14 @@ defmodule Livebook.Config do
   end
 
   @doc """
+  Returns the configured URL for the iframe endpoint.
+  """
+  @spec iframe_url() :: String.t() | nil
+  def iframe_url() do
+    Application.get_env(:livebook, :iframe_url)
+  end
+
+  @doc """
   Returns whether the shutdown feature is enabled.
   """
   @spec shutdown_enabled?() :: boolean()
@@ -266,6 +274,13 @@ defmodule Livebook.Config do
   Parses update instructions url from env.
   """
   def update_instructions_url!(env) do
+    System.get_env(env)
+  end
+
+  @doc """
+  Parses iframe url from env.
+  """
+  def iframe_url!(env) do
     System.get_env(env)
   end
 
