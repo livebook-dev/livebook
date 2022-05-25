@@ -165,7 +165,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
-      iframeUrl: getAttributeOrDefault(this.el, "data-iframe-local-url", null),
+      iframeUrl: getAttributeOrDefault(this.el, "data-iframe-url", null),
       timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
