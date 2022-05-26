@@ -41,7 +41,7 @@ export function initializeIframeSource(iframe, iframePort, iframeUrl) {
 }
 
 function getIframeUrl(iframePort, iframeUrl) {
-   const protocol = window.location.protocol;
+  const protocol = window.location.protocol;
 
   if (iframeUrl) {
     return iframeUrl.replace(/^https?:/, protocol);
