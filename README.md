@@ -179,6 +179,10 @@ The following environment variables configure Livebook:
   * LIVEBOOK_IFRAME_PORT - sets the port that Livebook serves iframes at.
     This is relevant only when running Livebook without TLS. Defaults to 8081.
 
+  * LIVEBOOK_IFRAME_URL - sets the URL that Livebook loads iframes from.
+    By default iframes are loaded from local LIVEBOOK_IFRAME_PORT when accessing
+    Livebook over http:// and from https://livebook.space when accessing over `https://`.
+
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
 
