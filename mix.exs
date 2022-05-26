@@ -175,7 +175,10 @@ defmodule Livebook.MixProject do
   @app_options [
     name: "Livebook",
     version: @version,
-    icon_path: "rel/app/icon-macos.png",
+    icon_path: [
+      macos: "rel/app/icon-macos.png",
+      windows: "rel/app/icon.png"
+    ],
     additional_paths: [
       "/rel/erts-#{:erlang.system_info(:version)}/bin",
       "/rel/vendor/elixir/bin"
@@ -219,10 +222,7 @@ defmodule Livebook.MixProject do
   end
 
   defp build_windows_installer(release) do
-    options =
-      Keyword.take(@app_options, [:name, :version, :url_schemes, :document_types]) ++
-        [module: LivebookApp, logo_path: "static/images/logo.png"]
-
+    options = Keyword.drop(@app_options, [:additional_paths]) ++ [module: LivebookApp]
     AppBuilder.build_windows_installer(release, options)
   end
 end

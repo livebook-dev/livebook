@@ -126,11 +126,13 @@ defmodule AppBuilder.MacOS do
     ])
 
     icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
-    create_icns(app_bundle_path, icon_path, "AppIcon")
+    dest_path = Path.join([app_bundle_path, "Contents", "Resources", "AppIcon.icns"])
+    create_icon(icon_path, dest_path)
 
     for type <- options[:document_types] || [] do
-      if path = type[:icon_path] do
-        create_icns(app_bundle_path, path, "#{type.name}Icon")
+      if src_path = type[:icon_path] do
+        dest_path = Path.join([app_bundle_path, "Contents", "Resources", "#{type.name}Icon.icns"])
+        create_icon(src_path, dest_path)
       end
     end
 
@@ -186,12 +188,13 @@ defmodule AppBuilder.MacOS do
     """
   end
 
-  defp create_icns(app_bundle_path, source_path, name) do
-    dest_path = Path.join([app_bundle_path, "Contents", "Resources", "#{name}.icns"])
+  defp create_icon(src_path, dest_path) do
+    src_path = normalize_icon_path(src_path)
 
-    if Path.extname(source_path) == ".icns" do
-      File.cp!(source_path, dest_path)
+    if Path.extname(src_path) == ".icns" do
+      File.cp!(src_path, dest_path)
     else
+      name = Path.basename(dest_path, ".icns")
       dest_tmp_path = "tmp/#{name}.iconset"
       File.rm_rf!(dest_tmp_path)
       File.mkdir_p!(dest_tmp_path)
@@ -207,7 +210,7 @@ defmodule AppBuilder.MacOS do
 
         size = size * scale
         out = "#{dest_tmp_path}/icon_#{size}x#{size}#{suffix}.png"
-        cmd!("sips", ~w(-z #{size} #{size} #{source_path} --out #{out}))
+        cmd!("sips", ~w(-z #{size} #{size} #{src_path} --out #{out}))
       end
 
       cmd!("iconutil", ~w(-c icns #{dest_tmp_path} -o #{dest_path}))

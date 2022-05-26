@@ -8,16 +8,10 @@ if Mix.target() == :app do
     defmacro wxID_OSX_HIDE, do: 5250
     defmacro wxBITMAP_TYPE_PNG, do: 15
 
-    def os do
-      case :os.type() do
-        {:unix, :darwin} -> :macos
-        {:win32, _} -> :windows
-      end
-    end
-
     def taskbar(title, icon, menu_items) do
       pid = self()
-      options = if os() == :macos, do: [iconType: 1], else: []
+      os = AppBuilder.os()
+      options = if os == :macos, do: [iconType: 1], else: []
 
       # skip keyboard shortcuts
       menu_items =
@@ -35,7 +29,7 @@ if Mix.target() == :app do
 
               # For some reason, on macOS the menu event must be handled in another process
               # but on Windows it must be either the same process OR we use the callback.
-              case os() do
+              case os do
                 :macos ->
                   env = :wx.get_env()
 
@@ -92,7 +86,7 @@ if Mix.target() == :app do
     def menubar(app_name, menus) do
       menubar = :wxMenuBar.new()
 
-      if os() == :macos, do: fixup_macos_menubar(menubar, app_name)
+      if AppBuilder.os() == :macos, do: fixup_macos_menubar(menubar, app_name)
 
       for {title, menu_items} <- menus do
         true = :wxMenuBar.append(menubar, menu(menu_items), title)
@@ -131,7 +125,7 @@ if Mix.target() == :app do
 
     @impl true
     def init(_) do
-      os = os()
+      os = AppBuilder.os()
       wx = :wx.new()
       AppBuilder.Wx.subscribe_to_app_events(@name)
 

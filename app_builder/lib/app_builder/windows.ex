@@ -54,7 +54,7 @@ defmodule AppBuilder.Windows do
 
     icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     app_icon_path = Path.join(tmp_dir, "app_icon.ico")
-    copy_image(icon_path, app_icon_path)
+    create_icon(icon_path, app_icon_path)
 
     erl_exe = Path.join([tmp_dir, "rel", "erts-#{release.erts_version}", "bin", "erl.exe"])
     rcedit_path = ensure_rcedit()
@@ -261,7 +261,9 @@ defmodule AppBuilder.Windows do
     AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
   end
 
-  defp copy_image(src_path, dest_path) do
+  defp create_icon(src_path, dest_path) do
+    src_path = normalize_icon_path(src_path)
+
     if Path.extname(src_path) == ".ico" do
       File.cp!(src_path, dest_path)
     else
