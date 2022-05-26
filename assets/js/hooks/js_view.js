@@ -1,4 +1,8 @@
-import { getAttributeOrDefault, getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import {
+  getAttributeOrDefault,
+  getAttributeOrThrow,
+  parseInteger,
+} from "../lib/attribute";
 import { isElementHidden, randomId, randomToken } from "../lib/utils";
 import { globalPubSub } from "../lib/pub_sub";
 import {
@@ -268,7 +272,11 @@ const JSView = {
 
   loadIframe() {
     const iframesEl = document.querySelector(`[data-el-js-view-iframes]`);
-    initializeIframeSource(this.iframe, this.props.iframePort, this.props.iframeUrl).then(() => {
+    initializeIframeSource(
+      this.iframe,
+      this.props.iframePort,
+      this.props.iframeUrl
+    ).then(() => {
       iframesEl.appendChild(this.iframe);
     });
   },
