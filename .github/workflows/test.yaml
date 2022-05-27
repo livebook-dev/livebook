@@ -63,11 +63,11 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           version-type: strict
-          otp-version: '25.0'
-          elixir-version: '1.13.4'
+          otp-version: '24.2'
+          elixir-version: '1.13.2'
       - name: Start epmd
         run: cmd /c "START /b epmd"
-        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-13.0/bin
+        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-12.2/bin
       # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
       - name: Add tar.exe
         run: |
