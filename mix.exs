@@ -177,7 +177,7 @@ defmodule Livebook.MixProject do
     version: @version,
     icon_path: [
       macos: "rel/app/icon-macos.png",
-      windows: "rel/app/icon.png"
+      windows: "rel/app/icon.ico"
     ],
     additional_paths: [
       "/rel/erts-#{:erlang.system_info(:version)}/bin",
@@ -188,7 +188,10 @@ defmodule Livebook.MixProject do
       %{
         name: "LiveMarkdown",
         extensions: ["livemd"],
-        icon_path: "rel/app/icon-macos.png",
+        icon_path: [
+          macos: "rel/app/icon.png",
+          windows: "rel/app/icon.ico"
+        ],
         # macos specific
         role: "Editor"
       }

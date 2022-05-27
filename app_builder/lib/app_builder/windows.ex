@@ -254,11 +254,8 @@ defmodule AppBuilder.Windows do
   end
 
   defp ensure_magick do
-    url =
-      "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip"
-
-    sha256 = "b61a726cea1e3bf395b9aeb323fca062f574fbf8f11f4067f88a0e6b984a1391"
-    AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
+    System.find_executable("magick.exe") ||
+      raise "couldn't find magick.exe in PATH to automatically convert images to .ico"
   end
 
   defp create_icon(src_path, dest_path) do
