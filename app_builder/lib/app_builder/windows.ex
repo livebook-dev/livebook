@@ -43,7 +43,7 @@ defmodule AppBuilder.Windows do
         :version,
         :url_schemes,
         :document_types,
-        :logo_path,
+        :icon_path,
         :module
       ])
 
@@ -52,9 +52,9 @@ defmodule AppBuilder.Windows do
     vcredist_path = ensure_vcredistx64()
     File.cp!(vcredist_path, Path.join(tmp_dir, "vcredist_x64.exe"))
 
-    logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
+    icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     app_icon_path = Path.join(tmp_dir, "app_icon.ico")
-    copy_image(logo_path, app_icon_path)
+    create_icon(icon_path, app_icon_path)
 
     erl_exe = Path.join([tmp_dir, "rel", "erts-#{release.erts_version}", "bin", "erl.exe"])
     rcedit_path = ensure_rcedit()
@@ -254,14 +254,13 @@ defmodule AppBuilder.Windows do
   end
 
   defp ensure_magick do
-    url =
-      "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip"
-
-    sha256 = "b61a726cea1e3bf395b9aeb323fca062f574fbf8f11f4067f88a0e6b984a1391"
-    AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
+    System.find_executable("magick.exe") ||
+      raise "couldn't find magick.exe in PATH to automatically convert images to .ico"
   end
 
-  defp copy_image(src_path, dest_path) do
+  defp create_icon(src_path, dest_path) do
+    src_path = normalize_icon_path(src_path)
+
     if Path.extname(src_path) == ".ico" do
       File.cp!(src_path, dest_path)
     else
