@@ -237,7 +237,7 @@ defmodule AppBuilder.Windows do
 
   defp ensure_vcredistx64 do
     url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-    sha256 = "37ed59a66699c0e5a7ebeef7352d7c1c2ed5ede7212950a1b0a8ee289af4a95b"
+    sha256 = "426a34c6f10ea8f7da58a8c976b586ad84dd4bab42a0cfdbe941f1763b7755e5"
     AppBuilder.Utils.ensure_executable(url, sha256)
   end
 
