@@ -1,20 +1,8 @@
 # Welcome to Livebook
 
-## Introduction
-
-We are happy you decided to give Livebook a try, hopefully it empowers
-you to build great stuff! 🚀
+## Basic usage
 
 Livebook is a tool for crafting **interactive** and **collaborative** code notebooks.
-It is primarily meant as a tool for rapid prototyping - think of it as an IEx session
-combined with your editor.
-You can also use it for authoring shareable articles that people can easily
-run and play around with.
-Package authors can write notebooks as interactive tutorials
-and include them in their repository, so that users can easily download
-and run them locally.
-
-## Basic usage
 
 Each notebook consists of a number of cells, which serve as primary building blocks.
 There are **Markdown** cells (such as this one) that allow you to describe your work
@@ -60,7 +48,7 @@ for _ <- 1..3 do
 end
 ```
 
-<!-- livebook:{"branch_parent_index":2} -->
+<!-- livebook:{"branch_parent_index":1} -->
 
 ## Branching sections
 
@@ -88,15 +76,15 @@ in the section below and see it evaluates immediately.
 
 ## Saving notebooks
 
-By default notebooks are kept in memory, which is fine for interactive hacking,
-but oftentimes you will want to save your work for later. Fortunately, notebooks
-can be persisted by clicking on the "Disk" icon (<i class="ri-livebook-save"></i>)
+By default, notebooks are stored in a temporary directory, which is fine for
+interactive hacking, but oftentimes you will want to save your work for later.
+Such can be done by clicking on the "Disk" icon (<i class="ri-livebook-save"></i>)
 in the bottom-right corner and selecting the file location.
 
 Notebooks are stored in **live markdown** format, which is the Markdown you know,
 with just a few assumptions on how particular elements are represented. Thanks to this
 approach you can easily keep notebooks under version control and get readable diffs.
-You can also easily preview those files, reuse for blog posts, and even edit in a text editor.
+You can also easily preview those files and even edit them in a text editor.
 
 ## Stepping up your workflow
 
@@ -109,7 +97,15 @@ by pressing <kbd>?</kbd>.
 
 ## Markdown extensions
 
-Livebook also include supports for Math expressions and Mermaid diagrams.
+Livebook also include supports for links, mathematical expressions, and Mermaid diagrams.
+
+### Links
+
+It is possible to link between Livebooks using Markdown's link syntax.
+For example, `[next chapter](chapter_2.livemd)` could be used to link
+to a Livebook named `chapter_2.livemd` in the same directory as the current
+notebook. Once clicked, Livebook will automatically open up a new session
+to execute the linked notebook.
 
 ### Math expressions
 

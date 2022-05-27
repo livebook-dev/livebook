@@ -39,7 +39,8 @@ defmodule LivebookWeb.Router do
     get "/sessions/:id/assets/:hash/*file_parts", SessionController, :show_asset
   end
 
-  live_session :default, on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook] do
+  live_session :default,
+    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, {LivebookWeb.PolicyHook, :private}] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 
@@ -64,7 +65,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/cell-settings/:cell_id", SessionLive, :cell_settings
       live "/sessions/:id/cell-upload/:cell_id", SessionLive, :cell_upload
       live "/sessions/:id/delete-section/:section_id", SessionLive, :delete_section
-      live "/sessions/:id/dependency-search", SessionLive, :dependency_search
+      live "/sessions/:id/package-search", SessionLive, :package_search
       get "/sessions/:id/images/:image", SessionController, :show_image
       live "/sessions/:id/*path_parts", SessionLive, :catch_all
     end

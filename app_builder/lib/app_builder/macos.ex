@@ -94,11 +94,12 @@ defmodule AppBuilder.MacOS do
       Keyword.validate!(options, [
         :name,
         :version,
-        :logo_path,
+        :icon_path,
         :info_plist,
         :url_schemes,
         :document_types,
-        :additional_paths
+        :additional_paths,
+        :is_agent_app
       ])
 
     app_name = Keyword.fetch!(options, :name)
@@ -111,7 +112,7 @@ defmodule AppBuilder.MacOS do
 
     File.mkdir_p!("tmp")
     launcher_src_path = "tmp/Launcher.swift"
-    File.write!(launcher_src_path, launcher(additional_paths))
+    File.write!(launcher_src_path, launcher(release, additional_paths))
     launcher_path = Path.join([app_bundle_path, "Contents", "MacOS", app_name <> "Launcher"])
     File.mkdir_p!(Path.dirname(launcher_path))
 
@@ -124,8 +125,16 @@ defmodule AppBuilder.MacOS do
       launcher_src_path
     ])
 
-    logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
-    create_logo(app_bundle_path, logo_path)
+    icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
+    dest_path = Path.join([app_bundle_path, "Contents", "Resources", "AppIcon.icns"])
+    create_icon(icon_path, dest_path)
+
+    for type <- options[:document_types] || [] do
+      if src_path = type[:icon_path] do
+        dest_path = Path.join([app_bundle_path, "Contents", "Resources", "#{type.name}Icon.icns"])
+        create_icon(src_path, dest_path)
+      end
+    end
 
     info_plist = options[:info_plist] || info_plist(options)
     File.write!(Path.join([app_bundle_path, "Contents", "Info.plist"]), info_plist)
@@ -133,7 +142,7 @@ defmodule AppBuilder.MacOS do
     release
   end
 
-  defp launcher(additional_paths) do
+  defp launcher(release, additional_paths) do
     additional_paths = Enum.map_join(additional_paths, ":", &"\\(resourcePath)#{&1}")
 
     """
@@ -149,7 +158,7 @@ defmodule AppBuilder.MacOS do
     let logFile = FileHandle(forUpdatingAtPath: logPath)
     logFile?.seekToEndOfFile()
 
-    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/mac_app", ofType: "")!
+    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/#{release.name}", ofType: "")!
 
     let resourcePath = Bundle.main.resourcePath ?? ""
     let additionalPaths = "#{additional_paths}"
@@ -179,15 +188,16 @@ defmodule AppBuilder.MacOS do
     """
   end
 
-  defp create_logo(app_bundle_path, logo_source_path) do
-    logo_dest_path = Path.join([app_bundle_path, "Contents", "Resources", "AppIcon.icns"])
+  defp create_icon(src_path, dest_path) do
+    src_path = normalize_icon_path(src_path)
 
-    if Path.extname(logo_source_path) == ".icns" do
-      File.cp!(logo_source_path, logo_dest_path)
+    if Path.extname(src_path) == ".icns" do
+      File.cp!(src_path, dest_path)
     else
-      logo_dest_tmp_path = "tmp/AppIcon.iconset"
-      File.rm_rf!(logo_dest_tmp_path)
-      File.mkdir_p!(logo_dest_tmp_path)
+      name = Path.basename(dest_path, ".icns")
+      dest_tmp_path = "tmp/#{name}.iconset"
+      File.rm_rf!(dest_tmp_path)
+      File.mkdir_p!(dest_tmp_path)
 
       sizes = for(i <- [16, 32, 64, 128], j <- [1, 2], do: {i, j}) ++ [{512, 1}]
 
@@ -199,12 +209,12 @@ defmodule AppBuilder.MacOS do
           end
 
         size = size * scale
-        out = "#{logo_dest_tmp_path}/icon_#{size}x#{size}#{suffix}.png"
-        cmd!("sips", ~w(-z #{size} #{size} #{logo_source_path} --out #{out}))
+        out = "#{dest_tmp_path}/icon_#{size}x#{size}#{suffix}.png"
+        cmd!("sips", ~w(-z #{size} #{size} #{src_path} --out #{out}))
       end
 
-      cmd!("iconutil", ~w(-c icns #{logo_dest_tmp_path} -o #{logo_dest_path}))
-      File.rm_rf!(logo_dest_tmp_path)
+      cmd!("iconutil", ~w(-c icns #{dest_tmp_path} -o #{dest_path}))
+      File.rm_rf!(dest_tmp_path)
     end
   end
 
@@ -296,12 +306,20 @@ defmodule AppBuilder.MacOS do
           <string><%= ext %></string>
         <% end %>
         </array>
+      <%= if type[:icon_path] do %>
+        <key>CFBundleTypeIconFile</key>
+        <string><%= type.name %>Icon</string>
+      <% end %>
       </dict>
     <% end %>
     </array>
   <% end %>
 
-    </dict>
+  <%= if options[:is_agent_app] do %>
+    <key>LSUIElement</key>
+    <true/>
+  <% end %>
+  </dict>
   </plist>
   """
 

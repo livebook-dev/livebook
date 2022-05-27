@@ -5,8 +5,8 @@ main() {
   export MAKEFLAGS=-j$(getconf _NPROCESSORS_ONLN)
 
   wxwidgets_vsn="3.1.5"
-  otp_vsn="24.2"
-  elixir_vsn="1.13.2"
+  otp_vsn="25.0"
+  elixir_vsn="1.13.4"
 
   target=$(target)
 

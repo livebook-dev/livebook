@@ -284,6 +284,23 @@ const Session = {
     const key = event.key;
     const keyBuffer = this.keyBuffer;
 
+    // Universal shortcuts
+    if (cmd && shift && !alt && key === "Enter") {
+      cancelEvent(event);
+      this.queueFullCellsEvaluation(true);
+      return;
+    } else if (cmd && !alt && key === "Enter") {
+      cancelEvent(event);
+      if (isEvaluable(this.focusedCellType())) {
+        this.queueFocusedCellEvaluation();
+      }
+      return;
+    } else if (cmd && key === "s") {
+      cancelEvent(event);
+      this.saveNotebook();
+      return;
+    }
+
     if (this.insertMode) {
       keyBuffer.reset();
 
@@ -292,46 +309,23 @@ const Session = {
         if (!this.escapesMonacoWidget(event)) {
           this.escapeInsertMode();
         }
-      } else if (cmd && shift && !alt && key === "Enter") {
-        cancelEvent(event);
-        this.queueFullCellsEvaluation(true);
-      } else if (cmd && !alt && key === "Enter") {
-        cancelEvent(event);
-        if (isEvaluable(this.focusedCellType())) {
-          this.queueFocusedCellEvaluation();
-        }
-      } else if (cmd && key === "s") {
-        cancelEvent(event);
-        this.saveNotebook();
+      }
+      // Ignore keystrokes on input fields
+    } else if (isEditableElement(event.target)) {
+      keyBuffer.reset();
+
+      // Use Escape for universal blur
+      if (key === "Escape") {
+        event.target.blur();
       }
     } else {
-      // Ignore keystrokes on input fields
-      if (isEditableElement(event.target)) {
-        keyBuffer.reset();
-
-        // Use Escape for universal blur
-        if (key === "Escape") {
-          event.target.blur();
-        }
-
-        return;
-      }
-
       keyBuffer.push(event.key);
 
-      if (cmd && key === "s") {
-        cancelEvent(event);
-        this.saveNotebook();
-      } else if (keyBuffer.tryMatch(["d", "d"])) {
+      if (keyBuffer.tryMatch(["d", "d"])) {
         this.deleteFocusedCell();
-      } else if (cmd && shift && !alt && key === "Enter") {
-        this.queueFullCellsEvaluation(true);
       } else if (keyBuffer.tryMatch(["e", "a"])) {
         this.queueFullCellsEvaluation(false);
-      } else if (
-        keyBuffer.tryMatch(["e", "e"]) ||
-        (cmd && !alt && key === "Enter")
-      ) {
+      } else if (keyBuffer.tryMatch(["e", "e"])) {
         if (isEvaluable(this.focusedCellType())) {
           this.queueFocusedCellEvaluation();
         }
@@ -345,8 +339,8 @@ const Session = {
         this.toggleRuntimeInfo();
       } else if (keyBuffer.tryMatch(["s", "b"])) {
         this.showBin();
-      } else if (keyBuffer.tryMatch(["s", "d"])) {
-        this.showDependencySearch();
+      } else if (keyBuffer.tryMatch(["s", "p"])) {
+        this.showPackageSearch();
       } else if (keyBuffer.tryMatch(["e", "x"])) {
         this.cancelFocusedCellEvaluation();
       } else if (keyBuffer.tryMatch(["0", "0"])) {
@@ -494,6 +488,14 @@ const Session = {
       this.setInsertMode(true);
     }
 
+    const evalButton = event.target.closest(
+      `[data-el-queue-cell-evaluation-button]`
+    );
+    if (evalButton) {
+      const cellId = evalButton.getAttribute("data-cell-id");
+      this.queueCellEvaluation(cellId);
+    }
+
     const hash = window.location.hash;
 
     if (hash) {
@@ -518,12 +520,7 @@ const Session = {
     const cell = event.target.closest(`[data-el-cell]`);
     const type = cell && cell.getAttribute("data-type");
 
-    if (
-      type &&
-      ["markdown", "setup"].includes(type) &&
-      this.focusedId &&
-      !this.insertMode
-    ) {
+    if (type && type === "markdown" && this.focusedId && !this.insertMode) {
       this.setInsertMode(true);
     }
   },
@@ -689,10 +686,10 @@ const Session = {
     actionEl && actionEl.click();
   },
 
-  showDependencySearch() {
+  showPackageSearch() {
     this.setFocusedEl("setup");
 
-    const actionEl = this.el.querySelector(`[data-btn-dependency-search]`);
+    const actionEl = this.el.querySelector(`[data-btn-package-search]`);
     actionEl && actionEl.click();
   },
 
@@ -706,10 +703,16 @@ const Session = {
     }
   },
 
+  queueCellEvaluation(cellId) {
+    this.dispatchQueueEvaluation(() => {
+      this.pushEvent("queue_cell_evaluation", { cell_id: cellId });
+    });
+  },
+
   queueFocusedCellEvaluation() {
     if (this.focusedId && this.isCell(this.focusedId)) {
-      this.pushEvent("queue_cell_evaluation", {
-        cell_id: this.focusedId,
+      this.dispatchQueueEvaluation(() => {
+        this.pushEvent("queue_cell_evaluation", { cell_id: this.focusedId });
       });
     }
   },
@@ -720,8 +723,10 @@ const Session = {
         ? [this.focusedId]
         : [];
 
-    this.pushEvent("queue_full_evaluation", {
-      forced_cell_ids: forcedCellIds,
+    this.dispatchQueueEvaluation(() => {
+      this.pushEvent("queue_full_evaluation", {
+        forced_cell_ids: forcedCellIds,
+      });
     });
   },
 
@@ -730,10 +735,26 @@ const Session = {
       const sectionId = this.getSectionIdByFocusableId(this.focusedId);
 
       if (sectionId) {
-        this.pushEvent("queue_section_evaluation", {
-          section_id: sectionId,
+        this.dispatchQueueEvaluation(() => {
+          this.pushEvent("queue_section_evaluation", {
+            section_id: sectionId,
+          });
         });
       }
+    }
+  },
+
+  dispatchQueueEvaluation(dispatch) {
+    if (isEvaluable(this.focusedCellType())) {
+      // If an evaluable cell is focused, we forward the evaluation
+      // request to that cell, so it can synchronize itself before
+      // sending the request to the server
+      globalPubSub.broadcast(`cells:${this.focusedId}`, {
+        type: "dispatch_queue_evaluation",
+        dispatch,
+      });
+    } else {
+      dispatch();
     }
   },
 
@@ -878,14 +899,17 @@ const Session = {
   setCodeZen(enabled) {
     this.codeZen = enabled;
 
+    // If nothing is focused, use the first cell in the viewport
+    const focusedId = this.focusedId || this.nearbyFocusableId(null, 0);
+
     if (enabled) {
       this.el.setAttribute("data-js-code-zen", "");
     } else {
       this.el.removeAttribute("data-js-code-zen");
     }
 
-    if (this.focusedId) {
-      const visibleId = this.ensureVisibleFocusableEl(this.focusedId);
+    if (focusedId) {
+      const visibleId = this.ensureVisibleFocusableEl(focusedId);
 
       if (visibleId !== this.focused) {
         this.setFocusedEl(visibleId, { scroll: false });

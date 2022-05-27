@@ -56,13 +56,13 @@ double-click on "Notebook dependencies and setup", add and run the code.
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.5.0"}
+  {:kino, "~> 0.6.1"}
 ])
 ```
 
 **Note:** compiling dependencies may use a reasonable amount of memory. If you are
 hosting Livebook, make sure you have enough memory allocated to the Livebook
-instance, otherwise the command below will fail.
+instance, otherwise the installation will fail.
 
 <!-- livebook:{"break_markdown":true} -->
 

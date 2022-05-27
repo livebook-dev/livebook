@@ -14,7 +14,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
       data-session-path={Routes.session_path(@socket, :page, @session_id)}
       data-evaluation-digest={get_in(@cell_view, [:eval, :evaluation_digest])}
       data-eval-validity={get_in(@cell_view, [:eval, :validity])}
-      data-js-empty={empty?(@cell_view.source_view)}>
+      data-js-empty={empty?(@cell_view.source_view)}
+      data-smart-cell-js-view-ref={smart_cell_js_view_ref(@cell_view)}>
       <%= render_cell(assigns) %>
     </div>
     """
@@ -103,8 +104,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           status={@cell_view.eval.status} />
       </:primary>
       <:secondary>
-        <.enable_insert_mode_button />
-        <.dependency_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
+        <.package_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
         <.cell_link_button cell_id={@cell_view.id} />
         <.setup_cell_info />
       </:secondary>
@@ -181,7 +181,11 @@ defmodule LivebookWeb.SessionLive.CellComponent do
 
           <% :dead -> %>
             <div class="info-box">
-              Evaluate and install dependencies to show the contents of this Smart cell.
+              <%= if @installing? do %>
+                Waiting for dependency installation to complete...
+              <% else %>
+                Run the notebook setup to show the contents of this Smart cell.
+              <% end %>
             </div>
 
           <% :starting -> %>
@@ -268,8 +272,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp cell_evaluation_button(%{status: :ready} = assigns) do
     ~H"""
     <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-      phx-click="queue_cell_evaluation"
-      phx-value-cell_id={@cell_id}>
+      data-el-queue-cell-evaluation-button
+      data-cell-id={@cell_id}>
       <.remix_icon icon="play-circle-fill" class="text-xl" />
       <span class="text-sm font-medium">
         <%= if(@validity == :evaluated, do: "Reevaluate", else: "Evaluate") %>
@@ -294,8 +298,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   defp setup_cell_evaluation_button(%{status: :ready} = assigns) do
     ~H"""
     <button class="text-gray-600 hover:text-gray-800 focus:text-gray-800 flex space-x-1 items-center"
-      phx-click="queue_cell_evaluation"
-      phx-value-cell_id={@cell_id}>
+      data-el-queue-cell-evaluation-button
+      data-cell-id={@cell_id}>
       <%= if @validity == :fresh do %>
         <.remix_icon icon="play-circle-fill" class="text-xl" />
         <span class="text-sm font-medium">Setup</span>
@@ -347,8 +351,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <span class="tooltip top" data-tooltip="Toggle source" data-el-toggle-source-button>
       <button class="icon-button" aria-label="toggle source">
-        <.remix_icon icon="code-line" class="text-xl" data-el-show-code-icon />
-        <.remix_icon icon="pencil-line" class="text-xl" data-el-show-ui-icon />
+        <.remix_icon icon="code-line" class="text-xl" />
       </button>
     </span>
     """
@@ -359,7 +362,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     <span class="tooltip top" data-tooltip="Convert to Code cell">
       <button class="icon-button"
         aria-label="toggle source"
-        data-link-dependency-search
+        data-link-package-search
         phx-click={
           with_confirm(
             JS.push("convert_smart_cell", value: %{cell_id: @cell_id}),
@@ -370,13 +373,13 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             opt_out_id: "convert-smart-cell"
           )
         }>
-        <.remix_icon icon="arrow-up-down-line" class="text-xl" />
+        <.remix_icon icon="pencil-line" class="text-xl" />
       </button>
     </span>
     """
   end
 
-  defp dependency_search_button(assigns) do
+  defp package_search_button(assigns) do
     ~H"""
     <%= if Livebook.Runtime.fixed_dependencies?(@runtime) do %>
       <span class="tooltip top" data-tooltip="The current runtime does not support adding dependencies">
@@ -385,12 +388,12 @@ defmodule LivebookWeb.SessionLive.CellComponent do
         </button>
       </span>
     <% else %>
-      <span class="tooltip top" data-tooltip="Add dependency (sd)">
-        <%= live_patch to: Routes.session_path(@socket, :dependency_search, @session_id),
+      <span class="tooltip top" data-tooltip="Add package (sp)">
+        <%= live_patch to: Routes.session_path(@socket, :package_search, @session_id),
               class: "icon-button",
-              aria_label: "add dependency",
+              aria_label: "add package",
               role: "button",
-              data_btn_dependency_search: true do %>
+              data_btn_package_search: true do %>
           <.remix_icon icon="play-list-add-line" class="text-xl" />
         <% end %>
       </span>
@@ -413,10 +416,8 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   def amplify_output_button(assigns) do
     ~H"""
     <span class="tooltip top" data-tooltip="Amplify output" data-el-amplify-outputs-button>
-      <button class="icon-button"
-        aria-label="amplify outputs">
-        <.remix_icon icon="zoom-in-line" class="text-xl" data-el-zoom-in-icon />
-        <.remix_icon icon="zoom-out-line" class="text-xl" data-el-zoom-out-icon />
+      <button class="icon-button" aria-label="amplify outputs">
+        <.remix_icon icon="zoom-in-line" class="text-xl" />
       </button>
     </span>
     """
@@ -610,4 +611,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
   end
 
   defp evaluated_label(_time_ms), do: nil
+
+  defp smart_cell_js_view_ref(%{type: :smart, status: :started, js_view: %{ref: ref}}), do: ref
+  defp smart_cell_js_view_ref(_cell_view), do: nil
 end

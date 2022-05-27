@@ -4,6 +4,29 @@ defmodule AppBuilder.Windows do
   import AppBuilder.Utils
   require EEx
 
+  def __send_events__(server, input)
+
+  def __send_events__(server, "new_file") do
+    send(server, {:new_file, ''})
+  end
+
+  def __send_events__(server, "reopen_app") do
+    send(server, {:reopen_app, ''})
+  end
+
+  def __send_events__(server, "open_url:" <> url) do
+    send(server, {:open_url, String.to_charlist(url)})
+  end
+
+  def __send_events__(server, "open_file:" <> path) do
+    path =
+      path
+      |> String.replace("\\", "/")
+      |> String.to_charlist()
+
+    send(server, {:open_file, path})
+  end
+
   @doc """
   Creates a Windows installer.
   """
@@ -20,7 +43,7 @@ defmodule AppBuilder.Windows do
         :version,
         :url_schemes,
         :document_types,
-        :logo_path,
+        :icon_path,
         :module
       ])
 
@@ -29,13 +52,16 @@ defmodule AppBuilder.Windows do
     vcredist_path = ensure_vcredistx64()
     File.cp!(vcredist_path, Path.join(tmp_dir, "vcredist_x64.exe"))
 
-    logo_path = options[:logo_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
+    icon_path = options[:icon_path] || Application.app_dir(:wx, "examples/demo/erlang.png")
     app_icon_path = Path.join(tmp_dir, "app_icon.ico")
-    copy_image(logo_path, app_icon_path)
+    create_icon(icon_path, app_icon_path)
 
     erl_exe = Path.join([tmp_dir, "rel", "erts-#{release.erts_version}", "bin", "erl.exe"])
     rcedit_path = ensure_rcedit()
     cmd!(rcedit_path, ["--set-icon", app_icon_path, erl_exe])
+    manifest_path = Path.join(tmp_dir, "manifest.xml")
+    File.write!(manifest_path, manifest())
+    cmd!(rcedit_path, ["--application-manifest", manifest_path, erl_exe])
 
     File.write!(Path.join(tmp_dir, "#{app_name}.vbs"), launcher_vbs(release, options))
     nsi_path = Path.join(tmp_dir, "#{app_name}.nsi")
@@ -49,6 +75,21 @@ defmodule AppBuilder.Windows do
     )
 
     release
+  end
+
+  # https://docs.microsoft.com/en-us/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process
+  defp manifest do
+    """
+    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+      <asmv3:application>
+        <asmv3:windowsSettings>
+          <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
+          <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+        </asmv3:windowsSettings>
+      </asmv3:application>
+    </assembly>
+    """
   end
 
   code = """
@@ -112,7 +153,7 @@ defmodule AppBuilder.Windows do
   <% end %>
     WriteRegStr HKCR "<%= app_name %>.<%= type.name %>" "" "<%= type.name %>"
     WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\\DefaultIcon" "" "$INSTDIR\\app_icon.ico"
-    WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\\shell\\open\\command" "" '$WINDIR\\system32\\wscript.exe "$INSTDIR\\<%= app_name %>.vbs" "%1"'
+    WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\\shell\\open\\command" "" '$WINDIR\\system32\\wscript.exe "$INSTDIR\\<%= app_name %>.vbs" "open_file:%1"'
   <% end %>
 
   <%= for url_scheme <- url_schemes do %>
@@ -122,7 +163,7 @@ defmodule AppBuilder.Windows do
     WriteRegStr  HKCR "<%= url_scheme %>" "URL Protocol" ""
     WriteRegStr  HKCR "<%= url_scheme %>\\shell" "" ""
     WriteRegStr  HKCR "<%= url_scheme %>\\shell\\open" "" ""
-    WriteRegStr  HKCR "<%= url_scheme %>\\shell\\open\\command" "" '$WINDIR\\system32\\wscript.exe "$INSTDIR\\<%= app_name %>.vbs" "%1"'
+    WriteRegStr  HKCR "<%= url_scheme %>\\shell\\open\\command" "" '$WINDIR\\system32\\wscript.exe "$INSTDIR\\<%= app_name %>.vbs" "open_url:%1"'
   <% end %>
   SectionEnd
 
@@ -143,16 +184,10 @@ defmodule AppBuilder.Windows do
   <%
   app_name = Keyword.fetch!(options, :name)
   module = Keyword.fetch!(options, :module)
-  %>
-  ' This vbs script avoids a flashing cmd window when launching the release bat file
+  %>' This vbs script avoids a flashing cmd window when launching the release bat file
 
-  path = Left(Wscript.ScriptFullName, Len(Wscript.ScriptFullName) - Len(Wscript.ScriptName)) & "rel\bin\<%= release.name %>.bat"
-
-  If WScript.Arguments.Count > 0 Then
-    url = WScript.Arguments(0)
-  Else
-    url = ""
-  End If
+  root = Left(Wscript.ScriptFullName, Len(Wscript.ScriptFullName) - Len(Wscript.ScriptName))
+  script = root & "rel\bin\<%= release.name %>.bat"
 
   Set shell = CreateObject("WScript.Shell")
 
@@ -167,16 +202,35 @@ defmodule AppBuilder.Windows do
   Set env = shell.Environment("Process")
   env("PATH") = ".\rel\vendor\elixir\bin;.\rel\erts-<%= release.erts_version %>\bin;" & env("PATH")
 
-  ' > bin/release rpc "mod.windows_connected(url)"
+  If WScript.Arguments.Count > 0 Then
+    input = WScript.Arguments(0)
+  Else
+    input = "reopen_app"
+  End If
+
+  ' Below, we're basically doing:
   '
-  ' We send the URL through IO, as opposed through the rpc expression, to avoid RCE.
-  cmd = "echo """ & url & """ | """ & path & """ rpc <%= inspect(module) %>.windows_connected(IO.read(:line))"
+  '     $ bin/release rpc 'AppBuilder.Windows.__send_events__(MyApp, input)'
+  '
+  ' We send the input through IO, as opposed using the rpc expression, to avoid RCE.
+  cmd = "echo " & input & " | \""" & script & \""" rpc ""AppBuilder.Windows.__send_events__(<%= inspect(module) %>, String.trim(IO.read(:line)))\"""
   code = shell.Run("cmd /c " & cmd, 0)
 
-  ' > bin/release start
-  cmd = """" & path & """ start"
-  env("<%= String.upcase(app_name) <> "_URL" %>") = url
-  code = shell.Run("cmd /c " & cmd & " >> .\Logs\<%= app_name %>.log 2>&1", 0)
+  ' Below, we're basically doing:
+  '
+  '     $ bin/release start
+  '
+  ' We send the input through the environment variable as we can't easily access argv
+  ' when booting through the release script.
+
+  If WScript.Arguments.Count > 0 Then
+    env("APP_BUILDER_INPUT") = WScript.Arguments(0)
+  Else
+    env("APP_BUILDER_INPUT") = "new_file"
+  End If
+
+  cmd = \"""" & script & \""" start"
+  code = shell.Run("cmd /c " & cmd & " >> " & root & "\Logs\<%= app_name %>.log 2>&1", 0)
   """
 
   EEx.function_from_string(:defp, :launcher_vbs, code, [:release, :options], trim: true)
@@ -200,14 +254,13 @@ defmodule AppBuilder.Windows do
   end
 
   defp ensure_magick do
-    url =
-      "https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.1.0-portable-Q16-x64.zip"
-
-    sha256 = "4d2711c5f2527c221a0f54d769f724809b105cf03ef51be6196ee44da136f1ba"
-    AppBuilder.Utils.ensure_executable(url, sha256, "magick.exe")
+    System.find_executable("magick.exe") ||
+      raise "couldn't find magick.exe in PATH to automatically convert images to .ico"
   end
 
-  defp copy_image(src_path, dest_path) do
+  defp create_icon(src_path, dest_path) do
+    src_path = normalize_icon_path(src_path)
+
     if Path.extname(src_path) == ".ico" do
       File.cp!(src_path, dest_path)
     else

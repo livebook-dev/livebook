@@ -18,15 +18,15 @@ Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.Embedded
 ])
 
-defmodule Livebook.Runtime.Embedded.Dependencies do
-  def entries() do
+defmodule Livebook.Runtime.Embedded.Packages do
+  def list() do
     [
       %{
-        dependency: {:kino, "~> 0.5.2"},
-        description: "Interactive widgets for Livebook",
-        name: "kino",
-        url: "https://hex.pm/packages/kino",
-        version: "0.5.2"
+        dependency: {:jason, "~> 1.3.0"},
+        description: "A blazing fast JSON parser and generator in pure Elixir",
+        name: "jason",
+        url: "https://hex.pm/packages/jason",
+        version: "1.3.0"
       }
     ]
   end
@@ -34,7 +34,7 @@ end
 
 # Enable dependency saerch for the embedded runtime
 Application.put_env(:livebook, Livebook.Runtime.Embedded,
-  load_dependency_entries: {Livebook.Runtime.Embedded.Dependencies, :entries, []}
+  load_packages: {Livebook.Runtime.Embedded.Packages, :list, []}
 )
 
 # Disable autosaving

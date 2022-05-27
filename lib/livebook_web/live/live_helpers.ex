@@ -131,6 +131,8 @@ defmodule LivebookWeb.LiveHelpers do
 
     * `:danger` - whether the action is destructive or regular. Defaults to `true`
 
+    * `:html` - whether the `:description` is a raw HTML. Defaults to `false`
+
     * `:opt_out_id` - enables the "Don't show this message again"
       checkbox. Once checked by the user, the confirmation with this
       id is never shown again. Optional
@@ -161,7 +163,8 @@ defmodule LivebookWeb.LiveHelpers do
           :opt_out_id,
           title: "Are you sure?",
           confirm_text: "Yes",
-          danger: true
+          danger: true,
+          html: false
         ]
       )
 
@@ -173,6 +176,7 @@ defmodule LivebookWeb.LiveHelpers do
         confirm_text: opts[:confirm_text],
         confirm_icon: opts[:confirm_icon],
         danger: opts[:danger],
+        html: opts[:html],
         opt_out_id: opts[:opt_out_id]
       }
     )

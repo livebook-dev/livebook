@@ -1,5 +1,10 @@
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import {
+  getAttributeOrDefault,
+  getAttributeOrThrow,
+  parseInteger,
+} from "../lib/attribute";
 import { isElementHidden, randomId, randomToken } from "../lib/utils";
+import { globalPubSub } from "../lib/pub_sub";
 import {
   getChannel,
   transportDecode,
@@ -45,6 +50,8 @@ import { initializeIframeSource } from "./js_view/iframe";
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
  *
+ *   * `data-iframe-url` - an optional location to load the iframe from
+ *
  *   * `data-timeout-message` - the message to show when the initial
  *     data does not load
  *
@@ -58,6 +65,8 @@ const JSView = {
     this.childReadyPromise = null;
     this.childReady = false;
     this.initReceived = false;
+    this.syncCallbackQueue = [];
+    this.pongCallbackQueue = [];
 
     this.initTimeout = setTimeout(() => this.handleInitTimeout(), 2_000);
 
@@ -75,6 +84,10 @@ const JSView = {
 
       window.addEventListener("message", this._handleWindowMessage);
     });
+
+    this.hiddenInput = document.createElement("input");
+    this.hiddenInput.style.display = "none";
+    this.el.appendChild(this.hiddenInput);
 
     this.loadIframe();
 
@@ -100,11 +113,21 @@ const JSView = {
       }
     );
 
+    const pongRef = this.channel.on(`pong:${this.props.ref}`, () => {
+      this.handleServerPong();
+    });
+
     this.unsubscribeFromChannelEvents = () => {
       this.channel.off(`init:${this.props.ref}:${this.id}`, initRef);
       this.channel.off(`event:${this.props.ref}`, eventRef);
       this.channel.off(`error:${this.props.ref}`, errorRef);
+      this.channel.off(`pong:${this.props.ref}`, pongRef);
     };
+
+    this.unsubscribeFromJSViewEvents = globalPubSub.subscribe(
+      `js_views:${this.props.ref}`,
+      (event) => this.handleJSViewEvent(event)
+    );
 
     this.channel.push(
       "connect",
@@ -130,6 +153,8 @@ const JSView = {
 
     this.unsubscribeFromChannelEvents();
     this.channel.push("disconnect", { ref: this.props.ref });
+
+    this.unsubscribeFromJSViewEvents();
   },
 
   getProps() {
@@ -144,6 +169,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
+      iframeUrl: getAttributeOrDefault(this.el, "data-iframe-url", null),
       timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
@@ -246,7 +272,11 @@ const JSView = {
 
   loadIframe() {
     const iframesEl = document.querySelector(`[data-el-js-view-iframes]`);
-    initializeIframeSource(this.iframe, this.props.iframePort).then(() => {
+    initializeIframeSource(
+      this.iframe,
+      this.props.iframePort,
+      this.props.iframeUrl
+    ).then(() => {
       iframesEl.appendChild(this.iframe);
     });
   },
@@ -283,11 +313,18 @@ const JSView = {
         // Replicate the child events on the current element,
         // so that they are detected upstream in the session hook
         const event = this.replicateDomEvent(message.event);
-        this.el.dispatchEvent(event);
+        if (message.isTargetEditable) {
+          this.hiddenInput.dispatchEvent(event);
+        } else {
+          this.el.dispatchEvent(event);
+        }
       } else if (message.type === "event") {
         const { event, payload } = message;
         const raw = transportEncode([event, this.props.ref], payload);
         this.channel.push("event", raw);
+      } else if (message.type === "syncReply") {
+        this.pongCallbackQueue.push(this.syncCallbackQueue.shift());
+        this.channel.push("ping", { ref: this.props.ref });
       }
     }
   },
@@ -352,6 +389,21 @@ const JSView = {
     }
 
     this.errorContainer.textContent = message;
+  },
+
+  handleServerPong() {
+    const callback = this.pongCallbackQueue.shift();
+    callback();
+  },
+
+  handleJSViewEvent(event) {
+    if (event.type === "sync") {
+      // First, we invoke optional synchronization callback in the iframe,
+      // that may send any deferred UI changes to the server. Then, we
+      // do a ping to synchronize with the server
+      this.syncCallbackQueue.push(event.callback);
+      this.postMessage({ type: "sync" });
+    }
   },
 };
 

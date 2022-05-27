@@ -114,7 +114,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "queueing cell evaluation", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
@@ -131,7 +131,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "reevaluting the setup cell", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
@@ -238,7 +238,7 @@ defmodule LivebookWeb.SessionLiveTest do
         destination: test
       }
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -267,7 +267,7 @@ defmodule LivebookWeb.SessionLiveTest do
         destination: test
       }
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       insert_cell_with_output(session.pid, section_id, {:input, input})
 
@@ -305,7 +305,7 @@ defmodule LivebookWeb.SessionLiveTest do
         reset_on_submit: []
       }
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       insert_cell_with_output(session.pid, section_id, {:control, form_control})
 
@@ -330,7 +330,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "outputs" do
     test "stdout output update", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
@@ -351,7 +351,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "frame output update", %{conn: conn, session: session} do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
       evaluate_setup(session.pid)
 
       section_id = insert_section(session.pid)
@@ -414,7 +414,7 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/runtime")
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       view
       |> element("button", "Elixir standalone")
@@ -599,7 +599,7 @@ defmodule LivebookWeb.SessionLiveTest do
          %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       user1 = create_user_with_name("Jake Peralta")
 
@@ -635,7 +635,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
 
       assert render(view) =~ "Jake Peralta"
 
@@ -896,21 +896,21 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  describe "dependency search" do
+  describe "package search" do
     test "lists search entries", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/dependency-search")
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/package-search")
 
       [search_view] = live_children(view)
 
       # Search the predefined dependencies in the embedded runtime
       search_view
       |> element(~s{form[phx-change="search"]})
-      |> render_change(%{"search" => "ki"})
+      |> render_change(%{"search" => "ja"})
 
       page = render(view)
-      assert page =~ "kino"
-      assert page =~ "Interactive widgets for Livebook"
-      assert page =~ "0.5.2"
+      assert page =~ "jason"
+      assert page =~ "A blazing fast JSON parser and generator in pure Elixir"
+      assert page =~ "1.3.0"
     end
   end
 

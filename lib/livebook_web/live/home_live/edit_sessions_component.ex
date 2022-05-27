@@ -54,7 +54,6 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
     |> Enum.map(& &1.pid)
     |> Livebook.Session.close()
 
-    SessionListComponent.refresh_memory_info()
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 
@@ -64,7 +63,6 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
     |> Enum.map(& &1.pid)
     |> Livebook.Session.disconnect_runtime()
 
-    SessionListComponent.refresh_memory_info()
     {:noreply, push_patch(socket, to: socket.assigns.return_to, replace: true)}
   end
 

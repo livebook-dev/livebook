@@ -1,6 +1,4 @@
 defmodule Livebook.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
@@ -199,10 +197,44 @@ defmodule Livebook.Application do
     port = Livebook.Config.iframe_port()
 
     if server? do
-      # Start the iframe endpoint on a different port
-      [{Plug.Cowboy, scheme: :http, plug: LivebookWeb.IframeEndpoint, options: [port: port]}]
+      http = Application.fetch_env!(:livebook, LivebookWeb.Endpoint)[:http]
+
+      iframe_opts =
+        [
+          scheme: :http,
+          plug: LivebookWeb.IframeEndpoint,
+          port: port
+        ] ++ Keyword.take(http, [:ip])
+
+      spec = Plug.Cowboy.child_spec(iframe_opts)
+      spec = update_in(spec.start, &{__MODULE__, :start_iframe, [port, &1]})
+      [spec]
     else
       []
     end
+  end
+
+  @doc false
+  def start_iframe(port, {m, f, a}) do
+    case apply(m, f, a) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error, {:shutdown, {_, _, {{_, {:error, :eaddrinuse}}, _}}}} = error ->
+        iframe_port_in_use(port)
+        error
+
+      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} = error ->
+        iframe_port_in_use(port)
+        error
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp iframe_port_in_use(port) do
+    require Logger
+    Logger.error("Failed to start Livebook iframe server because port #{port} is already in use")
   end
 end

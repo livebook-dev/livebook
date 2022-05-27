@@ -72,21 +72,6 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/intro_to_nx.livemd"),
-      details: %{
-        description:
-          "Enter Numerical Elixir, experience the power of multi-dimensional arrays of numbers.",
-        cover_url: "/images/nx.png"
-      }
-    },
-    # %{
-    #   path: Path.join(__DIR__, "explore/intro_to_axon.livemd"),
-    #   details: %{
-    #     description: "Build Neural Networks in Elixir using a high-level, composable API.",
-    #     cover_url: "/images/axon.png"
-    #   }
-    # },
-    %{
       ref: :kino_intro,
       path: Path.join(__DIR__, "explore/kino/intro_to_kino.livemd")
     },
@@ -105,6 +90,10 @@ defmodule Livebook.Notebook.Explore do
     %{
       ref: :kino_custom_kinos,
       path: Path.join(__DIR__, "explore/kino/custom_kinos.livemd")
+    },
+    %{
+      ref: :kino_smart_cells,
+      path: Path.join(__DIR__, "explore/kino/smart_cells.livemd")
     }
   ]
 
@@ -210,7 +199,8 @@ defmodule Livebook.Notebook.Explore do
         :kino_vm_introspection,
         :kino_chat_app,
         :kino_pong,
-        :kino_custom_kinos
+        :kino_custom_kinos,
+        :kino_smart_cells
       ]
     }
   ]

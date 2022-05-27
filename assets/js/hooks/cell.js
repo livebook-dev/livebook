@@ -83,19 +83,22 @@ const Cell = {
     this.unsubscribeFromCellsEvents = globalPubSub.subscribe("cells", (event) =>
       this.handleCellsEvent(event)
     );
+
+    this.unsubscribeFromCellEvents = globalPubSub.subscribe(
+      `cells:${this.props.cellId}`,
+      (event) => this.handleCellEvent(event)
+    );
   },
 
   disconnected() {
-    // When disconnected, this client is no longer seen by the server
-    // and misses all collaborative changes. On reconnection we want
-    // to clean up and mount a fresh hook, which we force by ensuring
-    // the DOM id doesn't match
+    // Reinitialize on reconnection
     this.el.removeAttribute("id");
   },
 
   destroyed() {
     this.unsubscribeFromNavigationEvents();
     this.unsubscribeFromCellsEvents();
+    this.unsubscribeFromCellEvents();
   },
 
   updated() {
@@ -117,6 +120,11 @@ const Cell = {
         "data-evaluation-digest",
         null
       ),
+      smartCellJSViewRef: getAttributeOrDefault(
+        this.el,
+        "data-smart-cell-js-view-ref",
+        null
+      ),
     };
   },
 
@@ -135,6 +143,12 @@ const Cell = {
       this.handleCellMoved(event.cellId);
     } else if (event.type === "cell_upload") {
       this.handleCellUpload(event.cellId, event.url);
+    }
+  },
+
+  handleCellEvent(event) {
+    if (event.type === "dispatch_queue_evaluation") {
+      this.handleDispatchQueueEvaluation(event.dispatch);
     }
   },
 
@@ -325,6 +339,18 @@ const Cell = {
     if (this.props.cellId === cellId) {
       const markdown = `![](${url})`;
       liveEditor.insert(markdown);
+    }
+  },
+
+  handleDispatchQueueEvaluation(dispatch) {
+    if (this.props.type === "smart" && this.props.smartCellJSViewRef) {
+      // Ensure the smart cell UI is reflected on the server, before the evaluation
+      globalPubSub.broadcast(`js_views:${this.props.smartCellJSViewRef}`, {
+        type: "sync",
+        callback: dispatch,
+      });
+    } else {
+      dispatch();
     }
   },
 

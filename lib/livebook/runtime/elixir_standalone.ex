@@ -17,37 +17,47 @@ defmodule Livebook.Runtime.ElixirStandalone do
           server_pid: pid() | nil
         }
 
-  kino_dep = {:kino, github: "livebook-dev/kino"}
+  kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.1"}}
+  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.1"}}
 
   @extra_smart_cell_definitions [
     %{
-      kind: "Elixir.Kino.SmartCell.DBConnection",
+      kind: "Elixir.KinoDB.ConnectionCell",
       name: "Database connection",
       requirement: %{
-        name: "Kino",
         variants: [
-          %{name: "PostgreSQL", dependencies: [kino_dep, {:postgrex, "~> 0.16.1"}]},
-          %{name: "MySQL", dependencies: [kino_dep, {:myxql, "~> 0.6.1"}]}
+          %{
+            name: "PostgreSQL",
+            packages: [kino_db, %{name: "postgrex", dependency: {:postgrex, "~> 0.16.3"}}]
+          },
+          %{
+            name: "MySQL",
+            packages: [kino_db, %{name: "myxql", dependency: {:myxql, "~> 0.6.2"}}]
+          }
         ]
       }
     },
     %{
-      kind: "Elixir.Kino.SmartCell.SQL",
+      kind: "Elixir.KinoDB.SQLCell",
       name: "SQL query",
       requirement: %{
-        name: "Kino",
         variants: [
-          %{name: "Default", dependencies: [kino_dep]}
+          %{
+            name: "Default",
+            packages: [kino_db]
+          }
         ]
       }
     },
     %{
-      kind: "Elixir.Kino.SmartCell.ChartBuilder",
-      name: "Chart builder",
+      kind: "Elixir.KinoVegaLite.ChartCell",
+      name: "Chart",
       requirement: %{
-        name: "Kino",
         variants: [
-          %{name: "Default", dependencies: [kino_dep, {:vega_lite, "~> 0.1.3"}]}
+          %{
+            name: "Default",
+            packages: [kino_vega_lite]
+          }
         ]
       }
     }
@@ -182,7 +192,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     Livebook.Runtime.Dependencies.add_mix_deps(code, dependencies)
   end
 
-  def search_dependencies(_runtime, send_to, search) do
-    Livebook.Runtime.Dependencies.search_dependencies_on_hex(send_to, search)
+  def search_packages(_runtime, send_to, search) do
+    Livebook.Runtime.Dependencies.search_packages_on_hex(send_to, search)
   end
 end

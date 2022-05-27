@@ -2,11 +2,10 @@ defmodule Livebook.MixProject do
   use Mix.Project
 
   @elixir_requirement "~> 1.13"
-  @version "0.5.2"
+  @version "0.6.1"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.13.2"
-  @app_otp_version "24.2"
+  @app_elixir_version "1.13.4"
 
   def project do
     [
@@ -48,7 +47,8 @@ defmodule Livebook.MixProject do
       links: %{
         "GitHub" => "https://github.com/livebook-dev/livebook"
       },
-      files: ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md)
+      files:
+        ~w(lib static config mix.exs mix.lock README.md LICENSE CHANGELOG.md iframe/priv/static/iframe)
     ]
   end
 
@@ -168,20 +168,30 @@ defmodule Livebook.MixProject do
     Code.require_file("rel/app/standalone.exs")
 
     release
-    |> Standalone.copy_otp(@app_otp_version)
+    |> Standalone.copy_otp()
     |> Standalone.copy_elixir(@app_elixir_version)
   end
 
   @app_options [
     name: "Livebook",
     version: @version,
-    logo_path: "rel/app/mac-icon.png",
-    additional_paths: ["/rel/vendor/bin", "/rel/vendor/elixir/bin"],
+    icon_path: [
+      macos: "rel/app/icon-macos.png",
+      windows: "rel/app/icon.ico"
+    ],
+    additional_paths: [
+      "/rel/erts-#{:erlang.system_info(:version)}/bin",
+      "/rel/vendor/elixir/bin"
+    ],
     url_schemes: ["livebook"],
     document_types: [
       %{
         name: "LiveMarkdown",
         extensions: ["livemd"],
+        icon_path: [
+          macos: "rel/app/icon.png",
+          windows: "rel/app/icon.ico"
+        ],
         # macos specific
         role: "Editor"
       }
@@ -189,12 +199,18 @@ defmodule Livebook.MixProject do
   ]
 
   defp build_mac_app(release) do
-    AppBuilder.build_mac_app(release, @app_options)
+    options =
+      [
+        is_agent_app: true
+      ] ++ @app_options
+
+    AppBuilder.build_mac_app(release, options)
   end
 
   defp build_mac_app_dmg(release) do
     options =
       [
+        is_agent_app: true,
         codesign: [
           identity: System.fetch_env!("CODESIGN_IDENTITY")
         ],
@@ -209,10 +225,7 @@ defmodule Livebook.MixProject do
   end
 
   defp build_windows_installer(release) do
-    options =
-      Keyword.take(@app_options, [:name, :version, :url_schemes, :document_types]) ++
-        [module: LivebookApp, logo_path: "static/images/logo.png"]
-
+    options = Keyword.drop(@app_options, [:additional_paths]) ++ [module: LivebookApp]
     AppBuilder.build_windows_installer(release, options)
   end
 end

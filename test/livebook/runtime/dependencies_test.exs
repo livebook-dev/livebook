@@ -5,23 +5,23 @@ defmodule Livebook.Runtime.DependenciesTest do
 
   doctest Dependencies
 
-  @kino {:kino, "~> 0.5.0"}
+  @jason {:jason, "~> 1.3.0"}
 
   describe "add_mix_deps/2" do
     test "prepends Mix.install/2 call if there is none" do
-      assert Dependencies.add_mix_deps("", [@kino]) ==
+      assert Dependencies.add_mix_deps("", [@jason]) ==
                {:ok,
                 """
                 Mix.install([
-                  {:kino, "~> 0.5.0"}
+                  {:jason, "~> 1.3.0"}
                 ])\
                 """}
 
-      assert Dependencies.add_mix_deps("# Comment", [@kino]) ==
+      assert Dependencies.add_mix_deps("# Comment", [@jason]) ==
                {:ok,
                 """
                 Mix.install([
-                  {:kino, "~> 0.5.0"}
+                  {:jason, "~> 1.3.0"}
                 ])
 
                 # Comment\
@@ -37,12 +37,12 @@ defmodule Livebook.Runtime.DependenciesTest do
 
                # Final comment\
                """,
-               [@kino]
+               [@jason]
              ) ==
                {:ok,
                 """
                 Mix.install([
-                  {:kino, "~> 0.5.0"}
+                  {:jason, "~> 1.3.0"}
                 ])
 
                 # Outer comment
@@ -62,13 +62,13 @@ defmodule Livebook.Runtime.DependenciesTest do
                  {:req, "~> 0.2.0"}
                ])\
                """,
-               [@kino]
+               [@jason]
              ) ==
                {:ok,
                 """
                 Mix.install([
                   {:req, "~> 0.2.0"},
-                  {:kino, "~> 0.5.0"}
+                  {:jason, "~> 1.3.0"}
                 ])\
                 """}
 
@@ -84,7 +84,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                # Result
                :ok\
                """,
-               [@kino]
+               [@jason]
              ) ==
                {:ok,
                 """
@@ -92,46 +92,72 @@ defmodule Livebook.Runtime.DependenciesTest do
                 Mix.install([
                   # Inner comment leading
                   {:req, "~> 0.2.0"},
-                  {:kino, "~> 0.5.0"}
+                  {:jason, "~> 1.3.0"}
                   # Inner comment trailing
                 ])
 
                 # Result
                 :ok\
                 """}
+
+      assert Dependencies.add_mix_deps(
+               """
+               Mix.install(
+                 [
+                   {:req, "~> 0.2.0"}
+                 ],
+                 system_env: [
+                   # {"XLA_TARGET", "cuda111"}
+                 ]
+               )\
+               """,
+               [@jason]
+             ) ==
+               {:ok,
+                """
+                Mix.install(
+                  [
+                    {:req, "~> 0.2.0"},
+                    {:jason, "~> 1.3.0"}
+                  ],
+                  system_env: [
+                    # {"XLA_TARGET", "cuda111"}
+                  ]
+                )\
+                """}
     end
 
     test "does not add the dependency if it already exists" do
       code = """
       Mix.install([
-        {:kino, "~> 0.5.2"}
+        {:jason, "~> 1.3.0"}
       ])\
       """
 
-      assert Dependencies.add_mix_deps(code, [@kino]) == {:ok, code}
+      assert Dependencies.add_mix_deps(code, [@jason]) == {:ok, code}
 
       code = """
       Mix.install([
-        {:kino, "~> 0.5.2", runtime: false}
+        {:jason, "~> 1.3.0", runtime: false}
       ])\
       """
 
-      assert Dependencies.add_mix_deps(code, [@kino]) == {:ok, code}
+      assert Dependencies.add_mix_deps(code, [@jason]) == {:ok, code}
     end
 
     test "given multiple dependencies adds the missing ones" do
       assert Dependencies.add_mix_deps(
                """
                Mix.install([
-                 {:kino, "~> 0.5.2"}
+                 {:jason, "~> 1.3.0"}
                ])\
                """,
-               [{:vega_lite, "~> 0.1.3"}, {:kino, "~> 0.5.0"}, {:req, "~> 0.2.0"}]
+               [{:vega_lite, "~> 0.1.3"}, {:jason, "~> 1.3.0"}, {:req, "~> 0.2.0"}]
              ) ==
                {:ok,
                 """
                 Mix.install([
-                  {:kino, "~> 0.5.2"},
+                  {:jason, "~> 1.3.0"},
                   {:vega_lite, "~> 0.1.3"},
                   {:req, "~> 0.2.0"}
                 ])\
@@ -139,11 +165,11 @@ defmodule Livebook.Runtime.DependenciesTest do
 
       code = """
       Mix.install([
-        {:kino, "~> 0.5.2", runtime: false}
+        {:jason, "~> 1.3.0", runtime: false}
       ])\
       """
 
-      assert Dependencies.add_mix_deps(code, [@kino]) == {:ok, code}
+      assert Dependencies.add_mix_deps(code, [@jason]) == {:ok, code}
     end
 
     test "returns an error if the code has a syntax error" do
@@ -152,7 +178,7 @@ defmodule Livebook.Runtime.DependenciesTest do
                # Comment
                [,1]
                """,
-               [@kino]
+               [@jason]
              ) ==
                {:error,
                 """
@@ -170,7 +196,7 @@ defmodule Livebook.Runtime.DependenciesTest do
       {:ok, bypass: bypass}
     end
 
-    test "parses the response into dependency entries", %{bypass: bypass} do
+    test "parses the response into a list of packages", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/api/packages", fn conn ->
         conn
         |> Plug.Conn.put_resp_content_type("application/json")

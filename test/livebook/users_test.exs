@@ -7,7 +7,7 @@ defmodule Livebook.UsersTest do
   describe "broadcast_change/1" do
     test "notifies subscribers of user change" do
       user = User.new()
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "users:#{user.id}")
+      Users.subscribe(user.id)
 
       Users.broadcast_change(user)
 

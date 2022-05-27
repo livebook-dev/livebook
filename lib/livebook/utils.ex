@@ -556,4 +556,27 @@ defmodule Livebook.Utils do
       _ -> default
     end
   end
+
+  @doc """
+  Converts the given IP address into a valid hostname.
+
+  ## Examples
+
+      iex> Livebook.Utils.ip_to_host({192, 168, 0, 1})
+      "192.168.0.1"
+
+      iex> Livebook.Utils.ip_to_host({127, 0, 0, 1})
+      "localhost"
+
+      iex> Livebook.Utils.ip_to_host({0, 0, 0, 0})
+      "0.0.0.0"
+  """
+  @spec ip_to_host(:inet.ip_address()) :: String.t()
+  def ip_to_host(ip)
+
+  def ip_to_host({127, 0, 0, 1}), do: "localhost"
+
+  def ip_to_host(ip) do
+    ip |> :inet.ntoa() |> List.to_string()
+  end
 end

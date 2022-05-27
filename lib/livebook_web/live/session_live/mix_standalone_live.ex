@@ -12,7 +12,7 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
     end
 
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Livebook.PubSub, "sessions:#{session.id}")
+      Session.subscribe(session.id)
     end
 
     {:ok,

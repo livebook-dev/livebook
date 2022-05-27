@@ -19,22 +19,22 @@ defmodule Livebook do
 
   ### Embedded runtime dependencies
 
-  In case you use the Embedded runtime and support installing dependencies
-  with `Mix.install/2`, you can make those discoverable in the
-  dependency search, by configuring a loader function:
+  In case you use the Embedded runtime and support installing
+  dependencies with `Mix.install/2`, you can make those discoverable
+  in the package search, by configuring a loader function:
 
       config :livebook, Livebook.Runtime.Embedded,
-        load_dependency_entries: {Loader, :dependency_entries, []}
+        load_packages: {Loader, :packages, []}
 
   The function should return a list of entries like this:
 
       [
         %{
-          dependency: {:kino, "~> 0.5.2"},
+          dependency: {:kino, "~> 0.6.1"},
           description: "Interactive widgets for Livebook",
           name: "kino",
           url: "https://hex.pm/packages/kino",
-          version: "0.5.2"
+          version: "0.6.1"
         }
       ]
 
@@ -95,7 +95,8 @@ defmodule Livebook do
     end
 
     if ip = Livebook.Config.ip!("LIVEBOOK_IP") do
-      config :livebook, LivebookWeb.Endpoint, http: [ip: ip]
+      host = Livebook.Utils.ip_to_host(ip)
+      config :livebook, LivebookWeb.Endpoint, http: [ip: ip], url: [host: host]
     end
 
     cond do
@@ -111,6 +112,10 @@ defmodule Livebook do
 
     if port = Livebook.Config.port!("LIVEBOOK_IFRAME_PORT") do
       config :livebook, :iframe_port, port
+    end
+
+    if url = Livebook.Config.iframe_url!("LIVEBOOK_IFRAME_URL") do
+      config :livebook, :iframe_url, url
     end
 
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do

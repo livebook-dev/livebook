@@ -1,24 +1,30 @@
-<h1><img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400"></h1>
+<h1>
+  <a href="https://livebook.dev/" target="_blank">
+   <img src="https://github.com/livebook-dev/livebook/raw/main/static/images/logo-with-text.png" alt="Livebook" width="400">
+  </a>
+</h1>
 
- [![Hex.pm](https://img.shields.io/hexpm/v/livebook?color=3e64ff)](https://hex.pm/packages/livebook)
+ [![Website](https://img.shields.io/badge/-Website-%23ff87a7)](https://livebook.dev/) [![Hex.pm](https://img.shields.io/hexpm/v/livebook?color=b5a3be)](https://hex.pm/packages/livebook)
 
 Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
 
   * Code notebooks with Markdown support and Code cells where Elixir code is evaluated on demand.
 
-  * Shareable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with support for diagrams via [Mermaid](https://mermaid-js.github.io/mermaid) and for mathematical formulas via [KaTex](https://katex.org/). `.livemd` files can be easily shared and play well with version control.
-
-  * Interactive widgets via [Kino](https://github.com/elixir-nx/kino): manipulate [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, and more.
-
   * Rich code editor through [Monaco](https://microsoft.github.io/monaco-editor/): with support for autocompletion, inline documentation, code formatting, etc.
+
+  * Interactive results via [Kino](https://github.com/elixir-nx/kino): display [Vega-Lite charts](https://vega.github.io/vega-lite/), tables, maps, and more.
+
+  * Automation: use Smart cells to perform high-level tasks and write notebooks faster than ever. Query databases, build charts, and more coming directly from Livebook's UI.
 
   * Reproducible: Livebook ensures your code runs in a predictable order, all the way down to package management. It also tracks your notebook state, annotating which parts are stale.
 
   * Persistence: persist your notebooks to disk or any S3-compatible cloud storage.
 
-  * Collaboration: multiple users can work on the same notebook at once. It works out-of-the-box either in single-node or multi-node deployments - without a need for additional tooling.
+  * Collaboration: multiple users can work on the same notebook at once, no additional dependencies required.
 
   * Decentralized: Livebook is open-source and you can run it anywhere. The ["Run in Livebook" badges](https://livebook.dev/badge) makes it easy to import any Livebook into your preferred Livebook instance.
+
+  * Versionable: notebooks are stored in the `.livemd` format, which is a subset of Markdown with support for diagrams via [Mermaid](https://mermaid-js.github.io/mermaid) and for mathematical formulas via [KaTex](https://katex.org/). `.livemd` files can be shared and play well with version control.
 
   * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to introspect and document existing projects too.
 
@@ -26,28 +32,58 @@ We are actively working on Livebook and you can consult the issues tracker to se
 
 ## Getting started
 
-Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Usage" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
+Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Installation" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
-From time to time, we also publish some videos for new Livebook releases:
+For screencasts and news, check out [news.livebook.dev](https://news.livebook.dev/).
 
-  * [Livebook's initial announcement by José Valim](https://www.youtube.com/watch?v=RKvqc-UEe34), also featuring [Nx](https://github.com/elixir-nx/nx) and [Axon](https://github.com/elixir-nx/axon)
-
-  * [New in Livebook v0.2 by José Valim](https://www.youtube.com/watch?v=MOTEgF-wIEI), exploring inputs, charts of mathematical formulas, and live display of runtime metrics
-
-## Usage
+## Installation
 
 We provide several methods for running Livebook,
 pick the one that best fits your use case.
 
-### Running on the cloud
+### On the cloud
 
   * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
 
-### Running locally
+### Desktop app
 
-You can run Livebook on your own machine. You will need
+Coming soon!
+
+### Docker
+
+Running Livebook using Docker is a great option for cloud deployments
+and also for local usage in case you don't have Elixir installed.
+
+```shell
+# Running with the default configuration
+docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
+
+# In order to access and save notebooks directly to your machine
+# you can mount a local directory into the container.
+# Make sure to specify the user with "-u $(id -u):$(id -g)"
+# so that the created files have proper permissions
+docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
+
+# You can configure Livebook using environment variables,
+# for all options see the dedicated "Environment variables" section below
+docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
+```
+
+To try out features from the main branch you can alternatively
+use the `livebook/livebook:edge` image.
+See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
+
+### Embedded devices
+
+If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
+check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
+with [Nerves](https://www.nerves-project.org/).
+
+### Direct installation with Elixir
+
+You can run Livebook on your own machine using just ELixir. You will need
 [Elixir v1.13](https://elixir-lang.org/install.html) or later.
 Livebook also requires the following Erlang applications: `inets`,
 `os_mon`, `runtime_tools`, `ssl` and `xmerl`. Those applications come
@@ -87,30 +123,6 @@ install the escript directly from GitHub like this:
 mix escript.install github livebook-dev/livebook
 ```
 
-#### Docker
-
-Running Livebook using Docker is a great option for cloud deployments
-and also for local usage in case you don't have Elixir installed.
-
-```shell
-# Running with the default configuration
-docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
-
-# In order to access and save notebooks directly to your machine
-# you can mount a local directory into the container.
-# Make sure to specify the user with "-u $(id -u):$(id -g)"
-# so that the created files have proper permissions
-docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
-
-# You can configure Livebook using environment variables,
-# for all options see the dedicated "Environment variables" section below
-docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
-```
-
-To try out features from the main branch you can alternatively
-use the `livebook/livebook:edge` image.
-See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
-
 #### Mix
 
 You can run latest Livebook directly with Mix.
@@ -123,12 +135,6 @@ mix deps.get --only prod
 # Run the Livebook server
 MIX_ENV=prod mix phx.server
 ```
-
-### Embedded devices
-
-If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
-check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
-with [Nerves](https://www.nerves-project.org/).
 
 ## Security considerations
 
@@ -172,6 +178,10 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_IFRAME_PORT - sets the port that Livebook serves iframes at.
     This is relevant only when running Livebook without TLS. Defaults to 8081.
+
+  * LIVEBOOK_IFRAME_URL - sets the URL that Livebook loads iframes from.
+    By default iframes are loaded from local LIVEBOOK_IFRAME_PORT when accessing
+    Livebook over http:// and from https://livebook.space when accessing over `https://`.
 
   * LIVEBOOK_IP - sets the ip address to start the web application on.
     Must be a valid IPv4 or IPv6 address.
