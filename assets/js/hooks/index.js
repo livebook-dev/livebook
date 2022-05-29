@@ -3,6 +3,7 @@ import CellEditor from "./cell_editor";
 import ConfirmModal from "./confirm_modal";
 import Dropzone from "./dropzone";
 import EditorSettings from "./editor_settings";
+import FileInput from "./file_input";
 import FocusOnUpdate from "./focus_on_update";
 import Headline from "./headline";
 import Highlight from "./highlight";
@@ -21,6 +22,7 @@ export default {
   ConfirmModal,
   Dropzone,
   EditorSettings,
+  FileInput,
   FocusOnUpdate,
   Headline,
   Highlight,

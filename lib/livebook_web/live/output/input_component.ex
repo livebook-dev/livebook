@@ -19,6 +19,34 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   @impl true
+  def render(%{attrs: %{type: :file}} = assigns) do
+    ~H"""
+    <form>
+      <div class="input-label">
+        <%= @attrs.label %>
+      </div>
+
+      <input
+        id={"#{@id}-input"}
+        type="file"
+        data-el-input
+        class={"input w-auto #{if(@error, do: "input--error")}"}
+        name="value"
+        phx-hook="FileInput"
+        phx-target={"#{@id}-input"}
+        multiple={@attrs.multiple}
+        accept={@attrs.accept |> Enum.join(", ")} />
+
+      <%= if @error do %>
+        <div class="input-error">
+          <%= @error %>
+        </div>
+      <% end %>
+    </form>
+    """
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <form phx-change="change" phx-submit="submit" phx-target={@myself}>
@@ -250,6 +278,10 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   defp parse(html_value, %{type: :color}) do
+    {:ok, html_value}
+  end
+
+  defp parse(html_value, %{type: :file}) do
     {:ok, html_value}
   end
 
