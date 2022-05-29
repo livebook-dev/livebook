@@ -77,6 +77,8 @@ export function registerGlobalEventHandlers() {
 
     if (target) {
       event.preventDefault();
+      // LV dispatches phx-click to the target of the preceding mousedown event
+      target.dispatchEvent(new Event("mousedown", { bubbles: true }));
       target.dispatchEvent(new Event("click", { bubbles: true }));
     }
   });

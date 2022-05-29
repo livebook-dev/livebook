@@ -1,4 +1,8 @@
-import { getAttributeOrThrow, parseInteger } from "../lib/attribute";
+import {
+  getAttributeOrDefault,
+  getAttributeOrThrow,
+  parseInteger,
+} from "../lib/attribute";
 import { isElementHidden, randomId, randomToken } from "../lib/utils";
 import { globalPubSub } from "../lib/pub_sub";
 import {
@@ -45,6 +49,8 @@ import { initializeIframeSource } from "./js_view/iframe";
  *
  *   * `data-iframe-local-port` - the local port where the iframe is
  *     served
+ *
+ *   * `data-iframe-url` - an optional location to load the iframe from
  *
  *   * `data-timeout-message` - the message to show when the initial
  *     data does not load
@@ -163,6 +169,7 @@ const JSView = {
         "data-iframe-local-port",
         parseInteger
       ),
+      iframeUrl: getAttributeOrDefault(this.el, "data-iframe-url", null),
       timeoutMessage: getAttributeOrThrow(this.el, "data-timeout-message"),
     };
   },
@@ -265,7 +272,11 @@ const JSView = {
 
   loadIframe() {
     const iframesEl = document.querySelector(`[data-el-js-view-iframes]`);
-    initializeIframeSource(this.iframe, this.props.iframePort).then(() => {
+    initializeIframeSource(
+      this.iframe,
+      this.props.iframePort,
+      this.props.iframeUrl
+    ).then(() => {
       iframesEl.appendChild(this.iframe);
     });
   },

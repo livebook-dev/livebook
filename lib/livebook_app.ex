@@ -8,16 +8,10 @@ if Mix.target() == :app do
     defmacro wxID_OSX_HIDE, do: 5250
     defmacro wxBITMAP_TYPE_PNG, do: 15
 
-    def os do
-      case :os.type() do
-        {:unix, :darwin} -> :macos
-        {:win32, _} -> :windows
-      end
-    end
-
     def taskbar(title, icon, menu_items) do
       pid = self()
-      options = if os() == :macos, do: [iconType: 1], else: []
+      os = AppBuilder.os()
+      options = if os == :macos, do: [iconType: 1], else: []
 
       # skip keyboard shortcuts
       menu_items =
@@ -35,7 +29,7 @@ if Mix.target() == :app do
 
               # For some reason, on macOS the menu event must be handled in another process
               # but on Windows it must be either the same process OR we use the callback.
-              case os() do
+              case os do
                 :macos ->
                   env = :wx.get_env()
 
@@ -92,7 +86,7 @@ if Mix.target() == :app do
     def menubar(app_name, menus) do
       menubar = :wxMenuBar.new()
 
-      if os() == :macos, do: fixup_macos_menubar(menubar, app_name)
+      if AppBuilder.os() == :macos, do: fixup_macos_menubar(menubar, app_name)
 
       for {title, menu_items} <- menus do
         true = :wxMenuBar.append(menubar, menu(menu_items), title)
@@ -125,13 +119,13 @@ if Mix.target() == :app do
       GenServer.start_link(__MODULE__, arg, name: @name)
     end
 
-    taskbar_icon_path = "rel/app/taskbar_icon.png"
+    taskbar_icon_path = "rel/app/icon.png"
     @external_resource taskbar_icon_path
     @taskbar_icon File.read!(taskbar_icon_path)
 
     @impl true
     def init(_) do
-      os = os()
+      os = AppBuilder.os()
       wx = :wx.new()
       AppBuilder.Wx.subscribe_to_app_events(@name)
 
@@ -161,7 +155,7 @@ if Mix.target() == :app do
       # 1. MIX_TARGET=app mix phx.server
       # 2. mix app
       # 3. mix release app
-      taskbar_icon_path = Path.join(System.tmp_dir!(), "taskbar_icon.png")
+      taskbar_icon_path = Path.join(System.tmp_dir!(), "icon.png")
       File.write!(taskbar_icon_path, @taskbar_icon)
       icon = :wxIcon.new(taskbar_icon_path, type: wxBITMAP_TYPE_PNG())
 

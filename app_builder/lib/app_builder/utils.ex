@@ -66,4 +66,12 @@ defmodule AppBuilder.Utils do
       """
     end
   end
+
+  def normalize_icon_path(path) when is_binary(path) do
+    path
+  end
+
+  def normalize_icon_path(path_per_os) when is_list(path_per_os) do
+    Keyword.fetch!(path_per_os, AppBuilder.os())
+  end
 end

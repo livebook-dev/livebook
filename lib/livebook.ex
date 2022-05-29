@@ -114,6 +114,10 @@ defmodule Livebook do
       config :livebook, :iframe_port, port
     end
 
+    if url = Livebook.Config.iframe_url!("LIVEBOOK_IFRAME_URL") do
+      config :livebook, :iframe_url, url
+    end
+
     if Livebook.Config.boolean!("LIVEBOOK_SHUTDOWN_ENABLED", false) do
       config :livebook, :shutdown_enabled, true
     end

@@ -88,27 +88,20 @@ defmodule Livebook.IntellisenseTest do
 
       assert [
                %{
-                 label: ":user",
+                 label: ":orddict",
                  kind: :module,
                  detail: "module",
-                 documentation: _user_doc,
-                 insert_text: "user"
+                 documentation: _orddict_doc,
+                 insert_text: "orddict"
                },
                %{
-                 label: ":user_drv",
+                 label: ":ordsets",
                  kind: :module,
                  detail: "module",
-                 documentation: _user_drv_doc,
-                 insert_text: "user_drv"
-               },
-               %{
-                 label: ":user_sup",
-                 kind: :module,
-                 detail: "module",
-                 documentation: _user_sup_doc,
-                 insert_text: "user_sup"
+                 documentation: _ordsets_doc,
+                 insert_text: "ordsets"
                }
-             ] = Intellisense.get_completion_items(":user", context)
+             ] = Intellisense.get_completion_items(":ord", context)
     end
 
     @tag :erl_docs
