@@ -180,7 +180,7 @@ The following environment variables configure Livebook:
     This is relevant only when running Livebook without TLS. Defaults to 8081.
 
   * `LIVEBOOK_IFRAME_URL` - sets the URL that Livebook loads iframes from.
-    By default iframes are loaded from local LIVEBOOK_IFRAME_PORT when accessing
+    By default iframes are loaded from local `LIVEBOOK_IFRAME_PORT` when accessing
     Livebook over http:// and from https://livebook.space when accessing over `https://`.
 
   * `LIVEBOOK_IP` - sets the ip address to start the web application on.
@@ -191,7 +191,7 @@ The following environment variables configure Livebook:
 
   * `LIVEBOOK_PORT` - sets the port Livebook runs on. If you want to run multiple
     instances on the same domain with the same credentials but on different ports,
-    you also need to set LIVEBOOK_SECRET_KEY_BASE. Defaults to 8080. If set to 0,
+    you also need to set `LIVEBOOK_SECRET_KEY_BASE`. Defaults to 8080. If set to 0,
     a random port will be picked.
 
   * `LIVEBOOK_SECRET_KEY_BASE` - sets a secret key that is used to sign and encrypt
