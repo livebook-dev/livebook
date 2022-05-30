@@ -126,6 +126,8 @@ defmodule Livebook.MixProject do
   ## Releases
 
   defp releases do
+    macos_notarization = macos_notarization()
+
     [
       livebook: [
         include_executables_for: [:unix],
@@ -133,30 +135,56 @@ defmodule Livebook.MixProject do
         rel_templates_path: "rel/server",
         steps: [:assemble, &remove_cookie/1]
       ],
-      mac_app: [
-        include_executables_for: [:unix],
-        include_erts: false,
-        rel_templates_path: "rel/app",
-        steps: [:assemble, &remove_cookie/1, &standalone_erlang_elixir/1, &build_mac_app/1]
-      ],
-      mac_app_dmg: [
-        include_executables_for: [:unix],
-        include_erts: false,
-        rel_templates_path: "rel/app",
-        steps: [:assemble, &remove_cookie/1, &standalone_erlang_elixir/1, &build_mac_app_dmg/1]
-      ],
-      windows_installer: [
-        include_executables_for: [:windows],
+      app: [
         include_erts: false,
         rel_templates_path: "rel/app",
         steps: [
           :assemble,
           &remove_cookie/1,
           &standalone_erlang_elixir/1,
-          &build_windows_installer/1
+          &AppBuilder.bundle/1
+        ],
+        app: [
+          name: "Livebook",
+          icon_path: [
+            macos: "rel/app/icon-macos.png",
+            windows: "rel/app/icon.ico"
+          ],
+          url_schemes: ["livebook"],
+          document_types: [
+            %{
+              name: "LiveMarkdown",
+              extensions: ["livemd"],
+              icon_path: [
+                macos: "rel/app/icon.png",
+                windows: "rel/app/icon.ico"
+              ],
+              macos_role: "Editor"
+            }
+          ],
+          additional_paths: [
+            "rel/erts-#{:erlang.system_info(:version)}/bin",
+            "rel/vendor/elixir/bin"
+          ],
+          server: LivebookApp,
+          macos_is_agent_app: true,
+          macos_build_dmg: macos_notarization != nil,
+          macos_notarization: macos_notarization,
+          windows_build_installer: true
         ]
       ]
     ]
+  end
+
+  defp macos_notarization do
+    identity = System.get_env("NOTARIZE_IDENTITY")
+    team_id = System.get_env("NOTARIZE_TEAM_ID")
+    apple_id = System.get_env("NOTARIZE_APPLE_ID")
+    password = System.get_env("NOTARIZE_PASSWORD")
+
+    if identity && team_id && apple_id && password do
+      [identity: identity, team_id: team_id, apple_id: apple_id, password: password]
+    end
   end
 
   defp remove_cookie(release) do
@@ -170,62 +198,5 @@ defmodule Livebook.MixProject do
     release
     |> Standalone.copy_otp()
     |> Standalone.copy_elixir(@app_elixir_version)
-  end
-
-  @app_options [
-    name: "Livebook",
-    version: @version,
-    icon_path: [
-      macos: "rel/app/icon-macos.png",
-      windows: "rel/app/icon.ico"
-    ],
-    additional_paths: [
-      "/rel/erts-#{:erlang.system_info(:version)}/bin",
-      "/rel/vendor/elixir/bin"
-    ],
-    url_schemes: ["livebook"],
-    document_types: [
-      %{
-        name: "LiveMarkdown",
-        extensions: ["livemd"],
-        icon_path: [
-          macos: "rel/app/icon.png",
-          windows: "rel/app/icon.ico"
-        ],
-        # macos specific
-        role: "Editor"
-      }
-    ]
-  ]
-
-  defp build_mac_app(release) do
-    options =
-      [
-        is_agent_app: true
-      ] ++ @app_options
-
-    AppBuilder.build_mac_app(release, options)
-  end
-
-  defp build_mac_app_dmg(release) do
-    options =
-      [
-        is_agent_app: true,
-        codesign: [
-          identity: System.fetch_env!("CODESIGN_IDENTITY")
-        ],
-        notarize: [
-          team_id: System.fetch_env!("NOTARIZE_TEAM_ID"),
-          apple_id: System.fetch_env!("NOTARIZE_APPLE_ID"),
-          password: System.fetch_env!("NOTARIZE_PASSWORD")
-        ]
-      ] ++ @app_options
-
-    AppBuilder.build_mac_app_dmg(release, options)
-  end
-
-  defp build_windows_installer(release) do
-    options = Keyword.drop(@app_options, [:additional_paths]) ++ [module: LivebookApp]
-    AppBuilder.build_windows_installer(release, options)
   end
 end

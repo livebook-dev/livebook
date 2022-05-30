@@ -26,51 +26,41 @@ defmodule WxDemo.MixProject do
   end
 
   defp releases do
-    options = [
-      name: "WxDemo",
-      url_schemes: ["wxdemo"],
-      document_types: [
-        %{
-          name: "WxDemo",
-          extensions: ["wxdemo"],
-          # macos specific
-          role: "Editor"
-        }
-      ]
-    ]
+    macos_notarization = macos_notarization()
 
     [
-      mac_app: [
-        include_executables_for: [:unix],
-        steps: [:assemble, &AppBuilder.build_mac_app(&1, options)]
-      ],
-      mac_app_dmg: [
-        include_executables_for: [:unix],
-        steps: [:assemble, &build_mac_app_dmg(&1, options)]
-      ],
-      windows_installer: [
-        include_executables_for: [:windows],
+      app: [
         steps: [
           :assemble,
-          &AppBuilder.build_windows_installer(&1, [module: WxDemo.Window] ++ options)
+          &AppBuilder.bundle/1
+        ],
+        app: [
+          name: "WxDemo",
+          url_schemes: ["wxdemo"],
+          document_types: [
+            %{
+              name: "WxDemo",
+              extensions: ["wxdemo"],
+              macos_role: "Editor"
+            }
+          ],
+          server: WxDemo,
+          macos_build_dmg: macos_notarization != nil,
+          macos_notarization: macos_notarization,
+          windows_build_installer: true
         ]
       ]
     ]
   end
 
-  defp build_mac_app_dmg(release, options) do
-    options =
-      [
-        codesign: [
-          identity: System.fetch_env!("CODESIGN_IDENTITY")
-        ],
-        notarize: [
-          team_id: System.fetch_env!("NOTARIZE_TEAM_ID"),
-          apple_id: System.fetch_env!("NOTARIZE_APPLE_ID"),
-          password: System.fetch_env!("NOTARIZE_PASSWORD")
-        ]
-      ] ++ options
+  defp macos_notarization do
+    identity = System.get_env("NOTARIZE_IDENTITY")
+    team_id = System.get_env("NOTARIZE_TEAM_ID")
+    apple_id = System.get_env("NOTARIZE_APPLE_ID")
+    password = System.get_env("NOTARIZE_PASSWORD")
 
-    AppBuilder.build_mac_app_dmg(release, options)
+    if identity && team_id && apple_id && password do
+      [identity: identity, team_id: team_id, apple_id: apple_id, password: password]
+    end
   end
 end

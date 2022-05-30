@@ -1,0 +1,54 @@
+<%
+
+additional_paths = [
+  "rel/erts-#{@release.erts_version}/bin"
+] ++ @app_options[:additional_paths]
+
+additional_paths = Enum.map_join(additional_paths, ":", &"\\(resourcePath)/#{&1}")
+
+%>
+import Foundation
+import Cocoa
+
+func log(_ line: String) {
+    logFile.write("\(line)\n".data(using: .utf8)!)
+}
+
+let fm = FileManager.default
+let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as! String
+let home = NSHomeDirectory()
+let logPath = "\(home)/Library/Logs/\(appName).log"
+if !fm.fileExists(atPath: logPath) { fm.createFile(atPath: logPath, contents: Data()) }
+let logFile = FileHandle(forUpdatingAtPath: logPath)!
+logFile.seekToEndOfFile()
+
+let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/<%= @release.name %>", ofType: "")!
+
+let resourcePath = Bundle.main.resourcePath ?? ""
+let additionalPaths = "<%= additional_paths %>"
+
+var environment = ProcessInfo.processInfo.environment
+let path = environment["PATH"] ?? ""
+environment["PATH"] = "\(additionalPaths):\(path)"
+
+let task = Process()
+task.environment = environment
+task.launchPath = releaseScriptPath
+task.arguments = ["start"]
+task.standardOutput = logFile
+task.standardError = logFile
+
+log("[\(appName)Launcher] starting release")
+try task.run()
+log("[\(appName)Launcher] pid: \(task.processIdentifier)")
+
+task.waitUntilExit()
+log("[\(appName)Launcher] release exited with \(task.terminationStatus)")
+
+if task.terminationStatus != 0 {
+  let alert = NSAlert()
+  alert.alertStyle = .critical
+  alert.messageText = "\(appName) exited with error status \(task.terminationStatus)."
+  alert.informativeText = "Logs available at: \(logPath)"
+  alert.runModal()
+}
