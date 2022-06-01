@@ -1,0 +1,82 @@
+<%
+app_name = Keyword.fetch!(@app_options, :name)
+%>
+!include "MUI2.nsh"
+
+;--------------------------------
+;General
+
+Name "<%= app_name %>"
+OutFile "<%= app_name %>Install.exe"
+Unicode True
+InstallDir "$LOCALAPPDATA\<%= app_name %>"
+
+; Need admin for registering URL scheme
+RequestExecutionLevel admin
+
+;--------------------------------
+;Interface Settings
+
+!define MUI_ABORTWARNING
+
+;--------------------------------
+;Pages
+
+;!insertmacro MUI_PAGE_COMPONENTS
+!define MUI_ICON "AppIcon.ico"
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+;--------------------------------
+;Languages
+
+!insertmacro MUI_LANGUAGE "English"
+
+;--------------------------------
+;Installer Sections
+
+Section "Install"
+  SetOutPath "$INSTDIR"
+
+  File vcredist_x64.exe
+  ExecWait '"$INSTDIR\vcredist_x64.exe" /install'
+
+  File /r rel rel
+  File "<%= app_name %>Launcher.vbs"
+  File "AppIcon.ico"
+
+  CreateDirectory "$INSTDIR\Logs"
+  WriteUninstaller "$INSTDIR\<%= app_name %>Uninstall.exe"
+
+<%= for type <- Keyword.fetch!(@app_options, :document_types) do %>
+<%= for ext <- type.extensions do %>
+  WriteRegStr HKCR ".<%= ext %>" "" "<%= app_name %>.<%= type.name %>"
+<% end %>
+  WriteRegStr HKCR "<%= app_name %>.<%= type.name %>" "" "<%= type.name %>"
+  WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\DefaultIcon" "" "$INSTDIR\<%= type.name %>Icon.ico"
+  WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\shell\open\command" "" '$WINDIR\system32\wscript.exe "$INSTDIR\<%= app_name %>Launcher.vbs" "open_file:%1"'
+<% end %>
+
+<%= for url_scheme <- Keyword.fetch!(@app_options, :url_schemes) do %>
+  DetailPrint "Register <%= url_scheme %> URL Handler"
+  DeleteRegKey HKCR "<%= url_scheme %>"
+  WriteRegStr  HKCR "<%= url_scheme %>" "" "<%= url_scheme %> Protocol"
+  WriteRegStr  HKCR "<%= url_scheme %>" "URL Protocol" ""
+  WriteRegStr  HKCR "<%= url_scheme %>\shell" "" ""
+  WriteRegStr  HKCR "<%= url_scheme %>\shell\open" "" ""
+  WriteRegStr  HKCR "<%= url_scheme %>\shell\open\command" "" '$WINDIR\system32\wscript.exe "$INSTDIR\<%= app_name %>Launcher.vbs" "open_url:%1"'
+<% end %>
+SectionEnd
+
+Section "Desktop Shortcut"
+  CreateShortCut "$DESKTOP\<%= app_name %>.lnk" "$INSTDIR\<%= app_name %>Launcher.vbs" "" "$INSTDIR\AppIcon.ico"
+SectionEnd
+
+Section "Uninstall"
+  Delete "$DESKTOP\<%= app_name %>.lnk"
+  ; TODO: stop epmd if it was started
+  RMDir /r "$INSTDIR"
+SectionEnd

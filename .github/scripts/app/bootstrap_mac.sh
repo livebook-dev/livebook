@@ -17,7 +17,7 @@ main() {
   fi
 
   export PATH=$PWD/tmp/wxwidgets-${wxwidgets_vsn}-$target/bin:$PATH
-  echo "wx"
+  echo "checking wx"
   file `which wxrc`
   wx-config --version
   echo
@@ -29,7 +29,7 @@ main() {
   fi
 
   export PATH=$PWD/tmp/otp-${otp_vsn}-$target/bin:$PATH
-  echo "otp"
+  echo "checking otp"
   file `which erlc`
   erl +V
   erl -noshell -eval 'ok = crypto:start(), io:format("crypto ok~n"), halt().'
@@ -41,7 +41,7 @@ main() {
   fi
 
   export PATH=$PWD/tmp/elixir-${elixir_vsn}/bin:$PATH
-  echo "elixir"
+  echo "checking elixir"
   elixir --version
 
   cat << EOF > tmp/bootstrap_env.sh
