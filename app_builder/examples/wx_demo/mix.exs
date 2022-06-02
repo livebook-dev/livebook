@@ -38,16 +38,22 @@ defmodule WxDemo.MixProject do
           name: "WxDemo",
           url_schemes: ["wxdemo"],
           document_types: [
-            %{
+            [
               name: "WxDemo",
               extensions: ["wxdemo"],
-              macos_role: "Editor"
-            }
+              macos: [
+                role: "Editor"
+              ]
+            ]
           ],
-          server: WxDemo,
-          macos_build_dmg: macos_notarization != nil,
-          macos_notarization: macos_notarization,
-          windows_build_installer: true
+          macos: [
+            build_dmg: macos_notarization != nil,
+            notarization: macos_notarization
+          ],
+          windows: [
+            server: WxDemo,
+            build_installer: true
+          ]
         ]
       ]
     ]

@@ -146,31 +146,34 @@ defmodule Livebook.MixProject do
         ],
         app: [
           name: "Livebook",
-          icon_path: [
-            macos: "rel/app/icon-macos.png",
-            windows: "rel/app/icon.ico"
-          ],
           url_schemes: ["livebook"],
           document_types: [
-            %{
+            [
               name: "LiveMarkdown",
               extensions: ["livemd"],
-              icon_path: [
-                macos: "rel/app/icon.png",
-                windows: "rel/app/icon.ico"
+              macos: [
+                icon_path: "rel/app/icon.png",
+                role: "Editor"
               ],
-              macos_role: "Editor"
-            }
+              windows: [
+                icon_path: "rel/app/icon.ico"
+              ]
+            ]
           ],
           additional_paths: [
             "rel/erts-#{:erlang.system_info(:version)}/bin",
             "rel/vendor/elixir/bin"
           ],
-          server: LivebookApp,
-          macos_is_agent_app: true,
-          macos_build_dmg: macos_notarization != nil,
-          macos_notarization: macos_notarization,
-          windows_build_installer: true
+          macos: [
+            icon_path: "rel/app/icon-macos.png",
+            build_dmg: macos_notarization != nil,
+            notarization: macos_notarization
+          ],
+          windows: [
+            server: LivebookApp,
+            icon_path: "rel/app/icon.ico",
+            build_installer: true
+          ]
         ]
       ]
     ]
