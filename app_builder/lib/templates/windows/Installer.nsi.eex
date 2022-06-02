@@ -23,7 +23,9 @@ RequestExecutionLevel admin
 ;Pages
 
 ;!insertmacro MUI_PAGE_COMPONENTS
+<%= if @app_options[:icon_path] do %>
 !define MUI_ICON "AppIcon.ico"
+<% end %>
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 
@@ -46,18 +48,22 @@ Section "Install"
 
   File /r rel rel
   File "<%= app_name %>Launcher.vbs"
+<%= if @app_options[:icon_path] do %>
   File "AppIcon.ico"
+<% end %>
 
   CreateDirectory "$INSTDIR\Logs"
   WriteUninstaller "$INSTDIR\<%= app_name %>Uninstall.exe"
 
 <%= for type <- Keyword.fetch!(@app_options, :document_types) do %>
-<%= for ext <- type.extensions do %>
-  WriteRegStr HKCR ".<%= ext %>" "" "<%= app_name %>.<%= type.name %>"
+<%= for ext <- type[:extensions] do %>
+  WriteRegStr HKCR ".<%= ext %>" "" "<%= app_name %>.<%= type[:name] %>"
 <% end %>
-  WriteRegStr HKCR "<%= app_name %>.<%= type.name %>" "" "<%= type.name %>"
-  WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\DefaultIcon" "" "$INSTDIR\<%= type.name %>Icon.ico"
-  WriteRegStr HKCR "<%= app_name %>.<%= type.name %>\shell\open\command" "" '$WINDIR\system32\wscript.exe "$INSTDIR\<%= app_name %>Launcher.vbs" "open_file:%1"'
+  WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>" "" "<%= type[:name] %>"
+<%= if type[:icon_path] || @app_options[:icon_path] do %>
+  WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>\DefaultIcon" "" "$INSTDIR\<%= type[:name] %>Icon.ico"
+<% end %>
+  WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>\shell\open\command" "" '$WINDIR\system32\wscript.exe "$INSTDIR\<%= app_name %>Launcher.vbs" "open_file:%1"'
 <% end %>
 
 <%= for url_scheme <- Keyword.fetch!(@app_options, :url_schemes) do %>
@@ -72,7 +78,7 @@ Section "Install"
 SectionEnd
 
 Section "Desktop Shortcut"
-  CreateShortCut "$DESKTOP\<%= app_name %>.lnk" "$INSTDIR\<%= app_name %>Launcher.vbs" "" "$INSTDIR\AppIcon.ico"
+  CreateShortCut "$DESKTOP\<%= app_name %>.lnk" "$INSTDIR\<%= app_name %>Launcher.vbs" "" <%= if @app_options[:icon_path] do %> "$INSTDIR\AppIcon.ico" <% end %>
 SectionEnd
 
 Section "Uninstall"

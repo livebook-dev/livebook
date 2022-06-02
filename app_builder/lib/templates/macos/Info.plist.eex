@@ -41,25 +41,25 @@
   <%= for type <- types do %>
     <dict>
       <key>CFBundleTypeName</key>
-      <string><%= type.name %></string>
+      <string><%= type[:name] %></string>
       <key>CFBundleTypeRole</key>
-      <string><%= type.macos_role %></string>
+      <string><%= type[:role] %></string>
       <key>CFBundleTypeExtensions</key>
       <array>
-      <%= for ext <- type.extensions do %>
+      <%= for ext <- type[:extensions] do %>
         <string><%= ext %></string>
       <% end %>
       </array>
     <%= if type[:icon_path] do %>
       <key>CFBundleTypeIconFile</key>
-      <string><%= type.name %>Icon</string>
+      <string><%= type[:name] %>Icon</string>
     <% end %>
     </dict>
   <% end %>
   </array>
 <% end %>
 
-<%= if @app_options[:macos_is_agent_app] do %>
+<%= if @app_options[:app_type] == :agent do %>
   <key>LSUIElement</key>
   <true/>
 <% end %>

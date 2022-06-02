@@ -33,13 +33,15 @@ defmodule AppBuilder.MacOS do
       launcher_src_path
     ])
 
-    icon_path = Keyword.fetch!(options, :icon_path)
+    icon_path =
+      Keyword.get(options, :icon_path, Application.app_dir(:wx, "examples/demo/erlang.png"))
+
     dest_path = "#{resources_path}/AppIcon.icns"
     create_icon(icon_path, dest_path)
 
     for type <- Keyword.fetch!(options, :document_types) do
-      if src_path = type[:icon_path] do
-        dest_path = "#{resources_path}/#{type.name}Icon.icns"
+      if src_path = Keyword.get(type, :icon_path, icon_path) do
+        dest_path = "#{resources_path}/#{type[:name]}Icon.icns"
         create_icon(src_path, dest_path)
       end
     end

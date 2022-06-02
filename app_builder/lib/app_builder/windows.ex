@@ -30,11 +30,15 @@ defmodule AppBuilder.Windows do
     vcredist_path = ensure_vcredistx64()
     copy_file(vcredist_path, "#{app_path}/vcredist_x64.exe")
 
-    create_icon(options[:icon_path], "#{app_path}/AppIcon.ico")
+    icon_path = options[:icon_path]
+
+    if icon_path do
+      create_icon(icon_path, "#{app_path}/AppIcon.ico")
+    end
 
     for type <- Keyword.fetch!(options, :document_types) do
-      if src_path = type[:icon_path] do
-        dest_path = "#{app_path}/#{type.name}Icon.ico"
+      if src_path = Keyword.get(type, :icon_path, icon_path) do
+        dest_path = "#{app_path}/#{type[:name]}Icon.ico"
         create_icon(src_path, dest_path)
       end
     end

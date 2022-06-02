@@ -1,25 +1,8 @@
 defmodule AppBuilder do
   def bundle(release) do
-    os = os()
+    options = validate_options(release.options[:app])
 
-    allowed_options = [
-      :name,
-      :server,
-      icon_path: [
-        macos: Application.app_dir(:wx, "examples/demo/erlang.png")
-      ],
-      url_schemes: [],
-      document_types: [],
-      additional_paths: [],
-      macos_is_agent_app: false,
-      macos_build_dmg: false,
-      macos_notarization: nil,
-      windows_build_installer: true
-    ]
-
-    options = Keyword.validate!(release.options[:app], allowed_options)
-
-    case os do
+    case os() do
       :macos ->
         AppBuilder.MacOS.bundle(release, options)
 
@@ -33,5 +16,73 @@ defmodule AppBuilder do
       {:unix, :darwin} -> :macos
       {:win32, _} -> :windows
     end
+  end
+
+  defp validate_options(options) do
+    os = os()
+
+    root_allowed_options = %{
+      all: [
+        :name,
+        :icon_path,
+        url_schemes: [],
+        document_types: [],
+        additional_paths: []
+      ],
+      macos: [
+        app_type: :regular,
+        build_dmg: false,
+        notarization: nil
+      ],
+      windows: [
+        :server,
+        build_installer: false
+      ]
+    }
+
+    document_type_allowed_options = %{
+      all: [
+        :name,
+        :extensions,
+        :icon_path
+      ],
+      macos: [
+        :role
+      ],
+      windows: []
+    }
+
+    options = validate_options(options, root_allowed_options, os)
+
+    Keyword.update!(options, :document_types, fn document_types ->
+      Enum.map(document_types, fn options ->
+        validate_options(options, document_type_allowed_options, os)
+      end)
+    end)
+  end
+
+  defp validate_options(options, allowed, os) do
+    {macos_options, options} = Keyword.pop(options, :macos, [])
+    {windows_options, options} = Keyword.pop(options, :windows, [])
+
+    options_per_os = %{
+      macos: macos_options,
+      windows: windows_options
+    }
+
+    options = Keyword.validate!(options, allowed.all)
+    options_for_os = Map.fetch!(options_per_os, os)
+
+    allowed_without_defaults =
+      for option <- allowed.all do
+        case option do
+          atom when is_atom(atom) -> atom
+          {atom, _default} when is_atom(atom) -> atom
+        end
+      end
+
+    allowed_for_os = allowed_without_defaults ++ Map.fetch!(allowed, os)
+    os_options = Keyword.validate!(options_for_os, allowed_for_os)
+    Keyword.merge(options, os_options)
   end
 end
