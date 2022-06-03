@@ -165,6 +165,7 @@ defmodule Livebook.MixProject do
             "rel/vendor/elixir/bin"
           ],
           macos: [
+            app_type: :agent,
             icon_path: "rel/app/icon-macos.png",
             build_dmg: macos_notarization != nil,
             notarization: macos_notarization
