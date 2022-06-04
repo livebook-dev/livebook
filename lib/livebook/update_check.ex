@@ -134,7 +134,12 @@ defmodule Livebook.UpdateCheck do
       {:ok, status, _headers, body} ->
         with 200 <- status,
              {:ok, data} <- Jason.decode(body),
-             %{"tag_name" => "v" <> version, "published_at" => published_at} <- data,
+             %{
+               "tag_name" => "v" <> version,
+               "published_at" => published_at,
+               "draft" => false,
+               "prerelease" => false
+             } <- data,
              {:ok, published_at} <- NaiveDateTime.from_iso8601(published_at),
              true <-
                NaiveDateTime.diff(NaiveDateTime.utc_now(), published_at) > @one_day_in_seconds do
