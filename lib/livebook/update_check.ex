@@ -134,9 +134,10 @@ defmodule Livebook.UpdateCheck do
       {:ok, status, _headers, body} ->
         with 200 <- status,
              {:ok, data} <- Jason.decode(body),
-             %{"tag_name" => "v" <> version, "created_at" => created_at} <- data,
-             {:ok, created_at} <- NaiveDateTime.from_iso8601(created_at),
-             true <- NaiveDateTime.diff(NaiveDateTime.utc_now(), created_at) > @one_day_in_seconds do
+             %{"tag_name" => "v" <> version, "published_at" => published_at} <- data,
+             {:ok, published_at} <- NaiveDateTime.from_iso8601(published_at),
+             true <-
+               NaiveDateTime.diff(NaiveDateTime.utc_now(), published_at) > @one_day_in_seconds do
           {:ok, version}
         else
           _ -> {:error, "unexpected response"}
