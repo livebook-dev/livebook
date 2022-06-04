@@ -124,6 +124,8 @@ defmodule Livebook.UpdateCheck do
     %{state | timer_ref: nil}
   end
 
+  @one_day_in_seconds 60 * 60 * 24
+
   defp fetch_latest_version() do
     url = "https://api.github.com/repos/livebook-dev/livebook/releases/latest"
     headers = [{"accept", "application/vnd.github.v3+json"}]
@@ -132,7 +134,9 @@ defmodule Livebook.UpdateCheck do
       {:ok, status, _headers, body} ->
         with 200 <- status,
              {:ok, data} <- Jason.decode(body),
-             %{"tag_name" => "v" <> version} <- data do
+             %{"tag_name" => "v" <> version, "created_at" => created_at} <- data,
+             {:ok, created_at} <- NaiveDateTime.from_iso8601(created_at),
+             true <- NaiveDateTime.diff(NaiveDateTime.utc_now(), created_at) > @one_day_in_seconds do
           {:ok, version}
         else
           _ -> {:error, "unexpected response"}
