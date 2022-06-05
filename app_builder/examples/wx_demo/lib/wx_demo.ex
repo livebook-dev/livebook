@@ -24,7 +24,7 @@ defmodule WxDemo.Window do
   @wx_id_osx_hide 5250
 
   def start_link(_) do
-    {:wx_ref, _, _, pid} = :wx_object.start_link(__MODULE__, [], [])
+    {:wx_ref, _, _, pid} = :wx_object.start_link({:local, __MODULE__}, __MODULE__, [], [])
     {:ok, pid}
   end
 
@@ -47,11 +47,9 @@ defmodule WxDemo.Window do
   @impl true
   def init(_) do
     app_name = "WxDemo"
-
-    true = Process.register(self(), __MODULE__)
     os = os()
     wx = :wx.new()
-    frame = :wxFrame.new(wx, -1, app_name, size: {100, 100})
+    frame = :wxFrame.new(wx, -1, app_name, size: {400, 400})
 
     if os == :macos do
       fixup_macos_menubar(frame, app_name)
