@@ -383,16 +383,18 @@ defmodule Livebook.Intellisense do
 
   defp format_details_item({:module, module, _display_name, documentation}) do
     join_with_divider([
+      format_hexdoc(module),
       code(inspect(module)),
       format_documentation(documentation, :all)
     ])
   end
 
   defp format_details_item(
-         {:function, module, name, _arity, _type, _display_name, documentation, signatures, specs,
+         {:function, module, name, arity, _type, _display_name, documentation, signatures, specs,
           meta}
        ) do
     join_with_divider([
+      format_hexdoc(module, name, arity),
       format_signatures(signatures, module) |> code(),
       format_meta(:since, meta),
       format_meta(:deprecated, meta),
@@ -436,6 +438,22 @@ defmodule Livebook.Intellisense do
     #{code}
     ```\
     """
+  end
+
+  defp format_hexdoc(module, name \\ nil, arity \\ nil) do
+    fragment =
+      cond do
+        is_nil(name) -> ""
+        is_nil(arity) -> "##{name}"
+        true -> "##{name}/#{arity}"
+      end
+
+    url =
+      "https://hexdocs.pm/elixir/#{System.version()}/#{inspect(module)}.html"
+      |> URI.parse()
+      |> URI.merge(fragment)
+
+    "[hexdocs.pm](#{url})"
   end
 
   defp format_signatures([], _module), do: nil
