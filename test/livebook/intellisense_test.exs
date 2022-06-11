@@ -1180,6 +1180,15 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details("Integer.to_string(10)", 2, context)
     end
 
+    test "returns hexdocs link" do
+      context = eval(do: nil)
+
+      assert %{contents: [hexdocs_link, _]} =
+               Intellisense.get_details("Integer.to_string(10)", 15, context)
+
+      assert hexdocs_link =~ "https://hexdocs.pm/"
+    end
+
     test "does not return duplicate details for functions with default arguments" do
       context = eval(do: nil)
 
