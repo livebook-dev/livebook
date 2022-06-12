@@ -196,7 +196,7 @@ defmodule LivebookWeb.SessionControllerTest do
       assert conn.resp_body == "Not found"
     end
 
-    test "returns the requestes asset if available in cache", %{conn: conn} do
+    test "returns the requests asset if available in cache", %{conn: conn} do
       %{notebook: notebook, hash: hash} = notebook_with_js_output()
       # Fetch the assets for the first time
       conn = start_session_and_request_asset(conn, notebook, hash)

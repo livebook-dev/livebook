@@ -374,7 +374,7 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
     # by comparing against the original content.
     defp reformat(markdown) do
       # Note: we don't parse inline content, so some of the tests
-      # above are not stricly necessary, but we keep them for completeness.
+      # above are not strictly necessary, but we keep them for completeness.
       {:ok, ast, []} = MarkdownHelpers.markdown_to_block_ast(markdown)
       MarkdownHelpers.markdown_from_ast(ast)
     end
