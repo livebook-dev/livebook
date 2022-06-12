@@ -85,9 +85,8 @@ defmodule Livebook.UpdateCheck do
 
     state =
       case response do
-        {:ok, version} ->
-          new_version = if newer?(version), do: version
-          state = %{state | new_version: new_version}
+        {:ok, release} ->
+          state = %{state | new_version: new_version(release)}
           schedule_check(state, @day_in_ms)
 
         {:error, error} ->
@@ -131,9 +130,8 @@ defmodule Livebook.UpdateCheck do
     case Livebook.Utils.HTTP.request(:get, url, headers: headers) do
       {:ok, status, _headers, body} ->
         with 200 <- status,
-             {:ok, data} <- Jason.decode(body),
-             %{"tag_name" => "v" <> version} <- data do
-          {:ok, version}
+             {:ok, release} <- Jason.decode(body) do
+          {:ok, release}
         else
           _ -> {:error, "unexpected response"}
         end
@@ -143,9 +141,27 @@ defmodule Livebook.UpdateCheck do
     end
   end
 
-  defp newer?(version) do
+  defp new_version(release) do
     current_version = Application.spec(:livebook, :vsn) |> List.to_string()
-    stable?(version) and Version.compare(current_version, version) == :lt
+
+    with %{
+           "tag_name" => "v" <> version,
+           "published_at" => published_at,
+           "draft" => false
+         } <- release,
+         {:ok, published_at} <- NaiveDateTime.from_iso8601(published_at),
+         true <- at_least_one_day_ago?(published_at) and stable?(version),
+         :lt <- Version.compare(current_version, version) do
+      version
+    else
+      _ -> nil
+    end
+  end
+
+  @one_day_in_seconds 60 * 60 * 24
+
+  defp at_least_one_day_ago?(naive_datetime) do
+    NaiveDateTime.diff(NaiveDateTime.utc_now(), naive_datetime) > @one_day_in_seconds
   end
 
   defp stable?(version) do
