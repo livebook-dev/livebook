@@ -354,7 +354,7 @@ defmodule Livebook.NotebookTest do
              } = Notebook.add_cell_output(notebook, "c1", {:stdout, "\ramigo!\r"})
     end
 
-    test "updates existing frames on frame update ouptut" do
+    test "updates existing frames on frame update output" do
       notebook = %{
         Notebook.new()
         | sections: [

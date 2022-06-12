@@ -357,7 +357,7 @@ defmodule Livebook.FileSystem.LocalTest do
     end
 
     @tag :tmp_dir
-    test "returns an error when the souce file does not exist", %{tmp_dir: tmp_dir} do
+    test "returns an error when the source file does not exist", %{tmp_dir: tmp_dir} do
       file_system = Local.new()
       src_file_path = Path.join(tmp_dir, "src_file.txt")
       dest_file_path = Path.join(tmp_dir, "dest_file.txt")
@@ -367,7 +367,7 @@ defmodule Livebook.FileSystem.LocalTest do
     end
 
     @tag :tmp_dir
-    test "returns an error when the desination file exists", %{tmp_dir: tmp_dir} do
+    test "returns an error when the destination file exists", %{tmp_dir: tmp_dir} do
       create_tree!(tmp_dir,
         "src_file.txt": "content",
         "dest_file.txt": "content"

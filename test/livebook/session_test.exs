@@ -51,7 +51,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "insert_section/2" do
-    test "sends an insert opreation to subscribers", %{session: session} do
+    test "sends an insert operation to subscribers", %{session: session} do
       Session.subscribe(session.id)
       pid = self()
 
@@ -61,7 +61,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "insert_cell/4" do
-    test "sends an insert opreation to subscribers", %{session: session} do
+    test "sends an insert operation to subscribers", %{session: session} do
       Session.subscribe(session.id)
       pid = self()
 
@@ -74,7 +74,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "delete_section/3" do
-    test "sends a delete opreation to subscribers", %{session: session} do
+    test "sends a delete operation to subscribers", %{session: session} do
       Session.subscribe(session.id)
       pid = self()
 
@@ -86,7 +86,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "delete_cell/2" do
-    test "sends a delete opreation to subscribers", %{session: session} do
+    test "sends a delete operation to subscribers", %{session: session} do
       Session.subscribe(session.id)
       pid = self()
 
@@ -98,7 +98,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "restore_cell/2" do
-    test "sends a restore opreation to subscribers", %{session: session} do
+    test "sends a restore operation to subscribers", %{session: session} do
       Session.subscribe(session.id)
       pid = self()
 
@@ -111,7 +111,7 @@ defmodule Livebook.SessionTest do
   end
 
   describe "convert_smart_cell/2" do
-    test "sends a delete and insert opreations to subscribers" do
+    test "sends a delete and insert operations to subscribers" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
       section = %{Notebook.Section.new() | cells: [smart_cell]}
       notebook = %{Notebook.new() | sections: [section]}

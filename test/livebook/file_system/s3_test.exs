@@ -79,7 +79,7 @@ defmodule Livebook.FileSystem.S3Test do
 
   describe "FileSystem.list/3" do
     test "returns an error when a nonexistent directory is given", %{bypass: bypass} do
-      # When the directory doesn't exist, we get an empty list of maches
+      # When the directory doesn't exist, we get an empty list of matches
 
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"delimiter" => "/"} = conn.params
@@ -549,7 +549,7 @@ defmodule Livebook.FileSystem.S3Test do
       end
     end
 
-    test "returns an error when the desination file exists", %{bypass: bypass} do
+    test "returns an error when the destination file exists", %{bypass: bypass} do
       # Existence is verified by listing
       Bypass.expect_once(bypass, "GET", "/mybucket", fn conn ->
         assert %{"prefix" => "dest_file.txt", "delimiter" => "/"} = conn.params

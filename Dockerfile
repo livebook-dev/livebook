@@ -34,7 +34,7 @@ COPY README.md README.md
 RUN mix do compile, release livebook
 
 # Stage 2
-# Prepares the runtime environment and copies over the relase.
+# Prepares the runtime environment and copies over the release.
 # We use the same base image, because we need Erlang, Elixir and Mix
 # during runtime to spawn the Livebook standalone runtimes.
 # Consequently the release doesn't include ERTS as we have it anyway.
