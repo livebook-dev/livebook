@@ -383,8 +383,8 @@ defmodule Livebook.Intellisense do
 
   defp format_details_item({:module, module, _display_name, documentation}) do
     join_with_divider([
-      format_hexdoc(module),
       code(inspect(module)),
+      format_hexdocs(module),
       format_documentation(documentation, :all)
     ])
   end
@@ -394,9 +394,11 @@ defmodule Livebook.Intellisense do
           meta}
        ) do
     join_with_divider([
-      format_hexdoc(module, name, arity),
       format_signatures(signatures, module) |> code(),
-      format_meta(:since, meta),
+      join_with_middle_dot([
+        format_hexdocs(module, name, arity),
+        format_meta(:since, meta)
+      ]),
       format_meta(:deprecated, meta),
       format_specs(specs, name, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
@@ -423,6 +425,8 @@ defmodule Livebook.Intellisense do
 
   defp join_with_newlines(strings), do: join_with(strings, "\n\n")
 
+  defp join_with_middle_dot(strings), do: join_with(strings, " · ")
+
   defp join_with(strings, joiner) do
     case Enum.reject(strings, &is_nil/1) do
       [] -> nil
@@ -440,7 +444,7 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_hexdoc(module, name \\ nil, arity \\ nil) do
+  defp format_hexdocs(module, name \\ nil, arity \\ nil) do
     fragment =
       cond do
         is_nil(name) -> ""
@@ -448,12 +452,12 @@ defmodule Livebook.Intellisense do
         true -> "##{name}/#{arity}"
       end
 
-    url =
-      "https://hexdocs.pm/elixir/#{System.version()}/#{inspect(module)}.html"
-      |> URI.parse()
-      |> URI.merge(fragment)
+    app = Application.get_application(module)
 
-    "[hexdocs.pm](#{url})"
+    if vsn = app && Application.spec(app, :vsn) do
+      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{fragment}"
+      "[hexdocs](#{url})"
+    end
   end
 
   defp format_signatures([], _module), do: nil
