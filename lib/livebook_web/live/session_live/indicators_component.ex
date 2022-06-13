@@ -33,7 +33,8 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
             dirty={@dirty}
             autosave_interval_s={@autosave_interval_s}
             socket={@socket}
-            session_id={@session_id} />
+            session_id={@session_id}
+            policy={@policy} />
           <.runtime_indicator
             runtime={@runtime}
             global_status={@global_status}
@@ -97,13 +98,15 @@ defmodule LivebookWeb.SessionLive.IndicatorsComponent do
 
   defp persistence_indicator(%{dirty: false} = assigns) do
     ~H"""
-    <span class="tooltip left" data-tooltip="Notebook saved">
-      <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
-            class: "icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50",
-            aria_label: "notebook saved, click to open file settings" do %>
-        <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
-      <% end %>
-    </span>
+    <%= if @policy.edit do %>
+      <span class="tooltip left" data-tooltip="Notebook saved">
+        <%= live_patch to: Routes.session_path(@socket, :file_settings, @session_id),
+              class: "icon-button icon-outlined-button border-green-bright-300 hover:bg-green-bright-50 focus:bg-green-bright-50",
+              aria_label: "notebook saved, click to open file settings" do %>
+          <.remix_icon icon="save-line" class="text-xl text-green-bright-400" />
+        <% end %>
+      </span>
+    <% end %>
     """
   end
 
