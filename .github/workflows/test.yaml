@@ -91,3 +91,16 @@ jobs:
         run: mix test
       - name: Build the app
         run: bash .github/scripts/app/build_windows.sh
+
+  macos:
+    runs-on: macos-latest
+    # if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache Bootstrap Mac
+        uses: actions/cache@v2
+        with:
+          path: tmp
+          key: ${{ runner.os }}-app-${{ hashFiles('.github/scripts/app/bootstrap_mac.sh') }}
+      - name: Build the app
+        run: bash .github/scripts/app/build_mac.sh
