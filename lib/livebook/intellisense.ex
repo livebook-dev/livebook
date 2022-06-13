@@ -403,7 +403,7 @@ defmodule Livebook.Intellisense do
   defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
-      format_hexdocs(module),
+      format_hexdocs_link(module),
       format_documentation(documentation, :all)
     ])
   end
@@ -421,7 +421,7 @@ defmodule Livebook.Intellisense do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
       join_with_middle_dot([
-        format_hexdocs(module, name, arity),
+        format_hexdocs_link(module, "#{name}/#{arity}"),
         format_meta(:since, meta)
       ]),
       format_meta(:deprecated, meta),
@@ -469,18 +469,13 @@ defmodule Livebook.Intellisense do
     """
   end
 
-  defp format_hexdocs(module, name \\ nil, arity \\ nil) do
-    fragment =
-      cond do
-        is_nil(name) -> ""
-        is_nil(arity) -> "##{name}"
-        true -> "##{name}/#{arity}"
-      end
+  defp format_hexdocs_link(module, hash \\ "") do
+    hash = if hash == "", do: "", else: "#" <> hash
 
     app = Application.get_application(module)
 
     if vsn = app && Application.spec(app, :vsn) do
-      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{fragment}"
+      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
       "[Hexdocs](#{url})"
     end
   end

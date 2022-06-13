@@ -1180,15 +1180,6 @@ defmodule Livebook.IntellisenseTest do
                Intellisense.get_details("Integer.to_string(10)", 2, context)
     end
 
-    test "returns hexdocs link" do
-      context = eval(do: nil)
-
-      assert %{contents: [hexdocs_link]} =
-               Intellisense.get_details("Integer.to_string(10)", 15, context)
-
-      assert hexdocs_link =~ "https://hexdocs.pm/"
-    end
-
     test "does not return duplicate details for functions with default arguments" do
       context = eval(do: nil)
 
@@ -1259,6 +1250,18 @@ defmodule Livebook.IntellisenseTest do
 
       assert %{contents: [date_range]} = Intellisense.get_details("Date.Range", 8, context)
       assert date_range =~ "Date.Range"
+    end
+
+    test "returns link to hexdocs" do
+      context = eval(do: nil)
+
+      assert %{contents: [content]} = Intellisense.get_details("Integer", 1, context)
+      assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html"
+
+      assert %{contents: [content]} =
+               Intellisense.get_details("Integer.to_string(10)", 15, context)
+
+      assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html#to_string/2"
     end
   end
 
