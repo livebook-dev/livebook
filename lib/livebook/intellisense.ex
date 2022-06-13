@@ -357,8 +357,11 @@ defmodule Livebook.Intellisense do
       %{matches: matches, range: range} ->
         contents =
           matches
+          |> Enum.uniq_by(fn
+            {:function, module, name, _, _, _, _, signatures, _, _} -> {module, name, signatures}
+            other -> other
+          end)
           |> Enum.map(&format_details_item/1)
-          |> Enum.uniq()
 
         %{range: range, contents: contents}
     end
