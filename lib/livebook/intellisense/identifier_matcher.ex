@@ -25,7 +25,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           | {:in_struct_field, module(), name(), default :: value()}
           | {:module, module(), display_name(), Docs.documentation()}
           | {:function, module(), name(), arity(), function_type(), display_name(),
-             Docs.documentation(), list(Docs.signature()), list(Docs.spec()), Docs.meta()}
+             implicit :: boolean(), Docs.documentation(), list(Docs.signature()),
+             list(Docs.spec()), Docs.meta()}
           | {:type, module(), name(), arity(), Docs.documentation()}
           | {:module_attribute, name(), Docs.documentation()}
 
@@ -334,14 +335,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_sigil(hint, ctx) do
-    for {:function, module, name, arity, type, "sigil_" <> sigil_name, documentation, signatures,
-         specs,
+    for {:function, module, name, arity, type, "sigil_" <> sigil_name, implicit, documentation,
+         signatures, specs,
          meta} <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
         do:
-          {:function, module, name, arity, type, "~" <> sigil_name, documentation, signatures,
-           specs, meta}
+          {:function, module, name, arity, type, "~" <> sigil_name, implicit, documentation,
+           signatures, specs, meta}
   end
 
   defp match_erlang_module(hint, ctx) do
@@ -489,14 +490,14 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         doc_item =
           Enum.find(
             doc_items,
-            %{documentation: nil, signatures: [], specs: [], meta: %{}},
+            %{implicit: false, documentation: nil, signatures: [], specs: [], meta: %{}},
             fn doc_item ->
               doc_item.name == name && doc_item.arity == arity
             end
           )
 
-        {:function, mod, name, arity, type, Atom.to_string(name), doc_item.documentation,
-         doc_item.signatures, doc_item.specs, doc_item.meta}
+        {:function, mod, name, arity, type, Atom.to_string(name), doc_item.implicit,
+         doc_item.documentation, doc_item.signatures, doc_item.specs, doc_item.meta}
       end)
     else
       []

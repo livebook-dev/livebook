@@ -129,8 +129,8 @@ defmodule Livebook.Intellisense do
   defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
 
   defp include_in_completion?(
-         {:function, _module, _name, _arity, _type, _display_name, :hidden, _signatures, _specs,
-          _meta}
+         {:function, _module, _name, _arity, _type, _display_name, _implicit, :hidden,
+          _signatures, _specs, _meta}
        ),
        do: false
 
@@ -197,8 +197,8 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_completion_item(
-         {:function, module, name, arity, type, display_name, documentation, signatures, specs,
-          _meta}
+         {:function, module, name, arity, type, display_name, _implicit, documentation,
+          signatures, specs, _meta}
        ),
        do: %{
          label: "#{display_name}/#{arity}",
@@ -357,9 +357,13 @@ defmodule Livebook.Intellisense do
       %{matches: matches, range: range} ->
         contents =
           matches
-          |> Enum.uniq_by(fn
-            {:function, module, name, _, _, _, _, signatures, _, _} -> {module, name, signatures}
-            other -> other
+          |> Enum.reject(fn
+            {:function, _module, _name, _arity, _type, _display_name, true, _documentation,
+             _signatures, _specs, _meta} ->
+              true
+
+            _ ->
+              false
           end)
           |> Enum.map(&format_details_item/1)
 
@@ -393,8 +397,8 @@ defmodule Livebook.Intellisense do
   end
 
   defp format_details_item(
-         {:function, module, name, arity, _type, _display_name, documentation, signatures, specs,
-          meta}
+         {:function, module, name, arity, _type, _display_name, _implicit, documentation,
+          signatures, specs, meta}
        ) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
