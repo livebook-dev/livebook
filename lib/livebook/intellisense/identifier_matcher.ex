@@ -47,7 +47,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
               arity: arity(),
               type: :function | :macro,
               display_name: display_name(),
-              implicit: boolean(),
+              from_default: boolean(),
               documentation: Docs.documentation(),
               signatures: list(Docs.signature()),
               specs: list(Docs.spec()),
@@ -535,7 +535,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         doc_item =
           Enum.find(
             doc_items,
-            %{implicit: false, documentation: nil, signatures: [], specs: [], meta: %{}},
+            %{from_default: false, documentation: nil, signatures: [], specs: [], meta: %{}},
             fn doc_item ->
               doc_item.name == name && doc_item.arity == arity
             end
@@ -548,7 +548,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           arity: arity,
           type: type,
           display_name: Atom.to_string(name),
-          implicit: doc_item.implicit,
+          from_default: doc_item.from_default,
           documentation: doc_item.documentation,
           signatures: doc_item.signatures,
           specs: doc_item.specs,

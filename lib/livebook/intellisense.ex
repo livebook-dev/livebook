@@ -380,7 +380,7 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  defp include_in_details?(%{kind: :function, implicit: true}), do: false
+  defp include_in_details?(%{kind: :function, from_default: true}), do: false
   defp include_in_details?(_), do: true
 
   defp format_details_item(%{kind: :variable, name: name}), do: code(name)
