@@ -20,19 +20,54 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   A single identifier together with relevant information.
   """
   @type identifier_item ::
-          {:variable, name()}
-          | {:map_field, name()}
-          | {:in_struct_field, module(), name(), default :: value()}
-          | {:module, module(), display_name(), Docs.documentation()}
-          | {:function, module(), name(), arity(), function_type(), display_name(),
-             Docs.documentation(), list(Docs.signature()), list(Docs.spec()), Docs.meta()}
-          | {:type, module(), name(), arity(), Docs.documentation()}
-          | {:module_attribute, name(), Docs.documentation()}
+          %{
+            kind: :variable,
+            name: name()
+          }
+          | %{
+              kind: :map_field,
+              name: name()
+            }
+          | %{
+              kind: :in_struct_field,
+              module: module(),
+              name: name(),
+              default: term()
+            }
+          | %{
+              kind: :module,
+              module: module(),
+              display_name: display_name(),
+              documentation: Docs.documentation()
+            }
+          | %{
+              kind: :function,
+              module: module(),
+              name: name(),
+              arity: arity(),
+              type: :function | :macro,
+              display_name: display_name(),
+              from_default: boolean(),
+              documentation: Docs.documentation(),
+              signatures: list(Docs.signature()),
+              specs: list(Docs.spec()),
+              meta: Docs.meta()
+            }
+          | %{
+              kind: :type,
+              module: module(),
+              name: name(),
+              arity: arity(),
+              documentation: Docs.documentation()
+            }
+          | %{
+              kind: :module_attribute,
+              name: name(),
+              documentation: Docs.documentation()
+            }
 
   @type name :: atom()
   @type display_name :: String.t()
-  @type value :: term()
-  @type function_type :: :function | :macro
 
   @exact_matcher &Kernel.==/2
   @prefix_matcher &String.starts_with?/2
@@ -231,10 +266,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   end
 
   defp match_struct(hint, ctx) do
-    for {:module, module, name, documentation} <- match_alias(hint, ctx, true),
+    for %{kind: :module, module: module} = item <- match_alias(hint, ctx, true),
         has_struct?(module),
         not is_exception?(module),
-        do: {:module, module, name, documentation}
+        do: item
   end
 
   defp has_struct?(mod) do
@@ -255,7 +290,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         for {field, default} <- fields,
             name = Atom.to_string(field),
             ctx.matcher.(name, hint),
-            do: {:in_struct_field, struct, field, default}
+            do: %{kind: :in_struct_field, struct: struct, name: field, default: default}
 
       _ ->
         match_local_or_var(hint, ctx)
@@ -321,7 +356,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {var, nil} <- Macro.Env.vars(ctx.intellisense_context.env),
         name = Atom.to_string(var),
         ctx.matcher.(name, hint),
-        do: {:variable, var}
+        do: %{kind: :variable, name: var}
   end
 
   defp match_map_field(map, hint, ctx) do
@@ -330,25 +365,26 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         is_atom(key),
         name = Atom.to_string(key),
         ctx.matcher.(name, hint),
-        do: {:map_field, key}
+        do: %{kind: :map_field, name: key}
   end
 
   defp match_sigil(hint, ctx) do
-    for {:function, module, name, arity, type, "sigil_" <> sigil_name, documentation, signatures,
-         specs,
-         meta} <-
+    for %{kind: :function, display_name: "sigil_" <> sigil_name} = item <-
           match_local("sigil_", %{ctx | matcher: @prefix_matcher}),
         ctx.matcher.(sigil_name, hint),
-        do:
-          {:function, module, name, arity, type, "~" <> sigil_name, documentation, signatures,
-           specs, meta}
+        do: %{item | display_name: "~" <> sigil_name}
   end
 
   defp match_erlang_module(hint, ctx) do
     for mod <- get_matching_modules(hint, ctx),
         usable_as_unquoted_module?(mod),
         name = ":" <> Atom.to_string(mod),
-        do: {:module, mod, name, Intellisense.Docs.get_module_documentation(mod)}
+        do: %{
+          kind: :module,
+          module: mod,
+          display_name: name,
+          documentation: Intellisense.Docs.get_module_documentation(mod)
+        }
   end
 
   # Converts alias string to module atom with regard to the given env
@@ -366,7 +402,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {alias, mod} <- ctx.intellisense_context.env.aliases,
         [name] = Module.split(alias),
         ctx.matcher.(name, hint),
-        do: {:module, mod, name, Intellisense.Docs.get_module_documentation(mod)}
+        do: %{
+          kind: :module,
+          module: mod,
+          display_name: name,
+          documentation: Intellisense.Docs.get_module_documentation(mod)
+        }
   end
 
   defp match_module(base_mod, hint, nested?, ctx) do
@@ -390,7 +431,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     # `Elixir` is not a existing module name, but `Elixir.Enum` is,
     # so if the user types `Eli` the completion should include `Elixir`.
     if ctx.matcher.("Elixir", hint) do
-      [{:module, Elixir, "Elixir", nil} | items]
+      [%{kind: :module, module: Elixir, display_name: "Elixir", documentation: nil} | items]
     else
       items
     end
@@ -415,7 +456,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         valid_alias_piece?("." <> name),
         mod = Module.concat(parent_mod_parts ++ name_parts),
         uniq: true,
-        do: {:module, mod, name, Intellisense.Docs.get_module_documentation(mod)}
+        do: %{
+          kind: :module,
+          module: mod,
+          display_name: name,
+          documentation: Intellisense.Docs.get_module_documentation(mod)
+        }
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -489,14 +535,25 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         doc_item =
           Enum.find(
             doc_items,
-            %{documentation: nil, signatures: [], specs: [], meta: %{}},
+            %{from_default: false, documentation: nil, signatures: [], specs: [], meta: %{}},
             fn doc_item ->
               doc_item.name == name && doc_item.arity == arity
             end
           )
 
-        {:function, mod, name, arity, type, Atom.to_string(name), doc_item.documentation,
-         doc_item.signatures, doc_item.specs, doc_item.meta}
+        %{
+          kind: :function,
+          module: mod,
+          name: name,
+          arity: arity,
+          type: type,
+          display_name: Atom.to_string(name),
+          from_default: doc_item.from_default,
+          documentation: doc_item.documentation,
+          signatures: doc_item.signatures,
+          specs: doc_item.specs,
+          meta: doc_item.meta
+        }
       end)
     else
       []
@@ -535,7 +592,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           doc_item.name == name && doc_item.arity == arity
         end)
 
-      {:type, mod, name, arity, doc_item.documentation}
+      %{kind: :type, module: mod, name: name, arity: arity, documentation: doc_item.documentation}
     end)
   end
 
@@ -578,7 +635,11 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     for {attribute, info} <- Module.reserved_attributes(),
         name = Atom.to_string(attribute),
         ctx.matcher.(name, hint),
-        do: {:module_attribute, attribute, {"text/markdown", info.doc}}
+        do: %{
+          kind: :module_attribute,
+          name: attribute,
+          documentation: {"text/markdown", info.doc}
+        }
   end
 
   # ---

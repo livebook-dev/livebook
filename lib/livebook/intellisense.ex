@@ -126,17 +126,11 @@ defmodule Livebook.Intellisense do
     |> Enum.sort_by(&completion_item_priority/1)
   end
 
-  defp include_in_completion?({:module, _module, _display_name, :hidden}), do: false
-
-  defp include_in_completion?(
-         {:function, _module, _name, _arity, _type, _display_name, :hidden, _signatures, _specs,
-          _meta}
-       ),
-       do: false
-
+  defp include_in_completion?(%{kind: :module, documentation: :hidden}), do: false
+  defp include_in_completion?(%{kind: :function, documentation: :hidden}), do: false
   defp include_in_completion?(_), do: true
 
-  defp format_completion_item({:variable, name}),
+  defp format_completion_item(%{kind: :variable, name: name}),
     do: %{
       label: Atom.to_string(name),
       kind: :variable,
@@ -145,7 +139,7 @@ defmodule Livebook.Intellisense do
       insert_text: Atom.to_string(name)
     }
 
-  defp format_completion_item({:map_field, name}),
+  defp format_completion_item(%{kind: :map_field, name: name}),
     do: %{
       label: Atom.to_string(name),
       kind: :field,
@@ -154,26 +148,36 @@ defmodule Livebook.Intellisense do
       insert_text: Atom.to_string(name)
     }
 
-  defp format_completion_item({:in_struct_field, struct, name, default}),
-    do: %{
-      label: Atom.to_string(name),
-      kind: :field,
-      detail: "#{inspect(struct)} struct field",
-      documentation:
-        join_with_divider([
-          code(name),
-          """
-          **Default**
+  defp format_completion_item(%{
+         kind: :in_struct_field,
+         struct: struct,
+         name: name,
+         default: default
+       }),
+       do: %{
+         label: Atom.to_string(name),
+         kind: :field,
+         detail: "#{inspect(struct)} struct field",
+         documentation:
+           join_with_divider([
+             code(name),
+             """
+             **Default**
 
-          ```
-          #{inspect(default, pretty: true, width: @line_length)}
-          ```
-          """
-        ]),
-      insert_text: "#{name}: "
-    }
+             ```
+             #{inspect(default, pretty: true, width: @line_length)}
+             ```
+             """
+           ]),
+         insert_text: "#{name}: "
+       }
 
-  defp format_completion_item({:module, module, display_name, documentation}) do
+  defp format_completion_item(%{
+         kind: :module,
+         module: module,
+         display_name: display_name,
+         documentation: documentation
+       }) do
     subtype = Docs.get_module_subtype(module)
 
     kind =
@@ -196,10 +200,17 @@ defmodule Livebook.Intellisense do
     }
   end
 
-  defp format_completion_item(
-         {:function, module, name, arity, type, display_name, documentation, signatures, specs,
-          _meta}
-       ),
+  defp format_completion_item(%{
+         kind: :function,
+         module: module,
+         name: name,
+         arity: arity,
+         type: type,
+         display_name: display_name,
+         documentation: documentation,
+         signatures: signatures,
+         specs: specs
+       }),
        do: %{
          label: "#{display_name}/#{arity}",
          kind: :function,
@@ -232,23 +243,28 @@ defmodule Livebook.Intellisense do
            end
        }
 
-  defp format_completion_item({:type, _module, name, arity, documentation}),
-    do: %{
-      label: "#{name}/#{arity}",
-      kind: :type,
-      detail: "typespec",
-      documentation: format_documentation(documentation, :short),
-      insert_text: Atom.to_string(name)
-    }
+  defp format_completion_item(%{
+         kind: :type,
+         name: name,
+         arity: arity,
+         documentation: documentation
+       }),
+       do: %{
+         label: "#{name}/#{arity}",
+         kind: :type,
+         detail: "typespec",
+         documentation: format_documentation(documentation, :short),
+         insert_text: Atom.to_string(name)
+       }
 
-  defp format_completion_item({:module_attribute, name, documentation}),
-    do: %{
-      label: Atom.to_string(name),
-      kind: :variable,
-      detail: "module attribute",
-      documentation: format_documentation(documentation, :short),
-      insert_text: Atom.to_string(name)
-    }
+  defp format_completion_item(%{kind: :module_attribute, name: name, documentation: documentation}),
+       do: %{
+         label: Atom.to_string(name),
+         kind: :variable,
+         detail: "module attribute",
+         documentation: format_documentation(documentation, :short),
+         insert_text: Atom.to_string(name)
+       }
 
   defp keyword_macro?(name) do
     def? = name |> Atom.to_string() |> String.starts_with?("def")
@@ -357,18 +373,21 @@ defmodule Livebook.Intellisense do
       %{matches: matches, range: range} ->
         contents =
           matches
+          |> Enum.filter(&include_in_details?/1)
           |> Enum.map(&format_details_item/1)
-          |> Enum.uniq()
 
         %{range: range, contents: contents}
     end
   end
 
-  defp format_details_item({:variable, name}), do: code(name)
+  defp include_in_details?(%{kind: :function, from_default: true}), do: false
+  defp include_in_details?(_), do: true
 
-  defp format_details_item({:map_field, name}), do: code(name)
+  defp format_details_item(%{kind: :variable, name: name}), do: code(name)
 
-  defp format_details_item({:in_struct_field, _struct, name, default}) do
+  defp format_details_item(%{kind: :map_field, name: name}), do: code(name)
+
+  defp format_details_item(%{kind: :in_struct_field, name: name, default: default}) do
     join_with_divider([
       code(name),
       """
@@ -381,34 +400,44 @@ defmodule Livebook.Intellisense do
     ])
   end
 
-  defp format_details_item({:module, module, _display_name, documentation}) do
+  defp format_details_item(%{kind: :module, module: module, documentation: documentation}) do
     join_with_divider([
       code(inspect(module)),
+      format_hexdocs_link(module),
       format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item(
-         {:function, module, name, _arity, _type, _display_name, documentation, signatures, specs,
-          meta}
-       ) do
+  defp format_details_item(%{
+         kind: :function,
+         module: module,
+         name: name,
+         arity: arity,
+         documentation: documentation,
+         signatures: signatures,
+         specs: specs,
+         meta: meta
+       }) do
     join_with_divider([
       format_signatures(signatures, module) |> code(),
-      format_meta(:since, meta),
+      join_with_middle_dot([
+        format_hexdocs_link(module, "#{name}/#{arity}"),
+        format_meta(:since, meta)
+      ]),
       format_meta(:deprecated, meta),
       format_specs(specs, name, @extended_line_length) |> code(),
       format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item({:type, _module, name, _arity, documentation}) do
+  defp format_details_item(%{kind: :type, name: name, documentation: documentation}) do
     join_with_divider([
       code(name),
       format_documentation(documentation, :all)
     ])
   end
 
-  defp format_details_item({:module_attribute, name, documentation}) do
+  defp format_details_item(%{kind: :module_attribute, name: name, documentation: documentation}) do
     join_with_divider([
       code("@#{name}"),
       format_documentation(documentation, :all)
@@ -420,6 +449,8 @@ defmodule Livebook.Intellisense do
   defp join_with_divider(strings), do: join_with(strings, "\n\n---\n\n")
 
   defp join_with_newlines(strings), do: join_with(strings, "\n\n")
+
+  defp join_with_middle_dot(strings), do: join_with(strings, " · ")
 
   defp join_with(strings, joiner) do
     case Enum.reject(strings, &is_nil/1) do
@@ -436,6 +467,17 @@ defmodule Livebook.Intellisense do
     #{code}
     ```\
     """
+  end
+
+  defp format_hexdocs_link(module, hash \\ "") do
+    hash = if hash == "", do: "", else: "#" <> hash
+
+    app = Application.get_application(module)
+
+    if vsn = app && Application.spec(app, :vsn) do
+      url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
+      "[Hexdocs](#{url})"
+    end
   end
 
   defp format_signatures([], _module), do: nil

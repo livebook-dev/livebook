@@ -1251,6 +1251,18 @@ defmodule Livebook.IntellisenseTest do
       assert %{contents: [date_range]} = Intellisense.get_details("Date.Range", 8, context)
       assert date_range =~ "Date.Range"
     end
+
+    test "returns link to hexdocs" do
+      context = eval(do: nil)
+
+      assert %{contents: [content]} = Intellisense.get_details("Integer", 1, context)
+      assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html"
+
+      assert %{contents: [content]} =
+               Intellisense.get_details("Integer.to_string(10)", 15, context)
+
+      assert content =~ ~r"https://hexdocs.pm/elixir/[^/]+/Integer.html#to_string/2"
+    end
   end
 
   describe "get_signature_items/3" do

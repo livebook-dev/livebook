@@ -10,7 +10,7 @@ defmodule Livebook.Intellisense.SignatureMatcher do
 
   @doc """
   Looks up a list of signatures matching the given incomplete
-  funciton call.
+  function call.
 
   Evaluation binding and environment is used to expand aliases,
   imports, access variable values, etc.
