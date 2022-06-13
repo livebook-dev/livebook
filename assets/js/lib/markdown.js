@@ -11,6 +11,8 @@ import rehypeParse from "rehype-parse";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
 
+import "katex/contrib/copy-tex";
+
 import { visit } from "unist-util-visit";
 import { toText } from "hast-util-to-text";
 import { removePosition } from "unist-util-remove-position";
