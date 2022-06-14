@@ -67,6 +67,7 @@ defmodule LivebookWeb.Router do
       live "/sessions/:id/secrets", SessionLive, :secrets
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
+      live "/sessions/:id/settings/sharing", SessionLive, :sharing_settings
       live "/sessions/:id/bin", SessionLive, :bin
       get "/sessions/:id/export/download/:format", SessionController, :download_source
       live "/sessions/:id/export/:tab", SessionLive, :export
@@ -84,6 +85,14 @@ defmodule LivebookWeb.Router do
 
       live "/import", HomeLive, :public_import
       live "/open", HomeLive, :public_open
+    end
+  end
+
+  live_session :shared, on_mount: [LivebookWeb.UserHook, {LivebookWeb.PolicyHook, :shared}] do
+    scope "/", LivebookWeb do
+      pipe_through [:browser]
+
+      live "/public/sessions/:id", SessionLive, :page
     end
   end
 

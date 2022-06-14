@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
         data-el-section-headline
         id={@section_view.id}
         data-focusable-id={@section_view.id}
-        phx-hook="Headline"
+        {if @policy.edit, do: [phx_hook: "Headline"], else: []}
         data-on-value-change="set_section_name"
         data-metadata={@section_view.id}
       >
@@ -69,40 +69,42 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               </:content>
             </.menu>
           <% end %>
-          <span class="tooltip top" data-tooltip="Move up">
-            <button
-              class="icon-button"
-              aria-label="move section up"
-              phx-click="move_section"
-              phx-value-section_id={@section_view.id}
-              phx-value-offset="-1"
-            >
-              <.remix_icon icon="arrow-up-s-line" class="text-xl" />
-            </button>
-          </span>
-          <span class="tooltip top" data-tooltip="Move down">
-            <button
-              class="icon-button"
-              aria-label="move section down"
-              phx-click="move_section"
-              phx-value-section_id={@section_view.id}
-              phx-value-offset="1"
-            >
-              <.remix_icon icon="arrow-down-s-line" class="text-xl" />
-            </button>
-          </span>
-          <span {if @section_view.has_children?,
-               do: [class: "tooltip left", data_tooltip: "Cannot delete this section because\nother sections branch from it"],
-               else: [class: "tooltip top", data_tooltip: "Delete"]}>
-            <button
-              class={"icon-button #{if @section_view.has_children?, do: "disabled"}"}
-              aria-label="delete section"
-              phx-click="delete_section"
-              phx-value-section_id={@section_view.id}
-            >
-              <.remix_icon icon="delete-bin-6-line" class="text-xl" />
-            </button>
-          </span>
+          <%= if @policy.edit do %>
+            <span class="tooltip top" data-tooltip="Move up">
+              <button
+                class="icon-button"
+                aria-label="move section up"
+                phx-click="move_section"
+                phx-value-section_id={@section_view.id}
+                phx-value-offset="-1"
+              >
+                <.remix_icon icon="arrow-up-s-line" class="text-xl" />
+              </button>
+            </span>
+            <span class="tooltip top" data-tooltip="Move down">
+              <button
+                class="icon-button"
+                aria-label="move section down"
+                phx-click="move_section"
+                phx-value-section_id={@section_view.id}
+                phx-value-offset="1"
+              >
+                <.remix_icon icon="arrow-down-s-line" class="text-xl" />
+              </button>
+            </span>
+            <span {if @section_view.has_children?,
+                do: [class: "tooltip left", data_tooltip: "Cannot delete this section because\nother sections branch from it"],
+                else: [class: "tooltip top", data_tooltip: "Delete"]}>
+              <button
+                class={"icon-button #{if @section_view.has_children?, do: "disabled"}"}
+                aria-label="delete section"
+                phx-click="delete_section"
+                phx-value-section_id={@section_view.id}
+              >
+                <.remix_icon icon="delete-bin-6-line" class="text-xl" />
+              </button>
+            </span>
+          <% end %>
         </div>
       </div>
       <%= if @section_view.parent do %>
@@ -125,15 +127,17 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
       <% end %>
       <div class="container">
         <div class="flex flex-col space-y-1">
-          <.live_component
-            module={LivebookWeb.SessionLive.InsertButtonsComponent}
-            id={"insert-buttons-#{@section_view.id}-first"}
-            persistent={@section_view.cell_views == []}
-            smart_cell_definitions={@smart_cell_definitions}
-            runtime={@runtime}
-            section_id={@section_view.id}
-            cell_id={nil}
-          />
+          <%= if @policy.edit do %>
+            <.live_component
+              module={LivebookWeb.SessionLive.InsertButtonsComponent}
+              id={"insert-buttons-#{@section_view.id}-first"}
+              persistent={@section_view.cell_views == []}
+              smart_cell_definitions={@smart_cell_definitions}
+              runtime={@runtime}
+              section_id={@section_view.id}
+              cell_id={nil}
+            />
+          <% end %>
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
             <.live_component
               module={LivebookWeb.SessionLive.CellComponent}
@@ -143,16 +147,19 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               runtime={@runtime}
               installing?={@installing?}
               cell_view={cell_view}
+              policy={@policy}
             />
-            <.live_component
-              module={LivebookWeb.SessionLive.InsertButtonsComponent}
-              id={"insert-buttons-#{@section_view.id}-#{index}"}
-              persistent={false}
-              smart_cell_definitions={@smart_cell_definitions}
-              runtime={@runtime}
-              section_id={@section_view.id}
-              cell_id={cell_view.id}
-            />
+            <%= if @policy.edit do %>
+              <.live_component
+                module={LivebookWeb.SessionLive.InsertButtonsComponent}
+                id={"insert-buttons-#{@section_view.id}-#{index}"}
+                persistent={false}
+                smart_cell_definitions={@smart_cell_definitions}
+                runtime={@runtime}
+                section_id={@section_view.id}
+                cell_id={cell_view.id}
+              />
+            <% end %>
           <% end %>
         </div>
       </div>

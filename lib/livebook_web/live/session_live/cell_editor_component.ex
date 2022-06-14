@@ -12,7 +12,13 @@ defmodule LivebookWeb.SessionLive.CellEditorComponent do
       socket
       |> assign(assigns)
       |> assign_new(:intellisense, fn -> false end)
-      |> assign_new(:read_only, fn -> false end)
+      |> assign_new(:read_only, fn ->
+        if policy = Map.get(assigns, :policy) do
+          !policy.edit
+        else
+          false
+        end
+      end)
       |> assign_new(:rounded, fn -> :both end)
 
     socket =

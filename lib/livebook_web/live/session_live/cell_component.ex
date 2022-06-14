@@ -27,12 +27,16 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:secondary>
-        <.enable_insert_mode_button />
-        <.insert_image_button cell_id={@cell_view.id} session_id={@session_id} socket={@socket} />
+        <%= if @policy.edit do %>
+          <.enable_insert_mode_button />
+          <.insert_image_button cell_id={@cell_view.id} session_id={@session_id} socket={@socket} />
+        <% end %>
         <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
+        <%= if @policy.edit do %>
+          <.move_cell_up_button cell_id={@cell_view.id} />
+          <.move_cell_down_button cell_id={@cell_view.id} />
+          <.delete_cell_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -44,6 +48,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           tag="primary"
           source_view={@cell_view.source_view}
           language="markdown"
+          policy={@policy}
         />
       </div>
       <div
@@ -62,22 +67,28 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:primary>
-        <.cell_evaluation_button
-          session_id={@session_id}
-          socket={@socket}
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-          reevaluate_automatically={@cell_view.reevaluate_automatically}
-        />
+        <%= if @policy.execute do %>
+          <.cell_evaluation_button
+            session_id={@session_id}
+            socket={@socket}
+            cell_id={@cell_view.id}
+            validity={@cell_view.eval.validity}
+            status={@cell_view.eval.status}
+            reevaluate_automatically={@cell_view.reevaluate_automatically}
+          />
+        <% end %>
       </:primary>
       <:secondary>
         <.amplify_output_button />
-        <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
+        <%= if @policy.edit do %>
+          <.cell_settings_button cell_id={@cell_view.id} socket={@socket} session_id={@session_id} />
+          <.cell_link_button cell_id={@cell_view.id} />
+          <.move_cell_up_button cell_id={@cell_view.id} />
+          <.move_cell_down_button cell_id={@cell_view.id} />
+          <.delete_cell_button cell_id={@cell_view.id} />
+        <% else %>
+          <.cell_link_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -90,6 +101,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
           source_view={@cell_view.source_view}
           language="elixir"
           intellisense
+          policy={@policy}
         />
         <div class="absolute bottom-2 right-2">
           <.cell_status id={@cell_view.id} cell_view={@cell_view} />
@@ -109,14 +121,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:primary>
-        <.setup_cell_evaluation_button
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-        />
+        <%= if @policy.execute do %>
+          <.setup_cell_evaluation_button
+            cell_id={@cell_view.id}
+            validity={@cell_view.eval.validity}
+            status={@cell_view.eval.status}
+          />
+        <% end %>
       </:primary>
       <:secondary>
-        <.package_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
+        <%= if @policy.edit do %>
+          <.package_search_button session_id={@session_id} runtime={@runtime} socket={@socket} />
+        <% end %>
         <.cell_link_button cell_id={@cell_view.id} />
         <.setup_cell_info />
       </:secondary>
@@ -138,6 +154,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
             source_view={@cell_view.source_view}
             language="elixir"
             intellisense
+            policy={@policy}
           />
           <div class="absolute bottom-2 right-2">
             <.cell_status id={"#{@cell_view.id}-2"} cell_view={@cell_view} />
@@ -158,22 +175,26 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     ~H"""
     <.cell_actions>
       <:primary>
-        <.cell_evaluation_button
-          session_id={@session_id}
-          socket={@socket}
-          cell_id={@cell_view.id}
-          validity={@cell_view.eval.validity}
-          status={@cell_view.eval.status}
-          reevaluate_automatically={false}
-        />
+        <%= if @policy.execute do %>
+          <.cell_evaluation_button
+            session_id={@session_id}
+            socket={@socket}
+            cell_id={@cell_view.id}
+            validity={@cell_view.eval.validity}
+            status={@cell_view.eval.status}
+            reevaluate_automatically={false}
+          />
+        <% end %>
       </:primary>
       <:secondary>
         <.toggle_source_button />
-        <.convert_smart_cell_button cell_id={@cell_view.id} />
-        <.cell_link_button cell_id={@cell_view.id} />
-        <.move_cell_up_button cell_id={@cell_view.id} />
-        <.move_cell_down_button cell_id={@cell_view.id} />
-        <.delete_cell_button cell_id={@cell_view.id} />
+        <%= if @policy.edit do %>
+          <.convert_smart_cell_button cell_id={@cell_view.id} />
+          <.cell_link_button cell_id={@cell_view.id} />
+          <.move_cell_up_button cell_id={@cell_view.id} />
+          <.move_cell_down_button cell_id={@cell_view.id} />
+          <.delete_cell_button cell_id={@cell_view.id} />
+        <% end %>
       </:secondary>
     </.cell_actions>
     <.cell_body>
@@ -199,6 +220,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                   source_view={@cell_view.editor.source_view}
                   language={@cell_view.editor.language}
                   rounded={@cell_view.editor.placement}
+                  policy={@policy}
                 />
               <% end %>
             </div>
