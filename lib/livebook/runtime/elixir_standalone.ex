@@ -34,6 +34,18 @@ defmodule Livebook.Runtime.ElixirStandalone do
           %{
             name: "MySQL",
             packages: [kino_db, %{name: "myxql", dependency: {:myxql, "~> 0.6.2"}}]
+          },
+          %{
+            name: "SQLite",
+            packages: [kino_db, %{name: "exqlite", dependency: {:exqlite, "~> 0.11.0"}}]
+          },
+          %{
+            name: "Google BigQuery",
+            packages: [kino_db, %{name: "req_bigquery", dependency: {:req_bigquery, "~> 0.1.0"}}]
+          },
+          %{
+            name: "AWS Athena",
+            packages: [kino_db, %{name: "req_athena", dependency: {:req_athena, "~> 0.1.0"}}]
           }
         ]
       }
