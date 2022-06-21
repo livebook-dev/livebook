@@ -94,9 +94,11 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
   end
 
   defp log_event(level, msg, ts, md, gl, state) do
+    output = format_event(level, msg, ts, md, state)
     if io_proxy?(gl) do
-      output = format_event(level, msg, ts, md, state)
       async_io(gl, output)
+    else
+      async_io(Process.whereis(:standard_error), output)
     end
   end
 
