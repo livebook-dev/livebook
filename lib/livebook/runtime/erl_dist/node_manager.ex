@@ -152,12 +152,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   end
 
   def handle_info({:orphan_log, output} = message, state) do
-    if length(state.runtime_servers) > 0 do
-      Enum.each(
-        state.runtime_servers,
-        &send(&1, message)
-      )
-    end
+    for pid <- state.runtime_servers, do: send(pid, message)
+    {:noreply, state}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
