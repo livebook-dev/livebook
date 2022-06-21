@@ -32,7 +32,7 @@ main() {
     build_otp $otp_repo $otp_ref $target $openssl_dir $otp_dir
   fi
 
-  export PATH="$otp_dir/bin:$PATH"
+  export PATH="${otp_dir}/bin:$PATH"
   echo "checking otp"
   file `which erlc`
   erl +V
@@ -40,17 +40,18 @@ main() {
   erl -noshell -eval '{wx_ref,_,_,_} = wx:new(), io:format("wx ok~n"), halt().'
   echo
 
-  if [ ! -d "tmp/elixir-${elixir_vsn}" ]; then
+  elixir_dir="$PWD/tmp/elixir-${elixir_vsn}"
+  if [ ! -d "${elixir_dir}" ]; then
     build_elixir $elixir_vsn
   fi
 
-  export PATH=$PWD/tmp/elixir-${elixir_vsn}/bin:$PATH
+  export PATH="${elixir_dir}/bin:$PATH"
   echo "checking elixir"
   elixir --version
 
   cat << EOF > tmp/bootstrap_env.sh
-export PATH=\$PWD/tmp/otp-${otp_vsn}-${target}/bin:\$PATH
-export PATH=\$PWD/tmp/elixir-${elixir_vsn}/bin:\$PATH
+export PATH="${otp_dir}/bin:\$PATH"
+export PATH="${elixir_dir}/bin:\$PATH"
 EOF
 }
 

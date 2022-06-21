@@ -97,10 +97,12 @@ jobs:
     # if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v2
-      - name: Cache Bootstrap Mac
+      - name: Cache Bootstrap
         uses: actions/cache@v2
         with:
           path: tmp
           key: ${{ runner.os }}-app-${{ hashFiles('.github/scripts/app/bootstrap_mac.sh') }}
+      - name: Bootstrap
+        run: bash .github/scripts/app/bootstrap_mac.sh
       - name: Build the app
         run: bash .github/scripts/app/build_mac.sh
