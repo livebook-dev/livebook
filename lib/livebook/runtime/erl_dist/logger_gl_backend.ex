@@ -99,7 +99,7 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
     if io_proxy?(gl) do
       async_io(gl, output)
     else
-      send(Process.whereis(Livebook.Runtime.ErlDist.NodeManager), {:orphan_log, output})
+      send(Livebook.Runtime.ErlDist.NodeManager, {:orphan_log, output})
     end
   end
 
