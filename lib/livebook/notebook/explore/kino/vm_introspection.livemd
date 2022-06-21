@@ -144,7 +144,7 @@ and take the most memory.
 
 ## Tracking memory usage
 
-So far we have used VegaLite to draw static plots. However, we can
+So far we have used VegaLite to draw static plots. However, we can use
 Kino to dynamically push data to VegaLite. Let's use them together
 to plot the runtime memory usage over time.
 
