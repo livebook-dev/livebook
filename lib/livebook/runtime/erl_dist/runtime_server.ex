@@ -244,6 +244,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, finish_scan_binding(ref, state)}
   end
 
+  def handle_info({:orphan_log, output} = message, state) do
+    # send to group leader of the last evaluator process that was called
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   defp handle_down_evaluator(state, {:DOWN, _, :process, pid, reason}) do
