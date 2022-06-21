@@ -155,7 +155,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     if length(state.runtime_servers) > 0 do
       Enum.each(
         state.runtime_servers,
-        send(&1, message)
+        &send(&1, message)
       )
     end
   end
