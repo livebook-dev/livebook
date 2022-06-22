@@ -109,9 +109,10 @@ jobs:
           key: ${{ runner.os }}-app-${{ hashFiles('.github/scripts/app/bootstrap_mac.sh') }}
       - name: Bootstrap
         run: bash .github/scripts/app/bootstrap_mac.sh
-      - run: . tmp/bootstrap_env.sh
-      - run: mix local.hex --force
-      - run: mix local.rebar --force
-      - run: MIX_ENV=prod mix deps.get
       - name: Build the app
-        run: bash .github/scripts/app/build_mac.sh
+        run: |
+        . tmp/bootstrap_env.sh
+        mix local.hex --force
+        mix local.rebar --force
+        MIX_ENV=prod mix deps.get
+        bash .github/scripts/app/build_mac.sh
