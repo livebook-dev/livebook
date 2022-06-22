@@ -110,9 +110,4 @@ jobs:
       - name: Bootstrap
         run: bash .github/scripts/app/bootstrap_mac.sh
       - name: Build the app
-        run: |
-        . tmp/bootstrap_env.sh
-        mix local.hex --force
-        mix local.rebar --force
-        MIX_ENV=prod mix deps.get
-        bash .github/scripts/app/build_mac.sh
+        run: bash .github/scripts/app/build_mac.sh
