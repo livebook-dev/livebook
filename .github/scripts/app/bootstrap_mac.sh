@@ -1,22 +1,25 @@
 #!/bin/bash
-set -e
+set -e pipefail
 
 main() {
   export MAKEFLAGS=-j$(getconf _NPROCESSORS_ONLN)
 
-  wxwidgets_vsn="3.1.5"
-  otp_vsn="25.0"
+  wxwidgets_repo="wxWidgets/wxWidgets"
+  wxwidgets_ref="v3.1.7"
+  otp_repo="erlang/otp"
+  otp_ref="OTP-25.0.2"
   elixir_vsn="1.13.4"
 
   target=$(target)
 
   mkdir -p tmp
 
-  if [ ! -d "tmp/wxwidgets-${wxwidgets_vsn}-$target" ]; then
-    build_wxwidgets $wxwidgets_vsn $target
+  wxwidgets_dir="$PWD/tmp/wxwidgets-${wxwidgets_ref}-$target"
+  if [ ! -d $wxwidgets_dir ]; then
+    build_wxwidgets $wxwidgets_repo $wxwidgets_ref $target $wxwidgets_dir
   fi
 
-  export PATH=$PWD/tmp/wxwidgets-${wxwidgets_vsn}-$target/bin:$PATH
+  export PATH="${wxwidgets_dir}/bin:$PATH"
   echo "checking wx"
   file `which wxrc`
   wx-config --version
@@ -24,11 +27,12 @@ main() {
 
   openssl_dir=$(brew --prefix openssl@1.1)
 
-  if [ ! -d "tmp/otp-${otp_vsn}-$target" ]; then
-    build_otp $otp_vsn $target $openssl_dir
+  otp_dir="$PWD/tmp/otp-${otp_ref}-$target"
+  if [ ! -d $otp_dir ]; then
+    build_otp $otp_repo $otp_ref $target $openssl_dir $otp_dir
   fi
 
-  export PATH=$PWD/tmp/otp-${otp_vsn}-$target/bin:$PATH
+  export PATH="${otp_dir}/bin:$PATH"
   echo "checking otp"
   file `which erlc`
   erl +V
@@ -36,39 +40,37 @@ main() {
   erl -noshell -eval '{wx_ref,_,_,_} = wx:new(), io:format("wx ok~n"), halt().'
   echo
 
-  if [ ! -d "tmp/elixir-${elixir_vsn}" ]; then
+  elixir_dir="$PWD/tmp/elixir-${elixir_vsn}"
+  if [ ! -d "${elixir_dir}" ]; then
     build_elixir $elixir_vsn
   fi
 
-  export PATH=$PWD/tmp/elixir-${elixir_vsn}/bin:$PATH
+  export PATH="${elixir_dir}/bin:$PATH"
   echo "checking elixir"
   elixir --version
 
   cat << EOF > tmp/bootstrap_env.sh
-export PATH=\$PWD/tmp/otp-${otp_vsn}-${target}/bin:\$PATH
-export PATH=\$PWD/tmp/elixir-${elixir_vsn}/bin:\$PATH
+export PATH="${otp_dir}/bin:\$PATH"
+export PATH="${elixir_dir}/bin:\$PATH"
 EOF
 }
 
 build_wxwidgets() {
-  vsn=$1
-  target=$2
+  repo=$1
+  ref=$2
+  target=$3
+  dest_dir=$4
+  src_dir=tmp/wxwidgets-$ref-src
 
-  otp_bootstrap_root=$PWD
-  cd tmp
-
-  if [ ! -d wxwidgets-$vsn-src ]; then
-    url=https://github.com/wxWidgets/wxWidgets/releases/download/v$vsn/wxWidgets-$vsn.tar.bz2
-    echo downloading $url
-    curl --fail -LO $url
-    tar -xf wxWidgets-$vsn.tar.bz2
-    mv wxWidgets-$vsn wxwidgets-$vsn-src
+  if [ ! -d $src_dir ]; then
+    echo cloning $repo $ref
+    git clone --branch $ref --depth 1 --recursive https://github.com/$repo $src_dir
   fi
 
-  cd wxwidgets-$vsn-src
+  cd $src_dir
   ./configure \
     --disable-shared \
-    --prefix=$otp_bootstrap_root/tmp/wxwidgets-$vsn-$target \
+    --prefix=$dest_dir \
     --with-cocoa \
     --with-macosx-version-min=10.15 \
     --with-libjpeg=builtin \
@@ -77,27 +79,28 @@ build_wxwidgets() {
     --with-liblzma=builtin \
     --with-zlib=builtin \
     --with-expat=builtin
-
   make
   make install
-  cd $otp_bootstrap_root
+  cd -
 }
 
 build_otp() {
-  vsn=$1
-  target=$2
-  openssl_dir=$3
+  repo=$1
+  ref=$2
+  target=$3
+  openssl_dir=$4
+  dest_dir=$5
 
-  otp_bootstrap_root=$PWD
-  cd tmp
-  curl --fail -LO https://github.com/erlang/otp/releases/download/OTP-${vsn}/otp_src_${vsn}.tar.gz
-  tar -xf otp_src_${vsn}.tar.gz
+  src_dir=tmp/otp-$ref-src
+  if [ ! -d $src_dir ]; then
+    echo cloning $repo $ref
+    git clone --branch $ref --depth 1 --recursive https://github.com/$repo $src_dir
+  fi
 
-  cd otp_src_${vsn}
+  export RELEASE_ROOT=$dest_dir
 
+  cd $src_dir
   export ERL_TOP=`pwd`
-  export RELEASE_ROOT=$otp_bootstrap_root/tmp/otp-$vsn-$target
-
   ./otp_build configure \
     --disable-dynamic-ssl-lib \
     --with-ssl=$openssl_dir
@@ -105,13 +108,14 @@ build_otp() {
   ./otp_build boot -a
   ./otp_build release -a $RELEASE_ROOT
   make release_docs DOC_TARGETS=chunks
+  cd -
 
   cd $RELEASE_ROOT
   ./Install -sasl $PWD
   ./bin/erl -noshell -eval 'io:format("~s", [erlang:system_info(system_version)]), halt().'
   ./bin/erl -noshell -eval 'ok = crypto:start(), halt().'
   ./bin/erl -noshell -eval '{wx_ref,_,_,_} = wx:new(), halt().'
-  cd ../..
+  cd -
 }
 
 build_elixir() {
@@ -124,7 +128,7 @@ build_elixir() {
   curl --fail -LO $url
   mkdir elixir-$vsn
   unzip v${vsn}-otp-${otp_release}.zip -d elixir-$vsn
-  cd ..
+  cd -
 }
 
 target() {
