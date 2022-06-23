@@ -250,7 +250,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
          {:group_leader, io_proxy} <- Process.info(evaluator.pid, :group_leader) do
       ErlDist.LoggerGLBackend.async_io(io_proxy, output)
     end
-    
+
     {:noreply, state}
   end
 
