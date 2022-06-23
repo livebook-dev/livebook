@@ -136,7 +136,7 @@ defmodule Livebook.Runtime.Evaluator do
   """
   @spec evaluate_code(t(), String.t(), ref(), ref() | nil, keyword()) :: :ok
   def evaluate_code(evaluator, code, ref, base_ref \\ nil, opts \\ []) when ref != nil do
-    cast(evaluator, {:evaluate_code, code, ref, base_ref, [ {:evaluator_pid, evaluator}| opts]})
+    cast(evaluator, {:evaluate_code, code, ref, base_ref, [{:evaluator_pid, evaluator} | opts]})
   end
 
   @doc """
