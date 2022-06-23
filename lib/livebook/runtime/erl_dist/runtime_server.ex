@@ -201,7 +201,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
        smart_cell_definitions_module:
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
-       memory_timer_ref: nil
+       memory_timer_ref: nil,
+       last_evaluator: nil
      }}
   end
 
@@ -242,6 +243,15 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   def handle_info({:scan_binding_ack, ref}, state) do
     {:noreply, finish_scan_binding(ref, state)}
+  end
+
+  def handle_info({:orphan_log, output}, state) do
+    with %{} = evaluator <- state.last_evaluator,
+         {:group_leader, io_proxy} <- Process.info(evaluator.pid, :group_leader) do
+      ErlDist.LoggerGLBackend.async_io(io_proxy, output)
+    end
+
+    {:noreply, state}
   end
 
   def handle_info(_message, state), do: {:noreply, state}
@@ -338,7 +348,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       opts
     )
 
-    {:noreply, state}
+    {:noreply, %{state | last_evaluator: state.evaluators[container_ref]}}
   end
 
   def handle_cast({:forget_evaluation, {container_ref, evaluation_ref}}, state) do

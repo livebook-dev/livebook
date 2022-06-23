@@ -151,6 +151,11 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     end
   end
 
+  def handle_info({:orphan_log, _output} = message, state) do
+    for pid <- state.runtime_servers, do: send(pid, message)
+    {:noreply, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
