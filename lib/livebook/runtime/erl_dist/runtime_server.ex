@@ -348,7 +348,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       opts
     )
 
-    {:noreply, Map.replace!(state, :last_evaluator, state.evaluators[container_ref])}
+    {:noreply, %{state | last_evaluator: state.evaluators[container_ref]}}
   end
 
   def handle_cast({:forget_evaluation, {container_ref, evaluation_ref}}, state) do
