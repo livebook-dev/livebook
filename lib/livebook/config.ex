@@ -343,6 +343,15 @@ defmodule Livebook.Config do
 
   defp parse_mix_config!(config) do
     case String.split(config, ":", parts: 2) do
+      # Ignore Windows drive letter
+      [<<letter>>, rest] when letter in ?a..?z or letter in ?A..?Z ->
+        [path | rest] = String.split(rest, ":", parts: 2)
+        [<<letter, ":", path::binary>> | rest]
+
+      other ->
+        other
+    end
+    |> case do
       [path] -> {path, ""}
       [path, flags] -> {path, flags}
     end
