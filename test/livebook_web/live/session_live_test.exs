@@ -245,8 +245,8 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-outputs-container] form/)
-      |> render_change(%{"value" => "10"})
+      |> element(~s/[data-el-outputs-container] input/)
+      |> render_blur(%{"value" => "10"})
 
       assert %{input_values: %{"input1" => 10}} = Session.get_data(session.pid)
 
@@ -274,8 +274,8 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-outputs-container] form/)
-      |> render_change(%{"value" => "line\r\nline"})
+      |> element(~s/[data-el-outputs-container] textarea/)
+      |> render_blur(%{"value" => "line\r\nline"})
 
       assert %{input_values: %{"input1" => "line\nline"}} = Session.get_data(session.pid)
     end
@@ -312,8 +312,8 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
       view
-      |> element(~s/[data-el-outputs-container] form/)
-      |> render_change(%{"value" => "sherlock"})
+      |> element(~s/[data-el-outputs-container] input/)
+      |> render_blur(%{"value" => "sherlock"})
 
       # The new value is on the page
       assert render(view) =~ "sherlock"

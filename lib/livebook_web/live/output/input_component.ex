@@ -150,11 +150,20 @@ defmodule LivebookWeb.Output.InputComponent do
 
   @impl true
   def handle_event("change", %{"value" => html_value}, socket) do
-    {:noreply, handle_html_value(socket, html_value)}
+    socket = handle_html_value(socket, html_value)
+
+    socket =
+      if report_immediately?(socket.assigns.attrs.type) do
+        maybe_report_change(socket)
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("blur", %{"value" => html_value}, socket) do
-    socket = handle_html_value(socket, html_value)
+    socket = socket |> handle_html_value(html_value) |> maybe_report_change()
 
     if socket.assigns.error do
       {:noreply, assign(socket, value: socket.assigns.initial_value, error: nil)}
@@ -164,33 +173,34 @@ defmodule LivebookWeb.Output.InputComponent do
   end
 
   def handle_event("submit", %{"value" => html_value}, socket) do
-    socket = handle_html_value(socket, html_value)
+    socket = socket |> handle_html_value(html_value) |> maybe_report_change()
     send(self(), {:queue_bound_cells_evaluation, socket.assigns.attrs.id})
     {:noreply, socket}
   end
 
   defp handle_html_value(socket, html_value) do
-    current_value = socket.assigns.value
-
     case parse(html_value, socket.assigns.attrs) do
-      {:ok, ^current_value} ->
-        socket
-
       {:ok, value} ->
-        send(
-          self(),
-          {:set_input_values, [{socket.assigns.attrs.id, value}], socket.assigns.local}
-        )
-
-        unless socket.assigns.local do
-          report_event(socket, value)
-        end
-
         assign(socket, value: value, error: nil)
 
       {:error, error, value} ->
         assign(socket, value: value, error: error)
     end
+  end
+
+  defp report_immediately?(type), do: type in [:select, :checkbox]
+
+  defp maybe_report_change(socket) when socket.assigns.error != nil, do: socket
+  defp maybe_report_change(%{assigns: %{value: value, initial_value: value}} = socket), do: socket
+
+  defp maybe_report_change(%{assigns: assigns} = socket) do
+    send(self(), {:set_input_values, [{assigns.attrs.id, assigns.value}], assigns.local})
+
+    unless assigns.local do
+      report_event(socket, assigns.value)
+    end
+
+    socket
   end
 
   defp parse(html_value, %{type: :text}) do
