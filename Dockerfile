@@ -79,5 +79,8 @@ COPY --from=build /app/_build/prod/rel/livebook /app
 # Make release files available to any user, in case someone
 # runs the container with `--user`
 RUN chmod -R go=u /app
+# Allow anyone to create files in /app/releases, in case someone
+# runs the container with `--user`
+RUN chmod 777 /app/releases
 
 CMD [ "/app/bin/livebook", "start" ]
