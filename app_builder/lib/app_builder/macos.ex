@@ -53,7 +53,7 @@ defmodule AppBuilder.MacOS do
       app_options: options
     )
 
-    if options[:macos_build_dmg] do
+    if options[:build_dmg] do
       build_dmg(release, options)
     end
 
@@ -62,7 +62,7 @@ defmodule AppBuilder.MacOS do
 
   defp build_dmg(release, options) do
     app_name = Keyword.fetch!(options, :name)
-    notarization = Keyword.fetch!(options, :macos_notarization)
+    notarization = Keyword.fetch!(options, :notarization)
 
     dmg_dir = "#{Mix.Project.build_path()}/dmg"
     app_dir = "#{dmg_dir}/#{app_name}.app"
