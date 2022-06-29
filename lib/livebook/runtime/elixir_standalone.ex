@@ -19,6 +19,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
 
   kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.1"}}
   kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.1"}}
+  kino_maplibre = %{name: "kino_maplibre", dependency: {:kino_maplibre, "~> 0.1.0"}}
 
   @extra_smart_cell_definitions [
     %{
@@ -57,6 +58,18 @@ defmodule Livebook.Runtime.ElixirStandalone do
           %{
             name: "Default",
             packages: [kino_vega_lite]
+          }
+        ]
+      }
+    },
+    %{
+      kind: "Elixir.KinoMapLibre.MapCell",
+      name: "Map",
+      requirement: %{
+        variants: [
+          %{
+            name: "Default",
+            packages: [kino_maplibre]
           }
         ]
       }

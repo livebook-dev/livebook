@@ -72,6 +72,13 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
+      path: Path.join(__DIR__, "explore/intro_to_maplibre.livemd"),
+      details: %{
+        description: "Learn how to seamlessly plot maps using geospatial and tabular data.",
+        cover_url: "/images/maplibre.png"
+      }
+    },
+    %{
       ref: :kino_intro,
       path: Path.join(__DIR__, "explore/kino/intro_to_kino.livemd")
     },
