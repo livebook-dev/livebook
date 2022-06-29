@@ -403,4 +403,29 @@ defmodule Livebook.NotebookTest do
                )
     end
   end
+
+  describe "find_frame_outputs/2" do
+    test "returns frame outputs with matching ref" do
+      frame_output = {0, {:frame, [], %{ref: "1", type: :default}}}
+
+      notebook = %{
+        Notebook.new()
+        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [frame_output]}]}]
+      }
+
+      assert [^frame_output] = Notebook.find_frame_outputs(notebook, "1")
+    end
+
+    test "finds a nested frame" do
+      nested_frame_output = {0, {:frame, [], %{ref: "2", type: :default}}}
+      frame_output = {0, {:frame, [nested_frame_output], %{ref: "1", type: :default}}}
+
+      notebook = %{
+        Notebook.new()
+        | sections: [%{Section.new() | cells: [%{Cell.new(:code) | outputs: [frame_output]}]}]
+      }
+
+      assert [^nested_frame_output] = Notebook.find_frame_outputs(notebook, "2")
+    end
+  end
 end

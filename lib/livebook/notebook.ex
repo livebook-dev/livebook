@@ -722,7 +722,7 @@ defmodule Livebook.Notebook do
   end
 
   defp do_find_frame_outputs({_idx, {:frame, outputs, _info}}, ref) do
-    Enum.flat_map(outputs, &find_frame_outputs(&1, ref))
+    Enum.flat_map(outputs, &do_find_frame_outputs(&1, ref))
   end
 
   defp do_find_frame_outputs(_output, _ref) do
