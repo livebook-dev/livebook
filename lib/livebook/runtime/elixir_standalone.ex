@@ -18,7 +18,7 @@ defmodule Livebook.Runtime.ElixirStandalone do
         }
 
   kino_vega_lite = %{name: "kino_vega_lite", dependency: {:kino_vega_lite, "~> 0.1.1"}}
-  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.1"}}
+  kino_db = %{name: "kino_db", dependency: {:kino_db, "~> 0.1.2"}}
   kino_maplibre = %{name: "kino_maplibre", dependency: {:kino_maplibre, "~> 0.1.0"}}
 
   @extra_smart_cell_definitions [
@@ -34,6 +34,18 @@ defmodule Livebook.Runtime.ElixirStandalone do
           %{
             name: "MySQL",
             packages: [kino_db, %{name: "myxql", dependency: {:myxql, "~> 0.6.2"}}]
+          },
+          %{
+            name: "SQLite",
+            packages: [kino_db, %{name: "exqlite", dependency: {:exqlite, "~> 0.11.0"}}]
+          },
+          %{
+            name: "Google BigQuery",
+            packages: [kino_db, %{name: "req_bigquery", dependency: {:req_bigquery, "~> 0.1.0"}}]
+          },
+          %{
+            name: "AWS Athena",
+            packages: [kino_db, %{name: "req_athena", dependency: {:req_athena, "~> 0.1.0"}}]
           }
         ]
       }
