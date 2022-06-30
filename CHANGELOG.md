@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.6.2](https://github.com/livebook-dev/livebook/tree/v0.6.2) (2022-06-30)
+
+### Added
+
+- Session sidebar toggle on mobile ([#1183](https://github.com/livebook-dev/livebook/pull/1183))
+- Support for configuring a custom iframe URL ([#1200](https://github.com/livebook-dev/livebook/pull/1200))
+- Link to Hexdocs in on-hover docs ([#1221](https://github.com/livebook-dev/livebook/pull/1221))
+- Capturing logs from processes outside Livebook supervision ([#1235](https://github.com/livebook-dev/livebook/pull/1235))
+- Support HTML and CSS highlighting in Markdown cells ([#1244](https://github.com/livebook-dev/livebook/pull/1244) and [#1246](https://github.com/livebook-dev/livebook/pull/1246))
+- MapLibre introductory notebook ([#1250](https://github.com/livebook-dev/livebook/pull/1250))
+- Support for SQLite, Google BigQuery and AWS Athena under the well-known cells ([#1256](https://github.com/livebook-dev/livebook/pull/1256))
+
+### Changed
+
+- Default Livebook home path for Docker to `/data` ([#1191](https://github.com/livebook-dev/livebook/pull/1191))
+- Mac app to run in the background ([#1199](https://github.com/livebook-dev/livebook/pull/1199))
+
+### Fixed
+
+- Memory monitoring to show the correct amount of free memory available on the system ([#1179](https://github.com/livebook-dev/livebook/pull/1179))
+- Livebook access URL when running `livebook server` with custom `--ip` ([#1181](https://github.com/livebook-dev/livebook/pull/1181))
+- Smart cell evaluation button in forked notebooks ([#1185](https://github.com/livebook-dev/livebook/pull/1185))
+- Relative links in Markdown output ([#1189](https://github.com/livebook-dev/livebook/pull/1189))
+- Docker startup when specifying `--user` ([#1193](https://github.com/livebook-dev/livebook/pull/1193))
+- Support for `target="_blank"` links inside JS outputs and smart cells ([#1203](https://github.com/livebook-dev/livebook/pull/1203))
+- Context menu in the file system component ([#1205](https://github.com/livebook-dev/livebook/pull/1205))
+- Copying content with math syntax ([#1225](https://github.com/livebook-dev/livebook/pull/1225))
+- Windows absolute paths when configuring Mix runtime via CLI ([#1242](https://github.com/livebook-dev/livebook/pull/1242))
+
 ## [v0.6.1](https://github.com/livebook-dev/livebook/tree/v0.6.1) (2022-05-06)
 
 ### Changed
