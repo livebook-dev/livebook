@@ -134,13 +134,18 @@ function remarkExpandUrls(options) {
   return (ast) => {
     if (options.baseUrl) {
       visit(ast, "link", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url) && !isPageAnchor(node.url)) {
+        if (
+          node.url &&
+          !isAbsoluteUrl(node.url) &&
+          !isInternalUrl(node.url) &&
+          !isPageAnchor(node.url)
+        ) {
           node.url = urlAppend(options.baseUrl, node.url);
         }
       });
 
       visit(ast, "image", (node) => {
-        if (node.url && !isAbsoluteUrl(node.url)) {
+        if (node.url && !isAbsoluteUrl(node.url) && !isInternalUrl(node.url)) {
           node.url = urlAppend(options.baseUrl, node.url);
         }
       });
@@ -220,7 +225,7 @@ function rehypeExternalLinks(options) {
 }
 
 function isAbsoluteUrl(url) {
-  return url.startsWith("http") || url.startsWith("/");
+  return /^(?:[a-z]+:)?\/\//i.test(url);
 }
 
 function isPageAnchor(url) {
