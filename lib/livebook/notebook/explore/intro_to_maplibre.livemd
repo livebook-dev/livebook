@@ -71,8 +71,6 @@ Ml.new()
 )
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
-
 ## Simple maps
 
 Calling the `Ml.new/0` function with no arguments will render a simple map with all root properties at their default values and the basic style provided by [MapLibre](https://demotiles.maplibre.org/style.json) that will be automatically loaded for you.
@@ -99,7 +97,7 @@ street_style =
 Ml.new(style: street_style, zoom: 2)
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
+<!-- livebook:{"branch_parent_index":2} -->
 
 ## Sources and Layers
 
@@ -237,7 +235,7 @@ Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 5, style: street_
 )
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
+<!-- livebook:{"branch_parent_index":2} -->
 
 ## Expressions
 
@@ -310,7 +308,7 @@ Ml.new(center: {30.0222, -1.9596}, zoom: 7, style: street_style)
 )
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
+<!-- livebook:{"branch_parent_index":2} -->
 
 ## Heatmap
 
@@ -355,7 +353,7 @@ Ml.new(
 )
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
+<!-- livebook:{"branch_parent_index":2} -->
 
 ## Interactive maps
 
@@ -514,7 +512,7 @@ Let's add navigation controls on the fly!
 Kino.MapLibre.add_nav_controls(map)
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
+<!-- livebook:{"branch_parent_index":2} -->
 
 ## Geo package integration
 
@@ -598,7 +596,7 @@ Ml.new()
 )
 ```
 
-<!-- livebook:{"branch_parent_index":0} -->
+<!-- livebook:{"branch_parent_index":2} -->
 
 ## Tabular data
 
