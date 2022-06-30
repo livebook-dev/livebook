@@ -16,7 +16,7 @@ To work with maps in Livebook we need two libraries:
 
 * The [`kino_maplibre`](https://github.com/cristineguadelupe/Kino_maplibre) package instructs Livebook how to render our specifications and also provides some initial support for [MapLibre Evented API](https://maplibre.org/maplibre-gl-js-docs/api/events/#evented)
 
-We will make extensive use of MapLibre's functions, so it's handy to call the module something shorter.
+We will make extensive use of MapLibre's functions, so it's handy to alias the module to something shorter.
 
 ```elixir
 alias MapLibre, as: Ml
@@ -24,11 +24,9 @@ alias MapLibre, as: Ml
 
 <!-- livebook:{"branch_parent_index":0} -->
 
-## Map cell
+## The Map smart cell
 
-Map Cell is the [Smart Cell](https://news.livebook.dev/v0.6-automate-and-learn-with-smart-cells-mxJJe) for maps that's comes with `Kino_maplibre`.
-
-Map Cell helps you plot rich maps without needing to know the Maplibre API's details. Besides being a powerful tool for quickly building complex maps, the generated code is wholly valid, which means you can use it to learn more about the Maplibre library or even convert the Map Cell to an Elixir cell and add advanced features to the map without having to start it from scratch.
+The Map cell comes with `kino_maplibre` and helps you plot rich maps without needing to know the Maplibre API's details. Besides being a powerful tool for quickly building complex maps, the generated code is wholly valid, which means you can use it to learn more about the Maplibre library or even convert the Map Cell to an Elixir cell and add advanced features to the map without having to start it from scratch.
 
 Map Cell accepts `:geojson` data sources as url, [Geo](#geo-package-integration) structs or [tabular data](#tabular-data).
 
@@ -312,6 +310,8 @@ Ml.new(center: {30.0222, -1.9596}, zoom: 7, style: street_style)
 
 ## Heatmap
 
+You can also create heatmaps with Maplibre:
+
 ```elixir
 Ml.new(
   center: {-120, 50},
@@ -359,8 +359,7 @@ Ml.new(
 
 As said before, the `MapLibre` package covers all the style specification, but for the interactivity of the [Evented API](https://maplibre.org/maplibre-gl-js-docs/api/events/#evented) we need `Kino.MapLibre`.
 
-`Kino.MapLibre` supports two types of maps: static and dynamic. Essentially, a dynamic map can be updated on
-  the fly without having to be re-evaluated. To make a map dynamic you need to wrap it in `Kino.MapLibre.new/1`
+`Kino.MapLibre` supports two types of maps: static and dynamic. Essentially, a dynamic map can be updated on the fly without having to be re-evaluated. To make a map dynamic you need to wrap it in `Kino.MapLibre.new/1`
 
 Static maps will cover most use cases, and all `Kino.MapLibre` functions are available for both map types.
 
