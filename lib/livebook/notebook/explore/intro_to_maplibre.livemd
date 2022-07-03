@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:maplibre, "~> 0.1.0"},
+  {:maplibre, "~> 0.1.1"},
   {:kino_maplibre, "~> 0.1.0"}
 ])
 ```
@@ -603,7 +603,7 @@ You can plot tabular data directly on the map without any extra steps or convers
 
 At this point, only points are supported and your data must have the coordinates information in a column or in a pair of columns. For coordinates combined in a single column, the most common formats are well supported, such as `"-123.3596, 48.4268"`, `"-123.3596; 48.4268"` or even `"POINT(-123.3596 48.4268)"`. In addition, the data source needs to implement the [Table](https://hexdocs.pm/table/Table.html) protocol.
 
-To put the data as a source on the map, use the `add_table_source/4` function by giving the data as the third argument and a tuple with the coordinates information as the fourth. Geometry properties are supported through the function `add_table_source/5`. Just pass the list of columns you want to add as properties as the last argument.
+To put the data as a source on the map, use the `add_table_source/4` function by giving the data as the third argument and a tuple with the coordinates information as the fourth. Geometry properties are supported through the function `add_table_source/5`. Just pass the list of columns you want to add as properties in the list of options.
 
 ```elixir
 earthquakes = %{
@@ -666,7 +666,7 @@ Ml.new()
   "earthquakes",
   earthquakes,
   {:lat_lng, ["latitude", "longitude"]},
-  ["place", "mag"]
+  [properties: ["place", "mag"]]
 )
 |> Ml.add_layer(
   id: "earthquakes",
