@@ -18,6 +18,36 @@ defmodule AppBuilder do
     end
   end
 
+  def init do
+    if input = System.get_env("APP_BUILDER_INPUT") do
+      __rpc__(self(), input)
+    end
+  end
+
+  def __rpc__(event_handler) do
+    input = IO.read(:line) |> String.trim()
+    __rpc__(event_handler, input)
+  end
+
+  def __rpc__(event_handler, "open_app") do
+    send(event_handler, :open_app)
+  end
+
+  def __rpc__(event_handler, "open_url:" <> url) do
+    send(event_handler, {:open_url, url})
+  end
+
+  def __rpc__(event_handler, "open_file:" <> path) do
+    path =
+      if os() == :windows do
+        String.replace(path, "\\", "/")
+      else
+        path
+      end
+
+    send(event_handler, {:open_file, path})
+  end
+
   defp validate_options(options) do
     os = os()
 
@@ -25,6 +55,7 @@ defmodule AppBuilder do
       all: [
         :name,
         :icon_path,
+        :event_handler,
         url_schemes: [],
         document_types: [],
         additional_paths: []

@@ -160,8 +160,8 @@ defmodule Livebook.MixProject do
               ]
             ]
           ],
+          event_handler: LivebookApp,
           additional_paths: [
-            "rel/erts-#{:erlang.system_info(:version)}/bin",
             "rel/vendor/elixir/bin"
           ],
           macos: [
@@ -171,7 +171,6 @@ defmodule Livebook.MixProject do
             notarization: macos_notarization
           ],
           windows: [
-            server: LivebookApp,
             icon_path: "rel/app/icon.ico",
             build_installer: true
           ]
