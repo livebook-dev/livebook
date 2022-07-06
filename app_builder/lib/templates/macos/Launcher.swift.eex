@@ -1,17 +1,121 @@
 <%
 
-additional_paths = [
-  "rel/erts-#{@release.erts_version}/bin"
-] ++ @app_options[:additional_paths]
+event_handler = @app_options |> Keyword.fetch!(:event_handler) |> inspect()
 
-additional_paths = Enum.map_join(additional_paths, ":", &"\\(resourcePath)/#{&1}")
+additional_paths =
+  ["rel/erts-#{@release.erts_version}/bin"] ++ @app_options[:additional_paths]
+  |> Enum.map_join(":", &"\\(resourcePath)/#{&1}")
 
 %>
-import Foundation
 import Cocoa
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var releaseTask: Process!
+    var isRunning = false
+    var initialInput = "open_app"
+
+    func applicationDidFinishLaunching(_ aNotification: Notification) {
+        if !isRunning {
+          releaseTask = startRelease(initialInput)
+          isRunning = true
+        }
+    }
+
+    func applicationWillTerminate(_ n: Notification) {
+        if (releaseTask.isRunning == true) {
+            log("terminating release task")
+            releaseTask.terminate()
+        }
+    }
+
+    func application(_ app: NSApplication, open urls: [URL]) {
+        for url in urls {
+            var input : String
+
+            if url.isFileURL {
+                input = "open_file:\(url.path)"
+            } else {
+                input = "open_url:\(url)"
+            }
+
+            if isRunning {
+                rpc(input)
+            } else {
+                initialInput = input
+            }
+        }
+    }
+
+}
+
+func startRelease(_ input : String) -> Process {
+    let task = buildReleaseTask()
+    task.environment!["APP_BUILDER_INPUT"] = input
+    task.arguments = ["start"]
+
+    task.terminationHandler = {(t: Process) in
+        if t.terminationStatus == 0 {
+            log("release exited with: \(t.terminationStatus)")
+        } else {
+            runAlert(messageText: "\(appName) exited with error status \(t.terminationStatus).")
+        }
+
+        NSApp.terminate(nil)
+    }
+
+    try! task.run()
+    log("release pid: \(task.processIdentifier)")
+
+    DispatchQueue.global(qos: .userInteractive).async {
+        task.waitUntilExit()
+    }
+
+    return task
+}
+
+func rpc(_ event: String) {
+    let input = Pipe()
+    let task = buildReleaseTask()
+    task.standardInput = input
+    input.fileHandleForWriting.write("\(event)\n".data(using: .utf8)!)
+    task.arguments = ["rpc", "AppBuilder.__rpc__(<%= event_handler %>)"]
+    try! task.run()
+    task.waitUntilExit()
+
+    if task.terminationStatus != 0 {
+        runAlert(messageText: "Something went wrong")
+    }
+}
+
+func buildReleaseTask() -> Process {
+    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/<%= @release.name %>", ofType: "")!
+    let resourcePath = Bundle.main.resourcePath ?? ""
+    let additionalPaths = "<%= additional_paths %>"
+
+    var environment = ProcessInfo.processInfo.environment
+    let path = environment["PATH"] ?? ""
+    environment["PATH"] = "\(additionalPaths):\(path)"
+
+    let task = Process()
+    task.environment = environment
+    task.launchPath = releaseScriptPath
+    task.standardOutput = logFile
+    task.standardError = logFile
+    return task
+}
+
+func runAlert(messageText: String) {
+    DispatchQueue.main.async {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = messageText
+        alert.informativeText = "Logs available at: \(logPath)"
+        alert.runModal()
+    }
+}
+
 func log(_ line: String) {
-    logFile.write("\(line)\n".data(using: .utf8)!)
+    logFile.write("[\(appName)Launcher] \(line)\n".data(using: .utf8)!)
 }
 
 let fm = FileManager.default
@@ -22,33 +126,7 @@ if !fm.fileExists(atPath: logPath) { fm.createFile(atPath: logPath, contents: Da
 let logFile = FileHandle(forUpdatingAtPath: logPath)!
 logFile.seekToEndOfFile()
 
-let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/<%= @release.name %>", ofType: "")!
-
-let resourcePath = Bundle.main.resourcePath ?? ""
-let additionalPaths = "<%= additional_paths %>"
-
-var environment = ProcessInfo.processInfo.environment
-let path = environment["PATH"] ?? ""
-environment["PATH"] = "\(additionalPaths):\(path)"
-
-let task = Process()
-task.environment = environment
-task.launchPath = releaseScriptPath
-task.arguments = ["start"]
-task.standardOutput = logFile
-task.standardError = logFile
-
-log("[\(appName)Launcher] starting release")
-try task.run()
-log("[\(appName)Launcher] pid: \(task.processIdentifier)")
-
-task.waitUntilExit()
-log("[\(appName)Launcher] release exited with \(task.terminationStatus)")
-
-if task.terminationStatus != 0 {
-  let alert = NSAlert()
-  alert.alertStyle = .critical
-  alert.messageText = "\(appName) exited with error status \(task.terminationStatus)."
-  alert.informativeText = "Logs available at: \(logPath)"
-  alert.runModal()
-}
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()

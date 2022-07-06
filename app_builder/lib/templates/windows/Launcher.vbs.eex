@@ -1,48 +1,32 @@
-' This vbs script avoids a flashing cmd window when launching the release bat file
+<%
+
+event_handler = @app_options |> Keyword.fetch!(:event_handler) |> inspect()
+
+additional_paths =
+  ["rel/erts-#{@release.erts_version}/bin"] ++ @app_options[:additional_paths]
+  |> Enum.map(&("root & \"" <> String.replace(&1, "/", "\\") <> ";\" & "))
+
+%>
 
 root = Left(Wscript.ScriptFullName, Len(Wscript.ScriptFullName) - Len(Wscript.ScriptName))
 script = root & "rel\bin\<%= @release.name %>.bat"
 
-Set shell = CreateObject("WScript.Shell")
-
-' Below we run two commands:
-'
-'   1. bin/release rpc
-'   2. bin/release start
-'
-' The first one will only succeed when the app is already running. The second one when it is not.
-' It's ok for either to fail because we run them asynchronously.
-
-Set env = shell.Environment("Process")
-env("PATH") = "<%= Enum.map_join(@app_options[:additional_paths], ";", &String.replace(&1, "/", "\\")) %>" & env("PATH")
-
 If WScript.Arguments.Count > 0 Then
   input = WScript.Arguments(0)
 Else
-  input = "reopen_app"
+  input = "open_app"
 End If
 
-' Below, we're basically doing:
-'
-'     $ bin/release rpc 'AppBuilder.Windows.__send_events__(MyApp, input)'
-'
-' We send the input through IO, as opposed using the rpc expression, to avoid RCE.
-cmd = "echo " & input & " | """ & script & """ rpc ""AppBuilder.Windows.__send_events__(<%= inspect(@app_options[:server]) %>, String.trim(IO.read(:line)))"""
-code = shell.Run("cmd /c " & cmd, 0)
+Set shell = CreateObject("WScript.Shell")
+Set env = shell.Environment("Process")
+env("PATH") = <%= additional_paths %>env("PATH")
 
-' Below, we're basically doing:
-'
-'     $ bin/release start
-'
-' We send the input through the environment variable as we can't easily access argv
-' when booting through the release script.
+' try release rpc, if release is down, this will fail but that's ok.
+cmd = "echo " & input & " | """ & script & """ rpc ""AppBuilder.__rpc__(<%= event_handler %>)"""
+status = shell.Run("cmd /c " & cmd, 0, true)
 
-If WScript.Arguments.Count > 0 Then
-  env("APP_BUILDER_INPUT") = WScript.Arguments(0)
-Else
-  env("APP_BUILDER_INPUT") = "new_file"
-End If
-
+' try release start, if release is up, this will fail but that's ok.
+env("APP_BUILDER_INPUT") = input
 cmd = """" & script & """ start"
-code = shell.Run("cmd /c " & cmd & " >> " & root & "\Logs\<%= @app_options[:name] %>.log 2>&1", 0)
+status = shell.Run("cmd /c " & cmd, 0)
 

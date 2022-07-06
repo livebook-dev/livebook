@@ -53,27 +53,14 @@ defmodule AppBuilder.Windows do
     release
   end
 
-  def __send_events__(server, input)
+  def handle_event(module, input)
 
-  def __send_events__(server, "new_file") do
-    send(server, {:new_file, ''})
+  def handle_event(module, "open_url:" <> url) do
+    module.open_url(url)
   end
 
-  def __send_events__(server, "reopen_app") do
-    send(server, {:reopen_app, ''})
-  end
-
-  def __send_events__(server, "open_url:" <> url) do
-    send(server, {:open_url, String.to_charlist(url)})
-  end
-
-  def __send_events__(server, "open_file:" <> path) do
-    path =
-      path
-      |> String.replace("\\", "/")
-      |> String.to_charlist()
-
-    send(server, {:open_file, path})
+  def handle_event(module, "open_file:" <> path) do
+    module.open_file(String.replace(path, "\\", "/"))
   end
 
   defp ensure_vcredistx64 do

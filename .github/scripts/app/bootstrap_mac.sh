@@ -6,8 +6,8 @@ main() {
 
   wxwidgets_repo="wxWidgets/wxWidgets"
   wxwidgets_ref="v3.1.7"
-  otp_repo="erlang/otp"
-  otp_ref="OTP-25.0.2"
+  otp_repo="wojtekmach/otp"
+  otp_ref="wm-WX_MACOS_NON_GUI_APP"
   elixir_vsn="1.13.4"
 
   target=$(target)
@@ -78,7 +78,8 @@ build_wxwidgets() {
     --with-libpng=builtin \
     --with-liblzma=builtin \
     --with-zlib=builtin \
-    --with-expat=builtin
+    --with-expat=builtin \
+    --with-regex=builtin
   make
   make install
   cd -
