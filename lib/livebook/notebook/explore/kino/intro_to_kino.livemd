@@ -141,8 +141,6 @@ end
 Having the rows inserted, click on the "Refetch" icon in the table output
 above to see them.
 
-Similar functionality is available for database queries via [Ecto](https://github.com/elixir-ecto/ecto) and the [`Kino.Ecto`](https://hexdocs.pm/kino/Kino.Ecto.html) module.
-
 <!-- livebook:{"branch_parent_index":0} -->
 
 ## Kino.render/1

@@ -197,7 +197,7 @@ if the date is valid or not? We can use `case` to pattern match on
 the different tuples:
 
 ```elixir
-# Give a random date as input
+# Give an invalid date as input
 input = "2020-02-30"
 
 # And then match on the return value
@@ -214,7 +214,7 @@ In this example, we are using `case` to pattern match on the different
 outcomes of the `Date.from_iso8601`. We say the `case` above has two
 clauses, one matching on `{:ok, date}` and another on `{:error, reason}`.
 Now try changing the `input` variable above and reevaluate the cell
-accordingly. What happens when you give it an invalid date?
+accordingly. What happens when you give it a valid date?
 
 Finally, we can also pattern match on maps. This is used to extract the
 values for the given keys:
