@@ -388,6 +388,16 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
+  test "handles user profile update", %{conn: conn} do
+    {:ok, view, _} = live(conn, "/")
+
+    view
+    |> element("#user_form")
+    |> render_submit(%{data: %{hex_color: "#123456"}})
+
+    assert render(view) =~ "#123456"
+  end
+
   # Helpers
 
   defp test_notebook_path(name) do
