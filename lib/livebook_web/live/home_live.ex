@@ -341,6 +341,8 @@ defmodule LivebookWeb.HomeLive do
     {:noreply, assign(socket, memory: memory)}
   end
 
+  def handle_info(_message, socket), do: {:noreply, socket}
+
   defp files(sessions) do
     Enum.map(sessions, & &1.file)
   end
