@@ -137,10 +137,6 @@ defmodule LivebookWeb.Output.InputComponent do
   defp html_input_type(:url), do: "url"
   defp html_input_type(:text), do: "text"
 
-  # TODO: revisit once phx-debounce doesn't defer phx-blur
-  # (https://github.com/phoenixframework/phoenix_live_view/issues/1743).
-  # See https://github.com/livebook-dev/livebook/issues/1265
-
   @impl true
   def handle_event("change", %{"value" => html_value}, socket) do
     case handle_change(socket, html_value) do
