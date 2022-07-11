@@ -3,7 +3,7 @@ defmodule LivebookWeb.Output.InputComponent do
 
   @impl true
   def mount(socket) do
-    {:ok, assign(socket, error: nil, local: false)}
+    {:ok, assign(socket, local: false, counter: 0)}
   end
 
   @impl true
@@ -13,7 +13,7 @@ defmodule LivebookWeb.Output.InputComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign(value: value, initial_value: value)
+      |> assign(value: value)
 
     {:ok, socket}
   end
@@ -21,7 +21,7 @@ defmodule LivebookWeb.Output.InputComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <form phx-change="change" phx-submit="submit" phx-target={@myself}>
+    <form id={"#{@id}-form-#{@counter}"} phx-change="change" phx-submit="submit" phx-target={@myself}>
       <div class="input-label">
         <%= @attrs.label %>
       </div>
@@ -30,14 +30,7 @@ defmodule LivebookWeb.Output.InputComponent do
         id={"#{@id}-input"}
         attrs={@attrs}
         value={@value}
-        error={@error}
         myself={@myself} />
-
-      <%= if @error do %>
-        <div class="input-error">
-          <%= @error %>
-        </div>
-      <% end %>
     </form>
     """
   end
@@ -77,8 +70,7 @@ defmodule LivebookWeb.Output.InputComponent do
         class="input-range"
         name="value"
         value={@value}
-        phx-debounce="300"
-        phx-blur="blur"
+        phx-debounce="blur"
         phx-target={@myself}
         spellcheck="false"
         autocomplete="off"
@@ -96,8 +88,7 @@ defmodule LivebookWeb.Output.InputComponent do
       data-el-input
       class="input min-h-[200px] tiny-scrollbar"
       name="value"
-      phx-debounce="300"
-      phx-blur="blur"
+      phx-debounce="blur"
       phx-target={@myself}
       spellcheck="false"><%= [?\n, @value] %></textarea>
     """
@@ -111,8 +102,7 @@ defmodule LivebookWeb.Output.InputComponent do
         class="input w-auto bg-gray-50"
         name="value"
         value={@value}
-        phx-debounce="300"
-        phx-blur="blur"
+        phx-debounce="blur"
         phx-target={@myself}
         spellcheck="false"
         autocomplete="off" />
@@ -124,11 +114,10 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <input type={html_input_type(@attrs.type)}
       data-el-input
-      class={"input w-auto #{if(@error, do: "input--error")}"}
+      class="input w-auto invalid:input--error"
       name="value"
       value={to_string(@value)}
-      phx-debounce="300"
-      phx-blur="blur"
+      phx-debounce="blur"
       phx-target={@myself}
       spellcheck="false"
       autocomplete="off" />
@@ -145,62 +134,56 @@ defmodule LivebookWeb.Output.InputComponent do
 
   defp html_input_type(:number), do: "number"
   defp html_input_type(:color), do: "color"
-  defp html_input_type(:url), do: "text"
+  defp html_input_type(:url), do: "url"
   defp html_input_type(:text), do: "text"
 
   @impl true
   def handle_event("change", %{"value" => html_value}, socket) do
-    socket = handle_html_value(socket, html_value)
+    case handle_change(socket, html_value) do
+      {:ok, socket} ->
+        {:noreply, socket}
 
-    socket =
-      if report_immediately?(socket.assigns.attrs.type) do
-        maybe_report_change(socket)
-      else
-        socket
-      end
-
-    {:noreply, socket}
-  end
-
-  def handle_event("blur", %{"value" => html_value}, socket) do
-    socket = socket |> handle_html_value(html_value) |> maybe_report_change()
-
-    if socket.assigns.error do
-      {:noreply, assign(socket, value: socket.assigns.initial_value, error: nil)}
-    else
-      {:noreply, socket}
+      :error ->
+        # Force the current value
+        {:noreply, update(socket, :counter, &(&1 + 1))}
     end
   end
 
   def handle_event("submit", %{"value" => html_value}, socket) do
-    socket = socket |> handle_html_value(html_value) |> maybe_report_change()
-    send(self(), {:queue_bound_cells_evaluation, socket.assigns.attrs.id})
-    {:noreply, socket}
-  end
+    case handle_change(socket, html_value) do
+      {:ok, socket} ->
+        send(self(), {:queue_bound_cells_evaluation, socket.assigns.attrs.id})
+        {:noreply, socket}
 
-  defp handle_html_value(socket, html_value) do
-    case parse(html_value, socket.assigns.attrs) do
-      {:ok, value} ->
-        assign(socket, value: value, error: nil)
-
-      {:error, error, value} ->
-        assign(socket, value: value, error: error)
+      :error ->
+        {:noreply, socket}
     end
   end
 
-  defp report_immediately?(type), do: type in [:select, :checkbox]
+  defp handle_change(socket, html_value) do
+    case parse(html_value, socket.assigns.attrs) do
+      {:ok, value} ->
+        prev_value = socket.assigns.value
 
-  defp maybe_report_change(socket) when socket.assigns.error != nil, do: socket
-  defp maybe_report_change(%{assigns: %{value: value, initial_value: value}} = socket), do: socket
+        socket = assign(socket, value: value)
 
-  defp maybe_report_change(%{assigns: assigns} = socket) do
+        if value != prev_value do
+          report_change(socket)
+        end
+
+        {:ok, socket}
+
+      {:error, _error} ->
+        :error
+    end
+  end
+
+  defp report_change(%{assigns: assigns} = socket) do
     send(self(), {:set_input_values, [{assigns.attrs.id, assigns.value}], assigns.local})
 
     unless assigns.local do
       report_event(socket, assigns.value)
     end
-
-    socket
   end
 
   defp parse(html_value, %{type: :text}) do
@@ -236,7 +219,7 @@ defmodule LivebookWeb.Output.InputComponent do
     cond do
       html_value == "" -> {:ok, nil}
       Livebook.Utils.valid_url?(html_value) -> {:ok, html_value}
-      true -> {:error, "not a valid URL", html_value}
+      true -> {:error, "not a valid URL"}
     end
   end
 
