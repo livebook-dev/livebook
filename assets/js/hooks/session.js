@@ -233,6 +233,10 @@ const Session = {
   disconnected() {
     // Reinitialize on reconnection
     this.el.removeAttribute("id");
+
+    // If we reconnect, a new hook is mounted and it becomes responsible
+    // for leaving the channel when destroyed
+    this.keepChannel = true;
   },
 
   destroyed() {
@@ -246,7 +250,9 @@ const Session = {
 
     setFavicon("favicon");
 
-    leaveChannel();
+    if (!this.keepChannel) {
+      leaveChannel();
+    }
   },
 
   getProps() {
