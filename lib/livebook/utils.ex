@@ -166,11 +166,14 @@ defmodule Livebook.Utils do
 
       iex> Livebook.Utils.valid_url?("http://localhost")
       true
+
+      iex> Livebook.Utils.valid_url?("http://")
+      false
   """
   @spec valid_url?(String.t()) :: boolean()
   def valid_url?(url) do
     uri = URI.parse(url)
-    uri.scheme != nil and uri.host != nil
+    uri.scheme != nil and uri.host not in [nil, ""]
   end
 
   @doc """
