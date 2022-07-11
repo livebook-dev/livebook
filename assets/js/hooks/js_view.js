@@ -146,6 +146,11 @@ const JSView = {
     this.props = this.getProps(this);
   },
 
+  disconnected() {
+    // Reinitialize on reconnection
+    this.el.removeAttribute("id");
+  },
+
   destroyed() {
     window.removeEventListener("message", this._handleWindowMessage);
 
