@@ -162,6 +162,7 @@ defmodule Livebook.MixProject do
           ],
           event_handler: LivebookApp,
           additional_paths: [
+            "rel/erts-#{:erlang.system_info(:version)}/bin",
             "rel/vendor/elixir/bin"
           ],
           macos: [
