@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.6.3](https://github.com/livebook-dev/livebook/tree/v0.6.3) (2022-07-13)
+
+### Fixed
+
+- Crashes when editing user profile on the homepage ([#1268](https://github.com/livebook-dev/livebook/pull/1268))
+- Input change to be reflected immediately when clicking a button ([#1269](https://github.com/livebook-dev/livebook/pull/1269))
+- JS outputs and smart cells when waking up from hibernation ([#1270](https://github.com/livebook-dev/livebook/pull/1270))
+
 ## [v0.6.2](https://github.com/livebook-dev/livebook/tree/v0.6.2) (2022-06-30)
 
 ### Added
