@@ -3,7 +3,7 @@
 ```elixir
 Mix.install([
   {:maplibre, "~> 0.1.1"},
-  {:kino_maplibre, "~> 0.1.0"}
+  {:kino_maplibre, "~> 0.1.2"}
 ])
 ```
 
@@ -42,7 +42,7 @@ earthquakes = %{
 }
 ```
 
-<!-- livebook:{"attrs":{"center":null,"layers":[{"coordinates_format":"lng_lat","layer_color":"magenta","layer_id":"urban_areas","layer_opacity":1,"layer_radius":10,"layer_source":"urban_areas","layer_type":"fill","source_coordinates":null,"source_latitude":null,"source_longitude":null,"source_type":null},{"coordinates_format":"lat_lng","layer_color":"black","layer_id":"earthquakes","layer_opacity":1,"layer_radius":5,"layer_source":"earthquakes","layer_type":"circle","source_coordinates":"coordinates","source_latitude":null,"source_longitude":null,"source_type":"table"},{"coordinates_format":"lng_lat","layer_color":"green","layer_id":"conference","layer_opacity":1,"layer_radius":10,"layer_source":"conference","layer_type":"circle","source_coordinates":null,"source_latitude":null,"source_longitude":null,"source_type":"geo"}],"ml_alias":"Elixir.Ml","style":"default","zoom":0},"kind":"Elixir.KinoMapLibre.MapCell","livebook_object":"smart_cell"} -->
+<!-- livebook:{"attrs":{"center":null,"layers":[{"cluster_colors":["#51bbd6","#f1f075","#f28cb1"],"cluster_max":750,"cluster_min":100,"coordinates_format":"lng_lat","layer_color":"#db1920","layer_id":"urban_areas","layer_opacity":1,"layer_radius":10,"layer_source":"urban_areas","layer_type":"fill","source_coordinates":null,"source_latitude":null,"source_longitude":null,"source_type":null},{"cluster_colors":["#51bbd6","#f1f075","#f28cb1"],"cluster_max":750,"cluster_min":100,"coordinates_format":"lat_lng","layer_color":"#000000","layer_id":"earthquakes","layer_opacity":1,"layer_radius":5,"layer_source":"earthquakes","layer_type":"circle","source_coordinates":"coordinates","source_latitude":null,"source_longitude":null,"source_type":"table"},{"cluster_colors":["#51bbd6","#f1f075","#f28cb1"],"cluster_max":750,"cluster_min":100,"coordinates_format":"lng_lat","layer_color":"#3e64ff","layer_id":"conference","layer_opacity":1,"layer_radius":10,"layer_source":"conference","layer_type":"circle","source_coordinates":null,"source_latitude":null,"source_longitude":null,"source_type":"geo"}],"ml_alias":"Elixir.Ml","style":"default","zoom":0},"kind":"Elixir.KinoMapLibre.MapCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 Ml.new()
@@ -53,19 +53,19 @@ Ml.new()
   id: "urban_areas",
   source: "urban_areas",
   type: :fill,
-  paint: [fill_color: "magenta", fill_opacity: 1]
+  paint: [fill_color: "#db1920", fill_opacity: 1]
 )
 |> Ml.add_layer(
   id: "earthquakes",
   source: "earthquakes",
   type: :circle,
-  paint: [circle_color: "black", circle_radius: 5, circle_opacity: 1]
+  paint: [circle_color: "#000000", circle_radius: 5, circle_opacity: 1]
 )
 |> Ml.add_layer(
   id: "conference",
   source: "conference",
   type: :circle,
-  paint: [circle_color: "green", circle_radius: 10, circle_opacity: 1]
+  paint: [circle_color: "#3e64ff", circle_radius: 10, circle_opacity: 1]
 )
 ```
 
@@ -666,7 +666,7 @@ Ml.new()
   "earthquakes",
   earthquakes,
   {:lat_lng, ["latitude", "longitude"]},
-  [properties: ["place", "mag"]]
+  properties: ["place", "mag"]
 )
 |> Ml.add_layer(
   id: "earthquakes",
