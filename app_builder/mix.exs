@@ -20,6 +20,7 @@ defmodule AppBuilder.MixProject do
 
   def application do
     [
+      mod: {AppBuilder.Application, []},
       extra_applications: [:logger, :eex, :inets, :ssl, :crypto]
     ]
   end

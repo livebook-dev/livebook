@@ -1,10 +1,8 @@
 <%
 
-event_handler = @app_options |> Keyword.fetch!(:event_handler) |> inspect()
-
 additional_paths =
-  for path <- Keyword.fetch!(@app_options, :additional_paths) do
-    "root & \"" <> String.replace(&1, "/", "\\") <> ";\" & "
+  for path <- Keyword.fetch!(@app_options, :additional_paths), into: "" do
+    "root & \"" <> String.replace(path, "/", "\\") <> ";\" & "
   end
 
 %>
@@ -20,12 +18,12 @@ End If
 
 Set shell = CreateObject("WScript.Shell")
 Set env = shell.Environment("Process")
-<%= if additional_paths != [] do %>
+<%= if additional_paths != "" do %>
 env("PATH") = <%= additional_paths %>env("PATH")
 <% end %>
 
 ' try release rpc, if release is down, this will fail but that's ok.
-cmd = "echo " & input & " | """ & script & """ rpc ""AppBuilder.__rpc__(<%= event_handler %>)"""
+cmd = "echo " & input & " | """ & script & """ rpc ""AppBuilder.__rpc__()"""
 status = shell.Run("cmd /c " & cmd, 0, true)
 
 ' try release start, if release is up, this will fail but that's ok.

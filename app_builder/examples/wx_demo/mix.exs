@@ -46,7 +46,6 @@ defmodule WxDemo.MixProject do
               ]
             ]
           ],
-          event_handler: WxDemo.Window,
           macos: [
             build_dmg: macos_notarization != nil,
             notarization: macos_notarization
