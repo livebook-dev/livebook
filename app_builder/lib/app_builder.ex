@@ -1,6 +1,6 @@
 defmodule AppBuilder do
   def bundle(release) do
-    options = validate_options(release.options[:app])
+    options = validate_options(release.options[:app] || [])
 
     case os() do
       :macos ->
@@ -91,13 +91,18 @@ defmodule AppBuilder do
       windows: []
     }
 
-    options = validate_options(options, root_allowed_options, os)
-
-    Keyword.update!(options, :document_types, fn document_types ->
+    options
+    |> validate_options(root_allowed_options, os)
+    |> Keyword.put_new_lazy(:name, &default_name/0)
+    |> Keyword.update!(:document_types, fn document_types ->
       Enum.map(document_types, fn options ->
         validate_options(options, document_type_allowed_options, os)
       end)
     end)
+  end
+
+  defp default_name do
+    Mix.Project.config()[:app] |> to_string |> Macro.camelize()
   end
 
   defp validate_options(options, allowed, os) do
