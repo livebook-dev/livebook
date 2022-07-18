@@ -48,7 +48,7 @@ Section "Install"
   ExecWait '"$INSTDIR\vcredist_x64.exe" /install'
 
   File /r rel rel
-  File "<%= app_name %>Launcher.vbs"
+  File "<%= app_name %>Launcher.exe"
 <%= if @app_options[:icon_path] do %>
   File "AppIcon.ico"
 <% end %>
@@ -61,10 +61,11 @@ Section "Install"
   WriteRegStr HKCR ".<%= ext %>" "" "<%= app_name %>.<%= type[:name] %>"
 <% end %>
   WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>" "" "<%= type[:name] %>"
-<%= if type[:icon_path] || @app_options[:icon_path] do %>
+<%= if path = type[:icon_path] || @app_options[:icon_path] do %>
+  File "<%= type[:name] %>Icon.ico"
   WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>\DefaultIcon" "" "$INSTDIR\<%= type[:name] %>Icon.ico"
 <% end %>
-  WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>\shell\open\command" "" '$WINDIR\system32\wscript.exe "$INSTDIR\<%= app_name %>Launcher.vbs" "open_file:%1"'
+  WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>\shell\open\command" "" '"$INSTDIR\<%= app_name %>Launcher.exe" "open_file:%1"'
 <% end %>
 
 <%= for url_scheme <- Keyword.fetch!(@app_options, :url_schemes) do %>
@@ -74,12 +75,12 @@ Section "Install"
   WriteRegStr  HKCR "<%= url_scheme %>" "URL Protocol" ""
   WriteRegStr  HKCR "<%= url_scheme %>\shell" "" ""
   WriteRegStr  HKCR "<%= url_scheme %>\shell\open" "" ""
-  WriteRegStr  HKCR "<%= url_scheme %>\shell\open\command" "" '$WINDIR\system32\wscript.exe "$INSTDIR\<%= app_name %>Launcher.vbs" "open_url:%1"'
+  WriteRegStr  HKCR "<%= url_scheme %>\shell\open\command" "" '"$INSTDIR\<%= app_name %>Launcher.exe" "open_url:%1"'
 <% end %>
 SectionEnd
 
 Section "Desktop Shortcut"
-  CreateShortCut "$DESKTOP\<%= app_name %>.lnk" "$INSTDIR\<%= app_name %>Launcher.vbs" "" <%= if @app_options[:icon_path] do %> "$INSTDIR\AppIcon.ico" <% end %>
+  CreateShortCut "$DESKTOP\<%= app_name %>.lnk" "$INSTDIR\<%= app_name %>Launcher.exe" "" <%= if @app_options[:icon_path] do %> "$INSTDIR\AppIcon.ico" <% end %>
 SectionEnd
 
 Section "Uninstall"

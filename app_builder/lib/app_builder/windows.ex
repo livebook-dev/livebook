@@ -13,11 +13,6 @@ defmodule AppBuilder.Windows do
 
     copy_dir(release.path, "#{app_path}/rel")
 
-    launcher_eex_path = Path.expand("#{@templates_path}/windows/Launcher.vbs.eex")
-    launcher_bin_path = "#{app_path}/#{app_name}Launcher.vbs"
-    copy_template(launcher_eex_path, launcher_bin_path, release: release, app_options: options)
-    File.mkdir!("#{app_path}/Logs")
-
     manifest_eex_path = Path.expand("#{@templates_path}/windows/Manifest.xml.eex")
     manifest_xml_path = "#{app_path}/Manifest.xml"
     copy_template(manifest_eex_path, manifest_xml_path, release: release)
@@ -36,6 +31,33 @@ defmodule AppBuilder.Windows do
       create_icon(icon_path, "#{app_path}/AppIcon.ico")
     end
 
+    tmp_dir = "#{Mix.Project.build_path()}/tmp"
+    File.mkdir_p!(tmp_dir)
+    launcher_eex_path = Path.expand("#{@templates_path}/windows/Launcher.vb.eex")
+    launcher_src_path = "#{tmp_dir}/Launcher.vb"
+    launcher_bin_path = "#{app_path}/#{app_name}Launcher.exe"
+    copy_template(launcher_eex_path, launcher_src_path, release: release, app_options: options)
+    File.mkdir!("#{app_path}/Logs")
+
+    args = [
+      path(launcher_src_path),
+      "/out:" <> path(launcher_bin_path),
+      "/nologo",
+      "/target:winexe",
+      "/win32manifest:" <> path(manifest_xml_path)
+    ]
+
+    extra_args =
+      if icon_path do
+        ["/win32icon:" <> path("#{app_path}/AppIcon.ico")]
+      else
+        []
+      end
+
+    vbc_path = ensure_vbc()
+
+    cmd!(vbc_path, args ++ extra_args)
+
     for type <- Keyword.fetch!(options, :document_types) do
       if src_path = Keyword.get(type, :icon_path, icon_path) do
         dest_path = "#{app_path}/#{type[:name]}Icon.ico"
@@ -52,6 +74,8 @@ defmodule AppBuilder.Windows do
 
     release
   end
+
+  defp path(path), do: String.replace(path, "/", "\\")
 
   def handle_event(module, input)
 
@@ -83,6 +107,16 @@ defmodule AppBuilder.Windows do
   defp ensure_magick do
     System.find_executable("magick.exe") ||
       raise "couldn't find magick.exe in PATH to automatically convert images to .ico"
+  end
+
+  def ensure_vbc do
+    case System.shell("dir %WINDIR%\\Microsoft.NET\\Framework64\\vbc.exe /s/b") do
+      {path, 0} ->
+        String.trim(path)
+
+      {_, 1} ->
+        raise "cannot find vbc.exe. You need to install Visual Studio."
+    end
   end
 
   defp create_icon(src_path, dest_path) do

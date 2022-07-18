@@ -1,0 +1,38 @@
+<%
+
+additional_paths =
+  for path <- Keyword.fetch!(@app_options, :additional_paths), into: "" do
+    "root & \"\\" <> String.replace(path, "/", "\\") <> ";\" & "
+  end
+
+%>
+
+Imports System
+
+Module Launcher
+   Sub Main(args As String())
+     Dim root = My.Application.Info.DirectoryPath
+     Dim script = root & "\rel\bin\<%= @release.name %>.bat"
+
+     Dim input as String
+     If args.count > 0 Then
+       input = args(0)
+     Else
+       input = "open_app"
+     End If
+
+<%= if additional_paths != "" do %>
+    Environment.SetEnvironmentVariable("PATH", <%= additional_paths%>Environment.GetEnvironmentVariable("PATH"))
+<% end %>
+
+     Dim cmd as String
+     ' try release rpc, if release is down, this will fail but that's ok.
+     cmd = "echo " & input & " | """ & script & """ rpc ""AppBuilder.__rpc__()"""
+     Shell("cmd.exe /c " & cmd, 0)
+
+     ' try release start, if release is up, this will fail but that's ok.
+     Environment.SetEnvironmentVariable("APP_BUILDER_INPUT", input)
+     cmd = """" & script & """ start"
+     Shell("cmd.exe /c " & cmd, 0)
+   End Sub
+End Module
