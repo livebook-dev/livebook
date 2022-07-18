@@ -1,13 +1,8 @@
 <%
 
-event_handler = @app_options |> Keyword.fetch!(:event_handler) |> inspect()
+additional_paths = Enum.map_join(@app_options[:additional_paths], ":", &"\\(resourcePath)/#{&1}")
 
-additional_paths =
-  ["rel/erts-#{@release.erts_version}/bin"] ++ @app_options[:additional_paths]
-  |> Enum.map_join(":", &"\\(resourcePath)/#{&1}")
-
-%>
-import Cocoa
+%>import Cocoa
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var releaseTask: Process!
@@ -45,7 +40,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
-
 }
 
 func startRelease(_ input : String) -> Process {
@@ -78,7 +72,7 @@ func rpc(_ event: String) {
     let task = buildReleaseTask()
     task.standardInput = input
     input.fileHandleForWriting.write("\(event)\n".data(using: .utf8)!)
-    task.arguments = ["rpc", "AppBuilder.__rpc__(<%= event_handler %>)"]
+    task.arguments = ["rpc", "AppBuilder.__rpc__()"]
     try! task.run()
     task.waitUntilExit()
 
@@ -88,17 +82,17 @@ func rpc(_ event: String) {
 }
 
 func buildReleaseTask() -> Process {
-    let releaseScriptPath = Bundle.main.path(forResource: "rel/bin/<%= @release.name %>", ofType: "")!
+    let task = Process()
+    task.launchPath = Bundle.main.path(forResource: "rel/bin/<%= @release.name %>", ofType: "")!
+    task.environment = ProcessInfo.processInfo.environment
+
+<%= if additional_paths != "" do %>
     let resourcePath = Bundle.main.resourcePath ?? ""
     let additionalPaths = "<%= additional_paths %>"
+    let path = task.environment!["PATH"] ?? ""
+    task.environment!["PATH"] = "\(additionalPaths):\(path)"
+<% end %>
 
-    var environment = ProcessInfo.processInfo.environment
-    let path = environment["PATH"] ?? ""
-    environment["PATH"] = "\(additionalPaths):\(path)"
-
-    let task = Process()
-    task.environment = environment
-    task.launchPath = releaseScriptPath
     task.standardOutput = logFile
     task.standardError = logFile
     return task

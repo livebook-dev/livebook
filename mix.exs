@@ -6,6 +6,7 @@ defmodule Livebook.MixProject do
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
   @app_elixir_version "1.13.4"
+  @app_rebar3_version "3.19.0"
 
   def project do
     [
@@ -160,8 +161,8 @@ defmodule Livebook.MixProject do
               ]
             ]
           ],
-          event_handler: LivebookApp,
           additional_paths: [
+            "rel/erts-#{:erlang.system_info(:version)}/bin",
             "rel/vendor/elixir/bin"
           ],
           macos: [
@@ -201,5 +202,7 @@ defmodule Livebook.MixProject do
     release
     |> Standalone.copy_otp()
     |> Standalone.copy_elixir(@app_elixir_version)
+    |> Standalone.copy_hex()
+    |> Standalone.copy_rebar3(@app_rebar3_version)
   end
 end

@@ -7,7 +7,9 @@ defmodule Standalone do
   """
   @spec copy_otp(Mix.Release.t()) :: Mix.Release.t()
   def copy_otp(release) do
-    {erts_source, otp_bin_dir, otp_lib_dir} = otp_dirs()
+    erts_source = Path.join(:code.root_dir(), "erts-#{release.erts_version}")
+    otp_bin_dir = Path.join(:code.root_dir(), "bin")
+    otp_lib_dir = :code.lib_dir()
 
     # 1. copy erts/bin
     release_erts_bin_dir = Path.join(release.path, "erts-#{release.erts_version}/bin")
@@ -39,6 +41,10 @@ defmodule Standalone do
     release_lib_dir = Path.join(release.path, "lib")
     cp_r!(otp_lib_dir, release_lib_dir)
 
+    for dir <- Path.wildcard("#{release_lib_dir}/*/doc/{xml,html,pdf}") do
+      File.rm_rf!(dir)
+    end
+
     # 3. copy boot files
     release_bin_dir = Path.join(release.path, "bin")
 
@@ -58,7 +64,7 @@ defmodule Standalone do
     download_elixir_at_destination(standalone_destination, elixir_version)
 
     filenames =
-      case os() do
+      case AppBuilder.os() do
         :macos ->
           ["elixir", "elixirc", "mix", "iex"]
 
@@ -83,12 +89,40 @@ defmodule Standalone do
     :zip.unzip(String.to_charlist(path), cwd: destination)
   end
 
-  defp otp_dirs do
-    version = :erlang.system_info(:version)
-    root_dir = :code.root_dir()
+  @doc """
+  Copies Hex into the release.
+  """
+  @spec copy_hex(Mix.Release.t()) :: Mix.Release.t()
+  def copy_hex(release) do
+    release_archives_dir = Path.join(release.path, "vendor/archives")
+    File.mkdir_p!(release_archives_dir)
 
-    {:filename.join(root_dir, 'erts-#{version}'), :filename.join(root_dir, 'bin'),
-     :code.lib_dir()}
+    hex_version = Keyword.fetch!(Application.spec(:hex), :vsn)
+    source_hex_path = Path.join(Mix.path_for(:archives), "hex-#{hex_version}")
+    release_hex_path = Path.join(release_archives_dir, "hex-#{hex_version}")
+    cp_r!(source_hex_path, release_hex_path)
+
+    release
+  end
+
+  @doc """
+  Copies Rebar3 into the release.
+  """
+  @spec copy_rebar3(Mix.Release.t(), version :: String.t()) :: Mix.Release.t()
+  def copy_rebar3(release, version) do
+    url = "https://github.com/erlang/rebar3/releases/download/#{version}/rebar3"
+    path = Path.join(System.tmp_dir!(), "rebar3_#{version}")
+
+    unless File.exists?(path) do
+      binary = fetch_body!(url)
+      File.write!(path, binary, [:binary])
+    end
+
+    destination = Path.join(release.path, "vendor/rebar3")
+    File.cp!(path, destination)
+    make_executable(destination)
+
+    release
   end
 
   defp fetch_body!(url) do
@@ -104,13 +138,6 @@ defmodule Standalone do
   end
 
   defp make_executable(path), do: File.chmod!(path, 0o755)
-
-  defp os() do
-    case :os.type() do
-      {:unix, :darwin} -> :macos
-      {:win32, _} -> :windows
-    end
-  end
 
   defp cp_r!(source, destination) do
     File.cp_r!(source, destination, fn _, _ -> false end)

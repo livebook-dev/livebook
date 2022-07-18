@@ -7,6 +7,7 @@ app_name = Keyword.fetch!(@app_options, :name)
 ;General
 
 Name "<%= app_name %>"
+ManifestDPIAware true
 OutFile "<%= app_name %>Install.exe"
 Unicode True
 InstallDir "$LOCALAPPDATA\<%= app_name %>"

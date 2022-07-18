@@ -1,6 +1,6 @@
 defmodule AppBuilder do
   def bundle(release) do
-    options = validate_options(release.options[:app])
+    options = validate_options(release.options[:app] || [])
 
     case os() do
       :macos ->
@@ -19,25 +19,28 @@ defmodule AppBuilder do
   end
 
   def init do
+    {:ok, _} = Registry.register(AppBuilder.Registry, "app_event_subscribers", [])
+
     if input = System.get_env("APP_BUILDER_INPUT") do
-      __rpc__(self(), input)
+      __rpc__(input)
     end
   end
 
-  def __rpc__(event_handler) do
-    input = IO.read(:line) |> String.trim()
-    __rpc__(event_handler, input)
+  def __rpc__ do
+    IO.read(:line)
+    |> String.trim()
+    |> __rpc__()
   end
 
-  def __rpc__(event_handler, "open_app") do
-    send(event_handler, :open_app)
+  def __rpc__("open_app") do
+    dispatch(:open_app)
   end
 
-  def __rpc__(event_handler, "open_url:" <> url) do
-    send(event_handler, {:open_url, url})
+  def __rpc__("open_url:" <> url) do
+    dispatch({:open_url, url})
   end
 
-  def __rpc__(event_handler, "open_file:" <> path) do
+  def __rpc__("open_file:" <> path) do
     path =
       if os() == :windows do
         String.replace(path, "\\", "/")
@@ -45,7 +48,13 @@ defmodule AppBuilder do
         path
       end
 
-    send(event_handler, {:open_file, path})
+    dispatch({:open_file, path})
+  end
+
+  defp dispatch(message) do
+    Registry.dispatch(AppBuilder.Registry, "app_event_subscribers", fn entries ->
+      for {pid, _} <- entries, do: send(pid, message)
+    end)
   end
 
   defp validate_options(options) do
@@ -55,7 +64,6 @@ defmodule AppBuilder do
       all: [
         :name,
         :icon_path,
-        :event_handler,
         url_schemes: [],
         document_types: [],
         additional_paths: []
@@ -83,13 +91,18 @@ defmodule AppBuilder do
       windows: []
     }
 
-    options = validate_options(options, root_allowed_options, os)
-
-    Keyword.update!(options, :document_types, fn document_types ->
+    options
+    |> validate_options(root_allowed_options, os)
+    |> Keyword.put_new_lazy(:name, &default_name/0)
+    |> Keyword.update!(:document_types, fn document_types ->
       Enum.map(document_types, fn options ->
         validate_options(options, document_type_allowed_options, os)
       end)
     end)
+  end
+
+  defp default_name do
+    Mix.Project.config()[:app] |> to_string |> Macro.camelize()
   end
 
   defp validate_options(options, allowed, os) do
