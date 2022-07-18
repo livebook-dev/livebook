@@ -41,6 +41,10 @@ defmodule Standalone do
     release_lib_dir = Path.join(release.path, "lib")
     cp_r!(otp_lib_dir, release_lib_dir)
 
+    for dir <- Path.wildcard("#{release_lib_dir}/*/doc/{xml,html,pdf}") do
+      File.rm_rf!(dir)
+    end
+
     # 3. copy boot files
     release_bin_dir = Path.join(release.path, "bin")
 
