@@ -111,8 +111,8 @@ defmodule AppBuilder.Windows do
 
   def ensure_vbc do
     case System.shell("dir %WINDIR%\\Microsoft.NET\\Framework64\\vbc.exe /s/b") do
-      {path, 0} ->
-        String.trim(path)
+      {paths, 0} ->
+        paths |> String.split("\r\n", trim: true) |> List.last()
 
       {_, 1} ->
         raise "cannot find vbc.exe. You need to install Visual Studio."
