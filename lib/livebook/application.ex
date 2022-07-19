@@ -242,6 +242,8 @@ defmodule Livebook.Application do
   end
 
   defp iframe_port_in_use(port) do
-    Livebook.Config.abort!("Failed to start Livebook iframe server because port #{port} is already in use")
+    Livebook.Config.abort!(
+      "Failed to start Livebook iframe server because port #{port} is already in use"
+    )
   end
 end
