@@ -61,7 +61,7 @@ Section "Install"
   WriteRegStr HKCR ".<%= ext %>" "" "<%= app_name %>.<%= type[:name] %>"
 <% end %>
   WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>" "" "<%= type[:name] %>"
-<%= if path = type[:icon_path] || @app_options[:icon_path] do %>
+<%= if type[:icon_path] || @app_options[:icon_path] do %>
   File "<%= type[:name] %>Icon.ico"
   WriteRegStr HKCR "<%= app_name %>.<%= type[:name] %>\DefaultIcon" "" "$INSTDIR\<%= type[:name] %>Icon.ico"
 <% end %>
