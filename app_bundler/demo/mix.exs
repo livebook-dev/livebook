@@ -1,9 +1,9 @@
-defmodule WxDemo.MixProject do
+defmodule Demo.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :wx_demo,
+      app: :demo,
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
@@ -15,7 +15,7 @@ defmodule WxDemo.MixProject do
   def application do
     [
       extra_applications: [:wx, :logger],
-      mod: {WxDemo.Application, []}
+      mod: {Demo.Application, []}
     ]
   end
 
@@ -35,11 +35,11 @@ defmodule WxDemo.MixProject do
           &AppBundler.bundle/1
         ],
         app: [
-          name: "WxDemo",
+          name: "Demo",
           url_schemes: ["wxdemo"],
           document_types: [
             [
-              name: "WxDemo",
+              name: "Demo",
               extensions: ["wxdemo"],
               macos: [
                 role: "Editor"
