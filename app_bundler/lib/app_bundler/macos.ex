@@ -1,7 +1,7 @@
-defmodule AppBuilder.MacOS do
+defmodule AppBundler.MacOS do
   @moduledoc false
 
-  import AppBuilder.Utils
+  import AppBundler.Utils
 
   @templates_path "#{__ENV__.file}/../../templates"
 

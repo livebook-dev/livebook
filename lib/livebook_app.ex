@@ -18,8 +18,8 @@ if Mix.target() == :app do
 
     @impl true
     def init(_) do
-      AppBuilder.init()
-      os = AppBuilder.os()
+      AppBundler.init()
+      os = AppBundler.os()
       :wx.new()
 
       # TODO: instead of embedding the icon and copying to tmp, copy the file known location.
@@ -103,7 +103,7 @@ if Mix.target() == :app do
 
     def taskbar(title, icon, menu_items) do
       pid = self()
-      os = AppBuilder.os()
+      os = AppBundler.os()
       options = if os == :macos, do: [iconType: 1], else: []
 
       # skip keyboard shortcuts

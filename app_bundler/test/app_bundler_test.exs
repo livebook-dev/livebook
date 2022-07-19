@@ -1,3 +1,3 @@
-defmodule AppBuilderTest do
+defmodule AppBundlerTest do
   use ExUnit.Case, async: true
 end

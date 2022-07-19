@@ -1,4 +1,4 @@
-defmodule WxDemo.Application do
+defmodule Demo.Application do
   @moduledoc false
 
   use Application
@@ -6,15 +6,15 @@ defmodule WxDemo.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      WxDemo.Window
+      Demo.Window
     ]
 
-    opts = [strategy: :one_for_one, name: WxDemo.Supervisor]
+    opts = [strategy: :one_for_one, name: Demo.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end
 
-defmodule WxDemo.Window do
+defmodule Demo.Window do
   @moduledoc false
   use GenServer, restart: :transient
 
@@ -28,9 +28,9 @@ defmodule WxDemo.Window do
 
   @impl true
   def init(_) do
-    AppBuilder.init()
-    app_name = "WxDemo"
-    os = AppBuilder.os()
+    AppBundler.init()
+    app_name = "Demo"
+    os = AppBundler.os()
     wx = :wx.new()
     frame = :wxFrame.new(wx, -1, app_name, size: {400, 400})
 

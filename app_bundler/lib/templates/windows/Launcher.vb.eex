@@ -27,7 +27,7 @@ Module Launcher
 
      Dim cmd as String
      ' try release rpc, if release is down, this will fail but that's ok.
-     cmd = "echo " & input & " | """ & script & """ rpc ""AppBuilder.__rpc__()"""
+     cmd = "echo " & input & " | """ & script & """ rpc ""AppBundler.__rpc__()"""
      Shell("cmd.exe /c " & cmd, 0)
 
      ' try release start, if release is up, this will fail but that's ok.
