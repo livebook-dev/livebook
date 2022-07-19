@@ -113,7 +113,7 @@ We already mentioned branching sections in
 but in Elixir terms each branching section:
 
 * runs in a separate process from the main flow
-* copies relevant bindings, imports and alises from the parent
+* copies relevant bindings, imports and aliases from the parent
 * updates its process dictionary to mirror the parent
 
 Let's see this in practice:
