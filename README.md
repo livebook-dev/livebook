@@ -49,7 +49,7 @@ pick the one that best fits your use case.
 
 ### Desktop app
 
-Coming soon!
+  * [Download the installer for Windows and Mac from our homepage](https://livebook.dev/)
 
 ### Docker
 
