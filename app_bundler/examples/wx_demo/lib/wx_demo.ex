@@ -28,9 +28,9 @@ defmodule WxDemo.Window do
 
   @impl true
   def init(_) do
-    AppBuilder.init()
+    AppBundler.init()
     app_name = "WxDemo"
-    os = AppBuilder.os()
+    os = AppBundler.os()
     wx = :wx.new()
     frame = :wxFrame.new(wx, -1, app_name, size: {400, 400})
 

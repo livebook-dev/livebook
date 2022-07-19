@@ -1,4 +1,4 @@
-defmodule AppBuilder.Utils do
+defmodule AppBundler.Utils do
   @moduledoc false
 
   require Logger
@@ -86,7 +86,7 @@ defmodule AppBuilder.Utils do
   end
 
   def normalize_icon_path(path_per_os) when is_list(path_per_os) do
-    Keyword.fetch!(path_per_os, AppBuilder.os())
+    Keyword.fetch!(path_per_os, AppBundler.os())
   end
 
   def copy_dir(from, to, options \\ []) do

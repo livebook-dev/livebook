@@ -72,7 +72,7 @@ func rpc(_ event: String) {
     let task = buildReleaseTask()
     task.standardInput = input
     input.fileHandleForWriting.write("\(event)\n".data(using: .utf8)!)
-    task.arguments = ["rpc", "AppBuilder.__rpc__()"]
+    task.arguments = ["rpc", "AppBundler.__rpc__()"]
     try! task.run()
     task.waitUntilExit()
 

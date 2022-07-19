@@ -1,9 +1,9 @@
-defmodule AppBuilder.MixProject do
+defmodule AppBundler.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :app_builder,
+      app: :app_bundler,
       version: "0.1.0",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
@@ -20,7 +20,7 @@ defmodule AppBuilder.MixProject do
 
   def application do
     [
-      mod: {AppBuilder.Application, []},
+      mod: {AppBundler.Application, []},
       extra_applications: [:logger, :eex, :inets, :ssl, :crypto]
     ]
   end

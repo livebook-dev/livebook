@@ -1,13 +1,13 @@
-defmodule AppBuilder do
+defmodule AppBundler do
   def bundle(release) do
     options = validate_options(release.options[:app] || [])
 
     case os() do
       :macos ->
-        AppBuilder.MacOS.bundle(release, options)
+        AppBundler.MacOS.bundle(release, options)
 
       :windows ->
-        AppBuilder.Windows.bundle(release, options)
+        AppBundler.Windows.bundle(release, options)
     end
   end
 
@@ -19,7 +19,7 @@ defmodule AppBuilder do
   end
 
   def init do
-    {:ok, _} = Registry.register(AppBuilder.Registry, "app_event_subscribers", [])
+    {:ok, _} = Registry.register(AppBundler.Registry, "app_event_subscribers", [])
 
     if input = System.get_env("APP_BUILDER_INPUT") do
       __rpc__(input)
@@ -52,7 +52,7 @@ defmodule AppBuilder do
   end
 
   defp dispatch(message) do
-    Registry.dispatch(AppBuilder.Registry, "app_event_subscribers", fn entries ->
+    Registry.dispatch(AppBundler.Registry, "app_event_subscribers", fn entries ->
       for {pid, _} <- entries, do: send(pid, message)
     end)
   end

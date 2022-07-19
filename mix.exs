@@ -104,7 +104,7 @@ defmodule Livebook.MixProject do
     ]
   end
 
-  defp target_deps(:app), do: [{:app_builder, path: "app_builder"}]
+  defp target_deps(:app), do: [{:app_bundler, path: "app_bundler"}]
   defp target_deps(_), do: []
 
   @lock (with {:ok, contents} <- File.read("mix.lock"),
@@ -143,7 +143,7 @@ defmodule Livebook.MixProject do
           :assemble,
           &remove_cookie/1,
           &standalone_erlang_elixir/1,
-          &AppBuilder.bundle/1
+          &AppBundler.bundle/1
         ],
         app: [
           name: "Livebook",

@@ -21,7 +21,7 @@ defmodule WxDemo.MixProject do
 
   defp deps do
     [
-      {:app_builder, path: "../.."}
+      {:app_bundler, path: "../.."}
     ]
   end
 
@@ -32,7 +32,7 @@ defmodule WxDemo.MixProject do
       app: [
         steps: [
           :assemble,
-          &AppBuilder.bundle/1
+          &AppBundler.bundle/1
         ],
         app: [
           name: "WxDemo",
