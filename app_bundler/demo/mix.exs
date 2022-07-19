@@ -21,7 +21,7 @@ defmodule Demo.MixProject do
 
   defp deps do
     [
-      {:app_bundler, path: "../.."}
+      {:app_bundler, path: ".."}
     ]
   end
 
