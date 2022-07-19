@@ -44,10 +44,14 @@ defmodule Livebook.Application do
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
-    with {:ok, _} = result <- Supervisor.start_link(children, opts) do
-      clear_env_vars()
-      display_startup_info()
-      result
+    case Supervisor.start_link(children, opts) do
+      {:ok, _} = result ->
+        clear_env_vars()
+        display_startup_info()
+        result
+
+      {:error, error} ->
+        Livebook.Config.abort!(Application.format_error(error))
     end
   end
 
@@ -80,7 +84,7 @@ defmodule Livebook.Application do
 
         _ ->
           Livebook.Config.abort!("""
-          could not start epmd (Erlang Port Mapper Driver). Livebook uses epmd to \
+          Could not start epmd (Erlang Port Mapper Driver). Livebook uses epmd to \
           talk to different runtimes. You may have to start epmd explicitly by calling:
 
               epmd -daemon
@@ -100,7 +104,7 @@ defmodule Livebook.Application do
           :ok
 
         {:error, reason} ->
-          Livebook.Config.abort!("could not start distributed node: #{inspect(reason)}")
+          Livebook.Config.abort!("Could not start distributed node: #{inspect(reason)}")
       end
     end
   end
@@ -115,13 +119,13 @@ defmodule Livebook.Application do
 
       case :inet.gethostbyname(hostname) do
         {:error, :nxdomain} ->
-          invalid_hostname!("your hostname \"#{hostname}\" does not resolve to an IP address")
+          invalid_hostname!("Your hostname \"#{hostname}\" does not resolve to an IP address")
 
         # We only try the first address, so that's the one we validate.
         {:ok, hostent(h_addrtype: :inet, h_addr_list: [address | _])} ->
           unless inet_loopback?(address) or inet_if?(address) do
             invalid_hostname!(
-              "your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8)"
+              "Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8)"
             )
           end
 
@@ -147,13 +151,19 @@ defmodule Livebook.Application do
     Livebook.Config.abort!("""
     #{prelude}, which indicates something wrong in your OS configuration.
 
-    Make sure your computer's name resolves locally or start Livebook using a long distribution name. If you are using Livebook's CLI, you can:
+    Make sure your computer's name resolves locally or start Livebook using \
+    a long distribution name. Please try one of the fixes below:
 
-        livebook server --name livebook@127.0.0.1
+      * If you are using the Livebook App, please open up a bug report.
 
-    If you are running it from source, do instead:
+      * If you are using Livebook's CLI, you can:
 
-        MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+            livebook server --name livebook@127.0.0.1
+
+      * If you are running it from source, do instead:
+
+            MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+
     """)
   end
 
@@ -220,13 +230,11 @@ defmodule Livebook.Application do
       {:ok, pid} ->
         {:ok, pid}
 
-      {:error, {:shutdown, {_, _, {{_, {:error, :eaddrinuse}}, _}}}} = error ->
+      {:error, {:shutdown, {_, _, {{_, {:error, :eaddrinuse}}, _}}}} ->
         iframe_port_in_use(port)
-        error
 
-      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} = error ->
+      {:error, {:shutdown, {_, _, {:listen_error, _, :eaddrinuse}}}} ->
         iframe_port_in_use(port)
-        error
 
       {:error, _} = error ->
         error
@@ -234,7 +242,6 @@ defmodule Livebook.Application do
   end
 
   defp iframe_port_in_use(port) do
-    require Logger
-    Logger.error("Failed to start Livebook iframe server because port #{port} is already in use")
+    Livebook.Config.abort!("Failed to start Livebook iframe server because port #{port} is already in use")
   end
 end
