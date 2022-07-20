@@ -11,6 +11,14 @@ defmodule AppBundler do
     end
   end
 
+  def target do
+    case :erlang.system_info(:system_architecture) do
+      'x86_64-apple-' ++ _ -> "macos-x86_64"
+      'aarch64-apple-' ++ _ -> "macos-aarch64"
+      'win32' -> "windows-x86_64"
+    end
+  end
+
   def os do
     case :os.type() do
       {:unix, :darwin} -> :macos
