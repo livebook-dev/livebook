@@ -8,7 +8,7 @@ app_name = Keyword.fetch!(@app_options, :name)
 
 Name "<%= app_name %>"
 ManifestDPIAware true
-OutFile "<%= app_name %>Install.exe"
+OutFile "<%= app_name %>Install-<%= @release.version %>-<%= AppBundler.target() %>.exe"
 Unicode True
 InstallDir "$LOCALAPPDATA\<%= app_name %>"
 
