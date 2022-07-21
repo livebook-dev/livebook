@@ -11,7 +11,7 @@ defmodule Standalone do
     otp_bin_dir = Path.join(:code.root_dir(), "bin")
     otp_lib_dir = :code.lib_dir()
 
-    # 1. copy erts/bin
+    # 1. copy erts/{bin,include}
     release_erts_bin_dir = Path.join(release.path, "erts-#{release.erts_version}/bin")
     File.mkdir_p!(release_erts_bin_dir)
 
@@ -36,6 +36,9 @@ defmodule Standalone do
     """)
 
     make_executable(Path.join(release_erts_bin_dir, "erl"))
+
+    release_erts_include_dir = Path.join(release.path, "erts-#{release.erts_version}/include")
+    cp_r!(Path.join(erts_source, "include"), release_erts_include_dir)
 
     # 2. copy lib
     release_lib_dir = Path.join(release.path, "lib")
