@@ -95,7 +95,7 @@ which is an established solution in this area.
 Our custom kino must use both `Kino.JS` (for the assets)
 and `Kino.JS.Live`. `Kino.JS.Live` works under the client-server
 paradigm, where the client is the JavaScript code, and the server
-is your ELixir code. Your Elixir code has to define a series of
+is your Elixir code. Your Elixir code has to define a series of
 callbacks (similar to a [`GenServer`](https://hexdocs.pm/elixir/GenServer.html)
 and other Elixir behaviours). In particular, we need to define:
 
