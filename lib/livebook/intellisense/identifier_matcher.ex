@@ -165,12 +165,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_default(ctx)
 
       :expr ->
-        match_container_context("", :expr, "", ctx) || match_default(ctx)
+        match_default(ctx)
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
 
-        match_container_context(hint, :expr, hint, ctx) ||
+        match_container_context(ctx.fragment, hint) ||
           match_in_struct_fields_or_local_or_var(List.to_string(local_or_var), ctx)
 
       {:local_arity, local} ->
@@ -181,10 +181,6 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           :completion -> match_default(ctx)
           :locate -> match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
         end
-
-      {:operator, operator} when operator in ~w(:: -)c ->
-        match_container_context(List.to_string(operator), :operator, "", ctx) ||
-          match_local_or_var(List.to_string(operator), ctx)
 
       {:operator, operator} ->
         match_local_or_var(List.to_string(operator), ctx)
@@ -321,22 +317,8 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp match_container_context(code, context, hint, ctx) do
-    case container_context(code, ctx) do
-      {:struct, alias, pairs} when context == :expr ->
-        pairs =
-          Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
-            Map.delete(map, key)
-          end)
-
-        for {key, _value} <- pairs,
-            name = Atom.to_string(key),
-            if(hint == "",
-              do: not String.starts_with?(name, "_"),
-              else: String.starts_with?(name, hint)
-            ),
-            do: %{kind: :keyword, name: name}
-
+  defp match_container_context(code, hint) do
+    case container_context(code) do
       :bitstring_modifier ->
         existing = code |> String.split("::") |> List.last() |> String.split("-")
 
@@ -348,28 +330,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
     end
   end
 
-  defp struct?(mod) do
-    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
-  end
-
-  defp container_context(code, ctx) do
+  defp container_context(code) do
     case Code.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
-        case path(quoted, &match?({:__cursor__, _, []}, &1)) do
-          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
-            with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-                 alias = expand_alias(aliases, ctx),
-                 true <- Keyword.keyword?(pairs) and struct?(alias) do
-              {:struct, alias, pairs}
-            else
-              _ -> nil
-            end
-
-          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
-            :bitstring_modifier
-
-          _ ->
-            nil
+        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
+          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
+          _ -> nil
         end
 
       {:error, _} ->
@@ -786,66 +752,5 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
   defp macro_trim_leading_while_valid_identifier(other) do
     other
-  end
-
-  defp path(ast, fun) when is_function(fun, 1) do
-    path(ast, [], fun)
-  end
-
-  defp path({form, _, args} = ast, acc, fun) when is_atom(form) do
-    acc = [ast | acc]
-
-    if fun.(ast) do
-      acc
-    else
-      path_args(args, acc, fun)
-    end
-  end
-
-  defp path({form, _meta, args} = ast, acc, fun) do
-    acc = [ast | acc]
-
-    if fun.(ast) do
-      acc
-    else
-      path(form, acc, fun) || path_args(args, acc, fun)
-    end
-  end
-
-  defp path({left, right} = ast, acc, fun) do
-    acc = [ast | acc]
-
-    if fun.(ast) do
-      acc
-    else
-      path(left, acc, fun) || path(right, acc, fun)
-    end
-  end
-
-  defp path(list, acc, fun) when is_list(list) do
-    acc = [list | acc]
-
-    if fun.(list) do
-      acc
-    else
-      path_list(list, acc, fun)
-    end
-  end
-
-  defp path(ast, acc, fun) do
-    if fun.(ast) do
-      [ast | acc]
-    end
-  end
-
-  defp path_args(atom, _acc, _fun) when is_atom(atom), do: nil
-  defp path_args(list, acc, fun) when is_list(list), do: path_list(list, acc, fun)
-
-  defp path_list([], _acc, _fun) do
-    nil
-  end
-
-  defp path_list([arg | args], acc, fun) do
-    path(arg, acc, fun) || path_list(args, acc, fun)
   end
 end

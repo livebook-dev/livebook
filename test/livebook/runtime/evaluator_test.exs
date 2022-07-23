@@ -138,7 +138,10 @@ defmodule Livebook.Runtime.EvaluatorTest do
 
       Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
-      expected_stacktrace = [{Code, :validated_eval_string, 3, [file: 'lib/code.ex', line: 404]}]
+      expected_stacktrace = [
+        {Module.ParallelChecker, :verify, 1, [file: 'lib/module/parallel_checker.ex', line: 100]},
+        {Code, :validated_eval_string, 3, [file: 'lib/code.ex', line: 422]}
+      ]
 
       assert_receive {:runtime_evaluation_response, :code_1,
                       {:error, :error, %CompileError{}, ^expected_stacktrace}, %{code_error: nil}}
