@@ -116,7 +116,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         seq: ["shift", "↵"],
         seq_mac: ["⇧", "↵"],
         press_all: true,
-        desc: "Evaluate current cell and advance to next cell",
+        desc: "Evaluate cell and advance to next one",
         basic: true
       },
       %{
