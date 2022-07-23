@@ -73,20 +73,20 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @prefix_matcher &String.starts_with?/2
 
   @bitstring_modifiers [
-    %{kind: :variable, name: "big"},
-    %{kind: :variable, name: "binary"},
-    %{kind: :variable, name: "bitstring"},
-    %{kind: :variable, name: "integer"},
-    %{kind: :variable, name: "float"},
-    %{kind: :variable, name: "little"},
-    %{kind: :variable, name: "native"},
-    %{kind: :variable, name: "signed"},
-    %{kind: :function, name: "size", arity: 1},
-    %{kind: :function, name: "unit", arity: 1},
-    %{kind: :variable, name: "unsigned"},
-    %{kind: :variable, name: "utf8"},
-    %{kind: :variable, name: "utf16"},
-    %{kind: :variable, name: "utf32"}
+    %{kind: :variable, name: :big},
+    %{kind: :variable, name: :binary},
+    %{kind: :variable, name: :bitstring},
+    %{kind: :variable, name: :integer},
+    %{kind: :variable, name: :float},
+    %{kind: :variable, name: :little},
+    %{kind: :variable, name: :native},
+    %{kind: :variable, name: :signed},
+    %{kind: :function, name: :size, arity: 1},
+    %{kind: :function, name: :unit, arity: 1},
+    %{kind: :variable, name: :unsigned},
+    %{kind: :variable, name: :utf8},
+    %{kind: :variable, name: :utf16},
+    %{kind: :variable, name: :utf32}
   ]
 
   @doc """
@@ -323,7 +323,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         existing = code |> String.split("::") |> List.last() |> String.split("-")
 
         @bitstring_modifiers
-        |> Enum.filter(&(String.starts_with?(&1.name, hint) and &1.name not in existing))
+        |> Enum.filter(
+          &(String.starts_with?(Atom.to_string(&1.name), hint) and
+              Atom.to_string(&1.name) not in existing)
+        )
 
       _ ->
         nil

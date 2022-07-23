@@ -130,15 +130,6 @@ defmodule Livebook.Intellisense do
   defp include_in_completion?(%{kind: :function, documentation: :hidden}), do: false
   defp include_in_completion?(_), do: true
 
-  defp format_completion_item(%{kind: :variable, name: name}) when is_binary(name),
-    do: %{
-      label: name,
-      kind: :variable,
-      detail: "variable",
-      documentation: nil,
-      insert_text: name
-    }
-
   defp format_completion_item(%{kind: :variable, name: name}),
     do: %{
       label: Atom.to_string(name),
