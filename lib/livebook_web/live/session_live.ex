@@ -145,7 +145,7 @@ defmodule LivebookWeb.SessionLive do
           autosave_interval_s={@data_view.autosave_interval_s}
           runtime={@data_view.runtime}
           global_status={@data_view.global_status} />
-        <div class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-7 mx-auto" data-el-notebook-content>
+        <div phx-hook="FullView" class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-7 mx-auto" data-el-notebook-content>
           <div class="flex items-center pb-4 mb-2 space-x-4 border-b border-gray-200"
             data-el-notebook-headline
             data-focusable-id="notebook"

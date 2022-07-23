@@ -4,6 +4,7 @@ import ConfirmModal from "./confirm_modal";
 import Dropzone from "./dropzone";
 import EditorSettings from "./editor_settings";
 import FocusOnUpdate from "./focus_on_update";
+import FullView from "./full_view";
 import Headline from "./headline";
 import Highlight from "./highlight";
 import JSView from "./js_view";
@@ -22,6 +23,7 @@ export default {
   Dropzone,
   EditorSettings,
   FocusOnUpdate,
+  FullView,
   Headline,
   Highlight,
   JSView,

@@ -153,6 +153,10 @@ defmodule LivebookWeb.SettingsLive do
                   name="editor_markdown_word_wrap"
                   label="Wrap words in Markdown"
                   checked={false} />
+                <.switch_checkbox
+                  name="notebook_full_width"
+                  label="Full width in notebooks"
+                  checked={false} />
               </div>
             </div>
           </div>
