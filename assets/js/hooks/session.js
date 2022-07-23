@@ -295,6 +295,13 @@ const Session = {
       cancelEvent(event);
       this.queueFullCellsEvaluation(true);
       return;
+    } else if (!cmd && shift && !alt && key === "Enter") {
+      cancelEvent(event);
+      if (isEvaluable(this.focusedCellType())) {
+        this.queueFocusedCellEvaluation();
+      }
+      this.moveFocus(1);
+      return;
     } else if (cmd && !alt && key === "Enter") {
       cancelEvent(event);
       if (isEvaluable(this.focusedCellType())) {
