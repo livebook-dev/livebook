@@ -6,6 +6,9 @@ defmodule AppBundler.Windows do
   @templates_path "#{__ENV__.file}/../../templates"
 
   def bundle(release, options) do
+    {:ok, _} = Application.ensure_all_started(:ssl)
+    {:ok, _} = Application.ensure_all_started(:inets)
+
     app_name = options[:name]
 
     app_path = "#{Mix.Project.build_path()}/#{app_name}-win"
