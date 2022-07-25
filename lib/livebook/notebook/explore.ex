@@ -67,7 +67,8 @@ defmodule Livebook.Notebook.Explore do
     %{
       path: Path.join(__DIR__, "explore/intro_to_kino.livemd"),
       details: %{
-        description: "Make your notebooks interactive with inputs, controls, and more with the Kino package.",
+        description:
+          "Make your notebooks interactive with inputs, controls, and more with the Kino package.",
         cover_url: "/images/kino.png"
       }
     },
