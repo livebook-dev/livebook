@@ -8,8 +8,8 @@ Mix.install([
 
 ## Introduction
 
-Starting from version v0.5, Livebook allows developers to implement
-their own kinos. This allows developers to bring their own ideas to
+Livebook allows developers to implement their own kinos.
+This allows developers to bring their own ideas to
 life and extend Livebook in unexpected ways.
 
 There are two types of custom kinos: static, via `Kino.JS`, and dynamic,
@@ -81,16 +81,14 @@ To learn more about other features provided by `Kino.JS`,
 including persisting the output of your custom kinos to `.livemd` files,
 [check out the documentation](https://hexdocs.pm/kino/Kino.JS.html).
 
-## Dynamic maps with Leaflet
+## Bidirectional live counter
 
 Kinos with static data are useful, but they offer just a small peek
 into what can be achieved with custom kinos. This time we will try out
-something more exciting. We will set up a simple map and then push points
-directly from the Elixir code with [`Kino.JS.Live`](https://hexdocs.pm/kino/Kino.JS.Live.html).
-
-There is a number of different JavaScript packages to pick from
-when dealing with maps, for our purpose we will use [Leaflet](https://leafletjs.com),
-which is an established solution in this area.
+something more exciting. Let's use [`Kino.JS.Live`](https://hexdocs.pm/kino/Kino.JS.Live.html)
+to build a counter that can be incremented both through Elixir calls
+and client interactions. Not only that, our counter will automatically
+synchronize across pages as multiple users access our notebook.
 
 Our custom kino must use both `Kino.JS` (for the assets)
 and `Kino.JS.Live`. `Kino.JS.Live` works under the client-server
@@ -106,120 +104,13 @@ and other Elixir behaviours). In particular, we need to define:
   client connects. In here you must return the initial state of
   the new client
 
-You can also optionally define a `handle_cast/2` callback, responsible
-for handling any messages sent via `Kino.JS.Live.cast/2`. Here is how
-the code will look like:
+* A `handle_event/3` callback, responsible for handling any messages
+  sent by the client
 
-```elixir
-defmodule KinoGuide.Leaflet do
-  use Kino.JS
-  use Kino.JS.Live
+* A `handle_cast/2` callback, responsible for handling any Elixir
+  messages sent via `Kino.JS.Live.cast/2`
 
-  def new(center, zoom) do
-    Kino.JS.Live.new(__MODULE__, {normalize_location(center), zoom})
-  end
-
-  def add_marker(kino, location) do
-    Kino.JS.Live.cast(kino, {:add_marker, normalize_location(location)})
-  end
-
-  @impl true
-  def init({center, zoom}, ctx) do
-    {:ok, assign(ctx, center: center, zoom: zoom, locations: [])}
-  end
-
-  @impl true
-  def handle_connect(ctx) do
-    data = %{
-      center: ctx.assigns.center,
-      zoom: ctx.assigns.zoom,
-      locations: ctx.assigns.locations
-    }
-
-    {:ok, data, ctx}
-  end
-
-  @impl true
-  def handle_cast({:add_marker, location}, ctx) do
-    broadcast_event(ctx, "add_marker", location)
-    ctx = update(ctx, :locations, &[location | &1])
-    {:noreply, ctx}
-  end
-
-  defp normalize_location({lag, lng}), do: [lag, lng]
-
-  asset "main.js" do
-    """
-    import * as L from "https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet-src.esm.js";
-
-    export async function init(ctx, data) {
-      ctx.root.style.height = "400px";
-
-      // Leaflet requires styles to be present before creating the map,
-      // so we await for the import to finish
-      await ctx.importCSS("https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css");
-
-      const { center, zoom, locations } = data;
-      const map = L.map(ctx.root, { center, zoom });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
-
-      locations.forEach((location) => {
-        L.marker(location).addTo(map);
-      });
-
-      ctx.handleEvent("add_marker", (location) => {
-        L.marker(location).addTo(map);
-      });
-    }
-    """
-  end
-end
-```
-
-This is a bit more code, however the flow is very straightforward.
-The map is initialized with the central location and zoom, we store
-those in the server state and pass to each client when they connect.
-
-Additionally we keep a list of locations that we want to mark on the
-map. The public `add_marker` function allows for pushing new locations
-to the server, in which case we send the it to the client. On the
-client we render all initial markers we get and subscribe to any new
-that appear later on.
-
-Note that we keep track of all locations on the server, this way
-whenever a new user joins the page, we can send them all of the
-locations we already have. To verify this behaviour you can refresh
-the page and you should see all of the markers still in place. Feel
-free to try this out in separte browser tabs too!
-
-```elixir
-map = KinoGuide.Leaflet.new({51.505, -0.09}, 13)
-```
-
-The below cell marks a random location, so you can evaluate it
-multiple times for better results.
-
-```elixir
-delta = fn -> (:rand.uniform() - 0.5) * 0.05 end
-
-KinoGuide.Leaflet.add_marker(map, {51.505 + delta.(), -0.09 + delta.()})
-```
-
-We barely scratched the surface of maps, the Leaflet API alone is extremely
-extensive and there are other packages worth exploring. However, even with
-this simple kino we could already visualize some geographic data in real-time!
-
-## Bidirectional live counter
-
-The map example reiterated how we can send events from the server
-to the clients, however communication in the other direction is
-possible as well!
-
-Let's build a counter that can be incremented both through Elixir
-calls and client interactions.
+Here is how the code will look like:
 
 ```elixir
 defmodule KinoGuide.Counter do
@@ -286,11 +177,8 @@ defmodule KinoGuide.Counter do
 end
 ```
 
-The server mechanics are quite similar to the Leaflet example.
-The only difference is that we have a new callback, `handle_event/3`,
-for handling events sent from the client. On the client side,
-this is done by listening to button clicks and dispatching them
-to the server via `pushEvent`.
+On the client side, we wrote some JavaScript that listens to
+button clicks and dispatches them to the server via `pushEvent`.
 
 Let's render our counter!
 

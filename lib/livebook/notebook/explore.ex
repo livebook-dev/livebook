@@ -65,6 +65,13 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
+      path: Path.join(__DIR__, "explore/intro_to_kino.livemd"),
+      details: %{
+        description: "Make your notebooks interactive with inputs, controls, and more with the Kino package.",
+        cover_url: "/images/kino.png"
+      }
+    },
+    %{
       path: Path.join(__DIR__, "explore/intro_to_vega_lite.livemd"),
       details: %{
         description: "Learn how to quickly create numerous plots for your data.",
@@ -74,13 +81,9 @@ defmodule Livebook.Notebook.Explore do
     %{
       path: Path.join(__DIR__, "explore/intro_to_maplibre.livemd"),
       details: %{
-        description: "Learn how to seamlessly plot maps using geospatial and tabular data.",
+        description: "Seamlessly plot maps using geospatial and tabular data.",
         cover_url: "/images/maplibre.png"
       }
-    },
-    %{
-      ref: :kino_intro,
-      path: Path.join(__DIR__, "explore/kino/intro_to_kino.livemd")
     },
     %{
       ref: :kino_vm_introspection,
@@ -197,12 +200,11 @@ defmodule Livebook.Notebook.Explore do
 
   @group_configs [
     %{
-      title: "Interactions with Kino",
+      title: "Deep dive into Kino",
       description:
-        "Kino is an Elixir package for displaying and controlling rich, interactive widgets in Livebook. Learn how to make your notebooks more engaging with inputs, plots, tables, and much more!",
+        "Advanced guides for learning more about the Kino package, including the creation of custom UI components.",
       cover_url: "/images/kino.png",
       notebook_refs: [
-        :kino_intro,
         :kino_vm_introspection,
         :kino_chat_app,
         :kino_pong,
