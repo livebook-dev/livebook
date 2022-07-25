@@ -68,12 +68,14 @@ defmodule AppBundler.Windows do
       end
     end
 
-    installer_eex_path = Path.expand("#{@templates_path}/windows/Installer.nsi.eex")
-    installer_nsi_path = "#{app_path}/Installer.nsi"
-    copy_template(installer_eex_path, installer_nsi_path, release: release, app_options: options)
-    makensis_path = ensure_makensis()
-    log(:green, "creating", Path.relative_to_cwd("#{app_path}/#{app_name}Install.exe"))
-    cmd!(makensis_path, [installer_nsi_path])
+    if Keyword.fetch!(options, :build_installer) do
+      installer_eex_path = Path.expand("#{@templates_path}/windows/Installer.nsi.eex")
+      installer_nsi_path = "#{app_path}/Installer.nsi"
+      copy_template(installer_eex_path, installer_nsi_path, release: release, app_options: options)
+      makensis_path = ensure_makensis()
+      log(:green, "creating", Path.relative_to_cwd("#{app_path}/#{app_name}Install.exe"))
+      cmd!(makensis_path, [installer_nsi_path])
+    end
 
     release
   end
