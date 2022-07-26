@@ -9,8 +9,10 @@ defmodule AppBundler.Windows do
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
-    app_name = options[:name]
+    log(:green, :killing, "epmd.exe")
+    System.cmd("taskkill.exe", ~w(/F /IM epmd.exe))
 
+    app_name = options[:name]
     app_path = "#{Mix.Project.build_path()}/#{app_name}-win"
     File.rm_rf!(app_path)
 
