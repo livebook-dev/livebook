@@ -115,56 +115,33 @@ defmodule Livebook.Application do
   # See https://github.com/livebook-dev/livebook/issues/302
   defp validate_hostname_resolution!() do
     unless Livebook.Config.longname() do
-      hostname = Livebook.Utils.node_host() |> to_charlist()
+      [nodename, hostname] = node() |> Atom.to_charlist() |> :string.split('@')
 
-      case :inet.gethostbyname(hostname) do
-        {:error, :nxdomain} ->
-          invalid_hostname!("Your hostname \"#{hostname}\" does not resolve to an IP address")
-
-        # We only try the first address, so that's the one we validate.
-        {:ok, hostent(h_addrtype: :inet, h_addr_list: [address | _])} ->
-          unless inet_loopback?(address) or inet_if?(address) do
-            invalid_hostname!(
-              "Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8)"
-            )
-          end
-
+      with {:ok, nodenames} <- :erl_epmd.names(hostname),
+           true <- List.keymember?(nodenames, nodename, 0) do
+        :ok
+      else
         _ ->
-          :ok
+          Livebook.Config.abort!("""
+          Your hostname \"#{hostname}\" does not resolve to a loopback address (127.0.0.0/8),
+          which indicates something wrong in your OS configuration, or EPMD is not running.
+
+          Make sure your computer's name resolves locally or start Livebook using \
+          a long distribution name. Please try one of the fixes below:
+
+            * If you are using the Livebook App, please open up a bug report.
+
+            * If you are using Livebook's CLI, consider using longnames:
+
+                  livebook server --name livebook@127.0.0.1
+
+            * If you are running it from source, do instead:
+
+                  MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
+
+          """)
       end
     end
-  end
-
-  defp inet_loopback?(address) do
-    match?({127, _, _, _}, address)
-  end
-
-  defp inet_if?(address) do
-    case :inet.getifaddrs() do
-      {:ok, addrs} -> Enum.any?(addrs, fn {_name, flags} -> {:addr, address} in flags end)
-      _ -> false
-    end
-  end
-
-  @spec invalid_hostname!(String.t()) :: no_return()
-  defp invalid_hostname!(prelude) do
-    Livebook.Config.abort!("""
-    #{prelude}, which indicates something wrong in your OS configuration.
-
-    Make sure your computer's name resolves locally or start Livebook using \
-    a long distribution name. Please try one of the fixes below:
-
-      * If you are using the Livebook App, please open up a bug report.
-
-      * If you are using Livebook's CLI, you can:
-
-            livebook server --name livebook@127.0.0.1
-
-      * If you are running it from source, do instead:
-
-            MIX_ENV=prod elixir --name livebook@127.0.0.1 -S mix phx.server
-
-    """)
   end
 
   defp set_cookie() do
