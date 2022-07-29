@@ -109,13 +109,20 @@ to execute the linked notebook.
 
 ### Math expressions
 
-Livebook uses $\TeX$ syntax for math inside your Markdown cells. To use this, just put your math expressions in between \$ signs for inline math or 2 \$\$ if you want display math. You can click on 'Edit content'(the Pencil icon) to see an example. It supports both inline math, like $e^{\pi i} + 1 = 0$, as well as display math:
+Livebook uses $\TeX$ syntax for math inside your Markdown cells.
+It supports both inline math, like $e^{\pi i} + 1 = 0$, as well as display math:
 
 $$
 S(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{e^{x} + 1}
 $$
 
-You can explore all supported expressions [here](https://katex.org/docs/supported.html).
+<!-- livebook:{"force_markdown":true} -->
+
+To write your own, put your math expressions between \$ signs for inline math
+or \$\$ if you want display math. You can double click the formulas above to see
+how they are written.
+
+You can explore all supported expressions in the [KaTeX documentation](https://katex.org/docs/supported.html).
 
 ### Mermaid diagrams
 
