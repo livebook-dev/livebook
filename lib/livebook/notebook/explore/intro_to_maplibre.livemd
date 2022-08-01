@@ -2,8 +2,8 @@
 
 ```elixir
 Mix.install([
-  {:maplibre, "~> 0.1.1"},
-  {:kino_maplibre, "~> 0.1.2"}
+  {:maplibre, "~> 0.1.2"},
+  {:kino_maplibre, "~> 0.1.3"}
 ])
 ```
 
@@ -77,22 +77,16 @@ Calling the `Ml.new/0` function with no arguments will render a simple map with 
 Ml.new()
 ```
 
-You can easily override this initial style by declaring your own style using the `:style` option as well as any other root-level properties you wish to configure. It can be either a URL, a JSON string or a map.
+You can easily override this initial style by declaring your own style using the `:style` option as well as any other root-level properties you wish to configure. It can be either a URL (requires the [`req`](https://hex.pm/packages/req) package), a `map` or one of the built-in styles, such as `:street` or `:terrain`.
 
 Even though that's not the most recommended tool, you can start a blank style by passing an empty map to create your style totally from scratch.
 
 ```elixir
-terrain_style =
-  "https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL"
-
-Ml.new(style: terrain_style, center: {137.9150899566626, 36.25956997955441}, zoom: 9)
+Ml.new(style: :terrain, center: {137.9150899566626, 36.25956997955441}, zoom: 9)
 ```
 
 ```elixir
-street_style =
-  "https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL"
-
-Ml.new(style: street_style, zoom: 2)
+Ml.new(style: :street, zoom: 2)
 ```
 
 <!-- livebook:{"branch_parent_index":2} -->
@@ -169,7 +163,7 @@ line_coordinates = [
 We use `Ml.add_source/3` to make the data available and then `Ml.add_layer/2` to present it visually.
 
 ```elixir
-Ml.new(center: {-122.486052, 37.830348}, zoom: 15, style: street_style)
+Ml.new(center: {-122.486052, 37.830348}, zoom: 15, style: :street)
 |> Ml.add_source("route",
   type: :geojson,
   data: [
@@ -198,7 +192,7 @@ Ml.new(center: {-122.486052, 37.830348}, zoom: 15, style: street_style)
 Layers are rendered from the top down following the order they were added. While this solution is ideal for most cases, some layers look better if rendered below the labels. For these cases, use `Ml.add_layer_below_labels/2` function.
 
 ```elixir
-Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 5, style: street_style)
+Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 5, style: :street)
 |> Ml.add_source("urban-areas",
   type: :geojson,
   data: "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_urban_areas.geojson"
@@ -261,7 +255,7 @@ Ml.new(
 Another great example of using expressions is showing the population density of a region.
 
 ```elixir
-Ml.new(center: {30.0222, -1.9596}, zoom: 7, style: street_style)
+Ml.new(center: {30.0222, -1.9596}, zoom: 7, style: :street)
 |> Ml.add_source("rwanda-provinces",
   type: :geojson,
   data: "https://maplibre.org/maplibre-gl-js-docs/assets/rwanda-provinces.geojson"
@@ -380,7 +374,7 @@ Ml.new(center: {-68.13734351262877, 45.137451890638886}, zoom: 3)
 ### Hover effect
 
 ```elixir
-Ml.new(center: {-100.486052, 37.830348}, zoom: 3, style: street_style)
+Ml.new(center: {-100.486052, 37.830348}, zoom: 3, style: :street)
 |> Ml.add_source("states",
   type: :geojson,
   data: "https://maplibre.org/maplibre-gl-js-docs/assets/us_states.geojson"
@@ -409,7 +403,7 @@ Ml.new(center: {-100.486052, 37.830348}, zoom: 3, style: street_style)
 ### Clusters expansion on click
 
 ```elixir
-Ml.new(style: street_style)
+Ml.new(style: :street)
 |> Ml.add_source("earthquakes",
   type: :geojson,
   data: "https://maplibre.org/maplibre-gl-js-docs/assets/earthquakes.geojson",
@@ -456,7 +450,7 @@ Ml.new(style: street_style)
 ### Show information on click
 
 ```elixir
-Ml.new(center: {-100.04, 38.907}, zoom: 3, style: street_style)
+Ml.new(center: {-100.04, 38.907}, zoom: 3, style: :street)
 |> Ml.add_source("states",
   type: :geojson,
   data:
@@ -551,7 +545,7 @@ pl = %Geo.Polygon{
 
 gc = %Geo.GeometryCollection{geometries: [p1, p2, p3, pl]}
 
-Ml.new(center: {-121.403732, 40.492392}, zoom: 10, style: street_style)
+Ml.new(center: {-121.403732, 40.492392}, zoom: 10, style: :street)
 |> Ml.add_geo_source("national-park", gc)
 |> Ml.add_layer(
   id: "park-boundary",
