@@ -77,7 +77,7 @@ Calling the `Ml.new/0` function with no arguments will render a simple map with 
 Ml.new()
 ```
 
-You can easily override this initial style by declaring your own style using the `:style` option as well as any other root-level properties you wish to configure. It can be either a URL (requires the [`req`](https://hex.pm/packages/req) package), a `map` or one of the built-in styles we offer, `:street` and `:terrain`.
+You can easily override this initial style by declaring your own style using the `:style` option as well as any other root-level properties you wish to configure. It can be either a URL (requires the [`req`](https://hex.pm/packages/req) package), a `map` or one of the built-in styles, such as `:street` or `:terrain`.
 
 Even though that's not the most recommended tool, you can start a blank style by passing an empty map to create your style totally from scratch.
 
