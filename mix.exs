@@ -97,7 +97,7 @@ defmodule Livebook.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 0.1.0"},
-      {:aws_signature, "~> 0.2.0"},
+      {:aws_signature, "~> 0.3.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test}
