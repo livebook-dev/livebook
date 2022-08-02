@@ -11,16 +11,19 @@ defmodule LivebookWeb.Output do
   def outputs(assigns) do
     ~H"""
     <%= for {idx, output} <- Enum.reverse(@outputs) do %>
-      <div class="max-w-full" id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
+      <div
+        class="max-w-full"
+        id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
         data-el-output
         data-border={border?(output)}
-        data-wrapper={wrapper?(output)}>
+        data-wrapper={wrapper?(output)}
+      >
         <%= render_output(output, %{
-              id: "output-#{idx}",
-              socket: @socket,
-              session_id: @session_id,
-              input_values: @input_values
-            }) %>
+          id: "output-#{idx}",
+          socket: @socket,
+          session_id: @session_id,
+          input_values: @input_values
+        }) %>
       </div>
     <% end %>
     """
@@ -97,7 +100,9 @@ defmodule LivebookWeb.Output do
     assigns = %{message: formatted}
 
     ~H"""
-    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error"><%= ansi_string_to_html(@message) %></div>
+    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error">
+      <%= ansi_string_to_html(@message) %>
+    </div>
     """
   end
 
@@ -126,7 +131,13 @@ defmodule LivebookWeb.Output do
     assigns = %{message: message}
 
     ~H"""
-    <div class="whitespace-pre-wrap font-editor text-red-600" role="complementary" aria-label="error message"><%= @message %></div>
+    <div
+      class="whitespace-pre-wrap font-editor text-red-600"
+      role="complementary"
+      aria-label="error message"
+    >
+      <%= @message %>
+    </div>
     """
   end
 end

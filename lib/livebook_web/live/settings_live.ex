@@ -41,7 +41,6 @@ defmodule LivebookWeb.SettingsLive do
                 launch.
               </p>
             </div>
-
             <!-- System details -->
             <div class="flex flex-col space-y-2">
               <h2 class="text-xl text-gray-800 font-semibold">
@@ -84,7 +83,8 @@ defmodule LivebookWeb.SettingsLive do
                 <.switch_checkbox
                   name="update_check_enabled"
                   label="Show banner when a new Livebook version is available"
-                  checked={@update_check_enabled} />
+                  checked={@update_check_enabled}
+                />
               </form>
             </div>
             <!-- Autosave path configuration -->
@@ -109,10 +109,10 @@ defmodule LivebookWeb.SettingsLive do
               </p>
               <LivebookWeb.SettingsLive.FileSystemsComponent.render
                 file_systems={@file_systems}
-                socket={@socket} />
+                socket={@socket}
+              />
             </div>
           </div>
-
           <!-- User settings section -->
           <div class="flex flex-col space-y-10">
             <div>
@@ -129,30 +129,33 @@ defmodule LivebookWeb.SettingsLive do
               <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
                 Code editor
               </h2>
-              <div class="flex flex-col space-y-3"
+              <div
+                class="flex flex-col space-y-3"
                 id="editor-settings"
                 phx-hook="EditorSettings"
-                phx-update="ignore">
+                phx-update="ignore"
+              >
                 <.switch_checkbox
                   name="editor_auto_completion"
                   label="Show completion list while typing"
-                  checked={false} />
+                  checked={false}
+                />
                 <.switch_checkbox
                   name="editor_auto_signature"
                   label="Show function signature while typing"
-                  checked={false} />
-                <.switch_checkbox
-                  name="editor_font_size"
-                  label="Increase font size"
-                  checked={false} />
+                  checked={false}
+                />
+                <.switch_checkbox name="editor_font_size" label="Increase font size" checked={false} />
                 <.switch_checkbox
                   name="editor_high_contrast"
                   label="Use high contrast theme"
-                  checked={false} />
+                  checked={false}
+                />
                 <.switch_checkbox
                   name="editor_markdown_word_wrap"
                   label="Wrap words in Markdown"
-                  checked={false} />
+                  checked={false}
+                />
               </div>
             </div>
           </div>
@@ -163,10 +166,17 @@ defmodule LivebookWeb.SettingsLive do
     <.current_user_modal current_user={@current_user} />
 
     <%= if @live_action == :add_file_system do %>
-      <.modal id="add-file-system-modal" show class="w-full max-w-3xl" patch={Routes.settings_path(@socket, :page)}>
-        <.live_component module={LivebookWeb.SettingsLive.AddFileSystemComponent}
+      <.modal
+        id="add-file-system-modal"
+        show
+        class="w-full max-w-3xl"
+        patch={Routes.settings_path(@socket, :page)}
+      >
+        <.live_component
+          module={LivebookWeb.SettingsLive.AddFileSystemComponent}
           id="add-file-system"
-          return_to={Routes.settings_path(@socket, :page)} />
+          return_to={Routes.settings_path(@socket, :page)}
+        />
       </.modal>
     <% end %>
     """
@@ -175,7 +185,8 @@ defmodule LivebookWeb.SettingsLive do
   defp autosave_path_select(%{state: %{dialog_opened?: true}} = assigns) do
     ~H"""
     <div class="w-full h-52">
-      <.live_component module={LivebookWeb.FileSelectComponent}
+      <.live_component
+        module={LivebookWeb.FileSelectComponent}
         id="autosave-path-component"
         file={@state.file}
         extnames={[]}
@@ -183,20 +194,18 @@ defmodule LivebookWeb.SettingsLive do
         submit_event={:set_autosave_path}
         file_system_select_disabled={true}
       >
-        <button class="button-base button-gray"
-          phx-click="cancel_autosave_path"
-          tabindex="-1">
-            Cancel
+        <button class="button-base button-gray" phx-click="cancel_autosave_path" tabindex="-1">
+          Cancel
         </button>
-        <button class="button-base button-gray"
-          phx-click="reset_autosave_path"
-          tabindex="-1">
-            Reset
+        <button class="button-base button-gray" phx-click="reset_autosave_path" tabindex="-1">
+          Reset
         </button>
-        <button class="button-base button-blue"
+        <button
+          class="button-base button-blue"
           phx-click="set_autosave_path"
           disabled={not Livebook.FileSystem.File.dir?(@state.file)}
-          tabindex="-1">
+          tabindex="-1"
+        >
           Save
         </button>
       </.live_component>
@@ -207,9 +216,8 @@ defmodule LivebookWeb.SettingsLive do
   defp autosave_path_select(assigns) do
     ~H"""
     <div class="flex">
-      <input class="input mr-2" readonly value={@state.file.path}/>
-      <button class="button-base button-gray button-small"
-        phx-click="open_autosave_path_select">
+      <input class="input mr-2" readonly value={@state.file.path} />
+      <button class="button-base button-gray button-small" phx-click="open_autosave_path_select">
         Change
       </button>
     </div>

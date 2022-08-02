@@ -47,18 +47,24 @@ defmodule LivebookWeb.ExploreLive do
                 <%= @lead_notebook_info.details.description %>
               </p>
               <div class="mt-4">
-                <%= live_patch "Let's go",
-                      to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
-                      class: "button-base button-blue" %>
+                <%= live_patch("Let's go",
+                  to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
+                  class: "button-base button-blue"
+                ) %>
               </div>
             </div>
             <div class="grow hidden md:flex flex items-center justify-center">
-              <img src={@lead_notebook_info.details.cover_url} height="120" width="120" alt="livebook" />
+              <img
+                src={@lead_notebook_info.details.cover_url}
+                height="120"
+                width="120"
+                alt="livebook"
+              />
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <%# Note: it's fine to use stateless components in this comprehension,
-                because @notebook_infos never change %>
+            <% # Note: it's fine to use stateless components in this comprehension,
+            # because @notebook_infos never change %>
             <%= for info <- @notebook_infos do %>
               <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
             <% end %>
@@ -103,8 +109,7 @@ defmodule LivebookWeb.ExploreLive do
               </div>
               <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),
                     class: "button-base button-outlined-gray" do %>
-                <.remix_icon icon="play-circle-line" class="align-middle mr-1" />
-                Open notebook
+                <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open notebook
               <% end %>
             </li>
           <% end %>

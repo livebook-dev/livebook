@@ -22,29 +22,38 @@ defmodule LivebookWeb.LiveHelpers do
       |> assign(:attrs, assigns_to_attributes(assigns, [:id, :show, :patch, :navigate, :class]))
 
     ~H"""
-    <div id={@id} class={"fixed z-[10000] inset-0 #{if @show, do: "fade-in", else: "hidden"}"} phx-remove={JS.transition("fade-out")} {@attrs}>
+    <div
+      id={@id}
+      class={"fixed z-[10000] inset-0 #{if @show, do: "fade-in", else: "hidden"}"}
+      phx-remove={JS.transition("fade-out")}
+      {@attrs}
+    >
       <!-- Modal container -->
       <div class="h-screen flex items-center justify-center p-4">
         <!-- Overlay -->
         <div class="absolute z-0 inset-0 bg-gray-500 opacity-75" aria-hidden="true"></div>
         <!-- Modal box -->
-        <div class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@class}"}
+        <div
+          class={"relative max-h-full overflow-y-auto bg-white rounded-lg shadow-xl #{@class}"}
           role="dialog"
           aria-modal="true"
           tabindex="0"
           autofocus
           phx-window-keydown={hide_modal(@id)}
           phx-click-away={hide_modal(@id)}
-          phx-key="escape">
+          phx-key="escape"
+        >
           <%= if @patch do %>
-            <%= live_patch "", to: @patch, class: "hidden", id: "#{@id}-return" %>
-            <% end %>
-          <%= if @navigate do %>
-            <%= live_redirect "", to: @navigate, class: "hidden", id: "#{@id}-return" %>
+            <%= live_patch("", to: @patch, class: "hidden", id: "#{@id}-return") %>
           <% end %>
-          <button class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
+          <%= if @navigate do %>
+            <%= live_redirect("", to: @navigate, class: "hidden", id: "#{@id}-return") %>
+          <% end %>
+          <button
+            class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
             aria_label="close modal"
-            phx-click={hide_modal(@id)}>
+            phx-click={hide_modal(@id)}
+          >
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
           </button>
@@ -97,13 +106,14 @@ defmodule LivebookWeb.LiveHelpers do
         </label>
         <div class="mt-8 flex justify-end">
           <div class="flex space-x-2" data-actions>
-            <button class="button-base button-outlined-gray"
-              phx-click={hide_modal(@id)}>
+            <button class="button-base button-outlined-gray" phx-click={hide_modal(@id)}>
               Cancel
             </button>
-            <button class="button-base"
+            <button
+              class="button-base"
               phx-click={hide_modal(@id) |> JS.dispatch("lb:confirm", to: "##{@id}")}
-              data-confirm-button>
+              data-confirm-button
+            >
               <i aria-hidden="true" data-confirm-icon></i>
               <span data-confirm-text></span>
             </button>
@@ -292,7 +302,8 @@ defmodule LivebookWeb.LiveHelpers do
           class={"switch-button__checkbox #{@class}"}
           name={@name}
           checked={@checked}
-          {@attrs} />
+          {@attrs}
+        />
         <div class="switch-button__bg"></div>
       </label>
     </div>
@@ -316,7 +327,11 @@ defmodule LivebookWeb.LiveHelpers do
       |> assign(:attrs, assigns_to_attributes(assigns, [:active, :class, :disabled]))
 
     ~H"""
-    <button class={"choice-button #{if(@active, do: "active")} #{@class}"} disabled={@disabled} {@attrs}>
+    <button
+      class={"choice-button #{if(@active, do: "active")} #{@class}"}
+      disabled={@disabled}
+      {@attrs}
+    >
       <%= render_slot(@inner_block) %>
     </button>
     """
@@ -336,10 +351,11 @@ defmodule LivebookWeb.LiveHelpers do
     ~H"""
     <div class="markdown">
       <pre><code
-        class="tiny-scrollbar"
-        id={"#{@source_id}-highlight"}
-        phx-hook="Highlight"
-        data-language={@language}><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
+      class="tiny-scrollbar"
+      id={"#{@source_id}-highlight"}
+      phx-hook="Highlight"
+      data-language={@language}
+    ><div id={@source_id} data-source><%= @source %></div><div data-target></div></code></pre>
     </div>
     """
   end
@@ -359,7 +375,9 @@ defmodule LivebookWeb.LiveHelpers do
       <span class="text-sm text-gray-500">
         <%= @label %>
       </span>
-      <span class={"text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"}>
+      <span class={
+        "text-gray-800 text-sm font-semibold #{if @one_line, do: "whitespace-nowrap overflow-auto tiny-scrollbar"}"
+      }>
         <%= render_slot(@inner_block) %>
       </span>
     </div>
@@ -383,7 +401,8 @@ defmodule LivebookWeb.LiveHelpers do
     <div id={@id} class="relative flex">
       <%= render_slot(@inner_block) %>
       <div class="flex items-center absolute inset-y-0 right-1">
-        <button class="icon-button"
+        <button
+          class="icon-button"
           data-show
           type="button"
           aria-label="show password"
@@ -392,10 +411,12 @@ defmodule LivebookWeb.LiveHelpers do
             |> JS.set_attribute({"type", "text"}, to: "##{@id} input")
             |> JS.add_class("hidden", to: "##{@id} [data-show]")
             |> JS.remove_class("hidden", to: "##{@id} [data-hide]")
-          }>
+          }
+        >
           <.remix_icon icon="eye-line" class="text-xl" />
         </button>
-        <button class="icon-button hidden"
+        <button
+          class="icon-button hidden"
           data-hide
           type="button"
           aria-label="hide password"
@@ -404,7 +425,8 @@ defmodule LivebookWeb.LiveHelpers do
             |> JS.set_attribute({"type", "password"}, to: "##{@id} input")
             |> JS.remove_class("hidden", to: "##{@id} [data-show]")
             |> JS.add_class("hidden", to: "##{@id} [data-hide]")
-          }>
+          }
+        >
           <.remix_icon icon="eye-off-line" class="text-xl" />
         </button>
       </div>
@@ -451,14 +473,17 @@ defmodule LivebookWeb.LiveHelpers do
         phx-click={not @disabled && JS.add_class("menu--open", to: "##{@id}")}
         data-contextmenu-trigger-click={@secondary_click}
         phx-window-keydown={JS.remove_class("menu--open", to: "##{@id}")}
-        phx-key="escape">
+        phx-key="escape"
+      >
         <%= render_slot(@toggle) %>
       </div>
-      <div class="menu__overlay"
-        phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}></div>
-      <menu class={"menu__content #{menu_content_class(@position)}"}
+      <div class="menu__overlay" phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}></div>
+      <menu
+        class={"menu__content #{menu_content_class(@position)}"}
         role="menu"
-        phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}}>
+        phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}
+        }
+      >
         <%= render_slot(@content) %>
       </menu>
     </div>

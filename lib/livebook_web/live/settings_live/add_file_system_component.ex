@@ -33,35 +33,48 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
             <%= @error_message %>
           </div>
         <% end %>
-        <.form let={f} for={:data}
+        <.form
+          let={f}
+          for={:data}
           phx-target={@myself}
           phx-submit="add"
           phx-change="validate"
           autocomplete="off"
-          spellcheck="false">
+          spellcheck="false"
+        >
           <div class="flex flex-col space-y-4">
             <div>
               <div class="input-label">Bucket URL</div>
-              <%= text_input f, :bucket_url, value: @data["bucket_url"], class: "input", placeholder: "https://s3.[region].amazonaws.com/[bucket]" %>
+              <%= text_input(f, :bucket_url,
+                value: @data["bucket_url"],
+                class: "input",
+                placeholder: "https://s3.[region].amazonaws.com/[bucket]"
+              ) %>
             </div>
             <div>
               <div class="input-label">Access Key ID</div>
               <.with_password_toggle id="access-key-password-toggle">
-                <%= text_input f, :access_key_id, value: @data["access_key_id"], class: "input", type: "password" %>
+                <%= text_input(f, :access_key_id,
+                  value: @data["access_key_id"],
+                  class: "input",
+                  type: "password"
+                ) %>
               </.with_password_toggle>
             </div>
             <div>
               <div class="input-label">Secret Access Key</div>
               <.with_password_toggle id="secret-access-key-password-toggle">
-                <%= text_input f, :secret_access_key, value: @data["secret_access_key"], class: "input", type: "password" %>
+                <%= text_input(f, :secret_access_key,
+                  value: @data["secret_access_key"],
+                  class: "input",
+                  type: "password"
+                ) %>
               </.with_password_toggle>
             </div>
           </div>
           <div class="mt-5 flex justify-end space-x-2">
-            <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
-            <button class="button-base button-blue"
-              type="submit"
-              disabled={not data_valid?(@data)}>
+            <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+            <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
               Add
             </button>
           </div>

@@ -43,30 +43,37 @@ defmodule LivebookWeb.Output.StdoutComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={"virtualized-text-#{@id}"}
+    <div
+      id={"virtualized-text-#{@id}"}
       class="relative"
       phx-hook="VirtualizedLines"
       data-max-height="300"
       data-follow="true"
       data-max-lines={Livebook.Notebook.max_stdout_lines()}
-      data-ignore-trailing-empty-line="true">
-      <%# Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent %>
-      <%# Note 2: We use comments to avoid inserting unintended whitespace %>
-      <div data-template class="hidden" id={"virtualized-text-#{@id}-template"}><%#
-      %><div id={"virtualized-text-#{@id}-template-append"} phx-update="append"><%#
-        %><%= for html_line <- @html_lines do %><%#
-          %><div data-line id={Livebook.Utils.random_id()}><%= [html_line, "\n"] %></div><%#
-        %><% end %><%#
-      %></div><%#
-      %><div data-line><%= @last_html_line %></div><%#
-    %></div>
-      <div data-content class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
+      data-ignore-trailing-empty-line="true"
+    >
+      <% # Note 1: We add a newline to each element, so that multiple lines can be copied properly as element.textContent %>
+      <% # Note 2: We glue the tags together to avoid inserting unintended whitespace %>
+      <div data-template class="hidden" id={"virtualized-text-#{@id}-template"} phx-no-format><div
+      id={"virtualized-text-#{@id}-template-append"}
+      phx-update="append"
+    ><%= for html_line <- @html_lines do %><div data-line id={Livebook.Utils.random_id()}><%= [
+      html_line,
+      "\n"
+    ] %></div><% end %></div><div data-line><%= @last_html_line %></div></div>
+      <div
+        data-content
+        class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
         id={"virtualized-text-#{@id}-content"}
-        phx-update="ignore"></div>
+        phx-update="ignore"
+      >
+      </div>
       <div class="absolute right-2 top-0 z-10">
-        <button class="icon-button bg-gray-100"
+        <button
+          class="icon-button bg-gray-100"
           data-el-clipcopy
-          phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}>
+          phx-click={JS.dispatch("lb:clipcopy", to: "#virtualized-text-#{@id}-template")}
+        >
           <.remix_icon icon="clipboard-line" class="text-lg" />
         </button>
       </div>

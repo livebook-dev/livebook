@@ -29,19 +29,27 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
       <p class="text-gray-700" id="import-from-url">
         Paste the URL to a .livemd file, to a GitHub file, or to a Gist to import it.
       </p>
-      <.form let={f} for={:data}
+      <.form
+        let={f}
+        for={:data}
         phx-submit="import"
         phx-change="validate"
         phx-target={@myself}
-        autocomplete="off">
-        <%= text_input f, :url, value: @url, class: "input",
-              placeholder: "Notebook URL",
-              autofocus: true,
-              aria_labelledby: "import-from-url",
-              spellcheck: "false" %>
-        <button class="mt-5 button-base button-blue"
+        autocomplete="off"
+      >
+        <%= text_input(f, :url,
+          value: @url,
+          class: "input",
+          placeholder: "Notebook URL",
+          autofocus: true,
+          aria_labelledby: "import-from-url",
+          spellcheck: "false"
+        ) %>
+        <button
+          class="mt-5 button-base button-blue"
           type="submit"
-          disabled={not Utils.valid_url?(@url)}>
+          disabled={not Utils.valid_url?(@url)}
+        >
           Import
         </button>
       </.form>

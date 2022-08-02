@@ -27,33 +27,43 @@ defmodule LivebookWeb.UserComponent do
       <div class="flex justify-center">
         <.user_avatar user={@preview_user} class="h-20 w-20" text_class="text-3xl" />
       </div>
-      <.form let={f} for={:data}
+      <.form
+        let={f}
+        for={:data}
         phx-submit={@on_save |> JS.push("save")}
         phx-change="validate"
         phx-target={@myself}
         id="user_form"
-        phx-hook="UserForm">
+        phx-hook="UserForm"
+      >
         <div class="flex flex-col space-y-5">
           <div>
             <div class="input-label">Display name</div>
-            <%= text_input f, :name, value: @data["name"], class: "input", spellcheck: "false" %>
+            <%= text_input(f, :name, value: @data["name"], class: "input", spellcheck: "false") %>
           </div>
           <div>
             <div class="input-label">Cursor color</div>
             <div class="flex space-x-4 items-center">
-              <div class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                style={"border-color: #{@preview_user.hex_color}"}>
-                <div class="rounded h-5 w-5"
-                  style={"background-color: #{@preview_user.hex_color}"}>
+              <div
+                class="border-[3px] rounded-lg p-1 flex justify-center items-center"
+                style={"border-color: #{@preview_user.hex_color}"}
+              >
+                <div class="rounded h-5 w-5" style={"background-color: #{@preview_user.hex_color}"}>
                 </div>
               </div>
               <div class="relative grow">
-                <%= text_input f, :hex_color, value: @data["hex_color"], class: "input", spellcheck: "false", maxlength: 7 %>
+                <%= text_input(f, :hex_color,
+                  value: @data["hex_color"],
+                  class: "input",
+                  spellcheck: "false",
+                  maxlength: 7
+                ) %>
                 <button
                   class="icon-button absolute right-2 top-1"
                   type="button"
                   phx-click="randomize_color"
-                  phx-target={@myself}>
+                  phx-target={@myself}
+                >
                   <.remix_icon icon="refresh-line" class="text-xl" />
                 </button>
               </div>
@@ -62,7 +72,8 @@ defmodule LivebookWeb.UserComponent do
           <button
             class="button-base button-blue flex space-x-1 justify-center items-center"
             type="submit"
-            disabled={not @valid}>
+            disabled={not @valid}
+          >
             <.remix_icon icon="save-line" />
             <span>Save</span>
           </button>

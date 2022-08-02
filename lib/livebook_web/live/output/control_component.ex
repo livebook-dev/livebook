@@ -9,17 +9,23 @@ defmodule LivebookWeb.Output.ControlComponent do
   @impl true
   def render(%{attrs: %{type: :keyboard}} = assigns) do
     ~H"""
-    <div class="flex"
+    <div
+      class="flex"
       id={"#{@id}-root"}
       phx-hook="KeyboardControl"
       data-keydown-enabled={to_string(@keyboard_enabled and :keydown in @attrs.events)}
       data-keyup-enabled={to_string(@keyboard_enabled and :keyup in @attrs.events)}
-      data-target={@myself}>
+      data-target={@myself}
+    >
       <span class="tooltip right" data-tooltip="Toggle keyboard control">
-        <button class={"button-base #{if @keyboard_enabled, do: "button-blue", else: "button-gray"} button-square-icon"}
+        <button
+          class={
+            "button-base #{if @keyboard_enabled, do: "button-blue", else: "button-gray"} button-square-icon"
+          }
           type="button"
           aria-label="toggle keyboard control"
-          phx-click={JS.push("toggle_keyboard", target: @myself)}>
+          phx-click={JS.push("toggle_keyboard", target: @myself)}
+        >
           <.remix_icon icon="keyboard-line" />
         </button>
       </span>
@@ -30,9 +36,11 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(%{attrs: %{type: :button}} = assigns) do
     ~H"""
     <div class="flex">
-      <button class="button-base button-gray"
+      <button
+        class="button-base button-gray"
         type="button"
-        phx-click={JS.push("button_click", target: @myself)}>
+        phx-click={JS.push("button_click", target: @myself)}
+      >
         <%= @attrs.label %>
       </button>
     </div>
@@ -42,10 +50,12 @@ defmodule LivebookWeb.Output.ControlComponent do
   def render(%{attrs: %{type: :form}} = assigns) do
     ~H"""
     <div>
-      <.live_component module={LivebookWeb.Output.ControlFormComponent}
+      <.live_component
+        module={LivebookWeb.Output.ControlFormComponent}
         id={@id}
         attrs={@attrs}
-        input_values={@input_values} />
+        input_values={@input_values}
+      />
     </div>
     """
   end

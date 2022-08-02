@@ -10,14 +10,17 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= title(@action) %>
       </h3>
-      <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions}/>
+      <.message action={@action} selected_sessions={@selected_sessions} sessions={@sessions} />
       <div class="mt-8 flex justify-end space-x-2">
-        <button class="button-base button-red" role="button"
-          phx-click={SessionListComponent.toggle_edit(:off) |> JS.push(@action, target: @myself)}>
+        <button
+          class="button-base button-red"
+          role="button"
+          phx-click={SessionListComponent.toggle_edit(:off) |> JS.push(@action, target: @myself)}
+        >
           <.remix_icon icon="close-circle-line" class="align-middle mr-1" />
           <%= button_label(@action) %>
         </button>
-        <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
+        <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
       </div>
     </div>
     """
@@ -28,7 +31,7 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
     <p class="text-gray-700">
       Are you sure you want to close <%= pluralize(length(@selected_sessions), "session", "sessions") %>?
       <%= if not_persisted_count(@selected_sessions) > 0 do %>
-      <br/>
+        <br />
         <span class="font-medium">Important:</span>
         <%= pluralize(
           not_persisted_count(@selected_sessions),
@@ -43,7 +46,11 @@ defmodule LivebookWeb.HomeLive.EditSessionsComponent do
   defp message(%{action: "disconnect"} = assigns) do
     ~H"""
     <p class="text-gray-700">
-      Are you sure you want to disconnect <%= pluralize(length(@selected_sessions), "session", "sessions") %>?
+      Are you sure you want to disconnect <%= pluralize(
+        length(@selected_sessions),
+        "session",
+        "sessions"
+      ) %>?
     </p>
     """
   end

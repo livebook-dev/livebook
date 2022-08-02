@@ -19,9 +19,11 @@ defmodule LivebookWeb.UserHelpers do
       |> assign_new(:text_class, fn -> "" end)
 
     ~H"""
-    <div class={"#{@class} rounded-full flex items-center justify-center"}
+    <div
+      class={"#{@class} rounded-full flex items-center justify-center"}
       style={"background-color: #{@user.hex_color}"}
-      aria-hidden="true">
+      aria-hidden="true"
+    >
       <div class={"#{@text_class} text-gray-100 font-semibold"}>
         <%= avatar_text(@user.name) %>
       </div>
@@ -52,10 +54,12 @@ defmodule LivebookWeb.UserHelpers do
   def current_user_modal(assigns) do
     ~H"""
     <.modal id="user-modal" class="w-full max-w-sm">
-      <.live_component module={LivebookWeb.UserComponent}
+      <.live_component
+        module={LivebookWeb.UserComponent}
         id="user"
         user={@current_user}
-        on_save={hide_current_user_modal()} />
+        on_save={hide_current_user_modal()}
+      />
     </.modal>
     """
   end

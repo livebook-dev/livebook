@@ -15,7 +15,11 @@ defmodule LivebookWeb.SidebarHelpers do
   """
   def sidebar(assigns) do
     ~H"""
-    <nav class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-7 bg-gray-900" aria-label="sidebar" data-el-sidebar>
+    <nav
+      class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-7 bg-gray-900"
+      aria-label="sidebar"
+      data-el-sidebar
+    >
       <%= render_slot(@inner_block) %>
     </nav>
     """
@@ -34,9 +38,11 @@ defmodule LivebookWeb.SidebarHelpers do
   def button_item(assigns) do
     ~H"""
     <span class="tooltip right distant" data-tooltip={@label}>
-      <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+      <button
+        class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
         aria-label={@label}
-        {@button_attrs}>
+        {@button_attrs}
+      >
         <.remix_icon icon={@icon} />
       </button>
     </span>
@@ -61,7 +67,8 @@ defmodule LivebookWeb.SidebarHelpers do
     if Livebook.Config.shutdown_enabled?() do
       ~H"""
       <span class="tooltip right distant" data-tooltip="Shutdown">
-        <button class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+        <button
+          class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
           aria-label="shutdown"
           phx-click={
             with_confirm(
@@ -71,13 +78,15 @@ defmodule LivebookWeb.SidebarHelpers do
               confirm_text: "Shutdown",
               confirm_icon: "shut-down-line"
             )
-          }>
+          }
+        >
           <.remix_icon icon="shut-down-line" />
         </button>
       </span>
       """
     else
       ~H"""
+
       """
     end
   end
@@ -91,9 +100,11 @@ defmodule LivebookWeb.SidebarHelpers do
   def user_item(assigns) do
     ~H"""
     <span class="tooltip right distant" data-tooltip="User profile">
-      <button class="text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center mt-2"
+      <button
+        class="text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center mt-2"
         aria_label="user profile"
-        phx-click={show_current_user_modal()}>
+        phx-click={show_current_user_modal()}
+      >
         <.user_avatar user={@current_user} text_class="text-xs" />
       </button>
     </span>
@@ -115,7 +126,8 @@ defmodule LivebookWeb.SidebarHelpers do
       icon="settings-3-fill"
       label="Settings"
       path={Routes.settings_path(@socket, :page)}
-      active={false} />
+      active={false}
+    />
     <.user_item current_user={@current_user} />
     """
   end

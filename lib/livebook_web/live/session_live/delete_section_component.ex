@@ -9,25 +9,24 @@ defmodule LivebookWeb.SessionLive.DeleteSectionComponent do
         Delete section
       </h3>
       <p class="text-gray-700">
-        Are you sure you want to delete this section -
-        <span class="font-semibold">“<%= @section.name %>”</span>?
+        Are you sure you want to delete this section - <span class="font-semibold">“<%= @section.name %>”</span>?
       </p>
       <form phx-submit="delete" phx-target={@myself}>
         <h3 class="mb-1 text-lg font-semibold text-gray-800">
           Options
         </h3>
-        <%# If there is no previous section, all cells need to be deleted %>
+        <% # If there is no previous section, all cells need to be deleted %>
         <.switch_checkbox
           name="delete_cells"
           label="Delete all cells in this section"
           checked={@is_first}
-          disabled={@is_first} />
+          disabled={@is_first}
+        />
         <div class="mt-8 flex justify-end space-x-2">
           <button type="submit" class="button-base button-red">
-            <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" />
-            Delete
+            <.remix_icon icon="delete-bin-6-line" class="align-middle mr-1" /> Delete
           </button>
-          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
+          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
         </div>
       </form>
     </div>
