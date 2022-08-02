@@ -39,33 +39,38 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Make sure to give the node a name and a cookie, for example:
       </p>
       <div class="text-gray-700 markdown">
-      <%= if longname = Livebook.Config.longname() do %>
-        <pre><code>iex --name test@<%= longname %> --cookie mycookie</code></pre>
-      <% else %>
-        <pre><code>iex --sname test --cookie mycookie</code></pre>
-      <% end %>
+        <%= if longname = Livebook.Config.longname() do %>
+          <pre><code>iex --name test@<%= longname %> --cookie mycookie</code></pre>
+        <% else %>
+          <pre><code>iex --sname test --cookie mycookie</code></pre>
+        <% end %>
       </div>
       <p class="text-gray-700">
         Then enter the connection information below:
       </p>
-      <.form let={f} for={:data}
+      <.form
+        let={f}
+        for={:data}
         phx-submit="init"
         phx-change="validate"
         autocomplete="off"
-        spellcheck="false">
+        spellcheck="false"
+      >
         <div class="flex flex-col space-y-4">
           <div>
             <div class="input-label">Name</div>
-            <%= text_input f, :name, value: @data["name"], class: "input", placeholder: name_placeholder() %>
+            <%= text_input(f, :name,
+              value: @data["name"],
+              class: "input",
+              placeholder: name_placeholder()
+            ) %>
           </div>
           <div>
             <div class="input-label">Cookie</div>
-            <%= text_input f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie" %>
+            <%= text_input(f, :cookie, value: @data["cookie"], class: "input", placeholder: "mycookie") %>
           </div>
         </div>
-        <button class="mt-5 button-base button-blue"
-          type="submit"
-          disabled={not data_valid?(@data)}>
+        <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
           <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>
         </button>
       </.form>

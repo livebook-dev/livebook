@@ -37,45 +37,50 @@ defmodule LivebookWeb.SessionLive.MixStandaloneLive do
         within the notebook.
       </p>
       <p class="text-gray-700">
-        <span class="font-semibold">Warning:</span>
-        Notebooks that use <code>Mix.install/1</code> do not work
+        <span class="font-semibold">Warning:</span> Notebooks that use <code>Mix.install/1</code>
+        do not work
         inside a Mix project because the dependencies of the project
         itself have been installed instead.
       </p>
       <%= if @status != :initializing do %>
         <div class="h-full h-52">
-          <.live_component module={LivebookWeb.FileSelectComponent}
-              id="mix-project-dir"
-              file={@data.file}
-              extnames={[]}
-              running_files={[]}
-              submit_event={if(data_valid?(@data), do: :init, else: nil)}
-              file_system_select_disabled={true} />
+          <.live_component
+            module={LivebookWeb.FileSelectComponent}
+            id="mix-project-dir"
+            file={@data.file}
+            extnames={[]}
+            running_files={[]}
+            submit_event={if(data_valid?(@data), do: :init, else: nil)}
+            file_system_select_disabled={true}
+          />
         </div>
         <form phx-change="validate" phx-submit="init">
           <div>
             <div class="input-label"><code>mix run</code> command-line flags</div>
-            <input class="input"
+            <input
+              class="input"
               type="text"
               name="flags"
               value={@data.flags}
               spellcheck="false"
-              autocomplete="off" />
+              autocomplete="off"
+            />
           </div>
-          <button class="mt-5 button-base button-blue"
-            type="submit"
-            disabled={not data_valid?(@data)}>
+          <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
             <%= if(matching_runtime?(@current_runtime, @data), do: "Reconnect", else: "Connect") %>
           </button>
         </form>
       <% end %>
       <%= if @status != :initial do %>
         <div class="markdown">
-          <pre><code class="max-h-40 overflow-y-auto tiny-scrollbar"
-            id={"mix-standalone-init-output-#{@outputs_version}"}
-            phx-update="append"
-            phx-hook="ScrollOnUpdate"
-            ><%= for {output, i} <- @outputs do %><span id={"mix-standalone-init-output-#{@outputs_version}-#{i}"}><%= ansi_string_to_html(output) %></span><% end %></code></pre>
+          <pre><code
+      class="max-h-40 overflow-y-auto tiny-scrollbar"
+      id={"mix-standalone-init-output-#{@outputs_version}"}
+      phx-update="append"
+      phx-hook="ScrollOnUpdate"
+    ><%= for {output, i} <- @outputs do %><span id={
+      "mix-standalone-init-output-#{@outputs_version}-#{i}"
+    }><%= ansi_string_to_html(output) %></span><% end %></code></pre>
         </div>
       <% end %>
     </div>

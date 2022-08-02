@@ -3,54 +3,68 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
 
   def render(assigns) do
     ~H"""
-    <div class="relative top-0.5 m-0 flex justify-center"
+    <div
+      class="relative top-0.5 m-0 flex justify-center"
       role="toolbar"
       aria-label="insert new"
-      data-el-insert-buttons>
-      <div class={"w-full absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"}>
-        <button class="button-base button-small"
+      data-el-insert-buttons
+    >
+      <div class={
+        "w-full absolute z-10 hover:z-[11] #{if(@persistent, do: "opacity-100", else: "opacity-0")} hover:opacity-100 focus-within:opacity-100 flex space-x-2 justify-center items-center"
+      }>
+        <button
+          class="button-base button-small"
           phx-click="insert_cell_below"
           phx-value-type="code"
           phx-value-section_id={@section_id}
           phx-value-cell_id={@cell_id}
-          >+ Code</button>
+        >
+          + Code
+        </button>
         <.menu id={"#{@id}-block-menu"} position="bottom-left">
           <:toggle>
             <button class="button-base button-small">+ Block</button>
           </:toggle>
           <:content>
-            <button class="menu-item text-gray-500"
+            <button
+              class="menu-item text-gray-500"
               role="menuitem"
               phx-click="insert_cell_below"
               phx-value-type="markdown"
               phx-value-section_id={@section_id}
-              phx-value-cell_id={@cell_id}>
+              phx-value-cell_id={@cell_id}
+            >
               <.remix_icon icon="markdown-fill" />
               <span class="font-medium">Markdown</span>
             </button>
-            <button class="menu-item text-gray-500"
+            <button
+              class="menu-item text-gray-500"
               role="menuitem"
               phx-click="insert_section_below"
               phx-value-section_id={@section_id}
-              phx-value-cell_id={@cell_id}>
+              phx-value-cell_id={@cell_id}
+            >
               <.remix_icon icon="h-2" />
               <span class="font-medium">Section</span>
             </button>
             <div class="my-2 border-b border-gray-200"></div>
-            <button class="menu-item text-gray-500"
+            <button
+              class="menu-item text-gray-500"
               role="menuitem"
               phx-click="insert_cell_below"
               phx-value-type="diagram"
               phx-value-section_id={@section_id}
-              phx-value-cell_id={@cell_id}>
-            <.remix_icon icon="organization-chart" />
-            <span class="font-medium">Diagram</span>
-          </button>
+              phx-value-cell_id={@cell_id}
+            >
+              <.remix_icon icon="organization-chart" />
+              <span class="font-medium">Diagram</span>
+            </button>
           </:content>
         </.menu>
         <%= cond do %>
           <% not Livebook.Runtime.connected?(@runtime) -> %>
-            <button class="button-base button-small"
+            <button
+              class="button-base button-small"
               phx-click={
                 with_confirm(
                   JS.push("setup_default_runtime"),
@@ -63,13 +77,14 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                   confirm_icon: "play-line",
                   danger: false
                 )
-              }>+ Smart</button>
-
+              }
+            >
+              + Smart
+            </button>
           <% @smart_cell_definitions == [] -> %>
             <span class="tooltip right" data-tooltip="No smart cells available">
               <button class="button-base button-small" disabled>+ Smart</button>
             </span>
-
           <% true -> %>
             <.menu id={"#{@id}-smart-menu"} position="bottom-left">
               <:toggle>
@@ -80,7 +95,8 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
                   <.smart_cell_insert_button
                     definition={definition}
                     section_id={@section_id}
-                    cell_id={@cell_id} />
+                    cell_id={@cell_id}
+                  />
                 <% end %>
               </:content>
             </.menu>
@@ -98,9 +114,11 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
       </button>
       <:content>
         <%= for {variant, idx} <- Enum.with_index(@definition.requirement.variants) do %>
-          <button class="menu-item text-gray-500"
+          <button
+            class="menu-item text-gray-500"
             role="menuitem"
-            phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}>
+            phx-click={on_smart_cell_click(@definition, idx, @section_id, @cell_id)}
+          >
             <span class="font-medium"><%= variant.name %></span>
           </button>
         <% end %>
@@ -111,9 +129,11 @@ defmodule LivebookWeb.SessionLive.InsertButtonsComponent do
 
   defp smart_cell_insert_button(assigns) do
     ~H"""
-    <button class="menu-item text-gray-500"
+    <button
+      class="menu-item text-gray-500"
       role="menuitem"
-      phx-click={on_smart_cell_click(@definition, 0, @section_id, @cell_id)}>
+      phx-click={on_smart_cell_click(@definition, 0, @section_id, @cell_id)}
+    >
       <span class="font-medium"><%= @definition.name %></span>
     </button>
     """

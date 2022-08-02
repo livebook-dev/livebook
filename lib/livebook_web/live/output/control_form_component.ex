@@ -37,18 +37,22 @@ defmodule LivebookWeb.Output.ControlFormComponent do
     ~H"""
     <div class="flex flex-col space-y-3">
       <%= for {_field, input_attrs} <- @attrs.fields do %>
-        <.live_component module={LivebookWeb.Output.InputComponent}
+        <.live_component
+          module={LivebookWeb.Output.InputComponent}
           id={"#{@id}-#{input_attrs.id}"}
           attrs={input_attrs}
           input_values={@input_values}
-          local={true} />
+          local={true}
+        />
       <% end %>
       <%= if @attrs.submit do %>
         <div>
-          <button class="button-base button-blue"
+          <button
+            class="button-base button-blue"
             type="button"
             phx-click="submit"
-            phx-target={@myself}>
+            phx-target={@myself}
+          >
             <%= @attrs.submit %>
           </button>
         </div>

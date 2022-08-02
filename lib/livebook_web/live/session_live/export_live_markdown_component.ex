@@ -28,10 +28,7 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
     <div class="flex flex-col space-y-6">
       <div class="flex">
         <form phx-change="set_options" onsubmit="return false;" phx-target={@myself}>
-          <.switch_checkbox
-            name="include_outputs"
-            label="Include outputs"
-            checked={@include_outputs} />
+          <.switch_checkbox name="include_outputs" label="Include outputs" checked={@include_outputs} />
         </form>
       </div>
       <div class="flex flex-col space-y-1">
@@ -41,26 +38,31 @@ defmodule LivebookWeb.SessionLive.ExportLiveMarkdownComponent do
           </span>
           <div class="flex justify-end space-x-2">
             <span class="tooltip left" data-tooltip="Copy source">
-              <button class="icon-button"
+              <button
+                class="icon-button"
                 aria-label="copy source"
-                phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}>
+                phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}
+              >
                 <.remix_icon icon="clipboard-line" class="text-lg" />
               </button>
             </span>
             <span class="tooltip left" data-tooltip="Download source">
-              <a class="icon-button"
+              <a
+                class="icon-button"
                 aria-label="download source"
-                href={Routes.session_path(@socket, :download_source, @session.id, "livemd", include_outputs: @include_outputs)}>
+                href={
+                  Routes.session_path(@socket, :download_source, @session.id, "livemd",
+                    include_outputs: @include_outputs
+                  )
+                }
+              >
                 <.remix_icon icon="download-2-line" class="text-lg" />
               </a>
             </span>
           </div>
         </div>
         <div class="markdown">
-        <.code_preview
-          source_id="export-notebook-source"
-          language="markdown"
-          source={@source} />
+          <.code_preview source_id="export-notebook-source" language="markdown" source={@source} />
         </div>
       </div>
     </div>

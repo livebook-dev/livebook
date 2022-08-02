@@ -24,25 +24,26 @@ defmodule LivebookWeb.SessionLive.ExportElixirComponent do
           </span>
           <div class="flex justify-end space-x-2">
             <span class="tooltip left" data-tooltip="Copy source">
-              <button class="icon-button"
+              <button
+                class="icon-button"
                 aria-label="copy source"
-                phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}>
+                phx-click={JS.dispatch("lb:clipcopy", to: "#export-notebook-source")}
+              >
                 <.remix_icon icon="clipboard-line" class="text-lg" />
               </button>
             </span>
             <span class="tooltip left" data-tooltip="Download source">
-              <a class="icon-button"
+              <a
+                class="icon-button"
                 aria-label="download source"
-                href={Routes.session_path(@socket, :download_source, @session.id, "exs")}>
+                href={Routes.session_path(@socket, :download_source, @session.id, "exs")}
+              >
                 <.remix_icon icon="download-2-line" class="text-lg" />
               </a>
             </span>
           </div>
         </div>
-        <.code_preview
-          source_id="export-notebook-source"
-          language="elixir"
-          source={@source} />
+        <.code_preview source_id="export-notebook-source" language="elixir" source={@source} />
       </div>
     </div>
     """

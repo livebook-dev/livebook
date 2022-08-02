@@ -35,7 +35,8 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               active={@type == "elixir_standalone"}
               phx-click="set_runtime_type"
               phx-value-type="elixir_standalone"
-              phx-target={@myself}>
+              phx-target={@myself}
+            >
               Elixir standalone
             </.choice_button>
           <% end %>
@@ -44,7 +45,8 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               active={@type == "mix_standalone"}
               phx-click="set_runtime_type"
               phx-value-type="mix_standalone"
-              phx-target={@myself}>
+              phx-target={@myself}
+            >
               Mix standalone
             </.choice_button>
           <% end %>
@@ -53,7 +55,8 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               active={@type == "attached"}
               phx-click="set_runtime_type"
               phx-value-type="attached"
-              phx-target={@myself}>
+              phx-target={@myself}
+            >
               Attached node
             </.choice_button>
           <% end %>
@@ -62,15 +65,17 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               active={@type == "embedded"}
               phx-click="set_runtime_type"
               phx-value-type="embedded"
-              phx-target={@myself}>
+              phx-target={@myself}
+            >
               Embedded
             </.choice_button>
           <% end %>
         </div>
         <div>
-          <%= live_render @socket, live_view_for_type(@type),
-                id: "runtime-config-#{@type}",
-                session: %{"session" => @session, "current_runtime" => @runtime} %>
+          <%= live_render(@socket, live_view_for_type(@type),
+            id: "runtime-config-#{@type}",
+            session: %{"session" => @session, "current_runtime" => @runtime}
+          ) %>
         </div>
       </div>
     </div>

@@ -26,21 +26,14 @@ defmodule LivebookWeb.Output.InputComponent do
         <%= @attrs.label %>
       </div>
 
-      <.input
-        id={"#{@id}-input"}
-        attrs={@attrs}
-        value={@value}
-        myself={@myself} />
+      <.input id={"#{@id}-input"} attrs={@attrs} value={@value} myself={@myself} />
     </form>
     """
   end
 
   defp input(%{attrs: %{type: :select}} = assigns) do
     ~H"""
-    <select
-      data-el-input
-      class="input input-select"
-      name="value">
+    <select data-el-input class="input input-select" name="value">
       <%= for {{key, label}, idx} <- Enum.with_index(@attrs.options) do %>
         <option value={idx} selected={@value == key}>
           <%= label %>
@@ -53,10 +46,7 @@ defmodule LivebookWeb.Output.InputComponent do
   defp input(%{attrs: %{type: :checkbox}} = assigns) do
     ~H"""
     <div class="mt-1">
-      <.switch_checkbox
-        data-el-input
-        name="value"
-        checked={@value} />
+      <.switch_checkbox data-el-input name="value" checked={@value} />
     </div>
     """
   end
@@ -65,7 +55,8 @@ defmodule LivebookWeb.Output.InputComponent do
     ~H"""
     <div class="flex items-center space-x-2">
       <div><%= @attrs.min %></div>
-      <input type="range"
+      <input
+        type="range"
         data-el-input
         class="input-range"
         name="value"
@@ -76,7 +67,8 @@ defmodule LivebookWeb.Output.InputComponent do
         autocomplete="off"
         min={@attrs.min}
         max={@attrs.max}
-        step={@attrs.step} />
+        step={@attrs.step}
+      />
       <div><%= @attrs.max %></div>
     </div>
     """
@@ -90,14 +82,16 @@ defmodule LivebookWeb.Output.InputComponent do
       name="value"
       phx-debounce="blur"
       phx-target={@myself}
-      spellcheck="false"><%= [?\n, @value] %></textarea>
+      spellcheck="false"
+    ><%= [?\n, @value] %></textarea>
     """
   end
 
   defp input(%{attrs: %{type: :password}} = assigns) do
     ~H"""
     <.with_password_toggle id={"#{@id}-password-toggle"}>
-      <input type="password"
+      <input
+        type="password"
         data-el-input
         class="input w-auto bg-gray-50"
         name="value"
@@ -105,14 +99,16 @@ defmodule LivebookWeb.Output.InputComponent do
         phx-debounce="blur"
         phx-target={@myself}
         spellcheck="false"
-        autocomplete="off" />
+        autocomplete="off"
+      />
     </.with_password_toggle>
     """
   end
 
   defp input(%{attrs: %{type: type}} = assigns) when type in [:number, :color, :url, :text] do
     ~H"""
-    <input type={html_input_type(@attrs.type)}
+    <input
+      type={html_input_type(@attrs.type)}
       data-el-input
       class="input w-auto invalid:input--error"
       name="value"
@@ -120,7 +116,8 @@ defmodule LivebookWeb.Output.InputComponent do
       phx-debounce="blur"
       phx-target={@myself}
       spellcheck="false"
-      autocomplete="off" />
+      autocomplete="off"
+    />
     """
   end
 

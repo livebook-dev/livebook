@@ -1,28 +1,36 @@
 <main role="main" class="grow flex flex-col h-screen">
   <div class="fixed right-8 bottom-5 z-50 flex flex-col space-y-3 max-h-[80%] overflow-y-auto tiny-scrollbar">
     <%= if live_flash(@flash, :info) do %>
-      <div class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-blue-500 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer" role="alert"
+      <div
+        class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-blue-500 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer"
+        role="alert"
         phx-click="lv:clear-flash"
-        phx-value-key="info">
+        phx-value-key="info"
+      >
         <.remix_icon icon="information-line" class="text-2xl text-blue-500" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :info) %></span>
       </div>
     <% end %>
 
     <%= if live_flash(@flash, :warning) do %>
-      <div class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-yellow-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer" role="alert"
+      <div
+        class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-yellow-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer"
+        role="alert"
         phx-click="lv:clear-flash"
-        phx-value-key="warning">
+        phx-value-key="warning"
+      >
         <.remix_icon icon="alert-line" class="text-2xl text-yellow-400" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :warning) %></span>
       </div>
     <% end %>
 
-
     <%= if live_flash(@flash, :error) do %>
-      <div class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-red-500 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer" role="alert"
+      <div
+        class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-red-500 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer"
+        role="alert"
         phx-click="lv:clear-flash"
-        phx-value-key="error">
+        phx-value-key="error"
+      >
         <.remix_icon icon="close-circle-line" class="text-2xl text-red-500" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :error) %></span>
       </div>

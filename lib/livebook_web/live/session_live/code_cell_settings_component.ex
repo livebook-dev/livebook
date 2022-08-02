@@ -28,16 +28,18 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
           <.switch_checkbox
             name="enable_formatting"
             label="Format code when saving to file"
-            checked={not @disable_formatting} />
+            checked={not @disable_formatting}
+          />
         </div>
         <div class="w-full flex-col space-y-6 mt-4">
           <.switch_checkbox
             name="reevaluate_automatically"
             label="Reevaluate automatically"
-            checked={@reevaluate_automatically} />
+            checked={@reevaluate_automatically}
+          />
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
+          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
           <button class="button-base button-blue" type="submit">
             Save
           </button>

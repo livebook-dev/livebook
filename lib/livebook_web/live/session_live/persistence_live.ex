@@ -50,30 +50,41 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       </h3>
       <div class="w-full flex-col space-y-8">
         <div class="flex">
-          <form phx-change="set_options" onsubmit="return false;" class="flex flex-col space-y-4 items-start max-w-full">
+          <form
+            phx-change="set_options"
+            onsubmit="return false;"
+            class="flex flex-col space-y-4 items-start max-w-full"
+          >
             <div class="flex flex-col space-y-4">
               <.switch_checkbox
                 name="persist_outputs"
                 label="Persist outputs"
-                checked={@new_attrs.persist_outputs} />
+                checked={@new_attrs.persist_outputs}
+              />
               <div class="flex space-x-2 items-center">
                 <span class="text-gray-700 whitespace-nowrap">Autosave</span>
                 <.select
                   name="autosave_interval_s"
                   selected={@new_attrs.autosave_interval_s}
-                  options={[
-                    {5, "every 5 seconds"},
-                    {30, "every 30 seconds"},
-                    {60, "every minute"},
-                    {600, "every 10 minutes"},
-                    {nil, "never"}
-                  ]} />
+                  options={
+                    [
+                      {5, "every 5 seconds"},
+                      {30, "every 30 seconds"},
+                      {60, "every minute"},
+                      {600, "every 10 minutes"},
+                      {nil, "never"}
+                    ]
+                  }
+                />
               </div>
             </div>
             <div class="flex space-x-2 items-center max-w-full">
               <span class="text-gray-700 whitespace-nowrap">File:</span>
               <%= if @new_attrs.file do %>
-                <span class="tooltip right" data-tooltip={file_system_label(@new_attrs.file.file_system)}>
+                <span
+                  class="tooltip right"
+                  data-tooltip={file_system_label(@new_attrs.file.file_system)}
+                >
                   <span class="flex items-center">
                     [<.file_system_icon file_system={@new_attrs.file.file_system} />]
                   </span>
@@ -81,12 +92,10 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 <span class="text-gray-700 whitespace-no-wrap font-medium text-ellipsis overflow-hidden">
                   <%= @new_attrs.file.path %>
                 </span>
-                <button class="button-base button-gray button-small"
-                  phx-click="open_file_select">
+                <button class="button-base button-gray button-small" phx-click="open_file_select">
                   Change file
                 </button>
-                <button class="button-base button-gray button-small"
-                  phx-click="clear_file">
+                <button class="button-base button-gray button-small" phx-click="clear_file">
                   Stop saving
                 </button>
               <% else %>
@@ -94,8 +103,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                   no file selected
                 </span>
                 <%= unless @draft_file do %>
-                  <button class="button-base button-gray button-small"
-                    phx-click="open_file_select">
+                  <button class="button-base button-gray button-small" phx-click="open_file_select">
                     Choose a file
                   </button>
                 <% end %>
@@ -106,22 +114,24 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
         <%= if @draft_file do %>
           <div class="flex flex-col">
             <div class="h-full h-52">
-              <.live_component module={LivebookWeb.FileSelectComponent}
+              <.live_component
+                module={LivebookWeb.FileSelectComponent}
                 id="persistence_file_select"
                 file={@draft_file}
                 extnames={[LiveMarkdown.extension()]}
                 running_files={@running_files}
-                submit_event={:confirm_file}>
+                submit_event={:confirm_file}
+              >
                 <div class="flex justify-end space-x-2">
-                  <button class="button-base button-gray"
-                    phx-click="close_file_select"
-                    tabindex="-1">
+                  <button class="button-base button-gray" phx-click="close_file_select" tabindex="-1">
                     Cancel
                   </button>
-                  <button class="button-base button-blue"
+                  <button
+                    class="button-base button-blue"
                     phx-click="confirm_file"
                     disabled={FileSystem.File.dir?(@draft_file)}
-                    tabindex="-1">
+                    tabindex="-1"
+                  >
                     Choose
                   </button>
                 </div>
@@ -134,18 +144,25 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
         <% end %>
         <div class="flex">
           <%= if @new_attrs.file do %>
-            <button class="button-base button-blue"
+            <button
+              class="button-base button-blue"
               phx-click="save"
               disabled={
                 not savable?(@new_attrs, @attrs, @running_files, @draft_file) or
                   (same_attrs?(@new_attrs, @attrs) and @saved_file == @new_attrs.file)
-              }>
+              }
+            >
               Save now
             </button>
           <% else %>
-            <button class="button-base button-blue"
+            <button
+              class="button-base button-blue"
               phx-click="save"
-              disabled={not savable?(@new_attrs, @attrs, @running_files, @draft_file) or same_attrs?(@new_attrs, @attrs)}>
+              disabled={
+                not savable?(@new_attrs, @attrs, @running_files, @draft_file) or
+                  same_attrs?(@new_attrs, @attrs)
+              }
+            >
               Apply
             </button>
           <% end %>

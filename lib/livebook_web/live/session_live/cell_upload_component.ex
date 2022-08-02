@@ -32,8 +32,10 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
             <span><%= entry.progress %>%</span>
           </div>
           <div class="w-full h-2 rounded-lg bg-blue-200">
-            <div class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
-              style={"width: #{entry.progress}%"}>
+            <div
+              class="h-full rounded-lg bg-blue-600 transition-all ease-out duration-1000"
+              style={"width: #{entry.progress}%"}
+            >
             </div>
           </div>
         </div>
@@ -42,7 +44,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
         <div class="w-full flex space-x-2">
           <div>
             <label>
-              <%= live_file_input @uploads.cell_image, class: "hidden" %>
+              <%= live_file_input(@uploads.cell_image, class: "hidden") %>
               <div class="cursor-pointer button-base button-gray button-square-icon">
                 <.remix_icon icon="folder-upload-line" />
               </div>
@@ -53,10 +55,12 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
           </div>
         </div>
         <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch "Cancel", to: @return_to, class: "button-base button-outlined-gray" %>
-          <button class="button-base button-blue"
+          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+          <button
+            class="button-base button-blue"
             type="submit"
-            disabled={@uploads.cell_image.entries == []}>
+            disabled={@uploads.cell_image.entries == []}
+          >
             Upload
           </button>
         </div>
