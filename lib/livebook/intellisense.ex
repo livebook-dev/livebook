@@ -625,8 +625,7 @@ defmodule Livebook.Intellisense do
   end
 
   defp build_md(iodata, [{:ul, [{:class, "types"} | _], content} | ast]) do
-    lines = Enum.map(content, fn {:li, _, line} -> line end)
-    render_code_block(lines, "erlang") |> append_block(iodata) |> build_md(ast)
+    render_types_list(content) |> append_block(iodata) |> build_md(ast)
   end
 
   defp build_md(iodata, [{:ul, _, content} | ast]) do
@@ -734,5 +733,24 @@ defmodule Livebook.Intellisense do
       {:li, [], [{:p, [], [{:strong, [], dt}]}, {:p, [], dd}]}
     end)
     |> render_unordered_list()
+  end
+
+  defp render_types_list(content) do
+    content
+    |> group_type_list_items([])
+    |> render_unordered_list()
+  end
+
+  defp group_type_list_items([], acc), do: Enum.reverse(acc)
+
+  defp group_type_list_items([{:li, [{:class, "type"}], content} | items], acc) do
+    group_type_list_items(items, [{:li, [], [{:code, [], content}]} | acc])
+  end
+
+  defp group_type_list_items(
+         [{:li, [{:class, "description"}], content} | items],
+         [{:li, [], prev_content} | acc]
+       ) do
+    group_type_list_items(items, [{:li, [], prev_content ++ [{:p, [], content}]} | acc])
   end
 end

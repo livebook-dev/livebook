@@ -1224,6 +1224,14 @@ defmodule Livebook.IntellisenseTest do
       assert file_read =~ "Typical error reasons:"
     end
 
+    @tag :erl_docs
+    test "properly renders Erlang signature types list" do
+      context = eval(do: nil)
+
+      assert %{contents: [file_read]} = Intellisense.get_details(":odbc.connect()", 8, context)
+      assert file_read =~ "Ref = connection_reference()"
+    end
+
     test "properly parses unicode" do
       context = eval(do: nil)
 
@@ -1427,6 +1435,22 @@ defmodule Livebook.IntellisenseTest do
                  }
                ]
              } = Intellisense.get_signature_items(":lists.map(", context)
+    end
+
+    @tag :erl_docs
+    test "shows signature with arguments for erlang modules with arrow signature" do
+      context = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "connect(ConnectStr, Options)",
+                   arguments: ["ConnectStr", "Options"],
+                   documentation: _connect_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items(":odbc.connect(", context)
     end
 
     test "returns call active argument" do
