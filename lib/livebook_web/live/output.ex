@@ -100,9 +100,12 @@ defmodule LivebookWeb.Output do
     assigns = %{message: formatted}
 
     ~H"""
-    <div class="whitespace-pre-wrap font-editor text-gray-500" role="complementary" aria-label="error">
-      <%= ansi_string_to_html(@message) %>
-    </div>
+    <div
+      class="whitespace-pre-wrap font-editor text-gray-500"
+      role="complementary"
+      aria-label="error"
+      phx-no-format
+    ><%= ansi_string_to_html(@message) %></div>
     """
   end
 
@@ -135,9 +138,8 @@ defmodule LivebookWeb.Output do
       class="whitespace-pre-wrap font-editor text-red-600"
       role="complementary"
       aria-label="error message"
-    >
-      <%= @message %>
-    </div>
+      phx-no-format
+    ><%= @message %></div>
     """
   end
 end
