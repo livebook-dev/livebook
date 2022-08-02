@@ -32,24 +32,18 @@ defmodule LivebookWeb.SidebarHelpers do
       <div class="flex flex-col space-y-2">
         <div class="flex items-center mb-6">
           <div class="w-16 flex justify-center "><img src="/images/logo.png" height="40" width="40" alt="logo livebook" /></div>
-          <span class="text-gray-300 text-2xl font-medium font-sans ">Livebook</span>
-          <span class=" text-gray-300 text-sm font-normal font-sans mx-2.5 pt-2">v 1.3</span>
+          <span class="text-gray-300 text-2xl font-medium font-sans">Livebook</span>
+          <span class=" text-gray-300 text-sm font-normal font-sans mx-2.5 pt-2">
+            v<%= Application.spec(:livebook, :vsn) %>
+          </span>
         </div>
-        <!--Home-->
-        <div class="h-8 flex items-center group hover:border-l-4">
-          <svg class="w-16 fill-gray-400 group-hover:fill-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="none" d="M0 0h24v24H0z"/><path d="M21 20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.49a1 1 0 0 1 .386-.79l8-6.222a1 1 0 0 1 1.228 0l8 6.222a1 1 0 0 1 .386.79V20zm-2-1V9.978l-7-5.444-7 5.444V19h14zM7 15h10v2H7v-2z"/></svg>
-          <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">Home</span>
-        </div>
-        <!--Explore-->
-        <div class="h-8 flex items-center group hover:border-l-4">
-          <svg class="w-16 fill-gray-400 group-hover:fill-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm4.5-12.5L14 14l-6.5 2.5L10 10l6.5-2.5zM12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
-          <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">Explore</span>
-        </div>
+        <.sidebar_link title="Home" icon="home-6-line" to={Routes.home_path(@socket, :page)} current={@current} />
+        <.sidebar_link title="Explore" icon="compass-3-line" to={Routes.explore_path(@socket, :page)} current={@current} />
         <!--Settings-->
-        <div class="h-8 flex items-center group hover:border-l-4">
+        <%= live_patch to: Routes.settings_path(@socket, :page), class: "h-8 flex items-center group hover:border-l-4" do %>
           <svg class="w-16 fill-gray-400 group-hover:fill-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="none" d="M0 0h24v24H0z"/><path d="M3.34 17a10.018 10.018 0 0 1-.978-2.326 3 3 0 0 0 .002-5.347A9.99 9.99 0 0 1 4.865 4.99a3 3 0 0 0 4.631-2.674 9.99 9.99 0 0 1 5.007.002 3 3 0 0 0 4.632 2.672c.579.59 1.093 1.261 1.525 2.01.433.749.757 1.53.978 2.326a3 3 0 0 0-.002 5.347 9.99 9.99 0 0 1-2.501 4.337 3 3 0 0 0-4.631 2.674 9.99 9.99 0 0 1-5.007-.002 3 3 0 0 0-4.632-2.672A10.018 10.018 0 0 1 3.34 17zm5.66.196a4.993 4.993 0 0 1 2.25 2.77c.499.047 1 .048 1.499.001A4.993 4.993 0 0 1 15 17.197a4.993 4.993 0 0 1 3.525-.565c.29-.408.54-.843.748-1.298A4.993 4.993 0 0 1 18 12c0-1.26.47-2.437 1.273-3.334a8.126 8.126 0 0 0-.75-1.298A4.993 4.993 0 0 1 15 6.804a4.993 4.993 0 0 1-2.25-2.77c-.499-.047-1-.048-1.499-.001A4.993 4.993 0 0 1 9 6.803a4.993 4.993 0 0 1-3.525.565 7.99 7.99 0 0 0-.748 1.298A4.993 4.993 0 0 1 6 12c0 1.26-.47 2.437-1.273 3.334a8.126 8.126 0 0 0 .75 1.298A4.993 4.993 0 0 1 9 17.196zM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
           <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">Settings</span>
-        </div>
+        <% end %>
       </div>
       <div class="flex flex-col">
         <!--Shut Down-->
@@ -98,6 +92,18 @@ defmodule LivebookWeb.SidebarHelpers do
 
     """
   end
+
+  defp sidebar_link(assigns) do
+    ~H"""
+    <%= live_patch to: @to, class: "h-8 flex items-center group hover:border-l-4 #{sidebar_link_color(@to, @current)}" do %>
+      <.remix_icon icon={@icon} class="w-16 group-hover:text-white" />
+      <span class="text-sm font-normal group-hover:text-white hover:font-medium"><%= @title %></span>
+    <% end %>
+    """
+  end
+
+  defp sidebar_link_color(to, current) when to == current, do: "text-white"
+  defp sidebar_link_color(_to, _current), do: "text-gray-400"
 
   def logo_item(assigns) do
     ~H"""
