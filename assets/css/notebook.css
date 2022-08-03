@@ -27,8 +27,3 @@
 .ri-livebook-save:before {
   content: "\f0b3";
 }
-
-/* Custom size for remix icon on sidebar */
-.ri-sb {
-  font-size: 1.125em;
-}
