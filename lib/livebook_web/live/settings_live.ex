@@ -9,7 +9,7 @@ defmodule LivebookWeb.SettingsLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> SidebarHelpers.shared_home_handlers()
+     |> SidebarHelpers.sidebar_handlers()
      |> assign(
        file_systems: Livebook.Settings.file_systems(),
        autosave_path_state: %{
@@ -25,7 +25,7 @@ defmodule LivebookWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <SidebarHelpers.new_sidebar
+      <SidebarHelpers.sidebar
         socket={@socket}
         current_page={Routes.settings_path(@socket, :page)}
         current_user={@current_user}

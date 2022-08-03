@@ -13,7 +13,7 @@ defmodule LivebookWeb.ExploreLive do
 
     {:ok,
      socket
-     |> SidebarHelpers.shared_home_handlers()
+     |> SidebarHelpers.sidebar_handlers()
      |> assign(
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
@@ -25,7 +25,7 @@ defmodule LivebookWeb.ExploreLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <SidebarHelpers.new_sidebar
+      <SidebarHelpers.sidebar
         socket={@socket}
         current_page={Routes.explore_path(@socket, :page)}
         current_user={@current_user}

@@ -19,7 +19,7 @@ defmodule LivebookWeb.HomeLive do
 
     {:ok,
      socket
-     |> SidebarHelpers.shared_home_handlers()
+     |> SidebarHelpers.sidebar_handlers()
      |> assign(
        self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
@@ -39,7 +39,7 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <div class="flex grow h-full">
       <.live_region role="alert" />
-      <SidebarHelpers.new_sidebar
+      <SidebarHelpers.sidebar
         socket={@socket}
         current_page={Routes.home_path(@socket, :page)}
         current_user={@current_user}
