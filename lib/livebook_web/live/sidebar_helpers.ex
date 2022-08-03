@@ -63,7 +63,7 @@ defmodule LivebookWeb.SidebarHelpers do
               )
             }
           >
-            <.remix_icon icon="shut-down-line" class="text-lg leading-6 w-[60px] flex justify-center" />
+            <.remix_icon icon="shut-down-line" class="text-lg leading-6 w-[56px] flex justify-center" />
             <span class="text-sm font-medium">
               Shut Down
             </span>
@@ -93,7 +93,7 @@ defmodule LivebookWeb.SidebarHelpers do
   defp sidebar_link(assigns) do
     ~H"""
     <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
-      <.remix_icon icon={@icon} class="text-lg leading-6 w-[60px] flex justify-center" />
+      <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" />
       <span class="text-sm font-medium">
         <%= @title %>
       </span>
