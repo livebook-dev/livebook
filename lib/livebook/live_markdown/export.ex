@@ -201,6 +201,25 @@ defmodule Livebook.LiveMarkdown.Export do
     end
   end
 
+  defp render_output({:tabs, outputs, _info}, ctx) do
+    Enum.find_value(outputs, :ignored, fn {_idx, output} ->
+      case render_output(output, ctx) do
+        :ignored -> nil
+        rendered -> rendered
+      end
+    end)
+  end
+
+  defp render_output({:grid, outputs, _info}, ctx) do
+    outputs
+    |> Enum.map(fn {_idx, output} -> render_output(output, ctx) end)
+    |> Enum.reject(&(&1 == :ignored))
+    |> case do
+      [] -> :ignored
+      rendered -> Enum.intersperse(rendered, "\n\n")
+    end
+  end
+
   defp render_output(_output, _ctx), do: :ignored
 
   defp encode_js_data(data) when is_binary(data), do: {:ok, data}

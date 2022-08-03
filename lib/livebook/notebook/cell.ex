@@ -62,7 +62,7 @@ defmodule Livebook.Notebook.Cell do
     Keyword.values(fields)
   end
 
-  def find_inputs_in_output({_idx, {:frame, outputs, _}}) do
+  def find_inputs_in_output({_idx, {type, outputs, _}}) when type in [:frame, :tabs, :grid] do
     Enum.flat_map(outputs, &find_inputs_in_output/1)
   end
 
