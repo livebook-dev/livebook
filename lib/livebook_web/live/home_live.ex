@@ -51,7 +51,7 @@ defmodule LivebookWeb.HomeLive do
           <div class="flex flex-col space-y-2 items-center pb-4
                       sm:flex-row sm:space-y-0 sm:justify-between">
             <PageHelpers.title text="Home" />
-            <div class="flex space-x-2 pt-2" role="navigation" aria-label="new notebook">
+            <div class="flex space-x-2" role="navigation" aria-label="new notebook">
               <%= live_patch("Import",
                 to: Routes.home_path(@socket, :import, "url"),
                 class: "button-base button-outlined-gray whitespace-nowrap"
