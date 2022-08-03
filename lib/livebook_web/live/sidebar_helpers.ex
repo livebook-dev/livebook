@@ -21,13 +21,7 @@ defmodule LivebookWeb.SidebarHelpers do
       <div class="flex flex-col space-y-2">
         <div class="group flex items-center mb-5">
           <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
-            <img
-              src="/images/logo.png"
-              class="group mx-2"
-              height="40"
-              width="40"
-              alt="logo livebook"
-            />
+            <img src="/images/logo.png" class="group mx-2" height="40" width="40" alt="logo livebook" />
             <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
               Livebook
             </span>

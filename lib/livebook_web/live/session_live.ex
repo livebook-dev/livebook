@@ -626,7 +626,8 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp session_status(assigns), do: ~H""
+  defp session_status(assigns), do: ~H"
+"
 
   defp status_indicator(assigns) do
     assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
