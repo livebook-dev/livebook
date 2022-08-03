@@ -10,6 +10,7 @@ module.exports = {
     fontFamily: {
       sans: ["Inter"],
       mono: ["JetBrains Mono", "monospace"],
+      logo: ["Red Hat Text"],
     },
     extend: {
       colors: {
@@ -73,7 +74,7 @@ module.exports = {
           800: "#B7641F",
           900: "#934814",
         },
-        'green-bright': {
+        "green-bright": {
           50: "#F0FDF4",
           100: "#DCFCE7",
           200: "#BBF7D0",
@@ -85,7 +86,7 @@ module.exports = {
           800: "#166534",
           900: "#14532D",
         },
-        'yellow-bright': {
+        "yellow-bright": {
           50: "#FEFCE8",
           100: "#FEF9C3",
           200: "#FEF08A",

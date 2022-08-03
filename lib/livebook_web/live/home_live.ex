@@ -4,7 +4,7 @@ defmodule LivebookWeb.HomeLive do
   import LivebookWeb.SessionHelpers
   import LivebookWeb.UserHelpers
 
-  alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
+  alias LivebookWeb.{ExploreHelpers, PageHelpers, SidebarHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   @impl true
@@ -19,7 +19,7 @@ defmodule LivebookWeb.HomeLive do
 
     {:ok,
      socket
-     |> SidebarHelpers.shared_home_handlers()
+     |> SidebarHelpers.sidebar_handlers()
      |> assign(
        self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
@@ -39,20 +39,19 @@ defmodule LivebookWeb.HomeLive do
     ~H"""
     <div class="flex grow h-full">
       <.live_region role="alert" />
-      <SidebarHelpers.sidebar>
-        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
-      </SidebarHelpers.sidebar>
+      <SidebarHelpers.sidebar
+        socket={@socket}
+        current_page={Routes.home_path(@socket, :page)}
+        current_user={@current_user}
+      />
       <div class="grow overflow-y-auto">
         <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
         <.memory_notification memory={@memory} app_service_url={@app_service_url} />
         <div class="max-w-screen-lg w-full mx-auto px-8 pt-8 pb-32 space-y-4">
-          <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
+          <div class="flex flex-col space-y-2 items-center pb-4
                       sm:flex-row sm:space-y-0 sm:justify-between">
-            <div class="text-2xl text-gray-800 font-semibold">
-              <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
-              <h1 class="sr-only">Livebook</h1>
-            </div>
-            <div class="flex space-x-2 pt-2" role="navigation" aria-label="new notebook">
+            <PageHelpers.title text="Home" />
+            <div class="flex space-x-2" role="navigation" aria-label="new notebook">
               <%= live_patch("Import",
                 to: Routes.home_path(@socket, :import, "url"),
                 class: "button-base button-outlined-gray whitespace-nowrap"

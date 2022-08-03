@@ -5,7 +5,6 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias LivebookWeb.SidebarHelpers
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
   alias Livebook.JSInterop
@@ -96,40 +95,64 @@ defmodule LivebookWeb.SessionLive do
       data-global-status={elem(@data_view.global_status, 0)}
       data-autofocus-cell-id={@autofocus_cell_id}
     >
-      <SidebarHelpers.sidebar>
-        <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.button_item
+      <nav
+        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-7 bg-gray-900"
+        aria-label="sidebar"
+        data-el-sidebar
+      >
+        <span>
+          <%= live_redirect to: Routes.home_path(@socket, :page), aria_label: "go to homepage" do %>
+            <img src="/images/logo.png" height="40" width="40" alt="" />
+          <% end %>
+        </span>
+
+        <.button_item
           icon="booklet-fill"
           label="Sections (ss)"
           button_attrs={[data_el_sections_list_toggle: true]}
         />
-        <SidebarHelpers.button_item
+        <.button_item
           icon="group-fill"
           label="Connected users (su)"
           button_attrs={[data_el_clients_list_toggle: true]}
         />
-        <SidebarHelpers.button_item
+        <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
           button_attrs={[data_el_runtime_info_toggle: true]}
         />
-        <SidebarHelpers.link_item
+        <.link_item
           icon="delete-bin-6-fill"
           label="Bin (sb)"
           path={Routes.session_path(@socket, :bin, @session.id)}
           active={@live_action == :bin}
           link_attrs={[data_btn_show_bin: true]}
         />
-        <SidebarHelpers.break_item />
-        <SidebarHelpers.link_item
+
+        <div class="grow"></div>
+
+        <.link_item
           icon="keyboard-box-fill"
           label="Keyboard shortcuts (?)"
           path={Routes.session_path(@socket, :shortcuts, @session.id)}
           active={@live_action == :shortcuts}
           link_attrs={[data_btn_show_shortcuts: true]}
         />
-        <SidebarHelpers.user_item current_user={@current_user} />
-      </SidebarHelpers.sidebar>
+
+        <span class="tooltip right distant" data-tooltip="User profile">
+          <button
+            class="text-gray-400 rounded-xl h-8 w-8 flex items-center justify-center mt-2 group"
+            aria_label="user profile"
+            phx-click={show_current_user_modal()}
+          >
+            <.user_avatar
+              user={@current_user}
+              class="w-8 h-8 group-hover:ring-white group-hover:ring-2"
+              text_class="text-xs"
+            />
+          </button>
+        </span>
+      </nav>
       <div
         class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
         data-el-side-panel
@@ -361,6 +384,34 @@ defmodule LivebookWeb.SessionLive do
         ) %>
       </.modal>
     <% end %>
+    """
+  end
+
+  defp button_item(assigns) do
+    ~H"""
+    <span class="tooltip right distant" data-tooltip={@label}>
+      <button
+        class="text-2xl text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center"
+        aria-label={@label}
+        {@button_attrs}
+      >
+        <.remix_icon icon={@icon} />
+      </button>
+    </span>
+    """
+  end
+
+  defp link_item(assigns) do
+    assigns = assign_new(assigns, :link_attrs, fn -> [] end)
+
+    ~H"""
+    <span class="tooltip right distant" data-tooltip={@label}>
+      <%= live_patch [to: @path,
+            class: "text-gray-400 hover:text-gray-50 focus:text-gray-50 rounded-xl h-10 w-10 flex items-center justify-center #{if(@active, do: "text-gray-50 bg-gray-700")}",
+            aria_label: @label] ++ @link_attrs do %>
+        <.remix_icon icon={@icon} class="text-2xl" />
+      <% end %>
+    </span>
     """
   end
 

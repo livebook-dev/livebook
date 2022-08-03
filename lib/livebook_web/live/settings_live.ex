@@ -9,7 +9,7 @@ defmodule LivebookWeb.SettingsLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> SidebarHelpers.shared_home_handlers()
+     |> SidebarHelpers.sidebar_handlers()
      |> assign(
        file_systems: Livebook.Settings.file_systems(),
        autosave_path_state: %{
@@ -25,16 +25,17 @@ defmodule LivebookWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <SidebarHelpers.sidebar>
-        <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
-      </SidebarHelpers.sidebar>
+      <SidebarHelpers.sidebar
+        socket={@socket}
+        current_page={Routes.settings_path(@socket, :page)}
+        current_user={@current_user}
+      />
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-20">
           <!-- System settings section -->
           <div class="flex flex-col space-y-10">
             <div>
-              <PageHelpers.title text="System settings" socket={@socket} />
+              <PageHelpers.title text="System settings" />
               <p class="mt-4 text-gray-700">
                 Here you can change global Livebook configuration. Keep in mind
                 that this configuration gets persisted and will be restored on application

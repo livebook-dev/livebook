@@ -13,7 +13,7 @@ defmodule LivebookWeb.ExploreLive do
 
     {:ok,
      socket
-     |> SidebarHelpers.shared_home_handlers()
+     |> SidebarHelpers.sidebar_handlers()
      |> assign(
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
@@ -25,14 +25,15 @@ defmodule LivebookWeb.ExploreLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <SidebarHelpers.sidebar>
-        <SidebarHelpers.logo_item socket={@socket} />
-        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
-      </SidebarHelpers.sidebar>
+      <SidebarHelpers.sidebar
+        socket={@socket}
+        current_page={Routes.explore_path(@socket, :page)}
+        current_user={@current_user}
+      />
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
           <div>
-            <PageHelpers.title text="Explore" socket={@socket} />
+            <PageHelpers.title text="Explore" />
             <p class="mt-4 text-gray-700">
               Check out a number of examples showcasing various parts of the Elixir ecosystem.
               Click on any notebook you like and start playing around with it!

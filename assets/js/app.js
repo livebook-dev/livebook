@@ -4,6 +4,7 @@ import "katex/dist/katex.min.css";
 import "@fontsource/inter";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
+import "@fontsource/red-hat-text";
 import "@fontsource/jetbrains-mono";
 
 import "phoenix_html";
