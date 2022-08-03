@@ -590,9 +590,14 @@ defmodule Livebook.Notebook do
 
   defp find_assets_info_in_outputs(outputs, hash) do
     Enum.find_value(outputs, fn
-      {_idx, {:js, %{js_view: %{assets: %{hash: ^hash} = assets_info}}}} -> assets_info
-      {_idx, {:frame, outputs, _}} -> find_assets_info_in_outputs(outputs, hash)
-      _ -> nil
+      {_idx, {:js, %{js_view: %{assets: %{hash: ^hash} = assets_info}}}} ->
+        assets_info
+
+      {_idx, {type, outputs, _}} when type in [:frame, :tabs, :grid] ->
+        find_assets_info_in_outputs(outputs, hash)
+
+      _ ->
+        nil
     end)
   end
 
@@ -650,10 +655,10 @@ defmodule Livebook.Notebook do
   defp apply_frame_update(_outputs, new_outputs, :replace), do: new_outputs
   defp apply_frame_update(outputs, new_outputs, :append), do: new_outputs ++ outputs
 
+  defp add_output(outputs, {_idx, :ignored}), do: outputs
+
   defp add_output([], {idx, {:stdout, text}}),
     do: [{idx, {:stdout, normalize_stdout(text)}}]
-
-  defp add_output(outputs, {_idx, :ignored}), do: outputs
 
   defp add_output([], output), do: [output]
 
@@ -696,9 +701,9 @@ defmodule Livebook.Notebook do
     Enum.map_reduce(outputs, counter, &index_output/2)
   end
 
-  defp index_output({:frame, outputs, info}, counter) do
+  defp index_output({type, outputs, info}, counter) when type in [:frame, :tabs, :grid] do
     {outputs, counter} = index_outputs(outputs, counter)
-    {{counter, {:frame, outputs, info}}, counter + 1}
+    {{counter, {type, outputs, info}}, counter + 1}
   end
 
   defp index_output(output, counter) do
@@ -721,7 +726,8 @@ defmodule Livebook.Notebook do
     [output]
   end
 
-  defp do_find_frame_outputs({_idx, {:frame, outputs, _info}}, ref) do
+  defp do_find_frame_outputs({_idx, {type, outputs, _info}}, ref)
+       when type in [:frame, :tabs, :grid] do
     Enum.flat_map(outputs, &do_find_frame_outputs(&1, ref))
   end
 
@@ -756,6 +762,18 @@ defmodule Livebook.Notebook do
   # Keep frame and its relevant contents
   defp do_prune_outputs([{idx, {:frame, frame_outputs, info}} | outputs], acc) do
     do_prune_outputs(outputs, [{idx, {:frame, prune_outputs(frame_outputs), info}} | acc])
+  end
+
+  # Keep layout output and its relevant contents
+  defp do_prune_outputs([{idx, {type, tabs_outputs, _info}} | outputs], acc)
+       when type in [:tabs, :grid] do
+    case prune_outputs(tabs_outputs) do
+      [] ->
+        do_prune_outputs(outputs, acc)
+
+      pruned_tabs_outputs ->
+        do_prune_outputs(outputs, [{idx, {type, pruned_tabs_outputs, :__pruned__}} | acc])
+    end
   end
 
   # Keep outputs that get re-rendered

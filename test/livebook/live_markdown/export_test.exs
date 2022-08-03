@@ -898,6 +898,108 @@ defmodule Livebook.LiveMarkdown.ExportTest do
     end
   end
 
+  test "includes only the first tabs output that can be exported" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: ":ok",
+                    outputs: [
+                      {0,
+                       {:tabs,
+                        [
+                          {1, {:markdown, "a"}},
+                          {2, {:text, "b"}},
+                          {3, {:text, "c"}}
+                        ], %{labels: ["A", "B", "C"]}}}
+                    ]
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    :ok
+    ```
+
+    <!-- livebook:{"output":true} -->
+
+    ```
+    b
+    ```
+    """
+
+    document = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+    assert expected_document == document
+  end
+
+  test "includes all grid outputs that can be exported" do
+    notebook = %{
+      Notebook.new()
+      | name: "My Notebook",
+        sections: [
+          %{
+            Notebook.Section.new()
+            | name: "Section 1",
+              cells: [
+                %{
+                  Notebook.Cell.new(:code)
+                  | source: ":ok",
+                    outputs: [
+                      {0,
+                       {:grid,
+                        [
+                          {1, {:text, "a"}},
+                          {2, {:markdown, "b"}},
+                          {3, {:text, "c"}}
+                        ], %{columns: 2}}}
+                    ]
+                }
+              ]
+          }
+        ]
+    }
+
+    expected_document = """
+    # My Notebook
+
+    ## Section 1
+
+    ```elixir
+    :ok
+    ```
+
+    <!-- livebook:{"output":true} -->
+
+    ```
+    a
+    ```
+
+    <!-- livebook:{"output":true} -->
+
+    ```
+    c
+    ```
+    """
+
+    document = Export.notebook_to_livemd(notebook, include_outputs: true)
+
+    assert expected_document == document
+  end
+
   test "includes outputs when notebook has :persist_outputs set" do
     notebook = %{
       Notebook.new()

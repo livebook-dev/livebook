@@ -70,11 +70,11 @@ defmodule LivebookWeb.SidebarHelpers do
           </button>
         <% end %>
         <button
-          class="mt-8 flex items-center group"
+          class="mt-8 flex items-center group border-l-4 border-transparent"
           aria_label="user profile"
           phx-click={show_current_user_modal()}
         >
-          <div class="w-[60px] border-l-4 border-transparent flex justify-center group">
+          <div class="w-[56px] flex justify-center">
             <.user_avatar
               user={@current_user}
               class="w-8 h-8 group-hover:ring-white group-hover:ring-2"

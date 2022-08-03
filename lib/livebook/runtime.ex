@@ -52,6 +52,10 @@ defprotocol Livebook.Runtime do
           | {:js, info :: map()}
           # Outputs placeholder
           | {:frame, outputs :: list(output()), info :: map()}
+          # Outputs in tabs
+          | {:tabs, outputs :: list(output()), info :: map()}
+          # Outputs in grid
+          | {:grid, outputs :: list(output()), info :: map()}
           # An input field
           | {:input, attrs :: map()}
           # A control element
