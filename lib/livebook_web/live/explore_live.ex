@@ -33,7 +33,7 @@ defmodule LivebookWeb.ExploreLive do
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
           <div>
-            <PageHelpers.title text="Explore" socket={@socket} />
+            <PageHelpers.title text="Explore" />
             <p class="mt-4 text-gray-700">
               Check out a number of examples showcasing various parts of the Elixir ecosystem.
               Click on any notebook you like and start playing around with it!
