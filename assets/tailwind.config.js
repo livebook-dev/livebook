@@ -10,6 +10,7 @@ module.exports = {
     fontFamily: {
       sans: ["Inter"],
       mono: ["JetBrains Mono", "monospace"],
+      logo: ["Red Hat Text"],
     },
     extend: {
       colors: {

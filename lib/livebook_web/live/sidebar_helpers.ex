@@ -34,14 +34,15 @@ defmodule LivebookWeb.SidebarHelpers do
       data-el-sidebar
     >
       <div class="flex flex-col space-y-2">
-        <div class="flex items-center mb-6">
-          <%= live_patch to: Routes.home_path(@socket, :page), class: "flex items-center mb-6" do %>
-            <img src="/images/logo.png" class="mx-3" height="40" width="40" alt="logo livebook" />
-            <span class="text-gray-300 text-2xl font-logo">Livebook</span>
-          <% end %>
-          <span class=" text-gray-300 text-sm font-normal font-sans mx-2.5 pt-2">
+        <div class="group flex items-center mb-6">
+          <%= live_patch to: Routes.home_path(@socket, :page), class: "flex items-center mb-6 border-l-4 border-gray-900" do %>
+            <img src="/images/logo.png" class="group mx-[7.5px]" height="41" width="41" alt="logo livebook" />
+            <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white">Livebook</span>\
+            <span class=" text-gray-300 text-sm font-normal font-sans mx-2.5 pt-2">
             v<%= Application.spec(:livebook, :vsn) %>
           </span>
+          <% end %>
+
         </div>
         <.sidebar_link
           title="Home"
@@ -66,21 +67,21 @@ defmodule LivebookWeb.SidebarHelpers do
         <!--Shut down button-->
         <%= if Livebook.Config.shutdown_enabled?() do %>
           <a
-            class="h-8 flex items-center group hover:border-l-4 text-gray-400"
+            class="h-8 flex items-center group"
             aria-label="shutdown"
             phx-click={
               with_confirm(
                 JS.push("shutdown"),
-                title: "Shut down",
+                title: "Shut Down",
                 description: "Are you sure you want to shut down Livebook now?",
-                confirm_text: "Shut down",
+                confirm_text: "Shut Down",
                 confirm_icon: "shut-down-line"
               )
             }
           >
             <.remix_icon
               icon="shut-down-line"
-              class="ri-sb flex justify-center w-16 text-gray-400 group-hover:text-white"
+              class="ri-sb flex justify-center w-[60px] group border-l-4 border-gray-900 group-hover:border-white text-gray-400 group-hover:text-white"
             />
             <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">
               Shut Down
@@ -94,7 +95,7 @@ defmodule LivebookWeb.SidebarHelpers do
           phx-click={show_current_user_modal()}
         >
           <div class="w-16 h-8 flex justify-center group">
-            <.user_avatar user={@current_user} class="p-2 group-hover:ring-white group-hover:ring-2" text_class="text-xs" />
+            <.user_avatar user={@current_user} class="w-8 h-8 group-hover:ring-white group-hover:ring-2" text_class="text-xs" />
           </div>
           <span class="text-sm text-gray-400 font-normal group-hover:text-white group-hover:font-medium">
             <%= @current_user.name %>
@@ -108,10 +109,10 @@ defmodule LivebookWeb.SidebarHelpers do
 
   defp sidebar_link(assigns) do
     ~H"""
-    <%= live_patch to: @to, class: "h-8 flex items-center group hover:border-l-4 #{sidebar_link_color(@to, @current)}" do %>
+    <%= live_patch to: @to, class: "h-8 flex items-center group #{sidebar_link_color(@to, @current)}" do %>
       <.remix_icon
         icon={@icon}
-        class="ri-sb flex justify-center w-16 text-gray-400 group-hover:text-white"
+        class="ri-sb flex justify-center w-[60px] group border-l-4 border-gray-900 group-hover:border-white text-gray-400 group-hover:text-white"
       />
       <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">
         <%= @title %>
