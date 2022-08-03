@@ -32,25 +32,17 @@ defmodule LivebookWeb.SidebarHelpers do
       <div class="flex flex-col space-y-2">
         <div class="flex items-center mb-6">
           <div class="w-16 flex justify-center "><img src="/images/logo.png" height="40" width="40" alt="logo livebook" /></div>
-          <span class="text-gray-300 text-2xl font-medium font-sans">Livebook</span>
+          <span class="text-gray-300 text-2xl font-logo">Livebook</span>
           <span class=" text-gray-300 text-sm font-normal font-sans mx-2.5 pt-2">
             v<%= Application.spec(:livebook, :vsn) %>
           </span>
         </div>
         <.sidebar_link title="Home" icon="home-6-line" to={Routes.home_path(@socket, :page)} current={@current} />
         <.sidebar_link title="Explore" icon="compass-3-line" to={Routes.explore_path(@socket, :page)} current={@current} />
-        <!--Settings-->
-        <%= live_patch to: Routes.settings_path(@socket, :page), class: "h-8 flex items-center group hover:border-l-4" do %>
-          <svg class="w-16 fill-gray-400 group-hover:fill-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="none" d="M0 0h24v24H0z"/><path d="M3.34 17a10.018 10.018 0 0 1-.978-2.326 3 3 0 0 0 .002-5.347A9.99 9.99 0 0 1 4.865 4.99a3 3 0 0 0 4.631-2.674 9.99 9.99 0 0 1 5.007.002 3 3 0 0 0 4.632 2.672c.579.59 1.093 1.261 1.525 2.01.433.749.757 1.53.978 2.326a3 3 0 0 0-.002 5.347 9.99 9.99 0 0 1-2.501 4.337 3 3 0 0 0-4.631 2.674 9.99 9.99 0 0 1-5.007-.002 3 3 0 0 0-4.632-2.672A10.018 10.018 0 0 1 3.34 17zm5.66.196a4.993 4.993 0 0 1 2.25 2.77c.499.047 1 .048 1.499.001A4.993 4.993 0 0 1 15 17.197a4.993 4.993 0 0 1 3.525-.565c.29-.408.54-.843.748-1.298A4.993 4.993 0 0 1 18 12c0-1.26.47-2.437 1.273-3.334a8.126 8.126 0 0 0-.75-1.298A4.993 4.993 0 0 1 15 6.804a4.993 4.993 0 0 1-2.25-2.77c-.499-.047-1-.048-1.499-.001A4.993 4.993 0 0 1 9 6.803a4.993 4.993 0 0 1-3.525.565 7.99 7.99 0 0 0-.748 1.298A4.993 4.993 0 0 1 6 12c0 1.26-.47 2.437-1.273 3.334a8.126 8.126 0 0 0 .75 1.298A4.993 4.993 0 0 1 9 17.196zM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
-          <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">Settings</span>
-        <% end %>
+        <.sidebar_link title="Settings" icon="settings-3-line" to={Routes.explore_path(@socket, :page)} current={@current} />
       </div>
       <div class="flex flex-col">
-        <!--Shut Down-->
-        <div class="h-8 flex items-center group hover:border-l-4">
-          <svg class="w-16 fill-gray-400 group-hover:fill-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="none" d="M0 0h24v24H0z"/><path d="M6.265 3.807l1.147 1.639a8 8 0 1 0 9.176 0l1.147-1.639A9.988 9.988 0 0 1 22 12c0 5.523-4.477 10-10 10S2 17.523 2 12a9.988 9.988 0 0 1 4.265-8.193zM11 12V2h2v10h-2z"/></svg>
-          <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium">Shut down</span>
-        </div>
+      <.sidebar_link title="Shut Down" icon="shut-down-line" to={Routes.explore_path(@socket, :page)} current={@current} />
         <!--User Profile-->
         <div class=" mt-8 flex items-center group">
           <div class="w-16 h-8 flex justify-center group">
@@ -96,8 +88,8 @@ defmodule LivebookWeb.SidebarHelpers do
   defp sidebar_link(assigns) do
     ~H"""
     <%= live_patch to: @to, class: "h-8 flex items-center group hover:border-l-4 #{sidebar_link_color(@to, @current)}" do %>
-      <.remix_icon icon={@icon} class="w-16 group-hover:text-white" />
-      <span class="text-sm font-normal group-hover:text-white hover:font-medium"><%= @title %></span>
+      <.remix_icon icon={@icon} class="ri-sb flex justify-center w-16 text-gray-400 group-hover:text-white" />
+      <span class="text-sm text-gray-400 font-normal group-hover:text-white hover:font-medium"><%= @title %></span>
     <% end %>
     """
   end
