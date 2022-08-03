@@ -177,8 +177,7 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp update_notification(%{version: nil} = assigns), do: ~H"
-"
+  defp update_notification(%{version: nil} = assigns), do: ~H""
 
   defp update_notification(assigns) do
     ~H"""

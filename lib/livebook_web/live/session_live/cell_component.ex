@@ -610,8 +610,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
     """
   end
 
-  defp cell_status(assigns), do: ~H"
-"
+  defp cell_status(assigns), do: ~H""
 
   defp status_indicator(assigns) do
     assigns =
