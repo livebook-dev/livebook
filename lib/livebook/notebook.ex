@@ -653,9 +653,9 @@ defmodule Livebook.Notebook do
   defp add_output([], {idx, {:stdout, text}}),
     do: [{idx, {:stdout, normalize_stdout(text)}}]
 
-  defp add_output([], output), do: [output]
-
   defp add_output(outputs, {_idx, :ignored}), do: outputs
+
+  defp add_output([], output), do: [output]
 
   # Session clients prune stdout content and handle subsequent
   # ones by directly appending page content to the previous one

@@ -21,8 +21,8 @@ defmodule LivebookWeb.Output.TextComponent do
         class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
         id={"virtualized-text-#{@id}-content"}
         phx-update="ignore"
-      >
-      </div>
+        phx-no-format
+      ></div>
       <div class="absolute right-2 top-0 z-10">
         <button
           class="icon-button bg-gray-100"
