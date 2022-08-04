@@ -82,6 +82,15 @@ defmodule LivebookWeb.JSViewChannel do
     {:noreply, socket}
   end
 
+  def handle_info({:event, event, payload, %{ref: ref}}, socket) do
+    with {:error, error} <- try_push(socket, "event:#{ref}", [event], payload) do
+      message = "Failed to serialize widget data, " <> error
+      push(socket, "error:#{ref}", %{"message" => message})
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_info({:pong, _, %{ref: ref}}, socket) do
     push(socket, "pong:#{ref}", %{})
     {:noreply, socket}
