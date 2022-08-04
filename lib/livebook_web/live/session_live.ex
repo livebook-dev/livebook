@@ -626,7 +626,8 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp session_status(assigns), do: ~H""
+  defp session_status(assigns), do: ~H"
+"
 
   defp status_indicator(assigns) do
     assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
@@ -1165,7 +1166,7 @@ defmodule LivebookWeb.SessionLive do
             redirect_path =
               socket
               |> Routes.session_path(:page, session_id)
-              |> maybe_add_anchor_link(requested_url)
+              |> maybe_add_url_hash(requested_url)
 
             push_redirect(socket, to: redirect_path)
 
@@ -1193,16 +1194,16 @@ defmodule LivebookWeb.SessionLive do
   defp location(%{file: file}) when is_map(file), do: {:file, file}
   defp location(%{origin: origin}), do: origin
 
-  defp maybe_add_anchor_link(redirect_path, requested_url) do
-    case get_anchor_link(requested_url) do
+  defp maybe_add_url_hash(redirect_path, requested_url) do
+    case get_url_hash(requested_url) do
       nil -> redirect_path
-      anchor_link -> "#{redirect_path}##{anchor_link}"
+      url_hash -> "#{redirect_path}##{url_hash}"
     end
   end
 
-  defp get_anchor_link(requested_url) do
+  defp get_url_hash(requested_url) do
     case String.split(requested_url, "#") do
-      [_, anchor_link] -> anchor_link
+      [_, url_hash] -> url_hash
       _ -> nil
     end
   end
@@ -1215,7 +1216,7 @@ defmodule LivebookWeb.SessionLive do
         # If the current session has no path, fork the notebook
         fork? = socket.private.data.file == nil
         {file, notebook} = file_and_notebook(fork?, origin, notebook)
-        anchor_link = get_anchor_link(requested_url)
+        url_hash = get_url_hash(requested_url)
 
         socket
         |> put_import_warnings(messages)
@@ -1223,7 +1224,7 @@ defmodule LivebookWeb.SessionLive do
           notebook: notebook,
           origin: origin,
           file: file,
-          anchor_link: anchor_link
+          url_hash: url_hash
         )
 
       {:error, message} ->

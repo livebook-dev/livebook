@@ -24,7 +24,7 @@ defmodule LivebookWeb.SessionHelpers do
         redirect_path =
           socket
           |> Routes.session_path(:page, session.id)
-          |> maybe_add_anchor_link(opts)
+          |> maybe_add_url_hash(opts)
 
         push_redirect(socket, to: redirect_path)
 
@@ -33,10 +33,10 @@ defmodule LivebookWeb.SessionHelpers do
     end
   end
 
-  defp maybe_add_anchor_link(redirect_path, opts) do
-    case opts[:anchor_link] do
+  defp maybe_add_url_hash(redirect_path, opts) do
+    case opts[:url_hash] do
       nil -> redirect_path
-      anchor_link -> "#{redirect_path}##{anchor_link}"
+      url_hash -> "#{redirect_path}##{url_hash}"
     end
   end
 
