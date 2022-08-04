@@ -626,8 +626,7 @@ defmodule LivebookWeb.SessionLive do
     """
   end
 
-  defp session_status(assigns), do: ~H"
-"
+  defp session_status(assigns), do: ~H""
 
   defp status_indicator(assigns) do
     assigns = assign_new(assigns, :animated_circle_class, fn -> nil end)
@@ -1161,13 +1160,9 @@ defmodule LivebookWeb.SessionLive do
       resolution_location ->
         origin = Notebook.ContentLoader.resolve_location(resolution_location, relative_path)
 
-        case session_id_by_location(origin) do
-          {:ok, session_id} ->
-            redirect_path =
-              socket
-              |> Routes.session_path(:page, session_id)
-              |> maybe_add_url_hash(requested_url)
-
+        case session_by_location(origin) do
+          {:ok, session} ->
+            redirect_path = session_path(socket, session, url_hash: get_url_hash(requested_url))
             push_redirect(socket, to: redirect_path)
 
           {:error, :none} ->
@@ -1193,13 +1188,6 @@ defmodule LivebookWeb.SessionLive do
   defp location(data)
   defp location(%{file: file}) when is_map(file), do: {:file, file}
   defp location(%{origin: origin}), do: origin
-
-  defp maybe_add_url_hash(redirect_path, requested_url) do
-    case get_url_hash(requested_url) do
-      nil -> redirect_path
-      url_hash -> "#{redirect_path}##{url_hash}"
-    end
-  end
 
   defp get_url_hash(requested_url) do
     case String.split(requested_url, "#") do
@@ -1239,7 +1227,7 @@ defmodule LivebookWeb.SessionLive do
   defp file_and_notebook(true, {:file, _file}, notebook), do: {nil, Notebook.forked(notebook)}
   defp file_and_notebook(_fork?, _origin, notebook), do: {nil, notebook}
 
-  defp session_id_by_location(location) do
+  defp session_by_location(location) do
     sessions = Sessions.list_sessions()
 
     session_with_file =
@@ -1250,12 +1238,12 @@ defmodule LivebookWeb.SessionLive do
     # A session associated with the given file takes
     # precedence over sessions originating from this file
     if session_with_file do
-      {:ok, session_with_file.id}
+      {:ok, session_with_file}
     else
       sessions
       |> Enum.filter(fn session -> session.origin == location end)
       |> case do
-        [session] -> {:ok, session.id}
+        [session] -> {:ok, session}
         [] -> {:error, :none}
         _ -> {:error, :many}
       end
