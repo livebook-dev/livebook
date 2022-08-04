@@ -105,12 +105,15 @@ defmodule LivebookWeb.JSViewChannel do
   defp run_safely(fun) do
     try do
       {:ok, fun.()}
-    catch
-      :error, %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
-        {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
+    rescue
+      error ->
+        case error do
+          %Protocol.UndefinedError{protocol: Jason.Encoder, value: value} ->
+            {:error, "value #{inspect(value)} is not JSON-serializable, use another data type"}
 
-      :error, error ->
-        {:error, Exception.message(error)}
+          error ->
+            {:error, Exception.message(error)}
+        end
     end
   end
 
