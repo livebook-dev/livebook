@@ -1160,9 +1160,11 @@ defmodule LivebookWeb.SessionLive do
       resolution_location ->
         origin = Notebook.ContentLoader.resolve_location(resolution_location, relative_path)
 
-        case session_by_location(origin) do
-          {:ok, session} ->
-            redirect_path = session_path(socket, session, url_hash: get_url_hash(requested_url))
+        case session_id_by_location(origin) do
+          {:ok, session_id} ->
+            redirect_path =
+              session_path(socket, session_id, url_hash: get_url_hash(requested_url))
+
             push_redirect(socket, to: redirect_path)
 
           {:error, :none} ->
@@ -1227,7 +1229,7 @@ defmodule LivebookWeb.SessionLive do
   defp file_and_notebook(true, {:file, _file}, notebook), do: {nil, Notebook.forked(notebook)}
   defp file_and_notebook(_fork?, _origin, notebook), do: {nil, notebook}
 
-  defp session_by_location(location) do
+  defp session_id_by_location(location) do
     sessions = Sessions.list_sessions()
 
     session_with_file =
@@ -1238,12 +1240,12 @@ defmodule LivebookWeb.SessionLive do
     # A session associated with the given file takes
     # precedence over sessions originating from this file
     if session_with_file do
-      {:ok, session_with_file}
+      {:ok, session_with_file.id}
     else
       sessions
       |> Enum.filter(fn session -> session.origin == location end)
       |> case do
-        [session] -> {:ok, session}
+        [session] -> {:ok, session.id}
         [] -> {:error, :none}
         _ -> {:error, :many}
       end

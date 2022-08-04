@@ -24,7 +24,7 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
-        redirect_path = session_path(socket, session, opts)
+        redirect_path = session_path(socket, session.id, opts)
         push_redirect(socket, to: redirect_path)
 
       {:error, reason} ->
@@ -35,8 +35,8 @@ defmodule LivebookWeb.SessionHelpers do
   @doc """
   Generate the session path based on the provided options.
   """
-  @spec session_path(Socket.t(), Session.t(), keyword()) :: String.t()
-  def session_path(socket, %Session{id: session_id}, opts \\ []) do
+  @spec session_path(Socket.t(), Session.id(), keyword()) :: String.t()
+  def session_path(socket, session_id, opts \\ []) do
     socket
     |> Routes.session_path(:page, session_id)
     |> maybe_add_url_hash(opts)
