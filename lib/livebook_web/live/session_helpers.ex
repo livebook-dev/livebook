@@ -21,10 +21,22 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
-        push_redirect(socket, to: Routes.session_path(socket, :page, session.id))
+        redirect_path =
+          socket
+          |> Routes.session_path(:page, session.id)
+          |> maybe_add_anchor_link(opts)
+
+        push_redirect(socket, to: redirect_path)
 
       {:error, reason} ->
         put_flash(socket, :error, "Failed to create session: #{reason}")
+    end
+  end
+
+  defp maybe_add_anchor_link(redirect_path, opts) do
+    case opts[:anchor_link] do
+      nil -> redirect_path
+      anchor_link -> "#{redirect_path}##{anchor_link}"
     end
   end
 

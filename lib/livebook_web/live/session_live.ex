@@ -674,7 +674,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_params(
         %{"path_parts" => path_parts},
-        _url,
+        requested_url,
         %{assigns: %{live_action: :catch_all}} = socket
       ) do
     if socket.assigns.policy.edit do
@@ -685,7 +685,7 @@ defmodule LivebookWeb.SessionLive do
         end)
 
       path = Path.join(path_parts)
-      {:noreply, handle_relative_path(socket, path)}
+      {:noreply, handle_relative_path(socket, path, requested_url)}
     else
       {:noreply, socket |> put_flash(:error, "No access to navigate") |> redirect_to_self()}
     end
@@ -1130,10 +1130,10 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  defp handle_relative_path(socket, path) do
+  defp handle_relative_path(socket, path, requested_url) do
     cond do
       String.ends_with?(path, LiveMarkdown.extension()) ->
-        handle_relative_notebook_path(socket, path)
+        handle_relative_notebook_path(socket, path, requested_url)
 
       true ->
         socket
@@ -1145,7 +1145,7 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp handle_relative_notebook_path(socket, relative_path) do
+  defp handle_relative_notebook_path(socket, relative_path, requested_url) do
     resolution_location = location(socket.private.data)
 
     case resolution_location do
@@ -1162,10 +1162,15 @@ defmodule LivebookWeb.SessionLive do
 
         case session_id_by_location(origin) do
           {:ok, session_id} ->
-            push_redirect(socket, to: Routes.session_path(socket, :page, session_id))
+            redirect_path =
+              socket
+              |> Routes.session_path(:page, session_id)
+              |> maybe_add_anchor_link(requested_url)
+
+            push_redirect(socket, to: redirect_path)
 
           {:error, :none} ->
-            open_notebook(socket, origin)
+            open_notebook(socket, origin, requested_url)
 
           {:error, :many} ->
             origin_str =
@@ -1188,7 +1193,21 @@ defmodule LivebookWeb.SessionLive do
   defp location(%{file: file}) when is_map(file), do: {:file, file}
   defp location(%{origin: origin}), do: origin
 
-  defp open_notebook(socket, origin) do
+  defp maybe_add_anchor_link(redirect_path, requested_url) do
+    case get_anchor_link(requested_url) do
+      nil -> redirect_path
+      anchor_link -> "#{redirect_path}##{anchor_link}"
+    end
+  end
+
+  defp get_anchor_link(requested_url) do
+    case String.split(requested_url, "#") do
+      [_, anchor_link] -> anchor_link
+      _ -> nil
+    end
+  end
+
+  defp open_notebook(socket, origin, requested_url) do
     case Notebook.ContentLoader.fetch_content_from_location(origin) do
       {:ok, content} ->
         {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
@@ -1196,10 +1215,16 @@ defmodule LivebookWeb.SessionLive do
         # If the current session has no path, fork the notebook
         fork? = socket.private.data.file == nil
         {file, notebook} = file_and_notebook(fork?, origin, notebook)
+        anchor_link = get_anchor_link(requested_url)
 
         socket
         |> put_import_warnings(messages)
-        |> create_session(notebook: notebook, origin: origin, file: file)
+        |> create_session(
+          notebook: notebook,
+          origin: origin,
+          file: file,
+          anchor_link: anchor_link
+        )
 
       {:error, message} ->
         socket
