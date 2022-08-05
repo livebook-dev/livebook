@@ -15,22 +15,25 @@ defmodule LivebookWeb.SessionLive do
     # we talk to the session process exclusively for getting all the information
     case Sessions.fetch_session(session_id) do
       {:ok, %{pid: session_pid}} ->
-        data =
+        {data, client_id} =
           if connected?(socket) do
-            data = Session.register_client(session_pid, self(), socket.assigns.current_user)
+            {data, client_id} =
+              Session.register_client(session_pid, self(), socket.assigns.current_user)
+
             Session.subscribe(session_id)
 
-            data
+            {data, client_id}
           else
-            Session.get_data(session_pid)
+            data = Session.get_data(session_pid)
+            {data, nil}
           end
 
         socket =
           if connected?(socket) do
             payload = %{
               clients:
-                Enum.map(data.clients_map, fn {client_pid, user_id} ->
-                  client_info(client_pid, data.users_map[user_id])
+                Enum.map(data.clients_map, fn {client_id, user_id} ->
+                  client_info(client_id, data.users_map[user_id])
                 end)
             }
 
@@ -48,8 +51,8 @@ defmodule LivebookWeb.SessionLive do
          |> assign(
            self_path: Routes.session_path(socket, :page, session.id),
            session: session,
+           client_id: client_id,
            platform: platform,
-           self: self(),
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name)
@@ -161,7 +164,7 @@ defmodule LivebookWeb.SessionLive do
           <.sections_list data_view={@data_view} />
         </div>
         <div data-el-clients-list>
-          <.clients_list data_view={@data_view} self={@self} />
+          <.clients_list data_view={@data_view} client_id={@client_id} />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
@@ -243,6 +246,7 @@ defmodule LivebookWeb.SessionLive do
               module={LivebookWeb.SessionLive.CellComponent}
               id={@data_view.setup_cell_view.id}
               session_id={@session.id}
+              client_id={@client_id}
               runtime={@data_view.runtime}
               installing?={@data_view.installing?}
               cell_view={@data_view.setup_cell_view}
@@ -262,6 +266,7 @@ defmodule LivebookWeb.SessionLive do
                 id={section_view.id}
                 index={index}
                 session_id={@session.id}
+                client_id={@client_id}
                 runtime={@data_view.runtime}
                 smart_cell_definitions={@data_view.smart_cell_definitions}
                 installing?={@data_view.installing?}
@@ -474,22 +479,22 @@ defmodule LivebookWeb.SessionLive do
         </span>
       </div>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for {client_pid, user} <- @data_view.clients do %>
+        <%= for {client_id, user} <- @data_view.clients do %>
           <div
             class="flex items-center justify-between space-x-2"
-            id={"clients-list-item-#{inspect(client_pid)}"}
+            id={"clients-list-item-#{client_id}"}
             data-el-clients-list-item
-            data-client-pid={inspect(client_pid)}
+            data-client-id={client_id}
           >
             <button
               class="flex items-center space-x-2 text-gray-500 hover:text-gray-900 disabled:pointer-events-none"
-              disabled={client_pid == @self}
+              disabled={client_id == @client_id}
               data-el-client-link
             >
               <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
               <span><%= user.name || "Anonymous" %></span>
             </button>
-            <%= if client_pid != @self do %>
+            <%= if client_id != @client_id do %>
               <span
                 class="tooltip left"
                 data-tooltip="Follow this user"
@@ -1040,7 +1045,7 @@ defmodule LivebookWeb.SessionLive do
       Livebook.PubSub,
       self(),
       "sessions:#{socket.assigns.session.id}",
-      {:location_report, self(), report}
+      {:location_report, socket.assigns.client_id, report}
     )
 
     {:noreply, socket}
@@ -1099,8 +1104,8 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, push_event(socket, "intellisense_response", payload)}
   end
 
-  def handle_info({:location_report, client_pid, report}, socket) do
-    report = Map.put(report, :client_pid, inspect(client_pid))
+  def handle_info({:location_report, client_id, report}, socket) do
+    report = Map.put(report, :client_id, client_id)
     {:noreply, push_event(socket, "location_report", report)}
   end
 
@@ -1108,7 +1113,7 @@ defmodule LivebookWeb.SessionLive do
     if local do
       socket =
         Enum.reduce(values, socket, fn {input_id, value}, socket ->
-          operation = {:set_input_value, self(), input_id, value}
+          operation = {:set_input_value, socket.assigns.client_id, input_id, value}
           handle_operation(socket, operation)
         end)
 
@@ -1273,29 +1278,29 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:client_join, client_pid, user}) do
-    push_event(socket, "client_joined", %{client: client_info(client_pid, user)})
+  defp after_operation(socket, _prev_socket, {:client_join, client_id, user}) do
+    push_event(socket, "client_joined", %{client: client_info(client_id, user)})
   end
 
-  defp after_operation(socket, _prev_socket, {:client_leave, client_pid}) do
-    push_event(socket, "client_left", %{client_pid: inspect(client_pid)})
+  defp after_operation(socket, _prev_socket, {:client_leave, client_id}) do
+    push_event(socket, "client_left", %{client_id: client_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:update_user, _client_pid, user}) do
+  defp after_operation(socket, _prev_socket, {:update_user, _client_id, user}) do
     updated_clients =
       socket.private.data.clients_map
-      |> Enum.filter(fn {_client_pid, user_id} -> user_id == user.id end)
-      |> Enum.map(fn {client_pid, _user_id} -> client_info(client_pid, user) end)
+      |> Enum.filter(fn {_client_id, user_id} -> user_id == user.id end)
+      |> Enum.map(fn {client_id, _user_id} -> client_info(client_id, user) end)
 
     push_event(socket, "clients_updated", %{clients: updated_clients})
   end
 
-  defp after_operation(socket, _prev_socket, {:set_notebook_name, _client_pid, name}) do
+  defp after_operation(socket, _prev_socket, {:set_notebook_name, _client_id, name}) do
     assign(socket, page_title: get_page_title(name))
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_section, client_pid, _index, section_id}) do
-    if client_pid == self() do
+  defp after_operation(socket, _prev_socket, {:insert_section, client_id, _index, section_id}) do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "section_inserted", %{section_id: section_id})
     else
       socket
@@ -1305,9 +1310,9 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:insert_section_into, client_pid, _section_id, _index, section_id}
+         {:insert_section_into, client_id, _section_id, _index, section_id}
        ) do
-    if client_pid == self() do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "section_inserted", %{section_id: section_id})
     else
       socket
@@ -1317,22 +1322,22 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:delete_section, _client_pid, section_id, _delete_cells}
+         {:delete_section, _client_id, section_id, _delete_cells}
        ) do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:insert_cell, client_pid, _, _, _, cell_id, _attrs}) do
+  defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
     socket = prune_cell_sources(socket)
 
-    if client_pid == self() do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "cell_inserted", %{cell_id: cell_id})
     else
       socket
     end
   end
 
-  defp after_operation(socket, prev_socket, {:delete_cell, _client_pid, cell_id}) do
+  defp after_operation(socket, prev_socket, {:delete_cell, _client_id, cell_id}) do
     # Find a sibling cell that the client would focus if the deleted cell has focus.
     sibling_cell_id =
       case Notebook.fetch_cell_sibling(prev_socket.private.data.notebook, cell_id, 1) do
@@ -1349,26 +1354,26 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "cell_deleted", %{cell_id: cell_id, sibling_cell_id: sibling_cell_id})
   end
 
-  defp after_operation(socket, _prev_socket, {:restore_cell, client_pid, cell_id}) do
+  defp after_operation(socket, _prev_socket, {:restore_cell, client_id, cell_id}) do
     socket = prune_cell_sources(socket)
 
-    if client_pid == self() do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "cell_restored", %{cell_id: cell_id})
     else
       socket
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:move_cell, client_pid, cell_id, _offset}) do
-    if client_pid == self() do
+  defp after_operation(socket, _prev_socket, {:move_cell, client_id, cell_id, _offset}) do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "cell_moved", %{cell_id: cell_id})
     else
       socket
     end
   end
 
-  defp after_operation(socket, _prev_socket, {:move_section, client_pid, section_id, _offset}) do
-    if client_pid == self() do
+  defp after_operation(socket, _prev_socket, {:move_section, client_id, section_id, _offset}) do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "section_moved", %{section_id: section_id})
     else
       socket
@@ -1378,7 +1383,7 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:add_cell_evaluation_output, _client_pid, _cell_id, _output}
+         {:add_cell_evaluation_output, _client_id, _cell_id, _output}
        ) do
     prune_outputs(socket)
   end
@@ -1386,7 +1391,7 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:add_cell_evaluation_response, _client_pid, cell_id, _output, metadata}
+         {:add_cell_evaluation_response, _client_id, cell_id, _output, metadata}
        ) do
     socket
     |> prune_outputs()
@@ -1396,7 +1401,7 @@ defmodule LivebookWeb.SessionLive do
   defp after_operation(
          socket,
          _prev_socket,
-         {:smart_cell_started, _client_pid, _cell_id, _delta, _js_view, _editor}
+         {:smart_cell_started, _client_id, _cell_id, _delta, _js_view, _editor}
        ) do
     prune_cell_sources(socket)
   end
@@ -1407,8 +1412,8 @@ defmodule LivebookWeb.SessionLive do
     Enum.reduce(actions, socket, &handle_action(&2, &1))
   end
 
-  defp handle_action(socket, {:broadcast_delta, client_pid, cell, tag, delta}) do
-    if client_pid == self() do
+  defp handle_action(socket, {:broadcast_delta, client_id, cell, tag, delta}) do
+    if client_id == socket.assigns.client_id do
       push_event(socket, "cell_acknowledgement:#{cell.id}:#{tag}", %{})
     else
       push_event(socket, "cell_delta:#{cell.id}:#{tag}", %{delta: Delta.to_compressed(delta)})
@@ -1417,8 +1422,8 @@ defmodule LivebookWeb.SessionLive do
 
   defp handle_action(socket, _action), do: socket
 
-  defp client_info(pid, user) do
-    %{pid: inspect(pid), hex_color: user.hex_color, name: user.name || "Anonymous"}
+  defp client_info(id, user) do
+    %{id: id, hex_color: user.hex_color, name: user.name || "Anonymous"}
   end
 
   defp normalize_name(name) do
@@ -1562,8 +1567,8 @@ defmodule LivebookWeb.SessionLive do
         end,
       clients:
         data.clients_map
-        |> Enum.map(fn {client_pid, user_id} -> {client_pid, data.users_map[user_id]} end)
-        |> Enum.sort_by(fn {_client_pid, user} -> user.name end),
+        |> Enum.map(fn {client_id, user_id} -> {client_id, data.users_map[user_id]} end)
+        |> Enum.sort_by(fn {_client_id, user} -> user.name end),
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
@@ -1717,19 +1722,19 @@ defmodule LivebookWeb.SessionLive do
   # most common ones we only update the relevant parts.
   defp update_data_view(data_view, prev_data, data, operation) do
     case operation do
-      {:report_cell_revision, _pid, _cell_id, _tag, _revision} ->
+      {:report_cell_revision, _client_id, _cell_id, _tag, _revision} ->
         data_view
 
-      {:apply_cell_delta, _pid, _cell_id, _tag, _delta, _revision} ->
+      {:apply_cell_delta, _client_id, _cell_id, _tag, _delta, _revision} ->
         update_dirty_status(data_view, data)
 
-      {:update_smart_cell, _pid, _cell_id, _cell_state, _delta, _reevaluate} ->
+      {:update_smart_cell, _client_id, _cell_id, _cell_state, _delta, _reevaluate} ->
         update_dirty_status(data_view, data)
 
       # For outputs that update existing outputs we send the update directly
       # to the corresponding component, so the DOM patch is isolated and fast.
       # This is important for intensive output updates
-      {:add_cell_evaluation_output, _client_pid, _cell_id,
+      {:add_cell_evaluation_output, _client_id, _cell_id,
        {:frame, _outputs, %{type: type, ref: ref}}}
       when type != :default ->
         for {idx, {:frame, frame_outputs, _}} <- Notebook.find_frame_outputs(data.notebook, ref) do
@@ -1742,7 +1747,7 @@ defmodule LivebookWeb.SessionLive do
 
         data_view
 
-      {:add_cell_evaluation_output, _client_pid, cell_id, {:stdout, text}} ->
+      {:add_cell_evaluation_output, _client_id, cell_id, {:stdout, text}} ->
         # Lookup in previous data to see if the output is already there
         case Notebook.fetch_cell_and_section(prev_data.notebook, cell_id) do
           {:ok, %{outputs: [{idx, {:stdout, _}} | _]}, _section} ->

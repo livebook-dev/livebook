@@ -581,12 +581,12 @@ defmodule LivebookWeb.SessionLiveTest do
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session.pid, self(), user1)
-
           receive do
             :stop -> :ok
           end
         end)
+
+      Session.register_client(session.pid, client_pid, user1)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -605,18 +605,18 @@ defmodule LivebookWeb.SessionLiveTest do
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session.pid, self(), user1)
-
           receive do
             :stop -> :ok
           end
         end)
 
-      assert_receive {:operation, {:client_join, ^client_pid, _user}}
+      {_, client_id} = Session.register_client(session.pid, client_pid, user1)
+
+      assert_receive {:operation, {:client_join, ^client_id, _user}}
       assert render(view) =~ "Jake Peralta"
 
       send(client_pid, :stop)
-      assert_receive {:operation, {:client_leave, ^client_pid}}
+      assert_receive {:operation, {:client_leave, ^client_id}}
       refute render(view) =~ "Jake Peralta"
     end
 
@@ -626,12 +626,12 @@ defmodule LivebookWeb.SessionLiveTest do
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session.pid, self(), user1)
-
           receive do
             :stop -> :ok
           end
         end)
+
+      Session.register_client(session.pid, client_pid, user1)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -640,7 +640,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "Jake Peralta"
 
       Users.broadcast_change(%{user1 | name: "Raymond Holt"})
-      assert_receive {:operation, {:update_user, _pid, _user}}
+      assert_receive {:operation, {:update_user, _client_id, _user}}
 
       refute render(view) =~ "Jake Peralta"
       assert render(view) =~ "Raymond Holt"

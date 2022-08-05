@@ -70,7 +70,7 @@ const JSView = {
 
     this.initTimeout = setTimeout(() => this.handleInitTimeout(), 2_000);
 
-    this.channel = getChannel(this.props.sessionId);
+    this.channel = getChannel(this.props.sessionId, this.props.clientId);
 
     this.removeIframe = this.createIframe();
 
@@ -169,6 +169,7 @@ const JSView = {
       jsPath: getAttributeOrThrow(this.el, "data-js-path"),
       sessionToken: getAttributeOrThrow(this.el, "data-session-token"),
       sessionId: getAttributeOrThrow(this.el, "data-session-id"),
+      clientId: getAttributeOrThrow(this.el, "data-client-id"),
       iframePort: getAttributeOrThrow(
         this.el,
         "data-iframe-local-port",

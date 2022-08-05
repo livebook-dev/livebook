@@ -49,7 +49,7 @@ defmodule Livebook.Session.Data do
           bin_entries: list(cell_bin_entry()),
           runtime: Runtime.t(),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
-          clients_map: %{pid() => User.id()},
+          clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()}
         }
 
@@ -80,7 +80,7 @@ defmodule Livebook.Session.Data do
   @type cell_source_info :: %{
           revision: cell_revision(),
           deltas: list(Delta.t()),
-          revision_by_client_pid: %{pid() => cell_revision()}
+          revision_by_client_id: %{client_id() => cell_revision()}
         }
 
   @type cell_eval_info :: %{
@@ -114,7 +114,9 @@ defmodule Livebook.Session.Data do
 
   @type input_id :: String.t()
 
-  @type client :: {User.id(), pid()}
+  @type client :: {User.id(), client_id()}
+
+  @type client_id :: Livebook.Utils.id()
 
   @type index :: non_neg_integer()
 
@@ -138,52 +140,53 @@ defmodule Livebook.Session.Data do
 
   @type input_reading :: {input_id(), input_value :: term()}
 
-  # Note that all operations carry the pid of whichever process
+  # Note that all operations carry the id of whichever client
   # originated the operation. Some operations like :apply_cell_delta
-  # and :report_cell_revision require the pid to be a registered
+  # and :report_cell_revision require the id to be a registered
   # client, as in these cases it's necessary for the operation to
-  # be properly applied. For other operations the pid can represent
+  # be properly applied. For other operations the id can represent
   # an arbitrary process and is passed for informative purposes only.
 
   @type operation ::
-          {:set_notebook_attributes, pid(), map()}
-          | {:insert_section, pid(), index(), Section.id()}
-          | {:insert_section_into, pid(), Section.id(), index(), Section.id()}
-          | {:set_section_parent, pid(), Section.id(), parent_id :: Section.id()}
-          | {:unset_section_parent, pid(), Section.id()}
-          | {:insert_cell, pid(), Section.id(), index(), Cell.type(), Cell.id(), map()}
-          | {:delete_section, pid(), Section.id(), delete_cells :: boolean()}
-          | {:delete_cell, pid(), Cell.id()}
-          | {:restore_cell, pid(), Cell.id()}
-          | {:move_cell, pid(), Cell.id(), offset :: integer()}
-          | {:move_section, pid(), Section.id(), offset :: integer()}
-          | {:queue_cells_evaluation, pid(), list(Cell.id())}
-          | {:evaluation_started, pid(), Cell.id(), binary()}
-          | {:add_cell_evaluation_output, pid(), Cell.id(), term()}
-          | {:add_cell_evaluation_response, pid(), Cell.id(), term(), metadata :: map()}
-          | {:bind_input, pid(), code_cell_id :: Cell.id(), input_id()}
-          | {:reflect_main_evaluation_failure, pid()}
-          | {:reflect_evaluation_failure, pid(), Section.id()}
-          | {:cancel_cell_evaluation, pid(), Cell.id()}
-          | {:smart_cell_started, pid(), Cell.id(), Delta.t(), Runtime.js_view(),
+          {:set_notebook_attributes, client_id(), map()}
+          | {:insert_section, client_id(), index(), Section.id()}
+          | {:insert_section_into, client_id(), Section.id(), index(), Section.id()}
+          | {:set_section_parent, client_id(), Section.id(), parent_id :: Section.id()}
+          | {:unset_section_parent, client_id(), Section.id()}
+          | {:insert_cell, client_id(), Section.id(), index(), Cell.type(), Cell.id(), map()}
+          | {:delete_section, client_id(), Section.id(), delete_cells :: boolean()}
+          | {:delete_cell, client_id(), Cell.id()}
+          | {:restore_cell, client_id(), Cell.id()}
+          | {:move_cell, client_id(), Cell.id(), offset :: integer()}
+          | {:move_section, client_id(), Section.id(), offset :: integer()}
+          | {:queue_cells_evaluation, client_id(), list(Cell.id())}
+          | {:evaluation_started, client_id(), Cell.id(), binary()}
+          | {:add_cell_evaluation_output, client_id(), Cell.id(), term()}
+          | {:add_cell_evaluation_response, client_id(), Cell.id(), term(), metadata :: map()}
+          | {:bind_input, client_id(), code_cell_id :: Cell.id(), input_id()}
+          | {:reflect_main_evaluation_failure, client_id()}
+          | {:reflect_evaluation_failure, client_id(), Section.id()}
+          | {:cancel_cell_evaluation, client_id(), Cell.id()}
+          | {:smart_cell_started, client_id(), Cell.id(), Delta.t(), Runtime.js_view(),
              Cell.Smart.editor() | nil}
-          | {:update_smart_cell, pid(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
+          | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
              reevaluate :: boolean()}
-          | {:erase_outputs, pid()}
-          | {:set_notebook_name, pid(), String.t()}
-          | {:set_section_name, pid(), Section.id(), String.t()}
-          | {:client_join, pid(), User.t()}
-          | {:client_leave, pid()}
-          | {:update_user, pid(), User.t()}
-          | {:apply_cell_delta, pid(), Cell.id(), cell_source_tag(), Delta.t(), cell_revision()}
-          | {:report_cell_revision, pid(), Cell.id(), cell_source_tag(), cell_revision()}
-          | {:set_cell_attributes, pid(), Cell.id(), map()}
-          | {:set_input_value, pid(), input_id(), value :: term()}
-          | {:set_runtime, pid(), Runtime.t()}
-          | {:set_smart_cell_definitions, pid(), list(Runtime.smart_cell_definition())}
-          | {:set_file, pid(), FileSystem.File.t() | nil}
-          | {:set_autosave_interval, pid(), non_neg_integer() | nil}
-          | {:mark_as_not_dirty, pid()}
+          | {:erase_outputs, client_id()}
+          | {:set_notebook_name, client_id(), String.t()}
+          | {:set_section_name, client_id(), Section.id(), String.t()}
+          | {:client_join, client_id(), User.t()}
+          | {:client_leave, client_id()}
+          | {:update_user, client_id(), User.t()}
+          | {:apply_cell_delta, client_id(), Cell.id(), cell_source_tag(), Delta.t(),
+             cell_revision()}
+          | {:report_cell_revision, client_id(), Cell.id(), cell_source_tag(), cell_revision()}
+          | {:set_cell_attributes, client_id(), Cell.id(), map()}
+          | {:set_input_value, client_id(), input_id(), value :: term()}
+          | {:set_runtime, client_id(), Runtime.t()}
+          | {:set_smart_cell_definitions, client_id(), list(Runtime.smart_cell_definition())}
+          | {:set_file, client_id(), FileSystem.File.t() | nil}
+          | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
+          | {:mark_as_not_dirty, client_id()}
 
   @type action ::
           :connect_runtime
@@ -192,7 +195,7 @@ defmodule Livebook.Session.Data do
           | {:forget_evaluation, Cell.t(), Section.t()}
           | {:start_smart_cell, Cell.t(), Section.t()}
           | {:set_smart_cell_base, Cell.t(), Section.t(), parent :: {Cell.t(), Section.t()} | nil}
-          | {:broadcast_delta, pid(), Cell.t(), cell_source_tag(), Delta.t()}
+          | {:broadcast_delta, client_id(), Cell.t(), cell_source_tag(), Delta.t()}
 
   @doc """
   Returns a fresh notebook session state.
@@ -273,7 +276,7 @@ defmodule Livebook.Session.Data do
   @spec apply_operation(t(), operation()) :: {:ok, t(), list(action())} | :error
   def apply_operation(data, operation)
 
-  def apply_operation(data, {:set_notebook_attributes, _client_pid, attrs}) do
+  def apply_operation(data, {:set_notebook_attributes, _client_id, attrs}) do
     with true <- valid_attrs_for?(data.notebook, attrs) do
       data
       |> with_actions()
@@ -285,7 +288,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:insert_section, _client_pid, index, id}) do
+  def apply_operation(data, {:insert_section, _client_id, index, id}) do
     section = %{Section.new() | id: id}
 
     data
@@ -295,7 +298,7 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:insert_section_into, _client_pid, section_id, index, id}) do
+  def apply_operation(data, {:insert_section_into, _client_id, section_id, index, id}) do
     with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
       section = %{Section.new() | id: id}
 
@@ -307,7 +310,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_section_parent, _client_pid, section_id, parent_id}) do
+  def apply_operation(data, {:set_section_parent, _client_id, section_id, parent_id}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, section_id),
          {:ok, parent_section} <- Notebook.fetch_section(data.notebook, parent_id),
          true <- section.parent_id != parent_id,
@@ -325,7 +328,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:unset_section_parent, _client_pid, section_id}) do
+  def apply_operation(data, {:unset_section_parent, _client_id, section_id}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, section_id),
          true <- section.parent_id != nil do
       data
@@ -341,7 +344,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:insert_cell, _client_pid, section_id, index, type, id, attrs}) do
+  def apply_operation(data, {:insert_cell, _client_id, section_id, index, type, id, attrs}) do
     with {:ok, _section} <- Notebook.fetch_section(data.notebook, section_id) do
       cell = %{Cell.new(type) | id: id} |> Map.merge(attrs)
 
@@ -355,7 +358,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:delete_section, _client_pid, id, delete_cells}) do
+  def apply_operation(data, {:delete_section, _client_id, id, delete_cells}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
          true <- section != hd(data.notebook.sections) or delete_cells,
          [] <- Notebook.child_sections(data.notebook, section.id) do
@@ -371,7 +374,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:delete_cell, _client_pid, id}) do
+  def apply_operation(data, {:delete_cell, _client_id, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          false <- Cell.setup?(cell) do
       data
@@ -386,7 +389,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:restore_cell, _client_pid, id}) do
+  def apply_operation(data, {:restore_cell, _client_id, id}) do
     with {:ok, cell_bin_entry} <- fetch_cell_bin_entry(data, id),
          true <- data.notebook.sections != [] do
       data
@@ -401,7 +404,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:move_cell, _client_pid, id, offset}) do
+  def apply_operation(data, {:move_cell, _client_id, id, offset}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          false <- Cell.setup?(cell),
          true <- offset != 0,
@@ -418,7 +421,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:move_section, _client_pid, id, offset}) do
+  def apply_operation(data, {:move_section, _client_id, id, offset}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, id),
          true <- offset != 0,
          true <- Notebook.can_move_section_by?(data.notebook, section, offset) do
@@ -434,7 +437,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:queue_cells_evaluation, _client_pid, cell_ids}) do
+  def apply_operation(data, {:queue_cells_evaluation, _client_id, cell_ids}) do
     cells_with_section =
       data.notebook
       |> Notebook.evaluable_cells_with_section()
@@ -459,7 +462,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:evaluation_started, _client_pid, id, evaluation_digest}) do
+  def apply_operation(data, {:evaluation_started, _client_id, id, evaluation_digest}) do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          Cell.evaluable?(cell),
          :evaluating <- data.cell_infos[cell.id].eval.status do
@@ -472,7 +475,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_output, _client_pid, id, output}) do
+  def apply_operation(data, {:add_cell_evaluation_output, _client_id, id, output}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
@@ -485,7 +488,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:add_cell_evaluation_response, _client_pid, id, output, metadata}) do
+  def apply_operation(data, {:add_cell_evaluation_response, _client_id, id, output, metadata}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          :evaluating <- data.cell_infos[cell.id].eval.status do
       data
@@ -504,7 +507,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:bind_input, _client_pid, cell_id, input_id}) do
+  def apply_operation(data, {:bind_input, _client_id, cell_id, input_id}) do
     with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          Cell.evaluable?(cell),
          true <- Map.has_key?(data.input_values, input_id),
@@ -518,7 +521,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:reflect_main_evaluation_failure, _client_pid}) do
+  def apply_operation(data, {:reflect_main_evaluation_failure, _client_id}) do
     data
     |> with_actions()
     |> clear_main_evaluation()
@@ -526,7 +529,7 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:reflect_evaluation_failure, _client_pid, section_id}) do
+  def apply_operation(data, {:reflect_evaluation_failure, _client_id, section_id}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, section_id) do
       data
       |> with_actions()
@@ -536,7 +539,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:cancel_cell_evaluation, _client_pid, id}) do
+  def apply_operation(data, {:cancel_cell_evaluation, _client_id, id}) do
     with {:ok, cell, section} <- Notebook.fetch_cell_and_section(data.notebook, id),
          true <- data.cell_infos[cell.id].eval.status in [:evaluating, :queued] do
       data
@@ -549,13 +552,13 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:smart_cell_started, client_pid, id, delta, js_view, editor}) do
+  def apply_operation(data, {:smart_cell_started, client_id, id, delta, js_view, editor}) do
     with {:ok, %Cell.Smart{} = cell, _section} <-
            Notebook.fetch_cell_and_section(data.notebook, id),
          :starting <- data.cell_infos[cell.id].status do
       data
       |> with_actions()
-      |> smart_cell_started(cell, client_pid, delta, js_view, editor)
+      |> smart_cell_started(cell, client_id, delta, js_view, editor)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -563,12 +566,12 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:update_smart_cell, client_pid, id, attrs, delta, reevaluate}) do
+  def apply_operation(data, {:update_smart_cell, client_id, id, attrs, delta, reevaluate}) do
     with {:ok, %Cell.Smart{} = cell, section} <-
            Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
-      |> update_smart_cell(cell, client_pid, attrs, delta)
+      |> update_smart_cell(cell, client_id, attrs, delta)
       |> maybe_queue_updated_smart_cell(cell, section, reevaluate)
       |> set_dirty()
       |> wrap_ok()
@@ -577,7 +580,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:erase_outputs, _client_pid}) do
+  def apply_operation(data, {:erase_outputs, _client_id}) do
     data
     |> with_actions()
     |> erase_outputs()
@@ -586,7 +589,7 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_notebook_name, _client_pid, name}) do
+  def apply_operation(data, {:set_notebook_name, _client_id, name}) do
     data
     |> with_actions()
     |> set_notebook_name(name)
@@ -594,7 +597,7 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_section_name, _client_pid, section_id, name}) do
+  def apply_operation(data, {:set_section_name, _client_id, section_id, name}) do
     with {:ok, section} <- Notebook.fetch_section(data.notebook, section_id) do
       data
       |> with_actions()
@@ -604,29 +607,29 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:client_join, client_pid, user}) do
-    with false <- Map.has_key?(data.clients_map, client_pid) do
+  def apply_operation(data, {:client_join, client_id, user}) do
+    with false <- Map.has_key?(data.clients_map, client_id) do
       data
       |> with_actions()
-      |> client_join(client_pid, user)
+      |> client_join(client_id, user)
       |> wrap_ok()
     else
       _ -> :error
     end
   end
 
-  def apply_operation(data, {:client_leave, client_pid}) do
-    with true <- Map.has_key?(data.clients_map, client_pid) do
+  def apply_operation(data, {:client_leave, client_id}) do
+    with true <- Map.has_key?(data.clients_map, client_id) do
       data
       |> with_actions()
-      |> client_leave(client_pid)
+      |> client_leave(client_id)
       |> wrap_ok()
     else
       _ -> :error
     end
   end
 
-  def apply_operation(data, {:update_user, _client_pid, user}) do
+  def apply_operation(data, {:update_user, _client_id, user}) do
     with true <- Map.has_key?(data.users_map, user.id) do
       data
       |> with_actions()
@@ -637,7 +640,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:apply_cell_delta, client_pid, cell_id, tag, delta, revision}) do
+  def apply_operation(data, {:apply_cell_delta, client_id, cell_id, tag, delta, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          source_info <- data.cell_infos[cell_id].sources[tag],
          true <- 0 < revision and revision <= source_info.revision + 1,
@@ -646,11 +649,11 @@ defmodule Livebook.Session.Data do
          # in which case no transformation is necessary. The latter is
          # useful when we want to apply changes programatically
          true <-
-           Map.has_key?(data.clients_map, client_pid) or
+           Map.has_key?(data.clients_map, client_id) or
              revision == source_info.revision + 1 do
       data
       |> with_actions()
-      |> apply_delta(client_pid, cell, tag, delta, revision)
+      |> apply_delta(client_id, cell, tag, delta, revision)
       |> set_dirty()
       |> wrap_ok()
     else
@@ -658,21 +661,21 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:report_cell_revision, client_pid, cell_id, tag, revision}) do
+  def apply_operation(data, {:report_cell_revision, client_id, cell_id, tag, revision}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          source_info <- data.cell_infos[cell_id].sources[tag],
          true <- 0 < revision and revision <= source_info.revision,
-         true <- Map.has_key?(data.clients_map, client_pid) do
+         true <- Map.has_key?(data.clients_map, client_id) do
       data
       |> with_actions()
-      |> report_revision(client_pid, cell, tag, revision)
+      |> report_revision(client_id, cell, tag, revision)
       |> wrap_ok()
     else
       _ -> :error
     end
   end
 
-  def apply_operation(data, {:set_cell_attributes, _client_pid, cell_id, attrs}) do
+  def apply_operation(data, {:set_cell_attributes, _client_id, cell_id, attrs}) do
     with {:ok, cell, _} <- Notebook.fetch_cell_and_section(data.notebook, cell_id),
          true <- valid_attrs_for?(cell, attrs) do
       data
@@ -686,7 +689,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_input_value, _client_pid, input_id, value}) do
+  def apply_operation(data, {:set_input_value, _client_id, input_id, value}) do
     with true <- Map.has_key?(data.input_values, input_id) do
       data
       |> with_actions()
@@ -698,21 +701,21 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:set_runtime, _client_pid, runtime}) do
+  def apply_operation(data, {:set_runtime, _client_id, runtime}) do
     data
     |> with_actions()
     |> set_runtime(data, runtime)
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_smart_cell_definitions, _client_pid, definitions}) do
+  def apply_operation(data, {:set_smart_cell_definitions, _client_id, definitions}) do
     data
     |> with_actions()
     |> set_smart_cell_definitions(definitions)
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:set_file, _client_pid, file}) do
+  def apply_operation(data, {:set_file, _client_id, file}) do
     data
     |> with_actions()
     |> set!(file: file)
@@ -720,7 +723,7 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:mark_as_not_dirty, _client_pid}) do
+  def apply_operation(data, {:mark_as_not_dirty, _client_id}) do
     data
     |> with_actions()
     |> set_dirty(false)
@@ -1247,7 +1250,7 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp smart_cell_started({data, _} = data_actions, cell, client_pid, delta, js_view, editor) do
+  defp smart_cell_started({data, _} = data_actions, cell, client_id, delta, js_view, editor) do
     updated_cell = %{cell | js_view: js_view, editor: editor} |> apply_delta_to_cell(delta)
 
     data_actions
@@ -1257,10 +1260,10 @@ defmodule Livebook.Session.Data do
       info = %{info | status: :started}
       put_in(info.sources.secondary, new_source_info(data.clients_map))
     end)
-    |> add_action({:broadcast_delta, client_pid, updated_cell, :primary, delta})
+    |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
   end
 
-  defp update_smart_cell({data, _} = data_actions, cell, client_pid, attrs, delta) do
+  defp update_smart_cell({data, _} = data_actions, cell, client_id, attrs, delta) do
     new_attrs =
       case cell.attrs do
         :__pruned__ -> :__pruned__
@@ -1271,7 +1274,7 @@ defmodule Livebook.Session.Data do
 
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
-    |> add_action({:broadcast_delta, client_pid, updated_cell, :primary, delta})
+    |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
   end
 
   defp maybe_queue_updated_smart_cell({data, _} = data_actions, cell, section, reevaluate) do
@@ -1319,10 +1322,10 @@ defmodule Livebook.Session.Data do
     |> set!(notebook: Notebook.update_section(data.notebook, section.id, &%{&1 | name: name}))
   end
 
-  defp client_join({data, _} = data_actions, client_pid, user) do
+  defp client_join({data, _} = data_actions, client_id, user) do
     data_actions
     |> set!(
-      clients_map: Map.put(data.clients_map, client_pid, user.id),
+      clients_map: Map.put(data.clients_map, client_id, user.id),
       users_map: Map.put(data.users_map, user.id, user)
     )
     |> update_every_cell_info(fn
@@ -1330,7 +1333,7 @@ defmodule Livebook.Session.Data do
         update_in(
           info.sources,
           &Map.new(&1, fn {key, source_info} ->
-            {key, put_in(source_info.revision_by_client_pid[client_pid], source_info.revision)}
+            {key, put_in(source_info.revision_by_client_id[client_id], source_info.revision)}
           end)
         )
 
@@ -1339,8 +1342,8 @@ defmodule Livebook.Session.Data do
     end)
   end
 
-  defp client_leave({data, _} = data_actions, client_pid) do
-    {user_id, clients_map} = Map.pop(data.clients_map, client_pid)
+  defp client_leave({data, _} = data_actions, client_id) do
+    {user_id, clients_map} = Map.pop(data.clients_map, client_id)
 
     users_map =
       if user_id in Map.values(clients_map) do
@@ -1356,7 +1359,7 @@ defmodule Livebook.Session.Data do
         update_in(
           info.sources,
           &Map.new(&1, fn {key, source_info} ->
-            {_, source_info} = pop_in(source_info.revision_by_client_pid[client_pid])
+            {_, source_info} = pop_in(source_info.revision_by_client_id[client_id])
             {key, purge_deltas(source_info)}
           end)
         )
@@ -1370,7 +1373,7 @@ defmodule Livebook.Session.Data do
     set!(data_actions, users_map: Map.put(data.users_map, user.id, user))
   end
 
-  defp apply_delta({data, _} = data_actions, client_pid, cell, tag, delta, revision) do
+  defp apply_delta({data, _} = data_actions, client_id, cell, tag, delta, revision) do
     source_info = data.cell_infos[cell.id].sources[tag]
 
     deltas_ahead = Enum.take(source_info.deltas, -(source_info.revision - revision + 1))
@@ -1386,11 +1389,11 @@ defmodule Livebook.Session.Data do
       |> Map.update!(:revision, &(&1 + 1))
 
     source_info =
-      if Map.has_key?(source_info.revision_by_client_pid, client_pid) do
+      if Map.has_key?(source_info.revision_by_client_id, client_id) do
         # Before receiving acknowledgement, the client receives all
         # the other deltas, so we can assume they are in sync with
         # the server and have the same revision.
-        put_in(source_info.revision_by_client_pid[client_pid], source_info.revision)
+        put_in(source_info.revision_by_client_id[client_id], source_info.revision)
         |> purge_deltas()
       else
         source_info
@@ -1405,7 +1408,7 @@ defmodule Livebook.Session.Data do
     data_actions
     |> set!(notebook: Notebook.update_cell(data.notebook, cell.id, fn _ -> updated_cell end))
     |> update_cell_info!(cell.id, &put_in(&1.sources[tag], source_info))
-    |> add_action({:broadcast_delta, client_pid, updated_cell, tag, transformed_new_delta})
+    |> add_action({:broadcast_delta, client_id, updated_cell, tag, transformed_new_delta})
   end
 
   defp source_access(%Cell.Smart{}, :secondary), do: [Access.key(:editor), :source]
@@ -1418,11 +1421,11 @@ defmodule Livebook.Session.Data do
     update_in(cell.source, &JSInterop.apply_delta_to_string(delta, &1))
   end
 
-  defp report_revision(data_actions, client_pid, cell, tag, revision) do
+  defp report_revision(data_actions, client_id, cell, tag, revision) do
     data_actions
     |> update_cell_info!(cell.id, fn info ->
       update_in(info.sources[tag], fn source_info ->
-        put_in(source_info.revision_by_client_pid[client_pid], revision)
+        put_in(source_info.revision_by_client_id[client_id], revision)
         |> purge_deltas()
       end)
     end)
@@ -1512,7 +1515,7 @@ defmodule Livebook.Session.Data do
     # as many deltas as we need for them.
 
     min_client_revision =
-      source_info.revision_by_client_pid
+      source_info.revision_by_client_id
       |> Map.values()
       |> Enum.min(fn -> source_info.revision end)
 
@@ -1648,12 +1651,12 @@ defmodule Livebook.Session.Data do
   end
 
   defp new_source_info(clients_map) do
-    client_pids = Map.keys(clients_map)
+    client_ids = Map.keys(clients_map)
 
     %{
       revision: 0,
       deltas: [],
-      revision_by_client_pid: Map.new(client_pids, &{&1, 0})
+      revision_by_client_id: Map.new(client_ids, &{&1, 0})
     }
   end
 
