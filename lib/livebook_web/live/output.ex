@@ -97,9 +97,10 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:tabs, outputs, info}, %{
          id: id,
-         input_values: input_values,
+         socket: socket,
          session_id: session_id,
-         socket: socket
+         input_values: input_values,
+         client_id: client_id
        }) do
     {labels, active_idx} =
       if info == :__pruned__ do
@@ -120,7 +121,8 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       socket: socket,
       session_id: session_id,
-      input_values: input_values
+      input_values: input_values,
+      client_id: client_id
     }
 
     # After pruning we don't render labels and we render only those
@@ -159,6 +161,7 @@ defmodule LivebookWeb.Output do
               socket={@socket}
               session_id={@session_id}
               input_values={@input_values}
+              client_id={@client_id}
             />
           </div>
         <% end %>
@@ -169,9 +172,10 @@ defmodule LivebookWeb.Output do
 
   defp render_output({:grid, outputs, info}, %{
          id: id,
-         input_values: input_values,
          session_id: session_id,
-         socket: socket
+         socket: socket,
+         input_values: input_values,
+         client_id: client_id
        }) do
     style =
       if info == :__pruned__ do
@@ -187,7 +191,8 @@ defmodule LivebookWeb.Output do
       outputs: outputs,
       socket: socket,
       session_id: session_id,
-      input_values: input_values
+      input_values: input_values,
+      client_id: client_id
     }
 
     ~H"""
@@ -207,6 +212,7 @@ defmodule LivebookWeb.Output do
               socket={@socket}
               session_id={@session_id}
               input_values={@input_values}
+              client_id={@client_id}
             />
           </div>
         <% end %>
