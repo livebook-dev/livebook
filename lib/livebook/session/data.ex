@@ -1893,6 +1893,8 @@ defmodule Livebook.Session.Data do
     evaluable_cell_ids =
       for {cell, _} <- evaluable_cells_with_section,
           cell_outdated?(data, cell) or cell.id in forced_cell_ids,
+          info = data.cell_infos[cell.id],
+          info.eval.status == :ready,
           uniq: true,
           do: cell.id
 
