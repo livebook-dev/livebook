@@ -23,7 +23,8 @@ defmodule LivebookWeb.Output do
           id: "output-#{idx}",
           socket: @socket,
           session_id: @session_id,
-          input_values: @input_values
+          input_values: @input_values,
+          client_id: @client_id
         }) %>
       </div>
     <% end %>
@@ -69,25 +70,28 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:js, js_info}, %{id: id, session_id: session_id}) do
+  defp render_output({:js, js_info}, %{id: id, session_id: session_id, client_id: client_id}) do
     live_component(LivebookWeb.JSViewComponent,
       id: id,
       js_view: js_info.js_view,
       session_id: session_id,
+      client_id: client_id,
       timeout_message: "Output data no longer available, please reevaluate this cell"
     )
   end
 
   defp render_output({:frame, outputs, _info}, %{
          id: id,
+         session_id: session_id,
          input_values: input_values,
-         session_id: session_id
+         client_id: client_id
        }) do
     live_component(Output.FrameComponent,
       id: id,
       outputs: outputs,
       session_id: session_id,
-      input_values: input_values
+      input_values: input_values,
+      client_id: client_id
     )
   end
 
@@ -211,12 +215,26 @@ defmodule LivebookWeb.Output do
     """
   end
 
-  defp render_output({:input, attrs}, %{id: id, input_values: input_values}) do
-    live_component(Output.InputComponent, id: id, attrs: attrs, input_values: input_values)
+  defp render_output({:input, attrs}, %{id: id, input_values: input_values, client_id: client_id}) do
+    live_component(Output.InputComponent,
+      id: id,
+      attrs: attrs,
+      input_values: input_values,
+      client_id: client_id
+    )
   end
 
-  defp render_output({:control, attrs}, %{id: id, input_values: input_values}) do
-    live_component(Output.ControlComponent, id: id, attrs: attrs, input_values: input_values)
+  defp render_output({:control, attrs}, %{
+         id: id,
+         input_values: input_values,
+         client_id: client_id
+       }) do
+    live_component(Output.ControlComponent,
+      id: id,
+      attrs: attrs,
+      input_values: input_values,
+      client_id: client_id
+    )
   end
 
   defp render_output({:error, formatted}, %{}) do

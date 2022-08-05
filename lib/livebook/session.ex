@@ -57,6 +57,8 @@ defmodule Livebook.Session do
 
   @timeout :infinity
   @main_container_ref :main_flow
+  @client_id "__server__"
+  @anonymous_client_id "__anonymous__"
 
   @type t :: %__MODULE__{
           id: id(),
@@ -134,10 +136,13 @@ defmodule Livebook.Session do
   The client process is automatically unregistered when it terminates.
 
   Returns the current session data, which the client can than
-  keep in sync with the server by subscribing to the `sessions:id` topic
-  and receiving operations to apply.
+  keep in sync with the server by subscribing to the `sessions:id`
+  topic and receiving operations to apply.
+
+  Also returns a unique client identifier representing the registered
+  client.
   """
-  @spec register_client(pid(), pid(), User.t()) :: Data.t()
+  @spec register_client(pid(), pid(), User.t()) :: {Data.t(), Data.client_id()}
   def register_client(pid, client_pid, user) do
     GenServer.call(pid, {:register_client, client_pid, user}, @timeout)
   end
@@ -566,6 +571,7 @@ defmodule Livebook.Session do
       state = %{
         session_id: id,
         data: data,
+        client_pids_with_id: %{},
         created_at: DateTime.utc_now(),
         runtime_monitor_ref: nil,
         autosave_timer_ref: nil,
@@ -632,11 +638,18 @@ defmodule Livebook.Session do
   end
 
   def handle_call({:register_client, client_pid, user}, _from, state) do
-    Process.monitor(client_pid)
+    {state, client_id} =
+      if client_id = state.client_pids_with_id[client_pid] do
+        {state, client_id}
+      else
+        Process.monitor(client_pid)
+        client_id = Utils.random_id()
+        state = handle_operation(state, {:client_join, client_id, user})
+        state = put_in(state.client_pids_with_id[client_pid], client_id)
+        {state, client_id}
+      end
 
-    state = handle_operation(state, {:client_join, client_pid, user})
-
-    {:reply, state.data, state}
+    {:reply, {state.data, client_id}, state}
   end
 
   def handle_call(:get_data, _from, state) do
@@ -678,12 +691,14 @@ defmodule Livebook.Session do
   end
 
   def handle_call({:disconnect_runtime, client_pid}, _from, state) do
+    client_id = client_id(state, client_pid)
+
     state =
       if Runtime.connected?(state.data.runtime) do
         {:ok, runtime} = Runtime.disconnect(state.data.runtime)
 
         %{state | runtime_monitor_ref: nil}
-        |> handle_operation({:set_runtime, client_pid, runtime})
+        |> handle_operation({:set_runtime, client_id, runtime})
       else
         state
       end
@@ -693,66 +708,79 @@ defmodule Livebook.Session do
 
   @impl true
   def handle_cast({:set_notebook_attributes, client_pid, attrs}, state) do
-    operation = {:set_notebook_attributes, client_pid, attrs}
+    client_id = client_id(state, client_pid)
+    operation = {:set_notebook_attributes, client_id, attrs}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_section, client_pid, index}, state) do
+    client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section, client_pid, index, Utils.random_id()}
+    operation = {:insert_section, client_id, index, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_section_into, client_pid, section_id, index}, state) do
+    client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_section_into, client_pid, section_id, index, Utils.random_id()}
+    operation = {:insert_section_into, client_id, section_id, index, Utils.random_id()}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_section_parent, client_pid, section_id, parent_id}, state) do
+    client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:set_section_parent, client_pid, section_id, parent_id}
+    operation = {:set_section_parent, client_id, section_id, parent_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:unset_section_parent, client_pid, section_id}, state) do
+    client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:unset_section_parent, client_pid, section_id}
+    operation = {:unset_section_parent, client_id, section_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:insert_cell, client_pid, section_id, index, type, attrs}, state) do
+    client_id = client_id(state, client_pid)
     # Include new id in the operation, so it's reproducible
-    operation = {:insert_cell, client_pid, section_id, index, type, Utils.random_id(), attrs}
+    operation = {:insert_cell, client_id, section_id, index, type, Utils.random_id(), attrs}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:delete_section, client_pid, section_id, delete_cells}, state) do
-    operation = {:delete_section, client_pid, section_id, delete_cells}
+    client_id = client_id(state, client_pid)
+    operation = {:delete_section, client_id, section_id, delete_cells}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:delete_cell, client_pid, cell_id}, state) do
-    operation = {:delete_cell, client_pid, cell_id}
+    client_id = client_id(state, client_pid)
+    operation = {:delete_cell, client_id, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:restore_cell, client_pid, cell_id}, state) do
-    operation = {:restore_cell, client_pid, cell_id}
+    client_id = client_id(state, client_pid)
+    operation = {:restore_cell, client_id, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:move_cell, client_pid, cell_id, offset}, state) do
-    operation = {:move_cell, client_pid, cell_id, offset}
+    client_id = client_id(state, client_pid)
+    operation = {:move_cell, client_id, cell_id, offset}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:move_section, client_pid, section_id, offset}, state) do
-    operation = {:move_section, client_pid, section_id, offset}
+    client_id = client_id(state, client_pid)
+    operation = {:move_section, client_id, section_id, offset}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:convert_smart_cell, client_pid, cell_id}, state) do
+    client_id = client_id(state, client_pid)
+
     state =
       with {:ok, %Cell.Smart{} = cell, section} <-
              Notebook.fetch_cell_and_section(state.data.notebook, cell_id) do
@@ -761,9 +789,9 @@ defmodule Livebook.Session do
         attrs = Map.take(cell, [:source, :outputs])
 
         state
-        |> handle_operation({:delete_cell, client_pid, cell.id})
+        |> handle_operation({:delete_cell, client_id, cell.id})
         |> handle_operation(
-          {:insert_cell, client_pid, section.id, index, :code, Utils.random_id(), attrs}
+          {:insert_cell, client_id, section.id, index, :code, Utils.random_id(), attrs}
         )
       else
         _ -> state
@@ -777,15 +805,18 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:queue_cell_evaluation, client_pid, cell_id}, state) do
-    operation = {:queue_cells_evaluation, client_pid, [cell_id]}
+    client_id = client_id(state, client_pid)
+    operation = {:queue_cells_evaluation, client_id, [cell_id]}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:queue_section_evaluation, client_pid, section_id}, state) do
+    client_id = client_id(state, client_pid)
+
     case Notebook.fetch_section(state.data.notebook, section_id) do
       {:ok, section} ->
         cell_ids = for cell <- section.cells, Cell.evaluable?(cell), do: cell.id
-        operation = {:queue_cells_evaluation, client_pid, cell_ids}
+        operation = {:queue_cells_evaluation, client_id, cell_ids}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -794,69 +825,85 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:queue_bound_cells_evaluation, client_pid, input_id}, state) do
+    client_id = client_id(state, client_pid)
+
     cell_ids =
       for {bound_cell, _} <- Data.bound_cells_with_section(state.data, input_id),
           do: bound_cell.id
 
-    operation = {:queue_cells_evaluation, client_pid, cell_ids}
+    operation = {:queue_cells_evaluation, client_id, cell_ids}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:queue_full_evaluation, client_pid, forced_cell_ids}, state) do
+    client_id = client_id(state, client_pid)
+
     cell_ids = Data.cell_ids_for_full_evaluation(state.data, forced_cell_ids)
 
-    operation = {:queue_cells_evaluation, client_pid, cell_ids}
+    operation = {:queue_cells_evaluation, client_id, cell_ids}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:queue_cells_reevaluation, client_pid}, state) do
+    client_id = client_id(state, client_pid)
+
     cell_ids = Data.cell_ids_for_reevaluation(state.data)
 
-    operation = {:queue_cells_evaluation, client_pid, cell_ids}
+    operation = {:queue_cells_evaluation, client_id, cell_ids}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:cancel_cell_evaluation, client_pid, cell_id}, state) do
-    operation = {:cancel_cell_evaluation, client_pid, cell_id}
+    client_id = client_id(state, client_pid)
+    operation = {:cancel_cell_evaluation, client_id, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:erase_outputs, client_pid}, state) do
-    operation = {:erase_outputs, client_pid}
+    client_id = client_id(state, client_pid)
+    operation = {:erase_outputs, client_id}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_notebook_name, client_pid, name}, state) do
-    operation = {:set_notebook_name, client_pid, name}
+    client_id = client_id(state, client_pid)
+    operation = {:set_notebook_name, client_id, name}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_section_name, client_pid, section_id, name}, state) do
-    operation = {:set_section_name, client_pid, section_id, name}
+    client_id = client_id(state, client_pid)
+    operation = {:set_section_name, client_id, section_id, name}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:apply_cell_delta, client_pid, cell_id, tag, delta, revision}, state) do
-    operation = {:apply_cell_delta, client_pid, cell_id, tag, delta, revision}
+    client_id = client_id(state, client_pid)
+    operation = {:apply_cell_delta, client_id, cell_id, tag, delta, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:report_cell_revision, client_pid, cell_id, tag, revision}, state) do
-    operation = {:report_cell_revision, client_pid, cell_id, tag, revision}
+    client_id = client_id(state, client_pid)
+    operation = {:report_cell_revision, client_id, cell_id, tag, revision}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_cell_attributes, client_pid, cell_id, attrs}, state) do
-    operation = {:set_cell_attributes, client_pid, cell_id, attrs}
+    client_id = client_id(state, client_pid)
+    operation = {:set_cell_attributes, client_id, cell_id, attrs}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_input_value, client_pid, input_id, value}, state) do
-    operation = {:set_input_value, client_pid, input_id, value}
+    client_id = client_id(state, client_pid)
+    operation = {:set_input_value, client_id, input_id, value}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_cast({:set_runtime, client_pid, runtime}, state) do
+    client_id = client_id(state, client_pid)
+
     if Runtime.connected?(state.data.runtime) do
       {:ok, _} = Runtime.disconnect(state.data.runtime)
     end
@@ -868,10 +915,12 @@ defmodule Livebook.Session do
         state
       end
 
-    {:noreply, handle_operation(state, {:set_runtime, client_pid, runtime})}
+    {:noreply, handle_operation(state, {:set_runtime, client_id, runtime})}
   end
 
   def handle_cast({:set_file, client_pid, file}, state) do
+    client_id = client_id(state, client_pid)
+
     if file do
       FileGuard.lock(file, self())
     else
@@ -883,7 +932,7 @@ defmodule Livebook.Session do
           FileGuard.unlock(state.data.file)
         end
 
-        {:noreply, handle_operation(state, {:set_file, client_pid, file})}
+        {:noreply, handle_operation(state, {:set_file, client_id, file})}
 
       {:error, :already_in_use} ->
         broadcast_error(state.session_id, "failed to set new file because it is already in use")
@@ -901,13 +950,15 @@ defmodule Livebook.Session do
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
-     |> handle_operation({:set_runtime, self(), Livebook.Runtime.duplicate(state.data.runtime)})}
+     |> handle_operation(
+       {:set_runtime, @client_id, Livebook.Runtime.duplicate(state.data.runtime)}
+     )}
   end
 
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     state =
-      if Map.has_key?(state.data.clients_map, pid) do
-        handle_operation(state, {:client_leave, pid})
+      if client_id = state.client_pids_with_id[pid] do
+        handle_operation(state, {:client_leave, client_id})
       else
         state
       end
@@ -916,13 +967,13 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_evaluation_output, cell_id, output}, state) do
-    operation = {:add_cell_evaluation_output, self(), cell_id, output}
+    operation = {:add_cell_evaluation_output, @client_id, cell_id, output}
     {:noreply, handle_operation(state, operation)}
   end
 
   def handle_info({:runtime_evaluation_response, cell_id, response, metadata}, state) do
     {memory_usage, metadata} = Map.pop(metadata, :memory_usage)
-    operation = {:add_cell_evaluation_response, self(), cell_id, response, metadata}
+    operation = {:add_cell_evaluation_response, @client_id, cell_id, response, metadata}
 
     {:noreply,
      state
@@ -935,7 +986,7 @@ defmodule Livebook.Session do
     {reply, state} =
       with {:ok, cell, _section} <- Notebook.fetch_cell_and_section(state.data.notebook, cell_id),
            {:ok, value} <- Map.fetch(state.data.input_values, input_id) do
-        state = handle_operation(state, {:bind_input, self(), cell.id, input_id})
+        state = handle_operation(state, {:bind_input, @client_id, cell.id, input_id})
         {{:ok, value}, state}
       else
         _ -> {:error, state}
@@ -951,8 +1002,8 @@ defmodule Livebook.Session do
 
     operation =
       case container_ref do
-        @main_container_ref -> {:reflect_main_evaluation_failure, self()}
-        section_id -> {:reflect_evaluation_failure, self(), section_id}
+        @main_container_ref -> {:reflect_main_evaluation_failure, @client_id}
+        section_id -> {:reflect_evaluation_failure, @client_id, section_id}
       end
 
     {:noreply, handle_operation(state, operation)}
@@ -977,7 +1028,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_smart_cell_definitions, definitions}, state) do
-    operation = {:set_smart_cell_definitions, self(), definitions}
+    operation = {:set_smart_cell_definitions, @client_id, definitions}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -985,7 +1036,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, info.source)
-        operation = {:smart_cell_started, self(), id, delta, info.js_view, info.editor}
+        operation = {:smart_cell_started, @client_id, id, delta, info.js_view, info.editor}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -997,7 +1048,7 @@ defmodule Livebook.Session do
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, source)
-        operation = {:update_smart_cell, self(), id, attrs, delta, info.reevaluate}
+        operation = {:update_smart_cell, @client_id, id, attrs, delta, info.reevaluate}
         {:noreply, handle_operation(state, operation)}
 
       :error ->
@@ -1026,6 +1077,10 @@ defmodule Livebook.Session do
   end
 
   # ---
+
+  defp client_id(state, client_pid) do
+    state.client_pids_with_id[client_pid] || @anonymous_client_id
+  end
 
   defp self_from_state(state) do
     %__MODULE__{
@@ -1177,7 +1232,7 @@ defmodule Livebook.Session do
 
         handle_operation(
           state,
-          {:apply_cell_delta, self(), cell.id, :primary, delta, revision}
+          {:apply_cell_delta, @client_id, cell.id, :primary, delta, revision}
         )
 
       {:error, message} ->
@@ -1215,11 +1270,11 @@ defmodule Livebook.Session do
     end
   end
 
-  defp after_operation(state, _prev_state, {:set_notebook_name, _pid, _name}) do
+  defp after_operation(state, _prev_state, {:set_notebook_name, _client_id, _name}) do
     notify_update(state)
   end
 
-  defp after_operation(state, _prev_state, {:set_runtime, _pid, runtime}) do
+  defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
       state
     else
@@ -1229,7 +1284,7 @@ defmodule Livebook.Session do
     end
   end
 
-  defp after_operation(state, prev_state, {:set_file, _pid, _file}) do
+  defp after_operation(state, prev_state, {:set_file, _client_id, _file}) do
     prev_images_dir = images_dir_from_state(prev_state)
 
     if prev_state.data.file do
@@ -1251,14 +1306,14 @@ defmodule Livebook.Session do
   defp after_operation(
          state,
          _prev_state,
-         {:set_notebook_attributes, _client_pid, %{autosave_interval_s: _}}
+         {:set_notebook_attributes, _client_id, %{autosave_interval_s: _}}
        ) do
     state
     |> unschedule_autosave()
     |> schedule_autosave()
   end
 
-  defp after_operation(state, prev_state, {:client_join, _client_pid, user}) do
+  defp after_operation(state, prev_state, {:client_join, _client_id, user}) do
     unless Map.has_key?(prev_state.data.users_map, user.id) do
       Livebook.Users.subscribe(user.id)
     end
@@ -1266,8 +1321,8 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, prev_state, {:client_leave, client_pid}) do
-    user_id = prev_state.data.clients_map[client_pid]
+  defp after_operation(state, prev_state, {:client_leave, client_id}) do
+    user_id = prev_state.data.clients_map[client_id]
 
     unless Map.has_key?(state.data.users_map, user_id) do
       Livebook.Users.unsubscribe(user_id)
@@ -1276,7 +1331,7 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, _prev_state, {:delete_cell, _client_pid, cell_id}) do
+  defp after_operation(state, _prev_state, {:delete_cell, _client_id, cell_id}) do
     entry = Enum.find(state.data.bin_entries, fn entry -> entry.cell.id == cell_id end)
     # The session LV drops cell's source, so we send them
     # the complete bin entry to override
@@ -1285,7 +1340,7 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, prev_state, {:delete_section, _client_pid, section_id, true}) do
+  defp after_operation(state, prev_state, {:delete_section, _client_id, section_id, true}) do
     {:ok, section} = Notebook.fetch_section(prev_state.data.notebook, section_id)
     cell_ids = Enum.map(section.cells, & &1.id)
     entries = Enum.filter(state.data.bin_entries, fn entry -> entry.cell.id in cell_ids end)
@@ -1297,7 +1352,7 @@ defmodule Livebook.Session do
   defp after_operation(
          state,
          _prev_state,
-         {:apply_cell_delta, _client_pid, cell_id, tag, _delta, _revision}
+         {:apply_cell_delta, _client_id, cell_id, tag, _delta, _revision}
        ) do
     with :secondary <- tag,
          {:ok, %Cell.Smart{} = cell, _section} <-
@@ -1318,11 +1373,11 @@ defmodule Livebook.Session do
     case Runtime.connect(state.data.runtime) do
       {:ok, runtime} ->
         state = own_runtime(runtime, state)
-        handle_operation(state, {:set_runtime, self(), runtime})
+        handle_operation(state, {:set_runtime, @client_id, runtime})
 
       {:error, error} ->
         broadcast_error(state.session_id, "failed to connect runtime - #{error}")
-        handle_operation(state, {:set_runtime, self(), state.data.runtime})
+        handle_operation(state, {:set_runtime, @client_id, state.data.runtime})
     end
   end
 
@@ -1417,7 +1472,7 @@ defmodule Livebook.Session do
     Runtime.evaluate_code(state.data.runtime, cell.source, locator, base_locator, opts)
 
     evaluation_digest = :erlang.md5(cell.source)
-    handle_operation(state, {:evaluation_started, self(), cell.id, evaluation_digest})
+    handle_operation(state, {:evaluation_started, @client_id, cell.id, evaluation_digest})
   end
 
   defp broadcast_operation(session_id, operation) do
@@ -1540,7 +1595,7 @@ defmodule Livebook.Session do
 
     case result do
       :ok ->
-        handle_operation(state, {:mark_as_not_dirty, self()})
+        handle_operation(state, {:mark_as_not_dirty, @client_id})
 
       {:error, message} ->
         broadcast_error(state.session_id, "failed to save notebook - #{message}")

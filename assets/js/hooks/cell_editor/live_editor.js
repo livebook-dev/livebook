@@ -32,7 +32,7 @@ class LiveEditor {
     this._onChange = [];
     this._onBlur = [];
     this._onCursorSelectionChange = [];
-    this._remoteUserByClientPid = {};
+    this._remoteUserByClientId = {};
 
     const serverAdapter = new HookServerAdapter(hook, cellId, tag);
     this.editorClient = new EditorClient(serverAdapter, revision);
@@ -170,10 +170,10 @@ class LiveEditor {
   updateUserSelection(client, selection) {
     this._ensureMounted();
 
-    if (this._remoteUserByClientPid[client.pid]) {
-      this._remoteUserByClientPid[client.pid].update(selection);
+    if (this._remoteUserByClientId[client.id]) {
+      this._remoteUserByClientId[client.id].update(selection);
     } else {
-      this._remoteUserByClientPid[client.pid] = new RemoteUser(
+      this._remoteUserByClientId[client.id] = new RemoteUser(
         this.editor,
         selection,
         client.hex_color,
@@ -188,9 +188,9 @@ class LiveEditor {
   removeUserSelection(client) {
     this._ensureMounted();
 
-    if (this._remoteUserByClientPid[client.pid]) {
-      this._remoteUserByClientPid[client.pid].dispose();
-      delete this._remoteUserByClientPid[client.pid];
+    if (this._remoteUserByClientId[client.id]) {
+      this._remoteUserByClientId[client.id].dispose();
+      delete this._remoteUserByClientId[client.id];
     }
   }
 

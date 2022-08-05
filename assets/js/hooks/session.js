@@ -61,7 +61,7 @@ import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
  * Initially we load basic information about connected clients using
  * the `"session_init"` event and then update this information whenever
  * clients join/leave/update. This way location reports include only
- * client pid, as we already have the necessary hex_color/name locally.
+ * client id, as we already have the necessary hex_color/name locally.
  */
 const Session = {
   mounted() {
@@ -72,8 +72,8 @@ const Session = {
     this.codeZen = false;
     this.keyBuffer = new KeyBuffer();
     this.clientsMap = {};
-    this.lastLocationReportByClientPid = {};
-    this.followedClientPid = null;
+    this.lastLocationReportByClientId = {};
+    this.followedClientId = null;
 
     setFavicon(this.faviconForEvaluationStatus(this.props.globalStatus));
 
@@ -150,7 +150,7 @@ const Session = {
 
     this.handleEvent("session_init", ({ clients }) => {
       clients.forEach((client) => {
-        this.clientsMap[client.pid] = client;
+        this.clientsMap[client.id] = client;
       });
     });
 
@@ -193,8 +193,8 @@ const Session = {
       this.handleClientJoined(client);
     });
 
-    this.handleEvent("client_left", ({ client_pid }) => {
-      this.handleClientLeft(client_pid);
+    this.handleEvent("client_left", ({ client_id }) => {
+      this.handleClientLeft(client_id);
     });
 
     this.handleEvent("clients_updated", ({ clients }) => {
@@ -203,13 +203,13 @@ const Session = {
 
     this.handleEvent(
       "location_report",
-      ({ client_pid, focusable_id, selection }) => {
+      ({ client_id, focusable_id, selection }) => {
         const report = {
           focusableId: focusable_id,
           selection: this.decodeSelection(selection),
         };
 
-        this.handleLocationReport(client_pid, report);
+        this.handleLocationReport(client_id, report);
       }
     );
 
@@ -557,27 +557,27 @@ const Session = {
     const clientListItem = event.target.closest(`[data-el-clients-list-item]`);
 
     if (clientListItem) {
-      const clientPid = clientListItem.getAttribute("data-client-pid");
+      const clientId = clientListItem.getAttribute("data-client-id");
 
       const clientLink = event.target.closest(`[data-el-client-link]`);
       if (clientLink) {
-        this.handleClientLinkClick(clientPid);
+        this.handleClientLinkClick(clientId);
       }
 
       const clientFollowToggle = event.target.closest(
         `[data-el-client-follow-toggle]`
       );
       if (clientFollowToggle) {
-        this.handleClientFollowToggleClick(clientPid, clientListItem);
+        this.handleClientFollowToggleClick(clientId, clientListItem);
       }
     }
   },
 
-  handleClientLinkClick(clientPid) {
-    this.mirrorClientFocus(clientPid);
+  handleClientLinkClick(clientId) {
+    this.mirrorClientFocus(clientId);
   },
 
-  handleClientFollowToggleClick(clientPid, clientListItem) {
+  handleClientFollowToggleClick(clientId, clientListItem) {
     const followedClientListItem = this.el.querySelector(
       `[data-el-clients-list-item][data-js-followed]`
     );
@@ -586,17 +586,17 @@ const Session = {
       followedClientListItem.removeAttribute("data-js-followed");
     }
 
-    if (clientPid === this.followedClientPid) {
-      this.followedClientPid = null;
+    if (clientId === this.followedClientId) {
+      this.followedClientId = null;
     } else {
       clientListItem.setAttribute("data-js-followed", "");
-      this.followedClientPid = clientPid;
-      this.mirrorClientFocus(clientPid);
+      this.followedClientId = clientId;
+      this.mirrorClientFocus(clientId);
     }
   },
 
-  mirrorClientFocus(clientPid) {
-    const locationReport = this.lastLocationReportByClientPid[clientPid];
+  mirrorClientFocus(clientId) {
+    const locationReport = this.lastLocationReportByClientId[clientId];
 
     if (locationReport && locationReport.focusableId) {
       this.setFocusedEl(locationReport.focusableId);
@@ -998,42 +998,42 @@ const Session = {
   },
 
   handleClientJoined(client) {
-    this.clientsMap[client.pid] = client;
+    this.clientsMap[client.id] = client;
   },
 
-  handleClientLeft(clientPid) {
-    const client = this.clientsMap[clientPid];
+  handleClientLeft(clientId) {
+    const client = this.clientsMap[clientId];
 
     if (client) {
-      delete this.clientsMap[clientPid];
+      delete this.clientsMap[clientId];
 
       this.broadcastLocationReport(client, {
         focusableId: null,
         selection: null,
       });
 
-      if (client.pid === this.followedClientPid) {
-        this.followedClientPid = null;
+      if (client.id === this.followedClientId) {
+        this.followedClientId = null;
       }
     }
   },
 
   handleClientsUpdated(updatedClients) {
     updatedClients.forEach((client) => {
-      this.clientsMap[client.pid] = client;
+      this.clientsMap[client.id] = client;
     });
   },
 
-  handleLocationReport(clientPid, report) {
-    const client = this.clientsMap[clientPid];
+  handleLocationReport(clientId, report) {
+    const client = this.clientsMap[clientId];
 
-    this.lastLocationReportByClientPid[clientPid] = report;
+    this.lastLocationReportByClientId[clientId] = report;
 
     if (client) {
       this.broadcastLocationReport(client, report);
 
       if (
-        client.pid === this.followedClientPid &&
+        client.id === this.followedClientId &&
         report.focusableId !== this.focusedId
       ) {
         this.setFocusedEl(report.focusableId);
@@ -1224,7 +1224,7 @@ const Session = {
  *
  * @typedef Client
  * @type {Object}
- * @property {String} pid
+ * @property {String} id
  * @property {String} hex_color
  * @property {String} name
  */

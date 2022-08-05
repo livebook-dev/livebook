@@ -55,6 +55,7 @@ defmodule LivebookWeb.Output.ControlComponent do
         id={@id}
         attrs={@attrs}
         input_values={@input_values}
+        client_id={@client_id}
       />
     </div>
     """
@@ -111,7 +112,7 @@ defmodule LivebookWeb.Output.ControlComponent do
 
   defp report_event(socket, attrs) do
     topic = socket.assigns.attrs.ref
-    event = Map.merge(%{origin: self()}, attrs)
+    event = Map.merge(%{origin: socket.assigns.client_id}, attrs)
     send(socket.assigns.attrs.destination, {:event, topic, event})
   end
 end

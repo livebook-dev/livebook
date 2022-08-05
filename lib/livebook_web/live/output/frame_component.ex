@@ -85,6 +85,7 @@ defmodule LivebookWeb.Output.FrameComponent do
             socket={@socket}
             session_id={@session_id}
             input_values={@input_values}
+            client_id={@client_id}
           />
         </div>
       <% end %>
