@@ -3562,6 +3562,20 @@ defmodule Livebook.Session.DataTest do
 
       assert Data.cell_ids_for_full_evaluation(data, ["c2"]) |> Enum.sort() == ["c2", "c3"]
     end
+
+    test "excludes evaluating and queued cells" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:insert_cell, @cid, "s1", 0, :code, "c1", %{}},
+          {:insert_cell, @cid, "s1", 1, :code, "c2", %{}},
+          {:insert_cell, @cid, "s1", 2, :code, "c3", %{}},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          {:queue_cells_evaluation, @cid, ["c1", "c2"]}
+        ])
+
+      assert Data.cell_ids_for_full_evaluation(data, []) |> Enum.sort() == ["c3"]
+    end
   end
 
   describe "cell_ids_for_reevaluation/2" do
