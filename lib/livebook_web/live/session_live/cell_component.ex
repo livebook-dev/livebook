@@ -188,6 +188,7 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 id={@cell_view.id}
                 js_view={@cell_view.js_view}
                 session_id={@session_id}
+                client_id={@client_id}
               />
               <%= if @cell_view.editor do %>
                 <.live_component
