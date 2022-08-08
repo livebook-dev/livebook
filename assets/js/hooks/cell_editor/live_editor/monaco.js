@@ -3,7 +3,7 @@ import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
 import { theme, highContrast } from "./theme";
 
-import { PieceTreeTextBufferFactory } from 'monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder';
+import { PieceTreeTextBufferFactory } from "monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder";
 
 // Force LF for line ending.
 //
@@ -28,7 +28,7 @@ import { PieceTreeTextBufferFactory } from 'monaco-editor/esm/vs/editor/common/m
 if (PieceTreeTextBufferFactory.prototype._getEOL) {
   PieceTreeTextBufferFactory.prototype._getEOL = function (defaultEOL) {
     return "\n";
-  }
+  };
 } else {
   throw new Error("failed to override line endings to LF");
 }
