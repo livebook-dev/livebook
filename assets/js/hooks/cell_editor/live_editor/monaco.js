@@ -3,6 +3,36 @@ import { CommandsRegistry } from "monaco-editor/esm/vs/platform/commands/common/
 import ElixirOnTypeFormattingEditProvider from "./elixir/on_type_formatting_edit_provider";
 import { theme, highContrast } from "./theme";
 
+import { PieceTreeTextBufferFactory } from 'monaco-editor/esm/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder';
+
+// Force LF for line ending.
+//
+// Monaco infers EOL based on the text content if any, otherwise uses
+// a system dependent value (CRLF for Windows). Then, the content is
+// always normalized to use that EOL. We need to ensure consistent
+// behaviour for collaborative editing to work. We already enforce
+// LF when importing/exporting Live Markdown, so the easiest approach
+// is to enforce it in the editor as well.
+//
+// There is no direct configuration to accomplish this, so we use an
+// override of [1] instead. There is also a long-running discussion
+// around EOL in [2].
+//
+// An alternative approach would be to disable line normalization and
+// possibly set the default EOL to LF (used when there is no content
+// to infer EOL from). Currently neither of those is configurable and
+// requires more complex overrides.
+//
+// [1]: https://github.com/microsoft/vscode/blob/34f184263de048a6283af1d9eb9faab84da4547d/src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeTextBufferBuilder.ts#L27-L40
+// [2]: https://github.com/microsoft/vscode/issues/127
+if (PieceTreeTextBufferFactory.prototype._getEOL) {
+  PieceTreeTextBufferFactory.prototype._getEOL = function (defaultEOL) {
+    return "\n";
+  }
+} else {
+  throw new Error("failed to override line endings to LF");
+}
+
 monaco.languages.registerOnTypeFormattingEditProvider(
   "elixir",
   ElixirOnTypeFormattingEditProvider
