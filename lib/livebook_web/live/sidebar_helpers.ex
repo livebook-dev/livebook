@@ -96,6 +96,7 @@ defmodule LivebookWeb.SidebarHelpers do
           to={Routes.settings_path(@socket, :page)}
           current={@current_page}
         />
+        <.hub_section socket={@socket} />
       </div>
       <div class="flex flex-col">
         <%= if Livebook.Config.shutdown_enabled?() do %>
@@ -148,6 +149,54 @@ defmodule LivebookWeb.SidebarHelpers do
       </span>
     <% end %>
     """
+  end
+
+  defp hub_section(assigns) do
+    ~H"""
+    <%= if Application.get_env(:livebook, :feature_flags)[:hub] do %>
+      <div class="sidebar--hub">
+        <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
+          <div class="flex flex-col">
+            <small class="ml-5 font-medium text-white">HUBS</small>
+          </div>
+          <div class="flex flex-col">
+            <%= live_redirect to: hub_path(@socket),
+                              class: "flex absolute right-5 items-center justify-center
+                                      text-gray-400 hover:text-white hover:border-white" do %>
+              <.remix_icon icon="add-line" />
+            <% end %>
+          </div>
+        </div>
+
+        <%= for machine <- Livebook.Hub.Settings.fetch_machines() do %>
+          <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white">
+            <.remix_icon
+              class="text-lg ml-1 leading-6 w-[56px] flex justify-center"
+              icon="checkbox-blank-circle-fill"
+              style={"color: #{machine.color}"}
+            />
+
+            <span class="ml-1 text-sm font-medium">
+              <%= machine.name %>
+            </span>
+          </div>
+        <% end %>
+
+        <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2 ml-5">
+          <%= live_redirect to: hub_path(@socket), class: "flex text-lg leading-6 flex items-center" do %>
+            <.remix_icon icon="add-line" class="mr-6" />
+            <span class="text-sm font-medium">Add Hub</span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
+  defp hub_path(socket) do
+    if Application.get_env(:livebook, :feature_flags)[:hub] do
+      apply(Routes, :hub_path, [socket, :page])
+    end
   end
 
   defp sidebar_link_text_color(to, current) when to == current, do: "text-white"
