@@ -275,4 +275,34 @@
   .info-box {
     @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
   }
+
+  /* Cards */
+  .card-item {
+    @apply cursor-pointer;
+  }
+
+  .card-item:not(.selected) .card-item--logo {
+    @apply border-gray-100;
+  }
+
+  .card-item:not(.selected) .card-item--body {
+    @apply bg-gray-100;
+  }
+
+  .card-item.selected .card-item--logo {
+    @apply border-gray-200;
+  }
+
+  .card-item.selected .card-item--body {
+    @apply bg-gray-200;
+  }
+
+  .card-item.disabled {
+    @apply pointer-events-none opacity-50 select-none;
+  }
+
+  /* Hub */
+  .sidebar--hub {
+    margin-top: 3rem !important;
+  }
 }
