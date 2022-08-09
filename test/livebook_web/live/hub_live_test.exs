@@ -119,7 +119,7 @@ defmodule LivebookWeb.HubLiveTest do
       assert html
              |> Floki.parse_document!()
              |> Floki.find("#sidebar--hub")
-             |> Floki.find(".ml-1.text-sm.font-medium")
+             |> Floki.find(".text-sm.font-medium")
              |> Floki.text() =~ "My Foo Hub"
 
       clean_machines()
@@ -163,7 +163,7 @@ defmodule LivebookWeb.HubLiveTest do
       assert html
              |> Floki.parse_document!()
              |> Floki.find("#sidebar--hub")
-             |> Floki.find(".ml-1.text-sm.font-medium")
+             |> Floki.find(".text-sm.font-medium")
              |> Floki.text() =~ "My Foo Hub"
 
       refute machine == Settings.machine_by_id!(machine.id)
@@ -251,24 +251,10 @@ defmodule LivebookWeb.HubLiveTest do
       assert html
              |> Floki.parse_document!()
              |> Floki.find("#sidebar--hub")
-             |> Floki.find(".ml-1.text-sm.font-medium")
+             |> Floki.find(".text-sm.font-medium")
              |> Floki.text() =~ machine.name
 
       clean_machines()
-    end
-  end
-
-  describe "enterprise" do
-    test "doesn't render the second step", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/hub")
-
-      assert_raise ArgumentError,
-                   ~s/element selected by "#enterprise" does not have phx-hook attribute/,
-                   fn ->
-                     view
-                     |> element("#enterprise")
-                     |> render_hook("select_hub_service", %{"value" => "enterprise"})
-                   end
     end
   end
 

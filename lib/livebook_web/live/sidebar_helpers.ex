@@ -164,38 +164,43 @@ defmodule LivebookWeb.SidebarHelpers do
     ~H"""
     <%= if Application.get_env(:livebook, :feature_flags)[:hub] do %>
       <div id="sidebar--hub" class="flex flex-col mt-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
-          <div class="flex flex-col">
-            <small class="ml-5 font-medium text-white">HUBS</small>
-          </div>
-          <div class="flex flex-col">
-            <%= live_redirect to: hub_path(@socket),
+        <div class="space-y-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
+            <div class="flex flex-col">
+              <small class="ml-5 font-medium text-white">HUBS</small>
+            </div>
+            <div class="flex flex-col">
+              <%= live_redirect to: hub_path(@socket),
                               class: "flex absolute right-5 items-center justify-center
                                       text-gray-400 hover:text-white hover:border-white" do %>
-              <.remix_icon icon="add-line" />
+                <.remix_icon icon="add-line" />
+              <% end %>
+            </div>
+          </div>
+
+          <%= for machine <- @hubs do %>
+            <%= live_redirect to: hub_path(@socket, :edit, machine.id), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
+              <.remix_icon
+                class="text-lg leading-6 w-[56px] flex justify-center"
+                icon="checkbox-blank-circle-fill"
+                style={"color: #{machine.color}"}
+              />
+
+              <span class="text-sm font-medium">
+                <%= machine.name %>
+              </span>
+            <% end %>
+          <% end %>
+
+          <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2">
+            <%= live_redirect to: hub_path(@socket), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
+              <.remix_icon class="text-lg leading-6 w-[56px] flex justify-center" icon="add-line" />
+
+              <span class="text-sm font-medium">
+                Add Hub
+              </span>
             <% end %>
           </div>
-        </div>
-
-        <%= for machine <- @hubs do %>
-          <%= live_redirect to: hub_path(@socket, :edit, machine.id), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
-            <.remix_icon
-              class="text-lg ml-1 leading-6 w-[56px] flex justify-center"
-              icon="checkbox-blank-circle-fill"
-              style={"color: #{machine.color}"}
-            />
-
-            <span class="ml-1 text-sm font-medium">
-              <%= machine.name %>
-            </span>
-          <% end %>
-        <% end %>
-
-        <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2 ml-5">
-          <%= live_redirect to: hub_path(@socket), class: "flex text-lg leading-6 flex items-center" do %>
-            <.remix_icon icon="add-line" class="mr-6" />
-            <span class="text-sm font-medium">Add Hub</span>
-          <% end %>
         </div>
       </div>
     <% end %>

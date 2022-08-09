@@ -107,28 +107,12 @@ defmodule LivebookWeb.HubLive do
   end
 
   defp card_item(assigns) do
-    base_class = "flex card-item flex-col"
-
-    hook =
-      case assigns do
-        %{disabled: true} -> nil
-        _ -> "SelectHubService"
-      end
-
-    class =
-      case assigns do
-        %{id: current, selected: selected} when current == selected -> base_class <> " selected"
-        %{disabled: true} -> base_class <> " disabled"
-        _ -> base_class
-      end
-
-    assigns =
-      assigns
-      |> assign_new(:class, fn -> class end)
-      |> assign_new(:phx_hook, fn -> hook end)
-
     ~H"""
-    <div id={@id} class={@class} phx-hook={@phx_hook}>
+    <div
+      id={@id}
+      class={"flex card-item flex-col " <> card_item_bg_color(@id, @selected)}
+      phx-hook="SelectHubService"
+    >
       <div class="flex items-center justify-center card-item--logo p-6 border-2 rounded-t-2xl h-[150px]">
         <%= render_slot(@logo) %>
       </div>
@@ -144,6 +128,9 @@ defmodule LivebookWeb.HubLive do
     </div>
     """
   end
+
+  defp card_item_bg_color(id, selected) when id == selected, do: "selected"
+  defp card_item_bg_color(_id, _selected), do: ""
 
   defp fly_logo(assigns) do
     ~H"""
