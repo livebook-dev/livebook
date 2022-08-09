@@ -59,27 +59,17 @@ defmodule LivebookWeb.HubLive do
                   <.fly_logo />
                 </:logo>
                 <:headline>
-                  Connect to your application
+                  Connect your Livebook on Fly
                 </:headline>
               </.card_item>
 
-              <.card_item
-                id="enterprise"
-                disabled
-                selected={@selected_hub_service}
-                title="Livebook Enterprise"
-              >
+              <.card_item id="enterprise" selected={@selected_hub_service} title="Livebook Enterprise">
                 <:logo>
                   <img src="/images/logo.png" class="max-h-full max-w-[75%]" alt="Fly logo" />
                 </:logo>
                 <:headline>
-                  <a
-                    href="https://livebook.dev/#livebook-plans"
-                    class="pointer-events-auto text-blue-600"
-                    target="_blank"
-                  >
-                    Learn more
-                  </a>
+                  Write notebooks in Livebook then securely deploy and share them
+                  with your team and company with Livebook Enterprise.
                 </:headline>
               </.card_item>
             </div>
@@ -93,6 +83,18 @@ defmodule LivebookWeb.HubLive do
 
               <%= if @selected_hub_service == "fly" do %>
                 <.fly_form socket={@socket} data={@data} machines={@machine_options} />
+              <% end %>
+
+              <%= if @selected_hub_service == "enterprise" do %>
+                <div class="flex">
+                  <span class="text-sm font-medium">
+                    If you want to learn more, <a
+                      href="https://livebook.dev/#livebook-plans"
+                      class="pointer-events-auto text-blue-600"
+                      target="_blank"
+                    >click here</a>.
+                  </span>
+                </div>
               <% end %>
             </div>
           <% end %>
