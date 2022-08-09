@@ -231,6 +231,35 @@ defmodule LivebookWeb.HomeLiveTest do
     end
   end
 
+  describe "hubs sidebar" do
+    test "doesn't show with disabled feature flag", %{conn: conn} do
+      Application.put_env(:livebook, :feature_flags, hub: false)
+      {:ok, _view, html} = live(conn, "/")
+      refute html =~ "HUBS"
+    end
+
+    test "render section", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ "HUBS"
+      assert html =~ "Add Hub"
+    end
+
+    test "render persisted hubs", %{conn: conn} do
+      machine = %Livebook.Hub.Machine{
+        id: "foo",
+        name: "Foo - bar",
+        token: "foo",
+        color: "#FF00FF"
+      }
+
+      assert Livebook.Hub.Settings.save_machine(machine)
+
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ "HUBS"
+      assert html =~ "Foo - bar"
+    end
+  end
+
   test "link to introductory notebook correctly creates a new session", %{conn: conn} do
     {:ok, view, _} = live(conn, "/")
 

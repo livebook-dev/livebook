@@ -12,7 +12,9 @@ defmodule LivebookWeb.HubLive do
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     assign(socket,
+     socket
+     |> SidebarHelpers.sidebar_handlers()
+     |> assign(
        selected_hub_service: nil,
        machines: [],
        machine_options: [],
@@ -25,7 +27,12 @@ defmodule LivebookWeb.HubLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
-      <SidebarHelpers.sidebar socket={@socket} current_page="" current_user={@current_user} />
+      <SidebarHelpers.sidebar
+        socket={@socket}
+        current_user={@current_user}
+        current_page=""
+        saved_hubs={@saved_hubs}
+      />
 
       <div class="grow px-6 py-8 overflow-y-auto">
         <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
@@ -171,7 +178,7 @@ defmodule LivebookWeb.HubLive do
       class="flex flex-col space-y-4"
       let={f}
       for={:fly}
-      phx-submit="save"
+      phx-submit="save_hub"
       phx-change="update_data"
       phx-debounce="blur"
     >
@@ -278,7 +285,7 @@ defmodule LivebookWeb.HubLive do
     end
   end
 
-  def handle_event("save", %{"fly" => params}, socket) do
+  def handle_event("save_hub", %{"fly" => params}, socket) do
     machines = socket.assigns.machines
 
     case Enum.find(machines, &(&1.id == params["application"])) do
@@ -297,6 +304,8 @@ defmodule LivebookWeb.HubLive do
             color: params["hex_color"],
             token: params["token"]
         })
+
+        send(self(), :update_hub)
 
         {:noreply, assign(socket, data: params, machine_options: opts)}
     end

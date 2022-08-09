@@ -29,6 +29,7 @@ defmodule LivebookWeb.SettingsLive do
         socket={@socket}
         current_page={Routes.settings_path(@socket, :page)}
         current_user={@current_user}
+        saved_hubs={@saved_hubs}
       />
       <div class="grow overflow-y-auto">
         <SidebarHelpers.toggle socket={@socket} />

@@ -5,6 +5,7 @@ defmodule LivebookWeb.SidebarHelpers do
   import LivebookWeb.UserHelpers
 
   alias Phoenix.LiveView.JS
+  alias Livebook.Hub.Settings
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -96,7 +97,7 @@ defmodule LivebookWeb.SidebarHelpers do
           to={Routes.settings_path(@socket, :page)}
           current={@current_page}
         />
-        <.hub_section socket={@socket} />
+        <.hub_section socket={@socket} hubs={@saved_hubs} />
       </div>
       <div class="flex flex-col">
         <%= if Livebook.Config.shutdown_enabled?() do %>
@@ -168,7 +169,7 @@ defmodule LivebookWeb.SidebarHelpers do
           </div>
         </div>
 
-        <%= for machine <- Livebook.Hub.Settings.fetch_machines() do %>
+        <%= for machine <- @hubs do %>
           <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white">
             <.remix_icon
               class="text-lg ml-1 leading-6 w-[56px] flex justify-center"
@@ -206,6 +207,10 @@ defmodule LivebookWeb.SidebarHelpers do
   defp sidebar_link_border_color(_to, _current), do: "border-transparent"
 
   def sidebar_handlers(socket) do
+    socket |> attach_shutdown_event() |> attach_hub_event()
+  end
+
+  defp attach_shutdown_event(socket) do
     if Livebook.Config.shutdown_enabled?() do
       attach_hook(socket, :shutdown, :handle_event, fn
         "shutdown", _params, socket ->
@@ -217,6 +222,22 @@ defmodule LivebookWeb.SidebarHelpers do
       end)
     else
       socket
+    end
+  end
+
+  defp attach_hub_event(socket) do
+    if Application.get_env(:livebook, :feature_flags)[:hub] do
+      socket
+      |> assign(saved_hubs: Settings.fetch_machines())
+      |> attach_hook(:hub, :handle_info, fn
+        :update_hub, socket ->
+          {:cont, assign(socket, saved_hubs: Settings.fetch_machines())}
+
+        _event, socket ->
+          {:cont, socket}
+      end)
+    else
+      assign(socket, saved_hubs: [])
     end
   end
 end
