@@ -300,9 +300,4 @@
   .card-item.disabled {
     @apply pointer-events-none opacity-50 select-none;
   }
-
-  /* Hub */
-  .sidebar--hub {
-    margin-top: 3rem !important;
-  }
 }

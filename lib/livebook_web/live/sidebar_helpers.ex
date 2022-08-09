@@ -67,36 +67,44 @@ defmodule LivebookWeb.SidebarHelpers do
       aria-label="sidebar"
       data-el-sidebar
     >
-      <div class="flex flex-col space-y-3">
-        <div class="group flex items-center mb-5">
-          <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
-            <img src="/images/logo.png" class="group mx-2" height="40" width="40" alt="logo livebook" />
-            <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
-              Livebook
+      <div class="flex flex-col">
+        <div class="space-y-3">
+          <div class="group flex items-center mb-5">
+            <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
+              <img
+                src="/images/logo.png"
+                class="group mx-2"
+                height="40"
+                width="40"
+                alt="logo livebook"
+              />
+              <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
+                Livebook
+              </span>
+            <% end %>
+            <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
+              v<%= Application.spec(:livebook, :vsn) %>
             </span>
-          <% end %>
-          <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
-            v<%= Application.spec(:livebook, :vsn) %>
-          </span>
+          </div>
+          <.sidebar_link
+            title="Home"
+            icon="home-6-line"
+            to={Routes.home_path(@socket, :page)}
+            current={@current_page}
+          />
+          <.sidebar_link
+            title="Explore"
+            icon="compass-3-line"
+            to={Routes.explore_path(@socket, :page)}
+            current={@current_page}
+          />
+          <.sidebar_link
+            title="Settings"
+            icon="settings-3-line"
+            to={Routes.settings_path(@socket, :page)}
+            current={@current_page}
+          />
         </div>
-        <.sidebar_link
-          title="Home"
-          icon="home-6-line"
-          to={Routes.home_path(@socket, :page)}
-          current={@current_page}
-        />
-        <.sidebar_link
-          title="Explore"
-          icon="compass-3-line"
-          to={Routes.explore_path(@socket, :page)}
-          current={@current_page}
-        />
-        <.sidebar_link
-          title="Settings"
-          icon="settings-3-line"
-          to={Routes.settings_path(@socket, :page)}
-          current={@current_page}
-        />
         <.hub_section socket={@socket} hubs={@saved_hubs} />
       </div>
       <div class="flex flex-col">
@@ -155,7 +163,7 @@ defmodule LivebookWeb.SidebarHelpers do
   defp hub_section(assigns) do
     ~H"""
     <%= if Application.get_env(:livebook, :feature_flags)[:hub] do %>
-      <div class="sidebar--hub">
+      <div id="sidebar--hub" class="flex flex-col mt-12">
         <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
           <div class="flex flex-col">
             <small class="ml-5 font-medium text-white">HUBS</small>

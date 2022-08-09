@@ -91,13 +91,13 @@ defmodule LivebookWeb.HubLiveTest do
 
       assert html
              |> Floki.parse_document!()
-             |> Floki.find(".sidebar--hub")
+             |> Floki.find("#sidebar--hub")
              |> Floki.find(".ri-checkbox-blank-circle-fill")
              |> Floki.attribute("style") == ["color: #FF00FF"]
 
       assert html
              |> Floki.parse_document!()
-             |> Floki.find(".sidebar--hub")
+             |> Floki.find("#sidebar--hub")
              |> Floki.find(".ml-1.text-sm.font-medium")
              |> Floki.text() =~ "My Foo Hub"
 
