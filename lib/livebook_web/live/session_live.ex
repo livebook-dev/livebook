@@ -154,7 +154,7 @@ defmodule LivebookWeb.SessionLive do
         </span>
       </nav>
       <div
-        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 py-10"
+        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-10"
         data-el-side-panel
       >
         <div data-el-sections-list>
