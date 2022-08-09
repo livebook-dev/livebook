@@ -54,27 +54,33 @@ defmodule LivebookWeb.HubLive do
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <.card_item
-                id="fly"
-                selected={@selected_hub_service}
-                title="Fly"
-                headline="Connect to your application"
-              >
+              <.card_item id="fly" selected={@selected_hub_service} title="Fly">
                 <:logo>
                   <.fly_logo />
                 </:logo>
+                <:headline>
+                  Connect to your application
+                </:headline>
               </.card_item>
 
               <.card_item
+                id="enterprise"
                 disabled
                 selected={@selected_hub_service}
-                id="enterprise"
-                title="Enterprise"
-                headline="Coming soon..."
+                title="Livebook Enterprise"
               >
                 <:logo>
                   <img src="/images/logo.png" class="max-h-full max-w-[75%]" alt="Fly logo" />
                 </:logo>
+                <:headline>
+                  <a
+                    href="https://livebook.dev/#livebook-plans"
+                    class="pointer-events-auto text-blue-600"
+                    target="_blank"
+                  >
+                    Learn more
+                  </a>
+                </:headline>
               </.card_item>
             </div>
           </div>
@@ -99,10 +105,28 @@ defmodule LivebookWeb.HubLive do
   end
 
   defp card_item(assigns) do
-    assigns = put_class(assigns)
+    base_class = "flex card-item flex-col"
+
+    hook =
+      case assigns do
+        %{disabled: true} -> nil
+        _ -> "SelectHubService"
+      end
+
+    class =
+      case assigns do
+        %{id: current, selected: selected} when current == selected -> base_class <> " selected"
+        %{disabled: true} -> base_class <> " disabled"
+        _ -> base_class
+      end
+
+    assigns =
+      assigns
+      |> assign_new(:class, fn -> class end)
+      |> assign_new(:phx_hook, fn -> hook end)
 
     ~H"""
-    <div id={@id} class={@class} phx-hook="SelectHubService">
+    <div id={@id} class={@class} phx-hook={@phx_hook}>
       <div class="flex items-center justify-center card-item--logo p-6 border-2 rounded-t-2xl h-[150px]">
         <%= render_slot(@logo) %>
       </div>
@@ -112,7 +136,7 @@ defmodule LivebookWeb.HubLive do
         </p>
 
         <p class="mt-2 text-sm text-gray-600">
-          <%= @headline %>
+          <%= render_slot(@headline) %>
         </p>
       </div>
     </div>
@@ -175,6 +199,7 @@ defmodule LivebookWeb.HubLive do
   defp fly_form(assigns) do
     ~H"""
     <.form
+      id="fly-form"
       class="flex flex-col space-y-4"
       let={f}
       for={:fly}
@@ -250,18 +275,6 @@ defmodule LivebookWeb.HubLive do
       </button>
     </div>
     """
-  end
-
-  defp put_class(%{id: id, selected: service} = assigns) when service === id do
-    assign_new(assigns, :class, fn -> "flex card-item flex-col selected" end)
-  end
-
-  defp put_class(%{disabled: true} = assigns) do
-    assign_new(assigns, :class, fn -> "flex card-item flex-col disabled" end)
-  end
-
-  defp put_class(assigns) do
-    assign_new(assigns, :class, fn -> "flex card-item flex-col" end)
   end
 
   @impl true
