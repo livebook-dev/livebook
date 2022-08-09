@@ -3,10 +3,11 @@ defprotocol Livebook.Hub do
 
   defmodule Machine do
     @moduledoc false
-    defstruct [:id, :name, :color, :token]
+    defstruct [:id, :hub, :name, :color, :token]
 
     @type t :: %__MODULE__{
             id: String.t(),
+            hub: String.t(),
             name: String.t(),
             color: String.t(),
             token: String.t()

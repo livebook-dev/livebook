@@ -178,7 +178,7 @@ defmodule LivebookWeb.SidebarHelpers do
         </div>
 
         <%= for machine <- @hubs do %>
-          <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white">
+          <%= live_redirect to: hub_path(@socket, :edit, machine.id), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
             <.remix_icon
               class="text-lg ml-1 leading-6 w-[56px] flex justify-center"
               icon="checkbox-blank-circle-fill"
@@ -188,7 +188,7 @@ defmodule LivebookWeb.SidebarHelpers do
             <span class="ml-1 text-sm font-medium">
               <%= machine.name %>
             </span>
-          </div>
+          <% end %>
         <% end %>
 
         <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2 ml-5">
@@ -202,9 +202,10 @@ defmodule LivebookWeb.SidebarHelpers do
     """
   end
 
-  defp hub_path(socket) do
+  defp hub_path(socket, action \\ :page, id \\ nil) do
     if Application.get_env(:livebook, :feature_flags)[:hub] do
-      apply(Routes, :hub_path, [socket, :page])
+      opts = if id, do: [socket, action, id], else: [socket, action]
+      apply(Routes, :hub_path, opts)
     end
   end
 

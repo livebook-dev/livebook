@@ -278,6 +278,38 @@ defmodule LivebookWeb.HubLive do
   end
 
   @impl true
+  def handle_params(%{"id" => id}, _url, socket) do
+    machine = Settings.machine_by_id!(id)
+    machines = [machine]
+
+    data =
+      case machine.hub do
+        "fly" ->
+          %{
+            "application" => machine.id,
+            "token" => machine.token,
+            "name" => machine.name,
+            "hex_color" => machine.color
+          }
+      end
+
+    opts = select_machine_options(machines, data["application"])
+
+    {:noreply,
+     assign(socket,
+       operation: :edit,
+       selected_hub_service: machine.hub,
+       data: data,
+       machines: machines,
+       machine_options: opts
+     )}
+  end
+
+  def handle_params(_params, _url, socket) do
+    {:noreply, assign(socket, operation: :new)}
+  end
+
+  @impl true
   def handle_event("select_hub_service", %{"value" => service}, socket) do
     {:noreply, assign(socket, selected_hub_service: service)}
   end
@@ -299,9 +331,7 @@ defmodule LivebookWeb.HubLive do
   end
 
   def handle_event("save_hub", %{"fly" => params}, socket) do
-    machines = socket.assigns.machines
-
-    case Enum.find(machines, &(&1.id == params["application"])) do
+    case Enum.find(socket.assigns.machines, &(&1.id == params["application"])) do
       nil ->
         {:noreply,
          socket
@@ -309,18 +339,19 @@ defmodule LivebookWeb.HubLive do
          |> put_flash(:error, "Internal Server Error")}
 
       selected_machine ->
-        opts = select_machine_options(machines, params["application"])
+        case {socket.assigns.operation, Settings.machine_exists?(selected_machine)} do
+          {:new, false} ->
+            {:noreply, save_fly_machine(socket, params, selected_machine)}
 
-        Settings.save_machine(%{
-          selected_machine
-          | name: params["name"],
-            color: params["hex_color"],
-            token: params["token"]
-        })
+          {:edit, true} ->
+            {:noreply, save_fly_machine(socket, params, selected_machine)}
 
-        send(self(), :update_hub)
-
-        {:noreply, assign(socket, data: params, machine_options: opts)}
+          _any ->
+            {:noreply,
+             socket
+             |> assign(data: params)
+             |> put_flash(:error, "Hub already exists")}
+        end
     end
   end
 
@@ -333,6 +364,22 @@ defmodule LivebookWeb.HubLive do
   def handle_event("randomize_color", _, socket) do
     data = Map.put(socket.assigns.data, "hex_color", User.random_hex_color())
     {:noreply, assign(socket, data: data)}
+  end
+
+  defp save_fly_machine(socket, params, selected_machine) do
+    opts = select_machine_options(socket.assigns.machines, params["application"])
+
+    Settings.save_machine(%{
+      selected_machine
+      | name: params["name"],
+        hub: socket.assigns.selected_hub_service,
+        color: params["hex_color"],
+        token: params["token"]
+    })
+
+    send(self(), :update_hub)
+
+    assign(socket, data: params, machine_options: opts)
   end
 
   defp select_machine_options(machines, machine_id \\ nil) do

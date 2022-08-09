@@ -57,6 +57,7 @@ defmodule LivebookWeb.Router do
 
       if Application.get_env(:livebook, :feature_flags)[:hub] do
         live "/hub", HubLive, :page
+        live "/hub/:id", HubLive, :edit
       end
 
       live "/sessions/:id", SessionLive, :page
