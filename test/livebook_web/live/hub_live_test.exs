@@ -100,6 +100,10 @@ defmodule LivebookWeb.HubLiveTest do
              |> Floki.find(".sidebar--hub")
              |> Floki.find(".ml-1.text-sm.font-medium")
              |> Floki.text() =~ "My Foo Hub"
+
+      for %{id: machine_id} <- Livebook.Hub.Settings.fetch_machines() do
+        Livebook.Storage.current().delete(:hub, machine_id)
+      end
     end
   end
 

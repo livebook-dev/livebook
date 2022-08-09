@@ -235,6 +235,8 @@ defmodule LivebookWeb.HomeLiveTest do
     test "doesn't show with disabled feature flag", %{conn: conn} do
       Application.put_env(:livebook, :feature_flags, hub: false)
       {:ok, _view, html} = live(conn, "/")
+      Application.put_env(:livebook, :feature_flags, hub: true)
+
       refute html =~ "HUBS"
     end
 
@@ -257,6 +259,8 @@ defmodule LivebookWeb.HomeLiveTest do
       {:ok, _view, html} = live(conn, "/")
       assert html =~ "HUBS"
       assert html =~ "Foo - bar"
+
+      Livebook.Storage.current().delete(:hub, machine.id)
     end
   end
 
