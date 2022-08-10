@@ -17,7 +17,7 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       </h3>
       <%= if @uploads.cell_image.errors != [] do %>
         <div class="error-box">
-          Invalid image file. The image must be either GIF, JPEG, or PNG and cannot exceed 5MB in size.
+          Invalid image file. The image must be either GIF, JPEG, SVG or PNG and cannot exceed 5MB in size.
         </div>
       <% end %>
       <%= if @error_message do %>

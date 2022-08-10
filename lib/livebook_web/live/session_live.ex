@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive do
          |> prune_outputs()
          |> prune_cell_sources()
          |> allow_upload(:cell_image,
-           accept: ~w(.jpg .jpeg .png .gif),
+           accept: ~w(.jpg .jpeg .png .gif .svg),
            max_entries: 1,
            max_file_size: 5_000_000
          )}
