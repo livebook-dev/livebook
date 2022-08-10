@@ -39,12 +39,7 @@ defmodule LivebookWeb.HubLive do
           <div>
             <PageHelpers.title text="Hub" socket={@socket} />
             <p class="mt-4 text-gray-700">
-              Here you can create your Hubs.
-              Keep in mind that this configuration gets persisted and
-              will be restored on application launch.
-            </p>
-            <p class="mt-4 text-gray-700">
-              Follow the next steps to create you Hub configuration.
+              Manage your Livebooks in the cloud with Hubs.
             </p>
           </div>
 
@@ -59,7 +54,7 @@ defmodule LivebookWeb.HubLive do
                   <.fly_logo />
                 </:logo>
                 <:headline>
-                  Connect your Livebook on Fly
+                  Deploy notebooks to your Fly account.
                 </:headline>
               </.card_item>
 
@@ -68,8 +63,7 @@ defmodule LivebookWeb.HubLive do
                   <img src="/images/logo.png" class="max-h-full max-w-[75%]" alt="Fly logo" />
                 </:logo>
                 <:headline>
-                  Write notebooks in Livebook then securely deploy and share them
-                  with your team and company with Livebook Enterprise.
+                  Control access, manage secrets, and deploy notebooks within your team and company.
                 </:headline>
               </.card_item>
             </div>
@@ -78,7 +72,7 @@ defmodule LivebookWeb.HubLive do
           <%= if @selected_hub_service do %>
             <div class="flex flex-col space-y-4">
               <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
-                2. Connect to your Hub with the following form
+                2. Configure your Hub
               </h2>
 
               <%= if @selected_hub_service == "fly" do %>
@@ -86,14 +80,12 @@ defmodule LivebookWeb.HubLive do
               <% end %>
 
               <%= if @selected_hub_service == "enterprise" do %>
-                <div class="flex">
-                  <span class="text-sm font-medium">
-                    If you want to learn more, <a
-                      href="https://livebook.dev/#livebook-plans"
-                      class="pointer-events-auto text-blue-600"
-                      target="_blank"
-                    >click here</a>.
-                  </span>
+                <div>
+                  Livebook Enterprise is currently in closed beta. If you want to learn more, <a
+                    href="https://livebook.dev/#livebook-plans"
+                    class="pointer-events-auto text-blue-600"
+                    target="_blank"
+                  >click here</a>.
                 </div>
               <% end %>
             </div>
@@ -197,7 +189,7 @@ defmodule LivebookWeb.HubLive do
       phx-debounce="blur"
     >
       <div class="flex flex-col space-y-1">
-        <h3 class="text-lg text-gray-800 font-semibold">
+        <h3 class="text-gray-800 font-semibold">
           Access Token
         </h3>
         <%= password_input(f, :token,
@@ -213,7 +205,7 @@ defmodule LivebookWeb.HubLive do
 
       <%= if length(@machines) > 0 do %>
         <div class="flex flex-col space-y-1">
-          <h3 class="text-lg text-gray-800 font-semibold">
+          <h3 class="text-gray-800 font-semibold">
             Application
           </h3>
           <%= select(f, :application, @machines, class: "input") %>
@@ -221,14 +213,14 @@ defmodule LivebookWeb.HubLive do
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div class="flex flex-col space-y-1">
-            <h3 class="text-lg text-gray-800 font-semibold">
+            <h3 class="text-gray-800 font-semibold">
               Name
             </h3>
             <%= text_input(f, :name, value: @data["name"], class: "input") %>
           </div>
 
           <div class="flex flex-col space-y-1">
-            <h3 class="text-lg text-gray-800 font-semibold">
+            <h3 class="text-gray-800 font-semibold">
               Color
             </h3>
 
