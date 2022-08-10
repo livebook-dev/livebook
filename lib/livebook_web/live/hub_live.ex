@@ -147,6 +147,7 @@ defmodule LivebookWeb.HubLive do
           class: "input w-full",
           autofocus: true,
           spellcheck: "false",
+          required: true,
           autocomplete: "off"
         ) %>
       </div>
@@ -156,7 +157,7 @@ defmodule LivebookWeb.HubLive do
           <h3 class="text-gray-800 font-semibold">
             Organization
           </h3>
-          <%= select(f, :organization, @hubs, class: "input") %>
+          <%= select(f, :organization, @hubs, class: "input", required: true) %>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -164,7 +165,7 @@ defmodule LivebookWeb.HubLive do
             <h3 class="text-gray-800 font-semibold">
               Name
             </h3>
-            <%= text_input(f, :name, value: @data["name"], class: "input") %>
+            <%= text_input(f, :name, value: @data["name"], class: "input", required: true) %>
           </div>
 
           <div class="flex flex-col space-y-1">
@@ -173,36 +174,35 @@ defmodule LivebookWeb.HubLive do
             </h3>
 
             <div class="flex space-x-4 items-center">
-              <.hex_color form={f} name="hex_color" value={@data["hex_color"]} />
+              <div
+                class="border-[3px] rounded-lg p-1 flex justify-center items-center"
+                style={"border-color: #{@data["hex_color"]}"}
+              >
+                <div class="rounded h-5 w-5" style={"background-color: #{@data["hex_color"]}"}></div>
+              </div>
+              <div class="relative grow">
+                <%= text_input(f, :hex_color,
+                  value: @data["hex_color"],
+                  class: "input",
+                  spellcheck: "false",
+                  required: true,
+                  maxlength: 7
+                ) %>
+                <button
+                  class="icon-button absolute right-2 top-1"
+                  type="button"
+                  phx-click="randomize_color"
+                >
+                  <.remix_icon icon="refresh-line" class="text-xl" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <%= submit("Save", class: "button-base button-blue") %>
+        <%= submit("Save", class: "button-base button-blue", phx_disable_with: "Saving...") %>
       <% end %>
     </.form>
-    """
-  end
-
-  defp hex_color(assigns) do
-    ~H"""
-    <div
-      class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-      style={"border-color: #{@value}"}
-    >
-      <div class="rounded h-5 w-5" style={"background-color: #{@value}"}></div>
-    </div>
-    <div class="relative grow">
-      <%= text_input(@form, @name,
-        value: @value,
-        class: "input",
-        spellcheck: "false",
-        maxlength: 7
-      ) %>
-      <button class="icon-button absolute right-2 top-1" type="button" phx-click="randomize_color">
-        <.remix_icon icon="refresh-line" class="text-xl" />
-      </button>
-    </div>
     """
   end
 
