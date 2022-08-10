@@ -55,6 +55,9 @@ defmodule Standalone do
       File.cp!(file, Path.join(release_bin_dir, Path.basename(file)))
     end
 
+    # 4. copy usr
+    cp_r!(Path.join(:code.root_dir(), "usr"), Path.join(release.path, "usr"))
+
     %{release | erts_source: erts_source}
   end
 
