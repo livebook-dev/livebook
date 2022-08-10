@@ -10,7 +10,6 @@ import JSView from "./js_view";
 import KeyboardControl from "./keyboard_control";
 import MarkdownRenderer from "./markdown_renderer";
 import ScrollOnUpdate from "./scroll_on_update";
-import SelectHubService from "./select_hub_service";
 import Session from "./session";
 import Timer from "./timer";
 import UserForm from "./user_form";
@@ -29,7 +28,6 @@ export default {
   KeyboardControl,
   MarkdownRenderer,
   ScrollOnUpdate,
-  SelectHubService,
   Session,
   Timer,
   UserForm,

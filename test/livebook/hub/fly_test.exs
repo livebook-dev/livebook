@@ -16,7 +16,7 @@ defmodule Livebook.Hub.FlyTest do
       Application.delete_env(:livebook, :fly_io_graphql_endpoint)
     end)
 
-    {:ok, bypass: bypass}
+    {:ok, bypass: bypass, url: "http://localhost:#{bypass.port}"}
   end
 
   describe "fetch_applications/1" do

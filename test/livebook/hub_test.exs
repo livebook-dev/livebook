@@ -2,9 +2,8 @@ defmodule Livebook.HubTest do
   use ExUnit.Case
 
   alias Livebook.Hub
-  alias Livebook.Hub.Machine
 
-  describe "Fly fetch_machines/1" do
+  describe "Fly fetch_hubs/1" do
     alias Livebook.Hub.Fly
 
     setup do
@@ -23,7 +22,7 @@ defmodule Livebook.HubTest do
       {:ok, bypass: bypass}
     end
 
-    test "fetches an empty list of machines", %{bypass: bypass} do
+    test "fetches an empty list of hubs", %{bypass: bypass} do
       response = %{"data" => %{"apps" => %{"nodes" => []}}}
 
       Bypass.expect_once(bypass, "POST", "/", fn conn ->
@@ -32,10 +31,10 @@ defmodule Livebook.HubTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert {:ok, []} = Hub.fetch_machines(%Fly{token: "some valid token"})
+      assert {:ok, []} = Hub.fetch_hubs(%Fly{token: "some valid token"})
     end
 
-    test "fetches a list of machines", %{bypass: bypass} do
+    test "fetches a list of hubs", %{bypass: bypass} do
       app = %{
         "id" => "my-foo-application",
         "name" => "my-foo-application",
@@ -63,11 +62,12 @@ defmodule Livebook.HubTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert {:ok, [machine]} = Hub.fetch_machines(%Fly{token: "some valid token"})
+      assert {:ok, [hub]} = Hub.fetch_hubs(%Fly{token: "some valid token"})
 
-      assert machine == %Machine{
-               id: "my-foo-application",
-               name: "Foo Bar - my-foo-application",
+      assert hub == %Hub{
+               id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+               type: "fly",
+               label: "Foo Bar",
                token: "some valid token"
              }
     end

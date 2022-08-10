@@ -1,6 +1,7 @@
 defmodule LivebookWeb.UserHook do
   import Phoenix.LiveView
 
+  alias Livebook.Hub.Settings
   alias Livebook.Users.User
 
   def on_mount(:default, _params, %{"current_user_id" => current_user_id} = session, socket) do
@@ -10,6 +11,7 @@ defmodule LivebookWeb.UserHook do
 
     socket =
       socket
+      |> assign(saved_hubs: Settings.fetch_hubs())
       |> assign_new(:current_user, fn -> build_current_user(session, socket) end)
       |> attach_hook(:current_user_subscription, :handle_info, &info/2)
 
@@ -21,6 +23,10 @@ defmodule LivebookWeb.UserHook do
          %{assigns: %{current_user: %{id: id}}} = socket
        ) do
     {:cont, assign(socket, :current_user, user)}
+  end
+
+  defp info(:update_hub, socket) do
+    {:cont, assign(socket, saved_hubs: Settings.fetch_hubs())}
   end
 
   defp info(_message, socket), do: {:cont, socket}

@@ -1,17 +1,10 @@
 defmodule Livebook.Hub.Fly do
   @moduledoc false
-  defstruct id: nil,
-            name: nil,
-            deployed: nil,
-            hostname: nil,
-            organization: nil,
-            image_details: nil,
-            state: nil,
-            token: nil
+
+  defstruct [:id, :name, :deployed, :hostname, :organization, :image_details, :state, :token]
 
   alias Livebook.Utils.HTTP
 
-  @doc false
   def fetch_applications(access_token) do
     headers = [{"Authorization", "Bearer #{access_token}"}]
     body = {"application/json", Jason.encode!(%{query: query()})}
@@ -109,24 +102,23 @@ defmodule Livebook.Hub.Fly do
 end
 
 defimpl Livebook.Hub, for: Livebook.Hub.Fly do
-  alias Livebook.Hub.{Fly, Machine}
-
-  def fetch_machines(%Fly{token: token}) do
-    case Fly.fetch_applications(token) do
+  def fetch_hubs(%@for{token: token}) do
+    case @for.fetch_applications(token) do
       {:ok, applications} ->
-        machines = for app <- applications, do: to_machine(app)
-        {:ok, machines}
+        hubs =
+          for fly <- applications do
+            %@protocol{
+              id: fly.organization.id,
+              type: "fly",
+              label: fly.organization.name,
+              token: fly.token
+            }
+          end
+
+        {:ok, hubs}
 
       {:error, _} = error ->
         error
     end
-  end
-
-  defp to_machine(%Fly{} = fly) do
-    %Machine{
-      id: fly.id,
-      name: "#{fly.organization.name} - #{fly.name}",
-      token: fly.token
-    }
   end
 end

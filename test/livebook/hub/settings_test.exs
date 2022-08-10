@@ -1,62 +1,65 @@
 defmodule Livebook.Hub.SettingsTest do
   use ExUnit.Case
 
-  alias Livebook.Hub.{Machine, Settings}
+  alias Livebook.Hub
+  alias Livebook.Hub.Settings
 
-  @machine_id Livebook.Utils.random_id()
+  @hub_id Livebook.Utils.random_id()
 
-  test "fetch_machines/0 returns a list of persisted machines" do
-    clean_machines()
+  test "fetch_hubs/0 returns a list of persisted hubs" do
+    clean_hubs()
 
-    Settings.save_machine(machine())
+    Settings.save_hub(hub())
 
     assert [
              %{
                color: "#FF00FF",
-               id: @machine_id,
-               name: "Foo - bar",
+               id: @hub_id,
+               name: "My Foo",
+               label: "Foo org",
                token: "foo",
-               hub: "fly"
+               type: "fly"
              }
-           ] == Settings.fetch_machines()
+           ] == Settings.fetch_hubs()
 
-    Livebook.Storage.current().delete(:hub, @machine_id)
-    assert [] == Settings.fetch_machines()
+    Livebook.Storage.current().delete(:hub, @hub_id)
+    assert [] == Settings.fetch_hubs()
   end
 
-  test "machine_by_id!/1 returns one persisted machine" do
-    clean_machines()
+  test "hub_by_id!/1 returns one persisted hub" do
+    clean_hubs()
 
     assert_raise Livebook.Hub.Settings.NotFoundError,
-                 ~s/could not find a machine matching "#{@machine_id}"/,
+                 ~s/could not find a hub matching "#{@hub_id}"/,
                  fn ->
-                   Settings.machine_by_id!(@machine_id)
+                   Settings.hub_by_id!(@hub_id)
                  end
 
-    Settings.save_machine(machine())
+    Settings.save_hub(hub())
 
-    assert machine() == Settings.machine_by_id!(@machine_id)
+    assert hub() == Settings.hub_by_id!(@hub_id)
   end
 
-  test "machine_exists?/1" do
-    clean_machines()
-    refute Settings.machine_exists?(machine())
+  test "hub_exists?/1" do
+    clean_hubs()
+    refute Settings.hub_exists?(hub())
 
-    Settings.save_machine(machine())
-    assert Settings.machine_exists?(machine())
+    Settings.save_hub(hub())
+    assert Settings.hub_exists?(hub())
   end
 
-  defp clean_machines do
-    for %{id: machine_id} <- Livebook.Hub.Settings.fetch_machines() do
-      Livebook.Storage.current().delete(:hub, machine_id)
+  defp clean_hubs do
+    for %{id: hub_id} <- Livebook.Hub.Settings.fetch_hubs() do
+      Livebook.Storage.current().delete(:hub, hub_id)
     end
   end
 
-  defp machine do
-    %Machine{
-      id: @machine_id,
-      hub: "fly",
-      name: "Foo - bar",
+  defp hub do
+    %Hub{
+      id: @hub_id,
+      type: "fly",
+      name: "My Foo",
+      label: "Foo org",
       token: "foo",
       color: "#FF00FF"
     }

@@ -3,15 +3,8 @@ defmodule LivebookWeb.HubLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.Hub.{Machine, Settings}
-
-  setup tags do
-    if hub = tags[:hub] do
-      Application.put_env(:livebook, :feature_flags, hub: hub)
-    end
-
-    :ok
-  end
+  alias Livebook.Hub
+  alias Livebook.Hub.Settings
 
   test "render hub selection cards", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/hub")
@@ -26,27 +19,27 @@ defmodule LivebookWeb.HubLiveTest do
 
       assert view
              |> element("#fly")
-             |> render_hook("select_hub_service", %{"value" => "fly"}) =~
-               "Connect to your Hub with the following form"
+             |> render_click() =~ "Deploy notebooks to your Fly account."
     end
 
-    test "renders filled form with existing machine", %{conn: conn} do
-      machine = %Machine{
-        id: "my-foo-application",
-        hub: "fly",
-        name: "Foo - bar",
+    test "renders filled form with existing hub", %{conn: conn} do
+      hub = %Hub{
+        id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+        type: "fly",
+        name: "My Foo",
+        label: "Foo Bar",
         token: "foo",
         color: "#FF00FF"
       }
 
-      Settings.save_machine(machine)
+      Settings.save_hub(hub)
 
-      {:ok, _view, html} = live(conn, "/hub/my-foo-application")
+      {:ok, _view, html} = live(conn, "/hub/" <> hub.id)
 
-      assert html =~ machine.name
-      assert html =~ machine.color
+      assert html =~ hub.name
+      assert html =~ hub.color
 
-      clean_machines()
+      clean_hubs()
     end
 
     test "persists hub", %{conn: conn} do
@@ -85,14 +78,14 @@ defmodule LivebookWeb.HubLiveTest do
       # renders the second step
       assert view
              |> element("#fly")
-             |> render_hook("select_hub_service", %{"value" => "fly"})
+             |> render_click()
 
       # triggers the access_token field change
       # and shows the fly's third step
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="my-foo-application">Foo Bar - my-foo-application</option>)
+               ~s(<option value="l3soyvjmvtmwtl6l2drnbfuvltipprge">Foo Bar</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -122,21 +115,22 @@ defmodule LivebookWeb.HubLiveTest do
              |> Floki.find(".text-sm.font-medium")
              |> Floki.text() =~ "My Foo Hub"
 
-      clean_machines()
+      clean_hubs()
     end
 
     test "updates hub", %{conn: conn} do
-      machine = %Machine{
-        id: "my-foo-application",
-        hub: "fly",
-        name: "Foo - bar",
+      hub = %Hub{
+        id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+        type: "fly",
+        name: "Foo",
+        label: "Foo Bar",
         token: "foo",
         color: "#FF00FF"
       }
 
-      Settings.save_machine(machine)
+      Settings.save_hub(hub)
 
-      {:ok, view, _html} = live(conn, "/hub/my-foo-application")
+      {:ok, view, _html} = live(conn, "/hub/" <> hub.id)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -145,7 +139,7 @@ defmodule LivebookWeb.HubLiveTest do
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "application" => machine.id,
+                 "application" => hub.id,
                  "name" => "My Foo Hub",
                  "hex_color" => "#FF00FF"
                }
@@ -166,30 +160,31 @@ defmodule LivebookWeb.HubLiveTest do
              |> Floki.find(".text-sm.font-medium")
              |> Floki.text() =~ "My Foo Hub"
 
-      refute machine == Settings.machine_by_id!(machine.id)
+      refute hub == Settings.hub_by_id!(hub.id)
 
-      clean_machines()
+      clean_hubs()
     end
 
     test "fails to create existing hub", %{conn: conn} do
       bypass = Bypass.open()
       Application.put_env(:livebook, :fly_io_graphql_endpoint, "http://localhost:#{bypass.port}")
 
-      machine = %Machine{
-        id: "my-foo-application",
-        hub: "fly",
-        name: "Foo - bar",
+      hub = %Hub{
+        id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+        type: "fly",
+        name: "Foo",
+        label: "Foo Bar",
         token: "dummy token",
         color: "#FF00FF"
       }
 
-      Settings.save_machine(machine)
+      Settings.save_hub(hub)
 
       {:ok, view, _html} = live(conn, "/hub")
 
       app = %{
-        "id" => machine.id,
-        "name" => machine.id,
+        "id" => hub.id,
+        "name" => hub.id,
         "deployed" => true,
         "hostname" => "https://my-foo-application.fly.dev",
         "organization" => %{
@@ -217,14 +212,14 @@ defmodule LivebookWeb.HubLiveTest do
       # renders the second step
       assert view
              |> element("#fly")
-             |> render_hook("select_hub_service", %{"value" => "fly"})
+             |> render_click()
 
       # triggers the access_token field change
       # and shows the fly's third step
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="my-foo-application">Foo Bar - my-foo-application</option>)
+               ~s(<option value="l3soyvjmvtmwtl6l2drnbfuvltipprge">Foo Bar</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -246,21 +241,21 @@ defmodule LivebookWeb.HubLiveTest do
              |> Floki.parse_document!()
              |> Floki.find("#sidebar--hub")
              |> Floki.find(".ri-checkbox-blank-circle-fill")
-             |> Floki.attribute("style") == ["color: " <> machine.color]
+             |> Floki.attribute("style") == ["color: " <> hub.color]
 
       assert html
              |> Floki.parse_document!()
              |> Floki.find("#sidebar--hub")
              |> Floki.find(".text-sm.font-medium")
-             |> Floki.text() =~ machine.name
+             |> Floki.text() =~ hub.name
 
-      clean_machines()
+      clean_hubs()
     end
   end
 
-  defp clean_machines do
-    for %{id: machine_id} <- Settings.fetch_machines() do
-      Livebook.Storage.current().delete(:hub, machine_id)
+  defp clean_hubs do
+    for %{id: hub_id} <- Settings.fetch_hubs() do
+      Livebook.Storage.current().delete(:hub, hub_id)
     end
   end
 end

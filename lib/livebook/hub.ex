@@ -1,24 +1,19 @@
 defprotocol Livebook.Hub do
   @moduledoc false
+  defstruct [:id, :type, :name, :label, :color, :token]
 
-  defmodule Machine do
-    @moduledoc false
-    defstruct [:id, :hub, :name, :color, :token]
-
-    @type t :: %__MODULE__{
-            id: String.t(),
-            hub: String.t(),
-            name: String.t(),
-            color: String.t(),
-            token: String.t()
-          }
-  end
-
-  @typep hub :: Hub.Fly.t()
+  @type t :: %__MODULE__{
+          id: String.t(),
+          type: String.t(),
+          name: String.t(),
+          label: String.t(),
+          color: String.t(),
+          token: String.t()
+        }
 
   @doc """
-  Gets a list of machines.
+  Gets a list of hubs.
   """
-  @spec fetch_machines(hub()) :: {:ok, list(Machine.t())} | {:error, any()}
-  def fetch_machines(hub)
+  @spec fetch_hubs(any()) :: {:ok, list(t())} | {:error, any()}
+  def fetch_hubs(hub)
 end
