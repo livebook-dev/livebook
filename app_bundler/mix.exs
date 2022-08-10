@@ -26,6 +26,8 @@ defmodule AppBundler.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:libpe, "~> 1.0"}
+    ]
   end
 end
