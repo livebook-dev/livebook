@@ -642,9 +642,9 @@ defmodule Livebook.Notebook do
         output = {idx, {:frame, apply_frame_update(outputs, new_outputs, type), info}}
         {output, counter}
 
-      {idx, {:frame, outputs, info}}, counter ->
+      {idx, {type, outputs, info}}, counter when type in [:frame, :tabs, :grid] ->
         {outputs, counter} = update_frames(outputs, counter, frame)
-        output = {idx, {:frame, outputs, info}}
+        output = {idx, {type, outputs, info}}
         {output, counter}
 
       output, counter ->
