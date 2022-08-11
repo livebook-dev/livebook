@@ -162,7 +162,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "Enum",
                  kind: :module,
                  detail: "module",
-                 documentation: "Provides a set of algorithms to work with enumerables.",
+                 documentation: "Functions for working with collections (known as enumerables).",
                  insert_text: "Enum"
                },
                %{

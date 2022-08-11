@@ -475,7 +475,7 @@ defmodule Livebook.Runtime.Evaluator do
 
   # Adapted from https://github.com/elixir-lang/elixir/blob/1c1654c88adfdbef38ff07fc30f6fbd34a542c07/lib/iex/lib/iex/evaluator.ex#L355-L372
   # TODO: Remove else branch once we depend on the versions below
-  if System.otp_release() >= "25" and Version.match?(System.version(), "~> 1.14-dev") do
+  if System.otp_release() >= "25" do
     defp prune_stacktrace(stack) do
       stack
       |> Enum.reverse()
