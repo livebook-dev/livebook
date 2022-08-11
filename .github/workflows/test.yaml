@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+env:
+  otp: "25.0"
+  elixir: "1.14.0-rc.0"
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -14,21 +17,21 @@ jobs:
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '25.0'
-          elixir-version: '1.14.0-rc.0'
+          otp-version: ${{ env.otp }}
+          elixir-version: ${{ env.elixir }}
       - name: Cache Mix
         uses: actions/cache@v2
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-
+            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
       - name: Install mix dependencies
         run: mix deps.get
       - name: Check formatting
-        run: mix format --check-formatted
+        run: mix do deps.compile, format --check-formatted
       - name: Check warnings
         run: mix compile --warnings-as-errors
       - name: Run tests
@@ -36,7 +39,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v2
         with:
-          node-version: '14.x'
+          node-version: "14.x"
       - name: Cache npm dependencies
         uses: actions/cache@v2
         with:
@@ -52,7 +55,7 @@ jobs:
         run: npm test --prefix assets
   windows:
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main'
     env:
       MIX_ENV: test
     steps:
@@ -63,11 +66,11 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           version-type: strict
-          otp-version: '25.0'
-          elixir-version: '1.14.0-rc.0'
+          otp-version: ${{ env.otp }}
+          elixir-version: ${{ env.elixir }}
       - name: Start epmd
         run: cmd /c "START /b epmd"
-        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-12.2/bin
+        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-13.0/bin
       # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
       - name: Add tar.exe
         run: |
@@ -78,15 +81,11 @@ jobs:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-
+            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
       - name: Install mix dependencies
         run: mix deps.get
-      - name: Check formatting
-        run: mix format --check-formatted
-      - name: Check warnings
-        run: mix compile --warnings-as-errors
       - name: Run tests
         run: mix test
       - name: Build the app
@@ -94,7 +93,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v2
       - name: Cache Mix Deps
