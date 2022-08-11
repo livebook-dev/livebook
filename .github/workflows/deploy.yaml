@@ -15,7 +15,7 @@ jobs:
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '24.0'
+          otp-version: '25.0'
           elixir-version: '1.14.0-rc.0'
       - name: Cache Mix
         uses: actions/cache@v2
