@@ -8,4 +8,7 @@
 #     $ start ./test/support/notebooks/basic.livemd
 set -e
 
+mix local.hex --force --if-missing
+mix local.rebar --force --if-missing
+MIX_ENV=prod MIX_TARGET=app mix deps.get --only prod
 MIX_ENV=prod MIX_TARGET=app mix release app --overwrite
