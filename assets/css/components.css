@@ -281,23 +281,19 @@
     @apply cursor-pointer;
   }
 
-  .card-item:not(.selected) .card-item--logo {
+  .card-item:not(.selected) .card-item-logo {
     @apply border-gray-100;
   }
 
-  .card-item:not(.selected) .card-item--body {
+  .card-item:not(.selected) .card-item-body {
     @apply bg-gray-100;
   }
 
-  .card-item.selected .card-item--logo {
+  .card-item.selected .card-item-logo {
     @apply border-gray-200;
   }
 
-  .card-item.selected .card-item--body {
+  .card-item.selected .card-item-body {
     @apply bg-gray-200;
-  }
-
-  .card-item.disabled {
-    @apply pointer-events-none opacity-50 select-none;
   }
 }

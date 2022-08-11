@@ -1,7 +1,7 @@
-defmodule Livebook.Hub.FlyTest do
+defmodule Livebook.Hubs.FlyTest do
   use ExUnit.Case
 
-  alias Livebook.Hub.Fly
+  alias Livebook.Hubs.Fly
 
   setup do
     bypass = Bypass.open()
@@ -93,7 +93,7 @@ defmodule Livebook.Hub.FlyTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert {:error, :unauthorized} = Fly.fetch_applications("foo")
+      assert {:error, "request failed with code: UNAUTHORIZED"} = Fly.fetch_applications("foo")
     end
   end
 end

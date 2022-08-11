@@ -40,7 +40,12 @@ defmodule LivebookWeb.Router do
   end
 
   live_session :default,
-    on_mount: [LivebookWeb.AuthHook, LivebookWeb.UserHook, {LivebookWeb.PolicyHook, :private}] do
+    on_mount: [
+      LivebookWeb.AuthHook,
+      LivebookWeb.UserHook,
+      LivebookWeb.HubHook,
+      {LivebookWeb.PolicyHook, :private}
+    ] do
     scope "/", LivebookWeb do
       pipe_through [:browser, :auth]
 

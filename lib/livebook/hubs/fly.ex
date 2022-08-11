@@ -1,4 +1,4 @@
-defmodule Livebook.Hub.Fly do
+defmodule Livebook.Hubs.Fly do
   @moduledoc false
 
   defstruct [:id, :name, :deployed, :hostname, :organization, :image_details, :state, :token]
@@ -58,12 +58,7 @@ defmodule Livebook.Hub.Fly do
   defp handle_response({:ok, %{"errors" => [error]}}) do
     case error do
       %{"extensions" => %{"code" => code}} ->
-        reason =
-          code
-          |> Macro.underscore()
-          |> String.to_atom()
-
-        {:error, reason}
+        {:error, "request failed with code: #{code}"}
 
       %{"message" => message} ->
         {:error, message}
@@ -101,13 +96,13 @@ defmodule Livebook.Hub.Fly do
   end
 end
 
-defimpl Livebook.Hub, for: Livebook.Hub.Fly do
+defimpl Livebook.Hubs, for: Livebook.Hubs.Fly do
   def fetch_hubs(%@for{token: token}) do
     case @for.fetch_applications(token) do
       {:ok, applications} ->
         hubs =
           for fly <- applications do
-            %@protocol{
+            %@protocol.Hub{
               id: fly.organization.id,
               type: "fly",
               label: fly.organization.name,

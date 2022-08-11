@@ -3,8 +3,7 @@ defmodule LivebookWeb.HubLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.Hub
-  alias Livebook.Hub.Settings
+  alias Livebook.Hubs.{Hub, Settings}
 
   test "render hub selection cards", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/hub")
@@ -54,7 +53,7 @@ defmodule LivebookWeb.HubLiveTest do
         "deployed" => true,
         "hostname" => "https://my-foo-application.fly.dev",
         "organization" => %{
-          "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+          "id" => "123456789",
           "slug" => "personal",
           "name" => "Foo Bar",
           "type" => "PERSONAL"
@@ -85,35 +84,33 @@ defmodule LivebookWeb.HubLiveTest do
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="l3soyvjmvtmwtl6l2drnbfuvltipprge">Foo Bar</option>)
+               ~s(<option value="#{app["organization"]["id"]}">Foo Bar</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
-      assert view
+      refute view
              |> element("#fly-form")
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "application" => "my-foo-application",
+                 "organization" => app["organization"]["id"],
                  "name" => "My Foo Hub",
                  "hex_color" => "#FF00FF"
                }
-             })
+             }) =~ "Hub already exists"
 
       # and checks the new hub on sidebar
-      {:ok, _view, html} = live(conn, "/hub")
+      assert view
+             |> element("#hubs")
+             |> render() =~ ~s/style="color: #FF00FF"/
 
-      assert html
-             |> Floki.parse_document!()
-             |> Floki.find("#sidebar--hub")
-             |> Floki.find(".ri-checkbox-blank-circle-fill")
-             |> Floki.attribute("style") == ["color: #FF00FF"]
+      assert view
+             |> element("#hubs")
+             |> render() =~ "/hub/" <> app["organization"]["id"]
 
-      assert html
-             |> Floki.parse_document!()
-             |> Floki.find("#sidebar--hub")
-             |> Floki.find(".text-sm.font-medium")
-             |> Floki.text() =~ "My Foo Hub"
+      assert view
+             |> element("#hubs")
+             |> render() =~ "My Foo Hub"
 
       clean_hubs()
     end
@@ -139,26 +136,24 @@ defmodule LivebookWeb.HubLiveTest do
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "application" => hub.id,
+                 "organization" => hub.id,
                  "name" => "My Foo Hub",
                  "hex_color" => "#FF00FF"
                }
              })
 
       # and checks the new hub on sidebar
-      {:ok, _view, html} = live(conn, "/hub")
+      assert view
+             |> element("#hubs")
+             |> render() =~ ~s/style="color: #FF00FF"/
 
-      assert html
-             |> Floki.parse_document!()
-             |> Floki.find("#sidebar--hub")
-             |> Floki.find(".ri-checkbox-blank-circle-fill")
-             |> Floki.attribute("style") == ["color: #FF00FF"]
+      assert view
+             |> element("#hubs")
+             |> render() =~ "/hub/" <> hub.id
 
-      assert html
-             |> Floki.parse_document!()
-             |> Floki.find("#sidebar--hub")
-             |> Floki.find(".text-sm.font-medium")
-             |> Floki.text() =~ "My Foo Hub"
+      assert view
+             |> element("#hubs")
+             |> render() =~ "My Foo Hub"
 
       refute hub == Settings.hub_by_id!(hub.id)
 
@@ -175,7 +170,7 @@ defmodule LivebookWeb.HubLiveTest do
         name: "Foo",
         label: "Foo Bar",
         token: "dummy token",
-        color: "#FF00FF"
+        color: "#0000FF"
       }
 
       Settings.save_hub(hub)
@@ -219,7 +214,7 @@ defmodule LivebookWeb.HubLiveTest do
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="l3soyvjmvtmwtl6l2drnbfuvltipprge">Foo Bar</option>)
+               ~s(<option value="#{app["organization"]["id"]}">Foo Bar</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -228,26 +223,24 @@ defmodule LivebookWeb.HubLiveTest do
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "application" => "my-foo-application",
+                 "organization" => app["organization"]["id"],
                  "name" => "My Foo Hub",
                  "hex_color" => "#FF00FF"
                }
              }) =~ "Hub already exists"
 
-      # and checks the new hub on sidebar
-      {:ok, _view, html} = live(conn, "/hub")
+      # and checks the hub didn't change on sidebar
+      assert view
+             |> element("#hubs")
+             |> render() =~ ~s/style="color: #{hub.color}"/
 
-      assert html
-             |> Floki.parse_document!()
-             |> Floki.find("#sidebar--hub")
-             |> Floki.find(".ri-checkbox-blank-circle-fill")
-             |> Floki.attribute("style") == ["color: " <> hub.color]
+      assert view
+             |> element("#hubs")
+             |> render() =~ "/hub/" <> hub.id
 
-      assert html
-             |> Floki.parse_document!()
-             |> Floki.find("#sidebar--hub")
-             |> Floki.find(".text-sm.font-medium")
-             |> Floki.text() =~ hub.name
+      assert view
+             |> element("#hubs")
+             |> render() =~ hub.name
 
       clean_hubs()
     end

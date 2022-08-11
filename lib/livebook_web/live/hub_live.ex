@@ -3,9 +3,9 @@ defmodule LivebookWeb.HubLive do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.Hub
-  alias Livebook.Hub.Fly
-  alias Livebook.Hub.Settings
+  alias Livebook.Hubs
+  alias Livebook.Hubs.Fly
+  alias Livebook.Hubs.Settings
   alias Livebook.Users.User
   alias LivebookWeb.{PageHelpers, SidebarHelpers}
   alias Phoenix.LiveView.JS
@@ -106,10 +106,10 @@ defmodule LivebookWeb.HubLive do
       class={"flex card-item flex-col " <> card_item_bg_color(@id, @selected)}
       phx-click={JS.push("select_hub_service", value: %{value: @id})}
     >
-      <div class="flex items-center justify-center card-item--logo p-6 border-2 rounded-t-2xl h-[150px]">
+      <div class="flex items-center justify-center card-item-logo p-6 border-2 rounded-t-2xl h-[150px]">
         <%= render_slot(@logo) %>
       </div>
-      <div class="card-item--body px-6 py-4 rounded-b-2xl grow">
+      <div class="card-item-body px-6 py-4 rounded-b-2xl grow">
         <p class="text-gray-800 font-semibold cursor-pointer mt-2 text-sm text-gray-600">
           <%= @title %>
         </p>
@@ -244,7 +244,7 @@ defmodule LivebookWeb.HubLive do
   end
 
   def handle_event("fetch_hubs", %{"fly" => %{"token" => token}}, socket) do
-    case Hub.fetch_hubs(%Fly{token: token}) do
+    case Hubs.fetch_hubs(%Fly{token: token}) do
       {:ok, hubs} ->
         data = %{"token" => token, "hex_color" => User.random_hex_color()}
         opts = select_hub_options(hubs)
@@ -306,7 +306,7 @@ defmodule LivebookWeb.HubLive do
         token: params["token"]
     })
 
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "users:#{user.id}", :update_hub)
+    :ok = Settings.broadcast_hubs_change(user.id)
 
     assign(socket, data: params, hub_options: opts)
   end

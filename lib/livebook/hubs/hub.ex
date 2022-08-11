@@ -1,4 +1,4 @@
-defprotocol Livebook.Hub do
+defmodule Livebook.Hubs.Hub do
   @moduledoc false
   defstruct [:id, :type, :name, :label, :color, :token]
 
@@ -10,10 +10,4 @@ defprotocol Livebook.Hub do
           color: String.t(),
           token: String.t()
         }
-
-  @doc """
-  Gets a list of hubs.
-  """
-  @spec fetch_hubs(any()) :: {:ok, list(t())} | {:error, any()}
-  def fetch_hubs(hub)
 end

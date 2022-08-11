@@ -1,8 +1,8 @@
-defmodule Livebook.Hub.Settings do
+defmodule Livebook.Hubs.Settings do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hub
+  alias Livebook.Hubs.Hub
 
   defmodule NotFoundError do
     @moduledoc false
@@ -61,5 +61,36 @@ defmodule Livebook.Hub.Settings do
     :ok = Storage.current().insert(@namespace, hub.id, attributes)
 
     hub
+  end
+
+  @doc """
+  Subscribes to updates in hubs information.
+
+  ## Messages
+
+    * `{:hubs_changed, hubs}`
+
+  """
+  @spec subscribe(Livebook.Users.User.id()) :: :ok | {:error, term()}
+  def subscribe(user_id) do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs:#{user_id}")
+  end
+
+  @doc """
+  Unsubscribes from `subscribe/1`.
+  """
+  @spec unsubscribe(Livebook.Users.User.id()) :: :ok
+  def unsubscribe(user_id) do
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{user_id}")
+  end
+
+  @doc """
+  Notifies interested processes about hubs data change.
+
+  Broadcasts `{:hubs_changed, hubs}` message under the `"hubs:{id}"` topic.
+  """
+  @spec broadcast_hubs_change(Livebook.Users.User.id()) :: :ok
+  def broadcast_hubs_change(user_id) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs:#{user_id}", {:hubs_changed, fetch_hubs()})
   end
 end
