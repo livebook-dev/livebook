@@ -566,8 +566,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
         {:ok, pid} =
           Task.Supervisor.start_child(state.task_supervisor, fn ->
             binding = []
-            # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
-            env = :elixir.env_for_eval([])
+            env = Code.env_for_eval([])
             scan_and_ack.(binding, env)
           end)
 

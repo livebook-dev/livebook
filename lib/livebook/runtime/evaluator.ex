@@ -182,8 +182,7 @@ defmodule Livebook.Runtime.Evaluator do
   """
   @spec intellisense_context() :: Livebook.Intellisense.intellisense_context()
   def intellisense_context() do
-    # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
-    env = :elixir.env_for_eval([])
+    env = Code.env_for_eval([])
     map_binding = fn fun -> fun.([]) end
     %{env: env, map_binding: map_binding}
   end
@@ -304,8 +303,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp initial_context() do
-    # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
-    env = :elixir.env_for_eval([])
+    env = Code.env_for_eval([])
     %{binding: [], env: env, id: random_id()}
   end
 
@@ -429,11 +427,7 @@ defmodule Livebook.Runtime.Evaluator do
   defp eval(code, binding, env) do
     try do
       quoted = Code.string_to_quoted!(code, file: env.file)
-      # TODO: Use Code.eval_quoted_with_env/3 on Elixir v1.14
-      {value, binding, env} = :elixir.eval_quoted(quoted, binding, env)
-      # TODO: Remove this line on Elixir v1.14 as binding propagates to env correctly
-      {_, binding, env} = :elixir.eval_forms(:ok, binding, env)
-
+      {value, binding, env} = Code.eval_quoted_with_env(quoted, binding, env)
       {:ok, value, binding, env}
     catch
       kind, error ->

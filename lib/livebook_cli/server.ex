@@ -290,7 +290,7 @@ defmodule LivebookCLI.Server do
   defp update_query(url, params) do
     url
     |> URI.parse()
-    |> Livebook.Utils.append_query(URI.encode_query(params))
+    |> URI.append_query(URI.encode_query(params))
     |> URI.to_string()
   end
 
