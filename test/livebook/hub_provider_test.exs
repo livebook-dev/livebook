@@ -1,11 +1,11 @@
-defmodule Livebook.HubsTest do
+defmodule Livebook.HubProviderTest do
   use ExUnit.Case
 
-  alias Livebook.Hubs
-  alias Livebook.Hubs.Hub
+  alias Livebook.HubProvider
+  alias Livebook.HubProvider.Hub
 
   describe "Fly fetch_hubs/1" do
-    alias Livebook.Hubs.Fly
+    alias Livebook.HubProvider.Fly
 
     setup do
       bypass = Bypass.open()
@@ -32,7 +32,7 @@ defmodule Livebook.HubsTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert {:ok, []} = Hubs.fetch_hubs(%Fly{token: "some valid token"})
+      assert {:ok, []} = HubProvider.fetch_hubs(%Fly{token: "some valid token"})
     end
 
     test "fetches a list of hubs", %{bypass: bypass} do
@@ -63,7 +63,7 @@ defmodule Livebook.HubsTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert {:ok, [hub]} = Hubs.fetch_hubs(%Fly{token: "some valid token"})
+      assert {:ok, [hub]} = HubProvider.fetch_hubs(%Fly{token: "some valid token"})
 
       assert hub == %Hub{
                id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",

@@ -3,9 +3,8 @@ defmodule LivebookWeb.HubLive do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.Hubs
-  alias Livebook.Hubs.Fly
-  alias Livebook.Hubs.Settings
+  alias Livebook.HubProvider
+  alias Livebook.HubProvider.{Fly, Settings}
   alias Livebook.Users.User
   alias LivebookWeb.{PageHelpers, SidebarHelpers}
   alias Phoenix.LiveView.JS
@@ -244,7 +243,7 @@ defmodule LivebookWeb.HubLive do
   end
 
   def handle_event("fetch_hubs", %{"fly" => %{"token" => token}}, socket) do
-    case Hubs.fetch_hubs(%Fly{token: token}) do
+    case HubProvider.fetch_hubs(%Fly{token: token}) do
       {:ok, hubs} ->
         data = %{"token" => token, "hex_color" => User.random_hex_color()}
         opts = select_hub_options(hubs)

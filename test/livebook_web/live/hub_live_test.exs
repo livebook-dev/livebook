@@ -3,7 +3,7 @@ defmodule LivebookWeb.HubLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.Hubs.{Hub, Settings}
+  alias Livebook.HubProvider.{Hub, Settings}
 
   test "render hub selection cards", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/hub")

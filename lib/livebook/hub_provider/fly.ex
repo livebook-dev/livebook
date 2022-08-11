@@ -1,4 +1,4 @@
-defmodule Livebook.Hubs.Fly do
+defmodule Livebook.HubProvider.Fly do
   @moduledoc false
 
   defstruct [:id, :name, :deployed, :hostname, :organization, :image_details, :state, :token]
@@ -96,13 +96,13 @@ defmodule Livebook.Hubs.Fly do
   end
 end
 
-defimpl Livebook.Hubs, for: Livebook.Hubs.Fly do
-  def fetch_hubs(%@for{token: token}) do
-    case @for.fetch_applications(token) do
+defimpl Livebook.HubProvider, for: Livebook.HubProvider.Fly do
+  def fetch_hubs(%Livebook.HubProvider.Fly{token: token}) do
+    case Livebook.HubProvider.Fly.fetch_applications(token) do
       {:ok, applications} ->
         hubs =
           for fly <- applications do
-            %@protocol.Hub{
+            %Livebook.HubProvider.Hub{
               id: fly.organization.id,
               type: "fly",
               label: fly.organization.name,

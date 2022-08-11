@@ -1,8 +1,8 @@
-defmodule Livebook.Hubs.Settings do
+defmodule Livebook.HubProvider.Settings do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.Hub
+  alias Livebook.HubProvider.Hub
 
   defmodule NotFoundError do
     @moduledoc false

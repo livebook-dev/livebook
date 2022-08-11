@@ -1,4 +1,4 @@
-defmodule Livebook.Hubs.Hub do
+defmodule Livebook.HubProvider.Hub do
   @moduledoc false
   defstruct [:id, :type, :name, :label, :color, :token]
 

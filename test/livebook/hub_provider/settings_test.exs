@@ -1,7 +1,7 @@
-defmodule Livebook.Hubs.SettingsTest do
+defmodule Livebook.HubProvider.SettingsTest do
   use ExUnit.Case
 
-  alias Livebook.Hubs.{Hub, Settings}
+  alias Livebook.HubProvider.{Hub, Settings}
 
   @hub_id Livebook.Utils.random_id()
 
@@ -28,7 +28,7 @@ defmodule Livebook.Hubs.SettingsTest do
   test "hub_by_id!/1 returns one persisted hub" do
     clean_hubs()
 
-    assert_raise Livebook.Hubs.Settings.NotFoundError,
+    assert_raise Settings.NotFoundError,
                  ~s/could not find a hub matching "#{@hub_id}"/,
                  fn ->
                    Settings.hub_by_id!(@hub_id)

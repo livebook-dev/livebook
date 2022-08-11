@@ -1,7 +1,7 @@
-defmodule Livebook.Hubs.FlyTest do
+defmodule Livebook.HubProvider.FlyTest do
   use ExUnit.Case
 
-  alias Livebook.Hubs.Fly
+  alias Livebook.HubProvider.Fly
 
   setup do
     bypass = Bypass.open()
