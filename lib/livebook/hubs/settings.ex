@@ -71,26 +71,26 @@ defmodule Livebook.Hubs.Settings do
     * `{:hubs_changed, hubs}`
 
   """
-  @spec subscribe(Livebook.Users.User.id()) :: :ok | {:error, term()}
-  def subscribe(user_id) do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs:#{user_id}")
+  @spec subscribe() :: :ok | {:error, term()}
+  def subscribe do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "hubs")
   end
 
   @doc """
-  Unsubscribes from `subscribe/1`.
+  Unsubscribes from `subscribe/0`.
   """
-  @spec unsubscribe(Livebook.Users.User.id()) :: :ok
-  def unsubscribe(user_id) do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs:#{user_id}")
+  @spec unsubscribe() :: :ok
+  def unsubscribe do
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "hubs")
   end
 
   @doc """
   Notifies interested processes about hubs data change.
 
-  Broadcasts `{:hubs_changed, hubs}` message under the `"hubs:{id}"` topic.
+  Broadcasts `{:hubs_changed, hubs}` message under the `"hubs"` topic.
   """
-  @spec broadcast_hubs_change(Livebook.Users.User.id()) :: :ok
-  def broadcast_hubs_change(user_id) do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs:#{user_id}", {:hubs_changed, fetch_hubs()})
+  @spec broadcast_hubs_change() :: :ok
+  def broadcast_hubs_change do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_changed, fetch_hubs()})
   end
 end

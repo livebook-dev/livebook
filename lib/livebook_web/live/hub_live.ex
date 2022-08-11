@@ -296,7 +296,6 @@ defmodule LivebookWeb.HubLive do
   end
 
   defp save_fly_hub(socket, params, selected_hub) do
-    user = socket.assigns.current_user
     opts = select_hub_options(socket.assigns.hubs, params["organization"])
 
     Settings.save_hub(%{
@@ -306,7 +305,7 @@ defmodule LivebookWeb.HubLive do
         token: params["token"]
     })
 
-    :ok = Settings.broadcast_hubs_change(user.id)
+    :ok = Settings.broadcast_hubs_change()
 
     assign(socket, data: params, hub_options: opts)
   end

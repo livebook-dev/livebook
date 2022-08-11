@@ -1,9 +1,9 @@
 defmodule LivebookWeb.HubHook do
   import Phoenix.LiveView
 
-  def on_mount(:default, _params, %{"current_user_id" => current_user_id}, socket) do
+  def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
-      Livebook.Hubs.Settings.subscribe(current_user_id)
+      Livebook.Hubs.Settings.subscribe()
     end
 
     socket =
