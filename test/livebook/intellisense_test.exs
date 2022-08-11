@@ -9,11 +9,8 @@ defmodule Livebook.IntellisenseTest do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
-      # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
-      env = :elixir.env_for_eval([])
-      {_, binding, env} = :elixir.eval_quoted(block, binding, env)
-      # TODO: Remove this line on Elixir v1.14 as binding propagates to env correctly
-      {_, binding, env} = :elixir.eval_forms(:ok, binding, env)
+      env = Code.env_for_eval([])
+      {value, binding, env} = Code.eval_quoted_with_env(block, binding, env)
 
       %{
         env: env,
@@ -162,7 +159,7 @@ defmodule Livebook.IntellisenseTest do
                  label: "Enum",
                  kind: :module,
                  detail: "module",
-                 documentation: "Provides a set of algorithms to work with enumerables.",
+                 documentation: "Functions for working with collections (known as enumerables).",
                  insert_text: "Enum"
                },
                %{

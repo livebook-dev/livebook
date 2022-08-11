@@ -4,7 +4,10 @@ on:
     branches:
       - main
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
+env:
+  otp: "25.0"
+  elixir: "1.14.0-rc.0"
 jobs:
   assets:
     outputs:
@@ -15,24 +18,24 @@ jobs:
       - name: Install Erlang & Elixir
         uses: erlef/setup-beam@v1
         with:
-          otp-version: '24.0'
-          elixir-version: '1.13.4'
+          otp-version: ${{ env.otp }}
+          elixir-version: ${{ env.elixir }}
       - name: Cache Mix
         uses: actions/cache@v2
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-
+            ${{ runner.os }}-mix-${{ env.elixir }}-${{ env.otp }}-
       # Note: we need to get Phoenix and LV because package.json points to them directly
       - name: Install mix dependencies
         run: mix deps.get
       - name: Install Node
         uses: actions/setup-node@v2
         with:
-          node-version: '14.x'
+          node-version: "14.x"
       - name: Cache npm dependencies
         uses: actions/cache@v2
         with:
@@ -59,8 +62,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-        # The output is set only if there was a commit, otherwise
-        # we pass an empty ref and and the default is used
+          # The output is set only if there was a commit, otherwise
+          # we pass an empty ref and and the default is used
           ref: ${{ needs.assets.outputs.sha }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
