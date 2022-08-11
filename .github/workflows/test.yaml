@@ -55,7 +55,7 @@ jobs:
         run: npm test --prefix assets
   windows:
     runs-on: windows-latest
-    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     env:
       MIX_ENV: test
     steps:
@@ -93,7 +93,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v2
       - name: Cache Mix Deps
