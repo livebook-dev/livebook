@@ -781,16 +781,9 @@ defmodule Livebook.SessionTest do
     end
   end
 
-  test "session has created_at attribute when it is created", %{session: session} do
-    assert Map.has_key?(session, :created_at)
-  end
-
-  test "session created_at attribute is a date time", %{session: session} do
+  test "session has the creation timestamp", %{session: session} do
     assert %DateTime{} = session.created_at
-  end
-
-  test "session created_at is before now", %{session: session} do
-    assert DateTime.compare(session.created_at, DateTime.utc_now()) == :lt
+    assert DateTime.compare(session.created_at, DateTime.utc_now()) in [:lt, :eq]
   end
 
   @tag :tmp_dir
