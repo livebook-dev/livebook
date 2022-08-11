@@ -111,6 +111,10 @@ const Session = {
       this.toggleClientsList()
     );
 
+    this.getElement("secrets-list-toggle").addEventListener("click", (event) =>
+      this.toggleSecretsList()
+    );
+
     this.getElement("runtime-info-toggle").addEventListener("click", (event) =>
       this.toggleRuntimeInfo()
     );
@@ -680,6 +684,10 @@ const Session = {
 
   toggleClientsList() {
     this.toggleSidePanelContent("clients-list");
+  },
+
+  toggleSecretsList() {
+    this.toggleSidePanelContent("secrets-list");
   },
 
   toggleRuntimeInfo() {
