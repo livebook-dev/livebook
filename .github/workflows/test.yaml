@@ -15,7 +15,7 @@ jobs:
         uses: erlef/setup-beam@v1
         with:
           otp-version: '24.0'
-          elixir-version: '1.13.4'
+          elixir-version: '1.14.0-rc.0'
       - name: Cache Mix
         uses: actions/cache@v2
         with:
@@ -64,7 +64,7 @@ jobs:
         with:
           version-type: strict
           otp-version: '24.2'
-          elixir-version: '1.13.4'
+          elixir-version: '1.14.0-rc.0'
       - name: Start epmd
         run: cmd /c "START /b epmd"
         working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-12.2/bin
