@@ -31,6 +31,7 @@ jobs:
       - name: Install mix dependencies
         run: mix deps.get
       - name: Check formatting
+        # TODO: remove deps.compile on Elixir > 1.14.0-rc.0
         run: mix do deps.compile, format --check-formatted
       - name: Check warnings
         run: mix compile --warnings-as-errors
