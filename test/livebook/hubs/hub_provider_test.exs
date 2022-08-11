@@ -1,11 +1,11 @@
-defmodule Livebook.HubProviderTest do
+defmodule Livebook.Hubs.HubProviderTest do
   use ExUnit.Case
 
-  alias Livebook.HubProvider
-  alias Livebook.HubProvider.Hub
+  alias Livebook.Hubs.HubProvider
+  alias Livebook.Hubs.Hub
 
   describe "Fly fetch_hubs/1" do
-    alias Livebook.HubProvider.Fly
+    alias Livebook.Hubs.Fly
 
     setup do
       bypass = Bypass.open()
@@ -24,7 +24,7 @@ defmodule Livebook.HubProviderTest do
     end
 
     test "fetches an empty list of hubs", %{bypass: bypass} do
-      response = %{"data" => %{"apps" => %{"nodes" => []}}}
+      response = %{"data" => %{"organizations" => %{"nodes" => []}}}
 
       Bypass.expect_once(bypass, "POST", "/", fn conn ->
         conn
@@ -36,26 +36,14 @@ defmodule Livebook.HubProviderTest do
     end
 
     test "fetches a list of hubs", %{bypass: bypass} do
-      app = %{
-        "id" => "my-foo-application",
-        "name" => "my-foo-application",
-        "deployed" => true,
-        "hostname" => "https://my-foo-application.fly.dev",
-        "organization" => %{
-          "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-          "slug" => "personal",
-          "name" => "Foo Bar",
-          "type" => "PERSONAL"
-        },
-        "latestImageDetails" => %{
-          "registry" => "registry-1.docker.io",
-          "repository" => "livebook/livebook",
-          "tag" => "0.6.3"
-        },
-        "state" => "DEPLOYED"
+      organization = %{
+        "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+        "slug" => "personal",
+        "name" => "Foo Bar",
+        "type" => "PERSONAL"
       }
 
-      response = %{"data" => %{"apps" => %{"nodes" => [app]}}}
+      response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
 
       Bypass.expect_once(bypass, "POST", "/", fn conn ->
         conn

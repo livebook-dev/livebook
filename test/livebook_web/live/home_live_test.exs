@@ -247,14 +247,14 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "render persisted hubs", %{conn: conn} do
-      hub = %Livebook.HubProvider.Hub{
+      hub = %Livebook.Hubs.Hub{
         id: "foo",
         name: "Foo",
         token: "foo",
         color: "#FF00FF"
       }
 
-      assert Livebook.HubProvider.Settings.save_hub(hub)
+      assert Livebook.Hubs.save_hub(hub)
 
       {:ok, _view, html} = live(conn, "/")
       assert html =~ "HUBS"

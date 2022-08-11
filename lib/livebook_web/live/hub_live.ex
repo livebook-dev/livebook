@@ -3,8 +3,8 @@ defmodule LivebookWeb.HubLive do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.HubProvider
-  alias Livebook.HubProvider.{Fly, Settings}
+  alias Livebook.Hubs
+  alias Livebook.Hubs.{HubProvider, Fly}
   alias Livebook.Users.User
   alias LivebookWeb.{PageHelpers, SidebarHelpers}
   alias Phoenix.LiveView.JS
@@ -207,7 +207,7 @@ defmodule LivebookWeb.HubLive do
 
   @impl true
   def handle_params(%{"id" => id}, _url, socket) do
-    hub = Settings.hub_by_id!(id)
+    hub = Hubs.hub_by_id!(id)
     hubs = [hub]
 
     data =
@@ -267,7 +267,7 @@ defmodule LivebookWeb.HubLive do
          |> put_flash(:error, "Internal Server Error")}
 
       selected_hub ->
-        case {socket.assigns.operation, Settings.hub_exists?(selected_hub)} do
+        case {socket.assigns.operation, Hubs.hub_exists?(selected_hub)} do
           {:new, false} ->
             {:noreply, save_fly_hub(socket, params, selected_hub)}
 
@@ -297,14 +297,14 @@ defmodule LivebookWeb.HubLive do
   defp save_fly_hub(socket, params, selected_hub) do
     opts = select_hub_options(socket.assigns.hubs, params["organization"])
 
-    Settings.save_hub(%{
+    Hubs.save_hub(%{
       selected_hub
       | name: params["name"],
         color: params["hex_color"],
         token: params["token"]
     })
 
-    :ok = Settings.broadcast_hubs_change()
+    :ok = Hubs.broadcast_hubs_change()
 
     assign(socket, data: params, hub_options: opts)
   end

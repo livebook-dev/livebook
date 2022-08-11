@@ -3,7 +3,18 @@ defmodule LivebookWeb.HubLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.HubProvider.{Hub, Settings}
+  alias Livebook.Hubs
+  alias Livebook.Hubs.Hub
+
+  setup do
+    on_exit(fn ->
+      for %{id: hub_id} <- Hubs.fetch_hubs() do
+        Livebook.Storage.current().delete(:hub, hub_id)
+      end
+    end)
+
+    :ok
+  end
 
   test "render hub selection cards", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/hub")
@@ -31,14 +42,12 @@ defmodule LivebookWeb.HubLiveTest do
         color: "#FF00FF"
       }
 
-      Settings.save_hub(hub)
+      Hubs.save_hub(hub)
 
       {:ok, _view, html} = live(conn, "/hub/" <> hub.id)
 
       assert html =~ hub.name
       assert html =~ hub.color
-
-      clean_hubs()
     end
 
     test "persists hub", %{conn: conn} do
@@ -47,26 +56,14 @@ defmodule LivebookWeb.HubLiveTest do
 
       {:ok, view, _html} = live(conn, "/hub")
 
-      app = %{
-        "id" => "my-foo-application",
-        "name" => "my-foo-application",
-        "deployed" => true,
-        "hostname" => "https://my-foo-application.fly.dev",
-        "organization" => %{
-          "id" => "123456789",
-          "slug" => "personal",
-          "name" => "Foo Bar",
-          "type" => "PERSONAL"
-        },
-        "latestImageDetails" => %{
-          "registry" => "registry-1.docker.io",
-          "repository" => "livebook/livebook",
-          "tag" => "0.6.3"
-        },
-        "state" => "DEPLOYED"
+      organization = %{
+        "id" => "123456789",
+        "slug" => "personal",
+        "name" => "Foo Bar",
+        "type" => "PERSONAL"
       }
 
-      response = %{"data" => %{"apps" => %{"nodes" => [app]}}}
+      response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
 
       Bypass.expect_once(bypass, "POST", "/", fn conn ->
         conn
@@ -84,7 +81,7 @@ defmodule LivebookWeb.HubLiveTest do
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="#{app["organization"]["id"]}">Foo Bar</option>)
+               ~s(<option value="#{organization["id"]}">Foo Bar</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -93,7 +90,7 @@ defmodule LivebookWeb.HubLiveTest do
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "organization" => app["organization"]["id"],
+                 "organization" => organization["id"],
                  "name" => "My Foo Hub",
                  "hex_color" => "#FF00FF"
                }
@@ -106,13 +103,11 @@ defmodule LivebookWeb.HubLiveTest do
 
       assert view
              |> element("#hubs")
-             |> render() =~ "/hub/" <> app["organization"]["id"]
+             |> render() =~ "/hub/" <> organization["id"]
 
       assert view
              |> element("#hubs")
              |> render() =~ "My Foo Hub"
-
-      clean_hubs()
     end
 
     test "updates hub", %{conn: conn} do
@@ -125,7 +120,7 @@ defmodule LivebookWeb.HubLiveTest do
         color: "#FF00FF"
       }
 
-      Settings.save_hub(hub)
+      Hubs.save_hub(hub)
 
       {:ok, view, _html} = live(conn, "/hub/" <> hub.id)
 
@@ -155,9 +150,7 @@ defmodule LivebookWeb.HubLiveTest do
              |> element("#hubs")
              |> render() =~ "My Foo Hub"
 
-      refute hub == Settings.hub_by_id!(hub.id)
-
-      clean_hubs()
+      refute hub == Hubs.hub_by_id!(hub.id)
     end
 
     test "fails to create existing hub", %{conn: conn} do
@@ -173,30 +166,18 @@ defmodule LivebookWeb.HubLiveTest do
         color: "#0000FF"
       }
 
-      Settings.save_hub(hub)
+      Hubs.save_hub(hub)
 
       {:ok, view, _html} = live(conn, "/hub")
 
-      app = %{
-        "id" => hub.id,
-        "name" => hub.id,
-        "deployed" => true,
-        "hostname" => "https://my-foo-application.fly.dev",
-        "organization" => %{
-          "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-          "slug" => "personal",
-          "name" => "Foo Bar",
-          "type" => "PERSONAL"
-        },
-        "latestImageDetails" => %{
-          "registry" => "registry-1.docker.io",
-          "repository" => "livebook/livebook",
-          "tag" => "0.6.3"
-        },
-        "state" => "DEPLOYED"
+      organization = %{
+        "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+        "slug" => "personal",
+        "name" => "Foo Bar",
+        "type" => "PERSONAL"
       }
 
-      response = %{"data" => %{"apps" => %{"nodes" => [app]}}}
+      response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
 
       Bypass.expect_once(bypass, "POST", "/", fn conn ->
         conn
@@ -214,7 +195,7 @@ defmodule LivebookWeb.HubLiveTest do
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="#{app["organization"]["id"]}">Foo Bar</option>)
+               ~s(<option value="#{organization["id"]}">Foo Bar</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -223,7 +204,7 @@ defmodule LivebookWeb.HubLiveTest do
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "organization" => app["organization"]["id"],
+                 "organization" => organization["id"],
                  "name" => "My Foo Hub",
                  "hex_color" => "#FF00FF"
                }
@@ -241,14 +222,6 @@ defmodule LivebookWeb.HubLiveTest do
       assert view
              |> element("#hubs")
              |> render() =~ hub.name
-
-      clean_hubs()
-    end
-  end
-
-  defp clean_hubs do
-    for %{id: hub_id} <- Settings.fetch_hubs() do
-      Livebook.Storage.current().delete(:hub, hub_id)
     end
   end
 end

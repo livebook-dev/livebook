@@ -3,12 +3,12 @@ defmodule LivebookWeb.HubHook do
 
   def on_mount(:default, _params, _session, socket) do
     if connected?(socket) do
-      Livebook.HubProvider.Settings.subscribe()
+      Livebook.Hubs.subscribe()
     end
 
     socket =
       socket
-      |> assign(saved_hubs: Livebook.HubProvider.Settings.fetch_hubs())
+      |> assign(saved_hubs: Livebook.Hubs.fetch_hubs())
       |> attach_hook(:hubs_subscription, :handle_info, &handle_info/2)
 
     {:cont, socket}
