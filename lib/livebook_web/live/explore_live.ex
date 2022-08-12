@@ -138,7 +138,7 @@ defmodule LivebookWeb.ExploreLive do
       <div class="mt-4">
         <ul>
           <%= for {notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1) do %>
-            <li class="py-4 flex sm:flex-row flex-col items-center space-x-5 border-b border-gray-200 last:border-b-0">
+            <li class="py-4 flex sm:flex-row flex-col sm:items-center items-start sm:space-x-5 border-b border-gray-200 last:border-b-0">
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
@@ -146,7 +146,7 @@ defmodule LivebookWeb.ExploreLive do
                 <%= notebook_info.title %>
               </div>
               <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),
-                    class: "button-base button-outlined-gray mt-2.5 sm:mt-0" do %>
+                    class: "button-base button-outlined-gray mt-3 sm:mt-0" do %>
                 <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open notebook
               <% end %>
             </li>
