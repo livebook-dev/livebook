@@ -66,8 +66,8 @@ defmodule LivebookWeb.ExploreLive do
             </button>
           </div>
         </div>
-        <div class="grow px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-7 mx-auto overflow-y-auto">
-          <div class="max-w-screen-md w-full space-y-8">
+        <div class="grow px-4 sm:px-8 md:px-16 pt-4 sm:py-7 overflow-y-auto">
+          <div class="max-w-screen-md w-full mx-auto space-y-8">
             <div>
               <PageHelpers.title text="Explore" />
               <p class="mt-4 text-gray-700">
