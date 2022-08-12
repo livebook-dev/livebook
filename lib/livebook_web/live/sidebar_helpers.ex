@@ -13,7 +13,7 @@ defmodule LivebookWeb.SidebarHelpers do
   def sidebar(assigns) do
     ~H"""
     <nav
-      class="w-[18.75rem] min-w-[14rem] flex flex-col justify-between py-7 bg-gray-900"
+      class="w-[18.75rem] min-w-[14rem] flex flex-col justify-between py-1 sm:py-7 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >
