@@ -123,7 +123,7 @@ defmodule LivebookWeb.ExploreLive do
     <div>
       <div class="p-8 rounded-2xl border border-gray-300 flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center">
         <img src={@group_info.cover_url} width="100" />
-        <div class="">
+        <div>
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
             <%= length(@group_info.notebook_infos) %> notebooks
           </div>
@@ -138,7 +138,7 @@ defmodule LivebookWeb.ExploreLive do
       <div class="mt-4">
         <ul>
           <%= for {notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1) do %>
-            <li class="py-4 flex sm:flex-row flex-col sm:items-center items-start sm:space-x-5 border-b border-gray-200 last:border-b-0">
+            <li class="py-4 flex flex-col sm:flex-row items-start sm:items-center sm:space-x-5 border-b border-gray-200 last:border-b-0">
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
