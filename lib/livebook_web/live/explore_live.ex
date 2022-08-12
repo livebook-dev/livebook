@@ -30,8 +30,9 @@ defmodule LivebookWeb.ExploreLive do
         current_page={Routes.explore_path(@socket, :page)}
         current_user={@current_user}
       />
-      <div class="grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
+      <div class="grow overflow-y-auto">
+        <SidebarHelpers.toggle socket={@socket} />
+        <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
           <div>
             <PageHelpers.title text="Explore" />
             <p class="mt-4 text-gray-700">
@@ -84,7 +85,7 @@ defmodule LivebookWeb.ExploreLive do
   defp notebook_group(assigns) do
     ~H"""
     <div>
-      <div class="p-8 rounded-2xl border border-gray-300 flex space-x-8 items-center">
+      <div class="p-8 rounded-2xl border border-gray-300 flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center">
         <img src={@group_info.cover_url} width="100" />
         <div>
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">
@@ -101,7 +102,7 @@ defmodule LivebookWeb.ExploreLive do
       <div class="mt-4">
         <ul>
           <%= for {notebook_info, number} <- Enum.with_index(@group_info.notebook_infos, 1) do %>
-            <li class="py-4 flex items-center space-x-5 border-b border-gray-200 last:border-b-0">
+            <li class="py-4 flex flex-col sm:flex-row items-start sm:items-center sm:space-x-5 border-b border-gray-200 last:border-b-0">
               <div class="text-lg text-gray-400 font-semibold">
                 <%= number |> Integer.to_string() |> String.pad_leading(2, "0") %>
               </div>
@@ -109,7 +110,7 @@ defmodule LivebookWeb.ExploreLive do
                 <%= notebook_info.title %>
               </div>
               <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),
-                    class: "button-base button-outlined-gray" do %>
+                    class: "button-base button-outlined-gray mt-3 sm:mt-0" do %>
                 <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open notebook
               <% end %>
             </li>
