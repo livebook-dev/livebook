@@ -8,6 +8,55 @@ defmodule LivebookWeb.SidebarHelpers do
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
+  Renders the mobile toggle for the sidebar.
+  """
+  def toggle(assigns) do
+    assigns = assign_new(assigns, :inner_block, fn -> [] end)
+
+    ~H"""
+    <div class="flex sm:hidden items-center justify-between sticky sm:pt-1 px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
+      <div class="my-2 text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
+        <button
+          aria-label="hide sidebar"
+          data-el-toggle-sidebar
+          phx-click={
+            JS.add_class("hidden sm:flex", to: "[data-el-sidebar]")
+            |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
+          }
+        >
+          <.remix_icon icon="menu-fold-line" />
+        </button>
+        <button
+          class="hidden"
+          aria-label="show sidebar"
+          data-el-toggle-sidebar
+          phx-click={
+            JS.remove_class("hidden sm:flex", to: "[data-el-sidebar]")
+            |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
+          }
+        >
+          <.remix_icon icon="menu-unfold-line" />
+        </button>
+      </div>
+      <div
+        class="hidden items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
+        data-el-toggle-sidebar
+      >
+        <% # TODO: Use render_slot(@inner_block) || default() on LiveView 0.18 %>
+        <%= if @inner_block == [] do %>
+          <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
+            <.remix_icon icon="home-6-line" />
+            <span class="pl-2">Home</span>
+          <% end %>
+        <% else %>
+          <%= render_slot(@inner_block) %>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Renders sidebar container.
   """
   def sidebar(assigns) do

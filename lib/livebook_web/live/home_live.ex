@@ -45,13 +45,18 @@ defmodule LivebookWeb.HomeLive do
         current_user={@current_user}
       />
       <div class="grow overflow-y-auto">
+        <SidebarHelpers.toggle socket={@socket}>
+          <a aria-label="new-notebook" class="flex items-center" phx-click="new">
+            <.remix_icon icon="add-line" />
+            <span class="pl-2">New notebook</span>
+          </a>
+        </SidebarHelpers.toggle>
         <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
         <.memory_notification memory={@memory} app_service_url={@app_service_url} />
-        <div class="max-w-screen-lg w-full mx-auto px-8 pt-8 pb-32 space-y-4">
-          <div class="flex flex-col space-y-2 items-center pb-4
-                      sm:flex-row sm:space-y-0 sm:justify-between">
+        <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-lg mx-auto space-y-4">
+          <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
             <PageHelpers.title text="Home" />
-            <div class="flex space-x-2" role="navigation" aria-label="new notebook">
+            <div class="hidden space-x-2 sm:flex" role="navigation" aria-label="new notebook">
               <%= live_patch("Import",
                 to: Routes.home_path(@socket, :import, "url"),
                 class: "button-base button-outlined-gray whitespace-nowrap"

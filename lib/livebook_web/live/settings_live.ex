@@ -30,8 +30,9 @@ defmodule LivebookWeb.SettingsLive do
         current_page={Routes.settings_path(@socket, :page)}
         current_user={@current_user}
       />
-      <div class="grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-20">
+      <div class="grow overflow-y-auto">
+        <SidebarHelpers.toggle socket={@socket} />
+        <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
           <!-- System settings section -->
           <div class="flex flex-col space-y-10">
             <div>
