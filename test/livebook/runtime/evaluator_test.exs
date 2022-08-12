@@ -142,7 +142,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       expected_stacktrace = [
-        {:elixir_eval, :__FILE__, 1, [file: 'file.ex', line: 1]}
+        {:elixir_eval, :__FILE__, 1, [file: ~c"file.ex", line: 1]}
       ]
 
       assert_receive {:runtime_evaluation_response, :code_1,
@@ -173,9 +173,9 @@ defmodule Livebook.Runtime.EvaluatorTest do
         Evaluator.evaluate_code(evaluator, code, :code_1)
 
         expected_stacktrace = [
-          {Livebook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: 'nofile', line: 3]},
-          {Livebook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: 'nofile', line: 10]},
-          {:elixir_eval, :__FILE__, 1, [file: 'nofile', line: 15]}
+          {Livebook.EvaluatorTest.Stacktrace.Math, :bad_math, 0, [file: ~c"nofile", line: 3]},
+          {Livebook.EvaluatorTest.Stacktrace.Cat, :meow, 0, [file: ~c"nofile", line: 10]},
+          {:elixir_eval, :__FILE__, 1, [file: ~c"nofile", line: 15]}
         ]
 
         # Note: evaluating module definitions is relatively slow, so we use a higher wait timeout.

@@ -115,7 +115,7 @@ defmodule Livebook.Application do
   # See https://github.com/livebook-dev/livebook/issues/302
   defp validate_hostname_resolution!() do
     unless Livebook.Config.longname() do
-      [nodename, hostname] = node() |> Atom.to_charlist() |> :string.split('@')
+      [nodename, hostname] = node() |> Atom.to_charlist() |> :string.split(~c"@")
 
       with {:ok, nodenames} <- :erl_epmd.names(hostname),
            true <- List.keymember?(nodenames, nodename, 0) do
