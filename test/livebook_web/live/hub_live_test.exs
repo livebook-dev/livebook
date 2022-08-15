@@ -7,11 +7,7 @@ defmodule LivebookWeb.HubLiveTest do
   alias Livebook.Hubs.Hub
 
   setup do
-    on_exit(fn ->
-      for %{id: hub_id} <- Hubs.fetch_hubs() do
-        Livebook.Storage.current().delete(:hub, hub_id)
-      end
-    end)
+    on_exit(&Hubs.clean_hubs/0)
 
     :ok
   end
@@ -24,33 +20,7 @@ defmodule LivebookWeb.HubLiveTest do
   end
 
   describe "fly" do
-    test "renders the second step", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/hub")
-
-      assert view
-             |> element("#fly")
-             |> render_click() =~ "Deploy notebooks to your Fly account."
-    end
-
-    test "renders filled form with existing hub", %{conn: conn} do
-      hub = %Hub{
-        id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-        type: "fly",
-        name: "My Foo",
-        label: "Foo Bar",
-        token: "foo",
-        color: "#FF00FF"
-      }
-
-      Hubs.save_hub(hub)
-
-      {:ok, _view, html} = live(conn, "/hub/" <> hub.id)
-
-      assert html =~ hub.name
-      assert html =~ hub.color
-    end
-
-    test "persists hub", %{conn: conn} do
+    test "persists fly", %{conn: conn} do
       bypass = Bypass.open()
       Application.put_env(:livebook, :fly_io_graphql_endpoint, "http://localhost:#{bypass.port}")
 
@@ -110,7 +80,7 @@ defmodule LivebookWeb.HubLiveTest do
              |> render() =~ "My Foo Hub"
     end
 
-    test "updates hub", %{conn: conn} do
+    test "updates fly", %{conn: conn} do
       hub = %Hub{
         id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
         type: "fly",

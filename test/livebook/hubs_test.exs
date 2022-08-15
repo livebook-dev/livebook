@@ -7,11 +7,7 @@ defmodule Livebook.HubsTest do
   @hub_id Livebook.Utils.random_id()
 
   setup do
-    on_exit(fn ->
-      for %{id: hub_id} <- Hubs.fetch_hubs() do
-        Livebook.Storage.current().delete(:hub, hub_id)
-      end
-    end)
+    on_exit(&Hubs.clean_hubs/0)
 
     :ok
   end
@@ -30,7 +26,7 @@ defmodule Livebook.HubsTest do
              }
            ] == Hubs.fetch_hubs()
 
-    Livebook.Storage.current().delete(:hub, @hub_id)
+    Livebook.Hubs.delete_hub(hub())
     assert [] == Hubs.fetch_hubs()
   end
 

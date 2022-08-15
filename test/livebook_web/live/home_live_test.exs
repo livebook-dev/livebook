@@ -248,8 +248,10 @@ defmodule LivebookWeb.HomeLiveTest do
 
     test "render persisted hubs", %{conn: conn} do
       hub = %Livebook.Hubs.Hub{
-        id: "foo",
+        id: "foo-bar-id",
+        type: "fly",
         name: "Foo",
+        label: "Foo",
         token: "foo",
         color: "#FF00FF"
       }
@@ -260,7 +262,7 @@ defmodule LivebookWeb.HomeLiveTest do
       assert html =~ "HUBS"
       assert html =~ "Foo"
 
-      Livebook.Storage.current().delete(:hub, hub.id)
+      Livebook.Hubs.delete_hub(hub)
     end
   end
 

@@ -9,12 +9,12 @@ defmodule LivebookWeb.HubLive do
   alias LivebookWeb.{PageHelpers, SidebarHelpers}
   alias Phoenix.LiveView.JS
 
+  on_mount LivebookWeb.SidebarHook
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     socket
-     |> SidebarHelpers.sidebar_handlers()
-     |> assign(
+     assign(socket,
        selected_hub_service: nil,
        hubs: [],
        hub_options: [],

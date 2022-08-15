@@ -14,7 +14,7 @@ defmodule Livebook.Hubs do
     end
   end
 
-  @namespace :hub
+  @namespace :hubs
 
   @doc """
   Gets a list of hubs from storage.
@@ -61,6 +61,18 @@ defmodule Livebook.Hubs do
     :ok = Storage.current().insert(@namespace, hub.id, attributes)
 
     hub
+  end
+
+  @doc false
+  def delete_hub(hub) do
+    Storage.current().delete(@namespace, hub.id)
+  end
+
+  @doc false
+  def clean_hubs do
+    for hub <- fetch_hubs(), do: delete_hub(hub)
+
+    :ok
   end
 
   @doc """

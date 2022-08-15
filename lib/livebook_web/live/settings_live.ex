@@ -5,12 +5,12 @@ defmodule LivebookWeb.SettingsLive do
 
   alias LivebookWeb.{SidebarHelpers, PageHelpers}
 
+  on_mount LivebookWeb.SidebarHook
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     socket
-     |> SidebarHelpers.sidebar_handlers()
-     |> assign(
+     assign(socket,
        file_systems: Livebook.Settings.file_systems(),
        autosave_path_state: %{
          file: autosave_dir(),
