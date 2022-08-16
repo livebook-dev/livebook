@@ -1,6 +1,26 @@
 defmodule Livebook.Hubs.Fly do
   @moduledoc false
-  defstruct [:token]
+  defstruct [:id, :token, :name, :color, :organization]
+
+  defmodule Organization do
+    @moduledoc false
+    defstruct [:id, :slug, :name, :type]
+
+    @type t :: %__MODULE__{
+            id: String.t(),
+            slug: String.t(),
+            name: String.t(),
+            type: String.t()
+          }
+  end
+
+  @type t :: %__MODULE__{
+          id: Livebook.Utils.id(),
+          token: String.t(),
+          name: String.t(),
+          color: Livebook.Users.User.hex_color(),
+          organization: Organization.t()
+        }
 
   alias Livebook.Utils.HTTP
 
@@ -23,7 +43,17 @@ defmodule Livebook.Hubs.Fly do
     body = {"application/json", Jason.encode!(%{query: query})}
 
     with {:ok, body} <- request(headers, body) do
-      {:ok, body["organizations"]["nodes"]}
+      organizations =
+        for node <- body["organizations"]["nodes"] do
+          %Organization{
+            id: node["id"],
+            slug: node["slug"],
+            name: node["name"],
+            type: node["type"]
+          }
+        end
+
+      {:ok, organizations}
     end
   end
 
@@ -56,23 +86,13 @@ defmodule Livebook.Hubs.Fly do
 end
 
 defimpl Livebook.Hubs.HubProvider, for: Livebook.Hubs.Fly do
-  def fetch_hubs(%Livebook.Hubs.Fly{token: token}) do
-    case Livebook.Hubs.Fly.fetch_organizations(token) do
-      {:ok, organizations} ->
-        hubs =
-          for organization <- organizations do
-            %Livebook.Hubs.Hub{
-              id: organization["id"],
-              type: "fly",
-              label: organization["name"],
-              token: token
-            }
-          end
-
-        {:ok, hubs}
-
-      {:error, _} = error ->
-        error
-    end
+  def to_hub(%Livebook.Hubs.Fly{} = fly) do
+    %Livebook.Hubs.Hub{
+      id: fly.id,
+      type: "fly",
+      name: fly.name,
+      provider: fly.organization,
+      color: fly.color
+    }
   end
 end

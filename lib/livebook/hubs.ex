@@ -2,15 +2,19 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.Hub
+  alias Livebook.Hubs.{Fly, Hub, Provider}
 
   defmodule NotFoundError do
     @moduledoc false
 
     defexception [:id, plug_status: 404]
 
-    def message(%{id: id}) do
-      "could not find a hub matching #{inspect(id)}"
+    def message(%{id: id, type: "fly"}) do
+      "could not find a fly entry matching #{inspect(id)}"
+    end
+
+    def message(%{id: "fly-" <> id}) do
+      message(%{id: id, type: "fly"})
     end
   end
 
@@ -21,7 +25,11 @@ defmodule Livebook.Hubs do
   """
   @spec fetch_hubs() :: list(Hub.t())
   def fetch_hubs do
-    Storage.current().all(@namespace)
+    for fields <- Storage.current().all(@namespace) do
+      fields
+      |> to_struct()
+      |> Provider.to_hub()
+    end
   end
 
   @doc """
@@ -29,20 +37,35 @@ defmodule Livebook.Hubs do
 
   Raises `NotFoundError` if the hub does not exist.
   """
-  @spec hub_by_id!(String.t()) :: Hub.t()
-  def hub_by_id!(id) do
+  @spec fetch_fly!(String.t()) :: Fly.t()
+  def fetch_fly!("fly-" <> _ = id) do
     case Storage.current().fetch(@namespace, id) do
-      :error -> raise NotFoundError, id: id
-      {:ok, fields} -> struct!(Hub, fields)
+      :error -> raise NotFoundError, id: id, type: "fly"
+      {:ok, fields} -> to_struct(fields)
     end
   end
 
   @doc """
-  Checks if hub already exists.
+  Gets one provider from storage.
+
+  Raises `NotFoundError` if does not exist.
   """
-  @spec hub_exists?(Hub.t()) :: boolean()
-  def hub_exists?(%Hub{id: id}) do
+  @spec provider_by_id!(String.t()) :: String.t()
+  def provider_by_id!(id) do
     case Storage.current().fetch(@namespace, id) do
+      :error -> raise NotFoundError, id: id
+      {:ok, _} -> id_to_provider(id)
+    end
+  end
+
+  defp id_to_provider("fly-" <> _), do: "fly"
+
+  @doc """
+  Checks if Fly already exists.
+  """
+  @spec fly_exists?(Fly.Organization.t()) :: boolean()
+  def fly_exists?(%Fly.Organization{id: id}) do
+    case Storage.current().fetch(@namespace, "fly-" <> id) do
       :error -> false
       {:ok, _} -> true
     end
@@ -51,26 +74,30 @@ defmodule Livebook.Hubs do
   @doc """
   Saves a new hub to the configured ones.
   """
-  @spec save_hub(Hub.t()) :: Hub.t()
-  def save_hub(hub) do
+  @spec save_fly(Fly.t()) :: Fly.t()
+  def save_fly(%Fly{organization: organization} = fly) do
+    id = "fly-" <> fly.id
+
     attributes =
-      hub
-      |> Map.from_struct()
-      |> Map.to_list()
+      fly
+      |> Map.delete(:id)
+      |> Map.replace!(:organization, to_ets(organization))
+      |> to_ets()
 
-    :ok = Storage.current().insert(@namespace, hub.id, attributes)
-
-    hub
+    with :ok <- Storage.current().insert(@namespace, id, attributes),
+         :ok <- broadcast_hubs_change() do
+      fly
+    end
   end
 
   @doc false
-  def delete_hub(hub) do
-    Storage.current().delete(@namespace, hub.id)
+  def delete_entry(id) do
+    Storage.current().delete(@namespace, id)
   end
 
   @doc false
   def clean_hubs do
-    for hub <- fetch_hubs(), do: delete_hub(hub)
+    for hub <- fetch_hubs(), do: delete_entry(hub.id)
 
     :ok
   end
@@ -104,5 +131,22 @@ defmodule Livebook.Hubs do
   @spec broadcast_hubs_change() :: :ok
   def broadcast_hubs_change do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_changed, fetch_hubs()})
+  end
+
+  defp to_ets(data) when is_struct(data) do
+    data |> Map.from_struct() |> to_ets()
+  end
+
+  defp to_ets(data) when is_map(data) do
+    Map.to_list(data)
+  end
+
+  defp to_struct(%{id: "fly-" <> id, organization: organization} = fields) do
+    fields =
+      fields
+      |> Map.replace!(:id, id)
+      |> Map.replace!(:organization, struct!(Fly.Organization, organization))
+
+    struct!(Fly, fields)
   end
 end

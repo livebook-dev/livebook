@@ -2,8 +2,8 @@ defprotocol Livebook.Hubs.HubProvider do
   @moduledoc false
 
   @doc """
-  Gets a list of hubs.
+  Normalize given data to `Hub` struct.
   """
-  @spec fetch_hubs(any()) :: {:ok, list(Livebook.Hubs.Hub.t())} | {:error, any()}
-  def fetch_hubs(hub)
+  @spec to_hub(any()) :: Livebook.Hubs.Hub.t()
+  def to_hub(data)
 end

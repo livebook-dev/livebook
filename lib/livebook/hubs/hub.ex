@@ -1,13 +1,12 @@
 defmodule Livebook.Hubs.Hub do
   @moduledoc false
-  defstruct [:id, :type, :name, :label, :color, :token]
+  defstruct [:id, :type, :name, :provider, :color]
 
   @type t :: %__MODULE__{
           id: String.t(),
           type: String.t(),
           name: String.t(),
-          label: String.t(),
-          color: String.t(),
-          token: String.t()
+          provider: struct(),
+          color: String.t()
         }
 end
