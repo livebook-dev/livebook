@@ -1,6 +1,7 @@
 defmodule LivebookWeb.HomeLiveTest do
   use LivebookWeb.ConnCase, async: true
 
+  import Livebook.Fixtures
   import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session}
@@ -247,22 +248,13 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "render persisted hubs", %{conn: conn} do
-      hub = %Livebook.Hubs.Hub{
-        id: "foo-bar-id",
-        type: "fly",
-        name: "Foo",
-        label: "Foo",
-        token: "foo",
-        color: "#FF00FF"
-      }
-
-      assert Livebook.Hubs.save_hub(hub)
+      fly = create_fly("foo-bar-id")
 
       {:ok, _view, html} = live(conn, "/")
       assert html =~ "HUBS"
-      assert html =~ "Foo"
+      assert html =~ fly.name
 
-      Livebook.Hubs.delete_hub(hub)
+      Livebook.Hubs.delete_entry("fly-foo-bar-id")
     end
   end
 

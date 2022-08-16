@@ -1,10 +1,10 @@
 defmodule LivebookWeb.HubLiveTest do
   use LivebookWeb.ConnCase, async: true
 
+  import Livebook.Fixtures
   import Phoenix.LiveViewTest
 
   alias Livebook.Hubs
-  alias Livebook.Hubs.Hub
 
   setup do
     on_exit(&Hubs.clean_hubs/0)
@@ -21,37 +21,21 @@ defmodule LivebookWeb.HubLiveTest do
 
   describe "fly" do
     test "persists fly", %{conn: conn} do
-      bypass = Bypass.open()
-      Application.put_env(:livebook, :fly_io_graphql_endpoint, "http://localhost:#{bypass.port}")
+      fly_organization_bypass("123456789")
 
       {:ok, view, _html} = live(conn, "/hub")
-
-      organization = %{
-        "id" => "123456789",
-        "slug" => "personal",
-        "name" => "Foo Bar",
-        "type" => "PERSONAL"
-      }
-
-      response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
-
-      Bypass.expect_once(bypass, "POST", "/", fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.resp(200, Jason.encode!(response))
-      end)
 
       # renders the second step
       assert view
              |> element("#fly")
-             |> render_click()
+             |> render_click() =~ "2. Configure your Hub"
 
       # triggers the access_token field change
       # and shows the fly's third step
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="#{organization["id"]}">Foo Bar</option>)
+               ~s(<option value="123456789">Foo Bar Baz</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -60,11 +44,11 @@ defmodule LivebookWeb.HubLiveTest do
              |> render_submit(%{
                "fly" => %{
                  "token" => "dummy token",
-                 "organization" => organization["id"],
+                 "organization" => "123456789",
                  "name" => "My Foo Hub",
-                 "hex_color" => "#FF00FF"
+                 "color" => "#FF00FF"
                }
-             }) =~ "Hub already exists"
+             }) =~ "Organization already exists"
 
       # and checks the new hub on sidebar
       assert view
@@ -73,7 +57,7 @@ defmodule LivebookWeb.HubLiveTest do
 
       assert view
              |> element("#hubs")
-             |> render() =~ "/hub/" <> organization["id"]
+             |> render() =~ "/hub/fly-123456789"
 
       assert view
              |> element("#hubs")
@@ -81,117 +65,106 @@ defmodule LivebookWeb.HubLiveTest do
     end
 
     test "updates fly", %{conn: conn} do
-      hub = %Hub{
-        id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-        type: "fly",
-        name: "Foo",
-        label: "Foo Bar",
-        token: "foo",
-        color: "#FF00FF"
-      }
+      fly = create_fly("987654321")
 
-      Hubs.save_hub(hub)
-
-      {:ok, view, _html} = live(conn, "/hub/" <> hub.id)
+      {:ok, view, _html} = live(conn, "/hub/fly-987654321")
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
-      assert view
-             |> element("#fly-form")
-             |> render_submit(%{
-               "fly" => %{
-                 "token" => "dummy token",
-                 "organization" => hub.id,
-                 "name" => "My Foo Hub",
-                 "hex_color" => "#FF00FF"
-               }
-             })
+      view
+      |> element("#fly-form")
+      |> render_submit(%{
+        "fly" => %{
+          "token" => "dummy token",
+          "organization" => "987654321",
+          "name" => "Personal Hub",
+          "color" => "#FFFFFF"
+        }
+      })
 
       # and checks the new hub on sidebar
       assert view
              |> element("#hubs")
-             |> render() =~ ~s/style="color: #FF00FF"/
+             |> render() =~ ~s/style="color: #FFFFFF"/
 
       assert view
              |> element("#hubs")
-             |> render() =~ "/hub/" <> hub.id
+             |> render() =~ "/hub/fly-987654321"
 
       assert view
              |> element("#hubs")
-             |> render() =~ "My Foo Hub"
+             |> render() =~ "Personal Hub"
 
-      refute hub == Hubs.hub_by_id!(hub.id)
+      refute Hubs.fetch_fly!("fly-987654321") == fly
     end
 
     test "fails to create existing hub", %{conn: conn} do
-      bypass = Bypass.open()
-      Application.put_env(:livebook, :fly_io_graphql_endpoint, "http://localhost:#{bypass.port}")
-
-      hub = %Hub{
-        id: "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-        type: "fly",
-        name: "Foo",
-        label: "Foo Bar",
-        token: "dummy token",
-        color: "#0000FF"
-      }
-
-      Hubs.save_hub(hub)
+      fly = create_fly("foo")
+      fly_organization_bypass("foo")
 
       {:ok, view, _html} = live(conn, "/hub")
-
-      organization = %{
-        "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
-        "slug" => "personal",
-        "name" => "Foo Bar",
-        "type" => "PERSONAL"
-      }
-
-      response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
-
-      Bypass.expect_once(bypass, "POST", "/", fn conn ->
-        conn
-        |> Plug.Conn.put_resp_content_type("application/json")
-        |> Plug.Conn.resp(200, Jason.encode!(response))
-      end)
 
       # renders the second step
       assert view
              |> element("#fly")
-             |> render_click()
+             |> render_click() =~ "2. Configure your Hub"
 
       # triggers the access_token field change
       # and shows the fly's third step
       assert view
              |> element(~s/input[name="fly[token]"]/)
              |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="#{organization["id"]}">Foo Bar</option>)
+               ~s(<option value="foo">Foo Bar Baz</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
-      assert view
-             |> element("#fly-form")
-             |> render_submit(%{
-               "fly" => %{
-                 "token" => "dummy token",
-                 "organization" => organization["id"],
-                 "name" => "My Foo Hub",
-                 "hex_color" => "#FF00FF"
-               }
-             }) =~ "Hub already exists"
+      view
+      |> element("#fly-form")
+      |> render_submit(%{
+        "fly" => %{
+          "token" => "dummy token",
+          "organization" => "foo",
+          "name" => "My Foo Hub",
+          "color" => "#FF00FF"
+        }
+      })
+
+      assert render(view) =~ "Organization already exists"
 
       # and checks the hub didn't change on sidebar
       assert view
              |> element("#hubs")
-             |> render() =~ ~s/style="color: #{hub.color}"/
+             |> render() =~ ~s/style="color: #{fly.color}"/
 
       assert view
              |> element("#hubs")
-             |> render() =~ "/hub/" <> hub.id
+             |> render() =~ "/hub/fly-foo"
 
       assert view
              |> element("#hubs")
-             |> render() =~ hub.name
+             |> render() =~ fly.name
+
+      assert Hubs.fetch_fly!("fly-foo") == fly
     end
+  end
+
+  defp fly_organization_bypass(org_id) do
+    bypass = Bypass.open()
+    Application.put_env(:livebook, :fly_io_graphql_endpoint, "http://localhost:#{bypass.port}")
+
+    organization = %{
+      "id" => org_id,
+      "slug" => "personal",
+      "name" => "Foo Bar Baz",
+      "type" => "PERSONAL"
+    }
+
+    response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
+
+    Bypass.expect_once(bypass, "POST", "/", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.resp(200, Jason.encode!(response))
+    end)
   end
 end

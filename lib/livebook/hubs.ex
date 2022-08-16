@@ -2,12 +2,12 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Fly, Hub, Provider}
+  alias Livebook.Hubs.{Fly, Hub, HubProvider}
 
   defmodule NotFoundError do
     @moduledoc false
 
-    defexception [:id, plug_status: 404]
+    defexception [:id, :type, plug_status: 404]
 
     def message(%{id: id, type: "fly"}) do
       "could not find a fly entry matching #{inspect(id)}"
@@ -28,7 +28,7 @@ defmodule Livebook.Hubs do
     for fields <- Storage.current().all(@namespace) do
       fields
       |> to_struct()
-      |> Provider.to_hub()
+      |> HubProvider.to_hub()
     end
   end
 
@@ -38,8 +38,8 @@ defmodule Livebook.Hubs do
   Raises `NotFoundError` if the hub does not exist.
   """
   @spec fetch_fly!(String.t()) :: Fly.t()
-  def fetch_fly!("fly-" <> _ = id) do
-    case Storage.current().fetch(@namespace, id) do
+  def fetch_fly!("fly-" <> id = full_id) do
+    case Storage.current().fetch(@namespace, full_id) do
       :error -> raise NotFoundError, id: id, type: "fly"
       {:ok, fields} -> to_struct(fields)
     end
@@ -97,7 +97,7 @@ defmodule Livebook.Hubs do
 
   @doc false
   def clean_hubs do
-    for hub <- fetch_hubs(), do: delete_entry(hub.id)
+    for %Hub{id: id, type: type} <- fetch_hubs(), do: delete_entry("#{type}-#{id}")
 
     :ok
   end

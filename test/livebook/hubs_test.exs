@@ -1,10 +1,10 @@
 defmodule Livebook.HubsTest do
   use ExUnit.Case
 
+  import Livebook.Fixtures
+
   alias Livebook.Hubs
   alias Livebook.Hubs.Hub
-
-  @hub_id Livebook.Utils.random_id()
 
   setup do
     on_exit(&Hubs.clean_hubs/0)
@@ -13,50 +13,60 @@ defmodule Livebook.HubsTest do
   end
 
   test "fetch_hubs/0 returns a list of persisted hubs" do
-    Hubs.save_hub(hub())
+    id = Livebook.Utils.random_id()
+    fly_id = "fly-#{id}"
+    fly = create_fly(id)
 
-    assert [
-             %{
-               color: "#FF00FF",
-               id: @hub_id,
-               name: "My Foo",
-               label: "Foo org",
-               token: "foo",
-               type: "fly"
+    assert Hubs.fetch_hubs() == [
+             %Hub{
+               id: fly.id,
+               type: "fly",
+               name: fly.name,
+               color: fly.color,
+               provider: fly.organization
              }
-           ] == Hubs.fetch_hubs()
+           ]
 
-    Livebook.Hubs.delete_hub(hub())
-    assert [] == Hubs.fetch_hubs()
+    Livebook.Hubs.delete_entry(fly_id)
+    assert Hubs.fetch_hubs() == []
   end
 
-  test "hub_by_id!/1 returns one persisted hub" do
+  test "fetch_fly!/1 returns one persisted fly" do
+    id = Livebook.Utils.random_id()
+    fly_id = "fly-#{id}"
+
     assert_raise Hubs.NotFoundError,
-                 ~s/could not find a hub matching "#{@hub_id}"/,
+                 ~s/could not find a fly entry matching "#{id}"/,
                  fn ->
-                   Hubs.hub_by_id!(@hub_id)
+                   Hubs.fetch_fly!(fly_id)
                  end
 
-    Hubs.save_hub(hub())
+    fly = create_fly(id)
 
-    assert hub() == Hubs.hub_by_id!(@hub_id)
+    assert Hubs.fetch_fly!(fly_id) == fly
   end
 
-  test "hub_exists?/1" do
-    refute Hubs.hub_exists?(hub())
+  test "provider_by_id!/1 returns one persisted provider" do
+    id = Livebook.Utils.random_id()
+    fly_id = "fly-#{id}"
 
-    Hubs.save_hub(hub())
-    assert Hubs.hub_exists?(hub())
+    assert_raise Hubs.NotFoundError,
+                 ~s/could not find a fly entry matching "#{id}"/,
+                 fn ->
+                   Hubs.provider_by_id!(fly_id)
+                 end
+
+    create_fly(id)
+
+    assert Hubs.provider_by_id!(fly_id) == "fly"
   end
 
-  defp hub do
-    %Hub{
-      id: @hub_id,
-      type: "fly",
-      name: "My Foo",
-      label: "Foo org",
-      token: "foo",
-      color: "#FF00FF"
-    }
+  test "fly_exists?/1" do
+    id = Livebook.Utils.random_id()
+    fly = fly_fixture(%{id: id, organization: %{id: id}})
+    refute Hubs.fly_exists?(fly.organization)
+
+    Hubs.save_fly(fly)
+    assert Hubs.fly_exists?(fly.organization)
   end
 end

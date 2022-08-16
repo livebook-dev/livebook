@@ -18,6 +18,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     ~H"""
     <div>
       <.form
+        id={@id}
         class="flex flex-col space-y-4"
         let={f}
         for={:fly}
@@ -129,10 +130,8 @@ defmodule LivebookWeb.HubLive.FlyComponent do
         {:noreply, assign(socket, data: data, organizations: opts, orgs_data: organizations)}
 
       {:error, _} ->
-        {:noreply,
-         socket
-         |> assign(data: %{}, organizations: [], orgs_data: [])
-         |> put_flash(:error, "Invalid Access Token")}
+        send(self(), {:flash_error, "Invalid Access Token"})
+        {:noreply, assign(socket, data: %{}, organizations: [], orgs_data: [])}
     end
   end
 
@@ -166,17 +165,13 @@ defmodule LivebookWeb.HubLive.FlyComponent do
   defp create_fly(socket, params) do
     case Enum.find(socket.assigns.orgs_data, &(&1.id == params["id"])) do
       nil ->
-        {:noreply,
-         socket
-         |> assign(data: params)
-         |> put_flash(:error, "Internal Server Error")}
+        send(self(), {:flash_error, "Internal Server Error"})
+        {:noreply, assign(socket, data: params)}
 
       organization ->
         if Hubs.fly_exists?(organization) do
-          {:noreply,
-           socket
-           |> assign(data: params)
-           |> put_flash(:error, "already exists")}
+          send(self(), {:flash_error, "Organization already exists"})
+          {:noreply, assign(socket, data: params)}
         else
           opts = select_options(socket.assigns.orgs_data, params["id"])
 

@@ -4,8 +4,6 @@ defmodule LivebookWeb.HubLive do
   import LivebookWeb.UserHelpers
 
   alias Livebook.Hubs
-  alias Livebook.Hubs.{HubProvider, Fly}
-  alias Livebook.Users.User
   alias LivebookWeb.{PageHelpers, SidebarHelpers}
   alias Phoenix.LiveView.JS
 
@@ -144,5 +142,10 @@ defmodule LivebookWeb.HubLive do
   @impl true
   def handle_event("select_provider", %{"value" => service}, socket) do
     {:noreply, assign(socket, selected_provider: service)}
+  end
+
+  @impl true
+  def handle_info({:flash_error, message}, socket) do
+    {:noreply, put_flash(socket, :error, message)}
   end
 end

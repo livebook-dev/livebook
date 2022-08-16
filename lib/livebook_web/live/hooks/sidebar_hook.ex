@@ -16,10 +16,10 @@ defmodule LivebookWeb.SidebarHook do
   end
 
   defp handle_info({:hubs_changed, hubs}, socket) do
-    {:cont, assign(socket, :saved_hubs, hubs)}
+    {:halt, assign(socket, :saved_hubs, hubs)}
   end
 
-  defp handle_info(_message, socket), do: {:cont, socket}
+  defp handle_info(_event, socket), do: {:cont, socket}
 
   defp handle_event("shutdown", _params, socket) do
     if Livebook.Config.shutdown_enabled?() do

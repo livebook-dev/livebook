@@ -40,6 +40,8 @@ defmodule Livebook.Hubs.FlyTest do
         "type" => "PERSONAL"
       }
 
+      org_id = organization["id"]
+
       response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
 
       Bypass.expect_once(bypass, "POST", "/", fn conn ->
@@ -48,7 +50,7 @@ defmodule Livebook.Hubs.FlyTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert {:ok, [^organization]} = Fly.fetch_organizations("some valid token")
+      assert {:ok, [%Fly.Organization{id: ^org_id}]} = Fly.fetch_organizations("some valid token")
     end
 
     test "returns unauthorized when token is invalid", %{bypass: bypass} do
