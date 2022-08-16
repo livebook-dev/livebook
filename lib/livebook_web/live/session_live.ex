@@ -172,7 +172,7 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} client_id={@client_id} />
         </div>
         <div data-el-secrets-list>
-          <.secrets_list data_view={@data_view} />
+          <.secrets_list data_view={@data_view} session={@session} socket={@socket} />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
@@ -397,6 +397,12 @@ defmodule LivebookWeb.SessionLive do
         ) %>
       </.modal>
     <% end %>
+
+    <%= if @live_action == :secrets do %>
+      <.modal id="secrets-modal" show class="w-full max-w-4xl" patch={@self_path}>
+        <.live_component module={LivebookWeb.SessionLive.SecretsComponent} id="secrets" />
+      </.modal>
+    <% end %>
     """
   end
 
@@ -538,23 +544,30 @@ defmodule LivebookWeb.SessionLive do
         Secrets
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- ["LB_FOO", "LB_BAR"] do %>
+        <%= for secret <- secrets() do %>
           <div class="flex items-center text-gray-500">
             <span class="flex items-center space-x-1">
-              <%= secret %>
+              <%= secret["label"] %>
             </span>
           </div>
         <% end %>
       </div>
-      <button
-        class="inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100"
-        phx-click="new_secret"
-      >
+      <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
+            class: "inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100",
+            aria_label: "add secret",
+            role: "button" do %>
         <.remix_icon icon="add-line" class="text-lg align-center" />
         <span>New secret</span>
-      </button>
+      <% end %>
     </div>
     """
+  end
+
+  # ONLY FOR TESTS
+  defp secrets() do
+    System.get_env()
+    |> Enum.filter(fn {k, _v} -> String.starts_with?(k, "LB_") end)
+    |> Enum.map(fn {k, _v} -> %{"label" => k, "value" => k} end)
   end
 
   defp runtime_info(assigns) do
