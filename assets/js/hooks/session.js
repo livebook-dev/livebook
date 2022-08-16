@@ -350,6 +350,8 @@ const Session = {
         this.queueFocusedSectionEvaluation();
       } else if (keyBuffer.tryMatch(["s", "s"])) {
         this.toggleSectionsList();
+      } else if (keyBuffer.tryMatch(["s", "e"])) {
+        this.toggleSecretsList();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
       } else if (keyBuffer.tryMatch(["s", "r"])) {
