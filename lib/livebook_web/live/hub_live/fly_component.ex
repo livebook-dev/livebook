@@ -2,7 +2,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Hubs
-  alias Livebook.Hubs.Fly
+  alias Livebook.Hubs.{Fly, FlyClient}
   alias Livebook.Users.User
 
   @impl true
@@ -31,11 +31,12 @@ defmodule LivebookWeb.HubLive.FlyComponent do
           <h3 class="text-gray-800 font-semibold">
             Access Token
           </h3>
-          <%= password_input(f, :token,
+          <%= password_input(f, :access_token,
             phx_change: "fetch_data",
             phx_debounce: "blur",
             phx_target: @myself,
-            value: @data["token"],
+            disabled: @operation == :edit,
+            value: @data["access_token"],
             class: "input w-full",
             autofocus: true,
             spellcheck: "false",
@@ -44,12 +45,18 @@ defmodule LivebookWeb.HubLive.FlyComponent do
           ) %>
         </div>
 
-        <%= if length(@organizations) > 0 do %>
+        <%= if length(@apps) > 0 do %>
           <div class="flex flex-col space-y-1">
             <h3 class="text-gray-800 font-semibold">
-              Organization
+              Application
             </h3>
-            <%= select(f, :id, @organizations, class: "input", required: true) %>
+            <%= select(f, :application_id, @select_options,
+              class: "input",
+              required: true,
+              phx_target: @myself,
+              phx_change: "select_app",
+              disabled: @operation == :edit
+            ) %>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -57,7 +64,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
               <h3 class="text-gray-800 font-semibold">
                 Name
               </h3>
-              <%= text_input(f, :name, value: @data["name"], class: "input", required: true) %>
+              <%= text_input(f, :hub_name, value: @data["hub_name"], class: "input", required: true) %>
             </div>
 
             <div class="flex flex-col space-y-1">
@@ -68,13 +75,14 @@ defmodule LivebookWeb.HubLive.FlyComponent do
               <div class="flex space-x-4 items-center">
                 <div
                   class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                  style={"border-color: #{@data["color"]}"}
+                  style={"border-color: #{@data["hub_color"]}"}
                 >
-                  <div class="rounded h-5 w-5" style={"background-color: #{@data["color"]}"}></div>
+                  <div class="rounded h-5 w-5" style={"background-color: #{@data["hub_color"]}"}>
+                  </div>
                 </div>
                 <div class="relative grow">
-                  <%= text_input(f, :color,
-                    value: @data["color"],
+                  <%= text_input(f, :hub_color,
+                    value: @data["hub_color"],
                     class: "input",
                     spellcheck: "false",
                     required: true,
@@ -101,97 +109,109 @@ defmodule LivebookWeb.HubLive.FlyComponent do
   end
 
   defp load_data(%{assigns: %{operation: :new}} = socket) do
-    assign(socket, data: %{}, organizations: [], orgs_data: [])
+    assign(socket, data: %{}, select_options: [], apps: [])
   end
 
-  defp load_data(%{assigns: %{operation: :edit, provider_id: id}} = socket) do
-    fly = Hubs.fetch_fly!(id)
-    organizations = [fly.organization]
+  defp load_data(%{assigns: %{operation: :edit, hub: fly}} = socket) do
+    data = %{
+      "access_token" => fly.access_token,
+      "application_id" => fly.application_id,
+      "hub_name" => fly.hub_name,
+      "hub_color" => fly.hub_color
+    }
 
-    data =
-      fly
-      |> Map.from_struct()
-      |> Map.delete(:organization)
-      |> Jason.encode!()
-      |> Jason.decode!()
+    {:ok, apps} = FlyClient.fetch_apps(fly.access_token)
+    opts = select_options(apps, fly.application_id)
 
-    opts = select_options(organizations, fly.id)
-
-    assign(socket, data: data, organizations: opts, orgs_data: organizations)
+    assign(socket, data: data, selected_app: fly, select_options: opts, apps: apps)
   end
 
   @impl true
-  def handle_event("fetch_data", %{"fly" => %{"token" => token}}, socket) do
-    case Fly.fetch_organizations(token) do
-      {:ok, organizations} ->
-        data = %{"token" => token, "color" => User.random_hex_color()}
-        opts = select_options(organizations)
+  def handle_event("fetch_data", %{"fly" => %{"access_token" => token}}, socket) do
+    case FlyClient.fetch_apps(token) do
+      {:ok, apps} ->
+        data = %{"access_token" => token, "hub_color" => User.random_hex_color()}
+        opts = select_options(apps)
 
-        {:noreply, assign(socket, data: data, organizations: opts, orgs_data: organizations)}
+        {:noreply, assign(socket, data: data, select_options: opts, apps: apps)}
 
       {:error, _} ->
         send(self(), {:flash_error, "Invalid Access Token"})
-        {:noreply, assign(socket, data: %{}, organizations: [], orgs_data: [])}
+        {:noreply, assign(socket, data: %{}, select_options: [], apps: [])}
     end
   end
 
   def handle_event("randomize_color", _, socket) do
-    data = put_in(socket.assigns.data, ["color"], User.random_hex_color())
-
+    data = Map.replace!(socket.assigns.data, "hub_color", User.random_hex_color())
     {:noreply, assign(socket, data: data)}
   end
 
   def handle_event("save_hub", %{"fly" => params}, socket) do
+    params =
+      if socket.assigns.data do
+        Map.merge(socket.assigns.data, params)
+      else
+        params
+      end
+
     case socket.assigns.operation do
       :new -> create_fly(socket, params)
-      :edit -> update_fly(socket, params)
+      :edit -> save_fly(socket, params)
     end
+  end
+
+  def handle_event("select_app", %{"fly" => %{"application_id" => app_id}}, socket) do
+    selected_app = Enum.find(socket.assigns.apps, &(&1.application_id == app_id))
+    opts = select_options(socket.assigns.apps, app_id)
+
+    {:noreply, assign(socket, selected_app: selected_app, select_options: opts)}
   end
 
   def handle_event("update_data", %{"fly" => data}, socket) do
-    opts = select_options(socket.assigns.orgs_data, data["id"])
+    data =
+      if socket.assigns.data do
+        Map.merge(socket.assigns.data, data)
+      else
+        data
+      end
 
-    {:noreply, assign(socket, data: data, organizations: opts)}
+    opts = select_options(socket.assigns.apps, data["application_id"])
+
+    {:noreply, assign(socket, data: data, select_options: opts)}
   end
 
-  defp select_options(orgs, org_id \\ nil) do
-    for org <- orgs do
-      opts = if org.id == org_id, do: [selected: true], else: []
+  defp select_options(hubs, app_id \\ nil) do
+    disabled_option = [key: "Select one application", value: "", selected: true, disabled: true]
 
-      [key: org.name, value: org.id] ++ opts
-    end
+    options =
+      for fly <- hubs, reduce: [disabled_option] do
+        acc ->
+          [
+            [
+              key: "#{fly.organization_name} - #{fly.application_id}",
+              value: fly.application_id,
+              selected: fly.application_id == app_id
+            ]
+            | acc
+          ]
+      end
+
+    Enum.reverse(options)
   end
 
   defp create_fly(socket, params) do
-    case Enum.find(socket.assigns.orgs_data, &(&1.id == params["id"])) do
-      nil ->
-        send(self(), {:flash_error, "Internal Server Error"})
-        {:noreply, assign(socket, data: params)}
-
-      organization ->
-        if Hubs.fly_exists?(organization) do
-          send(self(), {:flash_error, "Organization already exists"})
-          {:noreply, assign(socket, data: params)}
-        else
-          opts = select_options(socket.assigns.orgs_data, params["id"])
-
-          Hubs.save_fly(%Fly{
-            id: params["id"],
-            name: params["name"],
-            color: params["color"],
-            token: params["token"],
-            organization: organization
-          })
-
-          {:noreply, assign(socket, data: params, organizations: opts)}
-        end
+    if Hubs.hub_exists?(socket.assigns.selected_app.id) do
+      send(self(), {:flash_error, "Application already exists"})
+      {:noreply, assign(socket, data: params)}
+    else
+      save_fly(socket, params)
     end
   end
 
-  defp update_fly(socket, params) do
-    fly = Hubs.fetch_fly!("fly-" <> params["id"])
-    Hubs.save_fly(%{fly | name: params["name"], color: params["color"]})
+  defp save_fly(socket, params) do
+    Fly.save_fly(socket.assigns.selected_app, params)
+    opts = select_options(socket.assigns.apps, params["application_id"])
 
-    {:noreply, socket}
+    {:noreply, assign(socket, data: params, select_options: opts)}
   end
 end

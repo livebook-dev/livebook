@@ -8,14 +8,14 @@ defmodule LivebookWeb.SidebarHook do
 
     socket =
       socket
-      |> assign(saved_hubs: Livebook.Hubs.fetch_hubs())
+      |> assign(saved_hubs: Livebook.Hubs.fetch_metadatas())
       |> attach_hook(:hubs, :handle_info, &handle_info/2)
       |> attach_hook(:shutdown, :handle_event, &handle_event/3)
 
     {:cont, socket}
   end
 
-  defp handle_info({:hubs_changed, hubs}, socket) do
+  defp handle_info({:hubs_metadata_changed, hubs}, socket) do
     {:halt, assign(socket, :saved_hubs, hubs)}
   end
 

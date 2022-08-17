@@ -1,10 +1,9 @@
-defmodule Livebook.Hubs.Hub do
+defmodule Livebook.Hubs.Metadata do
   @moduledoc false
-  defstruct [:id, :type, :name, :provider, :color]
+  defstruct [:id, :name, :provider, :color]
 
   @type t :: %__MODULE__{
           id: String.t(),
-          type: String.t(),
           name: String.t(),
           provider: struct(),
           color: String.t()

@@ -21,7 +21,7 @@ defmodule LivebookWeb.HubLiveTest do
 
   describe "fly" do
     test "persists fly", %{conn: conn} do
-      fly_organization_bypass("123456789")
+      fly_app_bypass("123456789")
 
       {:ok, view, _html} = live(conn, "/hub")
 
@@ -30,12 +30,18 @@ defmodule LivebookWeb.HubLiveTest do
              |> element("#fly")
              |> render_click() =~ "2. Configure your Hub"
 
-      # triggers the access_token field change
+      # triggers the access_access_token field change
       # and shows the fly's third step
       assert view
-             |> element(~s/input[name="fly[token]"]/)
-             |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="123456789">Foo Bar Baz</option>)
+             |> element(~s/input[name="fly[access_token]"]/)
+             |> render_change(%{"fly" => %{"access_token" => "dummy access token"}}) =~
+               ~s(<option value="123456789">Foo Bar - 123456789</option>)
+
+      # triggers the application_id field change
+      # and assigns `selected_app` to socket
+      view
+      |> element(~s/select[name="fly[application_id]"]/)
+      |> render_change(%{"fly" => %{"application_id" => "123456789"}})
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -43,12 +49,12 @@ defmodule LivebookWeb.HubLiveTest do
              |> element("#fly-form")
              |> render_submit(%{
                "fly" => %{
-                 "token" => "dummy token",
-                 "organization" => "123456789",
-                 "name" => "My Foo Hub",
-                 "color" => "#FF00FF"
+                 "access_token" => "dummy access token",
+                 "application_id" => "123456789",
+                 "hub_name" => "My Foo Hub",
+                 "hub_color" => "#FF00FF"
                }
-             }) =~ "Organization already exists"
+             }) =~ "Application already exists"
 
       # and checks the new hub on sidebar
       assert view
@@ -65,9 +71,16 @@ defmodule LivebookWeb.HubLiveTest do
     end
 
     test "updates fly", %{conn: conn} do
-      fly = create_fly("987654321")
+      fly_app_bypass("987654321")
+      fly = create_fly("fly-987654321", %{application_id: "987654321"})
 
       {:ok, view, _html} = live(conn, "/hub/fly-987654321")
+
+      # renders the second step
+      assert render(view) =~ "2. Configure your Hub"
+
+      assert render(view) =~
+               ~s(<option selected="selected" value="987654321">Foo Bar - 987654321</option>)
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -75,17 +88,17 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_submit(%{
         "fly" => %{
-          "token" => "dummy token",
-          "organization" => "987654321",
-          "name" => "Personal Hub",
-          "color" => "#FFFFFF"
+          "access_token" => "dummy access token",
+          "application_id" => "987654321",
+          "hub_name" => "Personal Hub",
+          "hub_color" => "#FF00FF"
         }
       })
 
       # and checks the new hub on sidebar
       assert view
              |> element("#hubs")
-             |> render() =~ ~s/style="color: #FFFFFF"/
+             |> render() =~ ~s/style="color: #FF00FF"/
 
       assert view
              |> element("#hubs")
@@ -95,12 +108,12 @@ defmodule LivebookWeb.HubLiveTest do
              |> element("#hubs")
              |> render() =~ "Personal Hub"
 
-      refute Hubs.fetch_fly!("fly-987654321") == fly
+      refute Hubs.fetch_hub!("fly-987654321") == fly
     end
 
     test "fails to create existing hub", %{conn: conn} do
-      fly = create_fly("foo")
-      fly_organization_bypass("foo")
+      fly = create_fly("fly-foo", %{application_id: "foo"})
+      fly_app_bypass("foo")
 
       {:ok, view, _html} = live(conn, "/hub")
 
@@ -112,9 +125,15 @@ defmodule LivebookWeb.HubLiveTest do
       # triggers the access_token field change
       # and shows the fly's third step
       assert view
-             |> element(~s/input[name="fly[token]"]/)
-             |> render_change(%{"fly" => %{"token" => "dummy token"}}) =~
-               ~s(<option value="foo">Foo Bar Baz</option>)
+             |> element(~s/input[name="fly[access_token]"]/)
+             |> render_change(%{"fly" => %{"access_token" => "dummy access token"}}) =~
+               ~s(<option value="foo">Foo Bar - foo</option>)
+
+      # triggers the application_id field change
+      # and assigns `selected_app` to socket
+      view
+      |> element(~s/select[name="fly[application_id]"]/)
+      |> render_change(%{"fly" => %{"application_id" => "foo"}})
 
       # sends the save_hub event to backend
       # and checks the new hub on sidebar
@@ -122,19 +141,19 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_submit(%{
         "fly" => %{
-          "token" => "dummy token",
-          "organization" => "foo",
-          "name" => "My Foo Hub",
-          "color" => "#FF00FF"
+          "access_token" => "dummy access token",
+          "application_id" => "foo",
+          "hub_name" => "My Foo Hub",
+          "hub_color" => "#FF00FF"
         }
       })
 
-      assert render(view) =~ "Organization already exists"
+      assert render(view) =~ "Application already exists"
 
       # and checks the hub didn't change on sidebar
       assert view
              |> element("#hubs")
-             |> render() =~ ~s/style="color: #{fly.color}"/
+             |> render() =~ ~s/style="color: #{fly.hub_color}"/
 
       assert view
              |> element("#hubs")
@@ -142,26 +161,28 @@ defmodule LivebookWeb.HubLiveTest do
 
       assert view
              |> element("#hubs")
-             |> render() =~ fly.name
+             |> render() =~ fly.hub_name
 
-      assert Hubs.fetch_fly!("fly-foo") == fly
+      assert Hubs.fetch_hub!("fly-foo") == fly
     end
   end
 
-  defp fly_organization_bypass(org_id) do
+  defp fly_app_bypass(app_id) do
     bypass = Bypass.open()
-    Application.put_env(:livebook, :fly_io_graphql_endpoint, "http://localhost:#{bypass.port}")
+    Application.put_env(:livebook, :fly_graphql_endpoint, "http://localhost:#{bypass.port}")
 
-    organization = %{
-      "id" => org_id,
-      "slug" => "personal",
-      "name" => "Foo Bar Baz",
-      "type" => "PERSONAL"
+    app = %{
+      "id" => app_id,
+      "organization" => %{
+        "id" => "l3soyvjmvtmwtl6l2drnbfuvltipprge",
+        "name" => "Foo Bar",
+        "type" => "PERSONAL"
+      }
     }
 
-    response = %{"data" => %{"organizations" => %{"nodes" => [organization]}}}
+    response = %{"data" => %{"apps" => %{"nodes" => [app]}}}
 
-    Bypass.expect_once(bypass, "POST", "/", fn conn ->
+    Bypass.expect(bypass, "POST", "/", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
       |> Plug.Conn.resp(200, Jason.encode!(response))

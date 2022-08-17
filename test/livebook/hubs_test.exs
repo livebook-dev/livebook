@@ -4,7 +4,6 @@ defmodule Livebook.HubsTest do
   import Livebook.Fixtures
 
   alias Livebook.Hubs
-  alias Livebook.Hubs.Hub
 
   setup do
     on_exit(&Hubs.clean_hubs/0)
@@ -13,60 +12,59 @@ defmodule Livebook.HubsTest do
   end
 
   test "fetch_hubs/0 returns a list of persisted hubs" do
-    id = Livebook.Utils.random_id()
-    fly_id = "fly-#{id}"
-    fly = create_fly(id)
+    fly = create_fly("fly-baz")
+    assert Hubs.fetch_hubs() == [fly]
 
-    assert Hubs.fetch_hubs() == [
-             %Hub{
-               id: fly.id,
-               type: "fly",
-               name: fly.name,
-               color: fly.color,
-               provider: fly.organization
-             }
-           ]
-
-    Livebook.Hubs.delete_entry(fly_id)
+    Hubs.delete_hub("fly-baz")
     assert Hubs.fetch_hubs() == []
   end
 
-  test "fetch_fly!/1 returns one persisted fly" do
-    id = Livebook.Utils.random_id()
-    fly_id = "fly-#{id}"
+  test "fetch_metadata/0 returns a list of persisted hubs normalized" do
+    fly = create_fly("fly-livebook")
 
-    assert_raise Hubs.NotFoundError,
-                 ~s/could not find a fly entry matching "#{id}"/,
-                 fn ->
-                   Hubs.fetch_fly!(fly_id)
-                 end
+    assert Hubs.fetch_metadatas() == [
+             %Hubs.Metadata{
+               id: "fly-livebook",
+               color: fly.hub_color,
+               name: fly.hub_name,
+               provider: fly
+             }
+           ]
 
-    fly = create_fly(id)
-
-    assert Hubs.fetch_fly!(fly_id) == fly
+    Hubs.delete_hub("fly-livebook")
+    assert Hubs.fetch_metadatas() == []
   end
 
-  test "provider_by_id!/1 returns one persisted provider" do
-    id = Livebook.Utils.random_id()
-    fly_id = "fly-#{id}"
-
+  test "fetch_hub!/1 returns one persisted fly" do
     assert_raise Hubs.NotFoundError,
-                 ~s/could not find a fly entry matching "#{id}"/,
+                 ~s/could not find a hub matching "fly-foo"/,
                  fn ->
-                   Hubs.provider_by_id!(fly_id)
+                   Hubs.fetch_hub!("fly-foo")
                  end
 
-    create_fly(id)
+    fly = create_fly("fly-foo")
 
-    assert Hubs.provider_by_id!(fly_id) == "fly"
+    assert Hubs.fetch_hub!("fly-foo") == fly
   end
 
-  test "fly_exists?/1" do
-    id = Livebook.Utils.random_id()
-    fly = fly_fixture(%{id: id, organization: %{id: id}})
-    refute Hubs.fly_exists?(fly.organization)
+  test "hub_exists?/1" do
+    refute Hubs.hub_exists?("fly-bar")
+    create_fly("fly-bar")
+    assert Hubs.hub_exists?("fly-bar")
+  end
 
-    Hubs.save_fly(fly)
-    assert Hubs.fly_exists?(fly.organization)
+  test "save_hub/1 persists hub" do
+    fly = fly_fixture(id: "fly-foo")
+    Hubs.save_hub(fly)
+
+    assert Hubs.fetch_hub!("fly-foo") == fly
+  end
+
+  test "save_hub/1 updates hub" do
+    fly = create_fly("fly-foo2")
+    Hubs.save_hub(%{fly | hub_color: "#FFFFFF"})
+
+    refute Hubs.fetch_hub!("fly-foo2") == fly
+    assert Hubs.fetch_hub!("fly-foo2").hub_color == "#FFFFFF"
   end
 end

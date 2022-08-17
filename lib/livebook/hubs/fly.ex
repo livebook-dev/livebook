@@ -1,98 +1,57 @@
 defmodule Livebook.Hubs.Fly do
   @moduledoc false
-  defstruct [:id, :token, :name, :color, :organization]
-
-  defmodule Organization do
-    @moduledoc false
-    defstruct [:id, :slug, :name, :type]
-
-    @type t :: %__MODULE__{
-            id: String.t(),
-            slug: String.t(),
-            name: String.t(),
-            type: String.t()
-          }
-  end
+  defstruct [
+    :id,
+    :access_token,
+    :hub_name,
+    :hub_color,
+    :organization_id,
+    :organization_type,
+    :organization_name,
+    :application_id
+  ]
 
   @type t :: %__MODULE__{
           id: Livebook.Utils.id(),
-          token: String.t(),
-          name: String.t(),
-          color: Livebook.Users.User.hex_color(),
-          organization: Organization.t()
+          access_token: String.t(),
+          hub_name: String.t(),
+          hub_color: Livebook.Users.User.hex_color(),
+          organization_id: String.t(),
+          organization_type: String.t(),
+          organization_name: String.t(),
+          application_id: String.t()
         }
 
-  alias Livebook.Utils.HTTP
+  def save_fly(fly, params) do
+    fly = %{fly | hub_name: params["hub_name"], hub_color: params["hub_color"]}
 
-  def fetch_organizations(access_token) do
-    headers = [{"Authorization", "Bearer #{access_token}"}]
-
-    query = """
-    query {
-      organizations {
-        nodes {
-          id
-          slug
-          name
-          type
-        }
-      }
-    }
-    """
-
-    body = {"application/json", Jason.encode!(%{query: query})}
-
-    with {:ok, body} <- request(headers, body) do
-      organizations =
-        for node <- body["organizations"]["nodes"] do
-          %Organization{
-            id: node["id"],
-            slug: node["slug"],
-            name: node["name"],
-            type: node["type"]
-          }
-        end
-
-      {:ok, organizations}
-    end
+    Livebook.Hubs.save_hub(fly)
   end
-
-  defp graphql_endpoint do
-    Application.get_env(:livebook, :fly_io_graphql_endpoint, "https://api.fly.io/graphql")
-  end
-
-  defp request(method \\ :post, url \\ graphql_endpoint(), headers, body) do
-    HTTP.request(method, url, headers: headers, body: body)
-    |> decode_body()
-    |> handle_response()
-  end
-
-  defp decode_body({:ok, 200, _, body}), do: {:ok, Jason.decode!(body)}
-  defp decode_body({:ok, _, _, body}), do: {:error, Jason.decode!(body)}
-  defp decode_body({:error, _} = error), do: error
-
-  defp handle_response({:ok, %{"errors" => [error]}}) do
-    case error do
-      %{"extensions" => %{"code" => code}} ->
-        {:error, "request failed with code: #{code}"}
-
-      %{"message" => message} ->
-        {:error, message}
-    end
-  end
-
-  defp handle_response({:ok, %{"data" => data}}), do: {:ok, data}
-  defp handle_response(result), do: result
 end
 
-defimpl Livebook.Hubs.HubProvider, for: Livebook.Hubs.Fly do
-  def to_hub(%Livebook.Hubs.Fly{} = fly) do
-    %Livebook.Hubs.Hub{
-      id: fly.id,
-      type: "fly",
-      name: fly.name,
-      provider: fly.organization,
-      color: fly.color
+defimpl Livebook.Hubs.Provider, for: Livebook.Hubs.Fly do
+  def load(%Livebook.Hubs.Fly{} = fly, fields) do
+    %{
+      fly
+      | id: fields.id,
+        access_token: fields.access_token,
+        hub_name: fields.hub_name,
+        hub_color: fields.hub_color,
+        organization_id: fields.organization_id,
+        organization_type: fields.organization_type,
+        organization_name: fields.organization_name,
+        application_id: fields.application_id
     }
   end
+
+  def normalize(%Livebook.Hubs.Fly{} = fly) do
+    %Livebook.Hubs.Metadata{
+      id: fly.id,
+      name: fly.hub_name,
+      provider: fly,
+      color: fly.hub_color
+    }
+  end
+
+  def type(_), do: "fly"
 end

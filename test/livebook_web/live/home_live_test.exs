@@ -248,13 +248,13 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "render persisted hubs", %{conn: conn} do
-      fly = create_fly("foo-bar-id")
+      fly = create_fly("fly-foo-bar-id")
 
       {:ok, _view, html} = live(conn, "/")
       assert html =~ "HUBS"
-      assert html =~ fly.name
+      assert html =~ fly.hub_name
 
-      Livebook.Hubs.delete_entry("fly-foo-bar-id")
+      Livebook.Hubs.delete_hub("fly-foo-bar-id")
     end
   end
 

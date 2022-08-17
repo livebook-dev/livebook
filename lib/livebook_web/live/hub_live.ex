@@ -4,6 +4,7 @@ defmodule LivebookWeb.HubLive do
   import LivebookWeb.UserHelpers
 
   alias Livebook.Hubs
+  alias Livebook.Hubs.Provider
   alias LivebookWeb.{PageHelpers, SidebarHelpers}
   alias Phoenix.LiveView.JS
 
@@ -11,15 +12,7 @@ defmodule LivebookWeb.HubLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     assign(socket,
-       selected_provider: nil,
-       provider_id: nil,
-       hubs: [],
-       hub_options: [],
-       data: %{},
-       page_title: "Livebook - Hub"
-     )}
+    {:ok, assign(socket, selected_provider: nil, hub: nil, page_title: "Livebook - Hub")}
   end
 
   @impl true
@@ -50,7 +43,7 @@ defmodule LivebookWeb.HubLive do
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <.card_item id="fly" selected={@selected_provider} title="Fly">
                 <:logo>
-                  <%= Phoenix.HTML.raw(File.read!("static/images/fly.io.svg")) %>
+                  <%= Phoenix.HTML.raw(File.read!("static/images/fly.svg")) %>
                 </:logo>
                 <:headline>
                   Deploy notebooks to your Fly account.
@@ -79,7 +72,7 @@ defmodule LivebookWeb.HubLive do
                   module={LivebookWeb.HubLive.FlyComponent}
                   id="fly-form"
                   operation={@operation}
-                  provider_id={@provider_id}
+                  hub={@hub}
                 />
               <% end %>
 
@@ -130,9 +123,10 @@ defmodule LivebookWeb.HubLive do
 
   @impl true
   def handle_params(%{"id" => id}, _url, socket) do
-    provider = Hubs.provider_by_id!(id)
+    hub = Hubs.fetch_hub!(id)
+    provider = Provider.type(hub)
 
-    {:noreply, assign(socket, operation: :edit, provider_id: id, selected_provider: provider)}
+    {:noreply, assign(socket, operation: :edit, hub: hub, selected_provider: provider)}
   end
 
   def handle_params(_params, _url, socket) do

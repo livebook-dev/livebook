@@ -178,7 +178,7 @@ defmodule LivebookWeb.SidebarHelpers do
           </div>
 
           <%= for hub <- @hubs do %>
-            <%= live_redirect to: Routes.hub_path(@socket, :edit, "#{hub.type}-#{hub.id}"), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
+            <%= live_redirect to: Routes.hub_path(@socket, :edit, hub.id), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
               <.remix_icon
                 class="text-lg leading-6 w-[56px] flex justify-center"
                 icon="checkbox-blank-circle-fill"
