@@ -1,7 +1,6 @@
 defmodule LivebookWeb.HomeLiveTest do
   use LivebookWeb.ConnCase, async: true
 
-  import Livebook.Fixtures
   import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session}
@@ -248,7 +247,7 @@ defmodule LivebookWeb.HomeLiveTest do
     end
 
     test "render persisted hubs", %{conn: conn} do
-      fly = create_fly("fly-foo-bar-id")
+      fly = insert_hub(:fly, id: "fly-foo-bar-id")
 
       {:ok, _view, html} = live(conn, "/")
       assert html =~ "HUBS"
@@ -417,11 +416,17 @@ defmodule LivebookWeb.HomeLiveTest do
 
   test "handles user profile update", %{conn: conn} do
     {:ok, view, _} = live(conn, "/")
+    data = %{user: %{name: "Jake Peralta", hex_color: "#123456"}}
 
     view
     |> element("#user_form")
-    |> render_submit(%{data: %{hex_color: "#123456"}})
+    |> render_change(data)
 
+    view
+    |> element("#user_form")
+    |> render_submit(data)
+
+    assert render(view) =~ "Jake Peralta"
     assert render(view) =~ "#123456"
   end
 

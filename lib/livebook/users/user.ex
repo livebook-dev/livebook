@@ -9,7 +9,8 @@ defmodule Livebook.Users.User do
   # can provide data like name and cursor color
   # to improve visibility during collaboration.
 
-  defstruct [:id, :name, :hex_color]
+  use Ecto.Schema
+  import Ecto.Changeset
 
   alias Livebook.Utils
 
@@ -21,6 +22,11 @@ defmodule Livebook.Users.User do
 
   @type id :: Utils.id()
   @type hex_color :: String.t()
+
+  embedded_schema do
+    field(:name, :string)
+    field(:hex_color, :string)
+  end
 
   @doc """
   Generates a new user.
@@ -34,44 +40,26 @@ defmodule Livebook.Users.User do
     }
   end
 
-  @doc """
-  Validates `attrs` and returns an updated user.
+  def changeset(user, attrs \\ %{}) do
+    user
+    |> cast(attrs, [:id, :name, :hex_color])
+    |> validate_required([:id, :name, :hex_color])
+    |> validate_color()
+  end
 
-  In case of validation errors `{:error, errors, user}` tuple
-  is returned, where `user` is partially updated by using
-  only the valid attributes.
-  """
-  @spec change(t(), %{binary() => any()}) ::
-          {:ok, t()} | {:error, list({atom(), String.t()}), t()}
-  def change(user, attrs \\ %{}) do
-    {user, []}
-    |> change_name(attrs)
-    |> change_hex_color(attrs)
-    |> case do
-      {user, []} -> {:ok, user}
-      {user, errors} -> {:error, errors, user}
+  defp validate_color(changeset) do
+    case get_field(changeset, :hex_color) do
+      nil ->
+        changeset
+
+      hex_color ->
+        if Utils.valid_hex_color?(hex_color) do
+          changeset
+        else
+          add_error(changeset, :hex_color, "not a valid color")
+        end
     end
   end
-
-  defp change_name({user, errors}, %{"name" => ""}) do
-    {%{user | name: nil}, errors}
-  end
-
-  defp change_name({user, errors}, %{"name" => name}) do
-    {%{user | name: name}, errors}
-  end
-
-  defp change_name({user, errors}, _attrs), do: {user, errors}
-
-  defp change_hex_color({user, errors}, %{"hex_color" => hex_color}) do
-    if Utils.valid_hex_color?(hex_color) do
-      {%{user | hex_color: hex_color}, errors}
-    else
-      {user, [{:hex_color, "not a valid color"} | errors]}
-    end
-  end
-
-  defp change_hex_color({user, errors}, _attrs), do: {user, errors}
 
   @doc """
   Returns a random hex color for a user.
