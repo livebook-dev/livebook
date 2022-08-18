@@ -2,7 +2,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
   @impl true
-  def mount(socket) do
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+
     {:ok, assign(socket, data: %{"name" => "", "value" => ""}, error_message: nil)}
   end
 
@@ -60,7 +62,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
-    System.put_env(data["name"], data["value"])
+    secret = %{name: "LB_#{String.upcase(data["name"])}", value: data["value"]}
+    Livebook.Session.add_secret(socket.assigns.session.pid, secret)
     {:noreply, assign(socket, data: %{"name" => "", "value" => ""})}
   end
 
@@ -69,6 +72,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp data_valid?(data) do
-    data["name"] != "" and data["value"] != ""
+    String.match?(data["name"], ~r/^\w+$/) and data["value"] != ""
   end
 end
