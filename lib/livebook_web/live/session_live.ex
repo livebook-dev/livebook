@@ -400,7 +400,11 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :secrets do %>
       <.modal id="secrets-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <.live_component module={LivebookWeb.SessionLive.SecretsComponent} id="secrets" />
+        <.live_component
+          module={LivebookWeb.SessionLive.SecretsComponent}
+          id="secrets"
+          session={@session}
+        />
       </.modal>
     <% end %>
     """
@@ -544,10 +548,10 @@ defmodule LivebookWeb.SessionLive do
         Secrets
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- secrets() do %>
+        <%= for secret <- @session.secrets do %>
           <div class="flex items-center text-gray-500">
             <span class="flex items-center space-x-1">
-              <%= secret["label"] %>
+              <%= secret.label %>
             </span>
           </div>
         <% end %>
@@ -561,13 +565,6 @@ defmodule LivebookWeb.SessionLive do
       <% end %>
     </div>
     """
-  end
-
-  # ONLY FOR TESTS
-  defp secrets() do
-    System.get_env()
-    |> Enum.filter(fn {k, _v} -> String.starts_with?(k, "LB_") end)
-    |> Enum.map(fn {k, _v} -> %{"label" => k, "value" => k} end)
   end
 
   defp runtime_info(assigns) do

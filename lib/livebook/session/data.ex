@@ -251,7 +251,7 @@ defmodule Livebook.Session.Data do
 
   This is a pure function, responsible only for transforming the
   state, without direct side effects. This way all processes having
-  the same data can individually apply the given opreation and end
+  the same data can individually apply the given operation and end
   up with the same updated data.
 
   Since this doesn't trigger any actual processing, it becomes the

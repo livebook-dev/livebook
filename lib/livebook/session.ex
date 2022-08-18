@@ -46,7 +46,17 @@ defmodule Livebook.Session do
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at, :memory_usage]
+  defstruct [
+    :id,
+    :pid,
+    :origin,
+    :notebook_name,
+    :file,
+    :images_dir,
+    :created_at,
+    :memory_usage,
+    :secrets
+  ]
 
   use GenServer, restart: :temporary
 
@@ -68,7 +78,8 @@ defmodule Livebook.Session do
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          secrets: list()
         }
 
   @type state :: %{
@@ -79,7 +90,8 @@ defmodule Livebook.Session do
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          memory_usage: memory_usage()
+          memory_usage: memory_usage(),
+          secrets: list()
         }
 
   @type memory_usage ::
@@ -522,6 +534,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a secret addition request to the server.
+  """
+  @spec add_secret(pid(), map()) :: :ok
+  def add_secret(pid, secret) do
+    GenServer.cast(pid, {:add_secret, secret})
+  end
+
+  @doc """
   Disconnects one or more sessions from the current runtime.
 
   Note that this results in clearing the evaluation state.
@@ -579,7 +599,8 @@ defmodule Livebook.Session do
         save_task_pid: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
-        worker_pid: worker_pid
+        worker_pid: worker_pid,
+        secrets: []
       }
 
       {:ok, state}
@@ -944,6 +965,12 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
+  def handle_cast({:add_secret, %{label: label, value: value} = secret}, state) do
+    Runtime.add_system_envs(state.data.runtime, %{label: "LB_#{label}", value: value})
+    state = put_in(state.secrets, [secret | state.secrets])
+    {:noreply, notify_update(state)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
     broadcast_info(state.session_id, "runtime node terminated unexpectedly")
@@ -1091,7 +1118,8 @@ defmodule Livebook.Session do
       file: state.data.file,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
-      memory_usage: state.memory_usage
+      memory_usage: state.memory_usage,
+      secrets: state.secrets
     }
   end
 
