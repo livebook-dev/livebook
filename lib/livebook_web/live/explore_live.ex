@@ -7,14 +7,14 @@ defmodule LivebookWeb.ExploreLive do
   alias LivebookWeb.{SidebarHelpers, ExploreHelpers, PageHelpers}
   alias Livebook.Notebook.Explore
 
+  on_mount LivebookWeb.SidebarHook
+
   @impl true
   def mount(_params, _session, socket) do
     [lead_notebook_info | notebook_infos] = Explore.visible_notebook_infos()
 
     {:ok,
-     socket
-     |> SidebarHelpers.sidebar_handlers()
-     |> assign(
+     assign(socket,
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
        page_title: "Livebook - Explore"
@@ -29,6 +29,7 @@ defmodule LivebookWeb.ExploreLive do
         socket={@socket}
         current_page={Routes.explore_path(@socket, :page)}
         current_user={@current_user}
+        saved_hubs={@saved_hubs}
       />
       <div class="grow overflow-y-auto">
         <SidebarHelpers.toggle socket={@socket} />

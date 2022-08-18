@@ -7,6 +7,8 @@ defmodule LivebookWeb.HomeLive do
   alias LivebookWeb.{ExploreHelpers, PageHelpers, SidebarHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
+  on_mount LivebookWeb.SidebarHook
+
   @impl true
   def mount(params, _session, socket) do
     if connected?(socket) do
@@ -18,9 +20,7 @@ defmodule LivebookWeb.HomeLive do
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
-     socket
-     |> SidebarHelpers.sidebar_handlers()
-     |> assign(
+     assign(socket,
        self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
@@ -43,6 +43,7 @@ defmodule LivebookWeb.HomeLive do
         socket={@socket}
         current_page={Routes.home_path(@socket, :page)}
         current_user={@current_user}
+        saved_hubs={@saved_hubs}
       />
       <div class="grow overflow-y-auto">
         <SidebarHelpers.toggle socket={@socket}>

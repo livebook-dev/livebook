@@ -5,12 +5,12 @@ defmodule LivebookWeb.SettingsLive do
 
   alias LivebookWeb.{SidebarHelpers, PageHelpers}
 
+  on_mount LivebookWeb.SidebarHook
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     socket
-     |> SidebarHelpers.sidebar_handlers()
-     |> assign(
+     assign(socket,
        file_systems: Livebook.Settings.file_systems(),
        autosave_path_state: %{
          file: autosave_dir(),
@@ -29,6 +29,7 @@ defmodule LivebookWeb.SettingsLive do
         socket={@socket}
         current_page={Routes.settings_path(@socket, :page)}
         current_user={@current_user}
+        saved_hubs={@saved_hubs}
       />
       <div class="grow overflow-y-auto">
         <SidebarHelpers.toggle socket={@socket} />

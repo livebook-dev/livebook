@@ -1,6 +1,7 @@
 defmodule LivebookWeb.HomeLiveTest do
   use LivebookWeb.ConnCase, async: true
 
+  import Livebook.Fixtures
   import Phoenix.LiveViewTest
 
   alias Livebook.{Sessions, Session}
@@ -228,6 +229,32 @@ defmodule LivebookWeb.HomeLiveTest do
       refute render(view) =~ session3.id
 
       Session.close([session1.pid, session2.pid, session3.pid])
+    end
+  end
+
+  describe "hubs sidebar" do
+    test "doesn't show with disabled feature flag", %{conn: conn} do
+      Application.put_env(:livebook, :feature_flags, hub: false)
+      {:ok, _view, html} = live(conn, "/")
+      Application.put_env(:livebook, :feature_flags, hub: true)
+
+      refute html =~ "HUBS"
+    end
+
+    test "render section", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ "HUBS"
+      assert html =~ "Add Hub"
+    end
+
+    test "render persisted hubs", %{conn: conn} do
+      fly = create_fly("fly-foo-bar-id")
+
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ "HUBS"
+      assert html =~ fly.hub_name
+
+      Livebook.Hubs.delete_hub("fly-foo-bar-id")
     end
   end
 

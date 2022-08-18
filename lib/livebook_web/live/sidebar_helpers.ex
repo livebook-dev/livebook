@@ -66,36 +66,45 @@ defmodule LivebookWeb.SidebarHelpers do
       aria-label="sidebar"
       data-el-sidebar
     >
-      <div class="flex flex-col space-y-3">
-        <div class="group flex items-center mb-5">
-          <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
-            <img src="/images/logo.png" class="group mx-2" height="40" width="40" alt="logo livebook" />
-            <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
-              Livebook
+      <div class="flex flex-col">
+        <div class="space-y-3">
+          <div class="group flex items-center mb-5">
+            <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
+              <img
+                src="/images/logo.png"
+                class="group mx-2"
+                height="40"
+                width="40"
+                alt="logo livebook"
+              />
+              <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
+                Livebook
+              </span>
+            <% end %>
+            <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
+              v<%= Application.spec(:livebook, :vsn) %>
             </span>
-          <% end %>
-          <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
-            v<%= Application.spec(:livebook, :vsn) %>
-          </span>
+          </div>
+          <.sidebar_link
+            title="Home"
+            icon="home-6-line"
+            to={Routes.home_path(@socket, :page)}
+            current={@current_page}
+          />
+          <.sidebar_link
+            title="Explore"
+            icon="compass-3-line"
+            to={Routes.explore_path(@socket, :page)}
+            current={@current_page}
+          />
+          <.sidebar_link
+            title="Settings"
+            icon="settings-3-line"
+            to={Routes.settings_path(@socket, :page)}
+            current={@current_page}
+          />
         </div>
-        <.sidebar_link
-          title="Home"
-          icon="home-6-line"
-          to={Routes.home_path(@socket, :page)}
-          current={@current_page}
-        />
-        <.sidebar_link
-          title="Explore"
-          icon="compass-3-line"
-          to={Routes.explore_path(@socket, :page)}
-          current={@current_page}
-        />
-        <.sidebar_link
-          title="Settings"
-          icon="settings-3-line"
-          to={Routes.settings_path(@socket, :page)}
-          current={@current_page}
-        />
+        <.hub_section socket={@socket} hubs={@saved_hubs} />
       </div>
       <div class="flex flex-col">
         <%= if Livebook.Config.shutdown_enabled?() do %>
@@ -150,24 +159,56 @@ defmodule LivebookWeb.SidebarHelpers do
     """
   end
 
+  defp hub_section(assigns) do
+    ~H"""
+    <%= if Application.get_env(:livebook, :feature_flags)[:hub] do %>
+      <div id="hubs" class="flex flex-col mt-12">
+        <div class="space-y-1">
+          <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
+            <div class="flex flex-col">
+              <small class="ml-5 font-medium text-white">HUBS</small>
+            </div>
+            <div class="flex flex-col">
+              <%= live_redirect to: Routes.hub_path(@socket, :page),
+                              class: "flex absolute right-5 items-center justify-center
+                                      text-gray-400 hover:text-white hover:border-white" do %>
+                <.remix_icon icon="add-line" />
+              <% end %>
+            </div>
+          </div>
+
+          <%= for hub <- @hubs do %>
+            <%= live_redirect to: Routes.hub_path(@socket, :edit, hub.id), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
+              <.remix_icon
+                class="text-lg leading-6 w-[56px] flex justify-center"
+                icon="checkbox-blank-circle-fill"
+                style={"color: #{hub.color}"}
+              />
+
+              <span class="text-sm font-medium">
+                <%= hub.name %>
+              </span>
+            <% end %>
+          <% end %>
+
+          <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2">
+            <%= live_redirect to: Routes.hub_path(@socket, :page), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
+              <.remix_icon class="text-lg leading-6 w-[56px] flex justify-center" icon="add-line" />
+
+              <span class="text-sm font-medium">
+                Add Hub
+              </span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    """
+  end
+
   defp sidebar_link_text_color(to, current) when to == current, do: "text-white"
   defp sidebar_link_text_color(_to, _current), do: "text-gray-400"
 
   defp sidebar_link_border_color(to, current) when to == current, do: "border-white"
   defp sidebar_link_border_color(_to, _current), do: "border-transparent"
-
-  def sidebar_handlers(socket) do
-    if Livebook.Config.shutdown_enabled?() do
-      attach_hook(socket, :shutdown, :handle_event, fn
-        "shutdown", _params, socket ->
-          System.stop()
-          {:halt, put_flash(socket, :info, "Livebook is shutting down. You can close this page.")}
-
-        _event, _params, socket ->
-          {:cont, socket}
-      end)
-    else
-      socket
-    end
-  end
 end

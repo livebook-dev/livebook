@@ -24,6 +24,7 @@ config :livebook,
   app_service_url: nil,
   authentication_mode: :token,
   explore_notebooks: [],
+  feature_flags: [],
   plugs: [],
   shutdown_enabled: false,
   storage: Livebook.Storage.Ets
