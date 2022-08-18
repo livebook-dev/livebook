@@ -19,6 +19,7 @@ defmodule LivebookWeb.HubLive do
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
+      <.live_region role="alert" />
       <SidebarHelpers.sidebar
         socket={@socket}
         current_user={@current_user}
@@ -143,7 +144,7 @@ defmodule LivebookWeb.HubLive do
   end
 
   @impl true
-  def handle_info({:flash_error, message}, socket) do
-    {:noreply, put_flash(socket, :error, message)}
+  def handle_info({:flash, type, message}, socket) do
+    {:noreply, put_flash(socket, type, message)}
   end
 end

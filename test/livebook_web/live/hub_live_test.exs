@@ -25,38 +25,39 @@ defmodule LivebookWeb.HubLiveTest do
 
       {:ok, view, _html} = live(conn, "/hub")
 
-      # renders the second step
       assert view
              |> element("#fly")
              |> render_click() =~ "2. Configure your Hub"
 
-      # triggers the access_access_token field change
-      # and shows the fly's third step
       assert view
              |> element(~s/input[name="fly[access_token]"]/)
              |> render_change(%{"fly" => %{"access_token" => "dummy access token"}}) =~
                ~s(<option value="123456789">Foo Bar - 123456789</option>)
 
-      # triggers the application_id field change
-      # and assigns `selected_app` to socket
+      attrs = %{
+        "access_token" => "dummy access token",
+        "application_id" => "123456789",
+        "hub_name" => "My Foo Hub",
+        "hub_color" => "#FF00FF"
+      }
+
+      html =
+        view
+        |> element("#fly-form")
+        |> render_change(%{"fly" => attrs})
+
+      refute html =~ "can't be blank"
+      refute html =~ "is invalid"
+      refute html =~ "already exists"
+      refute html =~ "does not exists"
+      refute html =~ "is not a valid color"
+
       view
-      |> element(~s/select[name="fly[application_id]"]/)
-      |> render_change(%{"fly" => %{"application_id" => "123456789"}})
+      |> element("#fly-form")
+      |> render_submit(%{"fly" => attrs})
 
-      # sends the save_hub event to backend
-      # and checks the new hub on sidebar
-      refute view
-             |> element("#fly-form")
-             |> render_submit(%{
-               "fly" => %{
-                 "access_token" => "dummy access token",
-                 "application_id" => "123456789",
-                 "hub_name" => "My Foo Hub",
-                 "hub_color" => "#FF00FF"
-               }
-             }) =~ "Application already exists"
+      assert render(view) =~ "Hub created successfully"
 
-      # and checks the new hub on sidebar
       assert view
              |> element("#hubs")
              |> render() =~ ~s/style="color: #FF00FF"/
@@ -76,26 +77,35 @@ defmodule LivebookWeb.HubLiveTest do
 
       {:ok, view, _html} = live(conn, "/hub/fly-987654321")
 
-      # renders the second step
       assert render(view) =~ "2. Configure your Hub"
 
       assert render(view) =~
                ~s(<option selected="selected" value="987654321">Foo Bar - 987654321</option>)
 
-      # sends the save_hub event to backend
-      # and checks the new hub on sidebar
+      attrs = %{
+        "access_token" => "dummy access token",
+        "application_id" => "987654321",
+        "hub_name" => "Personal Hub",
+        "hub_color" => "#FF00FF"
+      }
+
+      html =
+        view
+        |> element("#fly-form")
+        |> render_change(%{"fly" => attrs})
+
+      refute html =~ "can't be blank"
+      refute html =~ "is invalid"
+      refute html =~ "already exists"
+      refute html =~ "does not exists"
+      refute html =~ "is not a valid color"
+
       view
       |> element("#fly-form")
-      |> render_submit(%{
-        "fly" => %{
-          "access_token" => "dummy access token",
-          "application_id" => "987654321",
-          "hub_name" => "Personal Hub",
-          "hub_color" => "#FF00FF"
-        }
-      })
+      |> render_submit(%{"fly" => attrs})
 
-      # and checks the new hub on sidebar
+      assert render(view) =~ "Hub updated successfully"
+
       assert view
              |> element("#hubs")
              |> render() =~ ~s/style="color: #FF00FF"/
@@ -117,40 +127,39 @@ defmodule LivebookWeb.HubLiveTest do
 
       {:ok, view, _html} = live(conn, "/hub")
 
-      # renders the second step
       assert view
              |> element("#fly")
              |> render_click() =~ "2. Configure your Hub"
 
-      # triggers the access_token field change
-      # and shows the fly's third step
       assert view
              |> element(~s/input[name="fly[access_token]"]/)
              |> render_change(%{"fly" => %{"access_token" => "dummy access token"}}) =~
                ~s(<option value="foo">Foo Bar - foo</option>)
 
-      # triggers the application_id field change
-      # and assigns `selected_app` to socket
-      view
-      |> element(~s/select[name="fly[application_id]"]/)
-      |> render_change(%{"fly" => %{"application_id" => "foo"}})
+      attrs = %{
+        "access_token" => "dummy access token",
+        "application_id" => "foo",
+        "hub_name" => "My Foo Hub",
+        "hub_color" => "#FF00FF"
+      }
 
-      # sends the save_hub event to backend
-      # and checks the new hub on sidebar
-      view
-      |> element("#fly-form")
-      |> render_submit(%{
-        "fly" => %{
-          "access_token" => "dummy access token",
-          "application_id" => "foo",
-          "hub_name" => "My Foo Hub",
-          "hub_color" => "#FF00FF"
-        }
-      })
+      html =
+        view
+        |> element("#fly-form")
+        |> render_change(%{"fly" => attrs})
 
-      assert render(view) =~ "Application already exists"
+      refute html =~ "can't be blank"
+      refute html =~ "is invalid"
+      refute html =~ "already exists"
+      refute html =~ "does not exists"
+      refute html =~ "is not a valid color"
 
-      # and checks the hub didn't change on sidebar
+      assert view
+             |> element("#fly-form")
+             |> render_submit(%{"fly" => attrs}) =~ "already exists"
+
+      assert render(view) =~ "Failed to create Hub"
+
       assert view
              |> element("#hubs")
              |> render() =~ ~s/style="color: #{fly.hub_color}"/
