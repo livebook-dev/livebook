@@ -65,7 +65,7 @@ defmodule Livebook.Hubs do
   """
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
-    attributes = to_ets(struct)
+    attributes = struct |> Map.from_struct() |> Map.to_list()
 
     with :ok <- Storage.current().insert(@namespace, struct.id, attributes),
          :ok <- broadcast_hubs_change() do
@@ -114,14 +114,6 @@ defmodule Livebook.Hubs do
   @spec broadcast_hubs_change() :: :ok
   def broadcast_hubs_change do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "hubs", {:hubs_metadata_changed, fetch_metadatas()})
-  end
-
-  defp to_ets(data) when is_struct(data) do
-    data |> Map.from_struct() |> to_ets()
-  end
-
-  defp to_ets(data) when is_map(data) do
-    Map.to_list(data)
   end
 
   defp to_struct(%{id: "fly-" <> _} = fields) do

@@ -8,13 +8,13 @@ defprotocol Livebook.Hubs.Provider do
         }
 
   @doc """
-  Normalize given struct to `Metadata` struct.
+  Normalize given struct to `Livebook.Hubs.Metadata` struct.
   """
   @spec normalize(t()) :: Livebook.Hubs.Metadata.t()
   def normalize(struct)
 
   @doc """
-  Loads data into a struct.
+  Loads fields into given struct.
   """
   @spec load(t(), map() | keyword()) :: t()
   def load(struct, fields)

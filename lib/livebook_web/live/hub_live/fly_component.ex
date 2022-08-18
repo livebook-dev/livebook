@@ -184,19 +184,15 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     disabled_option = [key: "Select one application", value: "", selected: true, disabled: true]
 
     options =
-      for fly <- hubs, reduce: [disabled_option] do
-        acc ->
-          [
-            [
-              key: "#{fly.organization_name} - #{fly.application_id}",
-              value: fly.application_id,
-              selected: fly.application_id == app_id
-            ]
-            | acc
-          ]
+      for fly <- hubs do
+        [
+          key: "#{fly.organization_name} - #{fly.application_id}",
+          value: fly.application_id,
+          selected: fly.application_id == app_id
+        ]
       end
 
-    Enum.reverse(options)
+    Enum.reverse(options ++ [disabled_option])
   end
 
   defp create_fly(socket, params) do
