@@ -1,7 +1,6 @@
 defmodule LivebookWeb.HubLiveTest do
   use LivebookWeb.ConnCase, async: true
 
-  import Livebook.Fixtures
   import Phoenix.LiveViewTest
 
   alias Livebook.Hubs
@@ -73,7 +72,7 @@ defmodule LivebookWeb.HubLiveTest do
 
     test "updates fly", %{conn: conn} do
       fly_app_bypass("987654321")
-      fly = create_fly("fly-987654321", %{application_id: "987654321"})
+      fly = insert_hub(:fly, id: "fly-987654321", application_id: "987654321")
 
       {:ok, view, _html} = live(conn, "/hub/fly-987654321")
 
@@ -122,7 +121,7 @@ defmodule LivebookWeb.HubLiveTest do
     end
 
     test "fails to create existing hub", %{conn: conn} do
-      fly = create_fly("fly-foo", %{application_id: "foo"})
+      fly = insert_hub(:fly, id: "fly-foo", application_id: "foo")
       fly_app_bypass("foo")
 
       {:ok, view, _html} = live(conn, "/hub")
