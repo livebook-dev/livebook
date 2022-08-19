@@ -25,7 +25,7 @@ defmodule Livebook.Users.User do
 
   embedded_schema do
     field(:name, :string)
-    field(:hex_color, :string)
+    field(:hex_color, Livebook.EctoTypes.HexColor)
   end
 
   @doc """
@@ -44,21 +44,6 @@ defmodule Livebook.Users.User do
     user
     |> cast(attrs, [:id, :name, :hex_color])
     |> validate_required([:id, :name, :hex_color])
-    |> validate_color()
-  end
-
-  defp validate_color(changeset) do
-    case get_field(changeset, :hex_color) do
-      nil ->
-        changeset
-
-      hex_color ->
-        if Utils.valid_hex_color?(hex_color) do
-          changeset
-        else
-          add_error(changeset, :hex_color, "not a valid color")
-        end
-    end
   end
 
   @doc """

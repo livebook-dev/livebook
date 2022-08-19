@@ -3,7 +3,7 @@ defmodule Livebook.Hubs.Fly do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Livebook.{Hubs, Utils}
+  alias Livebook.Hubs
 
   @type t :: %__MODULE__{
           id: Livebook.Utils.id(),
@@ -19,7 +19,7 @@ defmodule Livebook.Hubs.Fly do
   embedded_schema do
     field(:access_token, :string)
     field(:hub_name, :string)
-    field(:hub_color, :string)
+    field(:hub_color, Livebook.EctoTypes.HexColor)
     field(:organization_id, :string)
     field(:organization_type, :string)
     field(:organization_name, :string)
@@ -40,22 +40,7 @@ defmodule Livebook.Hubs.Fly do
     fly
     |> cast(attrs, @fields)
     |> validate_required(@fields)
-    |> validate_color()
     |> add_id()
-  end
-
-  defp validate_color(changeset) do
-    case get_field(changeset, :hub_color) do
-      nil ->
-        changeset
-
-      hex_color ->
-        if Utils.valid_hex_color?(hex_color) do
-          changeset
-        else
-          add_error(changeset, :hub_color, "not a valid color")
-        end
-    end
   end
 
   defp add_id(changeset) do
