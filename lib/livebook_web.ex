@@ -62,8 +62,8 @@ defmodule LivebookWeb do
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View
-      alias Phoenix.LiveView.JS
       import LivebookWeb.ErrorHelpers
+      alias Phoenix.LiveView.JS
       alias LivebookWeb.Router.Helpers, as: Routes
 
       # Custom helpers

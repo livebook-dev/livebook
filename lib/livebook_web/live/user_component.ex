@@ -3,20 +3,16 @@ defmodule LivebookWeb.UserComponent do
 
   import LivebookWeb.UserHelpers
 
-  alias Livebook.Users.User
+  alias Livebook.EctoTypes.HexColor
+  alias Livebook.Users
 
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
     user = socket.assigns.user
-    changeset = User.changeset(user)
+    changeset = Users.change_user(user)
 
-    {:ok,
-     assign(socket,
-       changeset: Map.put(changeset, :action, :validate),
-       valid?: changeset.valid?,
-       preview_user: user
-     )}
+    {:ok, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
   end
 
   @impl true
@@ -27,7 +23,7 @@ defmodule LivebookWeb.UserComponent do
         User profile
       </h3>
       <div class="flex justify-center">
-        <.user_avatar user={@preview_user} class="h-20 w-20" text_class="text-3xl" />
+        <.user_avatar user={@user} class="h-20 w-20" text_class="text-3xl" />
       </div>
       <.form
         let={f}
@@ -88,33 +84,22 @@ defmodule LivebookWeb.UserComponent do
 
   @impl true
   def handle_event("randomize_color", %{}, socket) do
-    hex_color = User.random_hex_color(except: [socket.assigns.preview_user.hex_color])
+    hex_color = HexColor.random(except: [socket.assigns.user.hex_color])
     handle_event("validate", %{"user" => %{"hex_color" => hex_color}}, socket)
   end
 
-  def handle_event("validate", %{"user" => attrs}, socket) do
-    params = Map.merge(socket.assigns.changeset.params, attrs)
+  def handle_event("validate", %{"user" => params}, socket) do
+    changeset = Users.change_user(socket.assigns.user, params)
 
-    changeset =
-      if socket.assigns.preview_user do
-        User.changeset(socket.assigns.preview_user, params)
-      else
-        User.changeset(socket.assigns.changeset, params)
-      end
-
-    {:noreply,
-     assign(socket, changeset: Map.put(changeset, :action, :validate), valid?: changeset.valid?)}
+    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
   end
 
   def handle_event("save", %{"user" => params}, socket) do
-    changeset = User.changeset(socket.assigns.changeset, params)
+    changeset = Users.change_user(socket.assigns.user, params)
 
-    case Ecto.Changeset.apply_action(changeset, :update) do
+    case Users.update_user(changeset) do
       {:ok, user} ->
-        Livebook.Users.broadcast_change(user)
-
-        {:noreply,
-         assign(socket, changeset: changeset, valid?: changeset.valid?, preview_user: user)}
+        {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}

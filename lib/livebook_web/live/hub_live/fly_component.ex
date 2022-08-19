@@ -1,8 +1,10 @@
 defmodule LivebookWeb.HubLive.FlyComponent do
   use LivebookWeb, :live_component
 
+  import Ecto.Changeset, only: [get_field: 2, add_error: 3]
+
+  alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Fly, FlyClient}
-  alias Livebook.Users.User
 
   @impl true
   def update(assigns, socket) do
@@ -110,7 +112,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
 
   defp load_data(%{assigns: %{operation: :new}} = socket) do
     assign(socket,
-      changeset: Fly.changeset(%Fly{}),
+      changeset: Fly.change_hub(%Fly{}),
       selected_app: nil,
       select_options: [],
       apps: [],
@@ -123,7 +125,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     params = Map.from_struct(fly)
 
     assign(socket,
-      changeset: Fly.changeset(fly, params),
+      changeset: Fly.change_hub(fly, params),
       selected_app: fly,
       select_options: select_options(apps),
       apps: apps,
@@ -139,7 +141,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
 
         changeset =
           socket.assigns.changeset
-          |> Fly.changeset(%{access_token: token, hub_color: User.random_hex_color()})
+          |> Fly.changeset(%{access_token: token, hub_color: HexColor.random()})
           |> clean_errors()
 
         {:noreply,
@@ -174,7 +176,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     changeset =
       socket.assigns.changeset
       |> clean_errors()
-      |> Fly.changeset(%{hub_color: User.random_hex_color()})
+      |> Fly.change_hub(%{hub_color: HexColor.random()})
       |> put_action()
 
     {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
@@ -193,14 +195,14 @@ defmodule LivebookWeb.HubLive.FlyComponent do
 
     changeset =
       if selected_app do
-        Fly.changeset(selected_app, params)
+        Fly.change_hub(selected_app, params)
       else
         Fly.changeset(socket.assigns.changeset, params)
       end
 
     {:noreply,
      assign(socket,
-       changeset: put_action(changeset),
+       changeset: changeset,
        valid?: changeset.valid?,
        selected_app: selected_app,
        select_options: opts
@@ -223,11 +225,11 @@ defmodule LivebookWeb.HubLive.FlyComponent do
   end
 
   defp save_fly(socket, :new, params) do
-    case Fly.create_fly(socket.assigns.selected_app, params) do
+    case Fly.create_hub(socket.assigns.selected_app, params) do
       {:ok, fly} ->
         changeset =
           fly
-          |> Fly.changeset(params)
+          |> Fly.change_hub(params)
           |> put_action()
 
         send(self(), {:flash, :info, "Hub created successfully"})
@@ -240,11 +242,11 @@ defmodule LivebookWeb.HubLive.FlyComponent do
   end
 
   defp save_fly(socket, :edit, params) do
-    case Fly.update_fly(socket.assigns.selected_app, params) do
+    case Fly.update_hub(socket.assigns.selected_app, params) do
       {:ok, fly} ->
         changeset =
           fly
-          |> Fly.changeset(params)
+          |> Fly.change_hub(params)
           |> put_action()
 
         send(self(), {:flash, :info, "Hub updated successfully"})
@@ -256,12 +258,9 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     end
   end
 
-  defp clean_errors(changeset), do: Map.put(changeset, :errors, [])
-  defp put_action(changeset, action \\ :validate), do: Map.put(changeset, :action, action)
+  defp clean_errors(changeset), do: %{changeset | errors: []}
+  defp put_action(changeset, action \\ :validate), do: %{changeset | action: action}
 
   defp hub_color(changeset), do: get_field(changeset, :hub_color)
   defp access_token(changeset), do: get_field(changeset, :access_token)
-
-  defdelegate get_field(changeset, field), to: Ecto.Changeset
-  defdelegate add_error(changeset, field, message), to: Ecto.Changeset
 end

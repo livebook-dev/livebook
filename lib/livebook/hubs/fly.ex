@@ -36,22 +36,30 @@ defmodule Livebook.Hubs.Fly do
     application_id
   )a
 
-  def changeset(fly, attrs \\ %{}) do
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking hub changes.
+
+  ## Examples
+
+      Livebook.Hubs.Fly.change_hub(%Livebook.Hubs.Fly{})
+      %Ecto.Changeset{data: %Livebook.Hubs.Fly{}, action: :validate}
+
+  """
+  @spec change_hub(t(), map()) :: Ecto.Changeset.t()
+  def change_hub(%__MODULE__{} = fly, attrs \\ %{}) do
     fly
-    |> cast(attrs, @fields)
-    |> validate_required(@fields)
-    |> add_id()
+    |> changeset(attrs)
+    |> Map.put(:action, :validate)
   end
 
-  defp add_id(changeset) do
-    if application_id = get_field(changeset, :application_id) do
-      change(changeset, %{id: "fly-#{application_id}"})
-    else
-      changeset
-    end
-  end
+  @doc """
+  Creates a Hub.
 
-  def create_fly(%__MODULE__{} = fly, attrs) do
+  With success, notifies interested processes about hub metadatas data change.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec create_hub(t(), map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
+  def create_hub(%__MODULE__{} = fly, attrs) do
     changeset = changeset(fly, attrs)
 
     if Hubs.hub_exists?(fly.id) do
@@ -64,7 +72,14 @@ defmodule Livebook.Hubs.Fly do
     end
   end
 
-  def update_fly(%__MODULE__{} = fly, attrs) do
+  @doc """
+  Updates a Hub.
+
+  With success, notifies interested processes about hub metadatas data change.
+  Otherwise, it will return an error tuple with changeset.
+  """
+  @spec update_hub(t(), map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
+  def update_hub(%__MODULE__{} = fly, attrs) do
     changeset = changeset(fly, attrs)
 
     if Hubs.hub_exists?(fly.id) do
@@ -74,6 +89,21 @@ defmodule Livebook.Hubs.Fly do
       end
     else
       {:error, add_error(changeset, :application_id, "does not exists")}
+    end
+  end
+
+  def changeset(fly, attrs \\ %{}) do
+    fly
+    |> cast(attrs, @fields)
+    |> validate_required(@fields)
+    |> add_id()
+  end
+
+  defp add_id(changeset) do
+    if application_id = get_field(changeset, :application_id) do
+      change(changeset, %{id: "fly-#{application_id}"})
+    else
+      changeset
     end
   end
 end
