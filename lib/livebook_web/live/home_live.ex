@@ -136,7 +136,7 @@ defmodule LivebookWeb.HomeLive do
       </div>
     </div>
 
-    <.current_user_modal current_user={@current_user} />
+    <.current_user_modal current_user={@current_user} return_to={Routes.home_path(@socket, :page)} />
 
     <%= if @live_action == :close_session do %>
       <.modal id="close-session-modal" show class="w-full max-w-xl" patch={@self_path}>

@@ -49,7 +49,7 @@ defmodule LivebookWeb.UserHelpers do
 
   ## Examples
 
-      <.current_user_modal current_user={@current_user} />
+      <.current_user_modal current_user={@current_user} return_to={@current_page} />
   """
   def current_user_modal(assigns) do
     ~H"""
@@ -58,6 +58,7 @@ defmodule LivebookWeb.UserHelpers do
         module={LivebookWeb.UserComponent}
         id="user"
         user={@current_user}
+        return_to={@return_to}
         on_save={hide_current_user_modal()}
       />
     </.modal>

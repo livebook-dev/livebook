@@ -232,16 +232,22 @@ defmodule LivebookWeb.HubLive.FlyComponent do
           |> Fly.change_hub(params)
           |> put_action()
 
-        send(self(), {:flash, :info, "Hub created successfully"})
-        assign(socket, changeset: changeset, selected_app: fly, valid?: false)
+        socket
+        |> assign(changeset: changeset, valid?: changeset.valid?)
+        |> put_flash(:success, "Hub created successfully")
+        |> push_redirect(to: Routes.hub_path(socket, :edit, fly.id))
 
       {:error, changeset} ->
-        send(self(), {:flash, :error, "Failed to create Hub"})
-        assign(socket, changeset: put_action(changeset), valid?: changeset.valid?)
+        socket
+        |> assign(changeset: put_action(changeset), valid?: changeset.valid?)
+        |> put_flash(:error, "Failed to create Hub")
+        |> push_redirect(to: Routes.hub_path(socket, :page))
     end
   end
 
   defp save_fly(socket, :edit, params) do
+    id = socket.assigns.selected_app.id
+
     case Fly.update_hub(socket.assigns.selected_app, params) do
       {:ok, fly} ->
         changeset =
@@ -249,12 +255,16 @@ defmodule LivebookWeb.HubLive.FlyComponent do
           |> Fly.change_hub(params)
           |> put_action()
 
-        send(self(), {:flash, :info, "Hub updated successfully"})
-        assign(socket, changeset: changeset, selected_app: fly, valid?: changeset.valid?)
+        socket
+        |> assign(changeset: changeset, selected_app: fly, valid?: changeset.valid?)
+        |> put_flash(:success, "Hub updated successfully")
+        |> push_redirect(to: Routes.hub_path(socket, :edit, id))
 
       {:error, changeset} ->
-        send(self(), {:flash, :error, "Failed to update Hub"})
-        assign(socket, changeset: put_action(changeset), valid?: changeset.valid?)
+        socket
+        |> assign(changeset: changeset, valid?: changeset.valid?)
+        |> put_flash(:error, "Failed to update Hub")
+        |> push_redirect(to: Routes.hub_path(socket, :edit, id))
     end
   end
 

@@ -12,7 +12,13 @@ defmodule LivebookWeb.UserComponent do
     user = socket.assigns.user
     changeset = Users.change_user(user)
 
-    {:ok, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
+    {:ok,
+     assign(socket,
+       changeset: changeset,
+       valid?: changeset.valid?,
+       user: user,
+       return_to: assigns.return_to
+     )}
   end
 
   @impl true
@@ -98,8 +104,11 @@ defmodule LivebookWeb.UserComponent do
     changeset = Users.change_user(socket.assigns.user, params)
 
     case Users.update_user(changeset) do
-      {:ok, user} ->
-        {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
+      {:ok, _user} ->
+        {:noreply,
+         socket
+         |> put_flash(:success, "User data updated")
+         |> push_patch(to: socket.assigns.return_to)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}

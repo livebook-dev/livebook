@@ -166,7 +166,10 @@ defmodule LivebookWeb.SettingsLive do
       </div>
     </div>
 
-    <.current_user_modal current_user={@current_user} />
+    <.current_user_modal
+      current_user={@current_user}
+      return_to={Routes.settings_path(@socket, :page)}
+    />
 
     <%= if @live_action == :add_file_system do %>
       <.modal

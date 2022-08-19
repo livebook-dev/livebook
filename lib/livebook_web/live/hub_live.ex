@@ -12,7 +12,13 @@ defmodule LivebookWeb.HubLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, selected_provider: nil, hub: nil, page_title: "Livebook - Hub")}
+    {:ok,
+     assign(socket,
+       selected_provider: nil,
+       hub: nil,
+       page_title: "Livebook - Hub",
+       current_page: nil
+     )}
   end
 
   @impl true
@@ -23,7 +29,7 @@ defmodule LivebookWeb.HubLive do
       <SidebarHelpers.sidebar
         socket={@socket}
         current_user={@current_user}
-        current_page=""
+        current_page={@current_page}
         saved_hubs={@saved_hubs}
       />
 
@@ -95,7 +101,7 @@ defmodule LivebookWeb.HubLive do
         </div>
       </div>
 
-      <.current_user_modal current_user={@current_user} />
+      <.current_user_modal current_user={@current_user} return_to={@current_page} />
     </div>
     """
   end
@@ -131,20 +137,21 @@ defmodule LivebookWeb.HubLive do
     hub = Hubs.fetch_hub!(id)
     provider = Provider.type(hub)
 
-    {:noreply, assign(socket, operation: :edit, hub: hub, selected_provider: provider)}
+    {:noreply,
+     assign(socket,
+       operation: :edit,
+       hub: hub,
+       selected_provider: provider,
+       current_page: Routes.hub_path(socket, :edit, id)
+     )}
   end
 
   def handle_params(_params, _url, socket) do
-    {:noreply, assign(socket, operation: :new)}
+    {:noreply, assign(socket, operation: :new, current_page: Routes.hub_path(socket, :page))}
   end
 
   @impl true
   def handle_event("select_provider", %{"value" => service}, socket) do
     {:noreply, assign(socket, selected_provider: service)}
-  end
-
-  @impl true
-  def handle_info({:flash, type, message}, socket) do
-    {:noreply, put_flash(socket, type, message)}
   end
 end
