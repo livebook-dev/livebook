@@ -14,12 +14,12 @@
 
 		<%= if live_flash(@flash, :success) do %>
       <div
-        class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-green-500 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer"
+        class="shadow-custom-1 max-w-2xl flex items-center space-x-3 rounded-lg px-4 py-2 border-l-4 rounded-l-none border-blue-500 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-500 cursor-pointer"
         role="alert"
         phx-click="lv:clear-flash"
-        phx-value-key="info"
+        phx-value-key="success"
       >
-        <.remix_icon icon="checkbox-circle-fill" class="text-2xl text-green-500" />
+        <.remix_icon icon="checkbox-circle-fill" class="text-2xl text-blue-500" />
         <span class="whitespace-pre-wrap"><%= live_flash(@flash, :success) %></span>
       </div>
     <% end %>
