@@ -17,16 +17,9 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
       </h3>
       <div class="w-full flex-col space-y-5">
         <p class="text-gray-700">
-          Configure an AWS S3 bucket as a drop in replacement of the regular
-          file system. Many storage services offer an S3-compatible API, so
-          you can use those as well. One such service is
-          <a class="link" href="https://www.storj.io" rel="noreferrer noopener">Storj</a>
-          and they offer free storage.
-        </p>
-        <p class="text-gray-700">
-          Note that any other user of your Livebook could theoretically extract
-          the credentials, so make sure to properly limit their access to this
-          specific bucket.
+          Configure an AWS S3 bucket as a Livebook file system.
+          Many storage services offer an S3-compatible API and
+          those work as well.
         </p>
         <%= if @error_message do %>
           <div class="error-box">
