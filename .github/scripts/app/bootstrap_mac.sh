@@ -8,7 +8,7 @@ main() {
   wxwidgets_ref="v3.1.7"
   otp_repo="wojtekmach/otp"
   otp_ref="wm-WX_MACOS_NON_GUI_APP"
-  elixir_vsn="1.14.0-rc.0"
+  elixir_vsn="1.14.0-rc.1"
 
   target=$(target)
 
