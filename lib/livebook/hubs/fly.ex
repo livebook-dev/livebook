@@ -62,7 +62,7 @@ defmodule Livebook.Hubs.Fly do
     if application_id = get_field(changeset, :application_id) do
       change(changeset, %{id: "fly-#{application_id}"})
     else
-      validate_required(changeset, [:id])
+      changeset
     end
   end
 
