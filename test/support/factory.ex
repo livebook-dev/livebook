@@ -1,7 +1,7 @@
 defmodule Livebook.Factory do
-  use ExMachina
+  @moduledoc false
 
-  def user_factory do
+  def build(:user) do
     %Livebook.Users.User{
       id: Livebook.Utils.random_id(),
       name: "Jose Valim",
@@ -9,7 +9,7 @@ defmodule Livebook.Factory do
     }
   end
 
-  def fly_metadata_factory do
+  def build(:fly_metadata) do
     %Livebook.Hubs.Metadata{
       id: "fly-foo-bar-baz",
       name: "My Personal Hub",
@@ -18,7 +18,7 @@ defmodule Livebook.Factory do
     }
   end
 
-  def fly_factory do
+  def build(:fly) do
     %Livebook.Hubs.Fly{
       id: "fly-foo-bar-baz",
       hub_name: "My Personal Hub",
@@ -29,6 +29,10 @@ defmodule Livebook.Factory do
       organization_name: "Foo",
       application_id: "foo-bar-baz"
     }
+  end
+
+  def build(factory_name, attrs \\ %{}) do
+    factory_name |> build() |> struct!(attrs)
   end
 
   def insert_hub(factory_name, attrs \\ %{}) do
