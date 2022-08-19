@@ -5,7 +5,7 @@ defmodule Livebook.Factory do
     %Livebook.Users.User{
       id: Livebook.Utils.random_id(),
       name: "Jose Valim",
-      hex_color: Livebook.Users.User.random_hex_color()
+      hex_color: Livebook.EctoTypes.HexColor.random()
     }
   end
 

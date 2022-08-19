@@ -36,7 +36,7 @@ defmodule Livebook.Users.User do
     %__MODULE__{
       id: Utils.random_id(),
       name: nil,
-      hex_color: random_hex_color()
+      hex_color: Livebook.EctoTypes.HexColor.random()
     }
   end
 
@@ -44,38 +44,5 @@ defmodule Livebook.Users.User do
     user
     |> cast(attrs, [:id, :name, :hex_color])
     |> validate_required([:id, :name, :hex_color])
-  end
-
-  @doc """
-  Returns a random hex color for a user.
-
-  ## Options
-
-    * `:except` - a list of colors to omit
-  """
-  def random_hex_color(opts \\ []) do
-    colors = [
-      # red
-      "#F87171",
-      # yellow
-      "#FBBF24",
-      # green
-      "#6EE7B7",
-      # blue
-      "#60A5FA",
-      # purple
-      "#A78BFA",
-      # pink
-      "#F472B6",
-      # salmon
-      "#FA8072",
-      # mat green
-      "#9ED9CC"
-    ]
-
-    except = opts[:except] || []
-    colors = colors -- except
-
-    Enum.random(colors)
   end
 end
