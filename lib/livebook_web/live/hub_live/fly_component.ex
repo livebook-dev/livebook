@@ -238,10 +238,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
         |> push_redirect(to: Routes.hub_path(socket, :edit, fly.id))
 
       {:error, changeset} ->
-        socket
-        |> assign(changeset: put_action(changeset), valid?: changeset.valid?)
-        |> put_flash(:error, "Failed to create Hub")
-        |> push_redirect(to: Routes.hub_path(socket, :page))
+        assign(socket, changeset: put_action(changeset), valid?: changeset.valid?)
     end
   end
 
@@ -261,10 +258,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
         |> push_redirect(to: Routes.hub_path(socket, :edit, id))
 
       {:error, changeset} ->
-        socket
-        |> assign(changeset: changeset, valid?: changeset.valid?)
-        |> put_flash(:error, "Failed to update Hub")
-        |> push_redirect(to: Routes.hub_path(socket, :edit, id))
+        assign(socket, changeset: changeset, valid?: changeset.valid?)
     end
   end
 

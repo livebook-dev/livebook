@@ -40,20 +40,21 @@ defmodule LivebookWeb.HubLiveTest do
         "hub_color" => "#FF00FF"
       }
 
-      html =
-        view
-        |> element("#fly-form")
-        |> render_change(%{"fly" => attrs})
-
-      refute html =~ "can't be blank"
-      refute html =~ "is invalid"
-      refute html =~ "already exists"
-      refute html =~ "does not exists"
-      refute html =~ "is not a valid color"
-
       view
       |> element("#fly-form")
-      |> render_submit(%{"fly" => attrs})
+      |> render_change(%{"fly" => attrs})
+
+      refute render(view) =~ "can't be blank"
+      refute render(view) =~ "is invalid"
+      refute render(view) =~ "already exists"
+      refute render(view) =~ "does not exists"
+      refute render(view) =~ "is not a valid color"
+
+      assert {:ok, view, _html} =
+               view
+               |> element("#fly-form")
+               |> render_submit(%{"fly" => attrs})
+               |> follow_redirect(conn)
 
       assert render(view) =~ "Hub created successfully"
 
@@ -88,20 +89,21 @@ defmodule LivebookWeb.HubLiveTest do
         "hub_color" => "#FF00FF"
       }
 
-      html =
-        view
-        |> element("#fly-form")
-        |> render_change(%{"fly" => attrs})
-
-      refute html =~ "can't be blank"
-      refute html =~ "is invalid"
-      refute html =~ "already exists"
-      refute html =~ "does not exists"
-      refute html =~ "is not a valid color"
-
       view
       |> element("#fly-form")
-      |> render_submit(%{"fly" => attrs})
+      |> render_change(%{"fly" => attrs})
+
+      refute render(view) =~ "can't be blank"
+      refute render(view) =~ "is invalid"
+      refute render(view) =~ "already exists"
+      refute render(view) =~ "does not exists"
+      refute render(view) =~ "is not a valid color"
+
+      assert {:ok, view, _html} =
+               view
+               |> element("#fly-form")
+               |> render_submit(%{"fly" => attrs})
+               |> follow_redirect(conn)
 
       assert render(view) =~ "Hub updated successfully"
 
@@ -142,22 +144,19 @@ defmodule LivebookWeb.HubLiveTest do
         "hub_color" => "#FF00FF"
       }
 
-      html =
-        view
-        |> element("#fly-form")
-        |> render_change(%{"fly" => attrs})
+      view
+      |> element("#fly-form")
+      |> render_change(%{"fly" => attrs})
 
-      refute html =~ "can't be blank"
-      refute html =~ "is invalid"
-      refute html =~ "already exists"
-      refute html =~ "does not exists"
-      refute html =~ "is not a valid color"
+      refute render(view) =~ "can't be blank"
+      refute render(view) =~ "is invalid"
+      refute render(view) =~ "already exists"
+      refute render(view) =~ "does not exists"
+      refute render(view) =~ "is not a valid color"
 
       assert view
              |> element("#fly-form")
              |> render_submit(%{"fly" => attrs}) =~ "already exists"
-
-      assert render(view) =~ "Failed to create Hub"
 
       assert view
              |> element("#hubs")
