@@ -965,8 +965,8 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
-  def handle_cast({:add_secret, %{label: label, value: value} = secret}, state) do
-    Runtime.add_system_envs(state.data.runtime, %{label: "LB_#{label}", value: value})
+  def handle_cast({:add_secret, secret}, state) do
+    Runtime.add_system_envs(state.data.runtime, %{("LB_" <> secret.label) => secret.value})
     state = put_in(state.secrets, [secret | state.secrets])
     {:noreply, notify_update(state)}
   end
@@ -1304,6 +1304,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
+      restore_secrets(state, runtime)
       state
     else
       state
@@ -1521,6 +1522,11 @@ defmodule Livebook.Session do
 
   defp put_memory_usage(state, runtime) do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
+  end
+
+  defp restore_secrets(state, runtime) do
+    secrets = Enum.map(state.secrets, &{"#LB_{&1.label}", &1.value})
+    Runtime.add_system_envs(runtime, secrets)
   end
 
   defp notify_update(state) do

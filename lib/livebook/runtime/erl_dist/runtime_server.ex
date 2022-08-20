@@ -166,6 +166,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     GenServer.cast(pid, {:stop_smart_cell, ref})
   end
 
+  def add_system_envs(pid, secrets) do
+    GenServer.cast(pid, {:add_secrets, secrets})
+  end
+
   @doc """
   Stops the manager.
 
@@ -443,6 +447,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
     end
 
+    {:noreply, state}
+  end
+
+  def handle_cast({:add_secrets, secrets}, state) do
+    System.put_env(secrets)
     {:noreply, state}
   end
 

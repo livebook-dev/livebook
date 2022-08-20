@@ -212,4 +212,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.MixStandalone do
   def search_packages(_runtime, _send_to, _search) do
     raise "not supported"
   end
+
+  def add_system_envs(runtime, secret) do
+    RuntimeServer.add_system_envs(runtime.server_pid, secret)
+  end
 end

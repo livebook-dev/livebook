@@ -241,8 +241,6 @@ defprotocol Livebook.Runtime do
 
   @type smart_cell_attrs :: map()
 
-  @type secret :: %{label: String.t(), value: String.t()}
-
   @doc """
   Returns relevant information about the runtime.
 
@@ -471,8 +469,8 @@ defprotocol Livebook.Runtime do
   def search_packages(runtime, send_to, search)
 
   @doc """
-  Adds a Livebook secret as an environment variable
+  Adds Livebook secrets as environment variables
   """
-  @spec add_system_envs(t(), secret()) :: :ok
-  def add_system_envs(runtime, secret)
+  @spec add_system_envs(t(), Enumerable.t()) :: :ok
+  def add_system_envs(runtime, secrets)
 end
