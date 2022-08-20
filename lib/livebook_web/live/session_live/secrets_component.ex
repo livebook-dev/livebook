@@ -45,7 +45,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 value: @data["value"],
                 class: "input",
                 placeholder: "secret value",
-                autofocus: true,
                 aria_labelledby: "secret-value",
                 spellcheck: "false"
               ) %>

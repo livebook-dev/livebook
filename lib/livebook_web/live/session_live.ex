@@ -548,12 +548,14 @@ defmodule LivebookWeb.SessionLive do
         Secrets
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- @session.secrets do %>
-          <div class="flex items-center text-gray-500">
-            <span class="flex items-center space-x-1">
-              <%= secret.label %>
-            </span>
-          </div>
+        <%= if @session.secrets do %>
+          <%= for secret <- @session.secrets do %>
+            <div class="flex items-center text-gray-500">
+              <span class="flex items-center space-x-1">
+                <%= secret.label %>
+              </span>
+            </div>
+          <% end %>
         <% end %>
       </div>
       <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),

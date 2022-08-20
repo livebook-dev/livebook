@@ -79,7 +79,7 @@ defmodule Livebook.Session do
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
           memory_usage: memory_usage(),
-          secrets: list()
+          secrets: list() | nil
         }
 
   @type state :: %{
@@ -91,7 +91,7 @@ defmodule Livebook.Session do
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
           memory_usage: memory_usage(),
-          secrets: list()
+          secrets: list() | nil
         }
 
   @type memory_usage ::
@@ -600,7 +600,7 @@ defmodule Livebook.Session do
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
         worker_pid: worker_pid,
-        secrets: []
+        secrets: nil
       }
 
       {:ok, state}
@@ -967,7 +967,8 @@ defmodule Livebook.Session do
 
   def handle_cast({:add_secret, secret}, state) do
     Runtime.add_system_envs(state.data.runtime, %{("LB_" <> secret.label) => secret.value})
-    state = put_in(state.secrets, [secret | state.secrets])
+    secrets = if state.secrets, do: [secret | state.secrets], else: [secret]
+    state = put_in(state.secrets, secrets)
     {:noreply, notify_update(state)}
   end
 
@@ -1304,7 +1305,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
-      restore_secrets(state, runtime)
+      if state.secrets, do: restore_secrets(state, runtime)
       state
     else
       state
