@@ -24,8 +24,8 @@ defmodule Livebook.Users.User do
   @type hex_color :: String.t()
 
   embedded_schema do
-    field(:name, :string)
-    field(:hex_color, Livebook.EctoTypes.HexColor)
+    field :name, :string
+    field :hex_color, Livebook.EctoTypes.HexColor
   end
 
   @doc """
