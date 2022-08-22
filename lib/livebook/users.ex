@@ -5,12 +5,6 @@ defmodule Livebook.Users do
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking user changes.
-
-  ## Examples
-
-      Livebook.Users.change_user(%Livebook.Users.User{})
-      %Ecto.Changeset{data: %Livebook.Users.User{}, action: :validate}
-
   """
   @spec change_user(User.t(), map()) :: Ecto.Changeset.t()
   def change_user(%User{} = user, attrs \\ %{}) do

@@ -44,11 +44,11 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_change(%{"fly" => attrs})
 
-      refute render(view) =~ "can't be blank"
-      refute render(view) =~ "is invalid"
-      refute render(view) =~ "already exists"
-      refute render(view) =~ "does not exists"
-      refute render(view) =~ "is not a valid color"
+      assert view
+             |> element("#fly-form")
+             |> render()
+             |> Floki.parse_document!()
+             |> Floki.find(".invalid-feedback") == []
 
       assert {:ok, view, _html} =
                view
@@ -93,11 +93,11 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_change(%{"fly" => attrs})
 
-      refute render(view) =~ "can't be blank"
-      refute render(view) =~ "is invalid"
-      refute render(view) =~ "already exists"
-      refute render(view) =~ "does not exists"
-      refute render(view) =~ "is not a valid color"
+      assert view
+             |> element("#fly-form")
+             |> render()
+             |> Floki.parse_document!()
+             |> Floki.find(".invalid-feedback") == []
 
       assert {:ok, view, _html} =
                view
@@ -148,11 +148,11 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_change(%{"fly" => attrs})
 
-      refute render(view) =~ "can't be blank"
-      refute render(view) =~ "is invalid"
-      refute render(view) =~ "already exists"
-      refute render(view) =~ "does not exists"
-      refute render(view) =~ "is not a valid color"
+      assert view
+             |> element("#fly-form")
+             |> render()
+             |> Floki.parse_document!()
+             |> Floki.find(".invalid-feedback") == []
 
       assert view
              |> element("#fly-form")

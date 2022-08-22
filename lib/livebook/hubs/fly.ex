@@ -17,13 +17,13 @@ defmodule Livebook.Hubs.Fly do
         }
 
   embedded_schema do
-    field(:access_token, :string)
-    field(:hub_name, :string)
-    field(:hub_color, Livebook.EctoTypes.HexColor)
-    field(:organization_id, :string)
-    field(:organization_type, :string)
-    field(:organization_name, :string)
-    field(:application_id, :string)
+    field :access_token, :string
+    field :hub_name, :string
+    field :hub_color, Livebook.EctoTypes.HexColor
+    field :organization_id, :string
+    field :organization_type, :string
+    field :organization_name, :string
+    field :application_id, :string
   end
 
   @fields ~w(
@@ -38,12 +38,6 @@ defmodule Livebook.Hubs.Fly do
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking hub changes.
-
-  ## Examples
-
-      Livebook.Hubs.Fly.change_hub(%Livebook.Hubs.Fly{})
-      %Ecto.Changeset{data: %Livebook.Hubs.Fly{}, action: :validate}
-
   """
   @spec change_hub(t(), map()) :: Ecto.Changeset.t()
   def change_hub(%__MODULE__{} = fly, attrs \\ %{}) do

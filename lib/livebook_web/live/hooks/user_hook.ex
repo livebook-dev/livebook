@@ -20,7 +20,7 @@ defmodule LivebookWeb.UserHook do
          {:user_change, %{id: id} = user},
          %{assigns: %{current_user: %{id: id}}} = socket
        ) do
-    {:halt, assign(socket, :current_user, user)}
+    {:cont, assign(socket, :current_user, user)}
   end
 
   defp info(_message, socket), do: {:cont, socket}
@@ -40,7 +40,7 @@ defmodule LivebookWeb.UserHook do
 
     changeset = User.changeset(user, attrs)
 
-    case Ecto.Changeset.apply_action(changeset, :insert) do
+    case Livebook.Users.update_user(changeset) do
       {:ok, user} -> user
       {:error, _changeset} -> user
     end

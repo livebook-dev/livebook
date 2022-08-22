@@ -97,7 +97,14 @@ defmodule LivebookWeb.UserComponent do
   def handle_event("validate", %{"user" => params}, socket) do
     changeset = Users.change_user(socket.assigns.user, params)
 
-    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
+    user =
+      if changeset.valid? do
+        Ecto.Changeset.apply_action!(changeset, :update)
+      else
+        socket.assigns.user
+      end
+
+    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?, user: user)}
   end
 
   def handle_event("save", %{"user" => params}, socket) do
