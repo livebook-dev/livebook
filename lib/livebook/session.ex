@@ -1387,7 +1387,7 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
-    Runtime.add_system_envs(state.data.runtime, %{("LB_" <> secret.label) => secret.value})
+    Runtime.put_secret(state.data.runtime, %{label: "LB_#{secret.label}", value: secret.value})
     state
   end
 
