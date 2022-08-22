@@ -11,11 +11,10 @@ defmodule LivebookWeb.Output.TextComponent do
       data-max-height="300"
     >
       <% # Add a newline to each element, so that multiple lines can be copied properly %>
-      <div data-template class="hidden" id={"virtualized-text-#{@id}-template"}>
-        <%= for line <- ansi_string_to_html_lines(@content) do %>
-          <div data-line><%= [line, "\n"] %></div>
-        <% end %>
-      </div>
+      <div data-template class="hidden" id={"virtualized-text-#{@id}-template"} phx-no-format><%= for line <- ansi_string_to_html_lines(@content) do %><div data-line><%= [
+      line,
+      "\n"
+    ] %></div><% end %></div>
       <div
         data-content
         class="overflow-auto whitespace-pre font-editor text-gray-500 tiny-scrollbar"
