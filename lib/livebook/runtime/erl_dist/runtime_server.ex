@@ -171,7 +171,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def add_system_envs(pid, secrets) do
-    GenServer.cast(pid, {:add_secrets, secrets})
+    GenServer.cast(pid, {:add_system_envs, secrets})
   end
 
   @doc """
@@ -459,7 +459,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:add_secrets, secrets}, state) do
+  def handle_cast({:add_system_envs, secrets}, state) do
     System.put_env(secrets)
     {:noreply, state}
   end

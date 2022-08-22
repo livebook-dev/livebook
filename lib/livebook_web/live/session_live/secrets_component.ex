@@ -29,7 +29,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         >
           <div class="flex flex-col space-y-4">
             <div>
-              <div class="input-label">Label</div>
+              <div class="input-label">
+                Label <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
+              </div>
               <%= text_input(f, :label,
                 value: @data["label"],
                 class: "input",
@@ -62,7 +64,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
     secret = %{label: String.upcase(data["label"]), value: data["value"]}
-    Livebook.Session.add_secret(socket.assigns.session.pid, secret)
+    Livebook.Session.put_secret(socket.assigns.session.pid, secret)
     {:noreply, assign(socket, data: %{"label" => "", "value" => ""})}
   end
 

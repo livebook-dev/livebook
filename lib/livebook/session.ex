@@ -533,9 +533,9 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret addition request to the server.
   """
-  @spec add_secret(pid(), map()) :: :ok
-  def add_secret(pid, secret) do
-    GenServer.cast(pid, {:add_secret, secret})
+  @spec put_secret(pid(), map()) :: :ok
+  def put_secret(pid, secret) do
+    GenServer.cast(pid, {:put_secret, secret})
   end
 
   @doc """
@@ -961,7 +961,7 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
-  def handle_cast({:add_secret, secret}, state) do
+  def handle_cast({:put_secret, secret}, state) do
     operation = {:put_secret, self(), secret}
     {:noreply, handle_operation(state, operation)}
   end
