@@ -120,12 +120,12 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     )
   end
 
-  defp load_data(%{assigns: %{operation: :edit, hub: fly}} = socket) do
+  defp load_data(%{assigns: %{operation: :edit, hub: hub}} = socket) do
     {:ok, apps} = FlyClient.fetch_apps(fly.access_token)
     params = Map.from_struct(fly)
 
     assign(socket,
-      changeset: Fly.change_hub(fly, params),
+      changeset: Fly.change_hub(hub, params),
       selected_app: fly,
       select_options: select_options(apps),
       apps: apps,
