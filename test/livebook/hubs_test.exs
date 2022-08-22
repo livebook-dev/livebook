@@ -1,7 +1,5 @@
 defmodule Livebook.HubsTest do
-  use ExUnit.Case
-
-  import Livebook.Fixtures
+  use Livebook.DataCase
 
   alias Livebook.Hubs
 
@@ -12,7 +10,7 @@ defmodule Livebook.HubsTest do
   end
 
   test "fetch_hubs/0 returns a list of persisted hubs" do
-    fly = create_fly("fly-baz")
+    fly = insert_hub(:fly, id: "fly-baz")
     assert Hubs.fetch_hubs() == [fly]
 
     Hubs.delete_hub("fly-baz")
@@ -20,7 +18,7 @@ defmodule Livebook.HubsTest do
   end
 
   test "fetch_metadata/0 returns a list of persisted hubs normalized" do
-    fly = create_fly("fly-livebook")
+    fly = insert_hub(:fly, id: "fly-livebook")
 
     assert Hubs.fetch_metadatas() == [
              %Hubs.Metadata{
@@ -42,26 +40,26 @@ defmodule Livebook.HubsTest do
                    Hubs.fetch_hub!("fly-foo")
                  end
 
-    fly = create_fly("fly-foo")
+    fly = insert_hub(:fly, id: "fly-foo")
 
     assert Hubs.fetch_hub!("fly-foo") == fly
   end
 
   test "hub_exists?/1" do
     refute Hubs.hub_exists?("fly-bar")
-    create_fly("fly-bar")
+    insert_hub(:fly, id: "fly-bar")
     assert Hubs.hub_exists?("fly-bar")
   end
 
   test "save_hub/1 persists hub" do
-    fly = fly_fixture(id: "fly-foo")
+    fly = build(:fly, id: "fly-foo")
     Hubs.save_hub(fly)
 
     assert Hubs.fetch_hub!("fly-foo") == fly
   end
 
   test "save_hub/1 updates hub" do
-    fly = create_fly("fly-foo2")
+    fly = insert_hub(:fly, id: "fly-foo2")
     Hubs.save_hub(%{fly | hub_color: "#FFFFFF"})
 
     refute Hubs.fetch_hub!("fly-foo2") == fly

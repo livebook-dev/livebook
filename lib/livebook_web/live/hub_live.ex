@@ -12,13 +12,19 @@ defmodule LivebookWeb.HubLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, selected_provider: nil, hub: nil, page_title: "Livebook - Hub")}
+    {:ok,
+     assign(socket,
+       selected_provider: nil,
+       hub: nil,
+       page_title: "Livebook - Hub"
+     )}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="flex grow h-full">
+      <.live_region role="alert" />
       <SidebarHelpers.sidebar
         socket={@socket}
         current_user={@current_user}
@@ -52,7 +58,11 @@ defmodule LivebookWeb.HubLive do
 
               <.card_item id="enterprise" selected={@selected_provider} title="Livebook Enterprise">
                 <:logo>
-                  <img src="/images/logo.png" class="max-h-full max-w-[75%]" alt="Fly logo" />
+                  <img
+                    src="/images/enterprise.png"
+                    class="max-h-full max-w-[75%]"
+                    alt="Livebook Enterprise logo"
+                  />
                 </:logo>
                 <:headline>
                   Control access, manage secrets, and deploy notebooks within your team and company.
@@ -136,10 +146,5 @@ defmodule LivebookWeb.HubLive do
   @impl true
   def handle_event("select_provider", %{"value" => service}, socket) do
     {:noreply, assign(socket, selected_provider: service)}
-  end
-
-  @impl true
-  def handle_info({:flash_error, message}, socket) do
-    {:noreply, put_flash(socket, :error, message)}
   end
 end
