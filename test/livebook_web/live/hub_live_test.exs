@@ -44,11 +44,9 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_change(%{"fly" => attrs})
 
-      assert view
-             |> element("#fly-form")
-             |> render()
-             |> Floki.parse_document!()
-             |> Floki.find(".invalid-feedback") == []
+      refute view
+             |> element("#fly-form .invalid-feedback")
+             |> has_element?()
 
       assert {:ok, view, _html} =
                view
@@ -93,11 +91,9 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_change(%{"fly" => attrs})
 
-      assert view
-             |> element("#fly-form")
-             |> render()
-             |> Floki.parse_document!()
-             |> Floki.find(".invalid-feedback") == []
+      refute view
+             |> element("#fly-form .invalid-feedback")
+             |> has_element?()
 
       assert {:ok, view, _html} =
                view
@@ -148,11 +144,9 @@ defmodule LivebookWeb.HubLiveTest do
       |> element("#fly-form")
       |> render_change(%{"fly" => attrs})
 
-      assert view
-             |> element("#fly-form")
-             |> render()
-             |> Floki.parse_document!()
-             |> Floki.find(".invalid-feedback") == []
+      refute view
+             |> element("#fly-form .invalid-feedback")
+             |> has_element?()
 
       assert view
              |> element("#fly-form")

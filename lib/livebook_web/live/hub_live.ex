@@ -16,8 +16,7 @@ defmodule LivebookWeb.HubLive do
      assign(socket,
        selected_provider: nil,
        hub: nil,
-       page_title: "Livebook - Hub",
-       current_page: nil
+       page_title: "Livebook - Hub"
      )}
   end
 
@@ -29,7 +28,7 @@ defmodule LivebookWeb.HubLive do
       <SidebarHelpers.sidebar
         socket={@socket}
         current_user={@current_user}
-        current_page={@current_page}
+        current_page=""
         saved_hubs={@saved_hubs}
       />
 
@@ -101,7 +100,7 @@ defmodule LivebookWeb.HubLive do
         </div>
       </div>
 
-      <.current_user_modal current_user={@current_user} return_to={@current_page} />
+      <.current_user_modal current_user={@current_user} />
     </div>
     """
   end
@@ -137,17 +136,11 @@ defmodule LivebookWeb.HubLive do
     hub = Hubs.fetch_hub!(id)
     provider = Provider.type(hub)
 
-    {:noreply,
-     assign(socket,
-       operation: :edit,
-       hub: hub,
-       selected_provider: provider,
-       current_page: Routes.hub_path(socket, :edit, id)
-     )}
+    {:noreply, assign(socket, operation: :edit, hub: hub, selected_provider: provider)}
   end
 
   def handle_params(_params, _url, socket) do
-    {:noreply, assign(socket, operation: :new, current_page: Routes.hub_path(socket, :page))}
+    {:noreply, assign(socket, operation: :new)}
   end
 
   @impl true

@@ -79,7 +79,7 @@ defmodule LivebookWeb.ExploreLive do
       </div>
     </div>
 
-    <.current_user_modal current_user={@current_user} return_to={Routes.explore_path(@socket, :page)} />
+    <.current_user_modal current_user={@current_user} />
     """
   end
 
