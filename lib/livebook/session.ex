@@ -54,8 +54,7 @@ defmodule Livebook.Session do
     :file,
     :images_dir,
     :created_at,
-    :memory_usage,
-    :secrets
+    :memory_usage
   ]
 
   use GenServer, restart: :temporary
@@ -78,8 +77,7 @@ defmodule Livebook.Session do
           file: FileSystem.File.t() | nil,
           images_dir: FileSystem.File.t(),
           created_at: DateTime.t(),
-          memory_usage: memory_usage(),
-          secrets: list() | nil
+          memory_usage: memory_usage()
         }
 
   @type state :: %{
@@ -90,8 +88,7 @@ defmodule Livebook.Session do
           autosave_timer_ref: reference() | nil,
           save_task_pid: pid() | nil,
           saved_default_file: FileSystem.File.t() | nil,
-          memory_usage: memory_usage(),
-          secrets: list() | nil
+          memory_usage: memory_usage()
         }
 
   @type memory_usage ::
@@ -599,8 +596,7 @@ defmodule Livebook.Session do
         save_task_pid: nil,
         saved_default_file: nil,
         memory_usage: %{runtime: nil, system: Livebook.SystemResources.memory()},
-        worker_pid: worker_pid,
-        secrets: nil
+        worker_pid: worker_pid
       }
 
       {:ok, state}
@@ -966,10 +962,8 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:add_secret, secret}, state) do
-    Runtime.add_system_envs(state.data.runtime, %{("LB_" <> secret.label) => secret.value})
-    secrets = if state.secrets, do: [secret | state.secrets], else: [secret]
-    state = put_in(state.secrets, secrets)
-    {:noreply, notify_update(state)}
+    operation = {:put_secret, self(), secret}
+    {:noreply, handle_operation(state, operation)}
   end
 
   @impl true
@@ -1119,8 +1113,7 @@ defmodule Livebook.Session do
       file: state.data.file,
       images_dir: images_dir_from_state(state),
       created_at: state.created_at,
-      memory_usage: state.memory_usage,
-      secrets: state.secrets
+      memory_usage: state.memory_usage
     }
   end
 
@@ -1305,7 +1298,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
-      if state.secrets, do: restore_secrets(state, runtime)
+      restore_secrets(state, runtime)
       state
     else
       state
@@ -1390,6 +1383,11 @@ defmodule Livebook.Session do
       send(cell.js_view.pid, {:editor_source, cell.editor.source})
     end
 
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
+    Runtime.add_system_envs(state.data.runtime, %{("LB_" <> secret.label) => secret.value})
     state
   end
 
@@ -1526,7 +1524,7 @@ defmodule Livebook.Session do
   end
 
   defp restore_secrets(state, runtime) do
-    secrets = Enum.map(state.secrets, &{"#LB_{&1.label}", &1.value})
+    secrets = Enum.map(state.data.secrets, &{"#LB_{&1.label}", &1.value})
     Runtime.add_system_envs(runtime, secrets)
   end
 

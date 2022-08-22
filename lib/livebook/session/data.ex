@@ -30,7 +30,8 @@ defmodule Livebook.Session.Data do
     :runtime,
     :smart_cell_definitions,
     :clients_map,
-    :users_map
+    :users_map,
+    :secrets
   ]
 
   alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
@@ -50,7 +51,8 @@ defmodule Livebook.Session.Data do
           runtime: Runtime.t(),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
-          users_map: %{User.id() => User.t()}
+          users_map: %{User.id() => User.t()},
+          secrets: list()
         }
 
   @type section_info :: %{
@@ -187,6 +189,7 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
+          | {:put_secret, client_id(), map()}
 
   @type action ::
           :connect_runtime
@@ -214,7 +217,8 @@ defmodule Livebook.Session.Data do
       runtime: Livebook.Config.default_runtime(),
       smart_cell_definitions: [],
       clients_map: %{},
-      users_map: %{}
+      users_map: %{},
+      secrets: []
     }
 
     data
@@ -727,6 +731,13 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_dirty(false)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:put_secret, _client_id, secret}) do
+    data
+    |> with_actions()
+    |> put_secret(secret)
     |> wrap_ok()
   end
 
@@ -1452,6 +1463,10 @@ defmodule Livebook.Session.Data do
       |> clear_all_evaluation()
       |> clear_smart_cells()
     end
+  end
+
+  defp put_secret({data, _} = data_actions, secret) do
+    set!(data_actions, secrets: [secret | data.secrets])
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

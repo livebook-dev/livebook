@@ -548,14 +548,12 @@ defmodule LivebookWeb.SessionLive do
         Secrets
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= if @session.secrets do %>
-          <%= for secret <- @session.secrets do %>
-            <div class="flex items-center text-gray-500">
-              <span class="flex items-center space-x-1">
-                <%= secret.label %>
-              </span>
-            </div>
-          <% end %>
+        <%= for secret <- @data_view.secrets do %>
+          <div class="flex items-center text-gray-500">
+            <span class="flex items-center space-x-1">
+              <%= secret.label %>
+            </span>
+          </div>
         <% end %>
       </div>
       <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
@@ -1618,7 +1616,8 @@ defmodule LivebookWeb.SessionLive do
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
-      bin_entries: data.bin_entries
+      bin_entries: data.bin_entries,
+      secrets: data.secrets
     }
   end
 
