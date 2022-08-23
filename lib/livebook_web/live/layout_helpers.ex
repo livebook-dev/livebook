@@ -121,7 +121,7 @@ defmodule LivebookWeb.LayoutHelpers do
             current={@current_page}
           />
         </div>
-        <.hub_section socket={@socket} hubs={@saved_hubs} />
+        <.hub_section socket={@socket} hubs={@saved_hubs} current_page={@current_page} />
       </div>
       <div class="flex flex-col">
         <%= if Livebook.Config.shutdown_enabled?() do %>
@@ -166,9 +166,11 @@ defmodule LivebookWeb.LayoutHelpers do
   end
 
   defp sidebar_link(assigns) do
+    assigns = assign_new(assigns, :icon_style, fn -> nil end)
+
     ~H"""
     <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
-      <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" />
+      <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" style={@icon_style} />
       <span class="text-sm font-medium">
         <%= @title %>
       </span>
@@ -182,41 +184,25 @@ defmodule LivebookWeb.LayoutHelpers do
       <div id="hubs" class="flex flex-col mt-12">
         <div class="space-y-1">
           <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
-            <div class="flex flex-col">
-              <small class="ml-5 font-medium text-white">HUBS</small>
-            </div>
-            <div class="flex flex-col">
-              <%= live_redirect to: Routes.hub_path(@socket, :new),
-                              class: "flex absolute right-5 items-center justify-center
-                                      text-gray-400 hover:text-white hover:border-white" do %>
-                <.remix_icon icon="add-line" />
-              <% end %>
-            </div>
+            <small class="ml-5 font-medium text-gray-300 cursor-default">HUBS</small>
           </div>
 
           <%= for hub <- @hubs do %>
-            <%= live_redirect to: Routes.hub_path(@socket, :edit, hub.id), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
-              <.remix_icon
-                class="text-lg leading-6 w-[56px] flex justify-center"
-                icon="checkbox-blank-circle-fill"
-                style={"color: #{hub.color}"}
-              />
-
-              <span class="text-sm font-medium">
-                <%= hub.name %>
-              </span>
-            <% end %>
+            <.sidebar_link
+              title={hub.name}
+              icon="checkbox-blank-circle-fill"
+              icon_style={"color: #{hub.color}"}
+              to={Routes.hub_path(@socket, :edit, hub.id)}
+              current={@current_page}
+            />
           <% end %>
 
-          <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2">
-            <%= live_redirect to: Routes.hub_path(@socket, :new), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
-              <.remix_icon class="text-lg leading-6 w-[56px] flex justify-center" icon="add-line" />
-
-              <span class="text-sm font-medium">
-                Add Hub
-              </span>
-            <% end %>
-          </div>
+          <.sidebar_link
+              title="Add Hub"
+              icon="add-line"
+              to={Routes.hub_path(@socket, :new)}
+              current={@current_page}
+            />
         </div>
       </div>
     <% end %>

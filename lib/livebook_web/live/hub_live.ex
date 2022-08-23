@@ -23,7 +23,7 @@ defmodule LivebookWeb.HubLive do
     ~H"""
     <LayoutHelpers.layout
       socket={@socket}
-      current_page={Routes.hub_path(@socket, :new)}
+      current_page={@current_page}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
@@ -130,11 +130,17 @@ defmodule LivebookWeb.HubLive do
     hub = Hubs.fetch_hub!(id)
     provider = Provider.type(hub)
 
-    {:noreply, assign(socket, operation: :edit, hub: hub, selected_provider: provider)}
+    {:noreply,
+     assign(socket,
+       operation: :edit,
+       hub: hub,
+       selected_provider: provider,
+       current_page: Routes.hub_path(socket, :edit, hub.id)
+     )}
   end
 
   def handle_params(_params, _url, socket) do
-    {:noreply, assign(socket, operation: :new)}
+    {:noreply, assign(socket, operation: :new, current_page: Routes.hub_path(socket, :new))}
   end
 
   @impl true
