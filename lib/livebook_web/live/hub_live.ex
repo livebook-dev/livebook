@@ -1,11 +1,9 @@
 defmodule LivebookWeb.HubLive do
   use LivebookWeb, :live_view
 
-  import LivebookWeb.UserHelpers
-
   alias Livebook.Hubs
   alias Livebook.Hubs.Provider
-  alias LivebookWeb.{PageHelpers, SidebarHelpers}
+  alias LivebookWeb.{PageHelpers, LayoutHelpers}
   alias Phoenix.LiveView.JS
 
   on_mount LivebookWeb.SidebarHook
@@ -23,85 +21,81 @@ defmodule LivebookWeb.HubLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex grow h-full">
-      <.live_region role="alert" />
-      <SidebarHelpers.sidebar
-        socket={@socket}
-        current_user={@current_user}
-        current_page=""
-        saved_hubs={@saved_hubs}
-      />
+    <LayoutHelpers.layout
+      socket={@socket}
+      current_page={@current_page}
+      current_user={@current_user}
+      saved_hubs={@saved_hubs}
+    >
+      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
+        <div>
+          <PageHelpers.title
+            text={if @operation == :new, do: "Add Hub", else: "Edit Hub"}
+            socket={@socket}
+          />
+          <p class="mt-4 text-gray-700">
+            Manage your Livebooks in the cloud with Hubs.
+          </p>
+        </div>
 
-      <div class="grow px-6 py-8 overflow-y-auto">
-        <div class="max-w-screen-md w-full mx-auto px-4 pb-8 space-y-8">
-          <div>
-            <PageHelpers.title text="Hub" socket={@socket} />
-            <p class="mt-4 text-gray-700">
-              Manage your Livebooks in the cloud with Hubs.
-            </p>
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            1. Select your Hub service
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <.card_item id="fly" selected={@selected_provider} title="Fly">
+              <:logo>
+                <%= Phoenix.HTML.raw(File.read!("static/images/fly.svg")) %>
+              </:logo>
+              <:headline>
+                Deploy notebooks to your Fly account.
+              </:headline>
+            </.card_item>
+
+            <.card_item id="enterprise" selected={@selected_provider} title="Livebook Enterprise">
+              <:logo>
+                <img
+                  src="/images/enterprise.png"
+                  class="max-h-full max-w-[75%]"
+                  alt="Livebook Enterprise logo"
+                />
+              </:logo>
+              <:headline>
+                Control access, manage secrets, and deploy notebooks within your team.
+              </:headline>
+            </.card_item>
           </div>
+        </div>
 
+        <%= if @selected_provider do %>
           <div class="flex flex-col space-y-4">
             <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
-              1. Select your Hub service
+              2. Configure your Hub
             </h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <.card_item id="fly" selected={@selected_provider} title="Fly">
-                <:logo>
-                  <%= Phoenix.HTML.raw(File.read!("static/images/fly.svg")) %>
-                </:logo>
-                <:headline>
-                  Deploy notebooks to your Fly account.
-                </:headline>
-              </.card_item>
+            <%= if @selected_provider == "fly" do %>
+              <.live_component
+                module={LivebookWeb.HubLive.FlyComponent}
+                id="fly-form"
+                operation={@operation}
+                hub={@hub}
+              />
+            <% end %>
 
-              <.card_item id="enterprise" selected={@selected_provider} title="Livebook Enterprise">
-                <:logo>
-                  <img
-                    src="/images/enterprise.png"
-                    class="max-h-full max-w-[75%]"
-                    alt="Livebook Enterprise logo"
-                  />
-                </:logo>
-                <:headline>
-                  Control access, manage secrets, and deploy notebooks within your team and company.
-                </:headline>
-              </.card_item>
-            </div>
+            <%= if @selected_provider == "enterprise" do %>
+              <div>
+                Livebook Enterprise is currently in closed beta. If you want to learn more, <a
+                  href="https://livebook.dev/#livebook-plans"
+                  class="pointer-events-auto text-blue-600"
+                  target="_blank"
+                >click here</a>.
+              </div>
+            <% end %>
           </div>
-
-          <%= if @selected_provider do %>
-            <div class="flex flex-col space-y-4">
-              <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
-                2. Configure your Hub
-              </h2>
-
-              <%= if @selected_provider == "fly" do %>
-                <.live_component
-                  module={LivebookWeb.HubLive.FlyComponent}
-                  id="fly-form"
-                  operation={@operation}
-                  hub={@hub}
-                />
-              <% end %>
-
-              <%= if @selected_provider == "enterprise" do %>
-                <div>
-                  Livebook Enterprise is currently in closed beta. If you want to learn more, <a
-                    href="https://livebook.dev/#livebook-plans"
-                    class="pointer-events-auto text-blue-600"
-                    target="_blank"
-                  >click here</a>.
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+        <% end %>
       </div>
-
-      <.current_user_modal current_user={@current_user} />
-    </div>
+    </LayoutHelpers.layout>
     """
   end
 
@@ -136,11 +130,17 @@ defmodule LivebookWeb.HubLive do
     hub = Hubs.fetch_hub!(id)
     provider = Provider.type(hub)
 
-    {:noreply, assign(socket, operation: :edit, hub: hub, selected_provider: provider)}
+    {:noreply,
+     assign(socket,
+       operation: :edit,
+       hub: hub,
+       selected_provider: provider,
+       current_page: Routes.hub_path(socket, :edit, hub.id)
+     )}
   end
 
   def handle_params(_params, _url, socket) do
-    {:noreply, assign(socket, operation: :new)}
+    {:noreply, assign(socket, operation: :new, current_page: Routes.hub_path(socket, :new))}
   end
 
   @impl true
