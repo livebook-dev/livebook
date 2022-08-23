@@ -338,7 +338,7 @@ defmodule Livebook.Utils do
 
     case cmd_args do
       {cmd, args} -> System.cmd(cmd, args)
-      nil -> Logger.warn("could not open the browser, no open command found in the system")
+      nil -> Logger.warning("could not open the browser, no open command found in the system")
     end
 
     :ok
