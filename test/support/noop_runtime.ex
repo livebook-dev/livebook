@@ -39,6 +39,6 @@ defmodule Livebook.Runtime.NoopRuntime do
 
     def search_packages(_, _, _), do: make_ref()
 
-    def add_system_envs(_, _), do: :ok
+    def put_system_envs(_, _), do: :ok
   end
 end

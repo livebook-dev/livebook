@@ -221,7 +221,7 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
     Livebook.Runtime.Dependencies.search_packages_on_hex(send_to, search)
   end
 
-  def add_system_envs(runtime, secrets) do
-    RuntimeServer.add_system_envs(runtime.server_pid, secrets)
+  def put_system_envs(runtime, secrets) do
+    RuntimeServer.put_system_envs(runtime.server_pid, secrets)
   end
 end

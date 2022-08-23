@@ -122,8 +122,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Embedded do
     Livebook.Runtime.Dependencies.search_packages_in_list(packages, send_to, search)
   end
 
-  def add_system_envs(runtime, secrets) do
-    RuntimeServer.add_system_envs(runtime.server_pid, secrets)
+  def put_system_envs(runtime, secrets) do
+    RuntimeServer.put_system_envs(runtime.server_pid, secrets)
   end
 
   defp config() do

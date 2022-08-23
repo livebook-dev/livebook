@@ -471,6 +471,6 @@ defprotocol Livebook.Runtime do
   @doc """
   Adds Livebook secrets as environment variables
   """
-  @spec add_system_envs(t(), Enumerable.t()) :: :ok
-  def add_system_envs(runtime, secrets)
+  @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
+  def put_system_envs(runtime, secrets)
 end

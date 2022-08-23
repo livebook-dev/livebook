@@ -191,7 +191,7 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
-          | {:put_secret, client_id(), map()}
+          | {:put_secret, client_id(), secret()}
 
   @type action ::
           :connect_runtime
