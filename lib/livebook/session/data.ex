@@ -52,7 +52,7 @@ defmodule Livebook.Session.Data do
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
           users_map: %{User.id() => User.t()},
-          secrets: list()
+          secrets: list(secret())
         }
 
   @type section_info :: %{
@@ -121,6 +121,8 @@ defmodule Livebook.Session.Data do
   @type client_id :: Livebook.Utils.id()
 
   @type index :: non_neg_integer()
+
+  @type secret :: %{label: String.t(), value: String.t()}
 
   # Snapshot holds information about the cell evaluation dependencies,
   # for example what is the previous cell, the number of times the
