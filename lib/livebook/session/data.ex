@@ -189,7 +189,7 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
-          | {:put_secret, client_id(), Runtime.secret()}
+          | {:put_secret, client_id(), map()}
 
   @type action ::
           :connect_runtime
@@ -1466,7 +1466,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp put_secret({data, _} = data_actions, secret) do
-    set!(data_actions, secrets: [secret | data.secrets])
+    set!(data_actions, secrets: data.secrets ++ [secret])
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do
