@@ -1,4 +1,4 @@
-# Runtime introspection with VegaLite
+# Runtime introspection with Mermaid and VegaLite
 
 ```elixir
 Mix.install([
@@ -11,43 +11,201 @@ alias VegaLite, as: Vl
 
 ## Introduction
 
-In this notebook, we will use `Kino` and `VegaLite`
-to introspect and plot how our system behaves over
+In this notebook, we will learn how to use `Kino` and `VegaLite`
+to explore how Elixir works and plot how our system behaves over
 time. If you are not familiar with VegaLite, [read
 its introductory notebook](/explore/notebooks/intro-to-vega-lite).
 
-You can see both dependencies listed in the setup cell above.
-We also define a convenience shortcut for the `VegaLite` module,
-let's run the setup and we are ready to go!
+Both `Kino` and `VegaLite` have been listed as dependencies in the
+setup cell. Let's also define a convenience shortcut for the
+`VegaLite` module, which we will use later:
+
+```elixir
+alias VegaLite, as: Vl
+```
+
+## Processes all the way down
+
+All Elixir code runs inside lightweight processes. You can get
+the identifier of the current process by calling `self()`:
+
+```elixir
+self()
+```
+
+We can create literally millions of those processes. They all
+run at the same time and they communicate via message passing:
+
+```elixir
+parent = self()
+
+child =
+  spawn(fn ->
+    receive do
+      :ping -> send(parent, :pong)
+    end
+  end)
+
+send(child, :ping)
+
+receive do
+  :pong -> :ponged!
+end
+```
+
+The code above starts a child process. This processes waits
+for a `:ping` message and replies to the parent with `:pong`.
+The parent then returns `:ponged!` once it receives the pong.
+
+Wouldn't it be nice if we could also _visualize_ how this
+communication happens? We can do so by using `Kino.Process`!
+
+With `Kino.Process.render_seq_trace/2`, we can ask Kino to
+draw a [Mermaid diagram](https://mermaid-js.github.io/) with
+all messages to and from the current process:
+
+```elixir
+parent = self()
+
+Kino.Process.render_seq_trace(parent, fn ->
+  child =
+    spawn(fn ->
+      receive do
+        :ping -> send(parent, :pong)
+      end
+    end)
+
+  send(child, :ping)
+
+  receive do
+    :pong -> :ponged!
+  end
+end)
+```
+
+You can use `render_seq_trace` any time you want to
+peek under the hood and learn more about any Elixir
+code. For instance, Elixir has module called `Task`.
+This module contains functions that starts processes
+to perform temporary computations and return their
+results. What would happen if we were to spawn four
+tasks, sleep by a random amount, and collect their
+results?
+
+```elixir
+Kino.Process.render_seq_trace(self(), fn ->
+  1..4
+  |> Task.async_stream(fn i ->
+    Process.sleep(Enum.random(100..300))
+    i
+  end)
+  |> Stream.run()
+end)
+```
+
+Every time you execute the above, you will get
+a different order, and you can visualize how
+`Task.async_stream/2` is starting different processes
+which return at different times.
+
+## Supervisors: a special type of process
+
+In the previous section we learned about one special
+type of processes, called tasks. There are other types
+of processes, such as agents and servers, but there is
+one particular category that stands out, which are the
+supervisors.
+
+Supervisors are processes that supervisor other processes
+and restart them in case something goes wrong. We can start
+our own supervisor like this:
+
+```elixir
+{:ok, supervisor} =
+  Supervisor.start_link(
+    [
+      {Task, fn -> Process.sleep(:infinity) end},
+      {Agent, fn -> [] end}
+    ],
+    strategy: :one_for_one
+  )
+```
+
+The above started a supervision tree. Now let's visualize it:
+
+```elixir
+Kino.Process.render_sup_tree(supervisor)
+```
+
+In fact, you don't even need to call `render_sup_tree`. If you
+simply return a `supervisor`, Livebook will return a tabbed
+output where one of the possible visualizations is the supervision
+tree:
+
+```elixir
+supervisor
+```
+
+We can go even further!
+
+Sometimes a supervisor may be supervised by another supervisor,
+which may have be supervised by another supervisor, and so on.
+This defines a **supervision tree**. We then package those supervision
+trees into applications. `Kino` itself is an application and
+we can visualize its tree:
+
+```elixir
+Kino.Process.render_app_tree(:kino)
+```
+
+Even Elixir itself is an application:
+
+```elixir
+Kino.Process.render_app_tree(:elixir)
+```
+
+You can get the list of all currently running applications with:
+
+```elixir
+Application.started_applications()
+```
+
+Feel free to dig deeper and visualize those applications at your
+own pace!
 
 ## Connecting to a remote node
 
-Our goal is to introspect an Elixir node. The code we will
-write in this notebook can be used to introspect any running
-Elixir node. It can be a development environment that you would
-start with:
-
-```
-iex --name my_app@IP -S mix TASK
-```
-
-Or a production node assembled via
-[`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html).
+Processes have one more trick up their sleeve: processes can
+communicate with each other even if they run on different
+machines! However, to do so, we must first connect the nodes
+together.
 
 In order to connect two nodes, we need to know their node name
-and their cookie. We can get this information for the Livebook
-runtime like this:
+and their cookie. We can get this information for the current
+Livebook like this:
 
 ```elixir
 IO.puts node()
 IO.puts Node.get_cookie()
 ```
 
-We will capture this information using Kino inputs. However,
-for convenience, we will use the node and cookie of the current
-notebook as default values. This means that, if you don't have
-a separate Elixir, the runtime will connect and introspect itself.
-Let's render the inputs:
+Where does this information come from? Inside notebooks, Livebook
+takes care of setting those for you. In development, you would
+specify those directly in the command line:
+
+```
+iex --name my_app@IP -S mix TASK
+```
+
+In production, those are often part of your
+[`mix release`](https://hexdocs.pm/mix/Mix.Tasks.Release.html)
+configuration.
+
+Now let's connect the nodes together. We will capture the node name
+and cookie using Kino inputs. However, for convenience, we will use
+the node and cookie of the current notebook as default values. This
+means that, if you don't have a separate node, the runtime will
+connect and introspect itself. Let's render the inputs:
 
 ```elixir
 node_input = Kino.Input.text("Node", default: node())
@@ -85,17 +243,17 @@ Node.spawn(node, fn ->
 end)
 ```
 
-## Inspecting processes
+## Inspecting remote processes
 
 Now we are going to extract some information from the running node on our own!
 
 Let's get the list of all processes in the system:
 
 ```elixir
-remote_pids = :rpc.call(node, Process, :list, [])
+remote_pids = :erpc.call(node, Process, :list, [])
 ```
 
-Wait, but what is this `:rpc.call/4` thing? 🤔
+Wait, what is this `:erpc.call/4` thing? 🤔
 
 Previously we used `Node.spawn/2` to run a process on the other node
 and we used the `IO` module to get some output. However, now
@@ -103,19 +261,19 @@ we actually care about the resulting value of `Process.list/0`!
 
 We could still use `Node.spawn/2` to send us the results, which
 we would `receive`, but doing that over and over can be quite tedious.
-Fortunately, `:rpc.call/4` does essentially that - evaluates the given
+Fortunately, `:erpc.call/4` does essentially that - evaluates the given
 function on the remote node and returns its result.
 
-Now, let's gather more information about each process 🕵️
+Now, let's gather more information about each process: 🕵️
 
 ```elixir
 processes =
   Enum.map(remote_pids, fn pid ->
     # Extract interesting process information
-    info = :rpc.call(node, Process, :info, [pid, [:reductions, :memory, :status]])
+    info = :erpc.call(node, Process, :info, [pid, [:reductions, :memory, :status]])
     # The result of inspect(pid) is relative to the node
     # where it was called, that's why we call it on the remote node
-    pid_inspect = :rpc.call(node, Kernel, :inspect, [pid])
+    pid_inspect = :erpc.call(node, Kernel, :inspect, [pid])
 
     %{
       pid: pid_inspect,
@@ -178,7 +336,7 @@ plot of memory usage over time on the remote node:
 ```elixir
 Kino.VegaLite.periodically(memory_plot, 200, 1, fn i ->
   point =
-    :rpc.call(node, :erlang, :memory, [])
+    :erpc.call(node, :erlang, :memory, [])
     |> Enum.map(fn {type, bytes} -> {type, bytes / 1_000_000} end)
     |> Map.new()
     |> Map.put(:iter, i)
@@ -189,8 +347,8 @@ end)
 ```
 
 Unless you connected to a production node, the memory usage
-most likely doesn't change, so to emulate some spikes you can
-run the following code:
+most likely doesn't change, so to emulate some spikes within
+the current notebook, you can run the following code:
 
 **Binary usage**
 
