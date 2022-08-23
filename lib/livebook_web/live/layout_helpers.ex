@@ -170,7 +170,11 @@ defmodule LivebookWeb.LayoutHelpers do
 
     ~H"""
     <%= live_redirect to: @to, class: "h-7 flex items-center hover:text-white #{sidebar_link_text_color(@to, @current)} border-l-4 #{sidebar_link_border_color(@to, @current)} hover:border-white" do %>
-      <.remix_icon icon={@icon} class="text-lg leading-6 w-[56px] flex justify-center" style={@icon_style} />
+      <.remix_icon
+        icon={@icon}
+        class="text-lg leading-6 w-[56px] flex justify-center"
+        style={@icon_style}
+      />
       <span class="text-sm font-medium">
         <%= @title %>
       </span>
@@ -198,11 +202,11 @@ defmodule LivebookWeb.LayoutHelpers do
           <% end %>
 
           <.sidebar_link
-              title="Add Hub"
-              icon="add-line"
-              to={Routes.hub_path(@socket, :new)}
-              current={@current_page}
-            />
+            title="Add Hub"
+            icon="add-line"
+            to={Routes.hub_path(@socket, :new)}
+            current={@current_page}
+          />
         </div>
       </div>
     <% end %>
