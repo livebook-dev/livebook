@@ -56,7 +56,7 @@ defmodule LivebookWeb.Router do
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
       if Application.compile_env(:livebook, :feature_flags)[:hub] do
-        live "/hub", HubLive, :page
+        live "/hub", HubLive, :new
         live "/hub/:id", HubLive, :edit
       end
 

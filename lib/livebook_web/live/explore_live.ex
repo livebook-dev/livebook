@@ -2,9 +2,8 @@ defmodule LivebookWeb.ExploreLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
-  import LivebookWeb.UserHelpers
 
-  alias LivebookWeb.{SidebarHelpers, ExploreHelpers, PageHelpers}
+  alias LivebookWeb.{LayoutHelpers, ExploreHelpers, PageHelpers}
   alias Livebook.Notebook.Explore
 
   on_mount LivebookWeb.SidebarHook
@@ -24,62 +23,51 @@ defmodule LivebookWeb.ExploreLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex grow h-full">
-      <SidebarHelpers.sidebar
-        socket={@socket}
-        current_page={Routes.explore_path(@socket, :page)}
-        current_user={@current_user}
-        saved_hubs={@saved_hubs}
-      />
-      <div class="grow overflow-y-auto">
-        <SidebarHelpers.toggle socket={@socket} />
-        <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
-          <div>
-            <PageHelpers.title text="Explore" />
-            <p class="mt-4 text-gray-700">
-              Check out a number of examples showcasing various parts of the Elixir ecosystem.
-              Click on any notebook you like and start playing around with it!
+    <LayoutHelpers.layout
+      socket={@socket}
+      current_page={Routes.explore_path(@socket, :page)}
+      current_user={@current_user}
+      saved_hubs={@saved_hubs}
+    >
+      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
+        <div>
+          <PageHelpers.title text="Explore" />
+          <p class="mt-4 text-gray-700">
+            Check out a number of examples showcasing various parts of the Elixir ecosystem.
+            Click on any notebook you like and start playing around with it!
+          </p>
+        </div>
+        <div class="p-8 bg-gray-900 rounded-2xl flex space-x-4 shadow-xl">
+          <div class="self-end max-w-sm">
+            <h3 class="text-xl text-gray-50 font-semibold">
+              <%= @lead_notebook_info.title %>
+            </h3>
+            <p class="mt-2 text-sm text-gray-300">
+              <%= @lead_notebook_info.details.description %>
             </p>
-          </div>
-          <div class="p-8 bg-gray-900 rounded-2xl flex space-x-4 shadow-xl">
-            <div class="self-end max-w-sm">
-              <h3 class="text-xl text-gray-50 font-semibold">
-                <%= @lead_notebook_info.title %>
-              </h3>
-              <p class="mt-2 text-sm text-gray-300">
-                <%= @lead_notebook_info.details.description %>
-              </p>
-              <div class="mt-4">
-                <%= live_patch("Let's go",
-                  to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
-                  class: "button-base button-blue"
-                ) %>
-              </div>
-            </div>
-            <div class="grow hidden md:flex flex items-center justify-center">
-              <img
-                src={@lead_notebook_info.details.cover_url}
-                height="120"
-                width="120"
-                alt="livebook"
-              />
+            <div class="mt-4">
+              <%= live_patch("Let's go",
+                to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
+                class: "button-base button-blue"
+              ) %>
             </div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <% # Note: it's fine to use stateless components in this comprehension,
-            # because @notebook_infos never change %>
-            <%= for info <- @notebook_infos do %>
-              <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
-            <% end %>
+          <div class="grow hidden md:flex flex items-center justify-center">
+            <img src={@lead_notebook_info.details.cover_url} height="120" width="120" alt="livebook" />
           </div>
-          <%= for group_info <- Explore.group_infos() do %>
-            <.notebook_group group_info={group_info} socket={@socket} />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <% # Note: it's fine to use stateless components in this comprehension,
+          # because @notebook_infos never change %>
+          <%= for info <- @notebook_infos do %>
+            <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
           <% end %>
         </div>
+        <%= for group_info <- Explore.group_infos() do %>
+          <.notebook_group group_info={group_info} socket={@socket} />
+        <% end %>
       </div>
-    </div>
-
-    <.current_user_modal current_user={@current_user} />
+    </LayoutHelpers.layout>
     """
   end
 

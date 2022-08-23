@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SidebarHelpers do
+defmodule LivebookWeb.LayoutHelpers do
   use Phoenix.Component
 
   import LivebookWeb.LiveHelpers
@@ -8,58 +8,75 @@ defmodule LivebookWeb.SidebarHelpers do
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
-  Renders the mobile toggle for the sidebar.
+  The layout used in the non-session pages.
   """
-  def toggle(assigns) do
-    assigns = assign_new(assigns, :inner_block, fn -> [] end)
+  def layout(assigns) do
+    assigns = assign_new(assigns, :topbar_action, fn -> [] end)
 
     ~H"""
-    <div class="flex sm:hidden items-center justify-between sticky sm:pt-1 px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
-      <div class="my-2 text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
-        <button
-          aria-label="hide sidebar"
-          data-el-toggle-sidebar
-          phx-click={
-            JS.add_class("hidden sm:flex", to: "[data-el-sidebar]")
-            |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
-          }
-        >
-          <.remix_icon icon="menu-fold-line" />
-        </button>
-        <button
-          class="hidden"
-          aria-label="show sidebar"
-          data-el-toggle-sidebar
-          phx-click={
-            JS.remove_class("hidden sm:flex", to: "[data-el-sidebar]")
-            |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
-          }
-        >
-          <.remix_icon icon="menu-unfold-line" />
-        </button>
+    <div class="flex grow h-full">
+      <.live_region role="alert" />
+      <.sidebar
+        socket={@socket}
+        current_page={@current_page}
+        current_user={@current_user}
+        saved_hubs={@saved_hubs}
+      />
+      <div class="grow overflow-y-auto">
+        <div class="flex sm:hidden items-center justify-between sticky sm:pt-1 px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
+          <.topbar_sidebar_toggle />
+          <div
+            class="hidden items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
+            data-el-toggle-sidebar
+          >
+            <% # TODO: Use render_slot(@topbar_action) || default() on LiveView 0.18 %>
+            <%= if @topbar_action == [] do %>
+              <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
+                <.remix_icon icon="home-6-line" />
+                <span class="pl-2">Home</span>
+              <% end %>
+            <% else %>
+              <%= render_slot(@topbar_action) %>
+            <% end %>
+          </div>
+        </div>
+        <%= render_slot(@inner_block) %>
       </div>
-      <div
-        class="hidden items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
+    </div>
+
+    <.current_user_modal current_user={@current_user} />
+    """
+  end
+
+  defp topbar_sidebar_toggle(assigns) do
+    ~H"""
+    <div class="my-2 text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
+      <button
+        aria-label="hide sidebar"
         data-el-toggle-sidebar
+        phx-click={
+          JS.add_class("hidden sm:flex", to: "[data-el-sidebar]")
+          |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
+        }
       >
-        <% # TODO: Use render_slot(@inner_block) || default() on LiveView 0.18 %>
-        <%= if @inner_block == [] do %>
-          <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
-            <.remix_icon icon="home-6-line" />
-            <span class="pl-2">Home</span>
-          <% end %>
-        <% else %>
-          <%= render_slot(@inner_block) %>
-        <% end %>
-      </div>
+        <.remix_icon icon="menu-fold-line" />
+      </button>
+      <button
+        class="hidden"
+        aria-label="show sidebar"
+        data-el-toggle-sidebar
+        phx-click={
+          JS.remove_class("hidden sm:flex", to: "[data-el-sidebar]")
+          |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
+        }
+      >
+        <.remix_icon icon="menu-unfold-line" />
+      </button>
     </div>
     """
   end
 
-  @doc """
-  Renders sidebar container.
-  """
-  def sidebar(assigns) do
+  defp sidebar(assigns) do
     ~H"""
     <nav
       class="w-[18.75rem] min-w-[14rem] flex flex-col justify-between py-1 sm:py-7 bg-gray-900"
@@ -169,7 +186,7 @@ defmodule LivebookWeb.SidebarHelpers do
               <small class="ml-5 font-medium text-white">HUBS</small>
             </div>
             <div class="flex flex-col">
-              <%= live_redirect to: Routes.hub_path(@socket, :page),
+              <%= live_redirect to: Routes.hub_path(@socket, :new),
                               class: "flex absolute right-5 items-center justify-center
                                       text-gray-400 hover:text-white hover:border-white" do %>
                 <.remix_icon icon="add-line" />
@@ -192,7 +209,7 @@ defmodule LivebookWeb.SidebarHelpers do
           <% end %>
 
           <div class="h-7 flex items-center cursor-pointer text-gray-400 hover:text-white mt-2">
-            <%= live_redirect to: Routes.hub_path(@socket, :page), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
+            <%= live_redirect to: Routes.hub_path(@socket, :new), class: "h-7 flex items-center cursor-pointer text-gray-400 hover:text-white" do %>
               <.remix_icon class="text-lg leading-6 w-[56px] flex justify-center" icon="add-line" />
 
               <span class="text-sm font-medium">
