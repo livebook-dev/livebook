@@ -1476,6 +1476,7 @@ defmodule Livebook.Session.Data do
       else
         data.secrets ++ [secret]
       end
+      |> Enum.sort()
 
     set!(data_actions, secrets: secrets)
   end
