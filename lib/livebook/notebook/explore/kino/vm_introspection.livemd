@@ -5,8 +5,6 @@ Mix.install([
   {:kino, github: "livebook-dev/kino", override: true},
   {:kino_vega_lite, "~> 0.1.1"}
 ])
-
-alias VegaLite, as: Vl
 ```
 
 ## Introduction
@@ -17,12 +15,7 @@ time. If you are not familiar with VegaLite, [read
 its introductory notebook](/explore/notebooks/intro-to-vega-lite).
 
 Both `Kino` and `VegaLite` have been listed as dependencies in the
-setup cell. Let's also define a convenience shortcut for the
-`VegaLite` module, which we will use later:
-
-```elixir
-alias VegaLite, as: Vl
-```
+setup cell.
 
 ## Processes all the way down
 
@@ -288,6 +281,8 @@ Having all that data, we can now visualize it on a scatter plot
 using VegaLite:
 
 ```elixir
+alias VegaLite, as: Vl
+
 Vl.new(width: 600, height: 400)
 |> Vl.data_from_values(processes)
 |> Vl.mark(:point, tooltip: true)
