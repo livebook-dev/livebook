@@ -84,8 +84,10 @@ defmodule LivebookWeb.Output.FrameComponent do
             dom_id_map={@persistent_id_map}
             socket={@socket}
             session_id={@session_id}
-            input_values={@input_values} />
-          </div>
+            input_values={@input_values}
+            client_id={@client_id}
+          />
+        </div>
       <% end %>
     </div>
     """

@@ -1,5 +1,7 @@
 <%
 
+app_name = Keyword.fetch!(@app_options, :name)
+
 additional_paths =
   for path <- Keyword.fetch!(@app_options, :additional_paths), into: "" do
     "root & \"\\" <> String.replace(path, "/", "\\") <> ";\" & "
@@ -25,14 +27,35 @@ Module Launcher
     Environment.SetEnvironmentVariable("PATH", <%= additional_paths%>Environment.GetEnvironmentVariable("PATH"))
 <% end %>
 
-     Dim cmd as String
      ' try release rpc, if release is down, this will fail but that's ok.
-     cmd = "echo " & input & " | """ & script & """ rpc ""AppBundler.__rpc__()"""
-     Shell("cmd.exe /c " & cmd, 0)
+     Dim rpcProc = new System.Diagnostics.Process()
+     rpcProc.StartInfo.FileName = "cmd.exe"
+     rpcProc.StartInfo.Arguments = "/c echo " & input & " | """ & script & """ rpc ""AppBundler.__rpc__()"""
+     rpcProc.StartInfo.UseShellExecute = false
+     rpcProc.StartInfo.CreateNoWindow = true
+     rpcProc.Start()
+     rpcProc.WaitForExit()
 
-     ' try release start, if release is up, this will fail but that's ok.
-     Environment.SetEnvironmentVariable("APP_BUILDER_INPUT", input)
-     cmd = """" & script & """ start"
-     Shell("cmd.exe /c " & cmd, 0)
+     ' rpc failed which usually means the release is down, let's start it
+     If rpcProc.ExitCode <> 0 Then
+       Environment.SetEnvironmentVariable("APP_BUILDER_INPUT", input)
+       Dim startProc = new System.Diagnostics.Process()
+       startProc.StartInfo.FileName = "cmd.exe"
+       startProc.StartInfo.Arguments = "/c """ & script & """ start"
+       startProc.StartInfo.UseShellExecute = false
+       startProc.StartInfo.CreateNoWindow = true
+       startProc.StartInfo.RedirectStandardError = true
+       startProc.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8
+       startProc.Start()
+       Dim errorMessage = startProc.StandardError.ReadToEnd()
+       startProc.WaitForExit()
+
+       If startProc.ExitCode <> 0 Then
+         MsgBox(
+           "<%= app_name %> exited with error code " & startProc.ExitCode & "." & vbCrLf & errorMessage,
+           MsgBoxStyle.Critical
+         )
+       End If
+     End If
    End Sub
 End Module

@@ -402,6 +402,28 @@ defmodule Livebook.NotebookTest do
                  {:frame, [{:text, "hola"}], %{ref: "1", type: :replace}}
                )
     end
+
+    test "skips ignored output" do
+      notebook = %{
+        Notebook.new()
+        | sections: [
+            %{
+              Section.new()
+              | id: "s1",
+                cells: [%{Cell.new(:code) | id: "c1", outputs: []}]
+            }
+          ],
+          output_counter: 1
+      }
+
+      assert %{
+               sections: [
+                 %{
+                   cells: [%{outputs: []}]
+                 }
+               ]
+             } = Notebook.add_cell_output(notebook, "c1", :ignored)
+    end
   end
 
   describe "find_frame_outputs/2" do

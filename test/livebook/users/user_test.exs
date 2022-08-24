@@ -1,34 +1,35 @@
 defmodule Livebook.Users.UserTest do
-  use ExUnit.Case, async: true
+  use Livebook.DataCase, async: true
 
   alias Livebook.Users.User
 
   describe "change/2" do
     test "given valid attributes returns and updated user" do
-      user = User.new()
+      user = build(:user)
       attrs = %{"name" => "Jake Peralta", "hex_color" => "#000000"}
-      assert {:ok, %User{name: "Jake Peralta", hex_color: "#000000"}} = User.change(user, attrs)
+      changeset = User.changeset(user, attrs)
+
+      assert changeset.valid?
+      assert get_field(changeset, :name) == "Jake Peralta"
+      assert get_field(changeset, :hex_color) == "#000000"
     end
 
-    test "given empty name sets name to nil" do
-      user = User.new()
+    test "given empty name returns an error" do
+      user = build(:user)
       attrs = %{"name" => ""}
-      assert {:ok, %User{name: nil}} = User.change(user, attrs)
+      changeset = User.changeset(user, attrs)
+
+      refute changeset.valid?
+      assert "can't be blank" in errors_on(changeset).name
     end
 
     test "given invalid color returns an error" do
-      user = User.new()
+      user = build(:user)
       attrs = %{"hex_color" => "#invalid"}
-      assert {:error, [{:hex_color, "not a valid color"}], _user} = User.change(user, attrs)
-    end
+      changeset = User.changeset(user, attrs)
 
-    test "given invalid attribute partially updates the user" do
-      user = User.new()
-      current_hex_color = user.hex_color
-      attrs = %{"hex_color" => "#invalid", "name" => "Jake Peralta"}
-
-      assert {:error, _errors, %User{name: "Jake Peralta", hex_color: ^current_hex_color}} =
-               User.change(user, attrs)
+      refute changeset.valid?
+      assert "not a valid color" in errors_on(changeset).hex_color
     end
   end
 end

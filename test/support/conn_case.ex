@@ -6,6 +6,7 @@ defmodule LivebookWeb.ConnCase do
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
+      import Livebook.Factory
       import LivebookWeb.ConnCase
 
       alias LivebookWeb.Router.Helpers, as: Routes

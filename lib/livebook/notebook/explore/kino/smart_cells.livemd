@@ -12,13 +12,15 @@ Mix.install([
 So far we discussed how Livebook supports interactive outputs and
 covered creating custom outputs with Kino. Livebook v0.6 opens up
 the door to a whole new category of extensions that we call Smart
-cells ⚡
+cells.
 
 Just like the Code and Markdown cells, Smart cells are building
 blocks for our notebooks. A Smart cell provides a user interface
-specifically designed for a particular task. Under the hood, each
-Smart cell is just a regular piece of code, however the code is
-generated automatically based on the UI interactions.
+specifically designed for a particular task. While `Kino.JS` and
+`Kino.JS.Live` are about customizing the output, without changing
+the runtime, Smart cells run just like a regular piece of code,
+however the code is generated automatically based on the UI
+interactions.
 
 Smart cells allow for accomplishing high-level tasks faster, without
 writing any code, yet, without sacrificing code! This characteristic

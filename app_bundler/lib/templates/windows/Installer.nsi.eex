@@ -45,7 +45,7 @@ Section "Install"
   SetOutPath "$INSTDIR"
 
   File vcredist_x64.exe
-  ExecWait '"$INSTDIR\vcredist_x64.exe" /install'
+  ExecWait '"$INSTDIR\vcredist_x64.exe" /install /quiet /norestart'
 
   File /r rel rel
   File "<%= app_name %>Launcher.exe"

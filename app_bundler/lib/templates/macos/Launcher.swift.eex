@@ -99,7 +99,7 @@ func buildReleaseTask() -> Process {
 }
 
 func runAlert(messageText: String) {
-    DispatchQueue.main.async {
+    DispatchQueue.main.sync {
         let alert = NSAlert()
         alert.alertStyle = .critical
         alert.messageText = messageText

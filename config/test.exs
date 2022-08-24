@@ -9,7 +9,7 @@ config :livebook, LivebookWeb.Endpoint,
 config :livebook, :iframe_port, 4003
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :warning
 
 # Disable authentication mode during test
 config :livebook, :authentication_mode, :disabled
@@ -22,6 +22,7 @@ if File.exists?(data_path) do
 end
 
 config :livebook, :data_path, data_path
+config :livebook, :feature_flags, hub: true
 
 # Use longnames when running tests in CI, so that no host resolution is required,
 # see https://github.com/livebook-dev/livebook/pull/173#issuecomment-819468549

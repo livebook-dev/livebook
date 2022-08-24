@@ -33,13 +33,16 @@ defmodule LivebookWeb.UserHook do
   # `user_data` from session.
   defp build_current_user(session, socket) do
     %{"current_user_id" => current_user_id} = session
+    user = %{User.new() | id: current_user_id}
 
     connect_params = get_connect_params(socket) || %{}
-    user_data = connect_params["user_data"] || session["user_data"] || %{}
+    attrs = connect_params["user_data"] || session["user_data"] || %{}
 
-    case User.change(%{User.new() | id: current_user_id}, user_data) do
+    changeset = User.changeset(user, attrs)
+
+    case Livebook.Users.update_user(changeset) do
       {:ok, user} -> user
-      {:error, _errors, user} -> user
+      {:error, _changeset} -> user
     end
   end
 end

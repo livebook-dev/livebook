@@ -8,7 +8,8 @@ defmodule LivebookWeb.JSViewChannelTest do
       LivebookWeb.Socket
       |> socket()
       |> subscribe_and_join(LivebookWeb.JSViewChannel, "js_view", %{
-        "session_id" => session_id
+        "session_id" => session_id,
+        "client_id" => Livebook.Utils.random_id()
       })
 
     %{socket: socket}
@@ -45,6 +46,16 @@ defmodule LivebookWeb.JSViewChannelTest do
     push(socket, "event", %{"root" => [["ping", "1"], [1, 2, 3]]})
 
     assert_receive {:event, "ping", [1, 2, 3], %{origin: _origin}}
+  end
+
+  test "sends server events to the target client", %{socket: socket} do
+    push(socket, "connect", %{"session_token" => session_token(), "ref" => "1", "id" => "id1"})
+
+    assert_receive {:connect, from, %{}}
+    send(from, {:connect_reply, [1, 2, 3], %{ref: "1"}})
+
+    send(from, {:event, "ping", [1, 2, 3], %{ref: "1"}})
+    assert_push "event:1", %{"root" => [["ping"], [1, 2, 3]]}
   end
 
   describe "binary payload" do

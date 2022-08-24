@@ -41,56 +41,6 @@ return the Elixir version.
 Note you can also press <kbd>tab</kbd> to cycle across the completion
 alternatives.
 
-## Using packages
-
-Sometimes you need a dependency or two and notebooks are no exception to this.
-In Livebook, you can use [`Mix.install/2`](https://hexdocs.pm/mix/Mix.html#install/2)
-to bring dependencies into your notebook! This approach is especially useful when
-sharing notebooks because everyone will be able to get the same dependencies.
-
-Installing dependencies is a one-off setup operation and for those we use a special
-setup cell. Copy the code below, then scroll to the very top of the notebook,
-double-click on "Notebook dependencies and setup", add and run the code.
-
-<!-- livebook:{"force_markdown":true} -->
-
-```elixir
-Mix.install([
-  {:kino, "~> 0.6.1"}
-])
-```
-
-**Note:** compiling dependencies may use a reasonable amount of memory. If you are
-hosting Livebook, make sure you have enough memory allocated to the Livebook
-instance, otherwise the installation will fail.
-
-<!-- livebook:{"break_markdown":true} -->
-
-### Kino
-
-The package we installed is [Kino](https://github.com/elixir-nx/kino) - a library
-that allows you to control parts of Livebook directly from the Elixir code. Let's
-use it to print a data table:
-
-```elixir
-data = [
-  %{id: 1, name: "Elixir", website: "https://elixir-lang.org"},
-  %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
-]
-
-Kino.DataTable.new(data)
-```
-
-There is much more to `Kino` and we have [a series of Kino guides
-in the Explore section to teach you more](/explore).
-
-Note that it is a good idea to specify versions of the installed packages,
-so that the notebook is easily reproducible later on. The install
-command goes beyond simply installing dependencies, it also caches
-them, consolidates protocols, and more. Check
-[its documentation](https://hexdocs.pm/mix/Mix.html#install/2)
-to learn more.
-
 ## Runtimes
 
 Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
@@ -126,7 +76,7 @@ parent = self()
 Process.put(:info, "deal carefully with process dictionaries")
 ```
 
-<!-- livebook:{"branch_parent_index":4} -->
+<!-- livebook:{"branch_parent_index":3} -->
 
 ## More on branches #2
 

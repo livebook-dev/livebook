@@ -176,26 +176,6 @@ defmodule Livebook.Utils do
     uri.scheme != nil and uri.host not in [nil, ""]
   end
 
-  @doc """
-  Validates if the given hex color is the correct format
-
-  ## Examples
-
-      iex> Livebook.Utils.valid_hex_color?("#111111")
-      true
-
-      iex> Livebook.Utils.valid_hex_color?("#ABC123")
-      true
-
-      iex> Livebook.Utils.valid_hex_color?("ABCDEF")
-      false
-
-      iex> Livebook.Utils.valid_hex_color?("#111")
-      false
-  """
-  @spec valid_hex_color?(String.t()) :: boolean()
-  def valid_hex_color?(hex_color), do: hex_color =~ ~r/^#[0-9a-fA-F]{6}$/
-
   @doc ~S"""
   Validates if the given string forms valid CLI flags.
 
@@ -358,7 +338,7 @@ defmodule Livebook.Utils do
 
     case cmd_args do
       {cmd, args} -> System.cmd(cmd, args)
-      nil -> Logger.warn("could not open the browser, no open command found in the system")
+      nil -> Logger.warning("could not open the browser, no open command found in the system")
     end
 
     :ok
@@ -466,7 +446,7 @@ defmodule Livebook.Utils do
     base_url
     |> URI.parse()
     |> Map.replace!(:path, "/import")
-    |> append_query("url=#{URI.encode_www_form(url)}")
+    |> URI.append_query("url=#{URI.encode_www_form(url)}")
     |> URI.to_string()
   end
 
@@ -484,17 +464,8 @@ defmodule Livebook.Utils do
     base_url
     |> URI.parse()
     |> Map.replace!(:path, "/open")
-    |> append_query("path=#{URI.encode_www_form(path)}")
+    |> URI.append_query("path=#{URI.encode_www_form(path)}")
     |> URI.to_string()
-  end
-
-  # TODO: On Elixir v1.14, use URI.append_query/2
-  def append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
-    %{uri | query: query_to_add}
-  end
-
-  def append_query(%URI{} = uri, query) do
-    %{uri | query: uri.query <> "&" <> query}
   end
 
   @doc """

@@ -1,5 +1,8 @@
 defmodule LivebookWeb.SessionHelpers do
   import Phoenix.LiveView
+
+  alias Phoenix.LiveView.Socket
+  alias Livebook.Session
   alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
@@ -8,7 +11,7 @@ defmodule LivebookWeb.SessionHelpers do
 
   Accepts the same options as `Livebook.Sessions.create_session/1`.
   """
-  @spec create_session(Phoenix.LiveView.Socket.t(), keyword()) :: Phoenix.LiveView.Socket.t()
+  @spec create_session(Socket.t(), keyword()) :: Socket.t()
   def create_session(socket, opts \\ []) do
     # Revert persistence options to default values if there is
     # no file attached to the new session
@@ -21,7 +24,8 @@ defmodule LivebookWeb.SessionHelpers do
 
     case Livebook.Sessions.create_session(opts) do
       {:ok, session} ->
-        push_redirect(socket, to: Routes.session_path(socket, :page, session.id))
+        redirect_path = session_path(socket, session.id, opts)
+        push_redirect(socket, to: redirect_path)
 
       {:error, reason} ->
         put_flash(socket, :error, "Failed to create session: #{reason}")
@@ -29,11 +33,27 @@ defmodule LivebookWeb.SessionHelpers do
   end
 
   @doc """
+  Generate the session path based on the provided options.
+  """
+  @spec session_path(Socket.t(), Session.id(), keyword()) :: String.t()
+  def session_path(socket, session_id, opts \\ []) do
+    socket
+    |> Routes.session_path(:page, session_id)
+    |> maybe_add_url_hash(opts)
+  end
+
+  defp maybe_add_url_hash(redirect_path, opts) do
+    case opts[:url_hash] do
+      nil -> redirect_path
+      url_hash -> "#{redirect_path}##{url_hash}"
+    end
+  end
+
+  @doc """
   Formats the given list of notebook import messages and puts
   into the warning flash.
   """
-  @spec put_import_warnings(Phoenix.LiveView.Socket.t(), list(String.t())) ::
-          Phoenix.LiveView.Socket.t()
+  @spec put_import_warnings(Socket.t(), list(String.t())) :: Socket.t()
   def put_import_warnings(socket, messages)
 
   def put_import_warnings(socket, []), do: socket

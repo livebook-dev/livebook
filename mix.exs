@@ -1,11 +1,11 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.13"
+  @elixir_requirement "~> 1.14-rc.0"
   @version "0.6.3"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.13.4"
+  @app_elixir_version "1.14.0-rc.0"
   @app_rebar3_version "3.19.0"
 
   def project do
@@ -97,7 +97,9 @@ defmodule Livebook.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 0.1.0"},
-      {:aws_signature, "~> 0.2.0"},
+      {:aws_signature, "~> 0.3.0"},
+      {:ecto, "~> 3.8.4"},
+      {:phoenix_ecto, "~> 4.4.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
       {:bypass, "~> 2.1", only: :test}

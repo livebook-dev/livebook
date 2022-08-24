@@ -6,8 +6,13 @@ defmodule AppBundler.Windows do
   @templates_path "#{__ENV__.file}/../../templates"
 
   def bundle(release, options) do
-    app_name = options[:name]
+    {:ok, _} = Application.ensure_all_started(:ssl)
+    {:ok, _} = Application.ensure_all_started(:inets)
 
+    log(:green, :killing, "epmd.exe")
+    System.cmd("taskkill.exe", ~w(/F /IM epmd.exe))
+
+    app_name = options[:name]
     app_path = "#{Mix.Project.build_path()}/#{app_name}-win"
     File.rm_rf!(app_path)
 
@@ -17,10 +22,9 @@ defmodule AppBundler.Windows do
     manifest_xml_path = "#{app_path}/Manifest.xml"
     copy_template(manifest_eex_path, manifest_xml_path, release: release)
 
-    rcedit_path = ensure_rcedit()
     erl_exe = "#{app_path}/rel/erts-#{release.erts_version}/bin/erl.exe"
     log(:green, :updating, Path.relative_to_cwd(erl_exe))
-    cmd!(rcedit_path, ["--application-manifest", manifest_xml_path, erl_exe])
+    Mix.Task.run("pe.update", ["--set-manifest", manifest_xml_path, erl_exe])
 
     vcredist_path = ensure_vcredistx64()
     copy_file(vcredist_path, "#{app_path}/vcredist_x64.exe")
@@ -65,12 +69,14 @@ defmodule AppBundler.Windows do
       end
     end
 
-    installer_eex_path = Path.expand("#{@templates_path}/windows/Installer.nsi.eex")
-    installer_nsi_path = "#{app_path}/Installer.nsi"
-    copy_template(installer_eex_path, installer_nsi_path, release: release, app_options: options)
-    makensis_path = ensure_makensis()
-    log(:green, "creating", Path.relative_to_cwd("#{app_path}/#{app_name}Install.exe"))
-    cmd!(makensis_path, [installer_nsi_path])
+    if Keyword.fetch!(options, :build_installer) do
+      installer_eex_path = Path.expand("#{@templates_path}/windows/Installer.nsi.eex")
+      installer_nsi_path = "#{app_path}/Installer.nsi"
+      copy_template(installer_eex_path, installer_nsi_path, release: release, app_options: options)
+      makensis_path = ensure_makensis()
+      log(:green, "creating", Path.relative_to_cwd("#{app_path}/#{app_name}Install.exe"))
+      cmd!(makensis_path, [installer_nsi_path])
+    end
 
     release
   end
@@ -96,12 +102,6 @@ defmodule AppBundler.Windows do
     url = "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.08/nsis-3.08.zip"
     sha256 = "1bb9fc85ee5b220d3869325dbb9d191dfe6537070f641c30fbb275c97051fd0c"
     AppBundler.Utils.ensure_executable(url, sha256, "nsis-3.08/makensis.exe")
-  end
-
-  defp ensure_rcedit do
-    url = "https://github.com/electron/rcedit/releases/download/v1.1.1/rcedit-x64.exe"
-    sha256 = "02e8e8c5d430d8b768980f517b62d7792d690982b9ba0f7e04163cbc1a6e7915"
-    AppBundler.Utils.ensure_executable(url, sha256)
   end
 
   defp ensure_magick do

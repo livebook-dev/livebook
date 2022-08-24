@@ -73,7 +73,7 @@ defmodule Livebook.Utils.HTTP do
         {to_charlist(key), to_charlist(value)}
       end)
 
-    [{'user-agent', 'livebook'} | headers]
+    [{~c"user-agent", ~c"livebook"} | headers]
   end
 
   defp parse_headers(headers) do

@@ -14,16 +14,19 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
               <.file_system_info file_system={file_system} />
             </div>
             <%= unless is_struct(file_system, FileSystem.Local) do %>
-              <button class="button-base button-outlined-red"
+              <button
+                class="button-base button-outlined-red"
                 phx-click={
                   with_confirm(
                     JS.push("detach_file_system", value: %{id: file_system_id}),
                     title: "Detach file system",
-                    description: "Are you sure you want to detach this file system? Any sessions using it will keep the access until they get closed.",
+                    description:
+                      "Are you sure you want to detach this file system? Any sessions using it will keep the access until they get closed.",
                     confirm_text: "Detach",
                     confirm_icon: "close-circle-line"
                   )
-                }>
+                }
+              >
                 Detach
               </button>
             <% end %>
@@ -31,9 +34,10 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
         <% end %>
       </div>
       <div class="flex">
-        <%= live_patch "Add file system",
-              to: Routes.settings_path(@socket, :add_file_system),
-              class: "button-base button-blue" %>
+        <%= live_patch("Add file system",
+          to: Routes.settings_path(@socket, :add_file_system),
+          class: "button-base button-blue"
+        ) %>
       </div>
     </div>
     """

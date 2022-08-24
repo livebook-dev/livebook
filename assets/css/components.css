@@ -124,7 +124,7 @@
   }
 
   .switch-button {
-    @apply relative inline-block w-14 h-7 mr-2 select-none transition;
+    @apply relative inline-block w-14 h-7 mr-2 select-none;
   }
 
   .switch-button--disabled {
@@ -274,5 +274,26 @@
 
   .info-box {
     @apply p-4 bg-gray-100 text-sm text-gray-500 font-medium rounded-lg;
+  }
+
+  /* Cards */
+  .card-item {
+    @apply cursor-pointer;
+  }
+
+  .card-item:not(.selected) .card-item-logo {
+    @apply border-gray-100;
+  }
+
+  .card-item:not(.selected) .card-item-body {
+    @apply bg-gray-100;
+  }
+
+  .card-item.selected .card-item-logo {
+    @apply border-gray-200;
+  }
+
+  .card-item.selected .card-item-body {
+    @apply bg-gray-200;
   }
 }

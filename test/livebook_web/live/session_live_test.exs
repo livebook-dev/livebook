@@ -5,7 +5,6 @@ defmodule LivebookWeb.SessionLiveTest do
 
   alias Livebook.{Sessions, Session, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
-  alias Livebook.Users.User
 
   setup do
     {:ok, session} = Sessions.create_session(notebook: Livebook.Notebook.new())
@@ -577,16 +576,16 @@ defmodule LivebookWeb.SessionLiveTest do
 
   describe "connected users" do
     test "lists connected users", %{conn: conn, session: session} do
-      user1 = create_user_with_name("Jake Peralta")
+      user1 = build(:user, name: "Jake Peralta")
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session.pid, self(), user1)
-
           receive do
             :stop -> :ok
           end
         end)
+
+      Session.register_client(session.pid, client_pid, user1)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -601,37 +600,37 @@ defmodule LivebookWeb.SessionLiveTest do
 
       Session.subscribe(session.id)
 
-      user1 = create_user_with_name("Jake Peralta")
+      user1 = build(:user, name: "Jake Peralta")
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session.pid, self(), user1)
-
           receive do
             :stop -> :ok
           end
         end)
 
-      assert_receive {:operation, {:client_join, ^client_pid, _user}}
+      {_, client_id} = Session.register_client(session.pid, client_pid, user1)
+
+      assert_receive {:operation, {:client_join, ^client_id, _user}}
       assert render(view) =~ "Jake Peralta"
 
       send(client_pid, :stop)
-      assert_receive {:operation, {:client_leave, ^client_pid}}
+      assert_receive {:operation, {:client_leave, ^client_id}}
       refute render(view) =~ "Jake Peralta"
     end
 
     test "updates users list whenever a user changes his data",
          %{conn: conn, session: session} do
-      user1 = create_user_with_name("Jake Peralta")
+      user1 = build(:user, name: "Jake Peralta")
 
       client_pid =
         spawn_link(fn ->
-          Session.register_client(session.pid, self(), user1)
-
           receive do
             :stop -> :ok
           end
         end)
+
+      Session.register_client(session.pid, client_pid, user1)
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
@@ -640,7 +639,7 @@ defmodule LivebookWeb.SessionLiveTest do
       assert render(view) =~ "Jake Peralta"
 
       Users.broadcast_change(%{user1 | name: "Raymond Holt"})
-      assert_receive {:operation, {:update_user, _pid, _user}}
+      assert_receive {:operation, {:update_user, _client_id, _user}}
 
       refute render(view) =~ "Jake Peralta"
       assert render(view) =~ "Raymond Holt"
@@ -957,11 +956,6 @@ defmodule LivebookWeb.SessionLiveTest do
     Session.queue_cell_evaluation(session_pid, cell_id)
     assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
     cell_id
-  end
-
-  defp create_user_with_name(name) do
-    {:ok, user} = User.new() |> User.change(%{"name" => name})
-    user
   end
 
   defp url(port), do: "http://localhost:#{port}"

@@ -16,24 +16,33 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
       <p class="text-gray-700" id="import-from-file">
         Drag and drop a <code>.livemd</code> file below to import it.
       </p>
-      <form id="upload-file-form"
+      <form
+        id="upload-file-form"
         phx-submit="save"
         phx-change="validate"
         phx-drop-target={@uploads.notebook.ref}
         phx-target={@myself}
         class="flex flex-col items-start"
       >
-        <%= live_file_input @uploads.notebook, class: "hidden", aria_labelledby: "import-from-file" %>
-        <div class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48"
+        <%= live_file_input(@uploads.notebook, class: "hidden", aria_labelledby: "import-from-file") %>
+        <div
+          class="flex flex-col justify-center items-center w-full rounded-xl border-2 border-dashed border-gray-400 h-48"
           phx-hook="Dropzone"
-          id="upload-file-dropzone">
+          id="upload-file-dropzone"
+        >
           <%= if @uploads.notebook.entries == [] do %>
             <span name="placeholder" class="font-medium text-gray-400">Drop your notebook here</span>
           <% else %>
             <%= for file <- @uploads.notebook.entries do %>
               <div class="flex items-center">
                 <span class="font-medium text-gray-400"><%= file.client_name %></span>
-                <button type="button" class="icon-button" phx-click="clear-file" phx-target={@myself} tabindex="-1">
+                <button
+                  type="button"
+                  class="icon-button"
+                  phx-click="clear-file"
+                  phx-target={@myself}
+                  tabindex="-1"
+                >
                   <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
                 </button>
               </div>
@@ -45,7 +54,11 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
             You can only upload files with .livemd extension.
           </div>
         <% end %>
-        <button type="submit" class="mt-5 button-base button-blue" disabled={@uploads.notebook.entries == [] || @error}>
+        <button
+          type="submit"
+          class="mt-5 button-base button-blue"
+          disabled={@uploads.notebook.entries == [] || @error}
+        >
           Import
         </button>
       </form>

@@ -116,7 +116,13 @@ $$
 S(x) = \frac{1}{1 + e^{-x}} = \frac{e^{x}}{e^{x} + 1}
 $$
 
-You can explore all supported expressions [here](https://katex.org/docs/supported.html).
+<!-- livebook:{"force_markdown":true} -->
+
+To write your own, put your math expressions between \$ signs for inline math
+or \$\$ if you want display math. You can double click the formulas above to see
+how they are written.
+
+You can explore all supported expressions in the [KaTeX documentation](https://katex.org/docs/supported.html).
 
 ### Mermaid diagrams
 

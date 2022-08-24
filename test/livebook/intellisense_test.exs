@@ -9,11 +9,8 @@ defmodule Livebook.IntellisenseTest do
     quote do
       block = unquote(Macro.escape(block))
       binding = []
-      # TODO: Use Code.env_for_eval and eval_quoted_with_env on Elixir v1.14+
-      env = :elixir.env_for_eval([])
-      {_, binding, env} = :elixir.eval_quoted(block, binding, env)
-      # TODO: Remove this line on Elixir v1.14 as binding propagates to env correctly
-      {_, binding, env} = :elixir.eval_forms(:ok, binding, env)
+      env = Code.env_for_eval([])
+      {value, binding, env} = Code.eval_quoted_with_env(block, binding, env)
 
       %{
         env: env,
@@ -1224,6 +1221,14 @@ defmodule Livebook.IntellisenseTest do
       assert file_read =~ "Typical error reasons:"
     end
 
+    @tag :erl_docs
+    test "properly renders Erlang signature types list" do
+      context = eval(do: nil)
+
+      assert %{contents: [file_read]} = Intellisense.get_details(":odbc.connect()", 8, context)
+      assert file_read =~ "Ref = connection_reference()"
+    end
+
     test "properly parses unicode" do
       context = eval(do: nil)
 
@@ -1427,6 +1432,22 @@ defmodule Livebook.IntellisenseTest do
                  }
                ]
              } = Intellisense.get_signature_items(":lists.map(", context)
+    end
+
+    @tag :erl_docs
+    test "shows signature with arguments for erlang modules with arrow signature" do
+      context = eval(do: nil)
+
+      assert %{
+               active_argument: 0,
+               signature_items: [
+                 %{
+                   signature: "connect(ConnectStr, Options)",
+                   arguments: ["ConnectStr", "Options"],
+                   documentation: _connect_doc
+                 }
+               ]
+             } = Intellisense.get_signature_items(":odbc.connect(", context)
     end
 
     test "returns call active argument" do

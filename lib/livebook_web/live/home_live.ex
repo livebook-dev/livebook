@@ -2,10 +2,11 @@ defmodule LivebookWeb.HomeLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
-  import LivebookWeb.UserHelpers
 
-  alias LivebookWeb.{SidebarHelpers, ExploreHelpers}
+  alias LivebookWeb.{ExploreHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
+
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(params, _session, socket) do
@@ -18,9 +19,7 @@ defmodule LivebookWeb.HomeLive do
     notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
-     socket
-     |> SidebarHelpers.shared_home_handlers()
-     |> assign(
+     assign(socket,
        self_path: Routes.home_path(socket, :page),
        file: determine_file(params),
        file_info: %{exists: true, access: :read_write},
@@ -37,118 +36,133 @@ defmodule LivebookWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex grow h-full">
-      <.live_region role="alert" />
-      <SidebarHelpers.sidebar>
-        <SidebarHelpers.shared_home_footer socket={@socket} current_user={@current_user} />
-      </SidebarHelpers.sidebar>
-      <div class="grow overflow-y-auto">
-        <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
-        <.memory_notification memory={@memory} app_service_url={@app_service_url} />
-        <div class="max-w-screen-lg w-full mx-auto px-8 pt-8 pb-32 space-y-4">
-          <div class="flex flex-col space-y-2 items-center pb-4 border-b border-gray-200
-                      sm:flex-row sm:space-y-0 sm:justify-between">
-            <div class="text-2xl text-gray-800 font-semibold">
-              <img src="/images/logo-with-text.png" class="h-[50px]" alt="Livebook" />
-              <h1 class="sr-only">Livebook</h1>
-            </div>
-            <div class="flex space-x-2 pt-2" role="navigation" aria-label="new notebook">
-              <%= live_patch "Import",
-                    to: Routes.home_path(@socket, :import, "url"),
-                    class: "button-base button-outlined-gray whitespace-nowrap" %>
-              <button class="button-base button-blue" phx-click="new">
-                New notebook
-              </button>
-            </div>
-          </div>
-
-          <div class="h-80" role="region" aria-label="file system">
-            <.live_component module={LivebookWeb.FileSelectComponent}
-                id="home-file-select"
-                file={@file}
-                extnames={[LiveMarkdown.extension()]}
-                running_files={files(@sessions)}>
-              <div class="flex justify-end space-x-2">
-                <button class="button-base button-outlined-gray whitespace-nowrap"
-                  phx-click="fork"
-                  disabled={not path_forkable?(@file, @file_info)}>
-                  <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
-                  <span>Fork</span>
-                </button>
-                <%= if file_running?(@file, @sessions) do %>
-                  <%= live_redirect "Join session",
-                        to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
-                        class: "button-base button-blue" %>
-                <% else %>
-                  <span {open_button_tooltip_attrs(@file, @file_info)}>
-                    <button class="button-base button-blue"
-                      phx-click="open"
-                      disabled={not path_openable?(@file, @file_info, @sessions)}>
-                      Open
-                    </button>
-                  </span>
-                <% end %>
-              </div>
-            </.live_component>
-          </div>
-
-          <div class="py-12" data-el-explore-section role="region" aria-label="explore section">
-            <div class="mb-4 flex justify-between items-center">
-              <h2 class="uppercase font-semibold text-gray-500">
-                Explore
-              </h2>
-              <%= live_redirect to: Routes.explore_path(@socket, :page),
-                    class: "flex items-center text-blue-600" do %>
-                <span class="font-semibold">See all</span>
-                <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
-              <% end %>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <%# Note: it's fine to use stateless components in this comprehension,
-                  because @notebook_infos never change %>
-              <%= for info <- @notebook_infos do %>
-                <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
-              <% end %>
-            </div>
-          </div>
-          <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
-            <.live_component module={LivebookWeb.HomeLive.SessionListComponent}
-              id="session-list"
-              sessions={@sessions}
-              memory={@memory} />
+    <LayoutHelpers.layout
+      socket={@socket}
+      current_page={Routes.home_path(@socket, :page)}
+      current_user={@current_user}
+      saved_hubs={@saved_hubs}
+    >
+      <:topbar_action>
+        <a aria-label="new-notebook" class="flex items-center" phx-click="new">
+          <.remix_icon icon="add-line" />
+          <span class="pl-2">New notebook</span>
+        </a>
+      </:topbar_action>
+      <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
+      <.memory_notification memory={@memory} app_service_url={@app_service_url} />
+      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-lg mx-auto space-y-4">
+        <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
+          <PageHelpers.title text="Home" />
+          <div class="hidden sm:flex space-x-2" role="navigation" aria-label="new notebook">
+            <%= live_patch("Import",
+              to: Routes.home_path(@socket, :import, "url"),
+              class: "button-base button-outlined-gray whitespace-nowrap"
+            ) %>
+            <button class="button-base button-blue" phx-click="new">
+              New notebook
+            </button>
           </div>
         </div>
-      </div>
-    </div>
 
-    <.current_user_modal current_user={@current_user} />
+        <div class="h-80" role="region" aria-label="file system">
+          <.live_component
+            module={LivebookWeb.FileSelectComponent}
+            id="home-file-select"
+            file={@file}
+            extnames={[LiveMarkdown.extension()]}
+            running_files={files(@sessions)}
+          >
+            <div class="flex justify-end space-x-2">
+              <button
+                class="button-base button-outlined-gray whitespace-nowrap"
+                phx-click="fork"
+                disabled={not path_forkable?(@file, @file_info)}
+              >
+                <.remix_icon icon="git-branch-line" class="align-middle mr-1" />
+                <span>Fork</span>
+              </button>
+              <%= if file_running?(@file, @sessions) do %>
+                <%= live_redirect("Join session",
+                  to: Routes.session_path(@socket, :page, session_id_by_file(@file, @sessions)),
+                  class: "button-base button-blue"
+                ) %>
+              <% else %>
+                <span {open_button_tooltip_attrs(@file, @file_info)}>
+                  <button
+                    class="button-base button-blue"
+                    phx-click="open"
+                    disabled={not path_openable?(@file, @file_info, @sessions)}
+                  >
+                    Open
+                  </button>
+                </span>
+              <% end %>
+            </div>
+          </.live_component>
+        </div>
+
+        <div class="py-12" data-el-explore-section role="region" aria-label="explore section">
+          <div class="mb-4 flex justify-between items-center">
+            <h2 class="uppercase font-semibold text-gray-500">
+              Explore
+            </h2>
+            <%= live_redirect to: Routes.explore_path(@socket, :page),
+                    class: "flex items-center text-blue-600" do %>
+              <span class="font-semibold">See all</span>
+              <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
+            <% end %>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <% # Note: it's fine to use stateless components in this comprehension,
+            # because @notebook_infos never change %>
+            <%= for info <- @notebook_infos do %>
+              <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
+            <% end %>
+          </div>
+        </div>
+        <div id="running-sessions" class="py-12" role="region" aria-label="running sessions">
+          <.live_component
+            module={LivebookWeb.HomeLive.SessionListComponent}
+            id="session-list"
+            sessions={@sessions}
+            memory={@memory}
+          />
+        </div>
+      </div>
+    </LayoutHelpers.layout>
 
     <%= if @live_action == :close_session do %>
       <.modal id="close-session-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component module={LivebookWeb.HomeLive.CloseSessionComponent}
+        <.live_component
+          module={LivebookWeb.HomeLive.CloseSessionComponent}
           id="close-session"
           return_to={@self_path}
-          session={@session} />
+          session={@session}
+        />
       </.modal>
     <% end %>
 
     <%= if @live_action == :import do %>
       <.modal id="import-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component module={LivebookWeb.HomeLive.ImportComponent}
+        <.live_component
+          module={LivebookWeb.HomeLive.ImportComponent}
           id="import"
           tab={@tab}
-          import_opts={@import_opts} />
+          import_opts={@import_opts}
+        />
       </.modal>
     <% end %>
 
     <%= if @live_action == :edit_sessions do %>
       <.modal id="edit-sessions-modal" show class="w-full max-w-xl" patch={@self_path}>
-        <.live_component module={LivebookWeb.HomeLive.EditSessionsComponent}
+        <.live_component
+          module={LivebookWeb.HomeLive.EditSessionsComponent}
           id="edit-sessions"
           action={@bulk_action}
           return_to={@self_path}
           sessions={@sessions}
-          selected_sessions={selected_sessions(@sessions, @selected_session_ids)} />
+          selected_sessions={selected_sessions(@sessions, @selected_session_ids)}
+        />
       </.modal>
     <% end %>
     """
@@ -171,16 +185,30 @@ defmodule LivebookWeb.HomeLive do
         Livebook v<%= @version %> available!
         <%= if @instructions_url do %>
           Check out the news on
-          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">
+          <a
+            class="font-medium border-b border-gray-900 hover:border-transparent"
+            href="https://livebook.dev/"
+            target="_blank"
+          >
             livebook.dev
           </a>
           and follow the
-          <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@instructions_url} target="_blank">
+          <a
+            class="font-medium border-b border-gray-900 hover:border-transparent"
+            href={@instructions_url}
+            target="_blank"
+          >
             update instructions
           </a>
         <% else %>
           Check out the news and installation steps on
-          <a class="font-medium border-b border-gray-900 hover:border-transparent" href="https://livebook.dev/" target="_blank">livebook.dev</a>
+          <a
+            class="font-medium border-b border-gray-900 hover:border-transparent"
+            href="https://livebook.dev/"
+            target="_blank"
+          >
+            livebook.dev
+          </a>
         <% end %>
         🚀
       </span>
@@ -194,9 +222,20 @@ defmodule LivebookWeb.HomeLive do
       <div class="px-2 py-2 bg-red-200 text-gray-900 text-sm text-center">
         <.remix_icon icon="alarm-warning-line" class="align-text-bottom mr-0.5" />
         Less than 30 MB of memory left, consider
-        <a class="font-medium border-b border-gray-900 hover:border-transparent" href={@app_service_url} target="_blank">adding more resources to the instance</a>
+        <a
+          class="font-medium border-b border-gray-900 hover:border-transparent"
+          href={@app_service_url}
+          target="_blank"
+        >
+          adding more resources to the instance
+        </a>
         or closing
-        <a class="font-medium border-b border-gray-900 hover:border-transparent" href="#running-sessions">running sessions</a>
+        <a
+          class="font-medium border-b border-gray-900 hover:border-transparent"
+          href="#running-sessions"
+        >
+          running sessions
+        </a>
       </div>
     <% end %>
     """

@@ -207,7 +207,12 @@ The above example renders new Markdown output every 100ms.
 You can use the same approach to render regular output
 or images too!
 
-With this, we finished our introduction to Kino. Now we are
-ready to bring two concepts we have already learned together:
-`Kino` and `VegaLite`. [Let's use them to introspect the Elixir
-runtime your livebooks run on](/explore/notebooks/vm-introspection).
+With this, we finished our introduction to Kino. Most the guides
+ahead of us will use Kino in one way or the other. You can jump
+into [the VegaLite guide](/explore/notebooks/intro-to-vega-lite)
+for plotting charts or [the MapLibre guide](/explore/notebooks/intro-to-vega-lite)
+for rendering maps.
+
+We also have a collection of deep dive guides into Kino in the
+[Explore](/explore) page if you want to learn more, including how
+to create your custom widgets.

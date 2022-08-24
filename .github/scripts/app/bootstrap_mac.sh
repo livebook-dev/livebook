@@ -8,7 +8,7 @@ main() {
   wxwidgets_ref="v3.1.7"
   otp_repo="wojtekmach/otp"
   otp_ref="wm-WX_MACOS_NON_GUI_APP"
-  elixir_vsn="1.13.4"
+  elixir_vsn="1.14.0-rc.1"
 
   target=$(target)
 
@@ -36,6 +36,7 @@ main() {
   echo "checking otp"
   file `which erlc`
   erl +V
+  erl -noshell -eval 'io:format("root_dir=~p~n", [code:root_dir()]), halt().'
   erl -noshell -eval 'ok = crypto:start(), io:format("crypto ok~n"), halt().'
   erl -noshell -eval '{wx_ref,_,_,_} = wx:new(), io:format("wx ok~n"), halt().'
   echo
@@ -73,13 +74,7 @@ build_wxwidgets() {
     --prefix=$dest_dir \
     --with-cocoa \
     --with-macosx-version-min=10.15 \
-    --with-libjpeg=builtin \
-    --with-libtiff=builtin \
-    --with-libpng=builtin \
-    --with-liblzma=builtin \
-    --with-zlib=builtin \
-    --with-expat=builtin \
-    --with-regex=builtin
+    --disable-sys-libs
   make
   make install
   cd -
@@ -102,9 +97,11 @@ build_otp() {
 
   cd $src_dir
   export ERL_TOP=`pwd`
+  export ERLC_USE_SERVER=true
   ./otp_build configure \
     --disable-dynamic-ssl-lib \
-    --with-ssl=$openssl_dir
+    --with-ssl=$openssl_dir \
+    --without-odbc
 
   ./otp_build boot -a
   ./otp_build release -a $RELEASE_ROOT

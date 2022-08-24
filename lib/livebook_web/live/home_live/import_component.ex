@@ -30,13 +30,10 @@ defmodule LivebookWeb.HomeLive.ImportComponent do
             File upload
           </span>
         <% end %>
-        <div class="grow tab">
-        </div>
+        <div class="grow tab"></div>
       </div>
       <div>
-        <.live_component module={component_for_tab(@tab)}
-          id={"import-#{@tab}"}
-          {@import_opts} />
+        <.live_component module={component_for_tab(@tab)} id={"import-#{@tab}"} {@import_opts} />
       </div>
     </div>
     """
