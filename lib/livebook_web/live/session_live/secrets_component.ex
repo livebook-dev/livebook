@@ -1,9 +1,14 @@
-defmodule LivebookWeb.SessionLive.SecretsLive do
-  use LivebookWeb, :live_view
+defmodule LivebookWeb.SessionLive.SecretsComponent do
+  use LivebookWeb, :live_component
 
   @impl true
-  def mount(_params, %{"session" => session}, socket) do
-    socket = assign(socket, session: session, data: %{"label" => "", "value" => ""})
+  def mount(socket) do
+    {:ok, assign(socket, data: %{"label" => "", "value" => ""})}
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
     {:ok, socket}
   end
 
@@ -18,7 +23,14 @@ defmodule LivebookWeb.SessionLive.SecretsLive do
         <p class="text-gray-700" id="import-from-url">
           Enter the secret name and its value.
         </p>
-        <.form let={f} for={:data} phx-submit="save" phx-change="validate" autocomplete="off">
+        <.form
+          let={f}
+          for={:data}
+          phx-submit="save"
+          phx-change="validate"
+          autocomplete="off"
+          phx-target={@myself}
+        >
           <div class="flex flex-col space-y-4">
             <div>
               <div class="input-label">

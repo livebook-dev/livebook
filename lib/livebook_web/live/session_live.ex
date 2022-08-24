@@ -400,10 +400,11 @@ defmodule LivebookWeb.SessionLive do
 
     <%= if @live_action == :secrets do %>
       <.modal id="secrets-modal" show class="w-full max-w-4xl" patch={@self_path}>
-        <%= live_render(@socket, LivebookWeb.SessionLive.SecretsLive,
-          id: "secrets",
-          session: %{"session" => @session}
-        ) %>
+        <.live_component
+          module={LivebookWeb.SessionLive.SecretsComponent}
+          id="secrets"
+          session={@session}
+        />
       </.modal>
     <% end %>
     """
