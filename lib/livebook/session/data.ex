@@ -1468,7 +1468,14 @@ defmodule Livebook.Session.Data do
   end
 
   defp put_secret({data, _} = data_actions, secret) do
-    set!(data_actions, secrets: data.secrets ++ [secret])
+    secrets =
+      if secret.label in get_in(data.secrets, [Access.all(), :label]) do
+        put_in(data.secrets, [Access.filter(&(&1.label == secret.label)), :value], secret.value)
+      else
+        data.secrets ++ [secret]
+      end
+
+    set!(data_actions, secrets: secrets)
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

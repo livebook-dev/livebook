@@ -1298,7 +1298,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
-      set_runtime_secrets(state, runtime)
+      set_runtime_secrets(state, state.data.secrets)
       state
     else
       state
@@ -1386,8 +1386,8 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, _prev_state, {:put_secret, _client_id, _secret}) do
-    if Runtime.connected?(state.data.runtime), do: set_runtime_secrets(state, state.data.runtime)
+  defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
+    if Runtime.connected?(state.data.runtime), do: set_runtime_secrets(state, [secret])
     state
   end
 
@@ -1523,9 +1523,9 @@ defmodule Livebook.Session do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
   end
 
-  defp set_runtime_secrets(state, runtime) do
-    secrets = Enum.map(state.data.secrets, &{"LB_#{&1.label}", &1.value})
-    Runtime.put_system_envs(runtime, secrets)
+  defp set_runtime_secrets(state, secrets) do
+    secrets = Enum.map(secrets, &{"LB_#{&1.label}", &1.value})
+    Runtime.put_system_envs(state.data.runtime, secrets)
   end
 
   defp notify_update(state) do
