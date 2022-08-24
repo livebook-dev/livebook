@@ -1,11 +1,11 @@
 defmodule Livebook.MixProject do
   use Mix.Project
 
-  @elixir_requirement "~> 1.14.0-dev"
+  @elixir_requirement "~> 1.13"
   @version "0.6.3"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.14.0-dev"
+  @app_elixir_version "1.13.4"
   @app_rebar3_version "3.19.0"
 
   def project do
