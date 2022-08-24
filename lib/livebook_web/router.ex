@@ -55,10 +55,8 @@ defmodule LivebookWeb.Router do
       live "/explore", ExploreLive, :page
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
-      if Livebook.Config.feature_flag_enabled?(:hub) do
-        live "/hub", HubLive, :new
-        live "/hub/:id", HubLive, :edit
-      end
+      live "/hub", HubLive, :new
+      live "/hub/:id", HubLive, :edit
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
