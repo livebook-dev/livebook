@@ -918,7 +918,9 @@ defmodule LivebookWeb.SessionLiveTest do
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
 
-      view
+      [secret_view] = live_children(view)
+
+      secret_view
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{label: "foo", value: "123"}})
 
