@@ -313,25 +313,8 @@ defmodule Livebook.Runtime.DependenciesTest do
 
       api_url = api_url(bypass.port)
 
-      assert Dependencies.search_hex("ecto", api_url: api_url) ==
-               {:ok,
-                [
-                  %{
-                    dependency: {:ecto, "~> 3.7"},
-                    description:
-                      "A toolkit for data mapping and language integrated query for Elixir",
-                    name: "ecto",
-                    url: "https://hex.pm/packages/ecto",
-                    version: "3.7.2"
-                  },
-                  %{
-                    dependency: {:ecto_sql, "~> 3.7"},
-                    description: "SQL-based adapters for Ecto and database migrations",
-                    name: "ecto_sql",
-                    url: "https://hex.pm/packages/ecto_sql",
-                    version: "3.7.2"
-                  }
-                ]}
+      assert {:ok, [%{name: "ecto"}, %{name: "ecto_sql"}]} =
+               Dependencies.search_hex("ecto", api_url: api_url)
     end
 
     test "returns an error on unsuccessful API response", %{bypass: bypass} do
