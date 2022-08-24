@@ -48,6 +48,7 @@ defmodule Livebook.Application do
       {:ok, _} = result ->
         clear_env_vars()
         display_startup_info()
+        insert_development_hub()
         result
 
       {:error, error} ->
@@ -177,6 +178,20 @@ defmodule Livebook.Application do
     defp app_specs, do: [LivebookApp]
   else
     defp app_specs, do: []
+  end
+
+  if Livebook.Config.feature_flag_enabled?(:hub) do
+    defp insert_development_hub do
+      unless Livebook.Hubs.hub_exists?("local-host") do
+        Livebook.Hubs.save_hub(%Livebook.Hubs.Local{
+          id: "local-host",
+          hub_name: "Localhost",
+          hub_color: Livebook.EctoTypes.HexColor.random()
+        })
+      end
+    end
+  else
+    defp insert_development_hub, do: :ok
   end
 
   defp iframe_server_specs() do
