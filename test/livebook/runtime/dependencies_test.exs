@@ -265,6 +265,58 @@ defmodule Livebook.Runtime.DependenciesTest do
                 ]}
     end
 
+    test "lists a package matching exactly first", %{bypass: bypass} do
+      Bypass.expect_once(bypass, "GET", "/api/packages", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, ~S"""
+        [
+          {
+            "configs": {
+              "erlang.mk": "dep_ecto_sql = hex 3.7.2",
+              "mix.exs": "{:ecto_sql, \"~> 3.7\"}",
+              "rebar.config": "{ecto_sql, \"3.7.2\"}"
+            },
+            "docs_html_url": "https://hexdocs.pm/ecto_sql/",
+            "html_url": "https://hex.pm/packages/ecto_sql",
+            "latest_stable_version": "3.7.2",
+            "latest_version": "3.7.2",
+            "meta": {
+              "description": "SQL-based adapters for Ecto and database migrations",
+              "licenses": ["Apache-2.0"],
+              "links": { "GitHub": "https://github.com/elixir-ecto/ecto_sql" }
+            },
+            "name": "ecto_sql",
+            "url": "https://hex.pm/api/packages/ecto_sql"
+          },
+          {
+            "configs": {
+              "erlang.mk": "dep_ecto = hex 3.7.2",
+              "mix.exs": "{:ecto, \"~> 3.7\"}",
+              "rebar.config": "{ecto, \"3.7.2\"}"
+            },
+            "docs_html_url": "https://hexdocs.pm/ecto/",
+            "html_url": "https://hex.pm/packages/ecto",
+            "latest_stable_version": "3.7.2",
+            "latest_version": "3.7.2",
+            "meta": {
+              "description": "A toolkit for data mapping and language integrated query for Elixir",
+              "licenses": ["Apache-2.0"],
+              "links": { "GitHub": "https://github.com/elixir-ecto/ecto" }
+            },
+            "name": "ecto",
+            "url": "https://hex.pm/api/packages/ecto"
+          }
+        ]
+        """)
+      end)
+
+      api_url = api_url(bypass.port)
+
+      assert {:ok, [%{name: "ecto"}, %{name: "ecto_sql"}]} =
+               Dependencies.search_hex("ecto", api_url: api_url)
+    end
+
     test "returns an error on unsuccessful API response", %{bypass: bypass} do
       Bypass.expect_once(bypass, "GET", "/api/packages", fn conn ->
         Plug.Conn.resp(conn, 500, "Error")

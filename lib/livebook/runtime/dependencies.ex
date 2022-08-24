@@ -203,13 +203,17 @@ defmodule Livebook.Runtime.Dependencies do
   def search_hex(search, opts) do
     api_url = opts[:api_url] || "https://hex.pm/api"
 
-    params = %{"search" => "name:#{search}*", "sort" => "downloads"}
+    params = %{"search" => "name:#{search}*", "sort" => "recent_downloads"}
     url = api_url <> "/packages?" <> URI.encode_query(params)
 
     case Livebook.Utils.HTTP.request(:get, url) do
       {:ok, status, _headers, body} ->
         with 200 <- status, {:ok, packages} <- Jason.decode(body) do
-          packages = Enum.map(packages, &parse_package/1)
+          packages =
+            packages
+            |> Enum.map(&parse_package/1)
+            |> reorder_packages(search)
+
           {:ok, packages}
         else
           _ -> {:error, "unexpected response"}
@@ -230,5 +234,16 @@ defmodule Livebook.Runtime.Dependencies do
       url: package["html_url"],
       dependency: dependency
     }
+  end
+
+  defp reorder_packages(packages, search) do
+    case Enum.find_index(packages, &(&1.name == search)) do
+      nil ->
+        packages
+
+      exact_idx ->
+        {package, packages} = List.pop_at(packages, exact_idx)
+        [package | packages]
+    end
   end
 end
