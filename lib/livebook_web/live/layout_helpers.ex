@@ -184,7 +184,7 @@ defmodule LivebookWeb.LayoutHelpers do
 
   defp hub_section(assigns) do
     ~H"""
-    <%= if Application.get_env(:livebook, :feature_flags)[:hub] do %>
+    <%= if Livebook.Config.feature_flag_enabled?(:hub) do %>
       <div id="hubs" class="flex flex-col mt-12">
         <div class="space-y-1">
           <div class="grid grid-cols-1 md:grid-cols-2 relative leading-6 mb-2">
