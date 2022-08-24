@@ -1468,9 +1468,11 @@ defmodule Livebook.Session.Data do
   end
 
   defp put_secret({data, _} = data_actions, secret) do
+    idx = Enum.find_index(data.secrets, &(&1.label == secret.label))
+
     secrets =
-      if secret.label in get_in(data.secrets, [Access.all(), :label]) do
-        put_in(data.secrets, [Access.filter(&(&1.label == secret.label)), :value], secret.value)
+      if idx do
+        put_in(data.secrets, [Access.at(idx), :value], secret.value)
       else
         data.secrets ++ [secret]
       end
