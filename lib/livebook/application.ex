@@ -180,7 +180,7 @@ defmodule Livebook.Application do
     defp app_specs, do: []
   end
 
-  if Livebook.Config.feature_flag_enabled?(:hub) do
+  if Livebook.Config.feature_flag_enabled?(:localhost_hub) do
     defp insert_development_hub do
       unless Livebook.Hubs.hub_exists?("local-host") do
         Livebook.Hubs.save_hub(%Livebook.Hubs.Local{

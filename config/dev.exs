@@ -25,7 +25,11 @@ config :livebook, LivebookWeb.Endpoint,
 
 config :livebook, :iframe_port, 4001
 config :livebook, :shutdown_enabled, true
-config :livebook, :feature_flags, hub: true
+
+# Feature flags
+config :livebook, :feature_flags,
+  hub: true,
+  localhost_hub: true
 
 # ## SSL Support
 #
