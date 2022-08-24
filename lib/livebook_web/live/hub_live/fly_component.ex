@@ -138,11 +138,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     case FlyClient.fetch_apps(token) do
       {:ok, apps} ->
         opts = select_options(apps)
-
-        changeset =
-          socket.assigns.changeset
-          |> Fly.changeset(%{access_token: token, hub_color: HexColor.random()})
-          |> clean_errors()
+        changeset = Fly.change_hub(%Fly{}, %{access_token: token, hub_color: HexColor.random()})
 
         {:noreply,
          assign(socket,
@@ -154,13 +150,9 @@ defmodule LivebookWeb.HubLive.FlyComponent do
 
       {:error, _} ->
         changeset =
-          socket.assigns.changeset
-          |> Fly.changeset()
-          |> clean_errors()
-          |> put_action()
+          %Fly{}
+          |> Fly.change_hub(%{access_token: token})
           |> add_error(:access_token, "is invalid")
-
-        send(self(), {:flash, :error, "Failed to fetch Applications"})
 
         {:noreply,
          assign(socket,
@@ -173,17 +165,15 @@ defmodule LivebookWeb.HubLive.FlyComponent do
   end
 
   def handle_event("randomize_color", _, socket) do
-    changeset =
-      socket.assigns.changeset
-      |> clean_errors()
-      |> Fly.change_hub(%{hub_color: HexColor.random()})
-      |> put_action()
-
-    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
+    handle_event("validate", %{"fly" => %{"hub_color" => HexColor.random()}}, socket)
   end
 
   def handle_event("save", %{"fly" => params}, socket) do
-    {:noreply, save_fly(socket, socket.assigns.operation, params)}
+    if socket.assigns.valid? do
+      {:noreply, save_fly(socket, socket.assigns.operation, params)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("validate", %{"fly" => attrs}, socket) do
@@ -197,7 +187,9 @@ defmodule LivebookWeb.HubLive.FlyComponent do
       if selected_app do
         Fly.change_hub(selected_app, params)
       else
-        Fly.changeset(socket.assigns.changeset, params)
+        socket.assigns.changeset
+        |> Fly.changeset(params)
+        |> Map.replace!(:action, :validate)
       end
 
     {:noreply,
@@ -226,19 +218,16 @@ defmodule LivebookWeb.HubLive.FlyComponent do
 
   defp save_fly(socket, :new, params) do
     case Fly.create_hub(socket.assigns.selected_app, params) do
-      {:ok, fly} ->
-        changeset =
-          fly
-          |> Fly.change_hub(params)
-          |> put_action()
+      {:ok, hub} ->
+        changeset = Fly.change_hub(hub, params)
 
         socket
-        |> assign(changeset: changeset, valid?: changeset.valid?)
+        |> assign(changeset: changeset, selected_app: hub, valid?: changeset.valid?)
         |> put_flash(:success, "Hub created successfully")
-        |> push_redirect(to: Routes.hub_path(socket, :edit, fly.id))
+        |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))
 
       {:error, changeset} ->
-        assign(socket, changeset: put_action(changeset), valid?: changeset.valid?)
+        assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)
     end
   end
 
@@ -246,24 +235,18 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     id = socket.assigns.selected_app.id
 
     case Fly.update_hub(socket.assigns.selected_app, params) do
-      {:ok, fly} ->
-        changeset =
-          fly
-          |> Fly.change_hub(params)
-          |> put_action()
+      {:ok, hub} ->
+        changeset = Fly.change_hub(hub, params)
 
         socket
-        |> assign(changeset: changeset, selected_app: fly, valid?: changeset.valid?)
+        |> assign(changeset: changeset, selected_app: hub, valid?: changeset.valid?)
         |> put_flash(:success, "Hub updated successfully")
         |> push_redirect(to: Routes.hub_path(socket, :edit, id))
 
       {:error, changeset} ->
-        assign(socket, changeset: changeset, valid?: changeset.valid?)
+        assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)
     end
   end
-
-  defp clean_errors(changeset), do: %{changeset | errors: []}
-  defp put_action(changeset, action \\ :validate), do: %{changeset | action: action}
 
   defp hub_color(changeset), do: get_field(changeset, :hub_color)
   defp access_token(changeset), do: get_field(changeset, :access_token)

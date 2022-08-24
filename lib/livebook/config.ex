@@ -138,6 +138,24 @@ defmodule Livebook.Config do
     Application.get_env(:livebook, :update_instructions_url)
   end
 
+  @feature_flags Application.compile_env(:livebook, :feature_flags)
+
+  @doc """
+  Returns the feature flag list.
+  """
+  @spec feature_flags() :: keyword(boolean()) | []
+  def feature_flags do
+    @feature_flags
+  end
+
+  @doc """
+  Return if the feature flag is enabled.
+  """
+  @spec feature_flag_enabled?(atom()) :: boolean()
+  def feature_flag_enabled?(key) do
+    @feature_flags[key]
+  end
+
   ## Parsing
 
   @doc """
