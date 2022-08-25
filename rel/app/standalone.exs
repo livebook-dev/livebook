@@ -132,7 +132,7 @@ defmodule Standalone do
   end
 
   defp fetch_body!(url) do
-    Logger.debug("Downloading Elixir from #{url}")
+    Logger.debug("Downloading #{url}")
 
     case Livebook.Utils.HTTP.request(:get, url, timeout: :infinity) do
       {:ok, 200, _headers, body} ->
