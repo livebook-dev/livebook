@@ -30,7 +30,8 @@ defmodule Livebook.Session.Data do
     :runtime,
     :smart_cell_definitions,
     :clients_map,
-    :users_map
+    :users_map,
+    :secrets
   ]
 
   alias Livebook.{Notebook, Delta, Runtime, JSInterop, FileSystem}
@@ -50,7 +51,8 @@ defmodule Livebook.Session.Data do
           runtime: Runtime.t(),
           smart_cell_definitions: list(Runtime.smart_cell_definition()),
           clients_map: %{client_id() => User.id()},
-          users_map: %{User.id() => User.t()}
+          users_map: %{User.id() => User.t()},
+          secrets: list(secret())
         }
 
   @type section_info :: %{
@@ -120,6 +122,8 @@ defmodule Livebook.Session.Data do
 
   @type index :: non_neg_integer()
 
+  @type secret :: %{label: String.t(), value: String.t()}
+
   # Snapshot holds information about the cell evaluation dependencies,
   # for example what is the previous cell, the number of times the
   # cell was evaluated, the list of available inputs, etc. Whenever
@@ -187,6 +191,7 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
+          | {:put_secret, client_id(), secret()}
 
   @type action ::
           :connect_runtime
@@ -214,7 +219,8 @@ defmodule Livebook.Session.Data do
       runtime: Livebook.Config.default_runtime(),
       smart_cell_definitions: [],
       clients_map: %{},
-      users_map: %{}
+      users_map: %{},
+      secrets: []
     }
 
     data
@@ -251,7 +257,7 @@ defmodule Livebook.Session.Data do
 
   This is a pure function, responsible only for transforming the
   state, without direct side effects. This way all processes having
-  the same data can individually apply the given opreation and end
+  the same data can individually apply the given operation and end
   up with the same updated data.
 
   Since this doesn't trigger any actual processing, it becomes the
@@ -727,6 +733,13 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> set_dirty(false)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:put_secret, _client_id, secret}) do
+    data
+    |> with_actions()
+    |> put_secret(secret)
     |> wrap_ok()
   end
 
@@ -1452,6 +1465,20 @@ defmodule Livebook.Session.Data do
       |> clear_all_evaluation()
       |> clear_smart_cells()
     end
+  end
+
+  defp put_secret({data, _} = data_actions, secret) do
+    idx = Enum.find_index(data.secrets, &(&1.label == secret.label))
+
+    secrets =
+      if idx do
+        put_in(data.secrets, [Access.at(idx), :value], secret.value)
+      else
+        data.secrets ++ [secret]
+      end
+      |> Enum.sort()
+
+    set!(data_actions, secrets: secrets)
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

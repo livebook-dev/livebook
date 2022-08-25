@@ -99,6 +99,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       %{seq: ["e", "x"], desc: "Cancel cell evaluation"},
       %{seq: ["s", "s"], desc: "Toggle sections panel"},
       %{seq: ["s", "u"], desc: "Toggle users panel"},
+      %{seq: ["s", "e"], desc: "Toggle secrets panel"},
       %{seq: ["s", "r"], desc: "Show runtime panel"},
       %{seq: ["s", "b"], desc: "Show bin"},
       %{seq: ["s", "p"], desc: "Show package search"},

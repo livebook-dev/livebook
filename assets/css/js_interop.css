@@ -203,6 +203,11 @@ solely client-side operations.
   @apply hidden;
 }
 
+[data-el-session]:not([data-js-side-panel-content="secrets-list"])
+  [data-el-secrets-list] {
+  @apply hidden;
+}
+
 [data-el-session]:not([data-js-side-panel-content="runtime-info"])
   [data-el-runtime-info] {
   @apply hidden;
@@ -215,6 +220,11 @@ solely client-side operations.
 
 [data-el-session][data-js-side-panel-content="clients-list"]
   [data-el-clients-list-toggle] {
+  @apply text-gray-50 bg-gray-700;
+}
+
+[data-el-session][data-js-side-panel-content="secrets-list"]
+  [data-el-secrets-list-toggle] {
   @apply text-gray-50 bg-gray-700;
 }
 

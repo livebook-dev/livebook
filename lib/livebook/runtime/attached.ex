@@ -123,4 +123,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
   def search_packages(_runtime, _send_to, _search) do
     raise "not supported"
   end
+
+  def put_system_envs(runtime, secrets) do
+    RuntimeServer.put_system_envs(runtime.server_pid, secrets)
+  end
 end

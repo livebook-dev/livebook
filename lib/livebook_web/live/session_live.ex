@@ -120,6 +120,11 @@ defmodule LivebookWeb.SessionLive do
           button_attrs={[data_el_clients_list_toggle: true]}
         />
         <.button_item
+          icon="lock-password-line"
+          label="Secrets (se)"
+          button_attrs={[data_el_secrets_list_toggle: true]}
+        />
+        <.button_item
           icon="cpu-line"
           label="Runtime settings (sr)"
           button_attrs={[data_el_runtime_info_toggle: true]}
@@ -165,6 +170,9 @@ defmodule LivebookWeb.SessionLive do
         </div>
         <div data-el-clients-list>
           <.clients_list data_view={@data_view} client_id={@client_id} />
+        </div>
+        <div data-el-secrets-list>
+          <.secrets_list data_view={@data_view} session={@session} socket={@socket} />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
@@ -389,6 +397,16 @@ defmodule LivebookWeb.SessionLive do
         ) %>
       </.modal>
     <% end %>
+
+    <%= if @live_action == :secrets do %>
+      <.modal id="secrets-modal" show class="w-full max-w-4xl" patch={@self_path}>
+        <.live_component
+          module={LivebookWeb.SessionLive.SecretsComponent}
+          id="secrets"
+          session={@session}
+        />
+      </.modal>
+    <% end %>
     """
   end
 
@@ -519,6 +537,32 @@ defmodule LivebookWeb.SessionLive do
           </div>
         <% end %>
       </div>
+    </div>
+    """
+  end
+
+  defp secrets_list(assigns) do
+    ~H"""
+    <div class="flex flex-col grow">
+      <h3 class="uppercase text-sm font-semibold text-gray-500">
+        Secrets
+      </h3>
+      <div class="flex flex-col mt-4 space-y-4">
+        <%= for secret <- @data_view.secrets do %>
+          <div class="flex items-center text-gray-500">
+            <span class="flex items-center space-x-1">
+              <%= secret.label %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+      <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
+            class: "inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100",
+            aria_label: "add secret",
+            role: "button" do %>
+        <.remix_icon icon="add-line" class="text-lg align-center" />
+        <span>New secret</span>
+      <% end %>
     </div>
     """
   end
@@ -1572,7 +1616,8 @@ defmodule LivebookWeb.SessionLive do
       installing?: data.cell_infos[Cell.setup_cell_id()].eval.status == :evaluating,
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
-      bin_entries: data.bin_entries
+      bin_entries: data.bin_entries,
+      secrets: data.secrets
     }
   end
 

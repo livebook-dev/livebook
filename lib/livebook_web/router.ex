@@ -60,6 +60,7 @@ defmodule LivebookWeb.Router do
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
+      live "/sessions/:id/secrets", SessionLive, :secrets
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
       live "/sessions/:id/bin", SessionLive, :bin

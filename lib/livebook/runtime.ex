@@ -467,4 +467,10 @@ defprotocol Livebook.Runtime do
   """
   @spec search_packages(t(), pid(), String.t()) :: reference()
   def search_packages(runtime, send_to, search)
+
+  @doc """
+  Adds Livebook secrets as environment variables
+  """
+  @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
+  def put_system_envs(runtime, secrets)
 end
