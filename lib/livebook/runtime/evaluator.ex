@@ -308,14 +308,14 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp handle_cast({:evaluate_code, code, ref, base_ref, opts}, state) do
-    Evaluator.IOProxy.configure(state.io_proxy, ref)
-
     Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
 
     context = get_context(state, base_ref)
     file = Keyword.get(opts, :file, "nofile")
     context = put_in(context.env.file, file)
     start_time = System.monotonic_time()
+
+    Evaluator.IOProxy.configure(state.io_proxy, ref, file)
 
     {result_context, result, code_error} =
       case eval(code, context.binding, context.env) do
