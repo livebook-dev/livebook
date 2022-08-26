@@ -1,5 +1,5 @@
 defmodule Livebook.Hubs.FlyClientTest do
-  use ExUnit.Case
+  use Livebook.DataCase
 
   alias Livebook.Hubs.{Fly, FlyClient}
 
@@ -66,6 +66,44 @@ defmodule Livebook.Hubs.FlyClientTest do
       end)
 
       assert {:error, "request failed with code: UNAUTHORIZED"} = FlyClient.fetch_apps("foo")
+    end
+  end
+
+  describe "fetch_app/1" do
+    test "fetches an application", %{bypass: bypass} do
+      app = %{
+        "id" => "foo-app",
+        "name" => "foo-app",
+        "hostname" => "foo-app.fly.dev",
+        "platformVersion" => "nomad",
+        "deployed" => true,
+        "status" => "running"
+      }
+
+      response = %{"data" => %{"app" => app}}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+      assert {:ok, ^app} = FlyClient.fetch_app(hub)
+    end
+
+    test "returns unauthorized when token is invalid", %{bypass: bypass} do
+      error = %{"extensions" => %{"code" => "UNAUTHORIZED"}}
+      response = %{"data" => nil, "errors" => [error]}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+      assert {:error, "request failed with code: UNAUTHORIZED"} = FlyClient.fetch_app(hub)
     end
   end
 end

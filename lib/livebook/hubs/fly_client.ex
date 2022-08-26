@@ -37,9 +37,28 @@ defmodule Livebook.Hubs.FlyClient do
     end
   end
 
-  defp graphql(access_token, query) do
+  def fetch_app(%Fly{application_id: app_id, access_token: access_token}) do
+    query = """
+    query($appId: String!) {
+      app(id: $appId) {
+        id
+        name
+        hostname
+        platformVersion
+        deployed
+        status
+      }
+    }
+    """
+
+    with {:ok, body} <- graphql(access_token, query, %{appId: app_id}) do
+      {:ok, body["app"]}
+    end
+  end
+
+  defp graphql(access_token, query, input \\ %{}) do
     headers = [{"Authorization", "Bearer #{access_token}"}]
-    body = {"application/json", Jason.encode!(%{query: query})}
+    body = {"application/json", Jason.encode!(%{query: query, variables: input})}
 
     case HTTP.request(:post, graphql_endpoint(), headers: headers, body: body) do
       {:ok, 200, _, body} ->
