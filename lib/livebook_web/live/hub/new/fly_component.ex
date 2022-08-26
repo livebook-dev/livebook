@@ -1,4 +1,4 @@
-defmodule LivebookWeb.HubLive.FlyComponent do
+defmodule LivebookWeb.Hub.New.FlyComponent do
   use LivebookWeb, :live_component
 
   import Ecto.Changeset, only: [get_field: 2, add_error: 3]
@@ -11,7 +11,13 @@ defmodule LivebookWeb.HubLive.FlyComponent do
     {:ok,
      socket
      |> assign(assigns)
-     |> load_data()}
+     |> assign(
+       changeset: Fly.change_hub(%Fly{}),
+       selected_app: nil,
+       select_options: [],
+       apps: [],
+       valid?: false
+     )}
   end
 
   @impl true
@@ -37,7 +43,6 @@ defmodule LivebookWeb.HubLive.FlyComponent do
             phx_debounce: "blur",
             phx_target: @myself,
             value: access_token(@changeset),
-            disabled: @operation == :edit,
             class: "input w-full",
             autofocus: true,
             spellcheck: "false",
@@ -51,10 +56,7 @@ defmodule LivebookWeb.HubLive.FlyComponent do
             <h3 class="text-gray-800 font-semibold">
               Application
             </h3>
-            <%= select(f, :application_id, @select_options,
-              class: "input",
-              disabled: @operation == :edit
-            ) %>
+            <%= select(f, :application_id, @select_options, class: "input") %>
             <%= error_tag(f, :application_id) %>
           </div>
 
@@ -99,38 +101,15 @@ defmodule LivebookWeb.HubLive.FlyComponent do
             </div>
           </div>
 
-          <%= submit("Save",
+          <%= submit("Create Hub",
             class: "button-base button-blue",
-            phx_disable_with: "Saving...",
+            phx_disable_with: "Creating...",
             disabled: not @valid?
           ) %>
         <% end %>
       </.form>
     </div>
     """
-  end
-
-  defp load_data(%{assigns: %{operation: :new}} = socket) do
-    assign(socket,
-      changeset: Fly.change_hub(%Fly{}),
-      selected_app: nil,
-      select_options: [],
-      apps: [],
-      valid?: false
-    )
-  end
-
-  defp load_data(%{assigns: %{operation: :edit, hub: hub}} = socket) do
-    {:ok, apps} = FlyClient.fetch_apps(hub.access_token)
-    params = Map.from_struct(hub)
-
-    assign(socket,
-      changeset: Fly.change_hub(hub, params),
-      selected_app: hub,
-      select_options: select_options(apps),
-      apps: apps,
-      valid?: true
-    )
   end
 
   @impl true
@@ -170,7 +149,20 @@ defmodule LivebookWeb.HubLive.FlyComponent do
 
   def handle_event("save", %{"fly" => params}, socket) do
     if socket.assigns.valid? do
-      {:noreply, save_fly(socket, socket.assigns.operation, params)}
+      case Fly.create_hub(socket.assigns.selected_app, params) do
+        {:ok, hub} ->
+          changeset = Fly.change_hub(hub, params)
+
+          {:noreply,
+           socket
+           |> assign(changeset: changeset, selected_app: hub, valid?: changeset.valid?)
+           |> put_flash(:success, "Hub created successfully")
+           |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
+
+        {:error, changeset} ->
+          {:noreply,
+           assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)}
+      end
     else
       {:noreply, socket}
     end
@@ -214,38 +206,6 @@ defmodule LivebookWeb.HubLive.FlyComponent do
       end
 
     [disabled_option] ++ options
-  end
-
-  defp save_fly(socket, :new, params) do
-    case Fly.create_hub(socket.assigns.selected_app, params) do
-      {:ok, hub} ->
-        changeset = Fly.change_hub(hub, params)
-
-        socket
-        |> assign(changeset: changeset, selected_app: hub, valid?: changeset.valid?)
-        |> put_flash(:success, "Hub created successfully")
-        |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))
-
-      {:error, changeset} ->
-        assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)
-    end
-  end
-
-  defp save_fly(socket, :edit, params) do
-    id = socket.assigns.selected_app.id
-
-    case Fly.update_hub(socket.assigns.selected_app, params) do
-      {:ok, hub} ->
-        changeset = Fly.change_hub(hub, params)
-
-        socket
-        |> assign(changeset: changeset, selected_app: hub, valid?: changeset.valid?)
-        |> put_flash(:success, "Hub updated successfully")
-        |> push_redirect(to: Routes.hub_path(socket, :edit, id))
-
-      {:error, changeset} ->
-        assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)
-    end
   end
 
   defp hub_color(changeset), do: get_field(changeset, :hub_color)

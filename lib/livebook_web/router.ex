@@ -55,8 +55,8 @@ defmodule LivebookWeb.Router do
       live "/explore", ExploreLive, :page
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
-      live "/hub", HubLive, :new
-      live "/hub/:id", HubLive, :edit
+      live "/hub", Hub.NewLive, :new, as: :hub
+      live "/hub/:id", Hub.EditLive, :edit, as: :hub
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
