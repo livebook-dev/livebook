@@ -233,7 +233,28 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted}, %{}) do
+  defp render_output({:error, formatted, :unavailable_system_env}, %{}) do
+    assigns = %{message: String.replace(formatted, "LB_", "")}
+
+    ~H"""
+    <div class="flex">
+      <div
+        class="whitespace-pre-wrap font-editor text-gray-500"
+        role="complementary"
+        aria-label="error"
+        phx-no-format
+      ><%= ansi_string_to_html(@message) %>
+      </div>
+      <div class="self-end">
+        <button class="button-base button-gray" phx-click="secrets">
+          Add secret
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_output({:error, formatted, _type}, %{}) do
     assigns = %{message: formatted}
 
     ~H"""

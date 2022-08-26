@@ -27,7 +27,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   def format_result({:error, kind, error, stacktrace}) do
     formatted = format_error(kind, error, stacktrace)
-    {:error, formatted}
+    {:error, formatted, error_type(error)}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
@@ -127,5 +127,18 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   defp error_color(string) do
     IO.ANSI.format([:red, string], true)
+  end
+
+  defp error_type(error) do
+    cond do
+      system_env_error?(error) -> :unavailable_system_env
+      true -> :other
+    end
+  end
+
+  defp system_env_error?(exception) do
+    is_struct(exception, System.EnvError) and
+      Exception.message(exception) =~
+        "could not fetch environment variable"
   end
 end
