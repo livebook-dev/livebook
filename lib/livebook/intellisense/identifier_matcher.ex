@@ -171,7 +171,7 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         hint = List.to_string(local_or_var)
 
         match_container_context(ctx.fragment, hint) ||
-          match_in_struct_fields_or_local_or_var(List.to_string(local_or_var), ctx)
+          match_in_struct_fields_or_local_or_var(hint, ctx)
 
       {:local_arity, local} ->
         match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
