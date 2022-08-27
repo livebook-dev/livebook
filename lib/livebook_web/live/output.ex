@@ -234,17 +234,11 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:error, formatted, :unavailable_system_env}, %{}) do
-    assigns = %{message: String.replace(formatted, "LB_", "")}
+    assigns = %{message: String.replace(formatted, "LB_", "", global: false)}
 
     ~H"""
     <div class="flex">
-      <div
-        class="whitespace-pre-wrap font-editor text-gray-500"
-        role="complementary"
-        aria-label="error"
-        phx-no-format
-      ><%= ansi_string_to_html(@message) %>
-      </div>
+      <%= render_formatted_error_message(@message) %>
       <div class="self-end">
         <button class="button-base button-gray" phx-click="secrets">
           Add secret
@@ -255,16 +249,7 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:error, formatted, _type}, %{}) do
-    assigns = %{message: formatted}
-
-    ~H"""
-    <div
-      class="whitespace-pre-wrap font-editor text-gray-500"
-      role="complementary"
-      aria-label="error"
-      phx-no-format
-    ><%= ansi_string_to_html(@message) %></div>
-    """
+    render_formatted_error_message(formatted)
   end
 
   # TODO: remove on Livebook v0.7
@@ -298,6 +283,19 @@ defmodule LivebookWeb.Output do
       aria-label="error message"
       phx-no-format
     ><%= @message %></div>
+    """
+  end
+
+  defp render_formatted_error_message(formatted) do
+    assigns = %{message: formatted}
+
+    ~H"""
+    <div
+      class="whitespace-pre-wrap font-editor text-gray-500"
+      role="complementary"
+      aria-label="error"
+      phx-no-format
+    ><%= ansi_string_to_html(@message) %></div>
     """
   end
 end
