@@ -322,11 +322,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       :bitstring_modifier ->
         existing = code |> String.split("::") |> List.last() |> String.split("-")
 
-        @bitstring_modifiers
-        |> Enum.filter(
-          &(String.starts_with?(Atom.to_string(&1.name), hint) and
-              Atom.to_string(&1.name) not in existing)
-        )
+        Enum.filter(@bitstring_modifiers, fn modifier ->
+          name = Atom.to_string(modifier.name)
+          String.starts_with?(name, hint) and Atom.to_string(name) not in existing
+        end)
 
       _ ->
         nil
