@@ -234,10 +234,10 @@ defmodule LivebookWeb.Output do
   end
 
   defp render_output({:error, formatted, :unavailable_system_env}, %{}) do
-    assigns = %{message: String.replace(formatted, "LB_", "", global: false)}
+    assigns = %{message: String.replace(formatted, ~s(environment variable "LB_), ~s(secret "))}
 
     ~H"""
-    <div class="flex">
+    <div class="flex justify-between">
       <%= render_formatted_error_message(@message) %>
       <div class="self-end">
         <button class="button-base button-gray" phx-click="secrets">
