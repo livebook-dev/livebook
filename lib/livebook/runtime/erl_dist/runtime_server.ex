@@ -423,7 +423,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           put_in(state.smart_cells[ref], info)
 
         {:error, error} ->
-          Logger.error("failed to start smart cell, reason: #{inspect(error)}")
+          Logger.error("failed to start smart cell - #{Exception.format_exit(error)}")
           state
       end
 

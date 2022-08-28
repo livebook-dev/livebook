@@ -104,8 +104,12 @@ defmodule Livebook.Runtime.ErlDist.LoggerGLBackend do
   end
 
   defp io_proxy?(pid) do
-    info = Process.info(pid, [:dictionary])
-    info[:dictionary][:"$initial_call"] == {Livebook.Runtime.Evaluator.IOProxy, :init, 1}
+    try do
+      info = Process.info(pid, [:dictionary])
+      info[:dictionary][:"$initial_call"] == {Livebook.Runtime.Evaluator.IOProxy, :init, 1}
+    rescue
+      _ -> false
+    end
   end
 
   def async_io(device, output) when is_pid(device) do
