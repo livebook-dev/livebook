@@ -128,7 +128,7 @@ defmodule LivebookWeb.HubLive do
   @impl true
   def handle_params(%{"id" => "local-host"}, _url, socket) do
     {:noreply,
-     put_flash(socket, :warning, "This is a localhost Hub, you shouldn't be able to edit")}
+     socket |> redirect(to: "/") |> put_flash(:warning, "You can't edit the localhost Hub")}
   end
 
   def handle_params(%{"id" => id}, _url, socket) do
