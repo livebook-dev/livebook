@@ -266,6 +266,22 @@ defmodule Livebook.Intellisense do
          insert_text: Atom.to_string(name)
        }
 
+  defp format_completion_item(%{kind: :bitstring_option, name: name}) do
+    insert_text =
+      case name do
+        name when name in [:size, :unit] -> "#{name}(integer)"
+        other -> Atom.to_string(other)
+      end
+
+    %{
+      label: Atom.to_string(name),
+      kind: :bitstring_option,
+      detail: "bitstring option",
+      documentation: nil,
+      insert_text: insert_text
+    }
+  end
+
   defp keyword_macro?(name) do
     def? = name |> Atom.to_string() |> String.starts_with?("def")
 
@@ -346,7 +362,17 @@ defmodule Livebook.Intellisense do
     end
   end
 
-  @ordered_kinds [:keyword, :field, :variable, :module, :struct, :interface, :function, :type]
+  @ordered_kinds [
+    :keyword,
+    :field,
+    :variable,
+    :module,
+    :struct,
+    :interface,
+    :function,
+    :type,
+    :bitstring_option
+  ]
 
   defp completion_item_priority(%{kind: :struct, detail: "exception"} = completion_item) do
     {length(@ordered_kinds), completion_item.label}

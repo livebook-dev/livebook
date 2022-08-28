@@ -1158,6 +1158,30 @@ defmodule Livebook.IntellisenseTest do
                }
              ] = Intellisense.get_completion_items("__EN", context)
     end
+
+    test "Elixir bitstring modifiers" do
+      context = eval(do: nil)
+
+      assert [
+               %{
+                 detail: "bitstring option",
+                 documentation: nil,
+                 insert_text: "integer",
+                 kind: :bitstring_option,
+                 label: "integer"
+               }
+             ] = Intellisense.get_completion_items("<<a::intege", context)
+
+      assert [
+               %{
+                 detail: "bitstring option",
+                 documentation: nil,
+                 insert_text: "size(integer)",
+                 kind: :bitstring_option,
+                 label: "size"
+               }
+             ] = Intellisense.get_completion_items("<<a::siz", context)
+    end
   end
 
   describe "get_details/3" do

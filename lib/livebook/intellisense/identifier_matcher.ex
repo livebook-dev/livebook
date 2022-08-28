@@ -65,6 +65,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
               name: name(),
               documentation: Docs.documentation()
             }
+          | %{
+              kind: :bitstring_option,
+              name: name()
+            }
 
   @type name :: atom()
   @type display_name :: String.t()
@@ -322,10 +326,12 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       :bitstring_modifier ->
         existing = code |> String.split("::") |> List.last() |> String.split("-")
 
-        Enum.filter(@bitstring_modifiers, fn modifier ->
+        @bitstring_modifiers
+        |> Enum.filter(fn modifier ->
           name = Atom.to_string(modifier.name)
-          String.starts_with?(name, hint) and Atom.to_string(name) not in existing
+          String.starts_with?(name, hint) and name not in existing
         end)
+        |> Enum.map(&%{&1 | kind: :bitstring_option})
 
       _ ->
         nil
