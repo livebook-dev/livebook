@@ -8,7 +8,7 @@ defmodule LivebookWeb.ExploreLiveTest do
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
-             |> element(~s{a}, "Let's go")
+             |> element(~s{#welcome-to-livebook a}, "Open notebook")
              |> render_click()
 
     assert to =~ "/sessions/"
