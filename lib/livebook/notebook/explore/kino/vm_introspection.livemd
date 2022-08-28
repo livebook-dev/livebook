@@ -53,14 +53,14 @@ The parent then returns `:ponged!` once it receives the pong.
 Wouldn't it be nice if we could also _visualize_ how this
 communication happens? We can do so by using `Kino.Process`!
 
-With `Kino.Process.render_seq_trace/2`, we can ask Kino to
+With `Kino.Process.render_seq_trace/1`, we can ask Kino to
 draw a [Mermaid diagram](https://mermaid-js.github.io/) with
 all messages to and from the current process:
 
 ```elixir
 parent = self()
 
-Kino.Process.render_seq_trace(parent, fn ->
+Kino.Process.render_seq_trace(fn ->
   child =
     spawn(fn ->
       receive do
@@ -86,7 +86,7 @@ tasks, sleep by a random amount, and collect their
 results?
 
 ```elixir
-Kino.Process.render_seq_trace(self(), fn ->
+Kino.Process.render_seq_trace(fn ->
   1..4
   |> Task.async_stream(fn i ->
     Process.sleep(Enum.random(100..300))
