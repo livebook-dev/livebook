@@ -967,8 +967,11 @@ defmodule Livebook.Session do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
-    broadcast_info(state.session_id, "runtime node terminated unexpectedly")
+  def handle_info({:DOWN, ref, :process, _, reason}, %{runtime_monitor_ref: ref} = state) do
+    broadcast_error(
+      state.session_id,
+      "runtime node terminated unexpectedly - #{Exception.format_exit(reason)}"
+    )
 
     {:noreply,
      %{state | runtime_monitor_ref: nil}
@@ -1509,10 +1512,6 @@ defmodule Livebook.Session do
 
   defp broadcast_error(session_id, error) do
     broadcast_message(session_id, {:error, error})
-  end
-
-  defp broadcast_info(session_id, info) do
-    broadcast_message(session_id, {:info, info})
   end
 
   defp broadcast_message(session_id, message) do
