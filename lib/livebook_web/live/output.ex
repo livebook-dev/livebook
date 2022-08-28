@@ -34,6 +34,8 @@ defmodule LivebookWeb.Output do
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
   defp border?({:error, _message}), do: true
+  # TODO fix spacing and make it an option
+  defp border?({:grid, _, _}), do: true
   defp border?(_output), do: false
 
   defp wrapper?({:frame, _outputs, _info}), do: true

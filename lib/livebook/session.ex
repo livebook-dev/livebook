@@ -1485,7 +1485,7 @@ defmodule Livebook.Session do
         file -> file.path
       end
 
-    file = path <> "#cell"
+    file = path <> "#cell:#{cell.id}"
 
     smart_cell_ref =
       case cell do
