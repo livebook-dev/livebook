@@ -233,7 +233,7 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted, :unavailable_system_env}, %{}) do
+  defp render_output({:error, formatted, :unavailable_secret}, %{}) do
     assigns = %{message: String.replace(formatted, ~s(environment variable "LB_), ~s(secret "))}
 
     ~H"""
