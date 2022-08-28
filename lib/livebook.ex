@@ -131,7 +131,6 @@ defmodule Livebook do
            :runtime_modules,
            [
              Livebook.Runtime.ElixirStandalone,
-             Livebook.Runtime.MixStandalone,
              Livebook.Runtime.Attached
            ]
 

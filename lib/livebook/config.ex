@@ -322,67 +322,14 @@ defmodule Livebook.Config do
       "embedded" ->
         Livebook.Runtime.Embedded.new()
 
-      "mix" ->
-        case mix_path(File.cwd!()) do
-          {:ok, path} ->
-            Livebook.Runtime.MixStandalone.new(path)
-
-          :error ->
-            abort!(
-              "the current directory is not a Mix project, make sure to specify the path explicitly with mix:path"
-            )
-        end
-
-      "mix:" <> config ->
-        {path, flags} = parse_mix_config!(config)
-
-        case mix_path(path) do
-          {:ok, path} ->
-            if Livebook.Utils.valid_cli_flags?(flags) do
-              Livebook.Runtime.MixStandalone.new(path, flags)
-            else
-              abort!(~s{"#{flags}" is not a valid flag sequence})
-            end
-
-          :error ->
-            abort!(~s{"#{path}" does not point to a Mix project})
-        end
-
       "attached:" <> config ->
         {node, cookie} = parse_connection_config!(config)
         Livebook.Runtime.Attached.new(node, cookie)
 
       other ->
         abort!(
-          ~s{expected #{context} to be either "standalone", "mix[:path]" or "embedded", got: #{inspect(other)}}
+          ~s{expected #{context} to be either "standalone", "attached:node:cookie" or "embedded", got: #{inspect(other)}}
         )
-    end
-  end
-
-  defp parse_mix_config!(config) do
-    case String.split(config, ":", parts: 2) do
-      # Ignore Windows drive letter
-      [<<letter>>, rest] when letter in ?a..?z or letter in ?A..?Z ->
-        [path | rest] = String.split(rest, ":", parts: 2)
-        [<<letter, ":", path::binary>> | rest]
-
-      other ->
-        other
-    end
-    |> case do
-      [path] -> {path, ""}
-      [path, flags] -> {path, flags}
-    end
-  end
-
-  defp mix_path(path) do
-    path = Path.expand(path)
-    mixfile = Path.join(path, "mix.exs")
-
-    if File.exists?(mixfile) do
-      {:ok, path}
-    else
-      :error
     end
   end
 

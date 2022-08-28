@@ -40,16 +40,6 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
               Elixir standalone
             </.choice_button>
           <% end %>
-          <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.MixStandalone) do %>
-            <.choice_button
-              active={@type == "mix_standalone"}
-              phx-click="set_runtime_type"
-              phx-value-type="mix_standalone"
-              phx-target={@myself}
-            >
-              Mix standalone
-            </.choice_button>
-          <% end %>
           <%= if Livebook.Config. runtime_enabled?(Livebook.Runtime.Attached) do %>
             <.choice_button
               active={@type == "attached"}
@@ -83,12 +73,10 @@ defmodule LivebookWeb.SessionLive.RuntimeComponent do
   end
 
   defp runtime_type(%Runtime.ElixirStandalone{}), do: "elixir_standalone"
-  defp runtime_type(%Runtime.MixStandalone{}), do: "mix_standalone"
   defp runtime_type(%Runtime.Attached{}), do: "attached"
   defp runtime_type(%Runtime.Embedded{}), do: "embedded"
 
   defp live_view_for_type("elixir_standalone"), do: LivebookWeb.SessionLive.ElixirStandaloneLive
-  defp live_view_for_type("mix_standalone"), do: LivebookWeb.SessionLive.MixStandaloneLive
   defp live_view_for_type("attached"), do: LivebookWeb.SessionLive.AttachedLive
   defp live_view_for_type("embedded"), do: LivebookWeb.SessionLive.EmbeddedLive
 

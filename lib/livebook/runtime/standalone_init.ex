@@ -2,8 +2,7 @@ defmodule Livebook.Runtime.StandaloneInit do
   @moduledoc false
 
   # Generic functionality related to starting and setting up
-  # a new Elixir system process. It's used by both ElixirStandalone
-  # and MixStandalone runtimes.
+  # a new Elixir system process. It's used by ElixirStandalone.
 
   alias Livebook.Utils.Emitter
   alias Livebook.Runtime.NodePool
@@ -112,9 +111,8 @@ defmodule Livebook.Runtime.StandaloneInit do
         {:DOWN, ^port_ref, :port, _object, _reason} ->
           {:error, "Elixir terminated unexpectedly, please check the terminal for errors"}
       after
-        # Use a longer timeout to account for longer child node startup,
-        # as may happen when starting with Mix.
-        40_000 ->
+        # Use a longer timeout to account for longer child node startup.
+        30_000 ->
           {:error, "connection timed out"}
       end
     end

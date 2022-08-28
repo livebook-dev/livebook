@@ -52,9 +52,33 @@ By default, a new Elixir node is started (similarly to starting `iex`). You
 can click reconnect whenever you want to discard the current node and start
 a new one.
 
-You can also choose to run inside a *Mix* project (as you would with `iex -S mix`),
-manually *attach* to an existing distributed node, or run your Elixir notebook
-*embedded* within the Livebook source itself.
+You can also manually *attach* to an existing distributed node, or run your
+Elixir notebook *embedded* within the Livebook source itself (which is quite
+useful for low-memory embedded devices).
+
+## Mix projects
+
+Sometimes you may want to run a notebook within the context of an existing
+Mix project. This is possible from Elixir v1.14 with the help of `Mix.install/2`.
+
+As an example, imagine you have created a notebook inside your current project,
+at `notebooks/example.livemd`. In order to run within the root Mix project, using
+the same configuration and dependencies versions, your `Mix.install/2` should look
+like this:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+my_app_root = Path.join(__DIR__, "..")
+
+Mix.install(
+  [
+    {:my_app, path: my_app_root, env: :dev}
+  ],
+  config_path: Path.join(my_app_root, "config/config.exs"),
+  lockfile: Path.join(my_app_root, "mix.lock")
+)
+```
 
 ## More on branches #1
 
@@ -76,7 +100,7 @@ parent = self()
 Process.put(:info, "deal carefully with process dictionaries")
 ```
 
-<!-- livebook:{"branch_parent_index":3} -->
+<!-- livebook:{"branch_parent_index":4} -->
 
 ## More on branches #2
 
