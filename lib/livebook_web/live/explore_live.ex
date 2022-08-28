@@ -37,7 +37,10 @@ defmodule LivebookWeb.ExploreLive do
             Click on any notebook you like and start playing around with it!
           </p>
         </div>
-        <div id="welcome-to-livebook" class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center shadow-xl">
+        <div
+          id="welcome-to-livebook"
+          class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center shadow-xl"
+        >
           <img src={@lead_notebook_info.details.cover_url} width="100" alt="livebook" />
           <div>
             <h3 class="text-xl text-gray-50 font-semibold">
