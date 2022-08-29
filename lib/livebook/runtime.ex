@@ -61,7 +61,7 @@ defprotocol Livebook.Runtime do
           # A control element
           | {:control, attrs :: map()}
           # Internal output format for errors
-          | {:error, message :: binary(), type :: :unavailable_secret | :other}
+          | {:error, message :: String.t(), type :: {:unavailable_env, String.t()} | :other}
 
   @typedoc """
   Additional information about a complted evaluation.

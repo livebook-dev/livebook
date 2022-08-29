@@ -131,7 +131,7 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
 
   defp error_type(error) do
     cond do
-      system_env_error?(error) -> :unavailable_secret
+      system_env_error?(error) -> {:unavailable_env, error.env}
       true -> :other
     end
   end
@@ -139,6 +139,6 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   defp system_env_error?(exception) do
     is_struct(exception, System.EnvError) and
       Exception.message(exception) =~
-        ~s(could not fetch environment variable "LB_)
+        "could not fetch environment variable"
   end
 end
