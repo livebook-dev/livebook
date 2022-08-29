@@ -186,6 +186,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           :locate -> match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
         end
 
+      {:operator, operator} when operator in ~w(:: -)c ->
+        match_container_context(ctx.fragment, "") ||
+          match_local_or_var(List.to_string(operator), ctx)
+
       {:operator, operator} ->
         match_local_or_var(List.to_string(operator), ctx)
 

@@ -1181,6 +1181,14 @@ defmodule Livebook.IntellisenseTest do
                  label: "size"
                }
              ] = Intellisense.get_completion_items("<<a::siz", context)
+
+      assert %{
+               detail: "bitstring option",
+               documentation: nil,
+               insert_text: "integer",
+               kind: :bitstring_option,
+               label: "integer"
+             } in Intellisense.get_completion_items("<<a::", context)
     end
   end
 
