@@ -513,7 +513,7 @@ defmodule Livebook.SessionTest do
 
     assert_receive {:operation, {:set_runtime, _, runtime}}
     refute Runtime.connected?(runtime)
-    assert_receive {:info, "runtime node terminated unexpectedly"}
+    assert_receive {:error, "runtime node terminated unexpectedly - no connection"}
   end
 
   test "on user change sends an update operation subscribers", %{session: session} do
