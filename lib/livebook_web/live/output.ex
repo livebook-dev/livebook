@@ -17,7 +17,6 @@ defmodule LivebookWeb.Output do
         id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
         data-el-output
         data-border={border?(output)}
-        data-wrapper={wrapper?(output)}
       >
         <%= render_output(output, %{
           id: "output-#{idx}",
@@ -36,11 +35,6 @@ defmodule LivebookWeb.Output do
   defp border?({:error, _message}), do: true
   defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
-
-  defp wrapper?({:frame, _outputs, _info}), do: true
-  defp wrapper?({:tabs, _tabs, _info}), do: true
-  defp wrapper?({:grid, _tabs, _info}), do: true
-  defp wrapper?(_output), do: false
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
@@ -179,12 +173,12 @@ defmodule LivebookWeb.Output do
          client_id: client_id
        }) do
     columns = info[:columns] || 1
-    boxed = Map.get(info, :boxed, false)
+    gap = info[:gap] || 8
 
     assigns = %{
       id: id,
       columns: columns,
-      boxed: boxed,
+      gap: gap,
       outputs: outputs,
       socket: socket,
       session_id: session_id,
@@ -196,8 +190,8 @@ defmodule LivebookWeb.Output do
     <div id={@id} class="overflow-auto tiny-scrollbar">
       <div
         id={"#{@id}-grid"}
-        class={"grid grid-cols-2 gap-x-4 w-full py-4 #{if(boxed, do: "py-4")}"}
-        style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr));"}
+        class="grid grid-cols-2 w-full"
+        style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr)); gap: #{@gap}px"}
         phx-update="append"
       >
         <%= for {output_idx, output} <- @outputs do %>
