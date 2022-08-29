@@ -266,11 +266,12 @@ defmodule Livebook.Intellisense do
          insert_text: Atom.to_string(name)
        }
 
-  defp format_completion_item(%{kind: :bitstring_option, name: name}) do
+  defp format_completion_item(%{kind: :bitstring_modifier, name: name, arity: arity}) do
     insert_text =
-      case name do
-        name when name in [:size, :unit] -> "#{name}($0)"
-        other -> Atom.to_string(other)
+      if arity == 0 do
+        Atom.to_string(name)
+      else
+        "#{name}($0)"
       end
 
     %{

@@ -66,8 +66,9 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
               documentation: Docs.documentation()
             }
           | %{
-              kind: :bitstring_option,
-              name: name()
+              kind: :bitstring_modifier,
+              name: name(),
+              arity: integer()
             }
 
   @type name :: atom()
@@ -77,20 +78,20 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
   @prefix_matcher &String.starts_with?/2
 
   @bitstring_modifiers [
-    %{kind: :variable, name: :big},
-    %{kind: :variable, name: :binary},
-    %{kind: :variable, name: :bitstring},
-    %{kind: :variable, name: :integer},
-    %{kind: :variable, name: :float},
-    %{kind: :variable, name: :little},
-    %{kind: :variable, name: :native},
-    %{kind: :variable, name: :signed},
-    %{kind: :function, name: :size, arity: 1},
-    %{kind: :function, name: :unit, arity: 1},
-    %{kind: :variable, name: :unsigned},
-    %{kind: :variable, name: :utf8},
-    %{kind: :variable, name: :utf16},
-    %{kind: :variable, name: :utf32}
+    {:big, 0},
+    {:binary, 0},
+    {:bitstring, 0},
+    {:integer, 0},
+    {:float, 0},
+    {:little, 0},
+    {:native, 0},
+    {:signed, 0},
+    {:size, 1},
+    {:unit, 1},
+    {:unsigned, 0},
+    {:utf8, 0},
+    {:utf16, 0},
+    {:utf32, 0}
   ]
 
   @doc """
@@ -330,12 +331,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
       :bitstring_modifier ->
         existing = code |> String.split("::") |> List.last() |> String.split("-")
 
-        @bitstring_modifiers
-        |> Enum.filter(fn modifier ->
-          name = Atom.to_string(modifier.name)
-          String.starts_with?(name, hint) and name not in existing
-        end)
-        |> Enum.map(&%{&1 | kind: :bitstring_option})
+        for {modifier, arity} <- @bitstring_modifiers,
+            name = Atom.to_string(modifier),
+            String.starts_with?(name, hint) and name not in existing,
+            do: %{kind: :bitstring_modifier, name: modifier, arity: arity}
 
       _ ->
         nil
