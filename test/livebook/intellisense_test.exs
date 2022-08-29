@@ -1176,7 +1176,7 @@ defmodule Livebook.IntellisenseTest do
                %{
                  detail: "bitstring option",
                  documentation: nil,
-                 insert_text: "size(integer)",
+                 insert_text: "size($0)",
                  kind: :bitstring_option,
                  label: "size"
                }
