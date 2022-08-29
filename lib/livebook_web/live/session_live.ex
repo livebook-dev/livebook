@@ -1106,12 +1106,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, put_flash(socket, :error, message)}
   end
 
-  def handle_info({:info, info}, socket) do
-    message = info |> to_string() |> upcase_first()
-
-    {:noreply, put_flash(socket, :info, message)}
-  end
-
   def handle_info({:hydrate_bin_entries, hydrated_entries}, socket) do
     hydrated_entries_map = Map.new(hydrated_entries, fn entry -> {entry.cell.id, entry} end)
 
