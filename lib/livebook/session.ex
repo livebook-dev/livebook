@@ -182,7 +182,6 @@ defmodule Livebook.Session do
     * `{:hydrate_bin_entries, entries}`
     * `{:operation, operation}`
     * `{:error, error}`
-    * `{:info, info}`
 
   """
   @spec subscribe(id()) :: :ok | {:error, term()}
