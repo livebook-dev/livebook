@@ -82,7 +82,7 @@ defmodule Livebook.Runtime.StandaloneInit do
 
   ## Options
 
-    * `:emitter` - an emitter through which all child outpt is passed
+    * `:emitter` - an emitter through which all child output is passed
 
     * `:init_opts` - see `Livebook.Runtime.ErlDist.initialize/2`
   """

@@ -163,9 +163,8 @@ The following environment variables configure Livebook:
 
   * LIVEBOOK_DEFAULT_RUNTIME - sets the runtime type that is used by default
     when none is started explicitly for the given notebook. Must be either
-    "standalone" (Elixir standalone), "mix[:PATH][:FLAGS]" (Mix standalone),
-    "attached:NODE:COOKIE" (Attached node) or "embedded" (Embedded).
-    Defaults to "standalone".
+    "standalone" (Elixir standalone), "attached:NODE:COOKIE" (Attached node)
+    or "embedded" (Embedded). Defaults to "standalone".
 
   * LIVEBOOK_FORCE_SSL_HOST - sets a host to redirect to if the request is not over HTTP.
     Note it does not apply when accessing Livebook via localhost. Defaults to nil.
