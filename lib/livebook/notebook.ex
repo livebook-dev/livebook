@@ -765,14 +765,24 @@ defmodule Livebook.Notebook do
   end
 
   # Keep layout output and its relevant contents
-  defp do_prune_outputs([{idx, {type, tabs_outputs, _info}} | outputs], acc)
-       when type in [:tabs, :grid] do
+  defp do_prune_outputs([{idx, {:tabs, tabs_outputs, info}} | outputs], acc) do
     case prune_outputs(tabs_outputs) do
       [] ->
         do_prune_outputs(outputs, acc)
 
       pruned_tabs_outputs ->
-        do_prune_outputs(outputs, [{idx, {type, pruned_tabs_outputs, :__pruned__}} | acc])
+        info = Map.replace(info, :labels, :__pruned__)
+        do_prune_outputs(outputs, [{idx, {:tabs, pruned_tabs_outputs, info}} | acc])
+    end
+  end
+
+  defp do_prune_outputs([{idx, {:grid, grid_outputs, info}} | outputs], acc) do
+    case prune_outputs(grid_outputs) do
+      [] ->
+        do_prune_outputs(outputs, acc)
+
+      pruned_grid_outputs ->
+        do_prune_outputs(outputs, [{idx, {:grid, pruned_grid_outputs, info}} | acc])
     end
   end
 
