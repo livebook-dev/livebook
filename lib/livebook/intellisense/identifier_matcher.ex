@@ -65,12 +65,34 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
               name: name(),
               documentation: Docs.documentation()
             }
+          | %{
+              kind: :bitstring_modifier,
+              name: name(),
+              arity: integer()
+            }
 
   @type name :: atom()
   @type display_name :: String.t()
 
   @exact_matcher &Kernel.==/2
   @prefix_matcher &String.starts_with?/2
+
+  @bitstring_modifiers [
+    {:big, 0},
+    {:binary, 0},
+    {:bitstring, 0},
+    {:integer, 0},
+    {:float, 0},
+    {:little, 0},
+    {:native, 0},
+    {:signed, 0},
+    {:size, 1},
+    {:unit, 1},
+    {:unsigned, 0},
+    {:utf8, 0},
+    {:utf16, 0},
+    {:utf32, 0}
+  ]
 
   @doc """
   Returns a list of identifiers matching the given `hint`
@@ -151,7 +173,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
         match_default(ctx)
 
       {:local_or_var, local_or_var} ->
-        match_in_struct_fields_or_local_or_var(List.to_string(local_or_var), ctx)
+        hint = List.to_string(local_or_var)
+
+        match_container_context(ctx.fragment, hint) ||
+          match_in_struct_fields_or_local_or_var(hint, ctx)
 
       {:local_arity, local} ->
         match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
@@ -161,6 +186,10 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
           :completion -> match_default(ctx)
           :locate -> match_local(List.to_string(local), %{ctx | matcher: @exact_matcher})
         end
+
+      {:operator, operator} when operator in ~w(:: -)c ->
+        match_container_context(ctx.fragment, "") ||
+          match_local_or_var(List.to_string(operator), ctx)
 
       {:operator, operator} ->
         match_local_or_var(List.to_string(operator), ctx)
@@ -294,6 +323,34 @@ defmodule Livebook.Intellisense.IdentifierMatcher do
 
       _ ->
         match_local_or_var(hint, ctx)
+    end
+  end
+
+  defp match_container_context(code, hint) do
+    case container_context(code) do
+      :bitstring_modifier ->
+        existing = code |> String.split("::") |> List.last() |> String.split("-")
+
+        for {modifier, arity} <- @bitstring_modifiers,
+            name = Atom.to_string(modifier),
+            String.starts_with?(name, hint) and name not in existing,
+            do: %{kind: :bitstring_modifier, name: modifier, arity: arity}
+
+      _ ->
+        nil
+    end
+  end
+
+  defp container_context(code) do
+    case Code.Fragment.container_cursor_to_quoted(code) do
+      {:ok, quoted} ->
+        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
+          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
+          _ -> nil
+        end
+
+      {:error, _} ->
+        nil
     end
   end
 
