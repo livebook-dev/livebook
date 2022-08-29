@@ -1095,11 +1095,6 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("secrets", %{}, socket) do
-    {:noreply,
-     push_patch(socket, to: Routes.session_path(socket, :secrets, socket.assigns.session.id))}
-  end
-
   @impl true
   def handle_info({:operation, operation}, socket) do
     {:noreply, handle_operation(socket, operation)}

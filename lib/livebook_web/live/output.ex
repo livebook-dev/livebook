@@ -5,6 +5,7 @@ defmodule LivebookWeb.Output do
 
   alias Phoenix.LiveView.JS
   alias LivebookWeb.Output
+  alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
   Renders a list of cell outputs.
@@ -233,16 +234,22 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted, {:unavailable_env, "LB_" <> _rest}}, %{}) do
+  defp render_output({:error, formatted, {:unavailable_env, "LB_" <> _rest}}, %{
+         socket: socket,
+         session_id: session_id
+       }) do
     assigns = %{message: String.replace(formatted, ~s(environment variable "LB_), ~s(secret "))}
 
     ~H"""
     <div class="flex justify-between">
       <%= render_formatted_error_message(@message) %>
       <div class="self-end">
-        <button class="button-base button-gray" phx-click="secrets">
-          Add secret
-        </button>
+        <%= live_patch to: Routes.session_path(socket, :secrets, session_id),
+            class: "button-base button-gray",
+            aria_label: "add secret",
+            role: "button" do %>
+          <span>Add secret</span>
+        <% end %>
       </div>
     </div>
     """
