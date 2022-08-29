@@ -913,7 +913,7 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  describe "add secret" do
+  describe "secrets" do
     test "adds a secret from form", %{conn: conn, session: session} do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
 
@@ -922,6 +922,20 @@ defmodule LivebookWeb.SessionLiveTest do
       |> render_submit(%{data: %{label: "foo", value: "123"}})
 
       assert %{secrets: [%{label: "FOO", value: "123"}]} = Session.get_data(session.pid)
+    end
+
+    test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
+      section_id = insert_section(session.pid)
+      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.fetch_env!("LB_FOO")})
+
+      Session.queue_cell_evaluation(session.pid, cell_id)
+      wait_for_session_update(session.pid)
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      assert view
+             |> element("span", "Add secret")
+             |> has_element?()
     end
   end
 
