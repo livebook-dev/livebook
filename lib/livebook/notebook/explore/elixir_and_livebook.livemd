@@ -52,9 +52,7 @@ By default, a new Elixir node is started (similarly to starting `iex`). You
 can click reconnect whenever you want to discard the current node and start
 a new one.
 
-You can also manually *attach* to an existing distributed node, or run your
-Elixir notebook *embedded* within the Livebook source itself (which is quite
-useful for low-memory embedded devices).
+You can also manually *attach* to an existing distributed node.
 
 ## Mix projects
 
