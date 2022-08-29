@@ -47,7 +47,6 @@ apps:
       "LIVEBOOK_HOME": $SNAP_REAL_HOME
       "LIVEBOOK_DATA_PATH": $SNAP_USER_COMMON
 
-# TODO: Try these with symlink for a faster startup.
 layout:
   /usr/lib/erlang:
     symlink: $SNAP/usr/lib/erlang
