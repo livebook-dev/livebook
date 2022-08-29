@@ -55,13 +55,12 @@ defmodule LivebookWeb.Router do
       live "/explore", ExploreLive, :page
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
-      if Application.compile_env(:livebook, :feature_flags)[:hub] do
-        live "/hub", HubLive, :new
-        live "/hub/:id", HubLive, :edit
-      end
+      live "/hub", HubLive, :new
+      live "/hub/:id", HubLive, :edit
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
+      live "/sessions/:id/secrets", SessionLive, :secrets
       live "/sessions/:id/settings/runtime", SessionLive, :runtime_settings
       live "/sessions/:id/settings/file", SessionLive, :file_settings
       live "/sessions/:id/bin", SessionLive, :bin

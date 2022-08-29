@@ -166,6 +166,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     GenServer.cast(pid, {:stop_smart_cell, ref})
   end
 
+  def put_system_envs(pid, secrets) do
+    GenServer.cast(pid, {:put_system_envs, secrets})
+  end
+
   @doc """
   Stops the manager.
 
@@ -419,7 +423,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           put_in(state.smart_cells[ref], info)
 
         {:error, error} ->
-          Logger.error("failed to start smart cell, reason: #{inspect(error)}")
+          Logger.error("failed to start smart cell - #{Exception.format_exit(error)}")
           state
       end
 
@@ -443,6 +447,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
       DynamicSupervisor.terminate_child(state.smart_cell_supervisor, pid)
     end
 
+    {:noreply, state}
+  end
+
+  def handle_cast({:put_system_envs, secrets}, state) do
+    System.put_env(secrets)
     {:noreply, state}
   end
 

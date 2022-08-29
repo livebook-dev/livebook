@@ -232,14 +232,6 @@ defmodule LivebookWeb.HomeLiveTest do
   end
 
   describe "hubs sidebar" do
-    test "doesn't show with disabled feature flag", %{conn: conn} do
-      Application.put_env(:livebook, :feature_flags, hub: false)
-      {:ok, _view, html} = live(conn, "/")
-      Application.put_env(:livebook, :feature_flags, hub: true)
-
-      refute html =~ "HUBS"
-    end
-
     test "render section", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
       assert html =~ "HUBS"

@@ -39,7 +39,7 @@ defmodule Livebook.Notebook.Explore do
   welcome_config = %{
     path: Path.join(__DIR__, "explore/intro_to_livebook.livemd"),
     details: %{
-      description: "Get to know Livebook, see how it works and explore its features.",
+      description: "Get to know Livebook, see how it works, and explore its features.",
       cover_url: "/images/logo.png"
     }
   }
@@ -53,22 +53,21 @@ defmodule Livebook.Notebook.Explore do
       ],
       details: %{
         description:
-          "A fast-paced introduction to the Elixir language by building distributed data-transfer portals.",
+          "A fast-paced introduction to Elixir by building distributed data-transfer portals.",
         cover_url: "/images/elixir-portal.jpeg"
       }
     },
     %{
       path: Path.join(__DIR__, "explore/elixir_and_livebook.livemd"),
       details: %{
-        description: "Learn how to use some of Elixir and Livebook's unique features together.",
+        description: "Learn how to use some of their unique features together.",
         cover_url: "/images/elixir.png"
       }
     },
     %{
       path: Path.join(__DIR__, "explore/intro_to_kino.livemd"),
       details: %{
-        description:
-          "Make your notebooks interactive with inputs, controls, and more with the Kino package.",
+        description: "Make your notebooks interactive with inputs, controls, and more.",
         cover_url: "/images/kino.png"
       }
     },

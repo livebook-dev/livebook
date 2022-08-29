@@ -29,16 +29,20 @@ defmodule LivebookWeb.ExploreLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>
           <PageHelpers.title text="Explore" />
-          <p class="mt-4 text-gray-700">
-            Check out a number of examples showcasing various parts of the Elixir ecosystem.
+          <p class="mt-4 mb-8 text-gray-700">
+            Check out a number of examples showcasing various parts of the Elixir ecosystem.<br />
             Click on any notebook you like and start playing around with it!
           </p>
         </div>
-        <div class="p-8 bg-gray-900 rounded-2xl flex space-x-4 shadow-xl">
-          <div class="self-end max-w-sm">
+        <div
+          id="welcome-to-livebook"
+          class="p-8 bg-gray-900 rounded-2xl flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center shadow-xl"
+        >
+          <img src={@lead_notebook_info.details.cover_url} width="100" alt="livebook" />
+          <div>
             <h3 class="text-xl text-gray-50 font-semibold">
               <%= @lead_notebook_info.title %>
             </h3>
@@ -46,17 +50,14 @@ defmodule LivebookWeb.ExploreLive do
               <%= @lead_notebook_info.details.description %>
             </p>
             <div class="mt-4">
-              <%= live_patch("Let's go",
+              <%= live_patch("Open notebook",
                 to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
                 class: "button-base button-blue"
               ) %>
             </div>
           </div>
-          <div class="grow hidden md:flex flex items-center justify-center">
-            <img src={@lead_notebook_info.details.cover_url} height="120" width="120" alt="livebook" />
-          </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <% # Note: it's fine to use stateless components in this comprehension,
           # because @notebook_infos never change %>
           <%= for info <- @notebook_infos do %>
@@ -74,7 +75,7 @@ defmodule LivebookWeb.ExploreLive do
   defp notebook_group(assigns) do
     ~H"""
     <div>
-      <div class="p-8 rounded-2xl border border-gray-300 flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center">
+      <div class="p-8 mt-16 rounded-2xl border border-gray-300 flex flex-col sm:flex-row space-y-8 sm:space-y-0 space-x-0 sm:space-x-8 items-center">
         <img src={@group_info.cover_url} width="100" />
         <div>
           <div class="inline-flex px-2 py-0.5 bg-gray-200 rounded-3xl text-gray-700 text-xs font-medium">

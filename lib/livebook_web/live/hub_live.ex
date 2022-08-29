@@ -126,6 +126,11 @@ defmodule LivebookWeb.HubLive do
   defp card_item_bg_color(_id, _selected), do: ""
 
   @impl true
+  def handle_params(%{"id" => "local-host"}, _url, socket) do
+    {:noreply,
+     socket |> redirect(to: "/") |> put_flash(:warning, "You can't edit the localhost Hub")}
+  end
+
   def handle_params(%{"id" => id}, _url, socket) do
     hub = Hubs.fetch_hub!(id)
     provider = Provider.type(hub)

@@ -2,11 +2,9 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.6.1"},
+  {:kino, github: "livebook-dev/kino", override: true},
   {:kino_vega_lite, "~> 0.1.1"}
 ])
-
-alias VegaLite, as: Vl
 ```
 
 ## Introduction
@@ -17,12 +15,7 @@ time. If you are not familiar with VegaLite, [read
 its introductory notebook](/explore/notebooks/intro-to-vega-lite).
 
 Both `Kino` and `VegaLite` have been listed as dependencies in the
-setup cell. Let's also define a convenience shortcut for the
-`VegaLite` module, which we will use later:
-
-```elixir
-alias VegaLite, as: Vl
-```
+setup cell.
 
 ## Processes all the way down
 
@@ -60,14 +53,14 @@ The parent then returns `:ponged!` once it receives the pong.
 Wouldn't it be nice if we could also _visualize_ how this
 communication happens? We can do so by using `Kino.Process`!
 
-With `Kino.Process.render_seq_trace/2`, we can ask Kino to
+With `Kino.Process.render_seq_trace/1`, we can ask Kino to
 draw a [Mermaid diagram](https://mermaid-js.github.io/) with
 all messages to and from the current process:
 
 ```elixir
 parent = self()
 
-Kino.Process.render_seq_trace(parent, fn ->
+Kino.Process.render_seq_trace(fn ->
   child =
     spawn(fn ->
       receive do
@@ -93,7 +86,7 @@ tasks, sleep by a random amount, and collect their
 results?
 
 ```elixir
-Kino.Process.render_seq_trace(self(), fn ->
+Kino.Process.render_seq_trace(fn ->
   1..4
   |> Task.async_stream(fn i ->
     Process.sleep(Enum.random(100..300))
@@ -288,6 +281,8 @@ Having all that data, we can now visualize it on a scatter plot
 using VegaLite:
 
 ```elixir
+alias VegaLite, as: Vl
+
 Vl.new(width: 600, height: 400)
 |> Vl.data_from_values(processes)
 |> Vl.mark(:point, tooltip: true)

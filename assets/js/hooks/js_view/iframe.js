@@ -35,7 +35,7 @@ export function initializeIframeSource(iframe, iframePort, iframeUrl) {
     iframe.sandbox =
       "allow-scripts allow-same-origin allow-downloads allow-modals allow-popups";
     iframe.allow =
-      "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking";
+      "accelerometer; ambient-light-sensor; camera; display-capture; encrypted-media; geolocation; gyroscope; microphone; midi; usb; xr-spatial-tracking; clipboard-read; clipboard-write";
     iframe.src = url;
   });
 }

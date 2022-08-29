@@ -46,7 +46,16 @@ defmodule Livebook.Session do
   # The struct holds the basic session information that we track
   # and pass around. The notebook and evaluation state is kept
   # within the process state.
-  defstruct [:id, :pid, :origin, :notebook_name, :file, :images_dir, :created_at, :memory_usage]
+  defstruct [
+    :id,
+    :pid,
+    :origin,
+    :notebook_name,
+    :file,
+    :images_dir,
+    :created_at,
+    :memory_usage
+  ]
 
   use GenServer, restart: :temporary
 
@@ -522,6 +531,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a secret addition request to the server.
+  """
+  @spec put_secret(pid(), map()) :: :ok
+  def put_secret(pid, secret) do
+    GenServer.cast(pid, {:put_secret, secret})
+  end
+
+  @doc """
   Disconnects one or more sessions from the current runtime.
 
   Note that this results in clearing the evaluation state.
@@ -944,6 +961,11 @@ defmodule Livebook.Session do
     {:noreply, maybe_save_notebook_async(state)}
   end
 
+  def handle_cast({:put_secret, secret}, state) do
+    operation = {:put_secret, self(), secret}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   @impl true
   def handle_info({:DOWN, ref, :process, _, _}, %{runtime_monitor_ref: ref} = state) do
     broadcast_info(state.session_id, "runtime node terminated unexpectedly")
@@ -1276,6 +1298,7 @@ defmodule Livebook.Session do
 
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
+      set_runtime_secrets(state, state.data.secrets)
       state
     else
       state
@@ -1360,6 +1383,11 @@ defmodule Livebook.Session do
       send(cell.js_view.pid, {:editor_source, cell.editor.source})
     end
 
+    state
+  end
+
+  defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
+    if Runtime.connected?(state.data.runtime), do: set_runtime_secrets(state, [secret])
     state
   end
 
@@ -1457,7 +1485,7 @@ defmodule Livebook.Session do
         file -> file.path
       end
 
-    file = path <> "#cell"
+    file = path <> "#cell:#{cell.id}"
 
     smart_cell_ref =
       case cell do
@@ -1493,6 +1521,11 @@ defmodule Livebook.Session do
 
   defp put_memory_usage(state, runtime) do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
+  end
+
+  defp set_runtime_secrets(state, secrets) do
+    secrets = Enum.map(secrets, &{"LB_#{&1.label}", &1.value})
+    Runtime.put_system_envs(state.data.runtime, secrets)
   end
 
   defp notify_update(state) do

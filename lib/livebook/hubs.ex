@@ -2,7 +2,7 @@ defmodule Livebook.Hubs do
   @moduledoc false
 
   alias Livebook.Storage
-  alias Livebook.Hubs.{Fly, Metadata, Provider}
+  alias Livebook.Hubs.{Fly, Local, Metadata, Provider}
 
   defmodule NotFoundError do
     @moduledoc false
@@ -118,5 +118,9 @@ defmodule Livebook.Hubs do
 
   defp to_struct(%{id: "fly-" <> _} = fields) do
     Provider.load(%Fly{}, fields)
+  end
+
+  defp to_struct(%{id: "local-" <> _} = fields) do
+    Provider.load(%Local{}, fields)
   end
 end

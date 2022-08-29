@@ -111,6 +111,10 @@ const Session = {
       this.toggleClientsList()
     );
 
+    this.getElement("secrets-list-toggle").addEventListener("click", (event) =>
+      this.toggleSecretsList()
+    );
+
     this.getElement("runtime-info-toggle").addEventListener("click", (event) =>
       this.toggleRuntimeInfo()
     );
@@ -346,6 +350,8 @@ const Session = {
         this.queueFocusedSectionEvaluation();
       } else if (keyBuffer.tryMatch(["s", "s"])) {
         this.toggleSectionsList();
+      } else if (keyBuffer.tryMatch(["s", "e"])) {
+        this.toggleSecretsList();
       } else if (keyBuffer.tryMatch(["s", "u"])) {
         this.toggleClientsList();
       } else if (keyBuffer.tryMatch(["s", "r"])) {
@@ -680,6 +686,10 @@ const Session = {
 
   toggleClientsList() {
     this.toggleSidePanelContent("clients-list");
+  },
+
+  toggleSecretsList() {
+    this.toggleSidePanelContent("secrets-list");
   },
 
   toggleRuntimeInfo() {

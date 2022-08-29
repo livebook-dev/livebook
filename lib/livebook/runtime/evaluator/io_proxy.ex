@@ -23,7 +23,9 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   @doc """
   Starts an IO device process.
 
-  Make sure to use `configure/3` to correctly proxy the requests.
+  For all supported requests a message is sent to the configured
+  `:send_to` process, so this device serves as a proxy. Make sure
+  to also call configure/3` before every evaluation.
   """
   @spec start_link(pid(), pid(), pid(), pid()) :: GenServer.on_start()
   def start_link(evaluator, send_to, runtime_broadcast_to, object_tracker) do
@@ -31,16 +33,13 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @doc """
-  Sets IO proxy destination and the reference to be attached to all
-  messages.
+  Configures IO proxy for a new evaluation.
 
-  For all supported requests a message is sent to the configured
-  `:send_to` process, so this device serves as a proxy. The given
-  evaluation reference is also included in all messages.
+  The given reference is attached to all the proxied messages.
   """
-  @spec configure(pid(), Evaluator.ref()) :: :ok
-  def configure(pid, ref) do
-    GenServer.cast(pid, {:configure, ref})
+  @spec configure(pid(), Evaluator.ref(), String.t()) :: :ok
+  def configure(pid, ref, file) do
+    GenServer.cast(pid, {:configure, ref, file})
   end
 
   @doc """
@@ -75,6 +74,7 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
      %{
        encoding: :unicode,
        ref: nil,
+       file: nil,
        buffer: [],
        input_cache: %{},
        token_count: 0,
@@ -86,8 +86,8 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
   end
 
   @impl true
-  def handle_cast({:configure, ref}, state) do
-    {:noreply, %{state | ref: ref, token_count: 0}}
+  def handle_cast({:configure, ref, file}, state) do
+    {:noreply, %{state | ref: ref, file: file, token_count: 0}}
   end
 
   def handle_cast(:clear_input_cache, state) do
@@ -228,6 +228,10 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
 
   defp io_request(:livebook_get_broadcast_target, state) do
     {{:ok, state.runtime_broadcast_to}, state}
+  end
+
+  defp io_request(:livebook_get_evaluation_file, state) do
+    {state.file, state}
   end
 
   defp io_request(_, state) do

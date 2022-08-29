@@ -913,6 +913,18 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
+  describe "add secret" do
+    test "adds a secret from form", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{label: "foo", value: "123"}})
+
+      assert %{secrets: [%{label: "FOO", value: "123"}]} = Session.get_data(session.pid)
+    end
+  end
+
   # Helpers
 
   defp wait_for_session_update(session_pid) do
