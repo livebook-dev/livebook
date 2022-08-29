@@ -8,9 +8,8 @@ defmodule Livebook.Runtime.ErlDist do
   # code evaluation may take place in a separate Elixir runtime,
   # which also makes it easy to terminate the whole
   # evaluation environment without stopping Livebook.
-  # This is what `Runtime.ElixirStandalone`, `Runtime.MixStandalone`
-  # and `Runtime.Attached` do, so this module contains the shared
-  # functionality they need.
+  # This is what `Runtime.ElixirStandalone` and `Runtime.Attached` do,
+  # so this module contains the shared functionality they need.
   #
   # To work with a separate node, we have to inject the necessary
   # Livebook modules there and also start the relevant processes

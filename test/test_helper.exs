@@ -13,7 +13,6 @@ Application.put_env(:livebook, :default_runtime, Livebook.Runtime.Embedded.new()
 
 Application.put_env(:livebook, :runtime_modules, [
   Livebook.Runtime.ElixirStandalone,
-  Livebook.Runtime.MixStandalone,
   Livebook.Runtime.Attached,
   Livebook.Runtime.Embedded
 ])
