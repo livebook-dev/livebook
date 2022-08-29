@@ -4,7 +4,6 @@ defmodule Livebook.Runtime.StandaloneInit do
   # Generic functionality related to starting and setting up
   # a new Elixir system process. It's used by ElixirStandalone.
 
-  alias Livebook.Utils.Emitter
   alias Livebook.Runtime.NodePool
 
   @doc """
@@ -82,15 +81,11 @@ defmodule Livebook.Runtime.StandaloneInit do
 
   ## Options
 
-    * `:emitter` - an emitter through which all child output is passed
-
     * `:init_opts` - see `Livebook.Runtime.ErlDist.initialize/2`
   """
   @spec parent_init_sequence(node(), port(), keyword()) :: {:ok, pid()} | {:error, String.t()}
   def parent_init_sequence(child_node, port, opts \\ []) do
     port_ref = Port.monitor(port)
-
-    emitter = opts[:emitter]
 
     loop = fn loop ->
       receive do
@@ -103,9 +98,7 @@ defmodule Livebook.Runtime.StandaloneInit do
 
           {:ok, server_pid}
 
-        {^port, {:data, output}} ->
-          # Pass all the outputs through the given emitter.
-          emitter && Emitter.emit(emitter, output)
+        {^port, {:data, _output}} ->
           loop.(loop)
 
         {:DOWN, ^port_ref, :port, _object, _reason} ->
