@@ -1,0 +1,148 @@
+name: livebook
+base: core20
+version: "0.6.3"
+summary: Interactive & collaborative code notebooks in Elixir
+description: |
+  Livebook is a web application for writing interactive and collaborative code notebooks for Elixir.
+
+grade: devel
+confinement: strict
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+package-repositories:
+  - type: apt
+    url: http://binaries.erlang-solutions.com/debian
+    key-id: "434975BD900CCBE4F7EE1B1ED208507CA14F4FCA"
+    suites:
+      - "focal"
+    components:
+      - "contrib"
+    architectures:
+      - "amd64"
+      - "arm64"
+
+hooks:
+  configure:
+    plugs: [network, network-bind]
+
+apps:
+  livebook:
+    extensions: [gnome-3-38]
+    command: bin/livebook-indicator
+    plugs:
+      - desktop
+      - gsettings
+      - wayland
+      - x11
+
+  server:
+    command: wrappers/start-livebook.sh
+    plugs:
+      - network-bind
+      - network
+      - home
+    environment:
+      "LIVEBOOK_HOME": $SNAP_REAL_HOME
+      "LIVEBOOK_DATA_PATH": $SNAP_USER_COMMON
+
+# TODO: Try these with symlink for a faster startup.
+layout:
+  /usr/lib/erlang:
+    symlink: $SNAP/usr/lib/erlang
+  /usr/bin/git:
+    symlink: $SNAP/usr/bin/git
+
+parts:
+  wrappers:
+    plugin: dump
+    source: snap/local/wrappers
+    organize:
+      "*": "wrappers/"
+
+  elixir:
+    plugin: nil
+    source: https://github.com/elixir-lang/elixir
+    source-type: git
+    source-tag: v1.14.0-rc.1
+
+    override-build: |
+      PREFIX=$SNAPCRAFT_PART_INSTALL make install
+
+    build-packages:
+      - esl-erlang
+
+    stage-packages:
+      - esl-erlang
+      - libodbc1
+      - libglu1-mesa
+      - libwxgtk-webview3.0-gtk3-0v5
+
+  livebook:
+    after:
+      - elixir
+    source: https://github.com/livebook-dev/livebook
+    source-type: git
+    source-tag: v0.6.3
+    plugin: nil
+    override-build: |
+      mix local.hex --force && mix local.rebar --force && \
+      mix do deps.get, deps.compile && \
+      MIX_ENV=prod mix do compile, release livebook && \
+      mkdir -p $SNAPCRAFT_PART_INSTALL && \
+      cp -r _build/prod/rel/livebook $SNAPCRAFT_PART_INSTALL/livebook && \
+      echo $(cat /dev/urandom | env LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1) > $SNAPCRAFT_PART_INSTALL/livebook/releases/COOKIE
+    stage:
+      - livebook
+    build-packages:
+      - build-essential
+      - gnupg2
+    stage-packages:
+      - libcrypt1
+      - libtinfo6
+      # The following staged dependencies are inspired by the livebook Dockerfile
+      # ... as are the comments.
+      # Runtime dependencies
+      - build-essential
+      - ca-certificates
+      - libncurses5-dev
+      - git # In case someone uses `Mix.install/2` and point to a git repo
+      - wget # Additional standard tools
+      - cmake # In case someone uses Torchx for Nx
+
+  indicator:
+    after:
+      - livebook
+    source: https://github.com/mz2/livebook-indicator
+    source-type: git
+    source-branch: main
+    override-build: |
+      snapcraftctl build && \
+      mkdir $SNAPCRAFT_PART_INSTALL/assets && \
+      cp assets/livebook-icon.png $SNAPCRAFT_PART_INSTALL/assets/livebook-icon.png
+    plugin: rust
+    build-packages:
+      - build-essential
+      - pkg-config
+      - libglib2.0-dev
+      - libatk1.0-dev
+      - libcairo2-dev
+      - libpango1.0-dev
+      - libgdk-pixbuf2.0-dev
+      - libgtk-3-dev
+    stage-packages:
+      - libglib2.0-0
+      - libuuid1
+      - libmount1
+      - libcrypt1
+      - libselinux1
+      - libsepol1
+      - zlib1g
+      - libpcre3
+      - libblkid1
+      - libgdk-pixbuf2.0-0
+      - gir1.2-atk-1.0
+      - gir1.2-glib-2.0
+      - libcairo2
+      - libpango-1.0-0

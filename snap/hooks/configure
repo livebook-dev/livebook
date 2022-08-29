@@ -1,0 +1,4 @@
+#!/bin/bash
+
+snapctl set port=8082
+snapctl set ip=127.0.0.1

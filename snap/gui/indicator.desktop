@@ -1,0 +1,7 @@
+[Desktop Entry]
+Categories=Development;Science
+Name=Livebook
+Comment=Interactive & collaborative code notebooks in Elixir
+Icon=${SNAP}/meta/gui/livebook.png
+Type=Application
+Exec=/snap/bin/livebook
