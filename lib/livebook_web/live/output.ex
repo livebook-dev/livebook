@@ -238,12 +238,12 @@ defmodule LivebookWeb.Output do
          socket: socket,
          session_id: session_id
        }) do
-    assigns = %{message: String.replace(formatted, ~s(environment variable "LB_), ~s(secret "))}
+    assigns = %{message: formatted}
 
     ~H"""
     <div class="flex justify-between">
       <%= render_formatted_error_message(@message) %>
-      <div class="self-end">
+      <div class="self-center">
         <%= live_patch to: Routes.session_path(socket, :secrets, session_id),
             class: "button-base button-gray",
             aria_label: "add secret",

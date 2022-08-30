@@ -26,8 +26,9 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   end
 
   def format_result({:error, kind, error, stacktrace}) do
-    formatted = format_error(kind, error, stacktrace)
-    {:error, formatted, error_type(error)}
+    type = error_type(error)
+    formatted = format_error(kind, error, stacktrace, type)
+    {:error, formatted, type}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
@@ -85,6 +86,13 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
       reset: :reset
     ]
   end
+
+  defp format_error(kind, error, stacktrace, {:unavailable_env, "LB_" <> _rest}) do
+    format_error(kind, error, stacktrace)
+    |> String.replace(~s(environment variable "LB_), ~s(secret "))
+  end
+
+  defp format_error(kind, error, stacktrace, _type), do: format_error(kind, error, stacktrace)
 
   defp format_error(kind, error, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, error, stacktrace)
