@@ -2,6 +2,7 @@ defmodule LivebookWeb.Output do
   use Phoenix.Component
 
   import LivebookWeb.Helpers
+  import LivebookWeb.LiveHelpers
 
   alias Phoenix.LiveView.JS
   alias LivebookWeb.Output
@@ -234,16 +235,22 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted, {:unavailable_env, "LB_" <> _rest}}, %{
+  defp render_output({:error, formatted, {:missing_secret, secret}}, %{
          socket: socket,
          session_id: session_id
        }) do
     assigns = %{message: formatted}
 
     ~H"""
-    <div class="flex justify-between">
-      <%= render_formatted_error_message(@message) %>
-      <div class="self-center">
+    <div class="border rounded-lg space-x-4 py-4">
+      <div
+        class="flex items-center justify-between font-editor border-b px-4 pb-4 mb-4"
+        style="color: var(--ansi-color-red);"
+      >
+        <div class="flex space-x-2">
+          <.remix_icon icon="close-circle-line" />
+          <span>Missing secret <%= inspect(secret) %></span>
+        </div>
         <%= live_patch to: Routes.session_path(socket, :secrets, session_id),
             class: "button-base button-gray",
             aria_label: "add secret",
@@ -251,6 +258,7 @@ defmodule LivebookWeb.Output do
           <span>Add secret</span>
         <% end %>
       </div>
+      <%= render_formatted_error_message(@message) %>
     </div>
     """
   end

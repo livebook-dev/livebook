@@ -26,9 +26,8 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
   end
 
   def format_result({:error, kind, error, stacktrace}) do
-    type = error_type(error)
-    formatted = format_error(kind, error, stacktrace, type)
-    {:error, formatted, type}
+    formatted = format_error(kind, error, stacktrace)
+    {:error, formatted, error_type(error)}
   end
 
   @compile {:no_warn_undefined, {Kino.Render, :to_livebook, 1}}
@@ -87,13 +86,6 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     ]
   end
 
-  defp format_error(kind, error, stacktrace, {:unavailable_env, "LB_" <> _rest}) do
-    format_error(kind, error, stacktrace)
-    |> String.replace(~s(environment variable "LB_), ~s(secret "))
-  end
-
-  defp format_error(kind, error, stacktrace, _type), do: format_error(kind, error, stacktrace)
-
   defp format_error(kind, error, stacktrace) do
     {blamed, stacktrace} = Exception.blame(kind, error, stacktrace)
 
@@ -137,16 +129,6 @@ defmodule Livebook.Runtime.Evaluator.DefaultFormatter do
     IO.ANSI.format([:red, string], true)
   end
 
-  defp error_type(error) do
-    cond do
-      system_env_error?(error) -> {:unavailable_env, error.env}
-      true -> :other
-    end
-  end
-
-  defp system_env_error?(exception) do
-    is_struct(exception, System.EnvError) and
-      Exception.message(exception) =~
-        "could not fetch environment variable"
-  end
+  defp error_type(%System.EnvError{env: "LB_" <> secret}), do: {:missing_secret, secret}
+  defp error_type(_), do: :other
 end
