@@ -157,12 +157,8 @@ solely client-side operations.
   @apply absolute bottom-2 right-2;
 }
 
-[data-el-output]:not([data-wrapper]) {
-  @apply py-4;
-}
-
 [data-el-output][data-border] {
-  @apply px-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
+  @apply p-4 border border-t-0 border-gray-200 divide-y divide-gray-200;
 }
 
 [data-el-output][data-border]:first-child {

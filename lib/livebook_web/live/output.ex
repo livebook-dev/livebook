@@ -17,7 +17,6 @@ defmodule LivebookWeb.Output do
         id={"output-wrapper-#{@dom_id_map[idx] || idx}"}
         data-el-output
         data-border={border?(output)}
-        data-wrapper={wrapper?(output)}
       >
         <%= render_output(output, %{
           id: "output-#{idx}",
@@ -34,14 +33,8 @@ defmodule LivebookWeb.Output do
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
   defp border?({:error, _message}), do: true
-  # TODO fix spacing and make it an option
-  defp border?({:grid, _, _}), do: true
+  defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
-
-  defp wrapper?({:frame, _outputs, _info}), do: true
-  defp wrapper?({:tabs, _tabs, _info}), do: true
-  defp wrapper?({:grid, _tabs, _info}), do: true
-  defp wrapper?(_output), do: false
 
   defp render_output({:stdout, text}, %{id: id}) do
     text = if(text == :__pruned__, do: nil, else: text)
@@ -105,7 +98,7 @@ defmodule LivebookWeb.Output do
          client_id: client_id
        }) do
     {labels, active_idx} =
-      if info == :__pruned__ do
+      if info.labels == :__pruned__ do
         {[], nil}
       else
         labels =
@@ -179,17 +172,13 @@ defmodule LivebookWeb.Output do
          input_values: input_values,
          client_id: client_id
        }) do
-    style =
-      if info == :__pruned__ do
-        nil
-      else
-        columns = info[:columns] || 1
-        "grid-template-columns: repeat(#{columns}, minmax(0, 1fr));"
-      end
+    columns = info[:columns] || 1
+    gap = info[:gap] || 8
 
     assigns = %{
       id: id,
-      style: style,
+      columns: columns,
+      gap: gap,
       outputs: outputs,
       socket: socket,
       session_id: session_id,
@@ -201,9 +190,8 @@ defmodule LivebookWeb.Output do
     <div id={@id} class="overflow-auto tiny-scrollbar">
       <div
         id={"#{@id}-grid"}
-        class="grid grid-cols-2 gap-x-4 w-full"
-        style={@style}
-        data-keep-attribute="style"
+        class="grid grid-cols-2 w-full"
+        style={"grid-template-columns: repeat(#{@columns}, minmax(0, 1fr)); gap: #{@gap}px"}
         phx-update="append"
       >
         <%= for {output_idx, output} <- @outputs do %>
