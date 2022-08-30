@@ -53,7 +53,7 @@ defmodule LivebookWeb.Hub.NewLiveTest do
                |> render_submit(%{"fly" => attrs})
                |> follow_redirect(conn)
 
-      assert render(view) =~ "Hub created successfully"
+      assert render(view) =~ "Hub added successfully"
 
       assert view
              |> element("#hubs")

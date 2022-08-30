@@ -32,9 +32,6 @@ defmodule LivebookWeb.Hub.EditLive do
       <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <PageHelpers.title text="Edit Hub" socket={@socket} />
-          <p class="mt-4 text-gray-700">
-            Manage your Livebooks in the cloud with Hubs.
-          </p>
         </div>
 
         <%= if @type == "fly" do %>

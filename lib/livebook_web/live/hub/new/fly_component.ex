@@ -15,8 +15,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
        changeset: Fly.change_hub(%Fly{}),
        selected_app: nil,
        select_options: [],
-       apps: [],
-       valid?: false
+       apps: []
      )}
   end
 
@@ -101,10 +100,10 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
             </div>
           </div>
 
-          <%= submit("Create Hub",
+          <%= submit("Add Hub",
             class: "button-base button-blue",
-            phx_disable_with: "Creating...",
-            disabled: not @valid?
+            phx_disable_with: "Add...",
+            disabled: not @changeset.valid?
           ) %>
         <% end %>
       </.form>
@@ -119,13 +118,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
         opts = select_options(apps)
         changeset = Fly.change_hub(%Fly{}, %{access_token: token, hub_color: HexColor.random()})
 
-        {:noreply,
-         assign(socket,
-           changeset: changeset,
-           valid?: changeset.valid?,
-           select_options: opts,
-           apps: apps
-         )}
+        {:noreply, assign(socket, changeset: changeset, select_options: opts, apps: apps)}
 
       {:error, _} ->
         changeset =
@@ -133,13 +126,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
           |> Fly.change_hub(%{access_token: token})
           |> add_error(:access_token, "is invalid")
 
-        {:noreply,
-         assign(socket,
-           changeset: changeset,
-           valid?: changeset.valid?,
-           select_options: [],
-           apps: []
-         )}
+        {:noreply, assign(socket, changeset: changeset, select_options: [], apps: [])}
     end
   end
 
@@ -148,20 +135,16 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
   end
 
   def handle_event("save", %{"fly" => params}, socket) do
-    if socket.assigns.valid? do
+    if socket.assigns.changeset.valid? do
       case Fly.create_hub(socket.assigns.selected_app, params) do
         {:ok, hub} ->
-          changeset = Fly.change_hub(hub, params)
-
           {:noreply,
            socket
-           |> assign(changeset: changeset, selected_app: hub, valid?: changeset.valid?)
-           |> put_flash(:success, "Hub created successfully")
+           |> put_flash(:success, "Hub added successfully")
            |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
 
         {:error, changeset} ->
-          {:noreply,
-           assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)}
+          {:noreply, assign(socket, changeset: changeset)}
       end
     else
       {:noreply, socket}
@@ -185,12 +168,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
       end
 
     {:noreply,
-     assign(socket,
-       changeset: changeset,
-       valid?: changeset.valid?,
-       selected_app: selected_app,
-       select_options: opts
-     )}
+     assign(socket, changeset: changeset, selected_app: selected_app, select_options: opts)}
   end
 
   defp select_options(hubs, app_id \\ nil) do

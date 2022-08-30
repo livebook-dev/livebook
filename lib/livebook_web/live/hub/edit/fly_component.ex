@@ -14,11 +14,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     {:ok,
      socket
      |> assign(assigns)
-     |> assign(
-       app_url: "https://#{app["hostname"]}",
-       changeset: changeset,
-       valid?: changeset.valid?
-     )}
+     |> assign(app_url: "https://#{app["hostname"]}", changeset: changeset)}
   end
 
   @impl true
@@ -51,7 +47,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
 
         <.form
           id={@id}
-          class="flex flex-col space-y-4"
+          class="flex flex-col mt-4 space-y-4"
           let={f}
           for={@changeset}
           phx-submit="save"
@@ -103,7 +99,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
           <%= submit("Update Hub",
             class: "button-base button-blue",
             phx_disable_with: "Updating...",
-            disabled: not @valid?
+            disabled: not @changeset.valid?
           ) %>
         </.form>
       </div>
@@ -119,23 +115,19 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   def handle_event("save", %{"fly" => params}, socket) do
     case Fly.update_hub(socket.assigns.hub, params) do
       {:ok, hub} ->
-        changeset = Fly.change_hub(hub, params)
-
         {:noreply,
          socket
-         |> assign(changeset: changeset, hub: hub, valid?: changeset.valid?)
          |> put_flash(:success, "Hub updated successfully")
          |> push_redirect(to: Routes.hub_path(socket, :edit, hub.id))}
 
       {:error, changeset} ->
-        {:noreply,
-         assign(socket, changeset: %{changeset | action: :validate}, valid?: changeset.valid?)}
+        {:noreply, assign(socket, changeset: changeset)}
     end
   end
 
   def handle_event("validate", %{"fly" => attrs}, socket) do
     changeset = Fly.change_hub(socket.assigns.hub, attrs)
-    {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
+    {:noreply, assign(socket, changeset: changeset)}
   end
 
   defp hub_color(changeset), do: get_field(changeset, :hub_color)
