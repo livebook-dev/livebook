@@ -57,7 +57,10 @@ defmodule Livebook.Hubs.Fly do
     changeset = changeset(fly, attrs)
 
     if Hubs.hub_exists?(fly.id) do
-      {:error, add_error(changeset, :application_id, "already exists")}
+      {:error,
+       changeset
+       |> add_error(:application_id, "already exists")
+       |> Map.replace!(:action, :validate)}
     else
       with {:ok, struct} <- apply_action(changeset, :insert) do
         Hubs.save_hub(struct)
@@ -82,7 +85,10 @@ defmodule Livebook.Hubs.Fly do
         {:ok, struct}
       end
     else
-      {:error, add_error(changeset, :application_id, "does not exists")}
+      {:error,
+       changeset
+       |> add_error(:application_id, "does not exists")
+       |> Map.replace!(:action, :validate)}
     end
   end
 
