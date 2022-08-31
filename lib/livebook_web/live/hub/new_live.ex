@@ -20,7 +20,7 @@ defmodule LivebookWeb.Hub.NewLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-md mx-auto space-y-8">
+      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-8">
         <div>
           <PageHelpers.title text="Add Hub" socket={@socket} />
           <p class="mt-4 text-gray-700">

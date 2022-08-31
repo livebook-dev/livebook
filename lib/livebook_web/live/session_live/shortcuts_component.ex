@@ -145,7 +145,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 flex flex-col space-y-3">
+    <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Keyboard shortcuts
       </h3>
@@ -158,7 +158,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
         you have editor focus and directly modify the given cell content.
       </p>
       <div class="flex">
-        <form class="mt-4" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
+        <form class="my-2" phx-change="settings" onsubmit="return false;" phx-target={@myself}>
           <.switch_checkbox
             name="basic"
             label="Basic view (essential shortcuts only)"
@@ -200,15 +200,17 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     assigns = assign(assigns, left: left, right: right)
 
     ~H"""
-    <h3 class="text-lg font-medium text-gray-900 pt-4">
-      <%= @title %>
-    </h3>
-    <div class="mt-2 flex flex-col lg:flex-row lg:space-x-4">
-      <div class="lg:grow">
-        <.shortcuts_section_table shortcuts={@left} platform={@platform} />
-      </div>
-      <div class="lg:w-1/2">
-        <.shortcuts_section_table shortcuts={@right} platform={@platform} />
+    <div class="flex flex-col space-y-3">
+      <h3 class="text-lg font-medium text-gray-900">
+        <%= @title %>
+      </h3>
+      <div class="flex flex-col lg:flex-row lg:space-x-4">
+        <div class="lg:grow">
+          <.shortcuts_section_table shortcuts={@left} platform={@platform} />
+        </div>
+        <div class="lg:w-1/2">
+          <.shortcuts_section_table shortcuts={@right} platform={@platform} />
+        </div>
       </div>
     </div>
     """

@@ -29,7 +29,7 @@ defmodule LivebookWeb.ExploreLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="px-4 sm:px-8 md:px-16 pt-4 sm:py-7 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>
           <PageHelpers.title text="Explore" />
           <p class="mt-4 mb-8 text-gray-700">

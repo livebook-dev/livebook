@@ -27,7 +27,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
         </div>
       <% end %>
       <p class="text-gray-700" id="import-from-url">
-        Paste the URL to a .livemd file, to a GitHub file, or to a Gist to import it.
+        Paste the URL to a .livemd file, to a GitHub file, or to a Gist.
       </p>
       <.form
         let={f}

@@ -95,7 +95,7 @@ defmodule LivebookWeb.LiveHelpers do
 
     ~H"""
     <.modal id={@id} class="w-full max-w-xl" phx-hook="ConfirmModal" data-js-show={show_modal(@id)}>
-      <div id={"#{@id}-content"} class="p-6 pb-4 flex flex-col" phx-update="ignore">
+      <div id={"#{@id}-content"} class="p-6 flex flex-col" phx-update="ignore">
         <h3 class="text-2xl font-semibold text-gray-800" data-title></h3>
         <p class="mt-8 text-gray-700" data-description></p>
         <label class="mt-6 text-gray-700 flex items-center" data-opt-out>

@@ -145,7 +145,7 @@ defmodule LivebookWeb.LayoutHelpers do
           </button>
         <% end %>
         <button
-          class="mt-8 flex items-center group border-l-4 border-transparent"
+          class="mt-6 flex items-center group border-l-4 border-transparent"
           aria_label="user profile"
           phx-click={show_current_user_modal()}
         >

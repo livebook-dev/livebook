@@ -11,68 +11,66 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-3">
+    <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         Add file system
       </h3>
-      <div class="w-full flex-col space-y-5">
-        <p class="text-gray-700">
-          Configure an AWS S3 bucket as a Livebook file system.
-          Many storage services offer an S3-compatible API and
-          those work as well.
-        </p>
-        <%= if @error_message do %>
-          <div class="error-box">
-            <%= @error_message %>
+      <p class="text-gray-700">
+        Configure an AWS S3 bucket as a Livebook file system.
+        Many storage services offer an S3-compatible API and
+        those work as well.
+      </p>
+      <%= if @error_message do %>
+        <div class="error-box">
+          <%= @error_message %>
+        </div>
+      <% end %>
+      <.form
+        let={f}
+        for={:data}
+        phx-target={@myself}
+        phx-submit="add"
+        phx-change="validate"
+        autocomplete="off"
+        spellcheck="false"
+      >
+        <div class="flex flex-col space-y-4">
+          <div>
+            <div class="input-label">Bucket URL</div>
+            <%= text_input(f, :bucket_url,
+              value: @data["bucket_url"],
+              class: "input",
+              placeholder: "https://s3.[region].amazonaws.com/[bucket]"
+            ) %>
           </div>
-        <% end %>
-        <.form
-          let={f}
-          for={:data}
-          phx-target={@myself}
-          phx-submit="add"
-          phx-change="validate"
-          autocomplete="off"
-          spellcheck="false"
-        >
-          <div class="flex flex-col space-y-4">
-            <div>
-              <div class="input-label">Bucket URL</div>
-              <%= text_input(f, :bucket_url,
-                value: @data["bucket_url"],
+          <div>
+            <div class="input-label">Access Key ID</div>
+            <.with_password_toggle id="access-key-password-toggle">
+              <%= text_input(f, :access_key_id,
+                value: @data["access_key_id"],
                 class: "input",
-                placeholder: "https://s3.[region].amazonaws.com/[bucket]"
+                type: "password"
               ) %>
-            </div>
-            <div>
-              <div class="input-label">Access Key ID</div>
-              <.with_password_toggle id="access-key-password-toggle">
-                <%= text_input(f, :access_key_id,
-                  value: @data["access_key_id"],
-                  class: "input",
-                  type: "password"
-                ) %>
-              </.with_password_toggle>
-            </div>
-            <div>
-              <div class="input-label">Secret Access Key</div>
-              <.with_password_toggle id="secret-access-key-password-toggle">
-                <%= text_input(f, :secret_access_key,
-                  value: @data["secret_access_key"],
-                  class: "input",
-                  type: "password"
-                ) %>
-              </.with_password_toggle>
-            </div>
+            </.with_password_toggle>
           </div>
-          <div class="mt-5 flex justify-end space-x-2">
-            <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
-            <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
-              Add
-            </button>
+          <div>
+            <div class="input-label">Secret Access Key</div>
+            <.with_password_toggle id="secret-access-key-password-toggle">
+              <%= text_input(f, :secret_access_key,
+                value: @data["secret_access_key"],
+                class: "input",
+                type: "password"
+              ) %>
+            </.with_password_toggle>
           </div>
-        </.form>
-      </div>
+        </div>
+        <div class="mt-5 flex space-x-2">
+          <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
+            Add
+          </button>
+          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+        </div>
+      </.form>
     </div>
     """
   end
