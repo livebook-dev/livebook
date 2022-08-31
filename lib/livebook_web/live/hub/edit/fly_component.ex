@@ -27,112 +27,114 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id <> "-component"} class="flex flex-col space-y-10">
-      <div class="flex flex-col space-y-2">
-        <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-          <div class="flex items-center space-x-12">
-            <.labeled_text label="Application ID">
-              <%= @hub.application_id %>
-            </.labeled_text>
-            <.labeled_text label="Type">
-              Fly
-            </.labeled_text>
-          </div>
-
-          <a href={@app_url} class="button-base button-outlined-gray" target="_blank">
-            <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
-            <span>See app on Fly</span>
-          </a>
-        </div>
-      </div>
-
-      <div class="flex flex-col space-y-2">
-        <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
-          General
-        </h2>
-
-        <.form
-          id={@id}
-          class="flex flex-col mt-4 space-y-4"
-          let={f}
-          for={@changeset}
-          phx-submit="save"
-          phx-change="validate"
-          phx-target={@myself}
-          phx-debounce="blur"
-        >
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div class="flex flex-col space-y-1">
-              <h3 class="text-gray-800 font-semibold">
-                Name
-              </h3>
-              <%= text_input(f, :hub_name, class: "input") %>
-              <%= error_tag(f, :hub_name) %>
+    <div id={@id <> "-component"}>
+      <div class="flex flex-col space-y-10">
+        <div class="flex flex-col space-y-2">
+          <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center space-x-12">
+              <.labeled_text label="Application ID">
+                <%= @hub.application_id %>
+              </.labeled_text>
+              <.labeled_text label="Type">
+                Fly
+              </.labeled_text>
             </div>
 
-            <div class="flex flex-col space-y-1">
-              <h3 class="text-gray-800 font-semibold">
-                Color
-              </h3>
+            <a href={@app_url} class="button-base button-outlined-gray" target="_blank">
+              <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+              <span>See app on Fly</span>
+            </a>
+          </div>
+        </div>
 
-              <div class="flex space-x-4 items-center">
-                <div
-                  class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                  style={"border-color: #{hub_color(@changeset)}"}
-                >
-                  <div class="rounded h-5 w-5" style={"background-color: #{hub_color(@changeset)}"} />
-                </div>
-                <div class="relative grow">
-                  <%= text_input(f, :hub_color,
-                    class: "input",
-                    spellcheck: "false",
-                    maxlength: 7
-                  ) %>
-                  <button
-                    class="icon-button absolute right-2 top-1"
-                    type="button"
-                    phx-click="randomize_color"
-                    phx-target={@myself}
+        <div class="flex flex-col space-y-2">
+          <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            General
+          </h2>
+
+          <.form
+            id={@id}
+            class="flex flex-col mt-4 space-y-4"
+            let={f}
+            for={@changeset}
+            phx-submit="save"
+            phx-change="validate"
+            phx-target={@myself}
+            phx-debounce="blur"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="flex flex-col space-y-1">
+                <h3 class="text-gray-800 font-semibold">
+                  Name
+                </h3>
+                <%= text_input(f, :hub_name, class: "input") %>
+                <%= error_tag(f, :hub_name) %>
+              </div>
+
+              <div class="flex flex-col space-y-1">
+                <h3 class="text-gray-800 font-semibold">
+                  Color
+                </h3>
+
+                <div class="flex space-x-4 items-center">
+                  <div
+                    class="border-[3px] rounded-lg p-1 flex justify-center items-center"
+                    style={"border-color: #{hub_color(@changeset)}"}
                   >
-                    <.remix_icon icon="refresh-line" class="text-xl" />
-                  </button>
-                  <%= error_tag(f, :hub_color) %>
+                    <div class="rounded h-5 w-5" style={"background-color: #{hub_color(@changeset)}"} />
+                  </div>
+                  <div class="relative grow">
+                    <%= text_input(f, :hub_color,
+                      class: "input",
+                      spellcheck: "false",
+                      maxlength: 7
+                    ) %>
+                    <button
+                      class="icon-button absolute right-2 top-1"
+                      type="button"
+                      phx-click="randomize_color"
+                      phx-target={@myself}
+                    >
+                      <.remix_icon icon="refresh-line" class="text-xl" />
+                    </button>
+                    <%= error_tag(f, :hub_color) %>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <%= submit("Update Hub",
-            class: "button-base button-blue",
-            phx_disable_with: "Updating...",
-            disabled: not @changeset.valid?
-          ) %>
-        </.form>
-      </div>
-
-      <div class="flex flex-col space-y-4">
-        <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
-          Environment Variables
-        </h2>
-
-        <div class="flex flex-col space-y-4">
-          <%= for {env_var, index} <- Enum.with_index(@env_vars) do %>
-            <.environment_variable_card
-              myself={@myself}
-              env_var={env_var}
-              index={index}
-              last_index={length(@env_vars) - 1}
-            />
-          <% end %>
+            <%= submit("Update Hub",
+              class: "button-base button-blue",
+              phx_disable_with: "Updating...",
+              disabled: not @changeset.valid?
+            ) %>
+          </.form>
         </div>
 
-        <button
-          class="button-base button-blue"
-          type="button"
-          phx-click={show_modal("environment-variable-modal")}
-        >
-          Add environment variable
-        </button>
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            Environment Variables
+          </h2>
+
+          <div class="flex flex-col space-y-4">
+            <%= for {env_var, index} <- Enum.with_index(@env_vars) do %>
+              <.environment_variable_card
+                myself={@myself}
+                env_var={env_var}
+                index={index}
+                last_index={length(@env_vars) - 1}
+              />
+            <% end %>
+          </div>
+
+          <button
+            class="button-base button-blue"
+            type="button"
+            phx-click={show_modal("environment-variable-modal")}
+          >
+            Add environment variable
+          </button>
+        </div>
       </div>
 
       <.environment_variable_modal
