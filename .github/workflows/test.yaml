@@ -6,7 +6,7 @@ on:
       - main
 env:
   otp: "25.0"
-  elixir: "1.14.0-rc.0"
+  elixir: "1.14.0-rc.1"
 jobs:
   main:
     runs-on: ubuntu-latest

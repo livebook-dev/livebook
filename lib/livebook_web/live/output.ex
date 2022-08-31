@@ -2,9 +2,11 @@ defmodule LivebookWeb.Output do
   use Phoenix.Component
 
   import LivebookWeb.Helpers
+  import LivebookWeb.LiveHelpers
 
   alias Phoenix.LiveView.JS
   alias LivebookWeb.Output
+  alias LivebookWeb.Router.Helpers, as: Routes
 
   @doc """
   Renders a list of cell outputs.
@@ -32,7 +34,7 @@ defmodule LivebookWeb.Output do
 
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
-  defp border?({:error, _message}), do: true
+  defp border?({:error, _message, _type}), do: true
   defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
 
@@ -233,17 +235,36 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted}, %{}) do
-    assigns = %{message: formatted}
+  defp render_output({:error, formatted, {:missing_secret, secret}}, %{
+         socket: socket,
+         session_id: session_id
+       }) do
+    assigns = %{message: formatted, secret: secret}
 
     ~H"""
-    <div
-      class="whitespace-pre-wrap font-editor text-gray-500"
-      role="complementary"
-      aria-label="error"
-      phx-no-format
-    ><%= ansi_string_to_html(@message) %></div>
+    <div class="-m-4 space-x-4 py-4">
+      <div
+        class="flex items-center justify-between font-editor border-b px-4 pb-4 mb-4"
+        style="color: var(--ansi-color-red);"
+      >
+        <div class="flex space-x-2">
+          <.remix_icon icon="close-circle-line" />
+          <span>Missing secret <%= inspect(@secret) %></span>
+        </div>
+        <%= live_patch to: Routes.session_path(socket, :secrets, session_id, secret: secret),
+            class: "button-base button-gray",
+            aria_label: "add secret",
+            role: "button" do %>
+          <span>Add secret</span>
+        <% end %>
+      </div>
+      <%= render_formatted_error_message(@message) %>
+    </div>
     """
+  end
+
+  defp render_output({:error, formatted, _type}, %{}) do
+    render_formatted_error_message(formatted)
   end
 
   # TODO: remove on Livebook v0.7
@@ -277,6 +298,19 @@ defmodule LivebookWeb.Output do
       aria-label="error message"
       phx-no-format
     ><%= @message %></div>
+    """
+  end
+
+  defp render_formatted_error_message(formatted) do
+    assigns = %{message: formatted}
+
+    ~H"""
+    <div
+      class="whitespace-pre-wrap font-editor text-gray-500"
+      role="complementary"
+      aria-label="error"
+      phx-no-format
+    ><%= ansi_string_to_html(@message) %></div>
     """
   end
 end

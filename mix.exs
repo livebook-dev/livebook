@@ -5,7 +5,7 @@ defmodule Livebook.MixProject do
   @version "0.6.3"
   @description "Interactive and collaborative code notebooks - made with Phoenix LiveView"
 
-  @app_elixir_version "1.14.0-rc.0"
+  @app_elixir_version "1.14.0-rc.1"
   @app_rebar3_version "3.19.0"
 
   def project do
