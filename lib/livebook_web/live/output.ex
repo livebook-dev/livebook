@@ -251,7 +251,7 @@ defmodule LivebookWeb.Output do
           <.remix_icon icon="close-circle-line" />
           <span>Missing secret <%= inspect(secret) %></span>
         </div>
-        <%= live_patch to: Routes.session_path(socket, :secrets, session_id),
+        <%= live_patch to: Routes.session_path(socket, :secrets, session_id, secret: secret),
             class: "button-base button-gray",
             aria_label: "add secret",
             role: "button" do %>

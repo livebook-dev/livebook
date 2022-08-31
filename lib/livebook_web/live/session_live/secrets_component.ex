@@ -2,11 +2,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, data: %{"label" => "", "value" => ""})}
-  end
-
-  @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
     {:ok, socket}
@@ -25,7 +20,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         </p>
         <.form
           let={f}
-          for={:data}
+          for={:secret}
           phx-submit="save"
           phx-change="validate"
           autocomplete="off"
@@ -37,7 +32,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 Label <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
               </div>
               <%= text_input(f, :label,
-                value: @data["label"],
+                value: @secret["label"],
                 class: "input",
                 placeholder: "secret label",
                 autofocus: true,
@@ -48,7 +43,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <div>
               <div class="input-label">Value</div>
               <%= text_input(f, :value,
-                value: @data["value"],
+                value: @secret["value"],
                 class: "input",
                 placeholder: "secret value",
                 aria_labelledby: "secret-value",
@@ -56,7 +51,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               ) %>
             </div>
           </div>
-          <button class="mt-5 button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
+          <button class="mt-5 button-base button-blue" type="submit" disabled={not valid?(@secret)}>
             Save
           </button>
         </.form>
@@ -66,17 +61,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   @impl true
-  def handle_event("save", %{"data" => data}, socket) do
-    secret = %{label: String.upcase(data["label"]), value: data["value"]}
+  def handle_event("save", %{"secret" => secret}, socket) do
+    secret = %{label: String.upcase(secret["label"]), value: secret["value"]}
     Livebook.Session.put_secret(socket.assigns.session.pid, secret)
-    {:noreply, assign(socket, data: %{"label" => "", "value" => ""})}
+    {:noreply, assign(socket, secret: %{"label" => "", "value" => ""})}
   end
 
-  def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data)}
+  def handle_event("validate", %{"secret" => secret}, socket) do
+    {:noreply, assign(socket, secret: secret)}
   end
 
-  defp data_valid?(data) do
-    String.match?(data["label"], ~r/^\w+$/) and data["value"] != ""
+  defp valid?(secret) do
+    String.match?(secret["label"], ~r/^\w+$/) and secret["value"] != ""
   end
 end

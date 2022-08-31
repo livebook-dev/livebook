@@ -404,6 +404,7 @@ defmodule LivebookWeb.SessionLive do
           module={LivebookWeb.SessionLive.SecretsComponent}
           id="secrets"
           session={@session}
+          secret={@secret}
         />
       </.modal>
     <% end %>
@@ -743,6 +744,12 @@ defmodule LivebookWeb.SessionLive do
   def handle_params(%{"tab" => tab}, _url, socket)
       when socket.assigns.live_action == :export do
     {:noreply, assign(socket, tab: tab)}
+  end
+
+  def handle_params(params, _url, socket)
+      when socket.assigns.live_action == :secrets do
+    label = Map.get(params, "secret", "")
+    {:noreply, assign(socket, secret: %{"label" => label, "value" => ""})}
   end
 
   def handle_params(_params, _url, socket) do
