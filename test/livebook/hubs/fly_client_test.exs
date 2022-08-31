@@ -114,4 +114,81 @@ defmodule Livebook.Hubs.FlyClientTest do
       assert {:error, "request failed with code: UNAUTHORIZED"} = FlyClient.fetch_app(hub)
     end
   end
+
+  describe "put_secrets/2" do
+    test "puts a list of secrets inside application", %{bypass: bypass} do
+      secrets = [
+        %{
+          "createdAt" => to_string(DateTime.utc_now()),
+          "digest" => to_string(Livebook.Utils.random_cookie()),
+          "id" => Livebook.Utils.random_short_id(),
+          "name" => "FOO"
+        }
+      ]
+
+      response = %{"data" => %{"setSecrets" => %{"app" => %{"secrets" => secrets}}}}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+      assert {:ok, ^secrets} = FlyClient.put_secrets(hub, [%{key: "FOO", value: "BAR"}])
+    end
+
+    test "returns error when input is invalid", %{bypass: bypass} do
+      message =
+        "Variable $input of type SetSecretsInput! was provided invalid value for secrets.0.Value (Field is not defined on SecretInput), secrets.0.value (Expected value to not be null)"
+
+      error = %{
+        "extensions" => %{
+          "problems" => [
+            %{
+              "explanation" => "Field is not defined on SecretInput",
+              "path" => ["secrets", 0, "Value"]
+            },
+            %{
+              "explanation" => "Expected value to not be null",
+              "path" => ["secrets", 0, "value"]
+            }
+          ],
+          "value" => %{
+            "appId" => "myfoo-test-livebook",
+            "secrets" => [%{"Value" => "BAR", "key" => "FOO"}]
+          }
+        },
+        "locations" => [%{"column" => 10, "line" => 1}],
+        "message" => message
+      }
+
+      response = %{"data" => nil, "errors" => [error]}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+      assert {:error, ^message} = FlyClient.put_secrets(hub, [%{key: "FOO", Value: "BAR"}])
+    end
+
+    test "returns unauthorized when token is invalid", %{bypass: bypass} do
+      error = %{"extensions" => %{"code" => "UNAUTHORIZED"}}
+      response = %{"data" => nil, "errors" => [error]}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+
+      assert {:error, "request failed with code: UNAUTHORIZED"} =
+               FlyClient.put_secrets(hub, [%{key: "FOO", value: "BAR"}])
+    end
+  end
 end

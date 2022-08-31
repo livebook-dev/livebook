@@ -62,6 +62,29 @@ defmodule Livebook.Hubs.FlyClient do
     end
   end
 
+  def put_secrets(%Fly{access_token: access_token, application_id: application_id}, secrets) do
+    mutation = """
+    mutation($input: SetSecretsInput!) {
+      setSecrets(input: $input) {
+        app {
+          secrets {
+            id
+            name
+            digest
+            createdAt
+          }
+        }
+      }
+    }
+    """
+
+    input = %{input: %{appId: application_id, secrets: secrets}}
+
+    with {:ok, %{"setSecrets" => %{"app" => app}}} <- graphql(access_token, mutation, input) do
+      {:ok, app["secrets"]}
+    end
+  end
+
   defp graphql(access_token, query, input \\ %{}) do
     headers = [{"Authorization", "Bearer #{access_token}"}]
     body = {"application/json", Jason.encode!(%{query: query, variables: input})}
