@@ -925,11 +925,12 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
       section_id = insert_section(session.pid)
       cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.fetch_env!("LB_FOO")})
 
       Session.queue_cell_evaluation(session.pid, cell_id)
-      wait_for_session_update(session.pid)
+      assert_receive {:operation, {:add_cell_evaluation_response, _, ^cell_id, _, _}}
 
       {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
