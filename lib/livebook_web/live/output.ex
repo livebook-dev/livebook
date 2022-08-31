@@ -34,7 +34,7 @@ defmodule LivebookWeb.Output do
 
   defp border?({:stdout, _text}), do: true
   defp border?({:text, _text}), do: true
-  defp border?({:error, _message}), do: true
+  defp border?({:error, _message, _type}), do: true
   defp border?({:grid, _, info}), do: Map.get(info, :boxed, false)
   defp border?(_output), do: false
 
@@ -239,17 +239,17 @@ defmodule LivebookWeb.Output do
          socket: socket,
          session_id: session_id
        }) do
-    assigns = %{message: formatted}
+    assigns = %{message: formatted, secret: secret}
 
     ~H"""
-    <div class="border rounded-lg space-x-4 py-4">
+    <div class="-m-4 space-x-4 py-4">
       <div
         class="flex items-center justify-between font-editor border-b px-4 pb-4 mb-4"
         style="color: var(--ansi-color-red);"
       >
         <div class="flex space-x-2">
           <.remix_icon icon="close-circle-line" />
-          <span>Missing secret <%= inspect(secret) %></span>
+          <span>Missing secret <%= inspect(@secret) %></span>
         </div>
         <%= live_patch to: Routes.session_path(socket, :secrets, session_id, secret: secret),
             class: "button-base button-gray",
