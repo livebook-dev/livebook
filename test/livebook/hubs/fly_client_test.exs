@@ -77,7 +77,15 @@ defmodule Livebook.Hubs.FlyClientTest do
         "hostname" => "foo-app.fly.dev",
         "platformVersion" => "nomad",
         "deployed" => true,
-        "status" => "running"
+        "status" => "running",
+        "secrets" => [
+          %{
+            "createdAt" => to_string(DateTime.utc_now()),
+            "digest" => to_string(Livebook.Utils.random_cookie()),
+            "id" => Livebook.Utils.random_short_id(),
+            "name" => "FOO"
+          }
+        ]
       }
 
       response = %{"data" => %{"app" => app}}

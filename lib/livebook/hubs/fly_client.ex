@@ -20,9 +20,9 @@ defmodule Livebook.Hubs.FlyClient do
     }
     """
 
-    with {:ok, body} <- graphql(access_token, query) do
+    with {:ok, %{"apps" => %{"nodes" => nodes}}} <- graphql(access_token, query) do
       apps =
-        for node <- body["apps"]["nodes"] do
+        for node <- nodes do
           %Fly{
             id: "fly-" <> node["id"],
             access_token: access_token,
@@ -47,12 +47,18 @@ defmodule Livebook.Hubs.FlyClient do
         platformVersion
         deployed
         status
+        secrets {
+          id
+          name
+          digest
+          createdAt
+        }
       }
     }
     """
 
-    with {:ok, body} <- graphql(access_token, query, %{appId: app_id}) do
-      {:ok, body["app"]}
+    with {:ok, %{"app" => app}} <- graphql(access_token, query, %{appId: app_id}) do
+      {:ok, app}
     end
   end
 
