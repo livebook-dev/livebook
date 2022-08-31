@@ -191,4 +191,35 @@ defmodule Livebook.Hubs.FlyClientTest do
                FlyClient.put_secrets(hub, [%{key: "FOO", value: "BAR"}])
     end
   end
+
+  describe "delete_secrets/2" do
+    test "deletes a list of secrets inside application", %{bypass: bypass} do
+      response = %{"data" => %{"unsetSecrets" => %{"app" => %{"secrets" => []}}}}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+      assert {:ok, []} = FlyClient.delete_secrets(hub, ["FOO"])
+    end
+
+    test "returns unauthorized when token is invalid", %{bypass: bypass} do
+      error = %{"extensions" => %{"code" => "UNAUTHORIZED"}}
+      response = %{"data" => nil, "errors" => [error]}
+
+      Bypass.expect_once(bypass, "POST", "/", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.resp(200, Jason.encode!(response))
+      end)
+
+      hub = build(:fly)
+
+      assert {:error, "request failed with code: UNAUTHORIZED"} =
+               FlyClient.delete_secrets(hub, ["FOO"])
+    end
+  end
 end
