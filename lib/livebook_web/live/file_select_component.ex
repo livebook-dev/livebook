@@ -370,6 +370,8 @@ defmodule LivebookWeb.FileSelectComponent do
 
   @impl true
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
+    file_system_id = if file_system_id == "local", do: :local, else: file_system_id
+
     {^file_system_id, file_system} =
       Enum.find(socket.assigns.file_systems, fn {id, _file_system} ->
         id == file_system_id
