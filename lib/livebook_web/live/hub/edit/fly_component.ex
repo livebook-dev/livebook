@@ -167,7 +167,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
           </.labeled_text>
         </div>
 
-        <div class="flex place-content-end">
+        <div class="flex items-center place-content-end">
           <.menu id={"env-var-#{@env_var["id"]}-menu"}>
             <:toggle>
               <button class="icon-button" aria-label="open session menu" type="button">
@@ -219,7 +219,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   defp environment_variable_modal(assigns) do
     ~H"""
     <.modal id={@id} class="w-full max-w-lg">
-      <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-5">
+      <div class="p-6 max-w-4xl flex flex-col space-y-5">
         <h3 class="text-2xl font-semibold text-gray-800">
           Add environment variable
         </h3>
