@@ -17,19 +17,18 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
      |> assign(
        app_url: "https://#{app["hostname"]}",
        changeset: changeset,
-       secrets: app["secrets"],
-       secret_data: %{},
+       env_vars: app["secrets"],
+       env_var_data: %{},
        operation: :new,
-       valid_secret?: false
+       valid_env_var?: false
      )}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id <> "-component"}>
-      <!-- System details -->
-      <div class="flex flex-col space-y-2 pb-5">
+    <div id={@id <> "-component"} class="flex flex-col space-y-10">
+      <div class="flex flex-col space-y-2">
         <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
           <div class="flex items-center space-x-12">
             <.labeled_text label="Application ID">
@@ -47,7 +46,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         </div>
       </div>
 
-      <div class="flex flex-col space-y-4">
+      <div class="flex flex-col space-y-2">
         <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
           General
         </h2>
@@ -111,124 +110,125 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         </.form>
       </div>
 
-      <div class="flex flex-col mt-4 space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 w-full border-b pb-2 border-gray-200">
-          <div class="place-content-start">
-            <h2 class="text-xl text-gray-800 font-semibold">
-              Secrets
-            </h2>
-          </div>
+      <div class="flex flex-col space-y-4">
+        <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+          Environment Variables
+        </h2>
 
-          <div class="flex place-content-end">
-            <button
-              class="button-base border-1 border-gray-200 hover:bg-gray-200"
-              type="button"
-              phx-click={show_modal("new-secret-modal")}
-            >
-              Add secret
-            </button>
-          </div>
+        <div class="flex flex-col space-y-4">
+          <%= for {env_var, index} <- Enum.with_index(@env_vars) do %>
+            <.environment_variable_card
+              myself={@myself}
+              env_var={env_var}
+              index={index}
+              last_index={length(@env_vars) - 1}
+            />
+          <% end %>
         </div>
 
-        <div class="mt-4">
-          <div class="border border-gray-200 rounded-lg p-4 mt-0">
-            <%= for {secret, index} <- Enum.with_index(@secrets) do %>
-              <.secret_card
-                myself={@myself}
-                secret={secret}
-                index={index}
-                last_index={length(@secrets) - 1}
-              />
-            <% end %>
-          </div>
-        </div>
+        <button
+          class="button-base button-blue"
+          type="button"
+          phx-click={show_modal("environment-variable-modal")}
+        >
+          Add environment variable
+        </button>
       </div>
 
-      <.secret_modal
-        on_save={hide_modal("secret-modal")}
-        data={@secret_data}
-        valid?={@valid_secret?}
+      <.environment_variable_modal
+        id="environment-variable-modal"
+        on_save={hide_modal("environment-variable-modal")}
+        data={@env_var_data}
+        valid?={@valid_env_var?}
         myself={@myself}
       />
     </div>
     """
   end
 
-  defp secret_card(assigns) do
-    card_class = "flex items-center justify-between"
-
-    assigns =
-      if assigns.index < assigns.last_index do
-        assign_new(assigns, :class, fn ->
-          card_class <> " mb-3 pb-3 border-b border-gray-200"
-        end)
-      else
-        assign_new(assigns, :class, fn -> card_class end)
-      end
-
+  defp environment_variable_card(assigns) do
     ~H"""
-    <div id={"secret-" <> @secret["id"]} class={@class}>
+    <div
+      id={"env-var-" <> @env_var["id"]}
+      class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
+    >
       <div class="grid grid-cols-1 md:grid-cols-3 w-full">
         <div class="place-content-start">
           <.labeled_text label="Name">
-            <%= @secret["name"] %>
+            <%= @env_var["name"] %>
           </.labeled_text>
         </div>
 
         <div class="flex place-content-end">
           <.labeled_text label="Created at">
-            <%= @secret["createdAt"] %>
+            <%= @env_var["createdAt"] %>
           </.labeled_text>
         </div>
 
         <div class="flex place-content-end">
-          <button
-            id={"secret-" <> @secret["id"] <> "-edit"}
-            phx-click={show_modal("secret-modal") |> JS.push("edit", value: %{secret: @secret})}
-            phx-target={@myself}
-            class="icon-button text-blue-500 hover:text-blue-800"
-          >
-            <.remix_icon icon="file-edit-line" class="align-middle mr-1" />
-            <span>Edit</span>
-          </button>
-          <button
-            id={"secret-" <> @secret["id"] <> "-delete"}
-            phx-click={
-              with_confirm(
-                JS.push("delete", value: %{secret: @secret}),
-                title: "Delete #{@secret["name"]}",
-                description: "Are you sure you want to delete secret?",
-                confirm_text: "Delete",
-                confirm_icon: "delete-bin-6-line"
-              )
-            }
-            phx-target={@myself}
-            class="icon-button text-red-500 hover:text-red-800"
-          >
-            <.remix_icon icon="delete-bin-line" class="align-middle mr-1" />
-            <span>Delete</span>
-          </button>
+          <.menu id={"env-var-#{@env_var["id"]}-menu"}>
+            <:toggle>
+              <button class="icon-button" aria-label="open session menu" type="button">
+                <.remix_icon icon="more-2-fill" class="text-xl" />
+              </button>
+            </:toggle>
+            <:content>
+              <button
+                id={"env-var-" <> @env_var["id"] <> "-edit"}
+                type="button"
+                phx-click={
+                  show_modal("environment-variable-modal")
+                  |> JS.push("edit", value: %{env_var: @env_var})
+                }
+                phx-target={@myself}
+                role="menuitem"
+                class="menu-item text-gray-600"
+              >
+                <.remix_icon icon="file-edit-line" />
+                <span class="font-medium">Edit</span>
+              </button>
+              <button
+                id={"env-var-" <> @env_var["id"] <> "-delete"}
+                type="button"
+                phx-click={
+                  with_confirm(
+                    JS.push("delete", value: %{env_var: @env_var}),
+                    title: "Delete #{@env_var["name"]}",
+                    description: "Are you sure you want to delete environment variable?",
+                    confirm_text: "Delete",
+                    confirm_icon: "delete-bin-6-line"
+                  )
+                }
+                phx-target={@myself}
+                role="menuitem"
+                class="menu-item text-red-600"
+              >
+                <.remix_icon icon="delete-bin-line" />
+                <span class="font-medium">Delete</span>
+              </button>
+            </:content>
+          </.menu>
         </div>
       </div>
     </div>
     """
   end
 
-  defp secret_modal(assigns) do
+  defp environment_variable_modal(assigns) do
     ~H"""
-    <.modal id="secret-modal" class="w-full max-w-sm">
+    <.modal id={@id} class="w-full max-w-lg">
       <div class="p-6 pb-4 max-w-4xl flex flex-col space-y-5">
         <h3 class="text-2xl font-semibold text-gray-800">
-          Add secret
+          Add environment variable
         </h3>
         <div class="flex-col space-y-5">
           <p class="text-gray-700">
-            Enter the secret name and its value.
+            Enter the environment variable name and its value.
           </p>
           <.form
-            id="secret-form"
+            id="env-var-form"
             let={f}
-            for={:secret}
+            for={:env_var}
             phx-submit={@on_save |> JS.push("save")}
             phx-change="validate"
             autocomplete="off"
@@ -242,9 +242,9 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
                 <%= text_input(f, :key,
                   value: @data["key"],
                   class: "input",
-                  placeholder: "secret key",
+                  placeholder: "environment variable key",
                   autofocus: true,
-                  aria_labelledby: "secret-key",
+                  aria_labelledby: "env-var-key",
                   spellcheck: "false"
                 ) %>
               </div>
@@ -253,13 +253,13 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
                 <%= text_input(f, :value,
                   value: @data["value"],
                   class: "input",
-                  placeholder: "secret value",
-                  aria_labelledby: "secret-value",
+                  placeholder: "environment variable value",
+                  aria_labelledby: "env-var-value",
                   spellcheck: "false"
                 ) %>
               </div>
             </div>
-            <%= submit("Add Secret",
+            <%= submit("Add environment variable",
               class: "mt-5 button-base button-blue",
               phx_disable_with: "Adding...",
               disabled: not @valid?
@@ -276,22 +276,22 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     handle_event("validate", %{"fly" => %{"hub_color" => HexColor.random()}}, socket)
   end
 
-  def handle_event("edit", %{"secret" => %{"name" => name}}, socket) do
-    {:noreply, assign(socket, operation: :edit, secret_data: %{"key" => name})}
+  def handle_event("edit", %{"env_var" => %{"name" => name}}, socket) do
+    {:noreply, assign(socket, operation: :edit, env_var_data: %{"key" => name})}
   end
 
-  def handle_event("delete", %{"secret" => %{"name" => key}}, socket) do
+  def handle_event("delete", %{"env_var" => %{"name" => key}}, socket) do
     case FlyClient.delete_secrets(socket.assigns.hub, [key]) do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:success, "Secret deleted successfully")
+         |> put_flash(:success, "Environment variable deleted")
          |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
 
       {:error, _} ->
         {:noreply,
          socket
-         |> put_flash(:error, "Failed to delete secret")
+         |> put_flash(:error, "Failed to delete environment variable")
          |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
     end
   end
@@ -309,15 +309,15 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     end
   end
 
-  def handle_event("save", %{"secret" => params}, socket) do
-    if socket.assigns.valid_secret? do
+  def handle_event("save", %{"env_var" => params}, socket) do
+    if socket.assigns.valid_env_var? do
       case FlyClient.put_secrets(socket.assigns.hub, [params]) do
         {:ok, _} ->
           message =
             if socket.assigns.operation == :new do
-              "Secret added successfully"
+              "Environment variable added"
             else
-              "Secret updated successfully"
+              "Environment variable updated"
             end
 
           {:noreply,
@@ -328,9 +328,9 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         {:error, _} ->
           message =
             if socket.assigns.operation == :new do
-              "Failed to add secret"
+              "Failed to add environment variable"
             else
-              "Failed to update secret"
+              "Failed to update environment variable"
             end
 
           {:noreply,
@@ -348,9 +348,9 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     {:noreply, assign(socket, changeset: changeset)}
   end
 
-  def handle_event("validate", %{"secret" => attrs}, socket) do
+  def handle_event("validate", %{"env_var" => attrs}, socket) do
     valid? = String.match?(attrs["key"], ~r/^\w+$/) and attrs["value"] not in ["", nil]
-    {:noreply, assign(socket, valid_secret?: valid?, secret_data: attrs)}
+    {:noreply, assign(socket, valid_env_var?: valid?, env_var_data: attrs)}
   end
 
   defp hub_color(changeset), do: get_field(changeset, :hub_color)

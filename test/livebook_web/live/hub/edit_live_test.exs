@@ -29,7 +29,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "See app on Fly"
       assert html =~ "https://#{hub.application_id}.fly.dev"
 
-      assert html =~ "Secrets"
+      assert html =~ "Environment Variables"
       refute html =~ "FOO_ENV_VAR"
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
@@ -82,29 +82,29 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "See app on Fly"
       assert html =~ "https://#{hub.application_id}.fly.dev"
 
-      assert html =~ "Secrets"
+      assert html =~ "Environment Variables"
       refute html =~ "FOO_ENV_VAR"
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
 
       view
-      |> element("#secret-form")
-      |> render_change(%{"secret" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+      |> element("#env-var-form")
+      |> render_change(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
 
       refute view
-             |> element("#secret-form button[disabled]")
+             |> element("#env-var-form button[disabled]")
              |> has_element?()
 
       :ok = Agent.update(pid, fn state -> %{state | type: :add} end)
 
       assert {:ok, _view, html} =
                view
-               |> element("#secret-form")
-               |> render_submit(%{"secret" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+               |> element("#env-var-form")
+               |> render_submit(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
                |> follow_redirect(conn)
 
-      assert html =~ "Secret added successfully"
-      assert html =~ "Secrets"
+      assert html =~ "Environment variable added"
+      assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
@@ -113,12 +113,12 @@ defmodule LivebookWeb.Hub.EditLiveTest do
     test "update secret", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :foo} end)
 
-      old_secret =
+      old_env_var =
         :foo
         |> secrets()
         |> Enum.find(&(&1["name"] == "FOO_ENV_VAR"))
 
-      new_secret =
+      new_env_var =
         :updated_foo
         |> secrets()
         |> Enum.find(&(&1["name"] == "FOO_ENV_VAR"))
@@ -132,40 +132,41 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "See app on Fly"
       assert html =~ "https://#{hub.application_id}.fly.dev"
 
-      assert html =~ "Secrets"
+      assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
-      assert html =~ old_secret["createdAt"]
+      assert html =~ old_env_var["createdAt"]
 
       view
-      |> element("#secret-#{old_secret["id"]}-edit")
-      |> render_click(%{"secret" => old_secret})
+      |> element("#env-var-#{old_env_var["id"]}-edit")
+      |> render_click(%{"env_var" => old_env_var})
 
       view
-      |> element("#secret-form")
-      |> render_change(%{"secret" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+      |> element("#env-var-form")
+      |> render_change(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
 
       refute view
-             |> element("#secret-form button[disabled]")
+             |> element("#env-var-form button[disabled]")
              |> has_element?()
 
       :ok = Agent.update(pid, fn state -> %{state | type: :updated_foo} end)
 
       assert {:ok, _view, html} =
                view
-               |> element("#secret-form")
-               |> render_submit(%{"secret" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+               |> element("#env-var-form")
+               |> render_submit(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
                |> follow_redirect(conn)
 
-      assert html =~ "Secret updated successfully"
-      assert html =~ "Secrets"
+      assert html =~ "Environment variable updated"
+      assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
-      assert html =~ new_secret["createdAt"]
+      refute html =~ old_env_var["createdAt"]
+      assert html =~ new_env_var["createdAt"]
     end
 
     test "delete secret", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :add} end)
 
-      secret =
+      env_var =
         :add
         |> secrets()
         |> Enum.find(&(&1["name"] == "FOO_ENV_VAR"))
@@ -179,7 +180,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "See app on Fly"
       assert html =~ "https://#{hub.application_id}.fly.dev"
 
-      assert html =~ "Secrets"
+      assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
@@ -189,11 +190,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert {:ok, _view, html} =
                view
                |> with_target("#fly-form-component")
-               |> render_click("delete", %{"secret" => secret})
+               |> render_click("delete", %{"env_var" => env_var})
                |> follow_redirect(conn)
 
-      assert html =~ "Secret deleted successfully"
-      assert html =~ "Secrets"
+      assert html =~ "Environment variable deleted"
+      assert html =~ "Environment Variables"
       refute html =~ "FOO_ENV_VAR"
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
@@ -219,13 +220,6 @@ defmodule LivebookWeb.Hub.EditLiveTest do
               %{fun: fun} -> fun.()
             end)
         end
-
-      # cond do
-      #  body["query"] =~ "setSecrets" -> put_secrets_response()
-      #  body["query"] =~ "unsetSecrets" -> delete_secrets_response()
-      #  body["query"] =~ "secrets" -> fetch_secrets_response()
-      #  body["query"] =~ "app" -> fetch_app_response(app_id)
-      # end
 
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
