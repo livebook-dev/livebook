@@ -117,13 +117,8 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
           </h2>
 
           <div class="flex flex-col space-y-4">
-            <%= for {env_var, index} <- Enum.with_index(@env_vars) do %>
-              <.environment_variable_card
-                myself={@myself}
-                env_var={env_var}
-                index={index}
-                last_index={length(@env_vars) - 1}
-              />
+            <%= for env_var <- @env_vars do %>
+              <.environment_variable_card myself={@myself} env_var={env_var} />
             <% end %>
           </div>
 
