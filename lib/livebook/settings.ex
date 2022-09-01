@@ -59,7 +59,7 @@ defmodule Livebook.Settings do
         {fs_id, storage_to_fs(raw_fs)}
       end)
 
-    [{:local, Livebook.Config.local_filesystem()} | restored_file_systems]
+    [{"local", Livebook.Config.local_filesystem()} | restored_file_systems]
   end
 
   @doc """
