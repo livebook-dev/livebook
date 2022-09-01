@@ -63,12 +63,13 @@ defmodule LivebookWeb.SettingsLive.AddFileSystemComponent do
               ) %>
             </.with_password_toggle>
           </div>
-        </div>
-        <div class="mt-5 flex space-x-2">
-          <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
-            Add
-          </button>
-          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+
+          <div class="flex space-x-2">
+            <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
+              Add
+            </button>
+            <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+          </div>
         </div>
       </.form>
     </div>

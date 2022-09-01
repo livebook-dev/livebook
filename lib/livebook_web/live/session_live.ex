@@ -405,6 +405,7 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secret={@secret}
+          return_to={@self_path}
         />
       </.modal>
     <% end %>
