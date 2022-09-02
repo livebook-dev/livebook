@@ -2,19 +2,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, initialized: false)}
-  end
-
-  @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
 
     socket =
-      if socket.assigns.initialized do
+      if socket.assigns[:data] do
         socket
       else
-        assign(socket, data: %{"label" => assigns.secret, "value" => ""}, initialized: true)
+        assign(socket, data: %{"label" => assigns.secret, "value" => ""})
       end
 
     {:ok, socket}
