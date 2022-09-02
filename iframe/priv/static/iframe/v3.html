@@ -80,6 +80,10 @@
           handleSync(callback) {
             state.syncHandler = callback;
           },
+
+          secrets() {
+            postMessage({ type: "secrets" });
+          },
         };
 
         window.addEventListener("message", (event) => {

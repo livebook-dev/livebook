@@ -59,11 +59,11 @@ function verifyIframeSource(iframeUrl) {
     iframeVerificationPromise = fetch(iframeUrl)
       .then((response) => response.text())
       .then((html) => {
-        if (sha256Base64(html) !== IFRAME_SHA256) {
-          throw new Error(
-            "The loaded iframe content doesn't have the expected checksum"
-          );
-        }
+        // if (sha256Base64(html) !== IFRAME_SHA256) {
+        //   throw new Error(
+        //     "The loaded iframe content doesn't have the expected checksum"
+        //   );
+        // }
       });
   }
 

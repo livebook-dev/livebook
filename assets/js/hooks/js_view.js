@@ -331,6 +331,8 @@ const JSView = {
       } else if (message.type === "syncReply") {
         this.pongCallbackQueue.push(this.syncCallbackQueue.shift());
         this.channel.push("ping", { ref: this.props.ref });
+      } else if (message.type == "secrets") {
+        this.pushEvent("secrets");
       }
     }
   },
