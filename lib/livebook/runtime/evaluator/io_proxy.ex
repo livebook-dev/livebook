@@ -221,8 +221,15 @@ defmodule Livebook.Runtime.Evaluator.IOProxy do
     {:ok, state}
   end
 
+  # Used until Kino v0.7
   defp io_request({:livebook_monitor_object, object, destination, payload}, state) do
-    reply = Evaluator.ObjectTracker.monitor(state.object_tracker, object, destination, payload)
+    io_request({:livebook_monitor_object, object, destination, payload, false}, state)
+  end
+
+  defp io_request({:livebook_monitor_object, object, destination, payload, ack?}, state) do
+    reply =
+      Evaluator.ObjectTracker.monitor(state.object_tracker, object, destination, payload, ack?)
+
     {reply, state}
   end
 
