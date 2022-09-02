@@ -749,8 +749,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_params(params, _url, socket)
       when socket.assigns.live_action == :secrets do
-    label = Map.get(params, "secret", "")
-    {:noreply, assign(socket, secret: %{"label" => label, "value" => ""})}
+    {:noreply, assign(socket, secret: Map.get(params, "secret", ""))}
   end
 
   def handle_params(_params, _url, socket) do

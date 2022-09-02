@@ -919,7 +919,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{secret: %{label: "foo", value: "123"}})
+      |> render_submit(%{data: %{label: "foo", value: "123"}})
 
       assert %{secrets: [%{label: "FOO", value: "123"}]} = Session.get_data(session.pid)
     end
