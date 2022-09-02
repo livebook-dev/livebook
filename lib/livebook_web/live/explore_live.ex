@@ -31,7 +31,7 @@ defmodule LivebookWeb.ExploreLive do
     >
       <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>
-          <PageHelpers.title text="Explore" />
+          <PageHelpers.title text="/ explore" />
           <p class="mt-4 mb-8 text-gray-700">
             Check out a number of examples showcasing various parts of the Elixir ecosystem.<br />
             Click on any notebook you like and start playing around with it!
