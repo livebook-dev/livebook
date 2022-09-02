@@ -44,8 +44,8 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-semibold">
               About
             </h2>
-            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-              <div class="flex items-center space-x-12">
+            <div class="flex flex-col md:flex-row gap-4 md:gap-12 first-letter:items-center justify-center md:justify-between border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-center md:items-center space-x-12">
                 <%= if app_name = Livebook.Config.app_service_name() do %>
                   <.labeled_text label="Application">
                     <%= if app_url = Livebook.Config.app_service_url() do %>
@@ -65,11 +65,13 @@ defmodule LivebookWeb.SettingsLive do
                 </.labeled_text>
               </div>
 
-              <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
-                                  class: "button-base button-outlined-gray" do %>
-                <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
-                <span>Open dashboard</span>
-              <% end %>
+              <div class="self-center">
+                <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
+                                    class: "button-base button-outlined-gray" do %>
+                  <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+                  <span>Open dashboard</span>
+                <% end %>
+              </div>
             </div>
           </div>
           <!-- Updates -->
@@ -77,10 +79,11 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
               Updates
             </h2>
-            <form class="mt-4" phx-change="save" onsubmit="return false;">
+            <form class="flex justify-between mt-4" phx-change="save" onsubmit="return false;">
+              <span class="text-gray-700">Show banner when a new version of Livebook is available</span>
               <.switch_checkbox
                 name="update_check_enabled"
-                label="Show banner when a new Livebook version is available"
+                label=""
                 checked={@update_check_enabled}
               />
             </form>
@@ -133,27 +136,42 @@ defmodule LivebookWeb.SettingsLive do
               phx-hook="EditorSettings"
               phx-update="ignore"
             >
-              <.switch_checkbox
-                name="editor_auto_completion"
-                label="Show completion list while typing"
-                checked={false}
-              />
-              <.switch_checkbox
-                name="editor_auto_signature"
-                label="Show function signature while typing"
-                checked={false}
-              />
-              <.switch_checkbox name="editor_font_size" label="Increase font size" checked={false} />
-              <.switch_checkbox
-                name="editor_high_contrast"
-                label="Use high contrast theme"
-                checked={false}
-              />
-              <.switch_checkbox
-                name="editor_markdown_word_wrap"
-                label="Wrap words in Markdown"
-                checked={false}
-              />
+              <div class="flex justify-between">
+                <span class="text-gray-700">Show completion list while typing</span>
+                <.switch_checkbox
+                  name="editor_auto_completion"
+                  label=""
+                  checked={false}
+                />
+              </div>
+              <div class="flex justify-between" >
+                <span class="text-gray-700">Show function signature while typing</span>
+                <.switch_checkbox
+                  name="editor_auto_signature"
+                  label=""
+                  checked={false}
+                />
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-700">Increase font size</span>
+                <.switch_checkbox name="editor_font_size" label="" checked={false} />
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-700">Use high contrast theme</span>
+                <.switch_checkbox
+                  name="editor_high_contrast"
+                  label=""
+                  checked={false}
+                />
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-700">Wrap words in Markdown</span>
+                <.switch_checkbox
+                  name="editor_markdown_word_wrap"
+                  label=""
+                  checked={false}
+                />
+              </div>
             </div>
           </div>
         </div>
