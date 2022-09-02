@@ -102,12 +102,9 @@ defmodule AppBundler.MacOS do
     )
 
     to_sign =
-      "#{app_dir}/**"
-      |> Path.wildcard()
-      |> Enum.filter(fn file ->
-        stat = File.lstat!(file)
-        Bitwise.band(0o100, stat.mode) != 0 and stat.type == :regular
-      end)
+      "find #{app_dir} -perm +111 -type f -exec sh -c \"file {} | grep --silent Mach-O\" \\; -print"
+      |> shell!(into: "")
+      |> String.split("\n", trim: true)
 
     to_sign = to_sign ++ [app_dir]
 
@@ -122,9 +119,8 @@ defmodule AppBundler.MacOS do
     log(:green, "signing", Path.relative_to_cwd(app_dir))
     codesign(to_sign, "--options=runtime --entitlements=#{entitlements_plist_path}", notarization)
 
-    target = AppBundler.target()
     vsn = release.version
-    dmg_path = "#{Mix.Project.build_path()}/#{app_name}Install-#{vsn}-#{target}.dmg"
+    dmg_path = "#{Mix.Project.build_path()}/#{app_name}Install-#{vsn}.dmg"
     log(:green, "creating", Path.relative_to_cwd(dmg_path))
 
     cmd!(
