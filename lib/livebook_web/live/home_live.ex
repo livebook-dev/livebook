@@ -43,7 +43,7 @@ defmodule LivebookWeb.HomeLive do
       saved_hubs={@saved_hubs}
     >
       <:topbar_action>
-        <a aria-label="new-notebook" class="flex items-center" phx-click="new">
+        <a aria-label="new-notebook" class="flex items-center cursor-pointer" phx-click="new">
           <.remix_icon icon="add-line" />
           <span class="pl-2">New notebook</span>
         </a>
