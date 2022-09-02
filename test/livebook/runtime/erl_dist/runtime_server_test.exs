@@ -251,6 +251,14 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
     end
 
     @tag opts: @opts
+    test "notifies runtime owner when a smart cell goes down", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      assert_receive {:runtime_smart_cell_started, "ref", %{js_view: %{pid: pid}}}
+      Process.exit(pid, :crashed)
+      assert_receive {:runtime_smart_cell_down, "ref"}
+    end
+
+    @tag opts: @opts
     test "once started scans binding and sends the result to the cell server", %{pid: pid} do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_binding_ping}

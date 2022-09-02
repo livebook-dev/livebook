@@ -588,8 +588,8 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:smart_cell_down, client_id, id}) do
-    with {:ok, %Cell.Smart{} = cell, section} <-
+  def apply_operation(data, {:smart_cell_down, _client_id, id}) do
+    with {:ok, %Cell.Smart{} = cell, _section} <-
            Notebook.fetch_cell_and_section(data.notebook, id) do
       data
       |> with_actions()
@@ -600,9 +600,10 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  def apply_operation(data, {:recover_smart_cell, client_id, id}) do
+  def apply_operation(data, {:recover_smart_cell, _client_id, cell_id}) do
     with {:ok, %Cell.Smart{} = cell, section} <-
-           Notebook.fetch_cell_and_section(data.notebook, id) do
+           Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         :down <- data.cell_infos[cell_id].status do
       data
       |> with_actions()
       |> recover_smart_cell(cell, section)
@@ -1316,7 +1317,7 @@ defmodule Livebook.Session.Data do
     |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
   end
 
-  defp smart_cell_down({data, _} = data_actions, cell) do
+  defp smart_cell_down(data_actions, cell) do
     data_actions
     |> update_cell_info!(cell.id, &%{&1 | status: :down})
   end
