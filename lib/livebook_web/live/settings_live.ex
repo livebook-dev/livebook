@@ -10,6 +10,8 @@ defmodule LivebookWeb.SettingsLive do
     {:ok,
      assign(socket,
        file_systems: Livebook.Settings.file_systems(),
+       env_vars: Livebook.Settings.fetch_env_vars(),
+       env_var: nil,
        autosave_path_state: %{
          file: autosave_dir(),
          dialog_opened?: false
@@ -110,6 +112,23 @@ defmodule LivebookWeb.SettingsLive do
               socket={@socket}
             />
           </div>
+          <!-- Environment variables configuration -->
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+              Environment variables
+            </h2>
+            <p class="mt-4 text-gray-700">
+              Environment variables are used to store global values and secrets.
+              The global environment variables can be used on the entire Livebook
+              application and is accessible only to the current machine.
+            </p>
+            <.live_component
+              module={LivebookWeb.SettingsLive.EnvironmentVariablesComponent}
+              id="env-vars"
+              env_vars={@env_vars}
+              return_to={Routes.settings_path(@socket, :page)}
+            />
+          </div>
         </div>
         <!-- User settings section -->
         <div class="flex flex-col space-y-10">
@@ -168,6 +187,37 @@ defmodule LivebookWeb.SettingsLive do
         <.live_component
           module={LivebookWeb.SettingsLive.AddFileSystemComponent}
           id="add-file-system"
+          return_to={Routes.settings_path(@socket, :page)}
+        />
+      </.modal>
+    <% end %>
+
+    <%= if @live_action == :add_env_var do %>
+      <.modal
+        id="add-env-var-modal"
+        show
+        class="w-full max-w-3xl"
+        patch={Routes.settings_path(@socket, :page)}
+      >
+        <.live_component
+          module={LivebookWeb.SettingsLive.AddEnvironmentVariableComponent}
+          id="add-env-var"
+          return_to={Routes.settings_path(@socket, :page)}
+        />
+      </.modal>
+    <% end %>
+
+    <%= if @live_action == :edit_env_var do %>
+      <.modal
+        id="edit-env-var-modal"
+        show
+        class="w-full max-w-3xl"
+        patch={Routes.settings_path(@socket, :page)}
+      >
+        <.live_component
+          module={LivebookWeb.SettingsLive.EditEnvironmentVariableComponent}
+          id="edit-env-var"
+          env_var={@env_var}
           return_to={Routes.settings_path(@socket, :page)}
         />
       </.modal>
@@ -284,6 +334,17 @@ defmodule LivebookWeb.SettingsLive do
 
   def handle_info(:set_autosave_path, socket) do
     handle_event("set_autosave_path", %{}, socket)
+  end
+
+  def handle_info({:edit_env_var, env_var}, socket) do
+    {:noreply,
+     socket
+     |> assign(env_var: env_var)
+     |> push_patch(to: Routes.settings_path(socket, :edit_env_var))}
+  end
+
+  def handle_info({:env_vars_updated, env_vars}, socket) do
+    {:noreply, assign(socket, env_vars: env_vars)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

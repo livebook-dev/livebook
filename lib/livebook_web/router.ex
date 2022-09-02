@@ -51,6 +51,8 @@ defmodule LivebookWeb.Router do
 
       live "/settings", SettingsLive, :page
       live "/settings/add-file-system", SettingsLive, :add_file_system
+      live "/settings/add-env-var", SettingsLive, :add_env_var
+      live "/settings/edit-env-var", SettingsLive, :edit_env_var
 
       live "/explore", ExploreLive, :page
       live "/explore/notebooks/:slug", ExploreLive, :notebook
