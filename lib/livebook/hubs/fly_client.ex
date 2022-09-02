@@ -20,9 +20,9 @@ defmodule Livebook.Hubs.FlyClient do
     }
     """
 
-    with {:ok, body} <- graphql(access_token, query) do
+    with {:ok, %{"apps" => %{"nodes" => nodes}}} <- graphql(access_token, query) do
       apps =
-        for node <- body["apps"]["nodes"] do
+        for node <- nodes do
           %Fly{
             id: "fly-" <> node["id"],
             access_token: access_token,
@@ -47,12 +47,64 @@ defmodule Livebook.Hubs.FlyClient do
         platformVersion
         deployed
         status
+        secrets {
+          id
+          name
+          digest
+          createdAt
+        }
       }
     }
     """
 
-    with {:ok, body} <- graphql(access_token, query, %{appId: app_id}) do
-      {:ok, body["app"]}
+    with {:ok, %{"app" => app}} <- graphql(access_token, query, %{appId: app_id}) do
+      {:ok, app}
+    end
+  end
+
+  def put_secrets(%Fly{access_token: access_token, application_id: application_id}, secrets) do
+    mutation = """
+    mutation($input: SetSecretsInput!) {
+      setSecrets(input: $input) {
+        app {
+          secrets {
+            id
+            name
+            digest
+            createdAt
+          }
+        }
+      }
+    }
+    """
+
+    input = %{input: %{appId: application_id, secrets: secrets}}
+
+    with {:ok, %{"setSecrets" => %{"app" => app}}} <- graphql(access_token, mutation, input) do
+      {:ok, app["secrets"]}
+    end
+  end
+
+  def delete_secrets(%Fly{access_token: access_token, application_id: application_id}, keys) do
+    mutation = """
+    mutation($input: UnsetSecretsInput!) {
+      unsetSecrets(input: $input) {
+        app {
+          secrets {
+            id
+            name
+            digest
+            createdAt
+          }
+        }
+      }
+    }
+    """
+
+    input = %{input: %{appId: application_id, keys: keys}}
+
+    with {:ok, %{"unsetSecrets" => %{"app" => app}}} <- graphql(access_token, mutation, input) do
+      {:ok, app["secrets"]}
     end
   end
 

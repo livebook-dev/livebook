@@ -50,6 +50,7 @@ defmodule LivebookWeb.LiveHelpers do
             <%= live_redirect("", to: @navigate, class: "hidden", id: "#{@id}-return") %>
           <% end %>
           <button
+            type="button"
             class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
             aria_label="close modal"
             phx-click={hide_modal(@id)}
