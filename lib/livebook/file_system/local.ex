@@ -102,7 +102,7 @@ defimpl Livebook.FileSystem, for: Livebook.FileSystem.Local do
 
     with :ok <- ensure_local(file_system) do
       with :ok <- File.mkdir_p(dir),
-           :ok <- File.write(path, content) do
+           :ok <- File.write(path, content, [:sync]) do
         :ok
       else
         {:error, error} -> FileSystem.Utils.posix_error(error)
