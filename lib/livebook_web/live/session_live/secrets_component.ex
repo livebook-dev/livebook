@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       if socket.assigns[:data] do
         socket
       else
-        assign(socket, data: %{"label" => assigns.secret, "value" => ""})
+        assign(socket, data: %{"label" => assigns.prefill_secret_label, "value" => ""})
       end
 
     {:ok, socket}

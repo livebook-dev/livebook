@@ -235,11 +235,11 @@ defmodule LivebookWeb.Output do
     )
   end
 
-  defp render_output({:error, formatted, {:missing_secret, secret}}, %{
+  defp render_output({:error, formatted, {:missing_secret, secret_label}}, %{
          socket: socket,
          session_id: session_id
        }) do
-    assigns = %{message: formatted, secret: secret}
+    assigns = %{message: formatted, secret_label: secret_label}
 
     ~H"""
     <div class="-m-4 space-x-4 py-4">
@@ -249,9 +249,9 @@ defmodule LivebookWeb.Output do
       >
         <div class="flex space-x-2">
           <.remix_icon icon="close-circle-line" />
-          <span>Missing secret <%= inspect(@secret) %></span>
+          <span>Missing secret <%= inspect(@secret_label) %></span>
         </div>
-        <%= live_patch to: Routes.session_path(socket, :secrets, session_id, secret: secret),
+        <%= live_patch to: Routes.session_path(socket, :secrets, session_id, secret_label: secret_label),
             class: "button-base button-gray",
             aria_label: "add secret",
             role: "button" do %>

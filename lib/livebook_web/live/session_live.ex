@@ -404,7 +404,7 @@ defmodule LivebookWeb.SessionLive do
           module={LivebookWeb.SessionLive.SecretsComponent}
           id="secrets"
           session={@session}
-          secret={@secret}
+          prefill_secret_label={@prefill_secret_label}
           return_to={@self_path}
         />
       </.modal>
@@ -749,7 +749,7 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_params(params, _url, socket)
       when socket.assigns.live_action == :secrets do
-    {:noreply, assign(socket, secret: Map.get(params, "secret", ""))}
+    {:noreply, assign(socket, prefill_secret_label: Map.get(params, "secret_label", ""))}
   end
 
   def handle_params(_params, _url, socket) do
