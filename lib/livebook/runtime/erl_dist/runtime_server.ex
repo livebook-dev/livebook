@@ -229,7 +229,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply,
      state
      |> handle_down_evaluator(message)
-     |> handle_down_scan_binding(message)}
+     |> handle_down_scan_binding(message)
+     |> handle_down_smart_cell(message)}
   end
 
   def handle_info({:evaluation_finished, locator}, state) do
@@ -275,13 +276,25 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   defp handle_down_scan_binding(state, {:DOWN, monitor_ref, :process, _, _}) do
-    Enum.find_value(state.smart_cells, fn
-      {ref, %{scan_binding_monitor_ref: ^monitor_ref}} -> ref
-      _ -> nil
-    end)
+    state.smart_cells
+    |> Enum.find(fn {_ref, info} -> info.scan_binding_monitor_ref == monitor_ref end)
     |> case do
+      {ref, _info} -> finish_scan_binding(ref, state)
       nil -> state
-      ref -> finish_scan_binding(ref, state)
+    end
+  end
+
+  defp handle_down_smart_cell(state, {:DOWN, monitor_ref, :process, _, _}) do
+    state.smart_cells
+    |> Enum.find(fn {_ref, info} -> info.monitor_ref == monitor_ref end)
+    |> case do
+      {ref, _info} ->
+        send(state.owner, {:runtime_smart_cell_down, ref})
+        {_, state} = pop_in(state.smart_cells[ref])
+        state
+
+      nil ->
+        state
     end
   end
 
@@ -412,6 +425,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
           info = %{
             pid: pid,
+            monitor_ref: Process.monitor(pid),
             scan_binding: scan_binding,
             base_locator: base_locator,
             scan_binding_pending: false,

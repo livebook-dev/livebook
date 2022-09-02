@@ -210,6 +210,10 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 Run the notebook setup to show the contents of this Smart cell.
               <% end %>
             </div>
+          <% :down -> %>
+            <div class="info-box">
+              The Smart cell crashed unexpectedly, this is most likely a bug.
+            </div>
           <% :starting -> %>
             <div class="delay-200">
               <.content_skeleton empty={false} />
