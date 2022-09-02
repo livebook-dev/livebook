@@ -1,6 +1,6 @@
 # Stage 1
 # Builds the Livebook release
-FROM hexpm/elixir:1.14.0-erlang-24.3.4.2-debian-bullseye-20210902 AS build
+FROM hexpm/elixir:1.14.0-erlang-24.3.4.2-debian-bullseye-20210902-slim AS build
 
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
