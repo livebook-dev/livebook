@@ -32,7 +32,7 @@ defmodule LivebookWeb.SettingsLive do
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
-            <PageHelpers.title text="System settings" />
+            <PageHelpers.title text="/ system settings" />
             <p class="mt-4 text-gray-700">
               Here you can change global Livebook configuration. Keep in mind
               that this configuration gets persisted and will be restored on application
