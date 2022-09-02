@@ -338,7 +338,15 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends cell convertion request to the server.
+  Sends cell recover request to the server.
+  """
+  @spec recover_smart_cell(pid(), Cell.id()) :: :ok
+  def recover_smart_cell(pid, cell_id) do
+    GenServer.cast(pid, {:recover_smart_cell, self(), cell_id})
+  end
+
+  @doc """
+  Sends cell conversion request to the server.
   """
   @spec convert_smart_cell(pid(), Cell.id()) :: :ok
   def convert_smart_cell(pid, cell_id) do
@@ -791,6 +799,12 @@ defmodule Livebook.Session do
   def handle_cast({:move_section, client_pid, section_id, offset}, state) do
     client_id = client_id(state, client_pid)
     operation = {:move_section, client_id, section_id, offset}
+    {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:recover_smart_cell, client_pid, cell_id}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:recover_smart_cell, client_id, cell_id}
     {:noreply, handle_operation(state, operation)}
   end
 

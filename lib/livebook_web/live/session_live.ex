@@ -906,6 +906,13 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_event("recover_smart_cell", %{"cell_id" => cell_id}, socket) do
+    assert_policy!(socket, :read)
+    Session.recover_smart_cell(socket.assigns.session.pid, cell_id)
+
+    {:noreply, socket}
+  end
+
   def handle_event("convert_smart_cell", %{"cell_id" => cell_id}, socket) do
     assert_policy!(socket, :edit)
     Session.convert_smart_cell(socket.assigns.session.pid, cell_id)

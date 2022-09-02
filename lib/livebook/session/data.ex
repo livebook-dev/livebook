@@ -176,6 +176,7 @@ defmodule Livebook.Session.Data do
           | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
              reevaluate :: boolean()}
           | {:smart_cell_down, client_id(), Cell.id()}
+          | {:recover_smart_cell, client_id(), Cell.id()}
           | {:erase_outputs, client_id()}
           | {:set_notebook_name, client_id(), String.t()}
           | {:set_section_name, client_id(), Section.id(), String.t()}
@@ -593,6 +594,18 @@ defmodule Livebook.Session.Data do
       data
       |> with_actions()
       |> smart_cell_down(cell)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:recover_smart_cell, client_id, id}) do
+    with {:ok, %Cell.Smart{} = cell, section} <-
+           Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> recover_smart_cell(cell, section)
       |> wrap_ok()
     else
       _ -> :error
@@ -1323,6 +1336,14 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  defp recover_smart_cell({data, _} = data_actions, cell, section) do
+    if Runtime.connected?(data.runtime) do
+      start_smart_cell(data_actions, cell, section)
+    else
+      data_actions
+    end
+  end
+
   defp erase_outputs({data, _} = data_actions) do
     data_actions
     |> clear_all_evaluation()
@@ -1517,13 +1538,17 @@ defmodule Livebook.Session.Data do
       cells_ready_to_start = Enum.filter(dead_cells, fn {cell, _} -> cell.kind in kinds end)
 
       reduce(data_actions, cells_ready_to_start, fn data_actions, {cell, section} ->
-        data_actions
-        |> update_cell_info!(cell.id, &%{&1 | status: :starting})
-        |> add_action({:start_smart_cell, cell, section})
+        start_smart_cell(data_actions, cell, section)
       end)
     else
       data_actions
     end
+  end
+
+  defp start_smart_cell(data_actions, cell, section) do
+    data_actions
+    |> update_cell_info!(cell.id, &%{&1 | status: :starting})
+    |> add_action({:start_smart_cell, cell, section})
   end
 
   defp dead_smart_cells_with_section(data) do
