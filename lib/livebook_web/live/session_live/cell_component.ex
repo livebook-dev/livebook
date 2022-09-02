@@ -210,6 +210,18 @@ defmodule LivebookWeb.SessionLive.CellComponent do
                 Run the notebook setup to show the contents of this Smart cell.
               <% end %>
             </div>
+          <% :down -> %>
+            <div class="info-box flex justify-between items-center">
+              <span>
+                The Smart cell crashed unexpectedly, this is most likely a bug.
+              </span>
+              <button
+                class="button-base button-gray"
+                phx-click={JS.push("recover_smart_cell", value: %{cell_id: @cell_view.id})}
+              >
+                Restart Smart cell
+              </button>
+            </div>
           <% :starting -> %>
             <div class="delay-200">
               <.content_skeleton empty={false} />

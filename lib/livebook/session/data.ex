@@ -112,7 +112,7 @@ defmodule Livebook.Session.Data do
   @type cell_evaluation_validity :: :fresh | :evaluated | :stale | :aborted
   @type cell_evaluation_status :: :ready | :queued | :evaluating
 
-  @type smart_cell_status :: :dead | :starting | :started
+  @type smart_cell_status :: :dead | :starting | :started | :down
 
   @type input_id :: String.t()
 
@@ -175,6 +175,8 @@ defmodule Livebook.Session.Data do
              Cell.Smart.editor() | nil}
           | {:update_smart_cell, client_id(), Cell.id(), Cell.Smart.attrs(), Delta.t(),
              reevaluate :: boolean()}
+          | {:smart_cell_down, client_id(), Cell.id()}
+          | {:recover_smart_cell, client_id(), Cell.id()}
           | {:erase_outputs, client_id()}
           | {:set_notebook_name, client_id(), String.t()}
           | {:set_section_name, client_id(), Section.id(), String.t()}
@@ -586,6 +588,31 @@ defmodule Livebook.Session.Data do
     end
   end
 
+  def apply_operation(data, {:smart_cell_down, _client_id, id}) do
+    with {:ok, %Cell.Smart{} = cell, _section} <-
+           Notebook.fetch_cell_and_section(data.notebook, id) do
+      data
+      |> with_actions()
+      |> smart_cell_down(cell)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
+  def apply_operation(data, {:recover_smart_cell, _client_id, cell_id}) do
+    with {:ok, %Cell.Smart{} = cell, section} <-
+           Notebook.fetch_cell_and_section(data.notebook, cell_id),
+         :down <- data.cell_infos[cell_id].status do
+      data
+      |> with_actions()
+      |> recover_smart_cell(cell, section)
+      |> wrap_ok()
+    else
+      _ -> :error
+    end
+  end
+
   def apply_operation(data, {:erase_outputs, _client_id}) do
     data
     |> with_actions()
@@ -819,7 +846,7 @@ defmodule Livebook.Session.Data do
     info = data.cell_infos[cell.id]
 
     data_actions =
-      if is_struct(cell, Cell.Smart) and info.status != :dead do
+      if is_struct(cell, Cell.Smart) and info.status in [:started, :starting] do
         add_action(data_actions, {:stop_smart_cell, cell})
       else
         data_actions
@@ -1290,6 +1317,11 @@ defmodule Livebook.Session.Data do
     |> add_action({:broadcast_delta, client_id, updated_cell, :primary, delta})
   end
 
+  defp smart_cell_down(data_actions, cell) do
+    data_actions
+    |> update_cell_info!(cell.id, &%{&1 | status: :down})
+  end
+
   defp maybe_queue_updated_smart_cell({data, _} = data_actions, cell, section, reevaluate) do
     info = data.cell_infos[cell.id]
 
@@ -1300,6 +1332,14 @@ defmodule Livebook.Session.Data do
       |> queue_prerequisite_cells_evaluation(cell)
       |> queue_cell_evaluation(cell, section)
       |> maybe_evaluate_queued()
+    else
+      data_actions
+    end
+  end
+
+  defp recover_smart_cell({data, _} = data_actions, cell, section) do
+    if Runtime.connected?(data.runtime) do
+      start_smart_cell(data_actions, cell, section)
     else
       data_actions
     end
@@ -1499,13 +1539,17 @@ defmodule Livebook.Session.Data do
       cells_ready_to_start = Enum.filter(dead_cells, fn {cell, _} -> cell.kind in kinds end)
 
       reduce(data_actions, cells_ready_to_start, fn data_actions, {cell, section} ->
-        data_actions
-        |> update_cell_info!(cell.id, &%{&1 | status: :starting})
-        |> add_action({:start_smart_cell, cell, section})
+        start_smart_cell(data_actions, cell, section)
       end)
     else
       data_actions
     end
+  end
+
+  defp start_smart_cell(data_actions, cell, section) do
+    data_actions
+    |> update_cell_info!(cell.id, &%{&1 | status: :starting})
+    |> add_action({:start_smart_cell, cell, section})
   end
 
   defp dead_smart_cells_with_section(data) do
@@ -1583,7 +1627,7 @@ defmodule Livebook.Session.Data do
   defp update_smart_cell_bases({data, _} = data_actions, prev_data) do
     alive_smart_cell_ids =
       for {%Cell.Smart{} = cell, _} <- Notebook.cells_with_section(data.notebook),
-          data.cell_infos[cell.id].status != :dead,
+          data.cell_infos[cell.id].status in [:started, :starting],
           into: MapSet.new(),
           do: cell.id
 

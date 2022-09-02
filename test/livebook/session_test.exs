@@ -105,6 +105,38 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "recover_smart_cell/2" do
+    test "sends a recover operations to subscribers and starts the smart cell" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "content!", js_view: %{}, editor: nil}}
+      )
+
+      send(session.pid, {:runtime_smart_cell_down, smart_cell.id})
+
+      Session.subscribe(session.id)
+
+      Session.recover_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+
+      assert_receive {:operation, {:recover_smart_cell, _client_id, ^cell_id}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, _, _, _}}
+    end
+  end
+
   describe "convert_smart_cell/2" do
     test "sends a delete and insert operations to subscribers" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}

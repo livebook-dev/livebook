@@ -409,6 +409,10 @@ defprotocol Livebook.Runtime do
 
     * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t()}}`
 
+  In case of an unexpected failure it should also send
+
+    * `{:runtime_smart_cell_down, ref}`
+
   ## Communication
 
   Apart from the regular JS view communication, the cell sends updates
