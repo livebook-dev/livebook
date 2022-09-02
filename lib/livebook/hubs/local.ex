@@ -1,5 +1,6 @@
 defmodule Livebook.Hubs.Local do
   @moduledoc false
+
   defstruct [:id, :hub_name, :hub_color]
 end
 

@@ -503,6 +503,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a secret addition request to the server.
+  """
+  @spec put_secret(pid(), map()) :: :ok
+  def put_secret(pid, secret) do
+    GenServer.cast(pid, {:put_secret, self(), secret})
+  end
+
+  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
@@ -535,14 +543,6 @@ defmodule Livebook.Session do
     _ = call_many(List.wrap(pid), :close)
     Livebook.SystemResources.update()
     :ok
-  end
-
-  @doc """
-  Sends a secret addition request to the server.
-  """
-  @spec put_secret(pid(), map()) :: :ok
-  def put_secret(pid, secret) do
-    GenServer.cast(pid, {:put_secret, secret})
   end
 
   @doc """
@@ -970,13 +970,14 @@ defmodule Livebook.Session do
     end
   end
 
-  def handle_cast(:save, state) do
-    {:noreply, maybe_save_notebook_async(state)}
+  def handle_cast({:put_secret, client_pid, secret}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:put_secret, client_id, secret}
+    {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:put_secret, secret}, state) do
-    operation = {:put_secret, self(), secret}
-    {:noreply, handle_operation(state, operation)}
+  def handle_cast(:save, state) do
+    {:noreply, maybe_save_notebook_async(state)}
   end
 
   @impl true
@@ -1052,7 +1053,7 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:user_change, user}, state) do
-    operation = {:update_user, self(), user}
+    operation = {:update_user, @client_id, user}
     {:noreply, handle_operation(state, operation)}
   end
 

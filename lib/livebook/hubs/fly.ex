@@ -1,5 +1,6 @@
 defmodule Livebook.Hubs.Fly do
   @moduledoc false
+
   use Ecto.Schema
   import Ecto.Changeset
 
