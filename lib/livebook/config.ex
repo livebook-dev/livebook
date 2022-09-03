@@ -107,11 +107,11 @@ defmodule Livebook.Config do
   end
 
   @doc """
-  Returns whether the shutdown feature is enabled.
+  Returns an mfa if there's a way to shut down the system.
   """
-  @spec shutdown_enabled?() :: boolean()
-  def shutdown_enabled?() do
-    Application.fetch_env!(:livebook, :shutdown_enabled)
+  @spec shutdown_callback() :: mfa() | nil
+  def shutdown_callback() do
+    Application.fetch_env!(:livebook, :shutdown_callback)
   end
 
   @doc """

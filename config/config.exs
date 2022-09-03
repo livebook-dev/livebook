@@ -27,7 +27,7 @@ config :livebook,
   force_ssl_host: nil,
   learn_notebooks: [],
   plugs: [],
-  shutdown_enabled: false,
+  shutdown_callback: nil,
   storage: Livebook.Storage.Ets,
   update_instructions_url: nil,
   within_iframe: false

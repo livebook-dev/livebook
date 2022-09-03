@@ -23,11 +23,14 @@ defmodule LivebookWeb.SidebarHook do
   defp handle_info(_event, socket), do: {:cont, socket}
 
   defp handle_event("shutdown", _params, socket) do
-    if Livebook.Config.shutdown_enabled?() do
-      System.stop()
-      {:halt, put_flash(socket, :info, "Livebook is shutting down. You can close this page.")}
-    else
-      socket
+    case Livebook.Config.shutdown_callback() do
+      {m, f, a} ->
+        apply(m, f, a)
+
+        {:halt, put_flash(socket, :info, "Livebook is shutting down. You can close this page.")}
+
+      _ ->
+        socket
     end
   end
 
