@@ -11,17 +11,19 @@ architectures:
   - build-on: amd64
   - build-on: arm64
 
-package-repositories:
-  - type: apt
-    url: http://binaries.erlang-solutions.com/debian
-    key-id: "434975BD900CCBE4F7EE1B1ED208507CA14F4FCA"
-    suites:
-      - "focal"
-    components:
-      - "contrib"
-    architectures:
-      - "amd64"
-      - "arm64"
+# Leaving this apt repo aside for now,
+# such as to fix a specific OTP release below.
+# package-repositories:
+#   - type: apt
+#     url: http://binaries.erlang-solutions.com/debian
+#     key-id: "434975BD900CCBE4F7EE1B1ED208507CA14F4FCA"
+#     suites:
+#       - "focal"
+#     components:
+#       - "contrib"
+#     architectures:
+#       - "amd64"
+#       - "arm64"
 
 hooks:
   configure:
@@ -52,6 +54,36 @@ layout:
     symlink: $SNAP/usr/lib/erlang
   /usr/bin/git:
     symlink: $SNAP/usr/bin/git
+  # /usr/bin/cpu_sup:
+  #   symlink: $SNAP/usr/bin/cpu_sup
+  # /usr/bin/ct_run:
+  #   symlink: $SNAP/usr/bin/ct_run
+  # /usr/bin/dialyzer:
+  #   symlink: $SNAP/usr/bin/dialyzer
+  # /usr/bin/epmd:
+  #   symlink: $SNAP/usr/bin/epmd
+  # /usr/bin/erl:
+  #   symlink: $SNAP/usr/bin/erl
+  # /usr/bin/erl_call:
+  #   symlink: $SNAP/usr/bin/erl_call
+  # /usr/bin/erlc:
+  #   symlink: $SNAP/usr/bin/erlc
+  # /usr/bin/escript:
+  #   symlink: $SNAP/usr/bin/escript
+  # /usr/bin/etop:
+  #   symlink: $SNAP/usr/bin/etop
+  # /usr/bin/heart:
+  #   symlink: $SNAP/usr/bin/heart
+  # /usr/bin/memsup:
+  #   symlink: $SNAP/usr/bin/memsup
+  # /usr/bin/run_erl:
+  #   symlink: $SNAP/usr/bin/run_erl
+  # /usr/bin/start_erl:
+  #   symlink: $SNAP/usr/bin/start_erl
+  # /usr/bin/to_erl:
+  #   symlink: $SNAP/usr/bin/to_erl
+  # /usr/bin/typer:
+  #   symlink: $SNAP/usr/bin/typer
 
 parts:
   wrappers:
@@ -60,20 +92,34 @@ parts:
     organize:
       "*": "wrappers/"
 
+  # Stage Erlang/OTP (25.0.4) from ESL, instead of universe.
+  erlang:
+    plugin: dump
+    source-type: deb
+    source: https://packages.erlang-solutions.com/erlang/debian/pool/esl-erlang_25.0.4-1~ubuntu~focal_amd64.deb
+
+  # Build elixir from source, instead of universe.
   elixir:
+    after: [erlang]
     plugin: nil
     source: https://github.com/elixir-lang/elixir
     source-type: git
     source-tag: v1.14.0-rc.1
 
     override-build: |
+      # installing this here as a hack because the layout seems to be created only later.
+      curl -L https://packages.erlang-solutions.com/erlang/debian/pool/esl-erlang_25.0.4-1~ubuntu~focal_amd64.deb --output esl-erlang.deb
+      apt install ./esl-erlang.deb
+
       PREFIX=$SNAPCRAFT_PART_INSTALL make install
 
-    build-packages:
-      - esl-erlang
+    #build-packages:
+    #  - esl-erlang
+
+    #override-stage:
 
     stage-packages:
-      - esl-erlang
+    #  - esl-erlang
       - libodbc1
       - libglu1-mesa
       - libwxgtk-webview3.0-gtk3-0v5
