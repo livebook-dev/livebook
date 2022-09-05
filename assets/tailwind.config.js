@@ -104,12 +104,14 @@ module.exports = {
     },
   },
   plugins: [
-    plugin(({addVariant}) => addVariant("phx-loading", [".phx-loading&", ".phx-loading &"])),
-    plugin(({addVariant}) => addVariant("phx-connected", [".phx-connected&", ".phx-connected &"])),
-    plugin(({addVariant}) => addVariant("phx-error", [".phx-error&", ".phx-error &"])),
-    plugin(({addVariant}) => addVariant("phx-form-error", [":not(.phx-no-feedback).show-errors &"])),
-    plugin(({addVariant}) => addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"])),
-    plugin(({addVariant}) => addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"])),
-    plugin(({addVariant}) => addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"]))
+    plugin(({ addVariant }) => {
+      addVariant("phx-loading", [".phx-loading&", ".phx-loading &"]);
+      addVariant("phx-connected", [".phx-connected&", ".phx-connected &"]);
+      addVariant("phx-error", [".phx-error&", ".phx-error &"]);
+      addVariant("phx-form-error", [":not(.phx-no-feedback).show-errors &"]);
+      addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"]);
+      addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"]);
+      addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"]);
+    })
   ],
 };
