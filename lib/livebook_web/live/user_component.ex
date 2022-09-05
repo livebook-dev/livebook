@@ -44,8 +44,7 @@ defmodule LivebookWeb.UserComponent do
             <.hex_color_input
               form={f}
               field={:hex_color}
-              phx-click="randomize_color"
-              phx-target={@myself}
+              randomize={JS.push("randomize_color", target: @myself)}
             />
           </.input_wrapper>
           <button

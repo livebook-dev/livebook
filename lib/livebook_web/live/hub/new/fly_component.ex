@@ -67,8 +67,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
               <.hex_color_input
                 form={f}
                 field={:hub_color}
-                phx-click="randomize_color"
-                phx-target={@myself}
+                randomize={JS.push("randomize_color", target: @myself)}
               />
             </.input_wrapper>
           </div>

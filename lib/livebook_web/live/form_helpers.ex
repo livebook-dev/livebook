@@ -31,8 +31,6 @@ defmodule LivebookWeb.FormHelpers do
 
   @doc """
   Hex color input.
-
-  It expects a phx-click to be assigned to a randomize function.
   """
   def hex_color_input(assigns) do
     ~H"""
@@ -52,7 +50,7 @@ defmodule LivebookWeb.FormHelpers do
         <button
           class="icon-button absolute right-2 top-1"
           type="button"
-          {assigns_to_attributes(assigns, [:form, :field])}
+          phx-click={@randomize}
         >
           <.remix_icon icon="refresh-line" class="text-xl" />
         </button>
