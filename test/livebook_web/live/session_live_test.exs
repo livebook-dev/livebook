@@ -441,7 +441,6 @@ defmodule LivebookWeb.SessionLiveTest do
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
 
       assert view = find_live_child(view, "persistence")
-
       path = Path.join(tmp_dir, "notebook.livemd")
 
       view
@@ -459,6 +458,9 @@ defmodule LivebookWeb.SessionLiveTest do
       view
       |> element(~s{button}, "Save now")
       |> render_click()
+
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/settings/file")
+      assert view = find_live_child(view, "persistence")
 
       view
       |> element("button", "Change file")

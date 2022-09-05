@@ -38,11 +38,11 @@ defmodule LivebookWeb.SessionLive.CodeCellSettingsComponent do
             checked={@reevaluate_automatically}
           />
         </div>
-        <div class="mt-8 flex justify-end space-x-2">
-          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+        <div class="mt-8 flex justify-begin space-x-2">
           <button class="button-base button-blue" type="submit">
             Save
           </button>
+          <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
         </div>
       </form>
     </div>

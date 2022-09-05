@@ -244,10 +244,10 @@ defmodule LivebookWeb.Output do
     ~H"""
     <div class="-m-4 space-x-4 py-4">
       <div
-        class="flex items-center justify-between font-editor border-b px-4 pb-4 mb-4"
+        class="flex items-center justify-between border-b px-4 pb-4 mb-4"
         style="color: var(--ansi-color-red);"
       >
-        <div class="flex space-x-2">
+        <div class="flex space-x-2 font-editor">
           <.remix_icon icon="close-circle-line" />
           <span>Missing secret <%= inspect(@secret_label) %></span>
         </div>
