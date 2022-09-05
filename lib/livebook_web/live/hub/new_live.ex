@@ -95,7 +95,7 @@ defmodule LivebookWeb.Hub.NewLive do
         <%= render_slot(@logo) %>
       </div>
       <div class="card-item-body px-6 py-4 rounded-b-2xl grow">
-        <p class="text-gray-800 font-semibold cursor-pointer mt-2 text-sm text-gray-600">
+        <p class="text-gray-800 font-semibold cursor-pointer">
           <%= @title %>
         </p>
 

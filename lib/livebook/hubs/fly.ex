@@ -93,7 +93,7 @@ defmodule Livebook.Hubs.Fly do
     end
   end
 
-  def changeset(fly, attrs \\ %{}) do
+  defp changeset(fly, attrs) do
     fly
     |> cast(attrs, @fields)
     |> validate_required(@fields)

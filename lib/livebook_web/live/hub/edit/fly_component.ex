@@ -1,8 +1,6 @@
 defmodule LivebookWeb.Hub.Edit.FlyComponent do
   use LivebookWeb, :live_component
 
-  import Ecto.Changeset, only: [get_field: 2]
-
   alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Fly, FlyClient}
 
@@ -63,44 +61,20 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             phx-debounce="blur"
           >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div class="flex flex-col space-y-1">
-                <h3 class="text-gray-800 font-semibold">
-                  Name
-                </h3>
-                <%= text_input(f, :hub_name, class: "input") %>
-                <%= error_tag(f, :hub_name) %>
-              </div>
+              <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
+                <div class="input-label">Name</div>
+                <%= text_input(f, :hub_name, class: "input phx-form-error:border-red-300") %>
+              </.input_wrapper>
 
-              <div class="flex flex-col space-y-1">
-                <h3 class="text-gray-800 font-semibold">
-                  Color
-                </h3>
-
-                <div class="flex space-x-4 items-center">
-                  <div
-                    class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                    style={"border-color: #{hub_color(@changeset)}"}
-                  >
-                    <div class="rounded h-5 w-5" style={"background-color: #{hub_color(@changeset)}"} />
-                  </div>
-                  <div class="relative grow">
-                    <%= text_input(f, :hub_color,
-                      class: "input",
-                      spellcheck: "false",
-                      maxlength: 7
-                    ) %>
-                    <button
-                      class="icon-button absolute right-2 top-1"
-                      type="button"
-                      phx-click="randomize_color"
-                      phx-target={@myself}
-                    >
-                      <.remix_icon icon="refresh-line" class="text-xl" />
-                    </button>
-                    <%= error_tag(f, :hub_color) %>
-                  </div>
-                </div>
-              </div>
+              <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
+                <div class="input-label">Color</div>
+                <.hex_color_input
+                  form={f}
+                  field={:hub_color}
+                  phx-click="randomize_color"
+                  phx-target={@myself}
+                />
+              </.input_wrapper>
             </div>
 
             <%= submit("Update Hub",
@@ -239,9 +213,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
                 <%= text_input(f, :key,
                   value: @data["key"],
                   class: "input",
-                  placeholder: "environment variable key",
                   autofocus: true,
-                  aria_labelledby: "env-var-key",
                   spellcheck: "false"
                 ) %>
               </div>
@@ -250,8 +222,6 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
                 <%= text_input(f, :value,
                   value: @data["value"],
                   class: "input",
-                  placeholder: "environment variable value",
-                  aria_labelledby: "env-var-value",
                   spellcheck: "false"
                 ) %>
               </div>
@@ -349,6 +319,4 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     valid? = String.match?(attrs["key"], ~r/^\w+$/) and attrs["value"] not in ["", nil]
     {:noreply, assign(socket, valid_env_var?: valid?, env_var_data: attrs)}
   end
-
-  defp hub_color(changeset), do: get_field(changeset, :hub_color)
 end

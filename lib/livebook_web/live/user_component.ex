@@ -35,39 +35,19 @@ defmodule LivebookWeb.UserComponent do
         phx-hook="UserForm"
       >
         <div class="flex flex-col space-y-5">
-          <div>
+          <.input_wrapper form={f} field={:name}>
             <div class="input-label">Display name</div>
-            <%= text_input(f, :name, class: "input", spellcheck: "false") %>
-            <%= error_tag(f, :name) %>
-          </div>
-          <div>
+            <%= text_input(f, :name, class: "input phx-form-error:border-red-300", spellcheck: "false") %>
+          </.input_wrapper>
+          <.input_wrapper form={f} field={:hex_color}>
             <div class="input-label">Cursor color</div>
-            <div class="flex space-x-4 items-center">
-              <div
-                class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                style={"border-color: #{hex_color(@changeset)}"}
-              >
-                <div class="rounded h-5 w-5" style={"background-color: #{hex_color(@changeset)}"}>
-                </div>
-              </div>
-              <div class="relative grow">
-                <%= text_input(f, :hex_color,
-                  class: "input",
-                  spellcheck: "false",
-                  maxlength: 7
-                ) %>
-                <button
-                  class="icon-button absolute right-2 top-1"
-                  type="button"
-                  phx-click="randomize_color"
-                  phx-target={@myself}
-                >
-                  <.remix_icon icon="refresh-line" class="text-xl" />
-                </button>
-                <%= error_tag(f, :hex_color) %>
-              </div>
-            </div>
-          </div>
+            <.hex_color_input
+              form={f}
+              field={:hex_color}
+              phx-click="randomize_color"
+              phx-target={@myself}
+            />
+          </.input_wrapper>
           <button
             class="button-base button-blue flex space-x-1 justify-center items-center"
             type="submit"
@@ -112,6 +92,4 @@ defmodule LivebookWeb.UserComponent do
         {:noreply, assign(socket, changeset: changeset, valid?: changeset.valid?)}
     end
   end
-
-  defp hex_color(changeset), do: Ecto.Changeset.get_field(changeset, :hex_color)
 end

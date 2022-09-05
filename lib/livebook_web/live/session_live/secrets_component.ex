@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       if socket.assigns[:data] do
         socket
       else
-        assign(socket, data: %{"label" => assigns.prefill_secret_label, "value" => ""})
+        assign(socket, data: %{"label" => assigns.prefill_secret_label || "", "value" => ""})
       end
 
     {:ok, socket}
@@ -32,33 +32,31 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         phx-change="validate"
         autocomplete="off"
         phx-target={@myself}
+        errors={data_errors(@data)}
       >
         <div class="flex flex-col space-y-4">
-          <div>
+          <.input_wrapper form={f} field={:label}>
             <div class="input-label">
               Label <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
             </div>
             <%= text_input(f, :label,
               value: @data["label"],
-              class: "input",
-              placeholder: "secret label",
-              autofocus: true,
-              aria_labelledby: "secret-label",
+              class: "input phx-form-error:border-red-300",
+              autofocus: !@prefill_secret_label,
               spellcheck: "false"
             ) %>
-          </div>
-          <div>
+          </.input_wrapper>
+          <.input_wrapper form={f} field={:value}>
             <div class="input-label">Value</div>
             <%= text_input(f, :value,
               value: @data["value"],
-              class: "input",
-              placeholder: "secret value",
-              aria_labelledby: "secret-value",
+              class: "input phx-form-error:border-red-300",
+              autofocus: !!@prefill_secret_label,
               spellcheck: "false"
             ) %>
-          </div>
+          </.input_wrapper>
           <div class="flex space-x-2">
-            <button class="button-base button-blue" type="submit" disabled={not data_valid?(@data)}>
+            <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
               Save
             </button>
             <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
@@ -71,16 +69,37 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
-    secret = %{label: String.upcase(data["label"]), value: data["value"]}
-    Livebook.Session.put_secret(socket.assigns.session.pid, secret)
-    {:noreply, assign(socket, data: %{"label" => "", "value" => ""})}
+    if data_errors(data) == [] do
+      secret = %{label: String.upcase(data["label"]), value: data["value"]}
+      Livebook.Session.put_secret(socket.assigns.session.pid, secret)
+      {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+    else
+      {:noreply, assign(socket, data: data)}
+    end
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
     {:noreply, assign(socket, data: data)}
   end
 
-  defp data_valid?(data) do
-    String.match?(data["label"], ~r/^\w+$/) and data["value"] != ""
+  defp data_errors(data) do
+    Enum.flat_map(data, fn {key, value} ->
+      if error = data_error(key, value) do
+        [{String.to_atom(key), {error, []}}]
+      else
+        []
+      end
+    end)
   end
+
+  defp data_error("label", value) do
+    cond do
+      String.match?(value, ~r/^\w+$/) -> nil
+      value == "" -> "can't be blank"
+      true -> "is invalid"
+    end
+  end
+
+  defp data_error("value", ""), do: "can't be blank"
+  defp data_error(_key, _value), do: nil
 end

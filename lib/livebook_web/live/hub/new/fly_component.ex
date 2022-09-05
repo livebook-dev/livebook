@@ -12,6 +12,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
      socket
      |> assign(assigns)
      |> assign(
+       base: %Fly{},
        changeset: Fly.change_hub(%Fly{}),
        selected_app: nil,
        select_options: [],
@@ -33,71 +34,43 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
         phx-target={@myself}
         phx-debounce="blur"
       >
-        <div class="flex flex-col space-y-1">
-          <h3 class="text-gray-800 font-semibold">
-            Access Token
-          </h3>
+        <.input_wrapper form={f} field={:access_token} class="flex flex-col space-y-1">
+          <div class="input-label">Access Token</div>
           <%= password_input(f, :access_token,
             phx_change: "fetch_data",
             phx_debounce: "blur",
             phx_target: @myself,
             value: access_token(@changeset),
-            class: "input w-full",
+            class: "input w-full phx-form-error:border-red-300",
             autofocus: true,
             spellcheck: "false",
             autocomplete: "off"
           ) %>
-          <%= error_tag(f, :access_token) %>
-        </div>
+        </.input_wrapper>
 
         <%= if length(@apps) > 0 do %>
-          <div class="flex flex-col space-y-1">
-            <h3 class="text-gray-800 font-semibold">
-              Application
-            </h3>
-            <%= select(f, :application_id, @select_options, class: "input") %>
-            <%= error_tag(f, :application_id) %>
-          </div>
+          <.input_wrapper form={f} field={:application_id} class="flex flex-col space-y-1">
+            <div class="input-label">Application</div>
+            <%= select(f, :application_id, @select_options,
+              class: "input phx-form-error:border-red-300"
+            ) %>
+          </.input_wrapper>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div class="flex flex-col space-y-1">
-              <h3 class="text-gray-800 font-semibold">
-                Name
-              </h3>
-              <%= text_input(f, :hub_name, class: "input") %>
-              <%= error_tag(f, :hub_name) %>
-            </div>
+            <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
+              <div class="input-label">Name</div>
+              <%= text_input(f, :hub_name, class: "input phx-form-error:border-red-300") %>
+            </.input_wrapper>
 
-            <div class="flex flex-col space-y-1">
-              <h3 class="text-gray-800 font-semibold">
-                Color
-              </h3>
-
-              <div class="flex space-x-4 items-center">
-                <div
-                  class="border-[3px] rounded-lg p-1 flex justify-center items-center"
-                  style={"border-color: #{hub_color(@changeset)}"}
-                >
-                  <div class="rounded h-5 w-5" style={"background-color: #{hub_color(@changeset)}"} />
-                </div>
-                <div class="relative grow">
-                  <%= text_input(f, :hub_color,
-                    class: "input",
-                    spellcheck: "false",
-                    maxlength: 7
-                  ) %>
-                  <button
-                    class="icon-button absolute right-2 top-1"
-                    type="button"
-                    phx-click="randomize_color"
-                    phx-target={@myself}
-                  >
-                    <.remix_icon icon="refresh-line" class="text-xl" />
-                  </button>
-                  <%= error_tag(f, :hub_color) %>
-                </div>
-              </div>
-            </div>
+            <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">
+              <div class="input-label">Color</div>
+              <.hex_color_input
+                form={f}
+                field={:hub_color}
+                phx-click="randomize_color"
+                phx-target={@myself}
+              />
+            </.input_wrapper>
           </div>
 
           <%= submit("Add Hub",
@@ -116,9 +89,11 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     case FlyClient.fetch_apps(token) do
       {:ok, apps} ->
         opts = select_options(apps)
-        changeset = Fly.change_hub(%Fly{}, %{access_token: token, hub_color: HexColor.random()})
+        base = %Fly{access_token: token, hub_color: HexColor.random()}
+        changeset = Fly.change_hub(base)
 
-        {:noreply, assign(socket, changeset: changeset, select_options: opts, apps: apps)}
+        {:noreply,
+         assign(socket, changeset: changeset, base: base, select_options: opts, apps: apps)}
 
       {:error, _} ->
         changeset =
@@ -126,7 +101,8 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
           |> Fly.change_hub(%{access_token: token})
           |> add_error(:access_token, "is invalid")
 
-        {:noreply, assign(socket, changeset: changeset, select_options: [], apps: [])}
+        {:noreply,
+         assign(socket, changeset: changeset, base: %Fly{}, select_options: [], apps: [])}
     end
   end
 
@@ -157,15 +133,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     application_id = params["application_id"]
     selected_app = Enum.find(socket.assigns.apps, &(&1.application_id == application_id))
     opts = select_options(socket.assigns.apps, application_id)
-
-    changeset =
-      if selected_app do
-        Fly.change_hub(selected_app, params)
-      else
-        socket.assigns.changeset
-        |> Fly.changeset(params)
-        |> Map.replace!(:action, :validate)
-      end
+    changeset = Fly.change_hub(selected_app || socket.assigns.base, params)
 
     {:noreply,
      assign(socket, changeset: changeset, selected_app: selected_app, select_options: opts)}
@@ -186,6 +154,5 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
     [disabled_option] ++ options
   end
 
-  defp hub_color(changeset), do: get_field(changeset, :hub_color)
   defp access_token(changeset), do: get_field(changeset, :access_token)
 end
