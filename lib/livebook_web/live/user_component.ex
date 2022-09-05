@@ -37,7 +37,7 @@ defmodule LivebookWeb.UserComponent do
         <div class="flex flex-col space-y-5">
           <.input_wrapper form={f} field={:name}>
             <div class="input-label">Display name</div>
-            <%= text_input(f, :name, class: "input phx-form-error:border-red-300", spellcheck: "false") %>
+            <%= text_input(f, :name, class: "input", spellcheck: "false") %>
           </.input_wrapper>
           <.input_wrapper form={f} field={:hex_color}>
             <div class="input-label">Cursor color</div>

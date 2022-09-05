@@ -63,7 +63,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <.input_wrapper form={f} field={:hub_name} class="flex flex-col space-y-1">
                 <div class="input-label">Name</div>
-                <%= text_input(f, :hub_name, class: "input phx-form-error:border-red-300") %>
+                <%= text_input(f, :hub_name, class: "input") %>
               </.input_wrapper>
 
               <.input_wrapper form={f} field={:hub_color} class="flex flex-col space-y-1">

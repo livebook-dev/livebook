@@ -45,7 +45,7 @@ defmodule LivebookWeb.FormHelpers do
       </div>
       <div class="relative grow">
         <%= text_input(@form, @field,
-          class: "input phx-form-error:border-red-300",
+          class: "input",
           spellcheck: "false",
           maxlength: 7
         ) %>

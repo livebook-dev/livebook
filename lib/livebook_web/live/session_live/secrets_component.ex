@@ -41,7 +41,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             </div>
             <%= text_input(f, :label,
               value: @data["label"],
-              class: "input phx-form-error:border-red-300",
+              class: "input",
               autofocus: !@prefill_secret_label,
               spellcheck: "false"
             ) %>
@@ -50,7 +50,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <div class="input-label">Value</div>
             <%= text_input(f, :value,
               value: @data["value"],
-              class: "input phx-form-error:border-red-300",
+              class: "input",
               autofocus: !!@prefill_secret_label,
               spellcheck: "false"
             ) %>
