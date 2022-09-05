@@ -85,7 +85,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp data_errors(data) do
     Enum.flat_map(data, fn {key, value} ->
       if error = data_error(key, value) do
-        [{String.to_atom(key), {error, []}}]
+        [{String.to_existing_atom(key), {error, []}}]
       else
         []
       end
