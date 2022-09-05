@@ -48,7 +48,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         </div>
 
         <div class="flex flex-col space-y-2">
-          <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
             General
           </h2>
 
@@ -112,7 +112,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
         </div>
 
         <div class="flex flex-col space-y-4">
-          <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
             Environment Variables
           </h2>
 

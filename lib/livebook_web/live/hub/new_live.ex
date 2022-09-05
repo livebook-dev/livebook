@@ -29,7 +29,7 @@ defmodule LivebookWeb.Hub.NewLive do
         </div>
 
         <div class="flex flex-col space-y-4">
-          <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+          <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
             1. Select your Hub service
           </h2>
 
@@ -60,7 +60,7 @@ defmodule LivebookWeb.Hub.NewLive do
 
         <%= if @selected_type do %>
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               2. Configure your Hub
             </h2>
 

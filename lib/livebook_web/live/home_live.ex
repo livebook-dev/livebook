@@ -52,7 +52,7 @@ defmodule LivebookWeb.HomeLive do
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />
       <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
-          <PageHelpers.title text="/ home" />
+          <PageHelpers.title text="Home" />
           <div class="hidden sm:flex space-x-2" role="navigation" aria-label="new notebook">
             <%= live_patch("Import",
               to: Routes.home_path(@socket, :import, "url"),
