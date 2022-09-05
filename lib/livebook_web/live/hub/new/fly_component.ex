@@ -51,9 +51,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
         <%= if length(@apps) > 0 do %>
           <.input_wrapper form={f} field={:application_id} class="flex flex-col space-y-1">
             <div class="input-label">Application</div>
-            <%= select(f, :application_id, @select_options,
-              class: "input"
-            ) %>
+            <%= select(f, :application_id, @select_options, class: "input") %>
           </.input_wrapper>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">

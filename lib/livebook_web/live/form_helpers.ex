@@ -47,11 +47,7 @@ defmodule LivebookWeb.FormHelpers do
           spellcheck: "false",
           maxlength: 7
         ) %>
-        <button
-          class="icon-button absolute right-2 top-1"
-          type="button"
-          phx-click={@randomize}
-        >
+        <button class="icon-button absolute right-2 top-1" type="button" phx-click={@randomize}>
           <.remix_icon icon="refresh-line" class="text-xl" />
         </button>
       </div>
