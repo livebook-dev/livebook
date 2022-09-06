@@ -139,7 +139,7 @@ defmodule Livebook.Settings do
   @spec fetch_env_var!(String.t()) :: EnvironmentVariable.t()
   def fetch_env_var!(id) do
     case storage().fetch(:environment_variables, id) do
-      :error -> raise RuntimeError, "the environment variable #{id} does not exists on storage."
+      :error -> raise RuntimeError, "the environment variable #{id} does not exists in storage"
       {:ok, fields} -> struct!(EnvironmentVariable, fields)
     end
   end
@@ -149,10 +149,7 @@ defmodule Livebook.Settings do
   """
   @spec env_var_exists?(String.t()) :: boolean()
   def env_var_exists?(key) do
-    case Enum.find(fetch_env_vars(), &(&1.key == key)) do
-      nil -> false
-      _ -> true
-    end
+    Enum.any?(fetch_env_vars(), &(&1.key == key))
   end
 
   @doc """

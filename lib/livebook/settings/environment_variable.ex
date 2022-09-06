@@ -17,7 +17,6 @@ defmodule Livebook.Settings.EnvironmentVariable do
     env_var
     |> cast(attrs, [:key, :value])
     |> validate_format(:key, ~r/^(?![l|L][b|B]_)\w+$/)
-    |> validate_format(:key, ~r/^\w+$/)
     |> validate_required([:key, :value])
     |> add_id()
   end

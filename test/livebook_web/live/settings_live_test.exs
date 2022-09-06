@@ -17,11 +17,6 @@ defmodule LivebookWeb.SettingsLiveTest do
   end
 
   describe "environment variables configuration" do
-    setup do
-      on_exit(&Settings.clean_env_vars/0)
-      :ok
-    end
-
     test "list persisted environment variables", %{conn: conn} do
       insert_env_var(:environment_variable, key: "MY_ENVIRONMENT_VAR")
       {:ok, _view, html} = live(conn, Routes.settings_path(conn, :page))
