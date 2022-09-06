@@ -192,31 +192,17 @@ defmodule LivebookWeb.SettingsLive do
       </.modal>
     <% end %>
 
-    <%= if @live_action == :add_env_var do %>
+    <%= if @live_action == :env_var do %>
       <.modal
-        id="add-env-var-modal"
+        id="env-var-modal"
         show
         class="w-full max-w-3xl"
+        js={JS.push("clear_env_var")}
         patch={Routes.settings_path(@socket, :page)}
       >
         <.live_component
-          module={LivebookWeb.SettingsLive.AddEnvironmentVariableComponent}
-          id="add-env-var"
-          return_to={Routes.settings_path(@socket, :page)}
-        />
-      </.modal>
-    <% end %>
-
-    <%= if @live_action == :edit_env_var do %>
-      <.modal
-        id="edit-env-var-modal"
-        show
-        class="w-full max-w-3xl"
-        patch={Routes.settings_path(@socket, :page)}
-      >
-        <.live_component
-          module={LivebookWeb.SettingsLive.EditEnvironmentVariableComponent}
-          id="edit-env-var"
+          module={LivebookWeb.SettingsLive.EnvironmentVariableComponent}
+          id="env-var"
           env_var={@env_var}
           return_to={Routes.settings_path(@socket, :page)}
         />
@@ -323,6 +309,10 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, :update_check_enabled, enabled)}
   end
 
+  def handle_event("clear_env_var", _, socket) do
+    {:noreply, assign(socket, env_var: nil)}
+  end
+
   @impl true
   def handle_info({:file_systems_updated, file_systems}, socket) do
     {:noreply, assign(socket, file_systems: file_systems)}
@@ -340,11 +330,11 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply,
      socket
      |> assign(env_var: env_var)
-     |> push_patch(to: Routes.settings_path(socket, :edit_env_var))}
+     |> push_patch(to: Routes.settings_path(socket, :env_var))}
   end
 
   def handle_info({:env_vars_updated, env_vars}, socket) do
-    {:noreply, assign(socket, env_vars: env_vars)}
+    {:noreply, assign(socket, env_var: nil, env_vars: env_vars)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

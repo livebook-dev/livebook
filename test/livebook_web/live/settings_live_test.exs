@@ -25,14 +25,23 @@ defmodule LivebookWeb.SettingsLiveTest do
     end
 
     test "adds an environment variable", %{conn: conn} do
-      attrs = params_for(:environment_variable)
+      attrs = params_for(:environment_variable, key: "JAKE_PERALTA_ENV_VAR")
 
-      {:ok, view, html} = live(conn, Routes.settings_path(conn, :add_env_var))
+      {:ok, view, html} = live(conn, Routes.settings_path(conn, :env_var))
 
+      assert html =~ "Add environment variable"
       refute html =~ attrs.key
 
       view
-      |> element("#add-env-var-form")
+      |> element("#env-var-form")
+      |> render_change(%{"environment_variable" => attrs})
+
+      refute view
+             |> element("#env-var-form .invalid-feedback")
+             |> has_element?()
+
+      view
+      |> element("#env-var-form")
       |> render_submit(%{"environment_variable" => attrs})
 
       assert_patch(view, Routes.settings_path(conn, :page))
@@ -41,7 +50,8 @@ defmodule LivebookWeb.SettingsLiveTest do
     end
 
     test "updates an environment variable", %{conn: conn} do
-      env_var = insert_env_var(:environment_variable)
+      env_var = insert_env_var(:environment_variable, key: "UPDATE_ME")
+
       {:ok, view, html} = live(conn, Routes.settings_path(conn, :page))
 
       assert html =~ env_var.key
@@ -50,10 +60,17 @@ defmodule LivebookWeb.SettingsLiveTest do
       |> with_target("#env-vars")
       |> render_click("edit_env_var", %{"env_var" => env_var.id})
 
-      assert_patch(view, Routes.settings_path(conn, :edit_env_var))
+      assert_patch(view, Routes.settings_path(conn, :env_var))
+      assert render(view) =~ "Edit environment variable"
 
-      form = element(view, "#edit-env-var-form")
+      form = element(view, "#env-var-form")
       assert render(form) =~ env_var.value
+
+      render_change(form, %{"environment_variable" => %{"value" => "123456"}})
+
+      refute view
+             |> element(".invalid-feedback")
+             |> has_element?()
 
       render_submit(form, %{"environment_variable" => %{"value" => "123456"}})
       assert_patch(view, Routes.settings_path(conn, :page))

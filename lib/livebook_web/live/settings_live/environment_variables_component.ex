@@ -16,7 +16,7 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
       </div>
       <div class="flex">
         <%= live_patch("Add environment variable",
-          to: Routes.settings_path(@socket, :add_env_var),
+          to: Routes.settings_path(@socket, :env_var),
           class: "button-base button-blue"
         ) %>
       </div>
