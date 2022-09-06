@@ -13,7 +13,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
      socket
      |> assign(assigns)
      |> assign(
-       app_url: "https://#{app["hostname"]}",
+       app_url: "https://fly.io/apps/#{app["name"]}",
        changeset: changeset,
        env_vars: app["secrets"],
        env_var_data: %{},
@@ -40,7 +40,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
 
             <a href={@app_url} class="button-base button-outlined-gray" target="_blank">
               <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
-              <span>See app on Fly</span>
+              <span>Manage app on Fly</span>
             </a>
           </div>
         </div>
