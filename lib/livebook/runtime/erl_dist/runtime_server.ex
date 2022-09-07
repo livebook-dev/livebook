@@ -414,7 +414,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             js_view: js_view,
             editor: editor,
             scan_binding: scan_binding,
-            scan_eval_result: scan_eval_result
+            scan_eval_result: scan_eval_result,
+            scan_secrets: scan_secrets
           } = info
 
           send(
@@ -430,7 +431,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
             base_locator: base_locator,
             scan_binding_pending: false,
             scan_binding_monitor_ref: nil,
-            scan_eval_result: scan_eval_result
+            scan_eval_result: scan_eval_result,
+            scan_secrets: scan_secrets
           }
 
           info = scan_binding_async(ref, info, state)
@@ -466,7 +468,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   def handle_cast({:put_system_envs, secrets}, state) do
     System.put_env(secrets)
-    {:noreply, state}
+
+    {:noreply,
+     state
+     |> report_smart_cell_definitions()
+     |> scan_secrets()}
   end
 
   @impl true
@@ -624,5 +630,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           other
       end)
     end)
+  end
+
+  defp scan_secrets(state) do
+    Enum.each(state.smart_cells, fn {_ref, info} ->
+      if info.scan_secrets, do: info.scan_secrets.(info.pid)
+    end)
+
+    state
   end
 end

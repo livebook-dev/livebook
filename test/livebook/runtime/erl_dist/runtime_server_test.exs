@@ -220,7 +220,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
            js_view: %{ref: info.ref, pid: pid, assets: %{}},
            editor: nil,
            scan_binding: fn pid, _binding, _env -> send(pid, :scan_binding_ping) end,
-           scan_eval_result: fn pid, _result -> send(pid, :scan_eval_result_ping) end
+           scan_eval_result: fn pid, _result -> send(pid, :scan_eval_result_ping) end,
+           scan_secrets: fn pid -> send(pid, :scan_secrets_ping) end
          }}
       end
 
@@ -286,6 +287,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServerTest do
       RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
       RuntimeServer.evaluate_code(pid, "1 + 1", {:c1, :e1}, {:c1, nil}, smart_cell_ref: "ref")
       assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_eval_result_ping}
+    end
+
+    @tag opts: @opts
+    test "scans secrets when a new secret is added", %{pid: pid} do
+      RuntimeServer.start_smart_cell(pid, "dumb", "ref", %{}, {:c1, nil})
+      RuntimeServer.put_system_envs(pid, [{"LB_FOO", "123"}])
+      assert_receive {:smart_cell_debug, "ref", :handle_info, :scan_secrets_ping}
     end
   end
 end
