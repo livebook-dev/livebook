@@ -26,8 +26,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
-      assert html =~ "See app on Fly"
-      assert html =~ "https://#{hub.application_id}.fly.dev"
+      assert html =~ "Manage app on Fly"
+      assert html =~ "https://fly.io/apps/#{hub.application_id}"
 
       assert html =~ "Environment Variables"
       refute html =~ "FOO_ENV_VAR"
@@ -79,8 +79,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
-      assert html =~ "See app on Fly"
-      assert html =~ "https://#{hub.application_id}.fly.dev"
+      assert html =~ "Manage app on Fly"
+      assert html =~ "https://fly.io/apps/#{hub.application_id}"
 
       assert html =~ "Environment Variables"
       refute html =~ "FOO_ENV_VAR"
@@ -129,8 +129,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
-      assert html =~ "See app on Fly"
-      assert html =~ "https://#{hub.application_id}.fly.dev"
+      assert html =~ "Manage app on Fly"
+      assert html =~ "https://fly.io/apps/#{hub.application_id}"
 
       assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
@@ -177,8 +177,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       {:ok, view, html} = live(conn, Routes.hub_path(conn, :edit, hub.id))
 
-      assert html =~ "See app on Fly"
-      assert html =~ "https://#{hub.application_id}.fly.dev"
+      assert html =~ "Manage app on Fly"
+      assert html =~ "https://fly.io/apps/#{hub.application_id}"
 
       assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
