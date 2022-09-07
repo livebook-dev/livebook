@@ -120,7 +120,7 @@ defmodule AppBundler.MacOS do
     codesign(to_sign, "--options=runtime --entitlements=#{entitlements_plist_path}", notarization)
 
     vsn = release.version
-    dmg_path = "#{Mix.Project.build_path()}/#{app_name}Install-#{vsn}.dmg"
+    dmg_path = "#{Mix.Project.build_path()}/#{app_name}Install.dmg"
     log(:green, "creating", Path.relative_to_cwd(dmg_path))
 
     cmd!(
