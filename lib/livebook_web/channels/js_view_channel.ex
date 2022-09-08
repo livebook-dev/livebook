@@ -39,6 +39,12 @@ defmodule LivebookWeb.JSViewChannel do
     {:noreply, socket}
   end
 
+  def handle_in("update_secret", %{"ref" => ref, "secret_label" => secret_label}, socket) do
+    pid = socket.assigns.ref_with_info[ref].pid
+    send(pid, {:update_secret, secret_label})
+    {:noreply, socket}
+  end
+
   def handle_in("ping", %{"ref" => ref}, socket) do
     pid = socket.assigns.ref_with_info[ref].pid
     send(pid, {:ping, self(), nil, %{ref: ref}})

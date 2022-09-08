@@ -72,7 +72,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     if data_errors(data) == [] do
       secret = %{label: String.upcase(data["label"]), value: data["value"]}
       Livebook.Session.put_secret(socket.assigns.session.pid, secret)
-      {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+      if socket.assigns.ref do
+        {:noreply,
+         socket
+         |> push_patch(to: socket.assigns.return_to)
+         |> push_event("update_secret", %{ref: socket.assigns.ref, secret_label: String.upcase(data["label"])})}
+      else
+        {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+      end
     else
       {:noreply, assign(socket, data: data)}
     end

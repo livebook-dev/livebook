@@ -13,7 +13,7 @@ import { getAttributeOrDefault } from "../lib/attribute";
 import KeyBuffer from "../lib/key_buffer";
 import { globalPubSub } from "../lib/pub_sub";
 import monaco from "./cell_editor/live_editor/monaco";
-import { leaveChannel } from "./js_view/channel";
+import { leaveChannel, getChannel } from "./js_view/channel";
 import { isDirectlyEditable, isEvaluable } from "../lib/notebook";
 
 /**
@@ -203,6 +203,10 @@ const Session = {
 
     this.handleEvent("clients_updated", ({ clients }) => {
       this.handleClientsUpdated(clients);
+    });
+
+    this.handleEvent("update_secret", ({ ref, secret_label }) => {
+      this.handleUpdateSecret({ ref, secret_label });
     });
 
     this.handleEvent(
@@ -1060,6 +1064,13 @@ const Session = {
         selection: event.selection,
       });
     }
+  },
+
+  handleUpdateSecret({ ref, secret_label }) {
+    getChannel(this.props.sessionId, this.props.clientId).push(
+      "update_secret",
+      { ref, secret_label }
+    );
   },
 
   /**
