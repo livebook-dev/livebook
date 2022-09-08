@@ -201,7 +201,7 @@ defmodule LivebookWeb.SettingsLive do
         id="env-var-modal"
         show
         class="w-full max-w-3xl"
-        js={JS.push("clear_env_var")}
+        on_close={JS.push("clear_env_var")}
         patch={Routes.settings_path(@socket, :page)}
       >
         <.live_component
@@ -214,6 +214,8 @@ defmodule LivebookWeb.SettingsLive do
     <% end %>
     """
   end
+
+  defp autosave_path_select(%{state: %{file: nil}} = assigns), do: ~H""
 
   defp autosave_path_select(%{state: %{dialog_opened?: true}} = assigns) do
     ~H"""
@@ -342,25 +344,15 @@ defmodule LivebookWeb.SettingsLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp autosave_dir() do
-    path =
-      case Livebook.Settings.autosave_path() do
-        nil -> System.tmp_dir!()
-        path -> path
-      end
-
-    path
-    |> Livebook.FileSystem.Utils.ensure_dir_path()
-    |> Livebook.FileSystem.File.local()
+    if path = Livebook.Settings.autosave_path() do
+      path
+      |> Livebook.FileSystem.Utils.ensure_dir_path()
+      |> Livebook.FileSystem.File.local()
+    end
   end
 
   defp default_autosave_dir() do
-    path =
-      case Livebook.Settings.default_autosave_path() do
-        nil -> System.tmp_dir!()
-        path -> path
-      end
-
-    path
+    Livebook.Settings.default_autosave_path()
     |> Livebook.FileSystem.Utils.ensure_dir_path()
     |> Livebook.FileSystem.File.local()
   end
