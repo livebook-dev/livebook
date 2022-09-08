@@ -5,20 +5,11 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
   alias Livebook.Settings.EnvVar
 
   @impl true
-  def mount(socket) do
-    env_var = %EnvVar{}
-    operation = :new
-    changeset = Settings.change_env_var(env_var)
-
-    {:ok, assign(socket, changeset: changeset, env_var: env_var, operation: operation)}
-  end
-
-  @impl true
   def update(assigns, socket) do
     {env_var, operation} =
-      unless assigns.env_var,
-        do: {%EnvVar{}, :new},
-        else: {assigns.env_var, :edit}
+      if assigns.env_var,
+        do: {assigns.env_var, :edit},
+        else: {%EnvVar{}, :new}
 
     changeset = Settings.change_env_var(env_var)
 
