@@ -3,10 +3,20 @@ defmodule Livebook.Settings do
 
   # Keeps all Livebook settings that are backed by storage.
 
-  import Ecto.Changeset, only: [apply_action: 2, add_error: 3]
+  import Ecto.Changeset, only: [apply_action: 2]
 
   alias Livebook.FileSystem
-  alias Livebook.Settings.EnvironmentVariable
+  alias Livebook.Settings.EnvVar
+
+  defmodule NotFoundError do
+    @moduledoc false
+
+    defexception [:message, plug_status: 404]
+
+    def message(%{message: message}) do
+      message
+    end
+  end
 
   @typedoc """
   An id that is used for filesystem's manipulation, either insertion or removal.
@@ -124,10 +134,10 @@ defmodule Livebook.Settings do
   @doc """
   Gets a list of environment variables from storage.
   """
-  @spec fetch_env_vars() :: list(EnvironmentVariable.t())
+  @spec fetch_env_vars() :: list(EnvVar.t())
   def fetch_env_vars do
-    for fields <- storage().all(:environment_variables) do
-      struct!(EnvironmentVariable, fields)
+    for fields <- storage().all(:env_vars) do
+      struct(EnvVar, fields)
     end
   end
 
@@ -136,11 +146,15 @@ defmodule Livebook.Settings do
 
   Raises `RuntimeError` if the environment variable does not exist.
   """
-  @spec fetch_env_var!(String.t()) :: EnvironmentVariable.t()
+  @spec fetch_env_var!(String.t()) :: EnvVar.t()
   def fetch_env_var!(id) do
-    case storage().fetch(:environment_variables, id) do
-      :error -> raise RuntimeError, "the environment variable #{id} does not exists in storage"
-      {:ok, fields} -> struct!(EnvironmentVariable, fields)
+    case storage().fetch(:env_vars, id) do
+      :error ->
+        raise NotFoundError,
+          message: "could not find an environment variable matching #{inspect(id)}"
+
+      {:ok, fields} ->
+        struct(EnvVar, fields)
     end
   end
 
@@ -148,70 +162,31 @@ defmodule Livebook.Settings do
   Checks if environment variable already exists.
   """
   @spec env_var_exists?(String.t()) :: boolean()
-  def env_var_exists?(key) do
-    Enum.any?(fetch_env_vars(), &(&1.key == key))
+  def env_var_exists?(id) do
+    storage().fetch(:env_vars, id) != :error
   end
 
   @doc """
-  Creates an environment variable from given changeset.
+  Persists an environment variable from given changeset.
 
   With success, notifies interested processes about environment variables
   data change. Otherwise, it will return an error tuple with changeset.
   """
-  @spec create_env_var(map()) :: {:ok, EnvironmentVariable.t()} | {:error, Ecto.Changeset.t()}
-  def create_env_var(attrs \\ %{}) do
-    %EnvironmentVariable{}
-    |> EnvironmentVariable.changeset(attrs)
-    |> apply_action(:insert)
-    |> insert_env_var()
-  end
+  @spec set_env_var(EnvVar.t(), map()) ::
+          {:ok, EnvVar.t()} | {:error, Ecto.Changeset.t()}
+  def set_env_var(%EnvVar{} = env_var \\ %EnvVar{}, attrs) do
+    changeset = EnvVar.changeset(env_var, attrs)
 
-  defp insert_env_var({:ok, %EnvironmentVariable{} = env_var}) do
-    unless env_var_exists?(env_var.key) do
+    with {:ok, env_var} <- apply_action(changeset, :insert) do
       save_env_var(env_var)
-    else
-      {:error,
-       env_var
-       |> change_env_var()
-       |> add_error(:key, "already exists")}
     end
   end
-
-  defp insert_env_var({:error, changeset}), do: {:error, %{changeset | action: :validate}}
-
-  @doc """
-  Updates an environment variable from given changeset.
-
-  With success, notifies interested processes about environment variables
-  data change. Otherwise, it will return an error tuple with changeset.
-  """
-  @spec update_env_var(EnvironmentVariable.t(), map()) ::
-          {:ok, EnvironmentVariable.t()} | {:error, Ecto.Changeset.t()}
-  def update_env_var(%EnvironmentVariable{} = env_var, attrs) do
-    env_var
-    |> EnvironmentVariable.changeset(attrs)
-    |> apply_action(:update)
-    |> update_env_var()
-  end
-
-  defp update_env_var({:ok, %EnvironmentVariable{} = env_var}) do
-    if env_var_exists?(env_var.key) do
-      save_env_var(env_var)
-    else
-      {:error,
-       env_var
-       |> change_env_var()
-       |> add_error(:key, "does not exists")}
-    end
-  end
-
-  defp update_env_var({:error, changeset}), do: {:error, %{changeset | action: :validate}}
 
   defp save_env_var(env_var) do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
 
-    with :ok <- storage().insert(:environment_variables, env_var.id, attributes),
-         :ok <- broadcast_environment_variables_change() do
+    with :ok <- storage().insert(:env_vars, env_var.key, attributes),
+         :ok <- broadcast_env_vars_change() do
       {:ok, env_var}
     end
   end
@@ -223,36 +198,31 @@ defmodule Livebook.Settings do
   """
   @spec delete_env_var(String.t()) :: :ok
   def delete_env_var(id) do
-    storage().delete(:environment_variables, id)
-    broadcast_environment_variables_change()
-  end
-
-  def clean_env_vars do
-    for env_var <- fetch_env_vars(), do: delete_env_var(env_var.id)
-    :ok
+    storage().delete(:env_vars, id)
+    broadcast_env_vars_change()
   end
 
   @doc """
   Returns an `%Ecto.Changeset{}` for tracking environment variable changes.
   """
-  @spec change_env_var(EnvironmentVariable.t(), map()) :: Ecto.Changeset.t()
-  def change_env_var(%EnvironmentVariable{} = env_var, attrs \\ %{}) do
+  @spec change_env_var(EnvVar.t(), map()) :: Ecto.Changeset.t()
+  def change_env_var(%EnvVar{} = env_var, attrs \\ %{}) do
     env_var
-    |> EnvironmentVariable.changeset(attrs)
+    |> EnvVar.changeset(attrs)
     |> Map.put(:action, :validate)
   end
 
   @doc """
-  Subscribes to updates in environment variables information.
+  Subscribes to updates in settings information.
 
   ## Messages
 
-    * `{:environment_variables_changed, environment_variables}`
+    * `{:env_vars_changed, env_vars}`
 
   """
   @spec subscribe() :: :ok | {:error, term()}
   def subscribe do
-    Phoenix.PubSub.subscribe(Livebook.PubSub, "environment_variables")
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "settings")
   end
 
   @doc """
@@ -260,20 +230,13 @@ defmodule Livebook.Settings do
   """
   @spec unsubscribe() :: :ok
   def unsubscribe do
-    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "environment_variables")
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "settings")
   end
 
-  @doc """
-  Notifies interested processes about environment variables data change.
-
-  Broadcasts `{:environment_variables_changed, environment_variables}` message under the `"environment_variables"` topic.
-  """
-  @spec broadcast_environment_variables_change() :: :ok
-  def broadcast_environment_variables_change do
-    Phoenix.PubSub.broadcast(
-      Livebook.PubSub,
-      "environment_variables",
-      {:environment_variables_changed, fetch_env_vars()}
-    )
+  # Notifies interested processes about environment variables data change.
+  #
+  # Broadcasts `{:env_vars_changed, env_vars}` message under the `"settings"` topic.
+  defp broadcast_env_vars_change do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", {:env_vars_changed, fetch_env_vars()})
   end
 end

@@ -7,6 +7,10 @@ defmodule LivebookWeb.SettingsLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Livebook.Settings.subscribe()
+    end
+
     {:ok,
      assign(socket,
        file_systems: Livebook.Settings.file_systems(),
@@ -123,7 +127,7 @@ defmodule LivebookWeb.SettingsLive do
               application and is accessible only to the current machine.
             </p>
             <.live_component
-              module={LivebookWeb.SettingsLive.EnvironmentVariablesComponent}
+              module={LivebookWeb.SettingsLive.EnvVarsComponent}
               id="env-vars"
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
@@ -192,7 +196,7 @@ defmodule LivebookWeb.SettingsLive do
       </.modal>
     <% end %>
 
-    <%= if @live_action == :env_var do %>
+    <%= if @live_action in [:add_env_var, :edit_env_var] do %>
       <.modal
         id="env-var-modal"
         show
@@ -201,7 +205,7 @@ defmodule LivebookWeb.SettingsLive do
         patch={Routes.settings_path(@socket, :page)}
       >
         <.live_component
-          module={LivebookWeb.SettingsLive.EnvironmentVariableComponent}
+          module={LivebookWeb.SettingsLive.EnvVarComponent}
           id="env-var"
           env_var={@env_var}
           return_to={Routes.settings_path(@socket, :page)}
@@ -254,6 +258,11 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   @impl true
+  def handle_params(%{"env_var_id" => key}, _url, socket) do
+    env_var = Livebook.Settings.fetch_env_var!(key)
+    {:noreply, assign(socket, env_var: env_var)}
+  end
+
   def handle_params(%{"file_system_id" => file_system_id}, _url, socket) do
     {:noreply, assign(socket, file_system_id: file_system_id)}
   end
@@ -326,27 +335,32 @@ defmodule LivebookWeb.SettingsLive do
     handle_event("set_autosave_path", %{}, socket)
   end
 
-  def handle_info({:edit_env_var, env_var}, socket) do
-    {:noreply,
-     socket
-     |> assign(env_var: env_var)
-     |> push_patch(to: Routes.settings_path(socket, :env_var))}
-  end
-
-  def handle_info({:env_vars_updated, env_vars}, socket) do
-    {:noreply, assign(socket, env_var: nil, env_vars: env_vars)}
+  def handle_info({:env_vars_changed, env_vars}, socket) do
+    {:noreply, assign(socket, env_vars: env_vars)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp autosave_dir() do
-    Livebook.Settings.autosave_path()
+    path =
+      case Livebook.Settings.autosave_path() do
+        nil -> System.tmp_dir!()
+        path -> path
+      end
+
+    path
     |> Livebook.FileSystem.Utils.ensure_dir_path()
     |> Livebook.FileSystem.File.local()
   end
 
   defp default_autosave_dir() do
-    Livebook.Settings.default_autosave_path()
+    path =
+      case Livebook.Settings.default_autosave_path() do
+        nil -> System.tmp_dir!()
+        path -> path
+      end
+
+    path
     |> Livebook.FileSystem.Utils.ensure_dir_path()
     |> Livebook.FileSystem.File.local()
   end

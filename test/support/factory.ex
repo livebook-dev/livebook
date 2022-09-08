@@ -31,9 +31,8 @@ defmodule Livebook.Factory do
     }
   end
 
-  def build(:environment_variable) do
-    %Livebook.Settings.EnvironmentVariable{
-      id: Livebook.Utils.random_short_id(),
+  def build(:env_var) do
+    %Livebook.Settings.EnvVar{
       key: "BAR",
       value: "foo"
     }
@@ -56,7 +55,7 @@ defmodule Livebook.Factory do
   def insert_env_var(factory_name, attrs \\ %{}) do
     env_var = build(factory_name, attrs)
     attributes = env_var |> Map.from_struct() |> Map.to_list()
-    Livebook.Storage.current().insert(:environment_variables, env_var.id, attributes)
+    Livebook.Storage.current().insert(:env_vars, env_var.key, attributes)
 
     env_var
   end

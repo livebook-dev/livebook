@@ -1,12 +1,12 @@
-defmodule LivebookWeb.SettingsLive.EnvironmentVariableComponent do
+defmodule LivebookWeb.SettingsLive.EnvVarComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Settings
-  alias Livebook.Settings.EnvironmentVariable
+  alias Livebook.Settings.EnvVar
 
   @impl true
   def mount(socket) do
-    env_var = %EnvironmentVariable{}
+    env_var = %EnvVar{}
     operation = :new
     changeset = Settings.change_env_var(env_var)
 
@@ -17,7 +17,7 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariableComponent do
   def update(assigns, socket) do
     {env_var, operation} =
       unless assigns.env_var,
-        do: {%EnvironmentVariable{}, :new},
+        do: {%EnvVar{}, :new},
         else: {assigns.env_var, :edit}
 
     changeset = Settings.change_env_var(env_var)
@@ -77,7 +77,7 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariableComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"environment_variable" => attrs}, socket) do
+  def handle_event("validate", %{"env_var" => attrs}, socket) do
     {:noreply, assign(socket, changeset: Settings.change_env_var(socket.assigns.env_var, attrs))}
   end
 
@@ -85,33 +85,17 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariableComponent do
     {:noreply, push_patch(socket, to: socket.assigns.return_to)}
   end
 
-  def handle_event("save", %{"environment_variable" => attrs}, socket) do
-    case {socket.assigns.changeset.valid?, socket.assigns.operation} do
-      {true, :new} -> create_env_var(socket, attrs)
-      {true, :edit} -> update_env_var(socket, attrs)
-      {false, _} -> {:noreply, socket}
-    end
-  end
+  def handle_event("save", %{"env_var" => attrs}, socket) do
+    if socket.assigns.changeset.valid? do
+      case Settings.set_env_var(socket.assigns.env_var, attrs) do
+        {:ok, _} ->
+          {:noreply, push_patch(socket, to: socket.assigns.return_to)}
 
-  defp create_env_var(socket, attrs) do
-    case Settings.create_env_var(attrs) do
-      {:ok, _} ->
-        send(self(), {:env_vars_updated, Livebook.Settings.fetch_env_vars()})
-        {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
-    end
-  end
-
-  defp update_env_var(socket, attrs) do
-    case Settings.update_env_var(socket.assigns.env_var, attrs) do
-      {:ok, _} ->
-        send(self(), {:env_vars_updated, Livebook.Settings.fetch_env_vars()})
-        {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-
-      {:error, changeset} ->
-        {:noreply, assign(socket, changeset: changeset)}
+        {:error, changeset} ->
+          {:noreply, assign(socket, changeset: changeset)}
+      end
+    else
+      {:noreply, socket}
     end
   end
 end

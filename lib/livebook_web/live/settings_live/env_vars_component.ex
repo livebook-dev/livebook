@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
+defmodule LivebookWeb.SettingsLive.EnvVarsComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Settings
@@ -16,7 +16,7 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
       </div>
       <div class="flex">
         <%= live_patch("Add environment variable",
-          to: Routes.settings_path(@socket, :env_var),
+          to: Routes.settings_path(@socket, :add_env_var),
           class: "button-base button-blue"
         ) %>
       </div>
@@ -34,7 +34,7 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
       </div>
 
       <div class="flex items-center place-content-end">
-        <.menu id={"env-var-#{@env_var.id}-menu"}>
+        <.menu id={"env-var-#{@env_var.key}-menu"}>
           <:toggle>
             <button class="icon-button" aria-label="open session menu" type="button">
               <.remix_icon icon="more-2-fill" class="text-xl" />
@@ -42,9 +42,9 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
           </:toggle>
           <:content>
             <button
-              id={"env-var-#{@env_var.id}-edit"}
+              id={"env-var-#{@env_var.key}-edit"}
               type="button"
-              phx-click={JS.push("edit_env_var", value: %{env_var: @env_var.id})}
+              phx-click={JS.push("edit_env_var", value: %{env_var: @env_var.key})}
               phx-target={@myself}
               role="menuitem"
               class="menu-item text-gray-600"
@@ -53,11 +53,11 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
               <span class="font-medium">Edit</span>
             </button>
             <button
-              id={"env-var-#{@env_var.id}-delete"}
+              id={"env-var-#{@env_var.key}-delete"}
               type="button"
               phx-click={
                 with_confirm(
-                  JS.push("delete_env_var", value: %{env_var: @env_var.id}),
+                  JS.push("delete_env_var", value: %{env_var: @env_var.key}),
                   title: "Delete #{@env_var.key}",
                   description: "Are you sure you want to delete environment variable?",
                   confirm_text: "Delete",
@@ -79,17 +79,12 @@ defmodule LivebookWeb.SettingsLive.EnvironmentVariablesComponent do
   end
 
   @impl true
-  def handle_event("edit_env_var", %{"env_var" => id}, socket) do
-    env_var = Settings.fetch_env_var!(id)
-    send(self(), {:edit_env_var, env_var})
-
-    {:noreply, socket}
+  def handle_event("edit_env_var", %{"env_var" => key}, socket) do
+    {:noreply, push_patch(socket, to: Routes.settings_path(socket, :edit_env_var, key))}
   end
 
-  def handle_event("delete_env_var", %{"env_var" => id}, socket) do
-    Settings.delete_env_var(id)
-    send(self(), {:env_vars_updated, Settings.fetch_env_vars()})
-
+  def handle_event("delete_env_var", %{"env_var" => key}, socket) do
+    Settings.delete_env_var(key)
     {:noreply, socket}
   end
 end
