@@ -16,15 +16,8 @@ defmodule Livebook.Settings.EnvVar do
   def changeset(env_var, attrs \\ %{}) do
     env_var
     |> cast(attrs, [:key, :value])
-    |> validate_format(:key, ~r/^(?![l|L][b|B]_)\w+$/)
+    |> update_change(:key, &String.upcase/1)
+    |> validate_format(:key, ~r/^(?!LB_)\w+$/)
     |> validate_required([:key, :value])
-    |> upcase_key()
-  end
-
-  defp upcase_key(changeset) do
-    case get_field(changeset, :key) do
-      nil -> changeset
-      key -> put_change(changeset, :key, String.upcase(key))
-    end
   end
 end

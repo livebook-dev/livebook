@@ -44,11 +44,11 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
             <div class="input-label">
               Key <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
             </div>
-            <%= text_input(f, :key, class: "input") %>
+            <%= text_input(f, :key, class: "input", autofocus: @operation == :new) %>
           </.input_wrapper>
           <.input_wrapper form={f} field={:value} class="flex flex-col space-y-1">
             <div class="input-label">Value</div>
-            <%= text_input(f, :value, class: "input") %>
+            <%= text_input(f, :value, class: "input", autofocus: @operation == :edit) %>
           </.input_wrapper>
 
           <div class="flex space-x-2">
@@ -57,7 +57,12 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
               disabled: not @changeset.valid?,
               phx_disabled_with: "Adding..."
             ) %>
-            <button phx-click="cancel" phx-target={@myself} class="button-base button-outlined-gray">
+            <button
+              type="button"
+              phx-click="cancel"
+              phx-target={@myself}
+              class="button-base button-outlined-gray"
+            >
               Cancel
             </button>
           </div>

@@ -137,7 +137,7 @@ defmodule Livebook.Settings do
   @spec fetch_env_vars() :: list(EnvVar.t())
   def fetch_env_vars do
     for fields <- storage().all(:env_vars) do
-      struct(EnvVar, fields)
+      struct!(EnvVar, Map.delete(fields, :id))
     end
   end
 
@@ -154,7 +154,7 @@ defmodule Livebook.Settings do
           message: "could not find an environment variable matching #{inspect(id)}"
 
       {:ok, fields} ->
-        struct(EnvVar, fields)
+        struct!(EnvVar, Map.delete(fields, :id))
     end
   end
 
@@ -167,7 +167,7 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Persists an environment variable from given changeset.
+  Persists the given environment variable.
 
   With success, notifies interested processes about environment variables
   data change. Otherwise, it will return an error tuple with changeset.
