@@ -98,7 +98,7 @@ jobs:
       contents: write
     runs-on: ubuntu-20.04
     env:
-      GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_RELEASE_TOKEN }}
     steps:
       - name: Create draft release
         run: |
