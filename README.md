@@ -4,9 +4,9 @@
   </a>
 </h1>
 
- [![Website](https://img.shields.io/badge/-Website-%23ff87a7)](https://livebook.dev/) [![Hex.pm](https://img.shields.io/hexpm/v/livebook?color=b5a3be)](https://hex.pm/packages/livebook)
+[![Website](https://img.shields.io/badge/-Website-%23ff87a7)](https://livebook.dev/) [![Version](https://img.shields.io/hexpm/v/livebook?color=b5a3be)](https://hex.pm/packages/livebook)
 
-Livebook is a web application for writing interactive and collaborative code notebooks for Elixir, built with [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view). It features:
+Livebook is a web application for writing interactive and collaborative code notebooks. It features:
 
   * Code notebooks with Markdown support and Code cells where Elixir code is evaluated on demand.
 
@@ -26,11 +26,9 @@ Livebook is a web application for writing interactive and collaborative code not
 
   * Custom runtimes: when executing Elixir code, you can either start a fresh Elixir instance, connect to an existing node, or run it inside an existing Elixir project, with access to all of its modules and dependencies. This means Livebook can be a great tool to introspect and document existing projects too.
 
-We are actively working on Livebook and you can consult the issues tracker to see some of the features we are exploring!
-
 ## Getting started
 
-Livebook comes with a series of introductory notebooks to get you up and running. Just head down to the "Installation" section below to install it. Here is a peek at the "Welcome to Livebook" introductory notebook:
+Head out to [the Install section](https://livebook.dev/#install) of Livebook's website to get started. Once Livebook is up and running on your machine, **visit the "Explore" section** with introductory guides and documentation on several Livebook features. Here is a sneak peak of the "Welcome to Livebook" guide:
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
@@ -47,7 +45,7 @@ pick the one that best fits your use case.
 
 ### Desktop app
 
-  * [Download the installer for Windows and Mac from our homepage](https://livebook.dev/)
+  * [Download the installer for Windows and Mac from our homepage](https://livebook.dev/#install)
 
 ### Docker
 
@@ -213,6 +211,9 @@ variables used by Elixir releases are also available](
 https://hexdocs.pm/mix/Mix.Tasks.Release.html#module-environment-variables).
 The notables ones are `RELEASE_NODE` and `RELEASE_DISTRIBUTION`.
 
+If running Livebook via the command line, run `livebook server --help` to see
+all CLI-specific options.
+
 ## Development
 
 Livebook is primarily a Phoenix web application and can be setup as such:
@@ -224,6 +225,9 @@ mix dev.setup
 
 # Run the Livebook server
 mix phx.server
+
+# Run tests
+mix test
 
 # To test escript
 MIX_ENV=prod mix escript.build

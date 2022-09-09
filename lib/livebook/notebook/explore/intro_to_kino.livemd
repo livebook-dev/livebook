@@ -207,11 +207,34 @@ The above example renders new Markdown output every 100ms.
 You can use the same approach to render regular output
 or images too!
 
+## `dbg`
+
+Kino hijacks Elixir's [`dbg/2`](https://hexdocs.pm/elixir/Kernel.html#dbg/2)
+to provide Kino-based debugging:
+
+```elixir
+dbg(Atom.to_string(:hello))
+```
+
+When debugging a pipeline, Kino will render each step of the pipeline, allowing
+to inspect, toggle, and swap each operation along the way:
+
+```elixir
+"Elixir is cool!"
+|> String.trim_trailing("!")
+|> String.split()
+|> List.first()
+|> dbg()
+```
+
+## Next steps with custom Kinos
+
 With this, we finished our introduction to Kino. Most the guides
 ahead of us will use Kino in one way or the other. You can jump
 into [the VegaLite guide](/explore/notebooks/intro-to-vega-lite)
-for plotting charts or [the MapLibre guide](/explore/notebooks/intro-to-vega-lite)
-for rendering maps.
+for plotting charts or [the MapLibre guide](/explore/notebooks/intro-to-maplibre)
+for rendering maps to learn how other packages extend Livebook
+through Kino.
 
 We also have a collection of deep dive guides into Kino in the
 [Explore](/explore) page if you want to learn more, including how
