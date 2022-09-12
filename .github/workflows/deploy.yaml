@@ -91,3 +91,23 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  create_draft_release:
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write
+    runs-on: ubuntu-20.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+    steps:
+      - name: Create draft release
+        run: |
+          gh release create \
+            --repo ${{ github.repository }} \
+            --title ${{ github.ref_name }} \
+            --draft \
+            ${{ github.ref_name }}
+
+      - name: Trigger desktop builds
+        run: |
+          gh workflow run -R livebook-dev/livebook_cd build.yml -f ref_name=${{ github.ref_name }}
