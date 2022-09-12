@@ -70,17 +70,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
     secret_label = String.upcase(data["label"])
+
     if data_errors(data) == [] do
       secret = %{label: secret_label, value: data["value"]}
       Livebook.Session.put_secret(socket.assigns.session.pid, secret)
-      if socket.assigns.ref do
-        {:noreply,
-         socket
-         |> push_patch(to: socket.assigns.return_to)
-         |> push_event("update_secret", %{ref: socket.assigns.ref, secret_label: secret_label})}
-      else
-        {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-      end
+
+      {:noreply,
+       socket |> push_patch(to: socket.assigns.return_to) |> maybe_update_secret(secret_label)}
     else
       {:noreply, assign(socket, data: data)}
     end
@@ -110,4 +106,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp data_error("value", ""), do: "can't be blank"
   defp data_error(_key, _value), do: nil
+
+  defp maybe_update_secret(%{assigns: %{ref: nil}} = socket, _), do: socket
+
+  defp maybe_update_secret(%{assigns: %{ref: ref}} = socket, secret_label) do
+    push_event(socket, "update_secret", %{ref: ref, secret_label: secret_label})
+  end
 end
