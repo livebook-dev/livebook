@@ -17,7 +17,7 @@ defmodule Livebook.Settings.EnvVar do
     env_var
     |> cast(attrs, [:key, :value])
     |> update_change(:key, &String.upcase/1)
-    |> validate_format(:key, ~r/^(?!LB_)\w+$/)
+    |> validate_format(:key, ~r/^(?!LB_)\w+$/, message: "cannot start with the LB_ prefix")
     |> validate_required([:key, :value])
   end
 end

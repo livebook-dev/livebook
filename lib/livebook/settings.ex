@@ -12,10 +12,6 @@ defmodule Livebook.Settings do
     @moduledoc false
 
     defexception [:message, plug_status: 404]
-
-    def message(%{message: message}) do
-      message
-    end
   end
 
   @typedoc """

@@ -60,7 +60,7 @@ defmodule Livebook.SettingsTest do
       assert "can't be blank" in errors_on(changeset).key
 
       assert {:error, changeset} = Settings.set_env_var(%{attrs | key: "LB_FOO"})
-      assert "has invalid format" in errors_on(changeset).key
+      assert "cannot start with the LB_ prefix" in errors_on(changeset).key
     end
   end
 end
