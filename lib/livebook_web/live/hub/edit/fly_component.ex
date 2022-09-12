@@ -101,7 +101,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
           </h2>
 
           <.live_component
-            module={LivebookWeb.SettingsLive.EnvVarsComponent}
+            module={LivebookWeb.EnvVarsComponent}
             id="env-vars"
             env_vars={@env_vars}
             return_to={Routes.hub_path(@socket, :edit, @hub.id)}
@@ -120,7 +120,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
           patch={Routes.hub_path(@socket, :edit, @hub.id)}
         >
           <.live_component
-            module={LivebookWeb.SettingsLive.EnvVarComponent}
+            module={LivebookWeb.EnvVarComponent}
             id="env-var"
             on_save={JS.push("save_env_var", target: @myself)}
             env_var={@env_var}

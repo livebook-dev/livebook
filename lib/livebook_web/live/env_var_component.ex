@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SettingsLive.EnvVarComponent do
+defmodule LivebookWeb.EnvVarComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Settings

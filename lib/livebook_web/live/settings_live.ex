@@ -127,7 +127,7 @@ defmodule LivebookWeb.SettingsLive do
               application and is accessible only to the current machine.
             </p>
             <.live_component
-              module={LivebookWeb.SettingsLive.EnvVarsComponent}
+              module={LivebookWeb.EnvVarsComponent}
               id="env-vars"
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
@@ -206,7 +206,7 @@ defmodule LivebookWeb.SettingsLive do
         patch={Routes.settings_path(@socket, :page)}
       >
         <.live_component
-          module={LivebookWeb.SettingsLive.EnvVarComponent}
+          module={LivebookWeb.EnvVarComponent}
           id="env-var"
           env_var={@env_var}
           return_to={Routes.settings_path(@socket, :page)}
