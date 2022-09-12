@@ -42,7 +42,7 @@ defmodule LivebookWeb.EnvVarComponent do
         let={f}
         for={@changeset}
         phx-submit={@on_save}
-        phx-change="validate"
+        phx-change={JS.push("validate", target: @myself)}
         autocomplete="off"
         spellcheck="false"
       >
