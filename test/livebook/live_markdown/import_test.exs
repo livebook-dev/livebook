@@ -736,7 +736,7 @@ defmodule Livebook.LiveMarkdown.ImportTest do
     end
 
     test "imports snippets with output info string" do
-      # We now explicitly mark every output sinppet with <!-- livebook:{"output":true} -->
+      # We now explicitly mark every output snippet with <!-- livebook:{"output":true} -->
       # and use empty snippets for textual outputs, however previously
       # we supported ```output too, so let's ensure they still work
 
