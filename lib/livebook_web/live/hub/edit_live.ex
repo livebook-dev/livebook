@@ -8,16 +8,23 @@ defmodule LivebookWeb.Hub.EditLive do
   on_mount LivebookWeb.SidebarHook
 
   @impl true
-  def mount(%{"id" => id}, _session, socket) do
-    hub = Hubs.fetch_hub!(id)
+  def mount(params, _session, socket) do
+    {:ok, assign(socket, hub: nil, type: nil, page_title: "Livebook - Hub", params: params)}
+  end
+
+  @impl true
+  def handle_params(params, _url, socket) do
+    hub = Hubs.fetch_hub!(params["id"])
     type = Provider.type(hub)
 
     if type == "local" do
       {:ok,
        socket |> redirect(to: "/") |> put_flash(:warning, "You can't edit the localhost Hub")}
     else
-      {:ok, assign(socket, hub: hub, type: type, page_title: "Livebook - Hub")}
+      {:ok, assign(socket, hub: hub, type: type, page_title: "Livebook - Hub", params: params)}
     end
+
+    {:noreply, assign(socket, hub: hub, type: type, params: params)}
   end
 
   @impl true
@@ -35,7 +42,13 @@ defmodule LivebookWeb.Hub.EditLive do
         </div>
 
         <%= if @type == "fly" do %>
-          <.live_component module={LivebookWeb.Hub.Edit.FlyComponent} hub={@hub} id="fly-form" />
+          <.live_component
+            module={LivebookWeb.Hub.Edit.FlyComponent}
+            hub={@hub}
+            id="fly-form"
+            live_action={@live_action}
+            params={@params}
+          />
         <% end %>
       </div>
     </LayoutHelpers.layout>
