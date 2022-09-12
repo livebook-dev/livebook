@@ -32,7 +32,7 @@ defmodule LivebookWeb.SettingsLive do
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
-            <PageHelpers.title text="/ system settings" />
+            <PageHelpers.title text="System settings" />
             <p class="mt-4 text-gray-700">
               Here you can change global Livebook configuration. Keep in mind
               that this configuration gets persisted and will be restored on application
@@ -41,7 +41,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- System details -->
           <div class="flex flex-col space-y-2">
-            <h2 class="text-xl text-gray-800 font-semibold">
+            <h2 class="text-xl text-gray-800 font-medium">
               About
             </h2>
             <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
@@ -74,7 +74,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Updates -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Updates
             </h2>
             <form class="mt-4" phx-change="save" onsubmit="return false;">
@@ -87,7 +87,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Autosave path configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Autosave
             </h2>
             <p class="text-gray-700">
@@ -97,7 +97,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- File systems configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               File systems
             </h2>
             <p class="mt-4 text-gray-700">
@@ -114,9 +114,7 @@ defmodule LivebookWeb.SettingsLive do
         <!-- User settings section -->
         <div class="flex flex-col space-y-10">
           <div>
-            <h1 class="text-3xl text-gray-800 font-semibold">
-              User settings
-            </h1>
+            <PageHelpers.title text="User settings" />
             <p class="mt-4 text-gray-700">
               The configuration in this section changes only your Livebook
               experience and is saved in your browser.
@@ -124,7 +122,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Editor configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Code editor
             </h2>
             <div

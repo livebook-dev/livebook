@@ -223,17 +223,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       Session.save_sync(assigns.session.pid)
     end
 
-    running_files =
-      [new_attrs.file | assigns.running_files]
-      |> List.delete(attrs.file)
-      |> Enum.reject(&is_nil/1)
-
-    {:noreply,
-     assign(socket,
-       running_files: running_files,
-       attrs: assigns.new_attrs,
-       saved_file: new_attrs.file
-     )}
+    {:noreply, push_patch(socket, to: Routes.session_path(socket, :page, assigns.session.id))}
   end
 
   @impl true
