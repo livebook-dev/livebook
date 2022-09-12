@@ -19,6 +19,7 @@ defmodule LivebookWeb.LiveHelpers do
       |> assign_new(:patch, fn -> nil end)
       |> assign_new(:navigate, fn -> nil end)
       |> assign_new(:class, fn -> "" end)
+      |> assign_new(:on_close, fn -> %JS{} end)
       |> assign(:attrs, assigns_to_attributes(assigns, [:id, :show, :patch, :navigate, :class]))
 
     ~H"""
@@ -39,8 +40,8 @@ defmodule LivebookWeb.LiveHelpers do
           aria-modal="true"
           tabindex="0"
           autofocus
-          phx-window-keydown={hide_modal(@id)}
-          phx-click-away={hide_modal(@id)}
+          phx-window-keydown={hide_modal(@on_close, @id)}
+          phx-click-away={hide_modal(@on_close, @id)}
           phx-key="escape"
         >
           <%= if @patch do %>
@@ -53,7 +54,7 @@ defmodule LivebookWeb.LiveHelpers do
             type="button"
             class="absolute top-6 right-6 text-gray-400 flex space-x-1 items-center"
             aria_label="close modal"
-            phx-click={hide_modal(@id)}
+            phx-click={hide_modal(@on_close, @id)}
           >
             <span class="text-sm">(esc)</span>
             <.remix_icon icon="close-line" class="text-2xl" />
