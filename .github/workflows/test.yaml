@@ -56,7 +56,7 @@ jobs:
         run: npm test --prefix assets
   windows:
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main'
     env:
       MIX_ENV: test
     steps:
@@ -70,8 +70,7 @@ jobs:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
       - name: Start epmd
-        run: cmd /c "START /b epmd"
-        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-13.0/bin
+        run: cmd /c "START /b /d %RUNNER_TEMP%\.setup-beam\otp\erts-13.0\bin epmd"
       # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
       - name: Add tar.exe
         run: |
