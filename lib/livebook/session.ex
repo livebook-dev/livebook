@@ -1072,6 +1072,15 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:runtime_smart_cell_started, id, info}, state) do
+    info =
+      if info.editor do
+        normalize_newlines = &String.replace(&1, "\r\n", "\n")
+        info = update_in(info.source, normalize_newlines)
+        update_in(info.editor.source, normalize_newlines)
+      else
+        info
+      end
+
     case Notebook.fetch_cell_and_section(state.data.notebook, id) do
       {:ok, cell, _section} ->
         delta = Livebook.JSInterop.diff(cell.source, info.source)
