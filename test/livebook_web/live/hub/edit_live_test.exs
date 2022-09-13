@@ -17,7 +17,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
   end
 
   describe "fly" do
-    test "updates fly", %{conn: conn, bypass: bypass} do
+    test "updates hub", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :mount} end)
 
       app_id = Livebook.Utils.random_short_id()
@@ -70,7 +70,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
-    test "add secret", %{conn: conn, bypass: bypass} do
+    test "add env var", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :mount} end)
 
       app_id = Livebook.Utils.random_short_id()
@@ -86,6 +86,13 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       refute html =~ "FOO_ENV_VAR"
       assert html =~ "LIVEBOOK_PASSWORD"
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
+
+      view
+      |> element("#add-env-var")
+      |> render_click(%{})
+
+      assert_patch(view, Routes.hub_path(conn, :add_env_var, hub.id))
+      assert render(view) =~ "Add environment variable"
 
       view
       |> element("#env-var-form")
@@ -110,18 +117,8 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "LIVEBOOK_SECRET_KEY_BASE"
     end
 
-    test "update secret", %{conn: conn, bypass: bypass} do
+    test "update env var", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :foo} end)
-
-      old_env_var =
-        :foo
-        |> secrets()
-        |> Enum.find(&(&1["name"] == "FOO_ENV_VAR"))
-
-      new_env_var =
-        :updated_foo
-        |> secrets()
-        |> Enum.find(&(&1["name"] == "FOO_ENV_VAR"))
 
       app_id = Livebook.Utils.random_short_id()
       hub = insert_hub(:fly, id: "fly-#{app_id}", application_id: app_id)
@@ -134,11 +131,13 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
-      assert html =~ old_env_var["createdAt"]
 
       view
-      |> element("#env-var-#{old_env_var["id"]}-edit")
-      |> render_click(%{"env_var" => old_env_var})
+      |> element("#env-var-FOO_ENV_VAR-edit")
+      |> render_click(%{"env_var" => "FOO_ENV_VAR"})
+
+      assert_patch(view, Routes.hub_path(conn, :edit_env_var, hub.id, "FOO_ENV_VAR"))
+      assert render(view) =~ "Edit environment variable"
 
       view
       |> element("#env-var-form")
@@ -159,17 +158,10 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert html =~ "Environment variable updated"
       assert html =~ "Environment Variables"
       assert html =~ "FOO_ENV_VAR"
-      refute html =~ old_env_var["createdAt"]
-      assert html =~ new_env_var["createdAt"]
     end
 
-    test "delete secret", %{conn: conn, bypass: bypass} do
+    test "delete env var", %{conn: conn, bypass: bypass} do
       {:ok, pid} = Agent.start(fn -> %{fun: &fetch_app_response/2, type: :add} end)
-
-      env_var =
-        :add
-        |> secrets()
-        |> Enum.find(&(&1["name"] == "FOO_ENV_VAR"))
 
       app_id = Livebook.Utils.random_short_id()
       hub = insert_hub(:fly, id: "fly-#{app_id}", application_id: app_id)
@@ -190,7 +182,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert {:ok, _view, html} =
                view
                |> with_target("#fly-form-component")
-               |> render_click("delete", %{"env_var" => env_var})
+               |> render_click("delete_env_var", %{"env_var" => "FOO_ENV_VAR"})
                |> follow_redirect(conn)
 
       assert html =~ "Environment variable deleted"

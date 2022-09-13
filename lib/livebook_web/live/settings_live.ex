@@ -132,6 +132,7 @@ defmodule LivebookWeb.SettingsLive do
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
               patch={Routes.settings_path(@socket, :add_env_var)}
+              target={@socket.view}
             />
           </div>
         </div>

@@ -3,29 +3,23 @@ defmodule LivebookWeb.EnvVarsComponent do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assigns
-      |> assign_new(:target, fn -> nil end)
-      |> assign_new(:modal_description, fn ->
-        "Are you sure you want to delete environment variable?"
-      end)
+    assigns = assign_new(assigns, :target, fn -> nil end)
 
     ~H"""
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <%= for env_var <- @env_vars do %>
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-            <.env_var_info
-              socket={@socket}
-              env_var={env_var}
-              target={@target}
-              description={@modal_description}
-            />
+            <.env_var_info socket={@socket} env_var={env_var} target={@target} />
           </div>
         <% end %>
       </div>
       <div class="flex">
-        <%= live_patch("Add environment variable", to: @patch, class: "button-base button-blue") %>
+        <%= live_patch("Add environment variable",
+          to: @patch,
+          id: "add-env-var",
+          class: "button-base button-blue"
+        ) %>
       </div>
     </div>
     """
@@ -66,7 +60,7 @@ defmodule LivebookWeb.EnvVarsComponent do
                 with_confirm(
                   JS.push("delete_env_var", value: %{env_var: @env_var.key}),
                   title: "Delete #{@env_var.key}",
-                  description: @description,
+                  description: "Are you sure you want to delete environment variable?",
                   confirm_text: "Delete",
                   confirm_icon: "delete-bin-6-line"
                 )
