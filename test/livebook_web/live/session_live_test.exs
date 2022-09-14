@@ -3,7 +3,7 @@ defmodule LivebookWeb.SessionLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Livebook.{Sessions, Session, Runtime, Users, FileSystem}
+  alias Livebook.{Sessions, Session, Settings, Runtime, Users, FileSystem}
   alias Livebook.Notebook.Cell
 
   setup do
@@ -940,6 +940,43 @@ defmodule LivebookWeb.SessionLiveTest do
              |> element("span", "Add secret")
              |> has_element?()
     end
+  end
+
+  test "outputs persisted env var from ets", %{conn: conn, session: session} do
+    Session.subscribe(session.id)
+    {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+    section_id = insert_section(session.pid)
+
+    cell_id =
+      insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("MY_AWESOME_ENV")})
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+    assert_receive {:operation,
+                    {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+
+    attrs = params_for(:env_var, key: "MY_AWESOME_ENV", value: "MyEnvVarValue")
+    Settings.set_env_var(attrs)
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+    assert_receive {:operation,
+                    {:add_cell_evaluation_response, _, ^cell_id,
+                     {:text, "\e[32m\"MyEnvVarValue\"\e[0m"}, _}}
+
+    Settings.delete_env_var("MY_AWESOME_ENV")
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+    assert_receive {:operation,
+                    {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
   end
 
   # Helpers
