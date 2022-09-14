@@ -205,8 +205,8 @@ const Session = {
       this.handleClientsUpdated(clients);
     });
 
-    this.handleEvent("update_secret", ({ ref, secret_label }) => {
-      this.handleSecretUpdated(ref, secret_label);
+    this.handleEvent("secret_selected", ({ select_secret_ref, secret_label }) => {
+      this.handleSecretSelected(select_secret_ref, secret_label);
     });
 
     this.handleEvent(
@@ -1038,9 +1038,9 @@ const Session = {
     });
   },
 
-  handleSecretUpdated(ref, secretLabel) {
-    globalPubSub.broadcast(`js_views:${ref}`, {
-      type: "secret",
+  handleSecretSelected(select_secret_ref, secretLabel) {
+    globalPubSub.broadcast(`js_views:${select_secret_ref}`, {
+      type: "secretSelected",
       secretLabel,
     });
   },

@@ -82,9 +82,9 @@
             state.syncHandler = callback;
           },
 
-          requestSecret(currentSecret, callback) {
+          selectSecret(currentSecret, callback) {
             state.secretHandler = callback;
-            postMessage({ type: "secrets", currentSecret });
+            postMessage({ type: "selectSecret", currentSecret });
           },
         };
 
@@ -145,8 +145,8 @@
                 postMessage({ type: "syncReply" });
               }
             );
-          } else if (message.type === "secret") {
-            Promise.resolve(state.secretHandler && state.secretHandler(message.secretLabel));
+          } else if (message.type === "secretSelected") {
+            state.secretHandler && state.secretHandler(message.secretLabel);
           }
         }
 

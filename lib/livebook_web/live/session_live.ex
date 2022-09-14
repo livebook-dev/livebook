@@ -1120,7 +1120,11 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_event("secrets", %{"ref" => ref, "current_secret" => current_secret}, socket) do
+  def handle_event(
+        "select_secret",
+        %{"js_view_ref" => ref, "current_secret" => current_secret},
+        socket
+      ) do
     {:noreply,
      push_patch(socket,
        to:

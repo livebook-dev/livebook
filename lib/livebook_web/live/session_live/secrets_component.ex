@@ -100,7 +100,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     {:noreply,
      socket
      |> push_patch(to: socket.assigns.return_to)
-     |> push_event("update_secret", %{ref: socket.assigns.ref, secret_label: secret_label})}
+     |> push_event("secret_selected", %{
+       select_secret_ref: socket.assigns.ref,
+       secret_label: secret_label
+     })}
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
@@ -133,6 +136,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp maybe_update_secret(%{assigns: %{ref: nil}} = socket, _), do: socket
 
   defp maybe_update_secret(%{assigns: %{ref: ref}} = socket, secret_label) do
-    push_event(socket, "update_secret", %{ref: ref, secret_label: secret_label})
+    push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_label: secret_label})
   end
 end
