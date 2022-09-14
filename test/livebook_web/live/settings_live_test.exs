@@ -46,9 +46,7 @@ defmodule LivebookWeb.SettingsLiveTest do
 
       assert html =~ env_var.key
 
-      view
-      |> with_target("#env-vars")
-      |> render_click("edit_env_var", %{"env_var" => env_var.key})
+      render_click(view, "edit_env_var", %{"env_var" => env_var.key})
 
       assert_patch(view, Routes.settings_path(conn, :edit_env_var, env_var.key))
       assert render(view) =~ "Edit environment variable"
@@ -77,9 +75,7 @@ defmodule LivebookWeb.SettingsLiveTest do
 
       assert html =~ env_var.key
 
-      view
-      |> with_target("#env-vars")
-      |> render_click("delete_env_var", %{"env_var" => env_var.key})
+      render_click(view, "delete_env_var", %{"env_var" => env_var.key})
 
       refute render(view) =~ env_var.key
     end

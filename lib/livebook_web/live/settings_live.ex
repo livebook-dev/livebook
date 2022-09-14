@@ -34,7 +34,7 @@ defmodule LivebookWeb.SettingsLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-16">
+      <div id="settings-page" class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-16">
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
@@ -127,10 +127,12 @@ defmodule LivebookWeb.SettingsLive do
               application and is accessible only to the current machine.
             </p>
             <.live_component
-              module={LivebookWeb.SettingsLive.EnvVarsComponent}
+              module={LivebookWeb.EnvVarsComponent}
               id="env-vars"
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
+              add_env_var_path={Routes.settings_path(@socket, :add_env_var)}
+              target={@socket.view}
             />
           </div>
         </div>
@@ -205,9 +207,10 @@ defmodule LivebookWeb.SettingsLive do
         patch={Routes.settings_path(@socket, :page)}
       >
         <.live_component
-          module={LivebookWeb.SettingsLive.EnvVarComponent}
+          module={LivebookWeb.EnvVarComponent}
           id="env-var"
           env_var={@env_var}
+          headline="Configure your application global environment variables."
           return_to={Routes.settings_path(@socket, :page)}
         />
       </.modal>
@@ -269,7 +272,7 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, file_system_id: file_system_id)}
   end
 
-  def handle_params(_params, _url, socket), do: {:noreply, socket}
+  def handle_params(_params, _url, socket), do: {:noreply, assign(socket, env_var: nil)}
 
   @impl true
   def handle_event("cancel_autosave_path", %{}, socket) do
@@ -320,8 +323,25 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, :update_check_enabled, enabled)}
   end
 
-  def handle_event("clear_env_var", _, socket) do
-    {:noreply, assign(socket, env_var: nil)}
+  def handle_event("save", %{"env_var" => attrs}, socket) do
+    env_var = %Livebook.Settings.EnvVar{}
+
+    case Livebook.Settings.set_env_var(socket.assigns.env_var || env_var, attrs) do
+      {:ok, _} ->
+        {:noreply, push_patch(socket, to: Routes.settings_path(socket, :page))}
+
+      {:error, _changeset} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("edit_env_var", %{"env_var" => key}, socket) do
+    {:noreply, push_patch(socket, to: Routes.settings_path(socket, :edit_env_var, key))}
+  end
+
+  def handle_event("delete_env_var", %{"env_var" => key}, socket) do
+    Livebook.Settings.delete_env_var(key)
+    {:noreply, socket}
   end
 
   @impl true
@@ -338,7 +358,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_info({:env_vars_changed, env_vars}, socket) do
-    {:noreply, assign(socket, env_vars: env_vars)}
+    {:noreply, assign(socket, env_vars: env_vars, env_var: nil)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

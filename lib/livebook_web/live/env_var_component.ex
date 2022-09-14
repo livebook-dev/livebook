@@ -1,4 +1,4 @@
-defmodule LivebookWeb.SettingsLive.EnvVarComponent do
+defmodule LivebookWeb.EnvVarComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.Settings
@@ -21,21 +21,22 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
 
   @impl true
   def render(assigns) do
+    assigns = assign_new(assigns, :on_save, fn -> "save" end)
+
     ~H"""
     <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= if @operation == :new, do: "Add environment variable", else: "Edit environment variable" %>
       </h3>
       <p class="text-gray-700">
-        Configure your application global environment variables.
+        <%= @headline %>
       </p>
       <.form
         id={"#{@id}-form"}
         let={f}
         for={@changeset}
-        phx-target={@myself}
-        phx-submit="save"
-        phx-change="validate"
+        phx-submit={@on_save}
+        phx-change={JS.push("validate", target: @myself)}
         autocomplete="off"
         spellcheck="false"
       >
@@ -51,20 +52,19 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
             <%= text_input(f, :value, class: "input", autofocus: @operation == :edit) %>
           </.input_wrapper>
 
+          <%= text_input(f, :operation, type: "hidden", value: @operation) %>
+
           <div class="flex space-x-2">
             <%= submit("Save",
               class: "button-base button-blue",
               disabled: not @changeset.valid?,
               phx_disabled_with: "Adding..."
             ) %>
-            <button
-              type="button"
-              phx-click="cancel"
-              phx-target={@myself}
-              class="button-base button-outlined-gray"
-            >
-              Cancel
-            </button>
+            <%= live_patch("Cancel",
+              to: @return_to,
+              type: "button",
+              class: "button-base button-outlined-gray"
+            ) %>
           </div>
         </div>
       </.form>
@@ -75,23 +75,5 @@ defmodule LivebookWeb.SettingsLive.EnvVarComponent do
   @impl true
   def handle_event("validate", %{"env_var" => attrs}, socket) do
     {:noreply, assign(socket, changeset: Settings.change_env_var(socket.assigns.env_var, attrs))}
-  end
-
-  def handle_event("cancel", _, socket) do
-    {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-  end
-
-  def handle_event("save", %{"env_var" => attrs}, socket) do
-    if socket.assigns.changeset.valid? do
-      case Settings.set_env_var(socket.assigns.env_var, attrs) do
-        {:ok, _} ->
-          {:noreply, push_patch(socket, to: socket.assigns.return_to)}
-
-        {:error, changeset} ->
-          {:noreply, assign(socket, changeset: changeset)}
-      end
-    else
-      {:noreply, socket}
-    end
   end
 end

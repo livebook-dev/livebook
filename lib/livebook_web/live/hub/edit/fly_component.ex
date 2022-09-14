@@ -8,6 +8,12 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   def update(assigns, socket) do
     changeset = Fly.change_hub(assigns.hub)
     {:ok, app} = FlyClient.fetch_app(assigns.hub)
+    env_vars = env_vars_from_secrets(app["secrets"])
+
+    env_var =
+      if key = assigns.env_var_id do
+        Enum.find(env_vars, &(&1.key == key))
+      end
 
     {:ok,
      socket
@@ -15,17 +21,21 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
      |> assign(
        app_url: "https://fly.io/apps/#{app["name"]}",
        changeset: changeset,
-       env_vars: app["secrets"],
-       env_var_data: %{},
-       operation: :new,
-       valid_env_var?: false
+       env_vars: env_vars,
+       env_var: env_var
      )}
+  end
+
+  defp env_vars_from_secrets(secrets) do
+    for secret <- secrets do
+      %Livebook.Settings.EnvVar{key: secret["name"]}
+    end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id <> "-component"}>
+    <div id={"#{@id}-component"}>
       <div class="flex flex-col space-y-10">
         <div class="flex flex-col space-y-2">
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
@@ -89,177 +99,42 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             Environment Variables
           </h2>
 
-          <div class="flex flex-col space-y-4">
-            <%= for env_var <- @env_vars do %>
-              <.environment_variable_card myself={@myself} env_var={env_var} />
-            <% end %>
-          </div>
-
-          <button
-            class="button-base button-blue"
-            type="button"
-            phx-click={show_modal("environment-variable-modal")}
-          >
-            Add environment variable
-          </button>
+          <.live_component
+            module={LivebookWeb.EnvVarsComponent}
+            id="env-vars"
+            env_vars={@env_vars}
+            return_to={Routes.hub_path(@socket, :edit, @hub.id)}
+            add_env_var_path={Routes.hub_path(@socket, :add_env_var, @hub.id)}
+            target={@myself}
+          />
         </div>
       </div>
 
-      <.environment_variable_modal
-        id="environment-variable-modal"
-        on_save={hide_modal("environment-variable-modal")}
-        data={@env_var_data}
-        valid?={@valid_env_var?}
-        myself={@myself}
-      />
+      <%= if @live_action in [:add_env_var, :edit_env_var] do %>
+        <.modal
+          id="env-var-modal"
+          show
+          class="w-full max-w-3xl"
+          target={@myself}
+          patch={Routes.hub_path(@socket, :edit, @hub.id)}
+        >
+          <.live_component
+            module={LivebookWeb.EnvVarComponent}
+            id="env-var"
+            on_save={JS.push("save_env_var", target: @myself)}
+            env_var={@env_var}
+            headline="Configute your Fly application system environment variables"
+            return_to={Routes.hub_path(@socket, :edit, @hub.id)}
+          />
+        </.modal>
+      <% end %>
     </div>
-    """
-  end
-
-  defp environment_variable_card(assigns) do
-    ~H"""
-    <div
-      id={"env-var-" <> @env_var["id"]}
-      class="flex items-center justify-between border border-gray-200 rounded-lg p-4"
-    >
-      <div class="grid grid-cols-1 md:grid-cols-3 w-full">
-        <div class="place-content-start">
-          <.labeled_text label="Name">
-            <%= @env_var["name"] %>
-          </.labeled_text>
-        </div>
-
-        <div class="flex place-content-end">
-          <.labeled_text label="Created at">
-            <%= @env_var["createdAt"] %>
-          </.labeled_text>
-        </div>
-
-        <div class="flex items-center place-content-end">
-          <.menu id={"env-var-#{@env_var["id"]}-menu"}>
-            <:toggle>
-              <button class="icon-button" aria-label="open session menu" type="button">
-                <.remix_icon icon="more-2-fill" class="text-xl" />
-              </button>
-            </:toggle>
-            <:content>
-              <button
-                id={"env-var-" <> @env_var["id"] <> "-edit"}
-                type="button"
-                phx-click={
-                  show_modal("environment-variable-modal")
-                  |> JS.push("edit", value: %{env_var: @env_var})
-                }
-                phx-target={@myself}
-                role="menuitem"
-                class="menu-item text-gray-600"
-              >
-                <.remix_icon icon="file-edit-line" />
-                <span class="font-medium">Edit</span>
-              </button>
-              <button
-                id={"env-var-" <> @env_var["id"] <> "-delete"}
-                type="button"
-                phx-click={
-                  with_confirm(
-                    JS.push("delete", value: %{env_var: @env_var}),
-                    title: "Delete #{@env_var["name"]}",
-                    description: "Are you sure you want to delete environment variable?",
-                    confirm_text: "Delete",
-                    confirm_icon: "delete-bin-6-line"
-                  )
-                }
-                phx-target={@myself}
-                role="menuitem"
-                class="menu-item text-red-600"
-              >
-                <.remix_icon icon="delete-bin-line" />
-                <span class="font-medium">Delete</span>
-              </button>
-            </:content>
-          </.menu>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp environment_variable_modal(assigns) do
-    ~H"""
-    <.modal id={@id} class="w-full max-w-lg">
-      <div class="p-6 max-w-4xl flex flex-col space-y-5">
-        <h3 class="text-2xl font-semibold text-gray-800">
-          Add environment variable
-        </h3>
-        <div class="flex-col space-y-5">
-          <p class="text-gray-700">
-            Enter the environment variable name and its value.
-          </p>
-          <.form
-            id="env-var-form"
-            let={f}
-            for={:env_var}
-            phx-submit={@on_save |> JS.push("save")}
-            phx-change="validate"
-            autocomplete="off"
-            phx-target={@myself}
-          >
-            <div class="flex flex-col space-y-4">
-              <div>
-                <div class="input-label">
-                  Key <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
-                </div>
-                <%= text_input(f, :key,
-                  value: @data["key"],
-                  class: "input",
-                  autofocus: true,
-                  spellcheck: "false"
-                ) %>
-              </div>
-              <div>
-                <div class="input-label">Value</div>
-                <%= text_input(f, :value,
-                  value: @data["value"],
-                  class: "input",
-                  spellcheck: "false"
-                ) %>
-              </div>
-            </div>
-            <%= submit("Add environment variable",
-              class: "mt-5 button-base button-blue",
-              phx_disable_with: "Adding...",
-              disabled: not @valid?
-            ) %>
-          </.form>
-        </div>
-      </div>
-    </.modal>
     """
   end
 
   @impl true
   def handle_event("randomize_color", _, socket) do
     handle_event("validate", %{"fly" => %{"hub_color" => HexColor.random()}}, socket)
-  end
-
-  def handle_event("edit", %{"env_var" => %{"name" => name}}, socket) do
-    {:noreply, assign(socket, operation: :edit, env_var_data: %{"key" => name})}
-  end
-
-  def handle_event("delete", %{"env_var" => %{"name" => key}}, socket) do
-    case FlyClient.delete_secrets(socket.assigns.hub, [key]) do
-      {:ok, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:success, "Environment variable deleted")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
-
-      {:error, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to delete environment variable")
-         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
-    end
   end
 
   def handle_event("save", %{"fly" => params}, socket) do
@@ -275,47 +150,58 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     end
   end
 
-  def handle_event("save", %{"env_var" => params}, socket) do
-    if socket.assigns.valid_env_var? do
-      case FlyClient.put_secrets(socket.assigns.hub, [params]) do
-        {:ok, _} ->
-          message =
-            if socket.assigns.operation == :new do
-              "Environment variable added"
-            else
-              "Environment variable updated"
-            end
+  def handle_event("validate", %{"fly" => attrs}, socket) do
+    {:noreply, assign(socket, changeset: Fly.change_hub(socket.assigns.hub, attrs))}
+  end
 
-          {:noreply,
-           socket
-           |> put_flash(:success, message)
-           |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+  # EnvVar component callbacks
 
-        {:error, _} ->
-          message =
-            if socket.assigns.operation == :new do
-              "Failed to add environment variable"
-            else
-              "Failed to update environment variable"
-            end
+  def handle_event("save_env_var", %{"env_var" => attrs}, socket) do
+    {env_operation, attrs} = Map.pop!(attrs, "operation")
 
-          {:noreply,
-           socket
-           |> put_flash(:error, message)
-           |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
-      end
-    else
-      {:noreply, socket}
+    case FlyClient.put_secrets(socket.assigns.hub, [attrs]) do
+      {:ok, _} ->
+        message =
+          if env_operation == "new",
+            do: "Environment variable added",
+            else: "Environment variable updated"
+
+        {:noreply,
+         socket
+         |> put_flash(:success, message)
+         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+
+      {:error, _} ->
+        message =
+          if env_operation == "new",
+            do: "Failed to add environment variable",
+            else: "Failed to update environment variable"
+
+        {:noreply,
+         socket
+         |> put_flash(:error, message)
+         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
     end
   end
 
-  def handle_event("validate", %{"fly" => attrs}, socket) do
-    changeset = Fly.change_hub(socket.assigns.hub, attrs)
-    {:noreply, assign(socket, changeset: changeset)}
+  def handle_event("edit_env_var", %{"env_var" => key}, socket) do
+    {:noreply,
+     push_patch(socket, to: Routes.hub_path(socket, :edit_env_var, socket.assigns.hub.id, key))}
   end
 
-  def handle_event("validate", %{"env_var" => attrs}, socket) do
-    valid? = String.match?(attrs["key"], ~r/^\w+$/) and attrs["value"] not in ["", nil]
-    {:noreply, assign(socket, valid_env_var?: valid?, env_var_data: attrs)}
+  def handle_event("delete_env_var", %{"env_var" => key}, socket) do
+    case FlyClient.delete_secrets(socket.assigns.hub, [key]) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:success, "Environment variable deleted")
+         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+
+      {:error, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Failed to delete environment variable")
+         |> push_redirect(to: Routes.hub_path(socket, :edit, socket.assigns.hub.id))}
+    end
   end
 end

@@ -59,6 +59,8 @@ defmodule LivebookWeb.Router do
 
       live "/hub", Hub.NewLive, :new, as: :hub
       live "/hub/:id", Hub.EditLive, :edit, as: :hub
+      live "/hub/:id/env-var/new", Hub.EditLive, :add_env_var, as: :hub
+      live "/hub/:id/env-var/edit/:env_var_id", Hub.EditLive, :edit_env_var, as: :hub
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts
