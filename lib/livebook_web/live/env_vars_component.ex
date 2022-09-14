@@ -16,7 +16,7 @@ defmodule LivebookWeb.EnvVarsComponent do
       </div>
       <div class="flex">
         <%= live_patch("Add environment variable",
-          to: @patch,
+          to: @add_env_var_path,
           id: "add-env-var",
           class: "button-base button-blue"
         ) %>

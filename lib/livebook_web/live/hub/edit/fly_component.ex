@@ -10,10 +10,10 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     {:ok, app} = FlyClient.fetch_app(assigns.hub)
     env_vars = env_vars_from_secrets(app["secrets"])
 
-    {env_var, env_op} =
-      if key = assigns.params["env_var_id"],
-        do: {Enum.find(env_vars, &(&1.key == key)), :edit},
-        else: {nil, :new}
+    env_var =
+      if key = assigns.env_var_id do
+        Enum.find(env_vars, &(&1.key == key))
+      end
 
     {:ok,
      socket
@@ -22,8 +22,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
        app_url: "https://fly.io/apps/#{app["name"]}",
        changeset: changeset,
        env_vars: env_vars,
-       env_var: env_var,
-       env_operation: env_op
+       env_var: env_var
      )}
   end
 
@@ -36,7 +35,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id <> "-component"}>
+    <div id={"#{@id}-component"}>
       <div class="flex flex-col space-y-10">
         <div class="flex flex-col space-y-2">
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
@@ -105,7 +104,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             id="env-vars"
             env_vars={@env_vars}
             return_to={Routes.hub_path(@socket, :edit, @hub.id)}
-            patch={Routes.hub_path(@socket, :add_env_var, @hub.id)}
+            add_env_var_path={Routes.hub_path(@socket, :add_env_var, @hub.id)}
             target={@myself}
           />
         </div>
@@ -158,14 +157,14 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   # EnvVar component callbacks
 
   def handle_event("save_env_var", %{"env_var" => attrs}, socket) do
+    {env_operation, attrs} = Map.pop!(attrs, "operation")
+
     case FlyClient.put_secrets(socket.assigns.hub, [attrs]) do
       {:ok, _} ->
         message =
-          if socket.assigns.env_operation == :new do
-            "Environment variable added"
-          else
-            "Environment variable updated"
-          end
+          if env_operation == "new",
+            do: "Environment variable added",
+            else: "Environment variable updated"
 
         {:noreply,
          socket
@@ -174,11 +173,9 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
 
       {:error, _} ->
         message =
-          if socket.assigns.env_operation == :new do
-            "Failed to add environment variable"
-          else
-            "Failed to update environment variable"
-          end
+          if env_operation == "new",
+            do: "Failed to add environment variable",
+            else: "Failed to update environment variable"
 
         {:noreply,
          socket

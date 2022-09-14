@@ -8,8 +8,8 @@ defmodule LivebookWeb.Hub.EditLive do
   on_mount LivebookWeb.SidebarHook
 
   @impl true
-  def mount(params, _session, socket) do
-    {:ok, assign(socket, hub: nil, type: nil, page_title: "Livebook - Hub", params: params)}
+  def mount(_params, _session, socket) do
+    {:ok, assign(socket, hub: nil, type: nil, page_title: "Livebook - Hub", env_var_id: nil)}
   end
 
   @impl true
@@ -24,7 +24,7 @@ defmodule LivebookWeb.Hub.EditLive do
       {:ok, assign(socket, hub: hub, type: type, page_title: "Livebook - Hub", params: params)}
     end
 
-    {:noreply, assign(socket, hub: hub, type: type, params: params)}
+    {:noreply, assign(socket, hub: hub, type: type, env_var_id: params["env_var_id"])}
   end
 
   @impl true
@@ -47,7 +47,7 @@ defmodule LivebookWeb.Hub.EditLive do
             hub={@hub}
             id="fly-form"
             live_action={@live_action}
-            params={@params}
+            env_var_id={@env_var_id}
           />
         <% end %>
       </div>

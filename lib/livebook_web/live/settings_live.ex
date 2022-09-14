@@ -131,7 +131,7 @@ defmodule LivebookWeb.SettingsLive do
               id="env-vars"
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
-              patch={Routes.settings_path(@socket, :add_env_var)}
+              add_env_var_path={Routes.settings_path(@socket, :add_env_var)}
               target={@socket.view}
             />
           </div>
@@ -210,6 +210,7 @@ defmodule LivebookWeb.SettingsLive do
           module={LivebookWeb.EnvVarComponent}
           id="env-var"
           env_var={@env_var}
+          headline="Configure your application global environment variables."
           return_to={Routes.settings_path(@socket, :page)}
         />
       </.modal>

@@ -21,18 +21,12 @@ defmodule LivebookWeb.EnvVarComponent do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assigns
-      |> assign_new(:on_save, fn -> "save" end)
-      |> assign_new(:resource, fn -> "environment variable" end)
-      |> assign_new(:headline, fn ->
-        "Configure your application global environment variables."
-      end)
+    assigns = assign_new(assigns, :on_save, fn -> "save" end)
 
     ~H"""
     <div class="p-6 flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        <%= if @operation == :new, do: "Add #{@resource}", else: "Edit #{@resource}" %>
+        <%= if @operation == :new, do: "Add environment variable", else: "Edit environment variable" %>
       </h3>
       <p class="text-gray-700">
         <%= @headline %>
@@ -57,6 +51,8 @@ defmodule LivebookWeb.EnvVarComponent do
             <div class="input-label">Value</div>
             <%= text_input(f, :value, class: "input", autofocus: @operation == :edit) %>
           </.input_wrapper>
+
+          <%= text_input(f, :operation, type: "hidden", value: @operation) %>
 
           <div class="flex space-x-2">
             <%= submit("Save",
