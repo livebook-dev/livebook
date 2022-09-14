@@ -332,7 +332,10 @@ const JSView = {
         this.pongCallbackQueue.push(this.syncCallbackQueue.shift());
         this.channel.push("ping", { ref: this.props.ref });
       } else if (message.type == "secrets") {
-        this.pushEvent("secrets", { ref: this.props.ref, current_secret: message.currentSecret });
+        this.pushEvent("secrets", {
+          ref: this.props.ref,
+          current_secret: message.currentSecret,
+        });
       }
     }
   },

@@ -1041,7 +1041,7 @@ const Session = {
   handleSecretUpdated(ref, secretLabel) {
     globalPubSub.broadcast(`js_views:${ref}`, {
       type: "secret",
-      secretLabel
+      secretLabel,
     });
   },
 
