@@ -29,6 +29,7 @@
           eventHandlers: {},
           eventQueue: [],
           syncHandler: null,
+          secretHandler: null,
         };
 
         function postMessage(message) {
@@ -79,6 +80,11 @@
 
           handleSync(callback) {
             state.syncHandler = callback;
+          },
+
+          requestSecret(currentSecret, callback) {
+            state.secretHandler = callback;
+            postMessage({ type: "secrets", currentSecret });
           },
         };
 
@@ -139,6 +145,8 @@
                 postMessage({ type: "syncReply" });
               }
             );
+          } else if (message.type === "secret") {
+            Promise.resolve(state.secretHandler && state.secretHandler(message.secretLabel));
           }
         }
 

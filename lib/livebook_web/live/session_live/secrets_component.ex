@@ -22,7 +22,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Add secret
       </h3>
-      <p class="text-gray-700" id="import-from-url">
+      <p class="text-gray-700">
         Enter the secret name and its value.
       </p>
       <.form
@@ -63,19 +63,44 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           </div>
         </div>
       </.form>
+      <%= if @ref do %>
+        <h3 class="text-2xl font-semibold text-gray-800">
+          Select secret
+        </h3>
+        <.form
+          let={_}
+          for={:secrets}
+          phx-submit="save_secret"
+          phx-change="select_secret"
+          phx-target={@myself}
+        >
+          <.select name="secret" selected={@current_secret} options={secret_options(@secrets)} />
+        </.form>
+      <% end %>
     </div>
     """
   end
 
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
+    secret_label = String.upcase(data["label"])
+
     if data_errors(data) == [] do
-      secret = %{label: String.upcase(data["label"]), value: data["value"]}
+      secret = %{label: secret_label, value: data["value"]}
       Livebook.Session.put_secret(socket.assigns.session.pid, secret)
-      {:noreply, push_patch(socket, to: socket.assigns.return_to)}
+
+      {:noreply,
+       socket |> push_patch(to: socket.assigns.return_to) |> maybe_update_secret(secret_label)}
     else
       {:noreply, assign(socket, data: data)}
     end
+  end
+
+  def handle_event("select_secret", %{"secret" => secret_label}, socket) do
+    {:noreply,
+     socket
+     |> push_patch(to: socket.assigns.return_to)
+     |> push_event("update_secret", %{ref: socket.assigns.ref, secret_label: secret_label})}
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
@@ -102,4 +127,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp data_error("value", ""), do: "can't be blank"
   defp data_error(_key, _value), do: nil
+
+  defp secret_options(secrets), do: Enum.map(secrets, &{&1.label, &1.label})
+
+  defp maybe_update_secret(%{assigns: %{ref: nil}} = socket, _), do: socket
+
+  defp maybe_update_secret(%{assigns: %{ref: ref}} = socket, secret_label) do
+    push_event(socket, "update_secret", %{ref: ref, secret_label: secret_label})
+  end
 end

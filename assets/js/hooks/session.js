@@ -205,6 +205,10 @@ const Session = {
       this.handleClientsUpdated(clients);
     });
 
+    this.handleEvent("update_secret", ({ ref, secret_label }) => {
+      this.handleSecretUpdated(ref, secret_label);
+    });
+
     this.handleEvent(
       "location_report",
       ({ client_id, focusable_id, selection }) => {
@@ -1031,6 +1035,13 @@ const Session = {
   handleClientsUpdated(updatedClients) {
     updatedClients.forEach((client) => {
       this.clientsMap[client.id] = client;
+    });
+  },
+
+  handleSecretUpdated(ref, secretLabel) {
+    globalPubSub.broadcast(`js_views:${ref}`, {
+      type: "secret",
+      secretLabel
     });
   },
 
