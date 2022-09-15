@@ -82,9 +82,9 @@
             state.syncHandler = callback;
           },
 
-          selectSecret(currentSecret, callback) {
+          selectSecret(callback, currentSecret, options) {
             state.secretHandler = callback;
-            postMessage({ type: "selectSecret", currentSecret });
+            postMessage({ type: "selectSecret", currentSecret, options });
           },
         };
 

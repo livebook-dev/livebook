@@ -90,7 +90,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       Livebook.Session.put_secret(socket.assigns.session.pid, secret)
 
       {:noreply,
-       socket |> push_patch(to: socket.assigns.return_to) |> maybe_update_secret(secret_label)}
+       socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_label)}
     else
       {:noreply, assign(socket, data: data)}
     end
@@ -98,12 +98,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   def handle_event("select_secret", %{"secret" => secret_label}, socket) do
     {:noreply,
-     socket
-     |> push_patch(to: socket.assigns.return_to)
-     |> push_event("secret_selected", %{
-       select_secret_ref: socket.assigns.ref,
-       secret_label: secret_label
-     })}
+     socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_label)}
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
@@ -133,9 +128,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp secret_options(secrets), do: Enum.map(secrets, &{&1.label, &1.label})
 
-  defp maybe_update_secret(%{assigns: %{ref: nil}} = socket, _), do: socket
+  defp push_secret_selected(%{assigns: %{ref: nil}} = socket, _), do: socket
 
-  defp maybe_update_secret(%{assigns: %{ref: ref}} = socket, secret_label) do
+  defp push_secret_selected(%{assigns: %{ref: ref}} = socket, secret_label) do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_label: secret_label})
   end
 end
