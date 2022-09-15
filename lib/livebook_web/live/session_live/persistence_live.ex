@@ -129,7 +129,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                   <button
                     class="button-base button-blue"
                     phx-click="confirm_file"
-                    disabled={FileSystem.File.dir?(@draft_file)}
+                    disabled={not can_choose?(@draft_file, @session)}
                     tabindex="-1"
                   >
                     Choose
@@ -317,5 +317,10 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   defp map_diff(left, right) do
     Map.new(Map.to_list(left) -- Map.to_list(right))
+  end
+
+  defp can_choose?(draft_file, session) do
+    %{path: path} = normalize_file(draft_file, session)
+    not String.ends_with?(path, "/.livemd")
   end
 end
