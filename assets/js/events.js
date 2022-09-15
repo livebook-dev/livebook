@@ -22,32 +22,12 @@ export function registerTopbar() {
 }
 
 export function registerGlobalEventHandlers() {
-  const handleFocus = (event) => {
+  window.addEventListener("lb:focus", (event) => {
     // The element may be about to show up via JS.show, which wraps the
     // change in requestAnimationFrame, so we do the same to make sure
     // the focus is applied only after we change the element visibility
     requestAnimationFrame(() => {
-      const { detail, target } = event;
-      const { to } = detail || {};
-      const $target = to
-        ? document.querySelector(to)
-        : target;
-      $target.focus();
-    });
-  };
-
-  window.addEventListener("lb:focus", handleFocus);
-  window.addEventListener("phx:focus", handleFocus);
-
-  window.addEventListener("phx:select_range", (event) => {
-    requestAnimationFrame(() => {
-      const { detail } = event;
-      const $el = document.querySelector(detail.to);
-      if (detail.params) {
-        $el.setSelectionRange(...detail.params);
-      } else {
-        $el.select();
-      }
+      event.target.focus();
     });
   });
 
