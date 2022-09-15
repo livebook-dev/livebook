@@ -886,23 +886,16 @@ defmodule Livebook.SessionTest do
 
   describe "suggested_filename/2" do
     test "from URL" do
-      expected = "notebook.livemd"
-
-      assert ^expected =
-               Session.suggested_filename(%Session{
-                 origin: {:url, "https://github.com/org/repo/blob/master/notebook.livemd"}
-               })
-
-      assert ^expected =
-               Session.suggested_filename(%Session{
-                 origin: {:url, "https://github.com/org/repo/blob/master/notebook.livemd?a=1&b=2"}
-               })
-
-      assert ^expected =
-               Session.suggested_filename(%Session{origin: {:url, "file:///notebook.livemd"}})
-
-      assert "example.com.livemd" =
-               Session.suggested_filename(%Session{origin: {:url, "https://example.com"}})
+      for {expected, url} <- [
+            {"notebook.livemd", "https://github.com/org/repo/blob/master/notebook.livemd"},
+            {"notebook.livemd",
+             "https://github.com/org/repo/blob/master/notebook.livemd?a=1&b=2"},
+            {"notebook.livemd", "file:///notebook.livemd"},
+            {"example.com.livemd", "https://example.com"},
+            {"My-notebook.livemd", "https://example.com/My notebook"}
+          ] do
+        assert ^expected = Session.suggested_filename(%Session{origin: {:url, url}})
+      end
     end
 
     test "from notebook title" do
