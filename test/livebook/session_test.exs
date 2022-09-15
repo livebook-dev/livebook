@@ -884,6 +884,41 @@ defmodule Livebook.SessionTest do
     assert Path.basename(notebook_path) =~ "cats_guide_to_life"
   end
 
+  describe "suggested_filename/2" do
+    test "from URL" do
+      expected = "notebook.livemd"
+
+      assert ^expected =
+               Session.suggested_filename(%Session{
+                 origin: {:url, "https://github.com/org/repo/blob/master/notebook.livemd"}
+               })
+
+      assert ^expected =
+               Session.suggested_filename(%Session{
+                 origin: {:url, "https://github.com/org/repo/blob/master/notebook.livemd?a=1&b=2"}
+               })
+
+      assert ^expected =
+               Session.suggested_filename(%Session{origin: {:url, "file:///notebook.livemd"}})
+
+      assert "example.com.livemd" =
+               Session.suggested_filename(%Session{origin: {:url, "https://example.com"}})
+    end
+
+    test "from notebook title" do
+      for {expected, name} <- [
+            {"notebook.livemd", "notebook"},
+            {"notebook.livemd", "Notebook"},
+            {"notebook.livemd", "notebook.livemd"},
+            {"notebook.livemd", "Notebook.livemd"},
+            {"my_notebook.livemd", "My notebook"},
+            {"my_note_book.livemd", "My note/book"}
+          ] do
+        assert ^expected = Session.suggested_filename(%Session{notebook_name: name})
+      end
+    end
+  end
+
   defp start_session(opts \\ []) do
     opts = Keyword.merge([id: Utils.random_id()], opts)
     pid = start_supervised!({Session, opts}, id: opts[:id])

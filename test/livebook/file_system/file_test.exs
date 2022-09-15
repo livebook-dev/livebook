@@ -422,4 +422,76 @@ defmodule Livebook.FileSystem.FileTest do
       assert {:ok, false} = FileSystem.File.exists?(file)
     end
   end
+
+  describe "to_savable_without_conflict/1" do
+    @tag :tmp_dir
+    test "return file without file system conflict", %{tmp_dir: tmp_dir} do
+      path = Path.join(tmp_dir, "/notebook.livemd")
+      path_1 = Path.join(tmp_dir, "/notebook-1.livemd")
+      path_2 = Path.join(tmp_dir, "/notebook-2.livemd")
+      file = FileSystem.File.local(path)
+
+      assert %FileSystem.File{path: ^path} =
+               FileSystem.File.to_savable_without_conflict(file, ".livemd")
+
+      FileSystem.File.write(file, "content")
+
+      assert %FileSystem.File{path: ^path_1} =
+               FileSystem.File.to_savable_without_conflict(file, ".livemd")
+
+      FileSystem.File.local(path_1)
+      |> FileSystem.File.write("content")
+
+      assert %FileSystem.File{path: ^path_2} =
+               FileSystem.File.to_savable_without_conflict(file, ".livemd")
+    end
+  end
+
+  describe "sanitize_path/1" do
+    test "sanitize file name/directory", %{} do
+      for {expected, path} <- [
+            {"notebook.livemd", "notebook.livemd"},
+            {"dir/notebook.livemd", "dir/notebook.livemd"},
+            {"note_book.livemd", "note book.livemd"},
+            {"some-dir/notebook.livemd", "some-dir/notebook.livemd"},
+            {"some-dir/another_dir/notebook.livemd",
+             "some - dir / another _ dir / notebook . livemd"},
+            {"note_book", " ;!@#$%^&*()note;!@#$%^&*()book;!@#$%^&*() "}
+          ] do
+        assert ^expected = FileSystem.File.sanitize_path(path)
+      end
+    end
+  end
+
+  describe "force_extension/2" do
+    test "make sure file extension is set" do
+      for {expected, path} <- [
+            {"/notebook.livemd", "/notebook.livemd"},
+            {"/notebook.livemd", "/notebook"},
+            {"/notebook.md.livemd", "/notebook.md"}
+          ] do
+        assert %FileSystem.File{path: ^expected} =
+                 FileSystem.File.force_extension(
+                   FileSystem.File.local(path),
+                   ".livemd"
+                 )
+      end
+    end
+  end
+
+  describe "force_path_extension/2" do
+    test "make sure path file extension is set" do
+      for {expected, path} <- [
+            {"/notebook.livemd", "/notebook.livemd"},
+            {"/notebook.livemd", "/notebook"},
+            {"/notebook.md.livemd", "/notebook.md"}
+          ] do
+        assert ^expected =
+                 FileSystem.File.force_path_extension(
+                   path,
+                   ".livemd"
+                 )
+      end
+    end
+  end
 end

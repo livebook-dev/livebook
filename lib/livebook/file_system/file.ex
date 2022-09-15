@@ -275,4 +275,63 @@ defmodule Livebook.FileSystem.File do
   def exists?(file) do
     FileSystem.exists?(file.file_system, file.path)
   end
+
+  @doc """
+  Returns a file that is guaranteed to not exist.
+  """
+  @spec to_savable_without_conflict(t(), String.t(), integer()) :: t()
+  def to_savable_without_conflict(file, ext, n \\ 0) do
+    path =
+      if n > 0 do
+        # e.g. ~r/\.livemd$/
+        String.replace(
+          file.path,
+          Regex.compile!("\\#{ext}$"),
+          "-#{n}#{ext}"
+        )
+      else
+        file.path
+      end
+
+    check_file = Map.put(file, :path, path)
+
+    case exists?(check_file) do
+      {:ok, true} -> to_savable_without_conflict(file, ext, n + 1)
+      {:ok, false} -> check_file
+      {:error, error} -> raise "could not find file to create, got: #{inspect(error)}"
+    end
+  end
+
+  @doc """
+  Sanitizes a file path.
+  """
+  @spec sanitize_path(String.t()) :: String.t()
+  def sanitize_path(path) do
+    path
+    |> String.replace(~r/['’]/u, "")
+    |> String.replace(~r/[^\s\w-_\.\/]/u, " ")
+    |> String.replace(~r/\s*([-_\.\/])\s*/u, "\\1")
+    |> String.trim()
+    |> String.replace(~r/\s+/u, "_")
+  end
+
+  @doc """
+  Returns a file with the provided extension.
+  """
+  @spec force_extension(t(), String.t()) :: t()
+  def force_extension(file, ext) do
+    Map.update!(file, :path, &force_path_extension(&1, ext))
+  end
+
+  @doc """
+  Returns a file path with the provided extension.
+  """
+  @spec force_path_extension(String.t(), String.t()) :: String.t()
+  def force_path_extension(path, ext) do
+    if String.ends_with?(path, ext) do
+      path
+    else
+      path <> ext
+    end
+  end
 end

@@ -37,7 +37,8 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
        attrs: attrs,
        new_attrs: attrs,
        draft_file: nil,
-       saved_file: nil
+       saved_file: nil,
+       suggested_file: safe_suggested_file(session, attrs.file)
      )}
   end
 
@@ -78,37 +79,41 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 />
               </div>
             </div>
-            <div class="flex space-x-2 items-center max-w-full">
-              <span class="text-gray-700 whitespace-nowrap">File:</span>
+            <.file_location_display label="File:" file={@new_attrs.file}>
               <%= if @new_attrs.file do %>
-                <span
-                  class="tooltip right"
-                  data-tooltip={file_system_label(@new_attrs.file.file_system)}
+                <button
+                  class="button-base button-gray button-small"
+                  phx-click="open_file_select"
+                  disabled={@draft_file != nil}
                 >
-                  <span class="flex items-center">
-                    [<.file_system_icon file_system={@new_attrs.file.file_system} />]
-                  </span>
-                </span>
-                <span class="text-gray-700 whitespace-no-wrap font-medium text-ellipsis overflow-hidden">
-                  <%= @new_attrs.file.path %>
-                </span>
-                <button class="button-base button-gray button-small" phx-click="open_file_select">
                   Change file
                 </button>
                 <button class="button-base button-gray button-small" phx-click="clear_file">
                   Stop saving
                 </button>
               <% else %>
-                <span class="text-gray-700 whitespace-no-wrap">
-                  no file selected
-                </span>
                 <%= unless @draft_file do %>
                   <button class="button-base button-gray button-small" phx-click="open_file_select">
                     Choose a file
                   </button>
                 <% end %>
               <% end %>
-            </div>
+            </.file_location_display>
+            <%= if (!@new_attrs.file or !@session.file) and @suggested_file do %>
+              <.file_location_display file={@suggested_file}>
+                <:before_location>
+                  <button
+                    class="button-base button-gray button-small"
+                    phx-click="open_file_select_suggested"
+                    disabled={
+                      select_suggested_disabled?(@suggested_file, @draft_file, @new_attrs.file)
+                    }
+                  >
+                    Select Suggested
+                  </button>
+                </:before_location>
+              </.file_location_display>
+            <% end %>
           </form>
         </div>
         <%= if @draft_file do %>
@@ -118,7 +123,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 module={LivebookWeb.FileSelectComponent}
                 id="persistence_file_select"
                 file={@draft_file}
-                extnames={[LiveMarkdown.extension()]}
+                extnames={[extension()]}
                 running_files={@running_files}
                 submit_event={:confirm_file}
               >
@@ -175,11 +180,19 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   @impl true
   def handle_event("open_file_select", %{}, socket) do
     file = socket.assigns.new_attrs.file || Livebook.Config.local_filesystem_home()
+
+    socket =
+      case socket.assigns.new_attrs.file do
+        nil -> socket
+        file -> input_select_range(socket, file)
+      end
+
     {:noreply, assign(socket, draft_file: file)}
   end
 
   def handle_event("close_file_select", %{}, socket) do
-    {:noreply, assign(socket, draft_file: nil)}
+    suggested_file = safe_suggested_file(socket.assigns.session, socket.assigns.new_attrs.file)
+    {:noreply, assign(socket, draft_file: nil, suggested_file: suggested_file)}
   end
 
   def handle_event("confirm_file", %{}, socket) do
@@ -187,7 +200,31 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   end
 
   def handle_event("clear_file", %{}, socket) do
-    {:noreply, socket |> put_new_file(nil) |> assign(draft_file: nil)}
+    socket =
+      socket
+      |> put_new_file(nil)
+      |> assign(draft_file: nil)
+      |> assign(suggested_file: safe_suggested_file(socket.assigns.session))
+
+    {:noreply, socket}
+  end
+
+  def handle_event("open_file_select_suggested", %{}, socket) do
+    %{suggested_file: suggested_file} = socket.assigns
+    %{path: dirname} = FileSystem.File.containing_dir(suggested_file)
+
+    select_params = [
+      String.length(dirname),
+      String.length(suggested_file.path)
+    ]
+
+    socket =
+      socket
+      |> assign(draft_file: suggested_file)
+      |> push_event("focus", %{to: "#input-path"})
+      |> push_event("select_range", %{to: "#input-path", params: select_params})
+
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -228,7 +265,8 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   @impl true
   def handle_info({:set_file, file, _file_info}, socket) do
-    {:noreply, assign(socket, draft_file: file)}
+    suggested_file = safe_suggested_file(socket.assigns.session, file)
+    {:noreply, assign(socket, draft_file: file, suggested_file: suggested_file)}
   end
 
   def handle_info(:confirm_file, socket) do
@@ -237,7 +275,14 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   defp handle_confirm_file(socket) do
     file = normalize_file(socket.assigns.draft_file)
-    {:noreply, socket |> put_new_file(file) |> assign(draft_file: nil)}
+
+    socket =
+      socket
+      |> put_new_file(file)
+      |> assign(draft_file: nil)
+      |> assign(suggested_file: safe_suggested_file(socket.assigns.session, file))
+
+    {:noreply, socket}
   end
 
   defp parse_optional_integer(string) do
@@ -283,16 +328,32 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     end
   end
 
+  def extension(), do: LiveMarkdown.extension()
+
   defp normalize_file(nil), do: nil
 
   defp normalize_file(file) do
-    Map.update!(file, :path, fn path ->
-      if String.ends_with?(path, LiveMarkdown.extension()) do
-        path
-      else
-        path <> LiveMarkdown.extension()
+    FileSystem.File.force_extension(file, extension())
+  end
+
+  def safe_suggested_file(session, selected_file \\ nil, ext \\ extension()) do
+    root_path =
+      case selected_file do
+        nil -> Livebook.Config.local_filesystem_home()
+        file -> FileSystem.File.containing_dir(normalize_file(file))
       end
-    end)
+
+    with suggested_filename when is_binary(suggested_filename) <-
+           Session.suggested_filename(session, ext),
+         false <- suggested_filename in ["untitled_notebook.livemd", "untitled.livemd"] do
+      FileSystem.File.resolve(
+        root_path,
+        suggested_filename
+      )
+      |> FileSystem.File.to_savable_without_conflict(ext)
+    else
+      _ -> nil
+    end
   end
 
   defp savable?(new_attrs, attrs, running_files, draft_file) do
@@ -314,5 +375,32 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   defp map_diff(left, right) do
     Map.new(Map.to_list(left) -- Map.to_list(right))
+  end
+
+  def select_suggested_disabled?(suggested, draft, new) do
+    cond do
+      draft != nil -> suggested == draft
+      new != nil -> suggested == new
+      true -> false
+    end
+  end
+
+  def input_select_range(socket, file, to \\ "#input-path") do
+    if FileSystem.File.dir?(file) do
+      socket
+    else
+      dir = FileSystem.File.containing_dir(file)
+
+      params = [
+        String.length(dir.path),
+        String.length(file.path)
+      ]
+
+      push_event(
+        socket,
+        "select_range",
+        %{to: to, params: params}
+      )
+    end
   end
 end

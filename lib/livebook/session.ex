@@ -201,7 +201,7 @@ defmodule Livebook.Session do
   def file_name_for_download(session)
 
   def file_name_for_download(%{file: nil} = session) do
-    notebook_name_to_file_name(session.notebook_name)
+    suggested_filename(session, nil)
   end
 
   def file_name_for_download(session) do
@@ -1632,9 +1632,8 @@ defmodule Livebook.Session do
   defp notebook_name_to_file_name(notebook_name) do
     notebook_name
     |> String.downcase()
-    |> String.replace(~r/[^\s\w]/u, "")
-    |> String.trim()
-    |> String.replace(~r/\s+/u, "_")
+    |> String.replace(~r/\/+/u, " ")
+    |> FileSystem.File.sanitize_path()
     |> case do
       "" -> "untitled_notebook"
       name -> name
@@ -1777,4 +1776,44 @@ defmodule Livebook.Session do
 
   defp container_ref_for_section(%{parent_id: nil}), do: @main_container_ref
   defp container_ref_for_section(section), do: section.id
+
+  @doc """
+  Returns a suggested filename based on the session origin or name.
+  """
+  @spec suggested_filename(t(), String.t() | nil) :: String.t()
+  def suggested_filename(session, ext \\ Livebook.LiveMarkdown.extension())
+
+  def suggested_filename(%{origin: {:url, url}}, ext) do
+    %URI{
+      host: host,
+      path: path
+    } = URI.parse(url)
+
+    path =
+      case path do
+        nil ->
+          host
+
+        path ->
+          String.split(path, ~r(\/+))
+          |> List.last()
+      end
+      |> FileSystem.File.sanitize_path()
+
+    if ext do
+      FileSystem.File.force_path_extension(path, ext)
+    else
+      path
+    end
+  end
+
+  def suggested_filename(%{notebook_name: name}, ext) do
+    path = notebook_name_to_file_name(name)
+
+    if is_binary(ext) do
+      FileSystem.File.force_path_extension(path, ext)
+    else
+      path
+    end
+  end
 end
