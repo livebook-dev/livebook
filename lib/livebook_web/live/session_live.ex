@@ -56,13 +56,11 @@ defmodule LivebookWeb.SessionLive do
            platform: platform,
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
-           page_title: get_page_title(data.notebook.name),
-           env_vars: Settings.fetch_env_vars()
+           page_title: get_page_title(data.notebook.name)
          )
          |> assign_private(data: data)
          |> prune_outputs()
          |> prune_cell_sources()
-         |> put_env_vars()
          |> allow_upload(:cell_image,
            accept: ~w(.jpg .jpeg .png .gif .svg),
            max_entries: 1,
@@ -1192,16 +1190,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info({:env_vars_changed, env_vars}, socket) do
-    for env_var <- socket.assigns.env_vars do
-      System.delete_env(env_var.key)
-    end
-
-    socket =
-      socket
-      |> assign(env_vars: env_vars)
-      |> put_env_vars()
-
-    maybe_reconnect_runtime(socket)
+    Session.put_env_vars(socket.assigns.session.pid, env_vars)
 
     {:noreply, socket}
   end
@@ -1869,14 +1858,6 @@ defmodule LivebookWeb.SessionLive do
     do: put_in(cell.editor.source, :__pruned__)
 
   defp prune_smart_cell_editor_source(cell), do: cell
-
-  defp put_env_vars(socket) do
-    for env_var <- socket.assigns.env_vars do
-      System.put_env(env_var.key, env_var.value)
-    end
-
-    socket
-  end
 
   # Changes that affect only a single cell are still likely to
   # have impact on dirtiness, so we need to always mirror it
