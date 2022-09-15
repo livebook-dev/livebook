@@ -406,7 +406,7 @@ defmodule LivebookWeb.SessionLive do
           session={@session}
           secrets={@data_view.secrets}
           prefill_secret_label={@prefill_secret_label}
-          ref={@ref}
+          select_secret_ref={@select_secret_ref}
           current_secret={@current_secret}
           return_to={@self_path}
         />
@@ -758,8 +758,8 @@ defmodule LivebookWeb.SessionLive do
     {:noreply,
      assign(socket,
        prefill_secret_label: params["secret_label"],
-       ref: params["ref"],
-       current_secret: params["current_secret"]
+       current_secret: params["current_secret"],
+       select_secret_ref: if(params["current_secret"], do: socket.assigns.select_secret_ref)
      )}
   end
 
@@ -1122,14 +1122,15 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "select_secret",
-        %{"js_view_ref" => ref, "current_secret" => current_secret},
+        %{"js_view_ref" => select_secret_ref, "current_secret" => current_secret},
         socket
       ) do
+    socket = assign(socket, select_secret_ref: select_secret_ref)
+
     {:noreply,
      push_patch(socket,
        to:
          Routes.session_path(socket, :secrets, socket.assigns.session.id,
-           ref: ref,
            current_secret: current_secret
          )
      )}

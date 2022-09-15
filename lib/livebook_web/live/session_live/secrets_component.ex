@@ -63,7 +63,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           </div>
         </div>
       </.form>
-      <%= if @ref do %>
+      <%= if @select_secret_ref do %>
         <h3 class="text-2xl font-semibold text-gray-800">
           Select secret
         </h3>
@@ -128,9 +128,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp secret_options(secrets), do: [{"", ""} | Enum.map(secrets, &{&1.label, &1.label})]
 
-  defp push_secret_selected(%{assigns: %{ref: nil}} = socket, _), do: socket
+  defp push_secret_selected(%{assigns: %{select_secret_ref: nil}} = socket, _), do: socket
 
-  defp push_secret_selected(%{assigns: %{ref: ref}} = socket, secret_label) do
+  defp push_secret_selected(%{assigns: %{select_secret_ref: ref}} = socket, secret_label) do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_label: secret_label})
   end
 
