@@ -9,7 +9,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       if socket.assigns[:data] do
         socket
       else
-        assign(socket, data: %{"label" => assigns.prefill_secret_label || "", "value" => ""})
+        assign(socket, data: %{"label" => prefill_secret_label(socket), "value" => ""})
       end
 
     {:ok, socket}
@@ -51,7 +51,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             <%= text_input(f, :value,
               value: @data["value"],
               class: "input",
-              autofocus: !!@prefill_secret_label,
+              autofocus: !!@prefill_secret_label || unavailable_secret?(@current_secret, @secrets),
               spellcheck: "false"
             ) %>
           </.input_wrapper>
@@ -126,11 +126,30 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp data_error("value", ""), do: "can't be blank"
   defp data_error(_key, _value), do: nil
 
-  defp secret_options(secrets), do: Enum.map(secrets, &{&1.label, &1.label})
+  defp secret_options(secrets), do: [{"", ""} | Enum.map(secrets, &{&1.label, &1.label})]
 
   defp push_secret_selected(%{assigns: %{ref: nil}} = socket, _), do: socket
 
   defp push_secret_selected(%{assigns: %{ref: ref}} = socket, secret_label) do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_label: secret_label})
+  end
+
+  defp prefill_secret_label(socket) do
+    case socket.assigns.prefill_secret_label do
+      nil ->
+        if unavailable_secret?(socket.assigns.current_secret, socket.assigns.secrets),
+          do: socket.assigns.current_secret,
+          else: ""
+
+      prefill ->
+        prefill
+    end
+  end
+
+  defp unavailable_secret?(nil, _), do: false
+  defp unavailable_secret?("", _), do: false
+
+  defp unavailable_secret?(current_secret, secrets) do
+    current_secret not in Enum.map(secrets, & &1.label)
   end
 end
