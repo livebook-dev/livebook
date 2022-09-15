@@ -511,6 +511,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends an environment variables addition request to the server.
+  """
+  @spec put_env_vars(pid(), map()) :: :ok
+  def put_env_vars(pid, env_vars) do
+    GenServer.cast(pid, {:put_env_vars, self(), env_vars})
+  end
+
+  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
@@ -974,6 +982,13 @@ defmodule Livebook.Session do
     client_id = client_id(state, client_pid)
     operation = {:put_secret, client_id, secret}
     {:noreply, handle_operation(state, operation)}
+  end
+
+  def handle_cast({:put_env_vars, _client_pid, env_vars}, state) do
+    env_vars = Enum.map(env_vars, &{&1.key, &1.value})
+    Livebook.Runtime.put_system_envs(state.data.runtime, env_vars)
+
+    {:noreply, state}
   end
 
   def handle_cast(:save, state) do
