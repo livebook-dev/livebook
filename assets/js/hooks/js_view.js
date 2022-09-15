@@ -415,7 +415,10 @@ const JSView = {
       this.syncCallbackQueue.push(event.callback);
       this.postMessage({ type: "sync" });
     } else if (event.type == "secretSelected") {
-      this.postMessage({ type: "secretSelected", secretLabel: event.secretLabel });
+      this.postMessage({
+        type: "secretSelected",
+        secretLabel: event.secretLabel,
+      });
     }
   },
 };

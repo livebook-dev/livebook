@@ -205,9 +205,12 @@ const Session = {
       this.handleClientsUpdated(clients);
     });
 
-    this.handleEvent("secret_selected", ({ select_secret_ref, secret_label }) => {
-      this.handleSecretSelected(select_secret_ref, secret_label);
-    });
+    this.handleEvent(
+      "secret_selected",
+      ({ select_secret_ref, secret_label }) => {
+        this.handleSecretSelected(select_secret_ref, secret_label);
+      }
+    );
 
     this.handleEvent(
       "location_report",
