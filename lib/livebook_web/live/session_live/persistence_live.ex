@@ -288,13 +288,13 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
   defp normalize_file(file, session) do
     ext = LiveMarkdown.extension()
 
-    if String.ends_with?(file.path, "/") do
-      Map.put(file, :path, file.path <> Session.suggested_filename(session, ext))
-      |> FileSystem.File.force_extension(ext)
+    with true <- String.ends_with?(file.path, "/"),
+         suggested_filename <- Session.suggested_filename(session, ext),
+         false <- suggested_filename in ["untitled-notebook.livemd", "untitled.livemd"] do
+      Map.put(file, :path, file.path <> suggested_filename)
       |> FileSystem.File.to_savable_without_conflict(ext)
     else
-      file
-      |> FileSystem.File.force_extension(ext)
+      _ -> FileSystem.File.force_extension(file, ext)
     end
   end
 
