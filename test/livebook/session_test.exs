@@ -911,8 +911,8 @@ defmodule Livebook.SessionTest do
             {"notebook.livemd", "Notebook"},
             {"notebook.livemd", "notebook.livemd"},
             {"notebook.livemd", "Notebook.livemd"},
-            {"my_notebook.livemd", "My notebook"},
-            {"my_note_book.livemd", "My note/book"}
+            {"my-notebook.livemd", "My notebook"},
+            {"my-note-book.livemd", "My note/book"}
           ] do
         assert ^expected = Session.suggested_filename(%Session{notebook_name: name})
       end

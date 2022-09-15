@@ -345,7 +345,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
     with suggested_filename when is_binary(suggested_filename) <-
            Session.suggested_filename(session, ext),
-         false <- suggested_filename in ["untitled_notebook.livemd", "untitled.livemd"] do
+         false <- suggested_filename in ["untitled-notebook.livemd", "untitled.livemd"] do
       FileSystem.File.resolve(
         root_path,
         suggested_filename

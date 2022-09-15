@@ -305,14 +305,15 @@ defmodule Livebook.FileSystem.File do
   @doc """
   Sanitizes a file path.
   """
-  @spec sanitize_path(String.t()) :: String.t()
-  def sanitize_path(path) do
+  @spec sanitize_path(String.t(), String.t()) :: String.t()
+  def sanitize_path(path, separator \\ "_") do
+    # valid separator characters: -_./
     path
     |> String.replace(~r/['’]/u, "")
     |> String.replace(~r/[^\s\w-_\.\/]/u, " ")
     |> String.replace(~r/\s*([-_\.\/])\s*/u, "\\1")
     |> String.trim()
-    |> String.replace(~r/\s+/u, "_")
+    |> String.replace(~r/\s+/u, separator)
   end
 
   @doc """

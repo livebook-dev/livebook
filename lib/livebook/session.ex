@@ -201,7 +201,7 @@ defmodule Livebook.Session do
   def file_name_for_download(session)
 
   def file_name_for_download(%{file: nil} = session) do
-    suggested_filename(session, nil)
+    suggested_filename(session, nil, "_")
   end
 
   def file_name_for_download(session) do
@@ -1629,11 +1629,11 @@ defmodule Livebook.Session do
     "#{date_str}/#{time_str}_#{title_str}_#{random_str}.livemd"
   end
 
-  defp notebook_name_to_file_name(notebook_name) do
+  defp notebook_name_to_file_name(notebook_name, separator \\ "_") do
     notebook_name
     |> String.downcase()
     |> String.replace(~r/\/+/u, " ")
-    |> FileSystem.File.sanitize_path()
+    |> FileSystem.File.sanitize_path(separator)
     |> case do
       "" -> "untitled_notebook"
       name -> name
@@ -1780,10 +1780,10 @@ defmodule Livebook.Session do
   @doc """
   Returns a suggested filename based on the session origin or name.
   """
-  @spec suggested_filename(t(), String.t() | nil) :: String.t()
-  def suggested_filename(session, ext \\ Livebook.LiveMarkdown.extension())
+  @spec suggested_filename(t(), String.t() | nil, String.t()) :: String.t()
+  def suggested_filename(session, ext \\ Livebook.LiveMarkdown.extension(), separator \\ "-")
 
-  def suggested_filename(%{origin: {:url, url}}, ext) do
+  def suggested_filename(%{origin: {:url, url}}, ext, separator) do
     %URI{
       host: host,
       path: path
@@ -1798,7 +1798,7 @@ defmodule Livebook.Session do
           String.split(path, ~r(\/+))
           |> List.last()
       end
-      |> FileSystem.File.sanitize_path()
+      |> FileSystem.File.sanitize_path(separator)
 
     if ext do
       FileSystem.File.force_path_extension(path, ext)
@@ -1807,8 +1807,8 @@ defmodule Livebook.Session do
     end
   end
 
-  def suggested_filename(%{notebook_name: name}, ext) do
-    path = notebook_name_to_file_name(name)
+  def suggested_filename(%{notebook_name: name}, ext, separator) do
+    path = notebook_name_to_file_name(name, separator)
 
     if is_binary(ext) do
       FileSystem.File.force_path_extension(path, ext)
