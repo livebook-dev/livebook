@@ -51,12 +51,16 @@ defmodule LivebookWeb.Router do
 
       live "/settings", SettingsLive, :page
       live "/settings/add-file-system", SettingsLive, :add_file_system
+      live "/settings/env-var/new", SettingsLive, :add_env_var
+      live "/settings/env-var/edit/:env_var_id", SettingsLive, :edit_env_var
 
       live "/explore", ExploreLive, :page
       live "/explore/notebooks/:slug", ExploreLive, :notebook
 
       live "/hub", Hub.NewLive, :new, as: :hub
       live "/hub/:id", Hub.EditLive, :edit, as: :hub
+      live "/hub/:id/env-var/new", Hub.EditLive, :add_env_var, as: :hub
+      live "/hub/:id/env-var/edit/:env_var_id", Hub.EditLive, :edit_env_var, as: :hub
 
       live "/sessions/:id", SessionLive, :page
       live "/sessions/:id/shortcuts", SessionLive, :shortcuts

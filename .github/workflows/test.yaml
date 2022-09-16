@@ -70,8 +70,8 @@ jobs:
           otp-version: ${{ env.otp }}
           elixir-version: ${{ env.elixir }}
       - name: Start epmd
-        run: cmd /c "START /b epmd"
-        working-directory: ${{ env.INSTALL_DIR_FOR_OTP }}/erts-13.0/bin
+        run: $(elixir -e 'IO.puts "#{:code.root_dir()}/erts-#{:erlang.system_info(:version)}"')/bin/epmd.exe -daemon
+        shell: bash
       # Add tar that supports symlinks, see https://github.com/actions/virtual-environments/issues/4679
       - name: Add tar.exe
         run: |
