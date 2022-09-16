@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Settings, Delta, Notebook, Runtime, LiveMarkdown}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
   alias Livebook.Notebook.Cell
   alias Livebook.JSInterop
 
