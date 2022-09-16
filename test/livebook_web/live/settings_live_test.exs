@@ -8,19 +8,19 @@ defmodule LivebookWeb.SettingsLiveTest do
 
   describe "environment variables configuration" do
     test "list persisted environment variables", %{conn: conn} do
-      insert_env_var(:env_var, key: "MY_ENVIRONMENT_VAR")
+      insert_env_var(:env_var, name: "MY_ENVIRONMENT_VAR")
       {:ok, _view, html} = live(conn, Routes.settings_path(conn, :page))
 
       assert html =~ "MY_ENVIRONMENT_VAR"
     end
 
     test "adds an environment variable", %{conn: conn} do
-      attrs = params_for(:env_var, key: "JAKE_PERALTA_ENV_VAR")
+      attrs = params_for(:env_var, name: "JAKE_PERALTA_ENV_VAR")
 
       {:ok, view, html} = live(conn, Routes.settings_path(conn, :add_env_var))
 
       assert html =~ "Add environment variable"
-      refute html =~ attrs.key
+      refute html =~ attrs.name
 
       view
       |> element("#env-var-form")
@@ -36,19 +36,19 @@ defmodule LivebookWeb.SettingsLiveTest do
 
       assert_patch(view, Routes.settings_path(conn, :page))
 
-      assert render(view) =~ attrs.key
+      assert render(view) =~ attrs.name
     end
 
     test "updates an environment variable", %{conn: conn} do
-      env_var = insert_env_var(:env_var, key: "UPDATE_ME")
+      env_var = insert_env_var(:env_var, name: "UPDATE_ME")
 
       {:ok, view, html} = live(conn, Routes.settings_path(conn, :page))
 
-      assert html =~ env_var.key
+      assert html =~ env_var.name
 
-      render_click(view, "edit_env_var", %{"env_var" => env_var.key})
+      render_click(view, "edit_env_var", %{"env_var" => env_var.name})
 
-      assert_patch(view, Routes.settings_path(conn, :edit_env_var, env_var.key))
+      assert_patch(view, Routes.settings_path(conn, :edit_env_var, env_var.name))
       assert render(view) =~ "Edit environment variable"
 
       form = element(view, "#env-var-form")
@@ -63,9 +63,9 @@ defmodule LivebookWeb.SettingsLiveTest do
       render_submit(form, %{"env_var" => %{"value" => "123456"}})
       assert_patch(view, Routes.settings_path(conn, :page))
 
-      updated_env_var = Settings.fetch_env_var!(env_var.key)
+      updated_env_var = Settings.fetch_env_var!(env_var.name)
 
-      assert updated_env_var.key == env_var.key
+      assert updated_env_var.name == env_var.name
       refute updated_env_var.value == env_var.value
     end
 
@@ -73,11 +73,11 @@ defmodule LivebookWeb.SettingsLiveTest do
       env_var = insert_env_var(:env_var)
       {:ok, view, html} = live(conn, Routes.settings_path(conn, :page))
 
-      assert html =~ env_var.key
+      assert html =~ env_var.name
 
-      render_click(view, "delete_env_var", %{"env_var" => env_var.key})
+      render_click(view, "delete_env_var", %{"env_var" => env_var.name})
 
-      refute render(view) =~ env_var.key
+      refute render(view) =~ env_var.name
     end
   end
 end

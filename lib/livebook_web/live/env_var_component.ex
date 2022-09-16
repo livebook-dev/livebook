@@ -41,11 +41,11 @@ defmodule LivebookWeb.EnvVarComponent do
         spellcheck="false"
       >
         <div class="flex flex-col space-y-4">
-          <.input_wrapper form={f} field={:key} class="flex flex-col space-y-1">
+          <.input_wrapper form={f} field={:name} class="flex flex-col space-y-1">
             <div class="input-label">
-              Key <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
+              Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
             </div>
-            <%= text_input(f, :key, class: "input", autofocus: @operation == :new) %>
+            <%= text_input(f, :name, class: "input", autofocus: @operation == :new) %>
           </.input_wrapper>
           <.input_wrapper form={f} field={:value} class="flex flex-col space-y-1">
             <div class="input-label">Value</div>

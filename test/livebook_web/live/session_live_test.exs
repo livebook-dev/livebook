@@ -942,51 +942,93 @@ defmodule LivebookWeb.SessionLiveTest do
     end
   end
 
-  test "outputs persisted env var from ets", %{conn: conn, session: session} do
-    Session.subscribe(session.id)
-    {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+  describe "environment variables" do
+    test "outputs persisted env var from ets", %{conn: conn, session: session} do
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
 
-    section_id = insert_section(session.pid)
+      section_id = insert_section(session.pid)
 
-    cell_id =
-      insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("MY_AWESOME_ENV")})
+      cell_id =
+        insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("MY_AWESOME_ENV")})
 
-    view
-    |> element(~s{[data-el-session]})
-    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-    assert_receive {:operation,
-                    {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
 
-    attrs = params_for(:env_var, key: "MY_AWESOME_ENV", value: "MyEnvVarValue")
-    Settings.set_env_var(attrs)
+      attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
+      Settings.set_env_var(attrs)
 
-    view
-    |> element(~s{[data-el-session]})
-    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-    assert_receive {:operation,
-                    {:add_cell_evaluation_response, _, ^cell_id,
-                     {:text, "\e[32m\"MyEnvVarValue\"\e[0m"}, _}}
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:text, "\e[32m\"MyEnvVarValue\"\e[0m"}, _}}
 
-    Settings.set_env_var(%{attrs | value: "OTHER_VALUE"})
+      Settings.set_env_var(%{attrs | value: "OTHER_VALUE"})
 
-    view
-    |> element(~s{[data-el-session]})
-    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-    assert_receive {:operation,
-                    {:add_cell_evaluation_response, _, ^cell_id,
-                     {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id,
+                       {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
 
-    Settings.unset_env_var("MY_AWESOME_ENV")
+      Settings.unset_env_var("MY_AWESOME_ENV")
 
-    view
-    |> element(~s{[data-el-session]})
-    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
 
-    assert_receive {:operation,
-                    {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
+    end
+
+    @tag :tmp_dir
+    test "outputs persisted PATH delimited with os PATH env var",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
+      separator =
+        case :os.type() do
+          {:win32, _} -> ";"
+          _ -> ":"
+        end
+
+      os_path = System.get_env("PATH", "")
+      old_expected_path = ~s/\e[32m"#{os_path}"\e[0m/
+      expected_path = ~s/\e[32m"#{os_path}#{separator}#{tmp_dir}"\e[0m/
+
+      attrs = params_for(:env_var, name: "PATH", value: tmp_dir)
+      Settings.set_env_var(attrs)
+
+      Session.subscribe(session.id)
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}")
+
+      section_id = insert_section(session.pid)
+
+      cell_id = insert_text_cell(session.pid, section_id, :code, ~s{System.get_env("PATH")})
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, ^expected_path}, _}}
+
+      Settings.unset_env_var("PATH")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, ^old_expected_path}, _}}
+    end
   end
 
   # Helpers

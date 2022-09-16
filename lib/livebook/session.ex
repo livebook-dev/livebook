@@ -1125,7 +1125,7 @@ defmodule Livebook.Session do
 
   def handle_info({:env_var_set, env_var}, state) do
     if Runtime.connected?(state.data.runtime) do
-      Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+      Runtime.put_system_envs(state.data.runtime, [{env_var.name, env_var.value}])
     end
 
     {:noreply, state}
@@ -1133,7 +1133,7 @@ defmodule Livebook.Session do
 
   def handle_info({:env_var_unset, env_var}, state) do
     if Runtime.connected?(state.data.runtime) do
-      Runtime.delete_system_envs(state.data.runtime, [env_var.key])
+      Runtime.delete_system_envs(state.data.runtime, [env_var.name])
     end
 
     {:noreply, state}
@@ -1576,7 +1576,7 @@ defmodule Livebook.Session do
   end
 
   defp set_runtime_env_vars(state) do
-    env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.key, &1.value})
+    env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.name, &1.value})
     Runtime.put_system_envs(state.data.runtime, env_vars)
   end
 
