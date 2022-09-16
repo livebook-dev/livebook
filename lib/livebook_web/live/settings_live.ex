@@ -14,7 +14,7 @@ defmodule LivebookWeb.SettingsLive do
     {:ok,
      assign(socket,
        file_systems: Livebook.Settings.file_systems(),
-       env_vars: Livebook.Settings.fetch_env_vars(),
+       env_vars: Livebook.Settings.fetch_env_vars() |> Enum.sort(),
        env_var: nil,
        autosave_path_state: %{
          file: autosave_dir(),
@@ -132,7 +132,6 @@ defmodule LivebookWeb.SettingsLive do
               env_vars={@env_vars}
               return_to={Routes.settings_path(@socket, :page)}
               add_env_var_path={Routes.settings_path(@socket, :add_env_var)}
-              target={@socket.view}
             />
           </div>
         </div>
@@ -340,7 +339,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do
-    Livebook.Settings.delete_env_var(key)
+    Livebook.Settings.unset_env_var(key)
     {:noreply, socket}
   end
 
@@ -357,7 +356,20 @@ defmodule LivebookWeb.SettingsLive do
     handle_event("set_autosave_path", %{}, socket)
   end
 
-  def handle_info({:env_vars_changed, env_vars}, socket) do
+  def handle_info({:env_var_set, env_var}, socket) do
+    idx = Enum.find_index(socket.assigns.env_vars, &(&1.key == env_var.key))
+
+    env_vars =
+      if idx,
+        do: List.replace_at(socket.assigns.env_vars, idx, env_var),
+        else: [env_var | socket.assigns.env_vars]
+
+    {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
+  end
+
+  def handle_info({:env_var_unset, env_var}, socket) do
+    env_vars = Enum.reject(socket.assigns.env_vars, &(&1.key == env_var.key))
+
     {:noreply, assign(socket, env_vars: env_vars, env_var: nil)}
   end
 

@@ -7,7 +7,7 @@ defmodule Livebook.SettingsTest do
     env_var = insert_env_var(:env_var)
     assert env_var in Settings.fetch_env_vars()
 
-    Settings.delete_env_var(env_var.key)
+    Settings.unset_env_var(env_var.key)
     refute env_var in Settings.fetch_env_vars()
   end
 
@@ -21,7 +21,7 @@ defmodule Livebook.SettingsTest do
     env_var = insert_env_var(:env_var, key: "123456")
     assert Settings.fetch_env_var!("123456") == env_var
 
-    Settings.delete_env_var("123456")
+    Settings.unset_env_var("123456")
   end
 
   test "env_var_exists?/1" do
@@ -29,7 +29,7 @@ defmodule Livebook.SettingsTest do
     insert_env_var(:env_var, key: "FOO")
     assert Settings.env_var_exists?("FOO")
 
-    Settings.delete_env_var("FOO")
+    Settings.unset_env_var("FOO")
   end
 
   describe "set_env_var/1" do
@@ -40,7 +40,7 @@ defmodule Livebook.SettingsTest do
       assert attrs.key == env_var.key
       assert attrs.value == env_var.value
 
-      Settings.delete_env_var(env_var.key)
+      Settings.unset_env_var(env_var.key)
     end
 
     test "updates an environment variable" do
@@ -51,7 +51,7 @@ defmodule Livebook.SettingsTest do
       assert env_var.key == updated_env_var.key
       assert updated_env_var.value == attrs.value
 
-      Settings.delete_env_var(env_var.key)
+      Settings.unset_env_var(env_var.key)
     end
 
     test "returns changeset error" do

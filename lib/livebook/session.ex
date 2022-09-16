@@ -567,6 +567,7 @@ defmodule Livebook.Session do
 
   @impl true
   def init(opts) do
+    Livebook.Settings.subscribe()
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -583,6 +584,7 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
+
       {:ok, state}
     else
       {:error, error} ->
@@ -1121,6 +1123,22 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
+  def handle_info({:env_var_set, env_var}, state) do
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:env_var_unset, env_var}, state) do
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.delete_system_envs(state.data.runtime, [env_var.key])
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info(_message, state), do: {:noreply, state}
 
   @impl true
@@ -1330,6 +1348,8 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
       set_runtime_secrets(state, state.data.secrets)
+      set_runtime_env_vars(state)
+
       state
     else
       state
@@ -1553,6 +1573,11 @@ defmodule Livebook.Session do
   defp set_runtime_secrets(state, secrets) do
     secrets = Enum.map(secrets, &{"LB_#{&1.label}", &1.value})
     Runtime.put_system_envs(state.data.runtime, secrets)
+  end
+
+  defp set_runtime_env_vars(state) do
+    env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.key, &1.value})
+    Runtime.put_system_envs(state.data.runtime, env_vars)
   end
 
   defp notify_update(state) do
