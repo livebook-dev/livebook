@@ -3,14 +3,22 @@ defmodule LivebookWeb.EnvVarsComponent do
 
   @impl true
   def render(assigns) do
-    assigns = assign_new(assigns, :target, fn -> nil end)
+    assigns =
+      assigns
+      |> assign_new(:target, fn -> nil end)
+      |> assign_new(:edit_label, fn -> "Edit" end)
 
     ~H"""
     <div id={@id} class="flex flex-col space-y-4">
       <div class="flex flex-col space-y-4">
         <%= for env_var <- @env_vars do %>
           <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-            <.env_var_info socket={@socket} env_var={env_var} target={@target} />
+            <.env_var_info
+              socket={@socket}
+              env_var={env_var}
+              edit_label={@edit_label}
+              target={@target}
+            />
           </div>
         <% end %>
       </div>
@@ -51,7 +59,7 @@ defmodule LivebookWeb.EnvVarsComponent do
               class="menu-item text-gray-600"
             >
               <.remix_icon icon="file-edit-line" />
-              <span class="font-medium">Edit</span>
+              <span class="font-medium"><%= @edit_label %></span>
             </button>
             <button
               id={"env-var-#{@env_var.name}-delete"}

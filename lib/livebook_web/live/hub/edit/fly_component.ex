@@ -105,6 +105,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             env_vars={@env_vars}
             return_to={Routes.hub_path(@socket, :edit, @hub.id)}
             add_env_var_path={Routes.hub_path(@socket, :add_env_var, @hub.id)}
+            edit_label="Replace"
             target={@myself}
           />
         </div>
