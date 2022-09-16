@@ -14,7 +14,7 @@ defmodule LivebookWeb.SettingsLive do
     {:ok,
      assign(socket,
        file_systems: Livebook.Settings.file_systems(),
-       env_vars: Livebook.Settings.fetch_env_vars(),
+       env_vars: Livebook.Settings.fetch_env_vars() |> Enum.sort(),
        env_var: nil,
        autosave_path_state: %{
          file: autosave_dir(),
@@ -370,7 +370,7 @@ defmodule LivebookWeb.SettingsLive do
   def handle_info({:env_var_unset, env_var}, socket) do
     env_vars = Enum.reject(socket.assigns.env_vars, &(&1.key == env_var.key))
 
-    {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
+    {:noreply, assign(socket, env_vars: env_vars, env_var: nil)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

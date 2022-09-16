@@ -978,18 +978,6 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:put_env_var, _client_pid, env_var}, state) do
-    Livebook.Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
-
-    {:noreply, state}
-  end
-
-  def handle_cast({:delete_env_var, _client_pid, env_var}, state) do
-    Livebook.Runtime.delete_system_envs(state.data.runtime, [env_var.key])
-
-    {:noreply, state}
-  end
-
   def handle_cast(:save, state) do
     {:noreply, maybe_save_notebook_async(state)}
   end
@@ -1136,13 +1124,17 @@ defmodule Livebook.Session do
   end
 
   def handle_info({:env_var_set, env_var}, state) do
-    Livebook.Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+    end
 
     {:noreply, state}
   end
 
   def handle_info({:env_var_unset, env_var}, state) do
-    Livebook.Runtime.delete_system_envs(state.data.runtime, [env_var.key])
+    if Runtime.connected?(state.data.runtime) do
+      Runtime.delete_system_envs(state.data.runtime, [env_var.key])
+    end
 
     {:noreply, state}
   end
