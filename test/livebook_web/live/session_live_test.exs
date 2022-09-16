@@ -991,11 +991,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     @tag :tmp_dir
-    test "outputs persisted PATH delimited with os PATH env var", %{
-      conn: conn,
-      session: session,
-      tmp_dir: tmp_dir
-    } do
+    test "outputs persisted PATH delimited with os PATH env var",
+         %{conn: conn, session: session, tmp_dir: tmp_dir} do
       separator =
         case :os.type() do
           {:win32, _} -> ";"

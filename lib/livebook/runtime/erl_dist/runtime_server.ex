@@ -478,16 +478,23 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast({:put_system_envs, envs}, state) do
-    envs |> normalize_path_env(state) |> System.put_env()
+    envs
+    |> Enum.map(fn
+      {"PATH", path} -> {"PATH", state.initial_path <> os_path_separator() <> path}
+      other -> other
+    end)
+    |> System.put_env()
 
     {:noreply, state}
   end
 
   def handle_cast({:delete_system_envs, names}, state) do
-    Enum.each(names, fn
-      "PATH" -> System.put_env("PATH", state.initial_path)
-      name -> System.delete_env(name)
+    names
+    |> Enum.map(fn
+      "PATH" -> {"PATH", state.initial_path}
+      name -> {name, nil}
     end)
+    |> System.put_env()
 
     {:noreply, state}
   end
@@ -649,19 +656,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end)
   end
 
-  defp normalize_path_env(envs, state) do
-    Enum.map(envs, fn
-      {"PATH", path} ->
-        separator =
-          case :os.type() do
-            {:win32, _} -> ";"
-            _ -> ":"
-          end
-
-        {"PATH", state.initial_path <> separator <> path}
-
-      other ->
-        other
-    end)
+  defp os_path_separator() do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
+    end
   end
 end
