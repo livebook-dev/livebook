@@ -600,7 +600,6 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
-      Enum.each(Livebook.Settings.fetch_env_vars(), &put_env_var(self(), &1))
 
       {:ok, state}
     else
@@ -1002,7 +1001,7 @@ defmodule Livebook.Session do
   end
 
   def handle_cast({:delete_env_var, _client_pid, env_var}, state) do
-    Livebook.Runtime.delete_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+    Livebook.Runtime.delete_system_envs(state.data.runtime, [env_var.key])
 
     {:noreply, state}
   end
@@ -1152,14 +1151,14 @@ defmodule Livebook.Session do
     {:noreply, state}
   end
 
-  def handle_info({:env_var_changed, env_var}, state) do
-    put_env_var(self(), env_var)
+  def handle_info({:env_var_set, env_var}, state) do
+    Livebook.Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
 
     {:noreply, state}
   end
 
-  def handle_info({:env_var_deleted, env_var}, state) do
-    delete_env_var(self(), env_var)
+  def handle_info({:env_var_unset, env_var}, state) do
+    Livebook.Runtime.delete_system_envs(state.data.runtime, [env_var.key])
 
     {:noreply, state}
   end
@@ -1373,6 +1372,11 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
       set_runtime_secrets(state, state.data.secrets)
+
+      for env_var <- Livebook.Settings.fetch_env_vars() do
+        Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+      end
+
       state
     else
       state

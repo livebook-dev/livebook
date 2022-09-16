@@ -167,7 +167,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Adds system environment variables.
+  Sets the given environment variables.
   """
   @spec put_system_envs(pid(), map()) :: :ok
   def put_system_envs(pid, secrets) do
@@ -175,11 +175,11 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   @doc """
-  Deletes system environment variables.
+  Unsets the given environment variables.
   """
-  @spec delete_system_envs(pid(), map()) :: :ok
-  def delete_system_envs(pid, secrets) do
-    GenServer.cast(pid, {:delete_system_envs, secrets})
+  @spec delete_system_envs(pid(), list(String.t())) :: :ok
+  def delete_system_envs(pid, names) do
+    GenServer.cast(pid, {:delete_system_envs, names})
   end
 
   @doc """
@@ -482,8 +482,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:delete_system_envs, secrets}, state) do
-    for {key, _} <- secrets, do: System.delete_env(key)
+  def handle_cast({:delete_system_envs, names}, state) do
+    Enum.each(names, &System.delete_env/1)
 
     {:noreply, state}
   end

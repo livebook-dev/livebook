@@ -163,9 +163,9 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Persists the given environment variable.
+  Sets the given environment variable.
 
-  With success, notifies interested processes about environment variables
+  With success, notifies interested processes about environment variable
   data change. Otherwise, it will return an error tuple with changeset.
   """
   @spec set_env_var(EnvVar.t(), map()) ::
@@ -182,22 +182,23 @@ defmodule Livebook.Settings do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
 
     with :ok <- storage().insert(:env_vars, env_var.key, attributes),
-         :ok <- broadcast_env_vars_change({:env_var_changed, env_var}) do
+         :ok <- broadcast_env_vars_change({:env_var_set, env_var}) do
       {:ok, env_var}
     end
   end
 
   @doc """
-  Deletes an environment variable from given id.
+  Unsets an environment variable from given id.
 
-  Also, it notifies interested processes about environment variables data change.
+  With success, notifies interested processes about environment variable
+  deletion. Otherwise, it does nothing.
   """
-  @spec delete_env_var(String.t()) :: :ok
-  def delete_env_var(id) do
+  @spec unset_env_var(String.t()) :: :ok
+  def unset_env_var(id) do
     if env_var_exists?(id) do
       env_var = fetch_env_var!(id)
       storage().delete(:env_vars, id)
-      broadcast_env_vars_change({:env_var_deleted, env_var})
+      broadcast_env_vars_change({:env_var_unset, env_var})
     end
 
     :ok
@@ -218,8 +219,8 @@ defmodule Livebook.Settings do
 
   ## Messages
 
-    * `{:env_var_changed, env_var}`
-    * `{:env_var_deleted, env_var}`
+    * `{:env_var_set, env_var}`
+    * `{:env_var_unset, env_var}`
 
   """
   @spec subscribe() :: :ok | {:error, term()}

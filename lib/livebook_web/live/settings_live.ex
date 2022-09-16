@@ -339,7 +339,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_event("delete_env_var", %{"env_var" => key}, socket) do
-    Livebook.Settings.delete_env_var(key)
+    Livebook.Settings.unset_env_var(key)
     {:noreply, socket}
   end
 
@@ -356,7 +356,7 @@ defmodule LivebookWeb.SettingsLive do
     handle_event("set_autosave_path", %{}, socket)
   end
 
-  def handle_info({:env_var_changed, env_var}, socket) do
+  def handle_info({:env_var_set, env_var}, socket) do
     idx = Enum.find_index(socket.assigns.env_vars, &(&1.key == env_var.key))
 
     env_vars =
@@ -367,7 +367,7 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
   end
 
-  def handle_info({:env_var_deleted, env_var}, socket) do
+  def handle_info({:env_var_unset, env_var}, socket) do
     idx = Enum.find_index(socket.assigns.env_vars, &(&1.key == env_var.key))
 
     env_vars =

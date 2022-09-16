@@ -979,7 +979,7 @@ defmodule LivebookWeb.SessionLiveTest do
                     {:add_cell_evaluation_response, _, ^cell_id,
                      {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
 
-    Settings.delete_env_var("MY_AWESOME_ENV")
+    Settings.unset_env_var("MY_AWESOME_ENV")
 
     view
     |> element(~s{[data-el-session]})
