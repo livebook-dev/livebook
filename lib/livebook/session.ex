@@ -511,11 +511,19 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends an environment variables addition request to the server.
+  Sends an environment variable addition request to the server.
   """
-  @spec put_env_vars(pid(), map()) :: :ok
-  def put_env_vars(pid, env_vars) do
-    GenServer.cast(pid, {:put_env_vars, self(), env_vars})
+  @spec put_env_var(pid(), Livebook.Settings.EnvVar.t()) :: :ok
+  def put_env_var(pid, env_var) do
+    GenServer.cast(pid, {:put_env_var, self(), env_var})
+  end
+
+  @doc """
+  Sends an environment variable deletion request to the server.
+  """
+  @spec delete_env_var(pid(), Livebook.Settings.EnvVar.t()) :: :ok
+  def delete_env_var(pid, env_var) do
+    GenServer.cast(pid, {:delete_env_var, self(), env_var})
   end
 
   @doc """
@@ -575,6 +583,7 @@ defmodule Livebook.Session do
 
   @impl true
   def init(opts) do
+    Livebook.Settings.subscribe()
     id = Keyword.fetch!(opts, :id)
 
     {:ok, worker_pid} = Livebook.Session.Worker.start_link(id)
@@ -591,6 +600,8 @@ defmodule Livebook.Session do
              else: :ok
            ) do
       state = schedule_autosave(state)
+      Enum.each(Livebook.Settings.fetch_env_vars(), &put_env_var(self(), &1))
+
       {:ok, state}
     else
       {:error, error} ->
@@ -984,9 +995,14 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:put_env_vars, _client_pid, env_vars}, state) do
-    env_vars = Enum.map(env_vars, &{&1.key, &1.value})
-    Livebook.Runtime.put_system_envs(state.data.runtime, env_vars)
+  def handle_cast({:put_env_var, _client_pid, env_var}, state) do
+    Livebook.Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:delete_env_var, _client_pid, env_var}, state) do
+    Livebook.Runtime.delete_system_envs(state.data.runtime, %{env_var.key => env_var.value})
 
     {:noreply, state}
   end
@@ -1132,6 +1148,18 @@ defmodule Livebook.Session do
       else
         _ -> state
       end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:env_var_changed, env_var}, state) do
+    put_env_var(self(), env_var)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:env_var_deleted, env_var}, state) do
+    delete_env_var(self(), env_var)
 
     {:noreply, state}
   end

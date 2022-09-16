@@ -224,4 +224,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.ElixirStandalone do
   def put_system_envs(runtime, secrets) do
     RuntimeServer.put_system_envs(runtime.server_pid, secrets)
   end
+
+  def delete_system_envs(runtime, secrets) do
+    RuntimeServer.delete_system_envs(runtime.server_pid, secrets)
+  end
 end

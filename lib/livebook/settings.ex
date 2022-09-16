@@ -182,7 +182,7 @@ defmodule Livebook.Settings do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
 
     with :ok <- storage().insert(:env_vars, env_var.key, attributes),
-         :ok <- broadcast_env_vars_change() do
+         :ok <- broadcast_env_vars_change({:env_var_changed, env_var}) do
       {:ok, env_var}
     end
   end
@@ -194,8 +194,13 @@ defmodule Livebook.Settings do
   """
   @spec delete_env_var(String.t()) :: :ok
   def delete_env_var(id) do
-    storage().delete(:env_vars, id)
-    broadcast_env_vars_change()
+    if env_var_exists?(id) do
+      env_var = fetch_env_var!(id)
+      storage().delete(:env_vars, id)
+      broadcast_env_vars_change({:env_var_deleted, env_var})
+    end
+
+    :ok
   end
 
   @doc """
@@ -213,7 +218,8 @@ defmodule Livebook.Settings do
 
   ## Messages
 
-    * `{:env_vars_changed, env_vars}`
+    * `{:env_var_changed, env_var}`
+    * `{:env_var_deleted, env_var}`
 
   """
   @spec subscribe() :: :ok | {:error, term()}
@@ -231,8 +237,8 @@ defmodule Livebook.Settings do
 
   # Notifies interested processes about environment variables data change.
   #
-  # Broadcasts `{:env_vars_changed, env_vars}` message under the `"settings"` topic.
-  defp broadcast_env_vars_change do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", {:env_vars_changed, fetch_env_vars()})
+  # Broadcasts given message under the `"settings"` topic.
+  defp broadcast_env_vars_change(message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", message)
   end
 end

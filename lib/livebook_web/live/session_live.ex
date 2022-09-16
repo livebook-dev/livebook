@@ -20,7 +20,6 @@ defmodule LivebookWeb.SessionLive do
             {data, client_id} =
               Session.register_client(session_pid, self(), socket.assigns.current_user)
 
-            Settings.subscribe()
             Session.subscribe(session_id)
 
             {data, client_id}
@@ -1185,12 +1184,6 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_info({:queue_bound_cells_evaluation, input_id}, socket) do
     Session.queue_bound_cells_evaluation(socket.assigns.session.pid, input_id)
-
-    {:noreply, socket}
-  end
-
-  def handle_info({:env_vars_changed, env_vars}, socket) do
-    Session.put_env_vars(socket.assigns.session.pid, env_vars)
 
     {:noreply, socket}
   end

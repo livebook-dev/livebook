@@ -356,8 +356,16 @@ defmodule LivebookWeb.SettingsLive do
     handle_event("set_autosave_path", %{}, socket)
   end
 
-  def handle_info({:env_vars_changed, env_vars}, socket) do
-    {:noreply, assign(socket, env_vars: env_vars, env_var: nil)}
+  def handle_info({:env_var_changed, env_var}, socket) do
+    env_vars = [env_var | socket.assigns.env_vars]
+
+    {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
+  end
+
+  def handle_info({:env_var_deleted, env_var}, socket) do
+    env_vars = Enum.filter(socket.assigns.env_vars, &(&1.key != env_var.key))
+
+    {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

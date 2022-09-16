@@ -166,8 +166,20 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     GenServer.cast(pid, {:stop_smart_cell, ref})
   end
 
+  @doc """
+  Adds system environment variables.
+  """
+  @spec put_system_envs(pid(), map()) :: :ok
   def put_system_envs(pid, secrets) do
     GenServer.cast(pid, {:put_system_envs, secrets})
+  end
+
+  @doc """
+  Deletes system environment variables.
+  """
+  @spec delete_system_envs(pid(), map()) :: :ok
+  def delete_system_envs(pid, secrets) do
+    GenServer.cast(pid, {:delete_system_envs, secrets})
   end
 
   @doc """
@@ -466,6 +478,13 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
 
   def handle_cast({:put_system_envs, secrets}, state) do
     System.put_env(secrets)
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:delete_system_envs, secrets}, state) do
+    for {key, _} <- secrets, do: System.delete_env(key)
+
     {:noreply, state}
   end
 

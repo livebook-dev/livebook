@@ -978,6 +978,15 @@ defmodule LivebookWeb.SessionLiveTest do
     assert_receive {:operation,
                     {:add_cell_evaluation_response, _, ^cell_id,
                      {:text, "\e[32m\"OTHER_VALUE\"\e[0m"}, _}}
+
+    Settings.delete_env_var("MY_AWESOME_ENV")
+
+    view
+    |> element(~s{[data-el-session]})
+    |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+    assert_receive {:operation,
+                    {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
   end
 
   # Helpers

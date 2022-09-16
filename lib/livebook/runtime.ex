@@ -477,4 +477,10 @@ defprotocol Livebook.Runtime do
   """
   @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
   def put_system_envs(runtime, secrets)
+
+  @doc """
+  Deletes Livebook secrets as environment variables
+  """
+  @spec delete_system_envs(t(), list({String.t(), String.t()})) :: :ok
+  def delete_system_envs(runtime, secrets)
 end
