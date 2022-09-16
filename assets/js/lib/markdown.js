@@ -45,6 +45,8 @@ class Markdown {
       // can use morphdom's childrenOnly option
       const wrappedHtml = `<div>${html}</div>`;
       morphdom(this.container, wrappedHtml, { childrenOnly: true });
+
+      this._fixMermaidSpacing();
     });
   }
 
@@ -82,6 +84,13 @@ class Markdown {
           }
         })
     );
+  }
+
+  _fixMermaidSpacing() {
+    // A workaround for https://github.com/mermaid-js/mermaid/issues/1758
+    for (const svg of this.container.querySelectorAll(".mermaid svg")) {
+      svg.removeAttribute("height");
+    }
   }
 }
 
@@ -171,7 +180,11 @@ function remarkPrepareMermaid(options) {
     visit(ast, "code", (node, index, parent) => {
       if (node.lang === "mermaid") {
         node.type = "html";
-        node.value = `<div class="mermaid">${escapeHtml(node.value)}</div>`;
+        node.value = `
+          <div class="mermaid max-h-[600px] overflow-auto tiny-scrollbar">
+            ${escapeHtml(node.value)}
+          </div>
+        `;
       }
     });
   };
