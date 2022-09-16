@@ -475,8 +475,8 @@ defprotocol Livebook.Runtime do
   @doc """
   Sets the given environment variables.
   """
-  @spec put_system_envs(t(), map()) :: :ok
-  def put_system_envs(runtime, secrets)
+  @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
+  def put_system_envs(runtime, env_vars)
 
   @doc """
   Unsets the given environment variables.

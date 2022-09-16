@@ -511,22 +511,6 @@ defmodule Livebook.Session do
   end
 
   @doc """
-  Sends an environment variable addition request to the server.
-  """
-  @spec put_env_var(pid(), Livebook.Settings.EnvVar.t()) :: :ok
-  def put_env_var(pid, env_var) do
-    GenServer.cast(pid, {:put_env_var, self(), env_var})
-  end
-
-  @doc """
-  Sends an environment variable deletion request to the server.
-  """
-  @spec delete_env_var(pid(), Livebook.Settings.EnvVar.t()) :: :ok
-  def delete_env_var(pid, env_var) do
-    GenServer.cast(pid, {:delete_env_var, self(), env_var})
-  end
-
-  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
@@ -1372,10 +1356,7 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:set_runtime, _client_id, runtime}) do
     if Runtime.connected?(runtime) do
       set_runtime_secrets(state, state.data.secrets)
-
-      for env_var <- Livebook.Settings.fetch_env_vars() do
-        Runtime.put_system_envs(state.data.runtime, %{env_var.key => env_var.value})
-      end
+      set_runtime_env_vars(state)
 
       state
     else
@@ -1600,6 +1581,11 @@ defmodule Livebook.Session do
   defp set_runtime_secrets(state, secrets) do
     secrets = Enum.map(secrets, &{"LB_#{&1.label}", &1.value})
     Runtime.put_system_envs(state.data.runtime, secrets)
+  end
+
+  defp set_runtime_env_vars(state) do
+    env_vars = Enum.map(Livebook.Settings.fetch_env_vars(), &{&1.key, &1.value})
+    Runtime.put_system_envs(state.data.runtime, env_vars)
   end
 
   defp notify_update(state) do
