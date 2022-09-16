@@ -958,7 +958,7 @@ defmodule LivebookWeb.SessionLiveTest do
     assert_receive {:operation,
                     {:add_cell_evaluation_response, _, ^cell_id, {:text, "\e[35mnil\e[0m"}, _}}
 
-    attrs = params_for(:env_var, key: "MY_AWESOME_ENV", value: "MyEnvVarValue")
+    attrs = params_for(:env_var, name: "MY_AWESOME_ENV", value: "MyEnvVarValue")
     Settings.set_env_var(attrs)
 
     view

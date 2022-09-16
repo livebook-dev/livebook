@@ -181,7 +181,7 @@ defmodule Livebook.Settings do
   defp save_env_var(env_var) do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
 
-    with :ok <- storage().insert(:env_vars, env_var.key, attributes),
+    with :ok <- storage().insert(:env_vars, env_var.name, attributes),
          :ok <- broadcast_env_vars_change({:env_var_set, env_var}) do
       {:ok, env_var}
     end

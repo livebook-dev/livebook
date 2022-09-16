@@ -357,7 +357,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_info({:env_var_set, env_var}, socket) do
-    idx = Enum.find_index(socket.assigns.env_vars, &(&1.key == env_var.key))
+    idx = Enum.find_index(socket.assigns.env_vars, &(&1.name == env_var.name))
 
     env_vars =
       if idx,
@@ -368,7 +368,7 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_info({:env_var_unset, env_var}, socket) do
-    env_vars = Enum.reject(socket.assigns.env_vars, &(&1.key == env_var.key))
+    env_vars = Enum.reject(socket.assigns.env_vars, &(&1.name == env_var.name))
 
     {:noreply, assign(socket, env_vars: env_vars, env_var: nil)}
   end

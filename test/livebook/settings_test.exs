@@ -7,7 +7,7 @@ defmodule Livebook.SettingsTest do
     env_var = insert_env_var(:env_var)
     assert env_var in Settings.fetch_env_vars()
 
-    Settings.unset_env_var(env_var.key)
+    Settings.unset_env_var(env_var.name)
     refute env_var in Settings.fetch_env_vars()
   end
 
@@ -18,7 +18,7 @@ defmodule Livebook.SettingsTest do
                    Settings.fetch_env_var!("123456")
                  end
 
-    env_var = insert_env_var(:env_var, key: "123456")
+    env_var = insert_env_var(:env_var, name: "123456")
     assert Settings.fetch_env_var!("123456") == env_var
 
     Settings.unset_env_var("123456")
@@ -26,7 +26,7 @@ defmodule Livebook.SettingsTest do
 
   test "env_var_exists?/1" do
     refute Settings.env_var_exists?("FOO")
-    insert_env_var(:env_var, key: "FOO")
+    insert_env_var(:env_var, name: "FOO")
     assert Settings.env_var_exists?("FOO")
 
     Settings.unset_env_var("FOO")
@@ -34,13 +34,13 @@ defmodule Livebook.SettingsTest do
 
   describe "set_env_var/1" do
     test "creates an environment variable" do
-      attrs = params_for(:env_var, key: "FOO_BAR_BAZ")
+      attrs = params_for(:env_var, name: "FOO_BAR_BAZ")
       assert {:ok, env_var} = Settings.set_env_var(attrs)
 
-      assert attrs.key == env_var.key
+      assert attrs.name == env_var.name
       assert attrs.value == env_var.value
 
-      Settings.unset_env_var(env_var.key)
+      Settings.unset_env_var(env_var.name)
     end
 
     test "updates an environment variable" do
@@ -48,19 +48,19 @@ defmodule Livebook.SettingsTest do
       attrs = %{value: "FOO"}
       assert {:ok, updated_env_var} = Settings.set_env_var(env_var, attrs)
 
-      assert env_var.key == updated_env_var.key
+      assert env_var.name == updated_env_var.name
       assert updated_env_var.value == attrs.value
 
-      Settings.unset_env_var(env_var.key)
+      Settings.unset_env_var(env_var.name)
     end
 
     test "returns changeset error" do
-      attrs = params_for(:env_var, key: nil)
+      attrs = params_for(:env_var, name: nil)
       assert {:error, changeset} = Settings.set_env_var(attrs)
-      assert "can't be blank" in errors_on(changeset).key
+      assert "can't be blank" in errors_on(changeset).name
 
-      assert {:error, changeset} = Settings.set_env_var(%{attrs | key: "LB_FOO"})
-      assert "cannot start with the LB_ prefix" in errors_on(changeset).key
+      assert {:error, changeset} = Settings.set_env_var(%{attrs | name: "LB_FOO"})
+      assert "cannot start with the LB_ prefix" in errors_on(changeset).name
     end
   end
 end
