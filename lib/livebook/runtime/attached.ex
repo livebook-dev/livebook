@@ -124,8 +124,8 @@ defimpl Livebook.Runtime, for: Livebook.Runtime.Attached do
     raise "not supported"
   end
 
-  def put_system_envs(runtime, secrets) do
-    RuntimeServer.put_system_envs(runtime.server_pid, secrets)
+  def put_system_envs(runtime, envs) do
+    RuntimeServer.put_system_envs(runtime.server_pid, envs)
   end
 
   def delete_system_envs(runtime, names) do

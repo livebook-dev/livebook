@@ -169,9 +169,9 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   @doc """
   Sets the given environment variables.
   """
-  @spec put_system_envs(pid(), map()) :: :ok
-  def put_system_envs(pid, secrets) do
-    GenServer.cast(pid, {:put_system_envs, secrets})
+  @spec put_system_envs(pid(), list({String.t(), String.t()})) :: :ok
+  def put_system_envs(pid, envs) do
+    GenServer.cast(pid, {:put_system_envs, envs})
   end
 
   @doc """
@@ -476,8 +476,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:put_system_envs, secrets}, state) do
-    System.put_env(secrets)
+  def handle_cast({:put_system_envs, envs}, state) do
+    System.put_env(envs)
 
     {:noreply, state}
   end
