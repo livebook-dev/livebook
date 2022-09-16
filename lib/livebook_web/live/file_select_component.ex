@@ -535,6 +535,7 @@ defmodule LivebookWeb.FileSelectComponent do
 
       {:ok, :ok}
     end)
+
     socket =
       socket
       |> update_file_infos(true)
