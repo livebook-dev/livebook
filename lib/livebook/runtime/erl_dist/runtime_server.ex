@@ -484,8 +484,10 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast({:delete_system_envs, names}, state) do
-    Enum.each(names, &System.delete_env/1)
-    System.put_env("PATH", state.initial_path)
+    Enum.each(names, fn
+      "PATH" -> System.put_env("PATH", state.initial_path)
+      name -> System.delete_env(name)
+    end)
 
     {:noreply, state}
   end
