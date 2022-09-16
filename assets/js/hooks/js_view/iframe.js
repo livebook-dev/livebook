@@ -26,7 +26,7 @@ import { sha256Base64 } from "../../lib/utils";
 // (2): https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox
 // (3): https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
 
-const IFRAME_SHA256 = "n2ysiAKU5aVgjEjg1Jd3jImmI1Yx7t5HZq3l9pJMIpY=";
+const IFRAME_SHA256 = "6aUFRKEwZbbohB7OpFdKqnJJVRhccJxHGV+tArREQ+I=";
 
 export function initializeIframeSource(iframe, iframePort, iframeUrl) {
   const url = getIframeUrl(iframePort, iframeUrl);
@@ -48,8 +48,8 @@ function getIframeUrl(iframePort, iframeUrl) {
   }
 
   return protocol === "https:"
-    ? "https://livebook.space/iframe/v3.html"
-    : `http://${window.location.hostname}:${iframePort}/iframe/v3.html`;
+    ? "https://livebook.space/iframe/v4.html"
+    : `http://${window.location.hostname}:${iframePort}/iframe/v4.html`;
 }
 
 let iframeVerificationPromise = null;

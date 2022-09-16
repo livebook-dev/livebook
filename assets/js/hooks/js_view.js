@@ -334,7 +334,7 @@ const JSView = {
       } else if (message.type == "selectSecret") {
         this.pushEvent("select_secret", {
           js_view_ref: this.props.ref,
-          current_secret: message.currentSecret,
+          preselect_name: message.preselectName,
         });
       }
     }

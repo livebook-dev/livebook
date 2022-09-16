@@ -29,6 +29,7 @@
           eventHandlers: {},
           eventQueue: [],
           syncHandler: null,
+          secretHandler: null,
         };
 
         function postMessage(message) {
@@ -79,6 +80,11 @@
 
           handleSync(callback) {
             state.syncHandler = callback;
+          },
+
+          selectSecret(callback, preselectName, options) {
+            state.secretHandler = callback;
+            postMessage({ type: "selectSecret", preselectName, options });
           },
         };
 
@@ -139,6 +145,8 @@
                 postMessage({ type: "syncReply" });
               }
             );
+          } else if (message.type === "secretSelected") {
+            state.secretHandler && state.secretHandler(message.secretLabel);
           }
         }
 
