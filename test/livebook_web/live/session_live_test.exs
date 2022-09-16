@@ -996,17 +996,13 @@ defmodule LivebookWeb.SessionLiveTest do
       session: session,
       tmp_dir: tmp_dir
     } do
-      {os_path, separator} =
+      separator =
         case :os.type() do
-          {:win32, _} -> {:os.cmd('echo %PATH%'), ";"}
-          _ -> {:os.cmd('echo $PATH'), ":"}
+          {:win32, _} -> ";"
+          _ -> ":"
         end
 
-      os_path =
-        os_path
-        |> :unicode.characters_to_binary()
-        |> :binary.replace(<<"\n">>, <<"">>)
-
+      os_path = System.get_env("PATH", "")
       expected_path = ~s/\e[32m"#{os_path}#{separator}#{tmp_dir}"\e[0m/
 
       attrs = params_for(:env_var, name: "PATH", value: tmp_dir)

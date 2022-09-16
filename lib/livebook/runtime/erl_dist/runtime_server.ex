@@ -218,7 +218,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil,
-       last_evaluator: nil
+       last_evaluator: nil,
+       initial_path: System.get_env("PATH", "")
      }}
   end
 
@@ -477,7 +478,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast({:put_system_envs, envs}, state) do
-    envs |> normalize_path_env() |> System.put_env()
+    envs |> normalize_path_env(state) |> System.put_env()
 
     {:noreply, state}
   end
@@ -645,28 +646,21 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     end)
   end
 
-  defp normalize_path_env(env_vars) when is_list(env_vars) do
-    env_vars |> Enum.into(%{}) |> normalize_path_env()
-  end
+  defp normalize_path_env(envs, state) do
+    idx = Enum.find_index(envs, &(elem(&1, 0) == "PATH"))
 
-  defp normalize_path_env(env_vars) when is_map(env_vars) do
-    {path, env_vars} = Map.pop(env_vars, "PATH")
+    if idx do
+      {{"PATH", path}, envs} = List.pop_at(envs, idx)
 
-    if path do
-      {os_path, separator} =
+      separator =
         case :os.type() do
-          {:win32, _} -> {:os.cmd('echo %PATH%'), ";"}
-          _ -> {:os.cmd('echo $PATH'), ":"}
+          {:win32, _} -> ";"
+          _ -> ":"
         end
 
-      os_path =
-        os_path
-        |> :unicode.characters_to_binary()
-        |> :binary.replace(<<"\n">>, <<"">>)
-
-      Map.put(env_vars, "PATH", "#{os_path}#{separator}#{path}")
+      [{"PATH", state.initial_path <> separator <> path} | envs]
     else
-      env_vars
+      [{"PATH", state.initial_path} | envs]
     end
   end
 end

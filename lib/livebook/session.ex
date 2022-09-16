@@ -1125,7 +1125,7 @@ defmodule Livebook.Session do
 
   def handle_info({:env_var_set, env_var}, state) do
     if Runtime.connected?(state.data.runtime) do
-      Runtime.put_system_envs(state.data.runtime, %{env_var.name => env_var.value})
+      Runtime.put_system_envs(state.data.runtime, [{env_var.name, env_var.value}])
     end
 
     {:noreply, state}
