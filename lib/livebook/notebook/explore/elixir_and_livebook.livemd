@@ -41,6 +41,16 @@ return the Elixir version.
 Note you can also press <kbd>tab</kbd> to cycle across the completion
 alternatives.
 
+## Getting the current directory
+
+You can access the location of the current `.livemd` file and
+its current directory using `__ENV__` and `__DIR__` variables:
+
+```elixir
+IO.puts(__ENV__.file)
+IO.puts(__DIR__)
+```
+
 ## Runtimes
 
 Livebook has a concept of **runtime**, which in practice is an Elixir node responsible
