@@ -477,7 +477,7 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
   end
 
   def handle_cast({:put_system_envs, envs}, state) do
-    System.put_env(envs)
+    envs |> normalize_path_env() |> System.put_env()
 
     {:noreply, state}
   end
@@ -643,5 +643,30 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           other
       end)
     end)
+  end
+
+  defp normalize_path_env(env_vars) when is_list(env_vars) do
+    env_vars |> Enum.into(%{}) |> normalize_path_env()
+  end
+
+  defp normalize_path_env(env_vars) when is_map(env_vars) do
+    {path, env_vars} = Map.pop(env_vars, "PATH")
+
+    if path do
+      {os_path, separator} =
+        case :os.type() do
+          {:win32, _} -> {:os.cmd('echo %PATH%'), ";"}
+          _ -> {:os.cmd('echo $PATH'), ":"}
+        end
+
+      os_path =
+        os_path
+        |> :unicode.characters_to_binary()
+        |> :binary.replace(<<"\n">>, <<"">>)
+
+      Map.put(env_vars, "PATH", "#{os_path}#{separator}#{path}")
+    else
+      env_vars
+    end
   end
 end
