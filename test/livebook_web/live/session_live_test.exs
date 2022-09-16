@@ -1003,6 +1003,7 @@ defmodule LivebookWeb.SessionLiveTest do
         end
 
       os_path = System.get_env("PATH", "")
+      old_expected_path = ~s/\e[32m"#{os_path}"\e[0m/
       expected_path = ~s/\e[32m"#{os_path}#{separator}#{tmp_dir}"\e[0m/
 
       attrs = params_for(:env_var, name: "PATH", value: tmp_dir)
@@ -1021,6 +1022,15 @@ defmodule LivebookWeb.SessionLiveTest do
 
       assert_receive {:operation,
                       {:add_cell_evaluation_response, _, ^cell_id, {:text, ^expected_path}, _}}
+
+      Settings.unset_env_var("PATH")
+
+      view
+      |> element(~s{[data-el-session]})
+      |> render_hook("queue_cell_evaluation", %{"cell_id" => cell_id})
+
+      assert_receive {:operation,
+                      {:add_cell_evaluation_response, _, ^cell_id, {:text, ^old_expected_path}, _}}
     end
   end
 
