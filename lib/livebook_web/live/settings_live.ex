@@ -357,13 +357,21 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   def handle_info({:env_var_changed, env_var}, socket) do
-    env_vars = [env_var | socket.assigns.env_vars]
+    idx = Enum.find_index(socket.assigns.env_vars, &(&1.key == env_var.key))
+
+    env_vars =
+      if idx,
+        do: List.update_at(socket.assigns.env_vars, idx, fn _ -> env_var end),
+        else: [env_var | socket.assigns.env_vars]
 
     {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
   end
 
   def handle_info({:env_var_deleted, env_var}, socket) do
-    env_vars = Enum.filter(socket.assigns.env_vars, &(&1.key != env_var.key))
+    idx = Enum.find_index(socket.assigns.env_vars, &(&1.key == env_var.key))
+
+    env_vars =
+      if idx, do: List.delete_at(socket.assigns.env_vars, idx), else: socket.assigns.env_vars
 
     {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
   end
