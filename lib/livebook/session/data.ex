@@ -1508,7 +1508,7 @@ defmodule Livebook.Session.Data do
   end
 
   defp put_secret({data, _} = data_actions, secret) do
-    idx = Enum.find_index(data.secrets, &(&1.label == secret.label))
+    idx = Enum.find_index(data.secrets, &(&1.name == secret.name))
 
     secrets =
       if idx do

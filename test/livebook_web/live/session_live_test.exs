@@ -921,9 +921,9 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{label: "foo", value: "123"}})
+      |> render_submit(%{data: %{name: "foo", value: "123"}})
 
-      assert %{secrets: [%{label: "FOO", value: "123"}]} = Session.get_data(session.pid)
+      assert %{secrets: [%{name: "FOO", value: "123"}]} = Session.get_data(session.pid)
     end
 
     test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do

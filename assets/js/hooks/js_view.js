@@ -417,7 +417,7 @@ const JSView = {
     } else if (event.type == "secretSelected") {
       this.postMessage({
         type: "secretSelected",
-        secretLabel: event.secretLabel,
+        secretName: event.secretName,
       });
     }
   },
