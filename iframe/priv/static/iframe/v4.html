@@ -146,7 +146,7 @@
               }
             );
           } else if (message.type === "secretSelected") {
-            state.secretHandler && state.secretHandler(message.secretLabel);
+            state.secretHandler && state.secretHandler(message.secretName);
           }
         }
 

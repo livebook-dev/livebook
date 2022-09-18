@@ -207,8 +207,8 @@ const Session = {
 
     this.handleEvent(
       "secret_selected",
-      ({ select_secret_ref, secret_label }) => {
-        this.handleSecretSelected(select_secret_ref, secret_label);
+      ({ select_secret_ref, secret_name }) => {
+        this.handleSecretSelected(select_secret_ref, secret_name);
       }
     );
 
@@ -1041,10 +1041,10 @@ const Session = {
     });
   },
 
-  handleSecretSelected(select_secret_ref, secretLabel) {
+  handleSecretSelected(select_secret_ref, secretName) {
     globalPubSub.broadcast(`js_views:${select_secret_ref}`, {
       type: "secretSelected",
-      secretLabel,
+      secretName,
     });
   },
 

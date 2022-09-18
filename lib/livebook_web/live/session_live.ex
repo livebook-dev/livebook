@@ -405,7 +405,7 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
-          prefill_secret_label={@prefill_secret_label}
+          prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
           preselect_name={@preselect_name}
           return_to={@self_path}
@@ -556,7 +556,7 @@ defmodule LivebookWeb.SessionLive do
         <%= for secret <- @data_view.secrets do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="break-all">
-              <%= secret.label %>
+              <%= secret.name %>
             </span>
             <span class="rounded-full bg-gray-200 px-2 text-xs text-gray-600">
               Session
@@ -757,7 +757,7 @@ defmodule LivebookWeb.SessionLive do
       when socket.assigns.live_action == :secrets do
     {:noreply,
      assign(socket,
-       prefill_secret_label: params["secret_label"],
+       prefill_secret_name: params["secret_name"],
        preselect_name: params["preselect_name"],
        select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref)
      )}

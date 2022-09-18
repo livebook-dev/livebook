@@ -1571,7 +1571,7 @@ defmodule Livebook.Session do
   end
 
   defp set_runtime_secrets(state, secrets) do
-    secrets = Enum.map(secrets, &{"LB_#{&1.label}", &1.value})
+    secrets = Enum.map(secrets, &{"LB_#{&1.name}", &1.value})
     Runtime.put_system_envs(state.data.runtime, secrets)
   end
 
