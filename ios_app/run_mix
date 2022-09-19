@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+BASE=`pwd`
+export MIX_ENV=prod
+export MIX_TARGET=ios
+
+cd ..
+
+if [ ! -d "deps/bridge" ]; then
+  mix deps.get
+fi
+
+if [ ! -d "assets/node_modules" ]; then
+  cd assets && npm i && cd ..
+fi
+
+if [ -f "$BASE/livebook/app.zip" ]; then
+  rm "$BASE/livebook/app.zip"
+fi
+
+mix release mobile --overwrite && \
+  cd _build/ios_prod/rel/mobile && \
+  zip -9r "$BASE/livebook/app.zip" lib/ releases/ --exclude "*.so" \
+    --exclude "*/mac_listener" --exclude "*.gz" --exclude "*.plt"
+

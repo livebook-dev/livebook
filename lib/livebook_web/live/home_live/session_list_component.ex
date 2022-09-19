@@ -217,7 +217,7 @@ defmodule LivebookWeb.HomeLive.SessionListComponent do
 
   defp memory_info(assigns) do
     %{free: free, total: total} = assigns.memory
-    used = total - free
+    used = (total || 0) - free
     percentage = Float.round(used / total * 100, 2)
     assigns = assign(assigns, free: free, used: used, total: total, percentage: percentage)
 

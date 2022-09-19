@@ -1,0 +1,32 @@
+name: iOS CI
+
+on: ["push", "pull_request"]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Elixir
+      run: |
+        brew install elixir erlang carthage git npm
+
+    - name: Set up hex & rebar
+      run: |
+        mix local.hex --force
+        mix local.rebar --force
+
+    - name: Build with XCode
+      run: |
+        carthage update --use-xcframeworks 
+        xcodebuild -sdk iphonesimulator -arch arm64
+
+    # xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+    # - name: Upload APK
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: app
+    #     path: app/build/outputs/apk/debug/app-debug.apk

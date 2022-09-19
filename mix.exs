@@ -30,14 +30,15 @@ defmodule Livebook.MixProject do
     [
       mod: {Livebook.Application, []},
       extra_applications:
-        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
+        [:logger, :runtime_tools, :inets, :ssl, :xmerl] ++
           extra_applications(Mix.target()),
       env: Application.get_all_env(:livebook)
     ]
   end
 
-  defp extra_applications(:app), do: [:wx]
-  defp extra_applications(_), do: []
+  defp extra_applications(:app), do: [:wx, :os_mon]
+  defp extra_applications(:ios), do: []
+  defp extra_applications(_), do: [:os_mon]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
@@ -135,6 +136,12 @@ defmodule Livebook.MixProject do
       livebook: [
         include_executables_for: [:unix],
         include_erts: false,
+        rel_templates_path: "rel/server",
+        steps: [:assemble, &remove_cookie/1]
+      ],
+      mobile: [
+        include_executables_for: [],
+        include_erts: true,
         rel_templates_path: "rel/server",
         steps: [:assemble, &remove_cookie/1]
       ],

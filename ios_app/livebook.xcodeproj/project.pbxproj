@@ -1,0 +1,408 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		EC712AB026F6964C0066E483 /* Livebook.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC712AAF26F6964C0066E483 /* Livebook.swift */; };
+		EC712AB226F6964C0066E483 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC712AB126F6964C0066E483 /* ContentView.swift */; };
+		EC712AB426F6964C0066E483 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC712AB326F6964C0066E483 /* Assets.xcassets */; };
+		EC712AB726F6964C0066E483 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC712AB626F6964C0066E483 /* Preview Assets.xcassets */; };
+		EC8A1FB626FE752000054F1C /* native-lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EC8A1FB426FE752000054F1C /* native-lib.cpp */; };
+		EC8A1FBC26FF226000054F1C /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8A1FBB26FF226000054F1C /* Bridge.swift */; };
+		EC8A1FC92702328F00054F1C /* app.zip in Resources */ = {isa = PBXBuildFile; fileRef = EC8A1FC82702328F00054F1C /* app.zip */; };
+		EC8A1FD12704E9AB00054F1C /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8A1FD02704E9AB00054F1C /* WebViewController.swift */; };
+		EC90CFEF273D772900C9A3F3 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = EC90CFEE273D772900C9A3F3 /* README.md */; };
+		ECB3384728B396F7001E8DC7 /* liberlang.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECB3384628B396F7001E8DC7 /* liberlang.xcframework */; };
+		ECC9E75D28D8871300233B72 /* ZIPFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECC9E75C28D8871300233B72 /* ZIPFoundation.xcframework */; };
+		ECC9E75F28D8C18500233B72 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC9E75E28D8C18500233B72 /* WebView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		EC712AAC26F6964C0066E483 /* livebook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = livebook.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC712AAF26F6964C0066E483 /* Livebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Livebook.swift; sourceTree = "<group>"; };
+		EC712AB126F6964C0066E483 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EC712AB326F6964C0066E483 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EC712AB626F6964C0066E483 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		EC712AB826F6964C0066E483 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		EC8A1FA426FE49C900054F1C /* Livebook-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Livebook-Bridging-Header.h"; sourceTree = "<group>"; };
+		EC8A1FB426FE752000054F1C /* native-lib.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "native-lib.cpp"; sourceTree = "<group>"; };
+		EC8A1FB526FE752000054F1C /* native-lib.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "native-lib.hpp"; sourceTree = "<group>"; };
+		EC8A1FBB26FF226000054F1C /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
+		EC8A1FC82702328F00054F1C /* app.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = app.zip; sourceTree = "<group>"; };
+		EC8A1FD02704E9AB00054F1C /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
+		EC90CFEE273D772900C9A3F3 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		ECB3384628B396F7001E8DC7 /* liberlang.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = liberlang.xcframework; sourceTree = "<group>"; };
+		ECC9E75C28D8871300233B72 /* ZIPFoundation.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ZIPFoundation.xcframework; path = Carthage/Build/ZIPFoundation.xcframework; sourceTree = "<group>"; };
+		ECC9E75E28D8C18500233B72 /* WebView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EC712AA926F6964C0066E483 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ECC9E75D28D8871300233B72 /* ZIPFoundation.xcframework in Frameworks */,
+				ECB3384728B396F7001E8DC7 /* liberlang.xcframework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		EC712AA326F6964C0066E483 = {
+			isa = PBXGroup;
+			children = (
+				EC90CFEE273D772900C9A3F3 /* README.md */,
+				EC8A1FB426FE752000054F1C /* native-lib.cpp */,
+				EC8A1FB526FE752000054F1C /* native-lib.hpp */,
+				ECC9E75C28D8871300233B72 /* ZIPFoundation.xcframework */,
+				ECB3384628B396F7001E8DC7 /* liberlang.xcframework */,
+				EC712AAE26F6964C0066E483 /* livebook */,
+				EC712AAD26F6964C0066E483 /* Products */,
+				EC8A1FA426FE49C900054F1C /* Livebook-Bridging-Header.h */,
+			);
+			sourceTree = "<group>";
+		};
+		EC712AAD26F6964C0066E483 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EC712AAC26F6964C0066E483 /* livebook.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EC712AAE26F6964C0066E483 /* livebook */ = {
+			isa = PBXGroup;
+			children = (
+				EC712AAF26F6964C0066E483 /* Livebook.swift */,
+				EC712AB126F6964C0066E483 /* ContentView.swift */,
+				EC8A1FBB26FF226000054F1C /* Bridge.swift */,
+				EC8A1FD02704E9AB00054F1C /* WebViewController.swift */,
+				ECC9E75E28D8C18500233B72 /* WebView.swift */,
+				EC712AB326F6964C0066E483 /* Assets.xcassets */,
+				EC8A1FC82702328F00054F1C /* app.zip */,
+				EC712AB826F6964C0066E483 /* Info.plist */,
+				EC712AB526F6964C0066E483 /* Preview Content */,
+			);
+			path = livebook;
+			sourceTree = "<group>";
+		};
+		EC712AB526F6964C0066E483 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				EC712AB626F6964C0066E483 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EC712AAB26F6964C0066E483 /* livebook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC712ABB26F6964C0066E483 /* Build configuration list for PBXNativeTarget "livebook" */;
+			buildPhases = (
+				EC712AA826F6964C0066E483 /* Sources */,
+				EC712AA926F6964C0066E483 /* Frameworks */,
+				EC8A1FD6270B4EF900054F1C /* ShellScript */,
+				EC712AAA26F6964C0066E483 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = livebook;
+			productName = example;
+			productReference = EC712AAC26F6964C0066E483 /* livebook.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EC712AA426F6964C0066E483 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1250;
+				LastUpgradeCheck = 1250;
+				TargetAttributes = {
+					EC712AAB26F6964C0066E483 = {
+						CreatedOnToolsVersion = 12.5.1;
+						LastSwiftMigration = 1300;
+					};
+				};
+			};
+			buildConfigurationList = EC712AA726F6964C0066E483 /* Build configuration list for PBXProject "livebook" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EC712AA326F6964C0066E483;
+			productRefGroup = EC712AAD26F6964C0066E483 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EC712AAB26F6964C0066E483 /* livebook */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EC712AAA26F6964C0066E483 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC8A1FC92702328F00054F1C /* app.zip in Resources */,
+				EC712AB726F6964C0066E483 /* Preview Assets.xcassets in Resources */,
+				EC90CFEF273D772900C9A3F3 /* README.md in Resources */,
+				EC712AB426F6964C0066E483 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		EC8A1FD6270B4EF900054F1C /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/app.zip",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "#!/bin/bash\nset -e\n# Setting up the PATH environment\n[ -s /opt/homebrew/bin/brew ] && eval $(/opt/homebrew/bin/brew shellenv)\n[ -s /usr/local/bin/brew ] && eval $(/usr/local/bin/brew shellenv)\n\nexport NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"  # This loads nvm\n[ -s \"$HOME/.asdf/asdf.sh\" ] && \\. $HOME/.asdf/asdf.sh # This loads asdf\n\n./run_mix\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EC712AA826F6964C0066E483 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EC8A1FBC26FF226000054F1C /* Bridge.swift in Sources */,
+				EC8A1FD12704E9AB00054F1C /* WebViewController.swift in Sources */,
+				EC712AB226F6964C0066E483 /* ContentView.swift in Sources */,
+				ECC9E75F28D8C18500233B72 /* WebView.swift in Sources */,
+				EC712AB026F6964C0066E483 /* Livebook.swift in Sources */,
+				EC8A1FB626FE752000054F1C /* native-lib.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		EC712AB926F6964C0066E483 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		EC712ABA26F6964C0066E483 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		EC712ABC26F6964C0066E483 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"livebook/Preview Content\"";
+				DEVELOPMENT_TEAM = 4PN2DP4655;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = livebook/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.livebook.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Livebook-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		EC712ABD26F6964C0066E483 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"livebook/Preview Content\"";
+				DEVELOPMENT_TEAM = 4PN2DP4655;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = livebook/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.livebook.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Livebook-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EC712AA726F6964C0066E483 /* Build configuration list for PBXProject "livebook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC712AB926F6964C0066E483 /* Debug */,
+				EC712ABA26F6964C0066E483 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EC712ABB26F6964C0066E483 /* Build configuration list for PBXNativeTarget "livebook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC712ABC26F6964C0066E483 /* Debug */,
+				EC712ABD26F6964C0066E483 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EC712AA426F6964C0066E483 /* Project object */;
+}
