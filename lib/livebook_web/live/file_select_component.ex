@@ -543,7 +543,7 @@ defmodule LivebookWeb.FileSelectComponent do
     {:noreply, socket}
   end
 
-  @impl Phoenix.LiveComponent
+
   def handle_event("clear-file", %{}, socket) do
     {socket, _entries} = Phoenix.LiveView.Upload.maybe_cancel_uploads(socket)
     {:noreply, assign(socket, error: false)}

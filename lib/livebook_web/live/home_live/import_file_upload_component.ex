@@ -6,7 +6,7 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
     {:ok,
      socket
      |> assign(:error, false)
-     |> allow_upload(:notebook, accept: ~w(.livemd), max_entries: 10)}
+     |> allow_upload(:notebook, accept: ~w(.livemd), max_entries: 1)}
   end
 
   @impl true
@@ -81,10 +81,13 @@ defmodule LivebookWeb.HomeLive.ImportFileUploadComponent do
 
   @impl Phoenix.LiveComponent
   def handle_event("save", _params, socket) do
-    content =
-      consume_uploaded_entries(socket, :notebook, fn %{path: path}, _entry -> File.read!(path) end)
+    consume_uploaded_entries(socket, :notebook, fn %{path: path}, _entry ->
+      content = File.read!(path)
 
-    send(self(), {:import_content, content, []})
+      send(self(), {:import_content, content, []})
+
+      {:ok, :ok}
+    end)
 
     {:noreply, socket}
   end
