@@ -44,7 +44,12 @@ defmodule LivebookWeb.FileSelectComponent do
        error_message: nil,
        file_systems: Livebook.Settings.file_systems()
      )
-     |> allow_upload(:folder, accept: ~w(.livemd), max_entries: 1)}
+     |> allow_upload(:folder,
+       accept: :any,
+       auto_upload: true,
+       max_entries: 1,
+       progress: &handle_progress/3
+     )}
   end
 
   @impl true
@@ -149,13 +154,13 @@ defmodule LivebookWeb.FileSelectComponent do
         <% end %>
       </div>
       <form
-        phx-change="validate"
-        phx-submit="add-file"
+        class="min-h-full pb-4"
+        phx-change="file_validate"
         phx-drop-target={@uploads.folder.ref}
         phx-target={@myself}
       >
         <div
-          class="grow -m-1 p-1 overflow-y-auto tiny-scrollbar"
+          class="grow -m-1 p-1 min-h-full rounded-lg overflow-y-auto tiny-scrollbar"
           tabindex="-1"
           phx-hook="Dropzone"
           id="upload-file-dropzone"
@@ -217,7 +222,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <% end %>
             <%= if @uploads.folder.entries != [] do %>
               <%= for file <- @uploads.folder.entries do %>
-                <div class="flex items-center">
+                <div class="flex items-center justify-between">
                   <span class="font-medium text-gray-400"><%= file.client_name %></span>
                   <button
                     type="button"
@@ -227,9 +232,6 @@ defmodule LivebookWeb.FileSelectComponent do
                     tabindex="-1"
                   >
                     <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
-                  </button>
-                  <button type="submit" class="icon-button" tabindex="-1">
-                    <.remix_icon icon="add-line" class="text-xl text-gray-300 hover:text-gray-500" />
                   </button>
                 </div>
               <% end %>
@@ -329,6 +331,7 @@ defmodule LivebookWeb.FileSelectComponent do
     <.menu id={"file-#{Base.encode16(@file_info.file.path)}"} secondary_click>
       <:toggle>
         <button
+          type="button"
           class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
           data-toggle
           aria-label={"#{if @file_info.name == "..", do: "parent directory", else: @file_info.name}"}
@@ -363,6 +366,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <:content>
         <%= if @file_info.editable do %>
           <button
+            type="button"
             class="menu-item text-gray-500"
             role="menuitem"
             aria-label="rename file"
@@ -374,6 +378,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <span class="font-medium">Rename</span>
           </button>
           <button
+            type="button"
             class="menu-item text-red-600"
             role="menuitem"
             aria-label="delete file"
@@ -402,7 +407,36 @@ defmodule LivebookWeb.FileSelectComponent do
     |> JS.hide(to: "#new_dir_section")
   end
 
+  defp handle_progress(:folder, entry, socket) when entry.done? do
+    IO.inspect(:DONE)
+
+    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
+      content = File.read!(file_path)
+
+      file_path =
+        FileSystem.File.resolve(
+          socket.assigns.current_dir,
+          entry.client_name
+        )
+
+      FileSystem.File.write(file_path, content)
+
+      {:ok, :ok}
+    end)
+
+    {:noreply, update_file_infos(socket, true)}
+  end
+
+  defp handle_progress(:folder, _entry, socket) do
+    IO.inspect(_entry)
+    {:noreply, socket}
+  end
+
   @impl true
+  def handle_event("file_validate", _, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
     {^file_system_id, file_system} =
       Enum.find(socket.assigns.file_systems, fn {id, _file_system} ->
@@ -515,34 +549,6 @@ defmodule LivebookWeb.FileSelectComponent do
 
     {:noreply, socket}
   end
-
-  def handle_event("validate", %{}, socket) do
-    Enum.any?(socket.assigns.uploads.folder.entries, &(not &1.valid?))
-    {:noreply, socket}
-  end
-
-  def handle_event("add-file", %{}, socket) do
-    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
-      content = File.read!(file_path)
-
-      file_path =
-        FileSystem.File.resolve(
-          socket.assigns.current_dir,
-          entry.client_name
-        )
-
-      FileSystem.File.write(file_path, content)
-
-      {:ok, :ok}
-    end)
-
-    socket =
-      socket
-      |> update_file_infos(true)
-
-    {:noreply, socket}
-  end
-
 
   def handle_event("clear-file", %{}, socket) do
     {socket, _entries} = Phoenix.LiveView.Upload.maybe_cancel_uploads(socket)

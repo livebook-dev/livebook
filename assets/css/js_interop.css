@@ -14,7 +14,7 @@ solely client-side operations.
 }
 
 [phx-hook="Dropzone"][data-js-dragging] {
-  @apply bg-red-200 border-red-400;
+  @apply bg-yellow-100 border-yellow-300;
 }
 
 /* === Session === */
