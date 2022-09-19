@@ -408,8 +408,6 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   defp handle_progress(:folder, entry, socket) when entry.done? do
-    IO.inspect(:DONE)
-
     consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
       content = File.read!(file_path)
 
@@ -420,7 +418,6 @@ defmodule LivebookWeb.FileSelectComponent do
         )
 
       FileSystem.File.write(file_path, content)
-
       {:ok, :ok}
     end)
 
@@ -428,7 +425,6 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   defp handle_progress(:folder, _entry, socket) do
-    IO.inspect(_entry)
     {:noreply, socket}
   end
 
