@@ -291,22 +291,24 @@ defmodule LivebookWeb.LiveHelpers do
       )
 
     ~H"""
-    <div class="flex space-x-3 items-center justify-between">
+    <div class="flex items-center gap-1 justify-between">
       <%= if @label do %>
         <span class="text-gray-700"><%= @label %></span>
       <% end %>
-      <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
-        <input type="hidden" value="false" name={@name} />
-        <input
-          type="checkbox"
-          value="true"
-          class={"switch-button__checkbox #{@class}"}
-          name={@name}
-          checked={@checked}
-          {@attrs}
-        />
-        <div class="switch-button__bg"></div>
-      </label>
+      <div>
+        <label class={"switch-button #{if(@disabled, do: "switch-button--disabled")}"}>
+          <input type="hidden" value="false" name={@name} />
+          <input
+            type="checkbox"
+            value="true"
+            class={"switch-button__checkbox #{@class}"}
+            name={@name}
+            checked={@checked}
+            {@attrs}
+          />
+          <div class="switch-button__bg"></div>
+        </label>
+      </div>
     </div>
     """
   end
