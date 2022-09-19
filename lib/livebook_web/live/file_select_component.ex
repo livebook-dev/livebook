@@ -522,13 +522,13 @@ defmodule LivebookWeb.FileSelectComponent do
   end
 
   def handle_event("add-file", %{}, socket) do
-    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, _entry ->
+    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
       content = File.read!(file_path)
 
       file_path =
         FileSystem.File.resolve(
           socket.assigns.current_dir,
-          Enum.at(socket.assigns.uploads.folder.entries, 0).client_name
+          entry.client_name
         )
 
       FileSystem.File.write(file_path, content)
