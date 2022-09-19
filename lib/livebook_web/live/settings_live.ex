@@ -3,7 +3,7 @@ defmodule LivebookWeb.SettingsLive do
 
   alias LivebookWeb.{LayoutHelpers, PageHelpers}
 
-  on_mount(LivebookWeb.SidebarHook)
+  on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(_params, _session, socket) do
