@@ -43,6 +43,12 @@ defmodule LivebookWeb.FileSelectComponent do
        renamed_name: nil,
        error_message: nil,
        file_systems: Livebook.Settings.file_systems()
+     )
+     |> allow_upload(:folder,
+       accept: :any,
+       auto_upload: true,
+       max_entries: 1,
+       progress: &handle_progress/3
      )}
   end
 
@@ -147,41 +153,63 @@ defmodule LivebookWeb.FileSelectComponent do
           </div>
         <% end %>
       </div>
-      <div class="grow -m-1 p-1 overflow-y-auto tiny-scrollbar" tabindex="-1">
-        <div
-          class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
-          id="new_dir_section"
-        >
-          <div class="flex space-x-2 items-center p-2 rounded-lg">
-            <span class="block">
-              <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
-            </span>
-            <span class="flex font-medium text-gray-500">
-              <div
-                phx-window-keydown={js_hide_new_dir_section()}
-                phx-key="escape"
-                phx-target={@myself}
-              >
-                <input
-                  id="new_dir_input"
-                  aria-label="new directory"
-                  type="text"
-                  spellcheck="false"
-                  autocomplete="off"
-                  phx-blur={js_hide_new_dir_section()}
-                  phx-window-keydown={
-                    JS.push("create_dir", target: @myself) |> js_hide_new_dir_section()
-                  }
-                  phx-key="enter"
-                />
-              </div>
-            </span>
-          </div>
-        </div>
 
-        <%= if any_highlighted?(@file_infos) do %>
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
-            <%= for file_info <- @file_infos, file_info.highlighted != "" do %>
+      <div
+        class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+        id="new_dir_section"
+      >
+        <div class="flex space-x-2 items-center p-2 rounded-lg">
+          <span class="block">
+            <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
+          </span>
+          <span class="flex font-medium text-gray-500">
+            <div phx-window-keydown={js_hide_new_dir_section()} phx-key="escape" phx-target={@myself}>
+              <input
+                id="new_dir_input"
+                aria-label="new directory"
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                phx-blur={js_hide_new_dir_section()}
+                phx-window-keydown={
+                  JS.push("create_dir", target: @myself) |> js_hide_new_dir_section()
+                }
+                phx-key="enter"
+              />
+            </div>
+          </span>
+        </div>
+      </div>
+
+      <form
+        class="h-full"
+        phx-change="file_validate"
+        phx-drop-target={@uploads.folder.ref}
+        phx-target={@myself}
+      >
+        <div
+          class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
+          tabindex="-1"
+          phx-hook="Dropzone"
+          id="upload-file-dropzone"
+        >
+          <%= live_file_input(@uploads.folder, class: "hidden", aria_labelledby: "import-from-file") %>
+
+          <%= if any_highlighted?(@file_infos) do %>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
+              <%= for file_info <- @file_infos, file_info.highlighted != "" do %>
+                <.file
+                  file_info={file_info}
+                  myself={@myself}
+                  renaming_file={@renaming_file}
+                  renamed_name={@renamed_name}
+                />
+              <% end %>
+            </div>
+          <% end %>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            <%= for file_info <- @file_infos, file_info.highlighted == "" do %>
               <.file
                 file_info={file_info}
                 myself={@myself}
@@ -189,20 +217,25 @@ defmodule LivebookWeb.FileSelectComponent do
                 renamed_name={@renamed_name}
               />
             <% end %>
+            <%= if @uploads.folder.entries != [] do %>
+              <%= for file <- @uploads.folder.entries do %>
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-gray-400"><%= file.client_name %></span>
+                  <button
+                    type="button"
+                    class="icon-button"
+                    phx-click="clear-file"
+                    phx-target={@myself}
+                    tabindex="-1"
+                  >
+                    <.remix_icon icon="close-line" class="text-xl text-gray-300 hover:text-gray-500" />
+                  </button>
+                </div>
+              <% end %>
+            <% end %>
           </div>
-        <% end %>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          <%= for file_info <- @file_infos, file_info.highlighted == "" do %>
-            <.file
-              file_info={file_info}
-              myself={@myself}
-              renaming_file={@renaming_file}
-              renamed_name={@renamed_name}
-            />
-          <% end %>
         </div>
-      </div>
+      </form>
     </div>
     """
   end
@@ -295,6 +328,7 @@ defmodule LivebookWeb.FileSelectComponent do
     <.menu id={"file-#{Base.encode16(@file_info.file.path)}"} secondary_click>
       <:toggle>
         <button
+          type="button"
           class="w-full flex space-x-2 items-center p-2 rounded-lg hover:bg-gray-100 focus:ring-1 focus:ring-gray-400"
           data-toggle
           aria-label={"#{if @file_info.name == "..", do: "parent directory", else: @file_info.name}"}
@@ -329,6 +363,7 @@ defmodule LivebookWeb.FileSelectComponent do
       <:content>
         <%= if @file_info.editable do %>
           <button
+            type="button"
             class="menu-item text-gray-500"
             role="menuitem"
             aria-label="rename file"
@@ -340,6 +375,7 @@ defmodule LivebookWeb.FileSelectComponent do
             <span class="font-medium">Rename</span>
           </button>
           <button
+            type="button"
             class="menu-item text-red-600"
             role="menuitem"
             aria-label="delete file"
@@ -368,7 +404,32 @@ defmodule LivebookWeb.FileSelectComponent do
     |> JS.hide(to: "#new_dir_section")
   end
 
+  defp handle_progress(:folder, entry, socket) when entry.done? do
+    consume_uploaded_entries(socket, :folder, fn %{path: file_path}, entry ->
+      content = File.read!(file_path)
+
+      file_path =
+        FileSystem.File.resolve(
+          socket.assigns.current_dir,
+          entry.client_name
+        )
+
+      FileSystem.File.write(file_path, content)
+      {:ok, :ok}
+    end)
+
+    {:noreply, update_file_infos(socket, true)}
+  end
+
+  defp handle_progress(:folder, _entry, socket) do
+    {:noreply, socket}
+  end
+
   @impl true
+  def handle_event("file_validate", _, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("set_file_system", %{"id" => file_system_id}, socket) do
     {^file_system_id, file_system} =
       Enum.find(socket.assigns.file_systems, fn {id, _file_system} ->
@@ -480,6 +541,11 @@ defmodule LivebookWeb.FileSelectComponent do
       end
 
     {:noreply, socket}
+  end
+
+  def handle_event("clear-file", %{}, socket) do
+    {socket, _entries} = Phoenix.LiveView.Upload.maybe_cancel_uploads(socket)
+    {:noreply, assign(socket, error: false)}
   end
 
   defp update_file_infos(%{assigns: assigns} = socket, force_reload?) do
