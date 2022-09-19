@@ -11,15 +11,32 @@
 		EC712AB226F6964C0066E483 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC712AB126F6964C0066E483 /* ContentView.swift */; };
 		EC712AB426F6964C0066E483 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC712AB326F6964C0066E483 /* Assets.xcassets */; };
 		EC712AB726F6964C0066E483 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EC712AB626F6964C0066E483 /* Preview Assets.xcassets */; };
+		EC88791328D91D9F0029365B /* ZIPFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECC9E75C28D8871300233B72 /* ZIPFoundation.xcframework */; };
+		EC88791428D91D9F0029365B /* ZIPFoundation.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = ECC9E75C28D8871300233B72 /* ZIPFoundation.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		EC88791628D91DA00029365B /* liberlang.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECB3384628B396F7001E8DC7 /* liberlang.xcframework */; };
+		EC88791728D91DA00029365B /* liberlang.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = ECB3384628B396F7001E8DC7 /* liberlang.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		EC8A1FB626FE752000054F1C /* native-lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EC8A1FB426FE752000054F1C /* native-lib.cpp */; };
 		EC8A1FBC26FF226000054F1C /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8A1FBB26FF226000054F1C /* Bridge.swift */; };
 		EC8A1FC92702328F00054F1C /* app.zip in Resources */ = {isa = PBXBuildFile; fileRef = EC8A1FC82702328F00054F1C /* app.zip */; };
 		EC8A1FD12704E9AB00054F1C /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC8A1FD02704E9AB00054F1C /* WebViewController.swift */; };
 		EC90CFEF273D772900C9A3F3 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = EC90CFEE273D772900C9A3F3 /* README.md */; };
-		ECB3384728B396F7001E8DC7 /* liberlang.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECB3384628B396F7001E8DC7 /* liberlang.xcframework */; };
-		ECC9E75D28D8871300233B72 /* ZIPFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = ECC9E75C28D8871300233B72 /* ZIPFoundation.xcframework */; };
 		ECC9E75F28D8C18500233B72 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC9E75E28D8C18500233B72 /* WebView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		EC88791528D91D9F0029365B /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				EC88791728D91DA00029365B /* liberlang.xcframework in Embed Frameworks */,
+				EC88791428D91D9F0029365B /* ZIPFoundation.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		EC712AAC26F6964C0066E483 /* livebook.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = livebook.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -45,8 +62,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ECC9E75D28D8871300233B72 /* ZIPFoundation.xcframework in Frameworks */,
-				ECB3384728B396F7001E8DC7 /* liberlang.xcframework in Frameworks */,
+				EC88791628D91DA00029365B /* liberlang.xcframework in Frameworks */,
+				EC88791328D91D9F0029365B /* ZIPFoundation.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,6 +127,7 @@
 				EC712AA926F6964C0066E483 /* Frameworks */,
 				EC8A1FD6270B4EF900054F1C /* ShellScript */,
 				EC712AAA26F6964C0066E483 /* Resources */,
+				EC88791528D91D9F0029365B /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
