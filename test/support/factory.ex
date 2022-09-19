@@ -31,13 +31,32 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:env_var) do
+    %Livebook.Settings.EnvVar{
+      name: "BAR",
+      value: "foo"
+    }
+  end
+
   def build(factory_name, attrs \\ %{}) do
     factory_name |> build() |> struct!(attrs)
+  end
+
+  def params_for(factory_name, attrs \\ %{}) do
+    factory_name |> build() |> struct!(attrs) |> Map.from_struct()
   end
 
   def insert_hub(factory_name, attrs \\ %{}) do
     factory_name
     |> build(attrs)
     |> Livebook.Hubs.save_hub()
+  end
+
+  def insert_env_var(factory_name, attrs \\ %{}) do
+    env_var = build(factory_name, attrs)
+    attributes = env_var |> Map.from_struct() |> Map.to_list()
+    Livebook.Storage.current().insert(:env_vars, env_var.name, attributes)
+
+    env_var
   end
 end

@@ -2735,6 +2735,56 @@ defmodule Livebook.Session.DataTest do
     end
   end
 
+  describe "apply_operation/2 given :smart_cell_down" do
+    test "updates the smart cell status" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
+        ])
+
+      operation = {:smart_cell_down, @cid, "c1"}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :down}}}, _actions} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
+  describe "apply_operation/2 given :recover_smart_cell" do
+    test "returns an error if the smart cell is not down" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}}
+        ])
+
+      operation = {:recover_smart_cell, @cid, "c1"}
+
+      assert :error = Data.apply_operation(data, operation)
+    end
+
+    test "marks the smart cell as starting if there is a runtime" do
+      data =
+        data_after_operations!([
+          {:insert_section, @cid, 0, "s1"},
+          {:set_runtime, @cid, connected_noop_runtime()},
+          {:set_smart_cell_definitions, @cid, @smart_cell_definitions},
+          {:insert_cell, @cid, "s1", 0, :smart, "c1", %{kind: "text"}},
+          {:smart_cell_down, @cid, "c1"}
+        ])
+
+      operation = {:recover_smart_cell, @cid, "c1"}
+
+      assert {:ok, %{cell_infos: %{"c1" => %{status: :starting}}},
+              [{:start_smart_cell, %{id: "c1"}, %{id: "s1"}}]} =
+               Data.apply_operation(data, operation)
+    end
+  end
+
   describe "apply_operation/2 given :erase_outputs" do
     test "clears all sections evaluation and queues" do
       data =

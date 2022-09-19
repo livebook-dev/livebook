@@ -14,7 +14,8 @@ defmodule AppBundler.Utils do
 
   def shell!(command, opts \\ []) do
     opts = Keyword.put_new(opts, :into, IO.stream())
-    {_, 0} = System.shell(command, opts)
+    {output, 0} = System.shell(command, opts)
+    output
   end
 
   def ensure_executable(url) do

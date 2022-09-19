@@ -409,6 +409,10 @@ defprotocol Livebook.Runtime do
 
     * `{:runtime_smart_cell_started, ref, %{js_view: js_view(), source: String.t()}}`
 
+  In case of an unexpected failure it should also send
+
+    * `{:runtime_smart_cell_down, ref}`
+
   ## Communication
 
   Apart from the regular JS view communication, the cell sends updates
@@ -469,8 +473,14 @@ defprotocol Livebook.Runtime do
   def search_packages(runtime, send_to, search)
 
   @doc """
-  Adds Livebook secrets as environment variables
+  Sets the given environment variables.
   """
   @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
-  def put_system_envs(runtime, secrets)
+  def put_system_envs(runtime, envs)
+
+  @doc """
+  Unsets the given environment variables.
+  """
+  @spec delete_system_envs(t(), list(String.t())) :: :ok
+  def delete_system_envs(runtime, names)
 end

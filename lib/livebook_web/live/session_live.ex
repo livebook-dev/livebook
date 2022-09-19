@@ -404,7 +404,10 @@ defmodule LivebookWeb.SessionLive do
           module={LivebookWeb.SessionLive.SecretsComponent}
           id="secrets"
           session={@session}
-          secret={@secret}
+          secrets={@data_view.secrets}
+          prefill_secret_name={@prefill_secret_name}
+          select_secret_ref={@select_secret_ref}
+          preselect_name={@preselect_name}
           return_to={@self_path}
         />
       </.modal>
@@ -489,7 +492,7 @@ defmodule LivebookWeb.SessionLive do
   defp clients_list(assigns) do
     ~H"""
     <div class="flex flex-col grow">
-      <div class="flex items-center justify-between space-x-4">
+      <div class="flex items-center justify-between space-x-4 -mt-1">
         <h3 class="uppercase text-sm font-semibold text-gray-500">
           Users
         </h3>
@@ -498,7 +501,7 @@ defmodule LivebookWeb.SessionLive do
           <span><%= length(@data_view.clients) %> connected</span>
         </span>
       </div>
-      <div class="flex flex-col mt-4 space-y-4">
+      <div class="flex flex-col mt-5 space-y-4">
         <%= for {client_id, user} <- @data_view.clients do %>
           <div
             class="flex items-center justify-between space-x-2"
@@ -512,7 +515,7 @@ defmodule LivebookWeb.SessionLive do
               data-el-client-link
             >
               <.user_avatar user={user} class="shrink-0 h-7 w-7" text_class="text-xs" />
-              <span><%= user.name || "Anonymous" %></span>
+              <span class="text-left"><%= user.name || "Anonymous" %></span>
             </button>
             <%= if client_id != @client_id do %>
               <span
@@ -551,9 +554,12 @@ defmodule LivebookWeb.SessionLive do
       </h3>
       <div class="flex flex-col mt-4 space-y-4">
         <%= for secret <- @data_view.secrets do %>
-          <div class="flex items-center text-gray-500">
-            <span class="flex items-center space-x-1">
-              <%= secret.label %>
+          <div class="flex justify-between items-center text-gray-500">
+            <span class="break-all">
+              <%= secret.name %>
+            </span>
+            <span class="rounded-full bg-gray-200 px-2 text-xs text-gray-600">
+              Session
             </span>
           </div>
         <% end %>
@@ -749,8 +755,12 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_params(params, _url, socket)
       when socket.assigns.live_action == :secrets do
-    label = Map.get(params, "secret", "")
-    {:noreply, assign(socket, secret: %{"label" => label, "value" => ""})}
+    {:noreply,
+     assign(socket,
+       prefill_secret_name: params["secret_name"],
+       preselect_name: params["preselect_name"],
+       select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref)
+     )}
   end
 
   def handle_params(_params, _url, socket) do
@@ -902,6 +912,13 @@ defmodule LivebookWeb.SessionLive do
         :error ->
           socket
       end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("recover_smart_cell", %{"cell_id" => cell_id}, socket) do
+    assert_policy!(socket, :read)
+    Session.recover_smart_cell(socket.assigns.session.pid, cell_id)
 
     {:noreply, socket}
   end
@@ -1101,6 +1118,22 @@ defmodule LivebookWeb.SessionLive do
     )
 
     {:noreply, socket}
+  end
+
+  def handle_event(
+        "select_secret",
+        %{"js_view_ref" => select_secret_ref, "preselect_name" => preselect_name},
+        socket
+      ) do
+    socket = assign(socket, select_secret_ref: select_secret_ref)
+
+    {:noreply,
+     push_patch(socket,
+       to:
+         Routes.session_path(socket, :secrets, socket.assigns.session.id,
+           preselect_name: preselect_name
+         )
+     )}
   end
 
   @impl true

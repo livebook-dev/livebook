@@ -308,7 +308,7 @@ defmodule Livebook.Runtime.Evaluator do
   end
 
   defp handle_cast({:evaluate_code, code, ref, base_ref, opts}, state) do
-    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
+    Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
 
     context = get_context(state, base_ref)
     file = Keyword.get(opts, :file, "nofile")
@@ -357,7 +357,7 @@ defmodule Livebook.Runtime.Evaluator do
 
   defp handle_cast({:forget_evaluation, ref}, state) do
     state = delete_context(state, ref)
-    Evaluator.ObjectTracker.remove_reference(state.object_tracker, {self(), ref})
+    Evaluator.ObjectTracker.remove_reference_sync(state.object_tracker, {self(), ref})
 
     :erlang.garbage_collect(self())
     {:noreply, state}

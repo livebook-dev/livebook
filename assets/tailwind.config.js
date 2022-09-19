@@ -1,3 +1,5 @@
+const plugin = require("tailwindcss/plugin")
+
 module.exports = {
   content: [
     "../lib/**/*.ex",
@@ -101,5 +103,15 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addVariant }) => {
+      addVariant("phx-loading", [".phx-loading&", ".phx-loading &"]);
+      addVariant("phx-connected", [".phx-connected&", ".phx-connected &"]);
+      addVariant("phx-error", [".phx-error&", ".phx-error &"]);
+      addVariant("phx-form-error", [":not(.phx-no-feedback).show-errors &"]);
+      addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"]);
+      addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"]);
+      addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"]);
+    })
+  ],
 };

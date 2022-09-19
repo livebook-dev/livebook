@@ -3,7 +3,16 @@ defmodule Livebook.Settings do
 
   # Keeps all Livebook settings that are backed by storage.
 
+  import Ecto.Changeset, only: [apply_action: 2]
+
   alias Livebook.FileSystem
+  alias Livebook.Settings.EnvVar
+
+  defmodule NotFoundError do
+    @moduledoc false
+
+    defexception [:message, plug_status: 404]
+  end
 
   @typedoc """
   An id that is used for filesystem's manipulation, either insertion or removal.
@@ -59,7 +68,7 @@ defmodule Livebook.Settings do
         {fs_id, storage_to_fs(raw_fs)}
       end)
 
-    [{:local, Livebook.Config.local_filesystem()} | restored_file_systems]
+    [{"local", Livebook.Config.local_filesystem()} | restored_file_systems]
   end
 
   @doc """
@@ -116,5 +125,121 @@ defmodule Livebook.Settings do
   @spec set_update_check_enabled(boolean()) :: :ok
   def set_update_check_enabled(enabled) do
     storage().insert(:settings, "global", update_check_enabled: enabled)
+  end
+
+  @doc """
+  Gets a list of environment variables from storage.
+  """
+  @spec fetch_env_vars() :: list(EnvVar.t())
+  def fetch_env_vars do
+    for fields <- storage().all(:env_vars) do
+      struct!(EnvVar, Map.delete(fields, :id))
+    end
+  end
+
+  @doc """
+  Gets one environment variable from storage.
+
+  Raises `RuntimeError` if the environment variable does not exist.
+  """
+  @spec fetch_env_var!(String.t()) :: EnvVar.t()
+  def fetch_env_var!(id) do
+    case storage().fetch(:env_vars, id) do
+      :error ->
+        raise NotFoundError,
+          message: "could not find an environment variable matching #{inspect(id)}"
+
+      {:ok, fields} ->
+        struct!(EnvVar, Map.delete(fields, :id))
+    end
+  end
+
+  @doc """
+  Checks if environment variable already exists.
+  """
+  @spec env_var_exists?(String.t()) :: boolean()
+  def env_var_exists?(id) do
+    storage().fetch(:env_vars, id) != :error
+  end
+
+  @doc """
+  Sets the given environment variable.
+
+  With success, notifies interested processes about environment variable
+  data change. Otherwise, it will return an error tuple with changeset.
+  """
+  @spec set_env_var(EnvVar.t(), map()) ::
+          {:ok, EnvVar.t()} | {:error, Ecto.Changeset.t()}
+  def set_env_var(%EnvVar{} = env_var \\ %EnvVar{}, attrs) do
+    changeset = EnvVar.changeset(env_var, attrs)
+
+    with {:ok, env_var} <- apply_action(changeset, :insert) do
+      save_env_var(env_var)
+    end
+  end
+
+  defp save_env_var(env_var) do
+    attributes = env_var |> Map.from_struct() |> Map.to_list()
+
+    with :ok <- storage().insert(:env_vars, env_var.name, attributes),
+         :ok <- broadcast_env_vars_change({:env_var_set, env_var}) do
+      {:ok, env_var}
+    end
+  end
+
+  @doc """
+  Unsets an environment variable from given id.
+
+  With success, notifies interested processes about environment variable
+  deletion. Otherwise, it does nothing.
+  """
+  @spec unset_env_var(String.t()) :: :ok
+  def unset_env_var(id) do
+    if env_var_exists?(id) do
+      env_var = fetch_env_var!(id)
+      storage().delete(:env_vars, id)
+      broadcast_env_vars_change({:env_var_unset, env_var})
+    end
+
+    :ok
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking environment variable changes.
+  """
+  @spec change_env_var(EnvVar.t(), map()) :: Ecto.Changeset.t()
+  def change_env_var(%EnvVar{} = env_var, attrs \\ %{}) do
+    env_var
+    |> EnvVar.changeset(attrs)
+    |> Map.put(:action, :validate)
+  end
+
+  @doc """
+  Subscribes to updates in settings information.
+
+  ## Messages
+
+    * `{:env_var_set, env_var}`
+    * `{:env_var_unset, env_var}`
+
+  """
+  @spec subscribe() :: :ok | {:error, term()}
+  def subscribe do
+    Phoenix.PubSub.subscribe(Livebook.PubSub, "settings")
+  end
+
+  @doc """
+  Unsubscribes from `subscribe/0`.
+  """
+  @spec unsubscribe() :: :ok
+  def unsubscribe do
+    Phoenix.PubSub.unsubscribe(Livebook.PubSub, "settings")
+  end
+
+  # Notifies interested processes about environment variables data change.
+  #
+  # Broadcasts given message under the `"settings"` topic.
+  defp broadcast_env_vars_change(message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", message)
   end
 end

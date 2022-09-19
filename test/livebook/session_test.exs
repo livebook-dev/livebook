@@ -105,6 +105,38 @@ defmodule Livebook.SessionTest do
     end
   end
 
+  describe "recover_smart_cell/2" do
+    test "sends a recover operations to subscribers and starts the smart cell" do
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
+      section = %{Notebook.Section.new() | cells: [smart_cell]}
+      notebook = %{Notebook.new() | sections: [section]}
+
+      session = start_session(notebook: notebook)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{source: "content!", js_view: %{}, editor: nil}}
+      )
+
+      send(session.pid, {:runtime_smart_cell_down, smart_cell.id})
+
+      Session.subscribe(session.id)
+
+      Session.recover_smart_cell(session.pid, smart_cell.id)
+
+      cell_id = smart_cell.id
+
+      assert_receive {:operation, {:recover_smart_cell, _client_id, ^cell_id}}
+      assert_receive {:operation, {:smart_cell_started, _, ^cell_id, _, _, _}}
+    end
+  end
+
   describe "convert_smart_cell/2" do
     test "sends a delete and insert operations to subscribers" do
       smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: "content"}
@@ -660,6 +692,48 @@ defmodule Livebook.SessionTest do
       Session.apply_cell_delta(session.pid, smart_cell.id, :secondary, delta, 1)
 
       assert_receive {:editor_source, "content!"}
+    end
+
+    test "normalizes line endings in smart cells having an editor" do
+      # Prior to Livebook 0.7.0 the editor would use system line endings,
+      # hence smart cells having editor may have CRLF in their persisted
+      # source, so we want to normalize it upfront
+
+      smart_cell = %{Notebook.Cell.new(:smart) | kind: "text", source: ""}
+      notebook = %{Notebook.new() | sections: [%{Notebook.Section.new() | cells: [smart_cell]}]}
+      session = start_session(notebook: notebook)
+
+      runtime = connected_noop_runtime()
+      Session.set_runtime(session.pid, runtime)
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_definitions, [%{kind: "text", name: "Text", requirement: nil}]}
+      )
+
+      server_pid = self()
+
+      send(
+        session.pid,
+        {:runtime_smart_cell_started, smart_cell.id,
+         %{
+           source: "content\r\nmultiline",
+           js_view: %{ref: smart_cell.id, pid: server_pid, assets: %{}},
+           editor: %{language: nil, placement: :bottom, source: "content\r\nmultiline"}
+         }}
+      )
+
+      assert %{
+               notebook: %{
+                 sections: [
+                   %{
+                     cells: [
+                       %{source: "content\nmultiline", editor: %{source: "content\nmultiline"}}
+                     ]
+                   }
+                 ]
+               }
+             } = Session.get_data(session.pid)
     end
 
     test "pings the smart cell before evaluation to await all incoming messages" do

@@ -7,9 +7,15 @@ defmodule LivebookWeb.SettingsLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Livebook.Settings.subscribe()
+    end
+
     {:ok,
      assign(socket,
        file_systems: Livebook.Settings.file_systems(),
+       env_vars: Livebook.Settings.fetch_env_vars() |> Enum.sort(),
+       env_var: nil,
        autosave_path_state: %{
          file: autosave_dir(),
          dialog_opened?: false
@@ -28,7 +34,7 @@ defmodule LivebookWeb.SettingsLive do
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-16">
+      <div id="settings-page" class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-md mx-auto space-y-16">
         <!-- System settings section -->
         <div class="flex flex-col space-y-10">
           <div>
@@ -41,7 +47,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- System details -->
           <div class="flex flex-col space-y-2">
-            <h2 class="text-xl text-gray-800 font-semibold">
+            <h2 class="text-xl text-gray-800 font-medium">
               About
             </h2>
             <div class="flex flex-col md:flex-row gap-4 md:gap-12 first-letter:items-center justify-center md:justify-between border border-gray-200 rounded-lg p-4">
@@ -76,7 +82,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Updates -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Updates
             </h2>
             <form class="flex justify-between mt-4" phx-change="save" onsubmit="return false;">
@@ -90,7 +96,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Autosave path configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Autosave
             </h2>
             <p class="text-gray-700">
@@ -100,7 +106,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- File systems configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               File systems
             </h2>
             <p class="mt-4 text-gray-700">
@@ -113,13 +119,29 @@ defmodule LivebookWeb.SettingsLive do
               socket={@socket}
             />
           </div>
+          <!-- Environment variables configuration -->
+          <div class="flex flex-col space-y-4">
+            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+              Environment variables
+            </h2>
+            <p class="mt-4 text-gray-700">
+              Environment variables are used to store global values and secrets.
+              The global environment variables can be used on the entire Livebook
+              application and is accessible only to the current machine.
+            </p>
+            <.live_component
+              module={LivebookWeb.EnvVarsComponent}
+              id="env-vars"
+              env_vars={@env_vars}
+              return_to={Routes.settings_path(@socket, :page)}
+              add_env_var_path={Routes.settings_path(@socket, :add_env_var)}
+            />
+          </div>
         </div>
         <!-- User settings section -->
         <div class="flex flex-col space-y-10">
           <div>
-            <h1 class="text-3xl text-gray-800 font-semibold">
-              User settings
-            </h1>
+            <PageHelpers.title text="User settings" />
             <p class="mt-4 text-gray-700">
               The configuration in this section changes only your Livebook
               experience and is saved in your browser.
@@ -127,7 +149,7 @@ defmodule LivebookWeb.SettingsLive do
           </div>
           <!-- Editor configuration -->
           <div class="flex flex-col space-y-4">
-            <h2 class="text-xl text-gray-800 font-semibold pb-2 border-b border-gray-200">
+            <h2 class="text-xl text-gray-800 font-medium pb-2 border-b border-gray-200">
               Code editor
             </h2>
             <div
@@ -192,8 +214,28 @@ defmodule LivebookWeb.SettingsLive do
         />
       </.modal>
     <% end %>
+
+    <%= if @live_action in [:add_env_var, :edit_env_var] do %>
+      <.modal
+        id="env-var-modal"
+        show
+        class="w-full max-w-3xl"
+        on_close={JS.push("clear_env_var")}
+        patch={Routes.settings_path(@socket, :page)}
+      >
+        <.live_component
+          module={LivebookWeb.EnvVarComponent}
+          id="env-var"
+          env_var={@env_var}
+          headline="Configure your application global environment variables."
+          return_to={Routes.settings_path(@socket, :page)}
+        />
+      </.modal>
+    <% end %>
     """
   end
+
+  defp autosave_path_select(%{state: %{file: nil}} = assigns), do: ~H""
 
   defp autosave_path_select(%{state: %{dialog_opened?: true}} = assigns) do
     ~H"""
@@ -238,11 +280,16 @@ defmodule LivebookWeb.SettingsLive do
   end
 
   @impl true
+  def handle_params(%{"env_var_id" => key}, _url, socket) do
+    env_var = Livebook.Settings.fetch_env_var!(key)
+    {:noreply, assign(socket, env_var: env_var)}
+  end
+
   def handle_params(%{"file_system_id" => file_system_id}, _url, socket) do
     {:noreply, assign(socket, file_system_id: file_system_id)}
   end
 
-  def handle_params(_params, _url, socket), do: {:noreply, socket}
+  def handle_params(_params, _url, socket), do: {:noreply, assign(socket, env_var: nil)}
 
   @impl true
   def handle_event("cancel_autosave_path", %{}, socket) do
@@ -293,6 +340,27 @@ defmodule LivebookWeb.SettingsLive do
     {:noreply, assign(socket, :update_check_enabled, enabled)}
   end
 
+  def handle_event("save", %{"env_var" => attrs}, socket) do
+    env_var = %Livebook.Settings.EnvVar{}
+
+    case Livebook.Settings.set_env_var(socket.assigns.env_var || env_var, attrs) do
+      {:ok, _} ->
+        {:noreply, push_patch(socket, to: Routes.settings_path(socket, :page))}
+
+      {:error, _changeset} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("edit_env_var", %{"env_var" => key}, socket) do
+    {:noreply, push_patch(socket, to: Routes.settings_path(socket, :edit_env_var, key))}
+  end
+
+  def handle_event("delete_env_var", %{"env_var" => key}, socket) do
+    Livebook.Settings.unset_env_var(key)
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:file_systems_updated, file_systems}, socket) do
     {:noreply, assign(socket, file_systems: file_systems)}
@@ -306,12 +374,31 @@ defmodule LivebookWeb.SettingsLive do
     handle_event("set_autosave_path", %{}, socket)
   end
 
+  def handle_info({:env_var_set, env_var}, socket) do
+    idx = Enum.find_index(socket.assigns.env_vars, &(&1.name == env_var.name))
+
+    env_vars =
+      if idx,
+        do: List.replace_at(socket.assigns.env_vars, idx, env_var),
+        else: [env_var | socket.assigns.env_vars]
+
+    {:noreply, assign(socket, env_vars: Enum.sort(env_vars), env_var: nil)}
+  end
+
+  def handle_info({:env_var_unset, env_var}, socket) do
+    env_vars = Enum.reject(socket.assigns.env_vars, &(&1.name == env_var.name))
+
+    {:noreply, assign(socket, env_vars: env_vars, env_var: nil)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp autosave_dir() do
-    Livebook.Settings.autosave_path()
-    |> Livebook.FileSystem.Utils.ensure_dir_path()
-    |> Livebook.FileSystem.File.local()
+    if path = Livebook.Settings.autosave_path() do
+      path
+      |> Livebook.FileSystem.Utils.ensure_dir_path()
+      |> Livebook.FileSystem.File.local()
+    end
   end
 
   defp default_autosave_dir() do

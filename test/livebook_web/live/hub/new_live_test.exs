@@ -124,11 +124,12 @@ defmodule LivebookWeb.Hub.NewLiveTest do
 
     Bypass.expect(bypass, "POST", "/", fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
+      body = Jason.decode!(body)
 
       response =
-        case Jason.decode!(body) do
-          %{"variables" => %{"appId" => ^app_id}} -> fetch_app_response(app_id)
-          %{"variables" => %{}} -> fetch_apps_response(app_id)
+        cond do
+          body["query"] =~ "apps" -> fetch_apps_response(app_id)
+          body["query"] =~ "app" -> fetch_app_response(app_id)
         end
 
       conn
@@ -157,7 +158,21 @@ defmodule LivebookWeb.Hub.NewLiveTest do
       "hostname" => app_id <> ".fly.dev",
       "platformVersion" => "nomad",
       "deployed" => true,
-      "status" => "running"
+      "status" => "running",
+      "secrets" => [
+        %{
+          "createdAt" => to_string(DateTime.utc_now()),
+          "digest" => to_string(Livebook.Utils.random_cookie()),
+          "id" => Livebook.Utils.random_short_id(),
+          "name" => "LIVEBOOK_PASSWORD"
+        },
+        %{
+          "createdAt" => to_string(DateTime.utc_now()),
+          "digest" => to_string(Livebook.Utils.random_cookie()),
+          "id" => Livebook.Utils.random_short_id(),
+          "name" => "LIVEBOOK_SECRET_KEY_BASE"
+        }
+      ]
     }
 
     %{"data" => %{"app" => app}}
