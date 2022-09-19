@@ -11,8 +11,8 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
     env_vars = env_vars_from_secrets(app["secrets"])
 
     env_var =
-      if key = assigns.env_var_id do
-        Enum.find(env_vars, &(&1.key == key))
+      if name = assigns.env_var_id do
+        Enum.find(env_vars, &(&1.name == name))
       end
 
     {:ok,
@@ -28,7 +28,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
 
   defp env_vars_from_secrets(secrets) do
     for secret <- secrets do
-      %Livebook.Settings.EnvVar{key: secret["name"]}
+      %Livebook.Settings.EnvVar{name: secret["name"]}
     end
   end
 
@@ -105,6 +105,7 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
             env_vars={@env_vars}
             return_to={Routes.hub_path(@socket, :edit, @hub.id)}
             add_env_var_path={Routes.hub_path(@socket, :add_env_var, @hub.id)}
+            edit_label="Replace"
             target={@myself}
           />
         </div>
@@ -157,7 +158,8 @@ defmodule LivebookWeb.Hub.Edit.FlyComponent do
   # EnvVar component callbacks
 
   def handle_event("save_env_var", %{"env_var" => attrs}, socket) do
-    {env_operation, attrs} = Map.pop!(attrs, "operation")
+    env_operation = attrs["operation"]
+    attrs = %{"key" => attrs["name"], "value" => attrs["value"]}
 
     case FlyClient.put_secrets(socket.assigns.hub, [attrs]) do
       {:ok, _} ->

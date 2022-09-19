@@ -473,8 +473,14 @@ defprotocol Livebook.Runtime do
   def search_packages(runtime, send_to, search)
 
   @doc """
-  Adds Livebook secrets as environment variables
+  Sets the given environment variables.
   """
   @spec put_system_envs(t(), list({String.t(), String.t()})) :: :ok
-  def put_system_envs(runtime, secrets)
+  def put_system_envs(runtime, envs)
+
+  @doc """
+  Unsets the given environment variables.
+  """
+  @spec delete_system_envs(t(), list(String.t())) :: :ok
+  def delete_system_envs(runtime, names)
 end

@@ -166,8 +166,20 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     GenServer.cast(pid, {:stop_smart_cell, ref})
   end
 
-  def put_system_envs(pid, secrets) do
-    GenServer.cast(pid, {:put_system_envs, secrets})
+  @doc """
+  Sets the given environment variables.
+  """
+  @spec put_system_envs(pid(), list({String.t(), String.t()})) :: :ok
+  def put_system_envs(pid, envs) do
+    GenServer.cast(pid, {:put_system_envs, envs})
+  end
+
+  @doc """
+  Unsets the given environment variables.
+  """
+  @spec delete_system_envs(pid(), list(String.t())) :: :ok
+  def delete_system_envs(pid, names) do
+    GenServer.cast(pid, {:delete_system_envs, names})
   end
 
   @doc """
@@ -206,7 +218,8 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
          Keyword.get(opts, :smart_cell_definitions_module, Kino.SmartCell),
        extra_smart_cell_definitions: Keyword.get(opts, :extra_smart_cell_definitions, []),
        memory_timer_ref: nil,
-       last_evaluator: nil
+       last_evaluator: nil,
+       initial_path: System.get_env("PATH", "")
      }}
   end
 
@@ -464,8 +477,25 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
     {:noreply, state}
   end
 
-  def handle_cast({:put_system_envs, secrets}, state) do
-    System.put_env(secrets)
+  def handle_cast({:put_system_envs, envs}, state) do
+    envs
+    |> Enum.map(fn
+      {"PATH", path} -> {"PATH", state.initial_path <> os_path_separator() <> path}
+      other -> other
+    end)
+    |> System.put_env()
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:delete_system_envs, names}, state) do
+    names
+    |> Enum.map(fn
+      "PATH" -> {"PATH", state.initial_path}
+      name -> {name, nil}
+    end)
+    |> System.put_env()
+
     {:noreply, state}
   end
 
@@ -624,5 +654,12 @@ defmodule Livebook.Runtime.ErlDist.RuntimeServer do
           other
       end)
     end)
+  end
+
+  defp os_path_separator() do
+    case :os.type() do
+      {:win32, _} -> ";"
+      _ -> ":"
+    end
   end
 end

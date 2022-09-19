@@ -33,7 +33,7 @@ defmodule Livebook.Factory do
 
   def build(:env_var) do
     %Livebook.Settings.EnvVar{
-      key: "BAR",
+      name: "BAR",
       value: "foo"
     }
   end
@@ -55,7 +55,7 @@ defmodule Livebook.Factory do
   def insert_env_var(factory_name, attrs \\ %{}) do
     env_var = build(factory_name, attrs)
     attributes = env_var |> Map.from_struct() |> Map.to_list()
-    Livebook.Storage.current().insert(:env_vars, env_var.key, attributes)
+    Livebook.Storage.current().insert(:env_vars, env_var.name, attributes)
 
     env_var
   end

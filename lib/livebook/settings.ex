@@ -163,9 +163,9 @@ defmodule Livebook.Settings do
   end
 
   @doc """
-  Persists the given environment variable.
+  Sets the given environment variable.
 
-  With success, notifies interested processes about environment variables
+  With success, notifies interested processes about environment variable
   data change. Otherwise, it will return an error tuple with changeset.
   """
   @spec set_env_var(EnvVar.t(), map()) ::
@@ -181,21 +181,27 @@ defmodule Livebook.Settings do
   defp save_env_var(env_var) do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
 
-    with :ok <- storage().insert(:env_vars, env_var.key, attributes),
-         :ok <- broadcast_env_vars_change() do
+    with :ok <- storage().insert(:env_vars, env_var.name, attributes),
+         :ok <- broadcast_env_vars_change({:env_var_set, env_var}) do
       {:ok, env_var}
     end
   end
 
   @doc """
-  Deletes an environment variable from given id.
+  Unsets an environment variable from given id.
 
-  Also, it notifies interested processes about environment variables data change.
+  With success, notifies interested processes about environment variable
+  deletion. Otherwise, it does nothing.
   """
-  @spec delete_env_var(String.t()) :: :ok
-  def delete_env_var(id) do
-    storage().delete(:env_vars, id)
-    broadcast_env_vars_change()
+  @spec unset_env_var(String.t()) :: :ok
+  def unset_env_var(id) do
+    if env_var_exists?(id) do
+      env_var = fetch_env_var!(id)
+      storage().delete(:env_vars, id)
+      broadcast_env_vars_change({:env_var_unset, env_var})
+    end
+
+    :ok
   end
 
   @doc """
@@ -213,7 +219,8 @@ defmodule Livebook.Settings do
 
   ## Messages
 
-    * `{:env_vars_changed, env_vars}`
+    * `{:env_var_set, env_var}`
+    * `{:env_var_unset, env_var}`
 
   """
   @spec subscribe() :: :ok | {:error, term()}
@@ -231,8 +238,8 @@ defmodule Livebook.Settings do
 
   # Notifies interested processes about environment variables data change.
   #
-  # Broadcasts `{:env_vars_changed, env_vars}` message under the `"settings"` topic.
-  defp broadcast_env_vars_change do
-    Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", {:env_vars_changed, fetch_env_vars()})
+  # Broadcasts given message under the `"settings"` topic.
+  defp broadcast_env_vars_change(message) do
+    Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", message)
   end
 end

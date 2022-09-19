@@ -206,6 +206,13 @@ const Session = {
     });
 
     this.handleEvent(
+      "secret_selected",
+      ({ select_secret_ref, secret_name }) => {
+        this.handleSecretSelected(select_secret_ref, secret_name);
+      }
+    );
+
+    this.handleEvent(
       "location_report",
       ({ client_id, focusable_id, selection }) => {
         const report = {
@@ -1031,6 +1038,13 @@ const Session = {
   handleClientsUpdated(updatedClients) {
     updatedClients.forEach((client) => {
       this.clientsMap[client.id] = client;
+    });
+  },
+
+  handleSecretSelected(select_secret_ref, secretName) {
+    globalPubSub.broadcast(`js_views:${select_secret_ref}`, {
+      type: "secretSelected",
+      secretName,
     });
   },
 

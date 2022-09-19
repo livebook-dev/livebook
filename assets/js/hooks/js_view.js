@@ -331,6 +331,11 @@ const JSView = {
       } else if (message.type === "syncReply") {
         this.pongCallbackQueue.push(this.syncCallbackQueue.shift());
         this.channel.push("ping", { ref: this.props.ref });
+      } else if (message.type == "selectSecret") {
+        this.pushEvent("select_secret", {
+          js_view_ref: this.props.ref,
+          preselect_name: message.preselectName,
+        });
       }
     }
   },
@@ -409,6 +414,11 @@ const JSView = {
       // do a ping to synchronize with the server
       this.syncCallbackQueue.push(event.callback);
       this.postMessage({ type: "sync" });
+    } else if (event.type == "secretSelected") {
+      this.postMessage({
+        type: "secretSelected",
+        secretName: event.secretName,
+      });
     }
   },
 };

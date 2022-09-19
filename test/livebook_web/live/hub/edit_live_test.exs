@@ -94,9 +94,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_patch(view, Routes.hub_path(conn, :add_env_var, hub.id))
       assert render(view) =~ "Add environment variable"
 
+      attrs = params_for(:env_var, name: "FOO_ENV_VAR")
+
       view
       |> element("#env-var-form")
-      |> render_change(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+      |> render_change(%{"env_var" => attrs})
 
       refute view
              |> element("#env-var-form button[disabled]")
@@ -107,7 +109,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert {:ok, _view, html} =
                view
                |> element("#env-var-form")
-               |> render_submit(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+               |> render_submit(%{"env_var" => attrs})
                |> follow_redirect(conn)
 
       assert html =~ "Environment variable added"
@@ -139,9 +141,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert_patch(view, Routes.hub_path(conn, :edit_env_var, hub.id, "FOO_ENV_VAR"))
       assert render(view) =~ "Edit environment variable"
 
+      attrs = params_for(:env_var, name: "FOO_ENV_VAR")
+
       view
       |> element("#env-var-form")
-      |> render_change(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+      |> render_change(%{"env_var" => attrs})
 
       refute view
              |> element("#env-var-form button[disabled]")
@@ -152,7 +156,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       assert {:ok, _view, html} =
                view
                |> element("#env-var-form")
-               |> render_submit(%{"env_var" => %{"key" => "FOO_ENV_VAR", "value" => "12345"}})
+               |> render_submit(%{"env_var" => attrs})
                |> follow_redirect(conn)
 
       assert html =~ "Environment variable updated"
