@@ -181,9 +181,7 @@ function remarkPrepareMermaid(options) {
       if (node.lang === "mermaid") {
         node.type = "html";
         node.value = `
-          <div class="mermaid max-h-[600px] overflow-auto tiny-scrollbar">
-            ${escapeHtml(node.value)}
-          </div>
+          <div class="mermaid">${escapeHtml(node.value)}</div>
         `;
       }
     });
