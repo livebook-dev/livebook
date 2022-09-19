@@ -153,50 +153,47 @@ defmodule LivebookWeb.FileSelectComponent do
           </div>
         <% end %>
       </div>
+
+      <div
+        class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
+        id="new_dir_section"
+      >
+        <div class="flex space-x-2 items-center p-2 rounded-lg">
+          <span class="block">
+            <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
+          </span>
+          <span class="flex font-medium text-gray-500">
+            <div phx-window-keydown={js_hide_new_dir_section()} phx-key="escape" phx-target={@myself}>
+              <input
+                id="new_dir_input"
+                aria-label="new directory"
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                phx-blur={js_hide_new_dir_section()}
+                phx-window-keydown={
+                  JS.push("create_dir", target: @myself) |> js_hide_new_dir_section()
+                }
+                phx-key="enter"
+              />
+            </div>
+          </span>
+        </div>
+      </div>
+
       <form
-        class="min-h-full pb-4"
+        class="h-full"
         phx-change="file_validate"
         phx-drop-target={@uploads.folder.ref}
         phx-target={@myself}
       >
         <div
-          class="grow -m-1 p-1 min-h-full rounded-lg overflow-y-auto tiny-scrollbar"
+          class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
           tabindex="-1"
           phx-hook="Dropzone"
           id="upload-file-dropzone"
         >
           <%= live_file_input(@uploads.folder, class: "hidden", aria_labelledby: "import-from-file") %>
-
-          <div
-            class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2"
-            id="new_dir_section"
-          >
-            <div class="flex space-x-2 items-center p-2 rounded-lg">
-              <span class="block">
-                <.remix_icon icon="folder-add-fill" class="text-xl align-middle text-gray-400" />
-              </span>
-              <span class="flex font-medium text-gray-500">
-                <div
-                  phx-window-keydown={js_hide_new_dir_section()}
-                  phx-key="escape"
-                  phx-target={@myself}
-                >
-                  <input
-                    id="new_dir_input"
-                    aria-label="new directory"
-                    type="text"
-                    spellcheck="false"
-                    autocomplete="off"
-                    phx-blur={js_hide_new_dir_section()}
-                    phx-window-keydown={
-                      JS.push("create_dir", target: @myself) |> js_hide_new_dir_section()
-                    }
-                    phx-key="enter"
-                  />
-                </div>
-              </span>
-            </div>
-          </div>
 
           <%= if any_highlighted?(@file_infos) do %>
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 border-b border-dashed border-grey-200 mb-2 pb-2">
