@@ -3,7 +3,7 @@ defmodule LivebookWeb.SettingsLive do
 
   alias LivebookWeb.{LayoutHelpers, PageHelpers}
 
-  on_mount LivebookWeb.SidebarHook
+  on_mount(LivebookWeb.SidebarHook)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -50,8 +50,8 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium">
               About
             </h2>
-            <div class="flex items-center justify-between border border-gray-200 rounded-lg p-4">
-              <div class="flex items-center space-x-12">
+            <div class="flex flex-col md:flex-row gap-4 md:gap-12 first-letter:items-center justify-center md:justify-between border border-gray-200 rounded-lg p-4">
+              <div class="flex justify-center md:items-center space-x-12">
                 <%= if app_name = Livebook.Config.app_service_name() do %>
                   <.labeled_text label="Application">
                     <%= if app_url = Livebook.Config.app_service_url() do %>
@@ -71,11 +71,13 @@ defmodule LivebookWeb.SettingsLive do
                 </.labeled_text>
               </div>
 
-              <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
-                                  class: "button-base button-outlined-gray" do %>
-                <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
-                <span>Open dashboard</span>
-              <% end %>
+              <div class="self-center">
+                <%= live_redirect to: Routes.live_dashboard_path(@socket, :home),
+                                    class: "button-base button-outlined-gray" do %>
+                  <.remix_icon icon="dashboard-2-line" class="align-middle mr-1" />
+                  <span>Open dashboard</span>
+                <% end %>
+              </div>
             </div>
           </div>
           <!-- Updates -->
