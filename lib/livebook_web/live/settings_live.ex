@@ -50,7 +50,7 @@ defmodule LivebookWeb.SettingsLive do
             <h2 class="text-xl text-gray-800 font-medium">
               About
             </h2>
-            <div class="flex flex-col md:flex-row gap-4 md:gap-12 first-letter:items-center justify-center md:justify-between border border-gray-200 rounded-lg p-4">
+            <div class="flex flex-col md:flex-row gap-4 md:gap-12 items-center justify-center md:justify-between border border-gray-200 rounded-lg p-4">
               <div class="flex justify-center md:items-center space-x-12">
                 <%= if app_name = Livebook.Config.app_service_name() do %>
                   <.labeled_text label="Application">
