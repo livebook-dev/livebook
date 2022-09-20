@@ -54,8 +54,8 @@ defmodule LivebookWeb.Router do
       live "/settings/env-var/new", SettingsLive, :add_env_var
       live "/settings/env-var/edit/:env_var_id", SettingsLive, :edit_env_var
 
-      live "/explore", ExploreLive, :page
-      live "/explore/notebooks/:slug", ExploreLive, :notebook
+      live "/learn", LearnLive, :page
+      live "/learn/notebooks/:slug", LearnLive, :notebook
 
       live "/hub", Hub.NewLive, :new, as: :hub
       live "/hub/:id", Hub.EditLive, :edit, as: :hub

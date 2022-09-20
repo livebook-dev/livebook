@@ -38,20 +38,20 @@ defmodule Livebook do
         }
       ]
 
-  ### Custom explore notebooks
+  ### Custom learn notebooks
 
   **Note that this is compile time configuration.**
 
-  A list of additional notebooks to include in the Explore section.
+  A list of additional notebooks to include in the Learn section.
 
   Note that the notebooks are loaded and embedded in a compiled module,
   so the paths are accessed at compile time only.
 
-      config :livebook, :explore_notebooks, [
+      config :livebook, :learn_notebooks, [
         %{
           # Required notebook path
           path: "/path/to/notebook.livemd",
-          # Optional notebook identifier for URLs, as in /explore/notebooks/{slug}
+          # Optional notebook identifier for URLs, as in /learn/notebooks/{slug}
           # By default the slug is inferred from file name, so there is no need to set it
           slug: "my-notebook"
           # Optional list of images
@@ -60,7 +60,7 @@ defmodule Livebook do
             "/path/to/myimage.jpg"
           ],
           # Optional details for the notebook card. If omitted, the notebook
-          # is hidden in the UI, but still accessible under /explore/notebooks/{slug}
+          # is hidden in the UI, but still accessible under /learn/notebooks/{slug}
           details: %{
             cover_path: "/path/to/logo.png",
             description: "My custom notebook that showcases some amazing stuff."

@@ -151,7 +151,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support for input forms ([#790](https://github.com/livebook-dev/livebook/pull/790))
 - Completion for struct keys ([#793](https://github.com/livebook-dev/livebook/pull/793))
 - Support for custom JavaScript widgets ([#826](https://github.com/livebook-dev/livebook/pull/826))
-- Introduced a dedicated Explore subsection for Kino guides ([#830](https://github.com/livebook-dev/livebook/pull/830))
+- Introduced a dedicated Learn subsection for Kino guides ([#830](https://github.com/livebook-dev/livebook/pull/830))
 - Added notebook name to page title ([#844](https://github.com/livebook-dev/livebook/pull/844))
 - Added `@deprecated` and `@since` documentation metadata on mouse over ([#852](https://github.com/livebook-dev/livebook/pull/852))
 - Added Livebook and Elixir version information to the Settings page ([#851](https://github.com/livebook-dev/livebook/pull/851))
@@ -166,7 +166,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Removed confirmation step when deleting an empty section ([#829](https://github.com/livebook-dev/livebook/pull/829))
 - Applied several design improvements ([#858](https://github.com/livebook-dev/livebook/pull/858), [#859](https://github.com/livebook-dev/livebook/pull/859) and [#882](https://github.com/livebook-dev/livebook/pull/882))
 - Changed the color scheme in text outputs to improve contrast ([#864](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/864))
-- Reworked Kino guides in the Explore section ([#879](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/879))
+- Reworked Kino guides in the Learn section ([#879](https://github.com/livebook-dev/livebook/pull/858) and [#859](https://github.com/livebook-dev/livebook/pull/879))
 
 ### Fixed
 
@@ -197,7 +197,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Support for file scheme when importing notebook from URL ([#706](https://github.com/livebook-dev/livebook/pull/706))
 - Support for rendering UI controls, such as buttons and keyboard ([#710](https://github.com/livebook-dev/livebook/pull/710))
-- Added Pong notebook to the explore section to showcase controls ([#729](https://github.com/livebook-dev/livebook/pull/729))
+- Added Pong notebook to the learn section to showcase controls ([#729](https://github.com/livebook-dev/livebook/pull/729))
 - Improved function completion to insert parentheses ([#693](https://github.com/livebook-dev/livebook/pull/693))
 - Added user-specific intellisense configuration ([#693](https://github.com/livebook-dev/livebook/pull/693))
 - Added signature completion ([#640](https://github.com/livebook-dev/livebook/pull/640))
@@ -353,7 +353,7 @@ Next milestone, see [New in Livebook v0.2 by José Valim](https://www.youtube.co
 
 ### Added
 
-- Introduced an Explore section ([#310](https://github.com/livebook-dev/livebook/pull/310))
+- Introduced an Learn section ([#310](https://github.com/livebook-dev/livebook/pull/310))
 - Notebook about the unique features behind Elixir and Livebook ([#314](https://github.com/livebook-dev/livebook/pull/314))
 - Portal guide ([#328](https://github.com/livebook-dev/livebook/pull/318))
 - VegaLite introductory notebook ([#335](https://github.com/livebook-dev/livebook/pull/335))

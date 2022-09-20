@@ -14,7 +14,7 @@ have a look at the building blocks that we will need!
 
 ## Kino.Control
 
-In our [introduction to Kino](/explore/notebooks/intro-to-kino),
+In our [introduction to Kino](/learn/notebooks/intro-to-kino),
 we learned about inputs and several different outputs, such as
 tables, frames, and more. In particular, we learned how to use
 inputs to capture values directly into our notebooks:
@@ -150,4 +150,4 @@ on different tabs and each different user can post
 their messages.
 
 In the next notebook we will go one step further and
-[develop a multiplayer pong game](/explore/notebooks/pong)!
+[develop a multiplayer pong game](/learn/notebooks/pong)!

@@ -3,7 +3,7 @@
 ## Introduction
 
 This notebook is a fast-paced introduction to the Elixir
-programming language. We will explore both basic and advanced
+programming language. We will learn both basic and advanced
 concepts to implement our own version of [the Portal
 game](http://en.wikipedia.org/wiki/Portal_(video_game)) to
 transfer data across notebooks using Elixir's distribution
@@ -692,7 +692,7 @@ Now we have everything we need to connect across notebooks.
 
 ### Notebook connections
 
-In order to connect across notebooks, open up [a new empty notebook](/explore/notebooks/new)
+In order to connect across notebooks, open up [a new empty notebook](/learn/notebooks/new)
 in a separate tab, copy and paste the code below to this new notebook,
 and execute it:
 
@@ -789,12 +789,12 @@ So we have reached the end of this notebook with a fast paced introduction
 to Elixir! It was a fun ride and we went from manually starting doors to
 distributed portal transfers.
 
-To learn more about Elixir, we welcome you to explore our [website](http://elixir-lang.org),
+To learn more about Elixir, we welcome you to learn our [website](http://elixir-lang.org),
 [read our Getting Started guide](https://elixir-lang.org/getting-started/introduction.html),
 and [many of the available learning resources](https://elixir-lang.org/learning.html).
 
 You can also learn how to use some of Elixir and Livebook's unique features together
-in the [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook.
+in the [Elixir and Livebook](/learn/notebooks/elixir-and-livebook) notebook.
 
 Finally, huge thanks to Augie De Blieck Jr. for the drawings in this tutorial.
 

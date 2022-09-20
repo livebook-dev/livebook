@@ -197,4 +197,4 @@ KinoGuide.Counter.bump(counter)
 ```
 
 In the next notebook we will get back to those concepts and
-[extend Livebook with custom Smart cells](/explore/notebooks/smart-cells)!
+[extend Livebook with custom Smart cells](/learn/notebooks/smart-cells)!

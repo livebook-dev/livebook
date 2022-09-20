@@ -109,9 +109,9 @@ defmodule LivebookWeb.LayoutHelpers do
             current={@current_page}
           />
           <.sidebar_link
-            title="Explore"
-            icon="compass-3-line"
-            to={Routes.explore_path(@socket, :page)}
+            title="Learn"
+            icon="article-line"
+            to={Routes.learn_path(@socket, :page)}
             current={@current_page}
           />
           <.sidebar_link

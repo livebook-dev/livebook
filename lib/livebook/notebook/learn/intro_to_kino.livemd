@@ -8,7 +8,7 @@ Mix.install([
 
 ## Introduction
 
-In this notebook we will explore the possibilities that
+In this notebook we will learn the possibilities that
 [`kino`](https://github.com/elixir-nx/kino) brings
 into your notebooks. Kino can be thought of as Livebook's
 friend that instructs it how to render certain widgets
@@ -35,7 +35,7 @@ IO.puts("Hello, #{Kino.Input.read(name)}!")
 ```
 
 There are multiple types of inputs, such as text areas,
-color dialogs, selects, and more. Feel free to explore them.
+color dialogs, selects, and more. Feel free to learn them.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -231,11 +231,11 @@ to inspect, toggle, and swap each operation along the way:
 
 With this, we finished our introduction to Kino. Most the guides
 ahead of us will use Kino in one way or the other. You can jump
-into [the VegaLite guide](/explore/notebooks/intro-to-vega-lite)
-for plotting charts or [the MapLibre guide](/explore/notebooks/intro-to-maplibre)
+into [the VegaLite guide](/learn/notebooks/intro-to-vega-lite)
+for plotting charts or [the MapLibre guide](/learn/notebooks/intro-to-maplibre)
 for rendering maps to learn how other packages extend Livebook
 through Kino.
 
 We also have a collection of deep dive guides into Kino in the
-[Explore](/explore) page if you want to learn more, including how
+[Learn](/learn) page if you want to learn more, including how
 to create your custom widgets.

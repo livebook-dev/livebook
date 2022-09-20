@@ -2,13 +2,13 @@
 
 ## Introduction
 
-In this notebook, we will explore some unique features when
+In this notebook, we will learn some unique features when
 using Elixir and Livebook together, such as inputs, autocompletion,
 and more.
 
 If you are not familiar with Elixir, there is a fast paced
 introduction to the language in the [Distributed portals with
-Elixir](/explore/notebooks/distributed-portals-with-elixir)
+Elixir](/learn/notebooks/distributed-portals-with-elixir)
 notebook. For a more structured introduction to the language,
 see [Elixir's Getting Started guide](https://elixir-lang.org/getting-started/introduction.html)
 and [the many learning resources available](https://elixir-lang.org/learning.html).
@@ -93,7 +93,7 @@ Mix.install(
 ## More on branches #1
 
 We already mentioned branching sections in
-[Welcome to Livebook](/explore/notebooks/intro-to-livebook),
+[Welcome to Livebook](/learn/notebooks/intro-to-livebook),
 but in Elixir terms each branching section:
 
 * runs in a separate process from the main flow
