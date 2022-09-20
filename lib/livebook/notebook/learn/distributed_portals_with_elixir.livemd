@@ -3,7 +3,7 @@
 ## Introduction
 
 This notebook is a fast-paced introduction to the Elixir
-programming language. We will learn both basic and advanced
+programming language. We will explore both basic and advanced
 concepts to implement our own version of [the Portal
 game](http://en.wikipedia.org/wiki/Portal_(video_game)) to
 transfer data across notebooks using Elixir's distribution
@@ -789,7 +789,7 @@ So we have reached the end of this notebook with a fast paced introduction
 to Elixir! It was a fun ride and we went from manually starting doors to
 distributed portal transfers.
 
-To learn more about Elixir, we welcome you to learn our [website](http://elixir-lang.org),
+To learn more about Elixir, we welcome you to explore our [website](http://elixir-lang.org),
 [read our Getting Started guide](https://elixir-lang.org/getting-started/introduction.html),
 and [many of the available learning resources](https://elixir-lang.org/learning.html).
 

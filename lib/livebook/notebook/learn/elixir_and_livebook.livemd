@@ -2,7 +2,7 @@
 
 ## Introduction
 
-In this notebook, we will learn some unique features when
+In this notebook, we will explore some unique features when
 using Elixir and Livebook together, such as inputs, autocompletion,
 and more.
 

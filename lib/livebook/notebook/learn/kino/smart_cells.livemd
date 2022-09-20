@@ -31,7 +31,7 @@ button, you should see a list of suggested Smart cells. Feel free
 to try them out!
 
 As with outputs, we can define custom Smart cells through Kino,
-and that's what we're going to learn in this notebook!
+and that's what we're going to explore in this notebook!
 
 ## Basic concepts
 

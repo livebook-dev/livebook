@@ -122,7 +122,7 @@ To write your own, put your math expressions between \$ signs for inline math
 or \$\$ if you want display math. You can double click the formulas above to see
 how they are written.
 
-You can learn all supported expressions in the [KaTeX documentation](https://katex.org/docs/supported.html).
+You can explore all supported expressions in the [KaTeX documentation](https://katex.org/docs/supported.html).
 
 ### Mermaid diagrams
 

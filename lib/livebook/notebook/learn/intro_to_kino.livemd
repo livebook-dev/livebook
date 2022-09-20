@@ -8,7 +8,7 @@ Mix.install([
 
 ## Introduction
 
-In this notebook we will learn the possibilities that
+In this notebook we will explore the possibilities that
 [`kino`](https://github.com/elixir-nx/kino) brings
 into your notebooks. Kino can be thought of as Livebook's
 friend that instructs it how to render certain widgets
@@ -35,7 +35,7 @@ IO.puts("Hello, #{Kino.Input.read(name)}!")
 ```
 
 There are multiple types of inputs, such as text areas,
-color dialogs, selects, and more. Feel free to learn them.
+color dialogs, selects, and more. Feel free to explore them.
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -69,7 +69,7 @@ A regular Markdown file.
 
 The way it works is that Livebook automatically detects
 the output is a kino and renders it in Markdown. That's
-the first of many kinos we will learn today. Let's move
+the first of many kinos we will explore today. Let's move
 forward.
 
 <!-- livebook:{"branch_parent_index":0} -->

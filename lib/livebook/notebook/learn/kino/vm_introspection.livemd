@@ -9,7 +9,7 @@ Mix.install([
 
 ## Introduction
 
-In this notebook, we will learn how to use `Kino` and `VegaLite`
+In this notebook, we will explore how to use `Kino` and `VegaLite`
 to learn how Elixir works and plot how our system behaves over
 time. If you are not familiar with VegaLite, [read
 its introductory notebook](/learn/notebooks/intro-to-vega-lite).
