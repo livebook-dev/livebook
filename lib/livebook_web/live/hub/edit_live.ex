@@ -50,6 +50,14 @@ defmodule LivebookWeb.Hub.EditLive do
             env_var_id={@env_var_id}
           />
         <% end %>
+
+        <%= if @type == "enterprise" do %>
+          <.live_component
+            module={LivebookWeb.Hub.Edit.EnterpriseComponent}
+            hub={@hub}
+            id="enterprise-form"
+          />
+        <% end %>
       </div>
     </LayoutHelpers.layout>
     """
