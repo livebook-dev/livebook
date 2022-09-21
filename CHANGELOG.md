@@ -197,7 +197,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Support for file scheme when importing notebook from URL ([#706](https://github.com/livebook-dev/livebook/pull/706))
 - Support for rendering UI controls, such as buttons and keyboard ([#710](https://github.com/livebook-dev/livebook/pull/710))
-- Added Pong notebook to the learn section to showcase controls ([#729](https://github.com/livebook-dev/livebook/pull/729))
+- Added Pong notebook to the explore section to showcase controls ([#729](https://github.com/livebook-dev/livebook/pull/729))
 - Improved function completion to insert parentheses ([#693](https://github.com/livebook-dev/livebook/pull/693))
 - Added user-specific intellisense configuration ([#693](https://github.com/livebook-dev/livebook/pull/693))
 - Added signature completion ([#640](https://github.com/livebook-dev/livebook/pull/640))
