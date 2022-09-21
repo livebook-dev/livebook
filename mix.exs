@@ -90,7 +90,7 @@ defmodule Livebook.MixProject do
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 3.0"},
       {:phoenix_live_view, "~> 0.18.0", override: true},
-      {:phoenix_live_dashboard, path: "../phoenix_live_dashboard"},
+      {:phoenix_live_dashboard, "~> 0.7.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
