@@ -69,13 +69,7 @@ defmodule LivebookWeb.Hub.NewLive do
             <% end %>
 
             <%= if @selected_type == "enterprise" do %>
-              <div>
-                Livebook Enterprise is currently in closed beta. If you want to learn more, <a
-                  href="https://livebook.dev/#livebook-plans"
-                  class="pointer-events-auto text-blue-600"
-                  target="_blank"
-                >click here</a>.
-              </div>
+              <.live_component module={LivebookWeb.Hub.New.EnterpriseComponent} id="enterprise-form" />
             <% end %>
           </div>
         <% end %>
