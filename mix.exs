@@ -89,8 +89,8 @@ defmodule Livebook.MixProject do
     [
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 3.0"},
-      {:phoenix_live_view, "~> 0.17.3"},
-      {:phoenix_live_dashboard, "~> 0.6.0"},
+      {:phoenix_live_view, "~> 0.18.0", override: true},
+      {:phoenix_live_dashboard, path: "../phoenix_live_dashboard"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.0"},
