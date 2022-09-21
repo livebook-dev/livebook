@@ -9,10 +9,10 @@ Mix.install([
 
 ## Introduction
 
-In this notebook, we will learn how to use `Kino` and `VegaLite`
-to explore how Elixir works and plot how our system behaves over
+In this notebook, we will explore how to use `Kino` and `VegaLite`
+to learn how Elixir works and plot how our system behaves over
 time. If you are not familiar with VegaLite, [read
-its introductory notebook](/explore/notebooks/intro-to-vega-lite).
+its introductory notebook](/learn/notebooks/intro-to-vega-lite).
 
 Both `Kino` and `VegaLite` have been listed as dependencies in the
 setup cell.
@@ -364,4 +364,4 @@ end
 ```
 
 In the next notebook, we will learn [how to use `Kino.Control`
-to build a chat app](/explore/notebooks/chat-app)!
+to build a chat app](/learn/notebooks/chat-app)!

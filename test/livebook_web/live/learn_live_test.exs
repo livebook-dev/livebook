@@ -1,10 +1,10 @@
-defmodule LivebookWeb.ExploreLiveTest do
+defmodule LivebookWeb.LearnLiveTest do
   use LivebookWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
   test "link to introductory notebook correctly creates a new session", %{conn: conn} do
-    {:ok, view, _} = live(conn, "/explore")
+    {:ok, view, _} = live(conn, "/learn")
 
     assert {:error, {:live_redirect, %{to: to}}} =
              view
@@ -20,7 +20,7 @@ defmodule LivebookWeb.ExploreLiveTest do
   test "link to a new notebook creates an empty session", %{conn: conn} do
     {:ok, view, _} =
       conn
-      |> live("/explore/notebooks/new")
+      |> live("/learn/notebooks/new")
       |> follow_redirect(conn)
 
     assert render(view) =~ "Untitled notebook"

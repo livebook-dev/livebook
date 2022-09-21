@@ -936,5 +936,5 @@ disable the keyboard, the game continues running. Could you change the
 code above to stop the game once any player toggles the keyboard off?
 
 In any case, this was a fun and long ride! The next guide should be
-much shorter and we will learn [how to create our own kinos](/explore/notebooks/custom-kinos)
+much shorter and we will learn [how to create our own kinos](/learn/notebooks/custom-kinos)
 using Elixir and JavaScript.

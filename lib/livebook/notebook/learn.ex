@@ -1,4 +1,4 @@
-defmodule Livebook.Notebook.Explore do
+defmodule Livebook.Notebook.Learn do
   @moduledoc false
 
   defmodule NotFoundError do
@@ -34,19 +34,19 @@ defmodule Livebook.Notebook.Explore do
           notebook_infos: list(notebook_info())
         }
 
-  images_dir = Path.expand("explore/images", __DIR__)
+  images_dir = Path.expand("learn/images", __DIR__)
 
   welcome_config = %{
-    path: Path.join(__DIR__, "explore/intro_to_livebook.livemd"),
+    path: Path.join(__DIR__, "learn/intro_to_livebook.livemd"),
     details: %{
-      description: "Get to know Livebook, see how it works, and explore its features.",
+      description: "Get to know Livebook, see how it works, and learn its features.",
       cover_url: "/images/logo.png"
     }
   }
 
   other_configs = [
     %{
-      path: Path.join(__DIR__, "explore/distributed_portals_with_elixir.livemd"),
+      path: Path.join(__DIR__, "learn/distributed_portals_with_elixir.livemd"),
       image_paths: [
         Path.join(images_dir, "portal-drop.jpeg"),
         Path.join(images_dir, "portal-list.jpeg")
@@ -58,28 +58,28 @@ defmodule Livebook.Notebook.Explore do
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/elixir_and_livebook.livemd"),
+      path: Path.join(__DIR__, "learn/elixir_and_livebook.livemd"),
       details: %{
         description: "Learn how to use some of their unique features together.",
         cover_url: "/images/elixir.png"
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/intro_to_kino.livemd"),
+      path: Path.join(__DIR__, "learn/intro_to_kino.livemd"),
       details: %{
         description: "Make your notebooks interactive with inputs, controls, and more.",
         cover_url: "/images/kino.png"
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/intro_to_vega_lite.livemd"),
+      path: Path.join(__DIR__, "learn/intro_to_vega_lite.livemd"),
       details: %{
         description: "Learn how to quickly create numerous plots for your data.",
         cover_url: "/images/vega_lite.png"
       }
     },
     %{
-      path: Path.join(__DIR__, "explore/intro_to_maplibre.livemd"),
+      path: Path.join(__DIR__, "learn/intro_to_maplibre.livemd"),
       details: %{
         description: "Seamlessly plot maps using geospatial and tabular data.",
         cover_url: "/images/maplibre.png"
@@ -87,27 +87,27 @@ defmodule Livebook.Notebook.Explore do
     },
     %{
       ref: :kino_vm_introspection,
-      path: Path.join(__DIR__, "explore/kino/vm_introspection.livemd")
+      path: Path.join(__DIR__, "learn/kino/vm_introspection.livemd")
     },
     %{
       ref: :kino_chat_app,
-      path: Path.join(__DIR__, "explore/kino/chat_app.livemd")
+      path: Path.join(__DIR__, "learn/kino/chat_app.livemd")
     },
     %{
       ref: :kino_pong,
-      path: Path.join(__DIR__, "explore/kino/pong.livemd")
+      path: Path.join(__DIR__, "learn/kino/pong.livemd")
     },
     %{
       ref: :kino_custom_kinos,
-      path: Path.join(__DIR__, "explore/kino/custom_kinos.livemd")
+      path: Path.join(__DIR__, "learn/kino/custom_kinos.livemd")
     },
     %{
       ref: :kino_smart_cells,
-      path: Path.join(__DIR__, "explore/kino/smart_cells.livemd")
+      path: Path.join(__DIR__, "learn/kino/smart_cells.livemd")
     }
   ]
 
-  user_configs = Application.compile_env(:livebook, :explore_notebooks, [])
+  user_configs = Application.compile_env(:livebook, :learn_notebooks, [])
 
   notebook_configs = [welcome_config] ++ user_configs ++ other_configs
 
@@ -180,7 +180,7 @@ defmodule Livebook.Notebook.Explore do
   end
 
   @doc """
-  Finds explore notebook by slug and returns the parsed data structure.
+  Finds learn notebook by slug and returns the parsed data structure.
 
   Returns the notebook along with the images it uses as preloaded binaries.
   """

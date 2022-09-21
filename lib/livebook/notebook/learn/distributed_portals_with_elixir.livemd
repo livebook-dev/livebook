@@ -692,7 +692,7 @@ Now we have everything we need to connect across notebooks.
 
 ### Notebook connections
 
-In order to connect across notebooks, open up [a new empty notebook](/explore/notebooks/new)
+In order to connect across notebooks, open up [a new empty notebook](/learn/notebooks/new)
 in a separate tab, copy and paste the code below to this new notebook,
 and execute it:
 
@@ -794,7 +794,7 @@ To learn more about Elixir, we welcome you to explore our [website](http://elixi
 and [many of the available learning resources](https://elixir-lang.org/learning.html).
 
 You can also learn how to use some of Elixir and Livebook's unique features together
-in the [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook.
+in the [Elixir and Livebook](/learn/notebooks/elixir-and-livebook) notebook.
 
 Finally, huge thanks to Augie De Blieck Jr. for the drawings in this tutorial.
 

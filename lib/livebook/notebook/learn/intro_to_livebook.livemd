@@ -144,11 +144,11 @@ That's our quick intro to Livebook! Where to go next?
 
 * If you are not familiar with Elixir, there is a fast paced
   introduction to the language in the [Distributed portals
-  with Elixir](/explore/notebooks/distributed-portals-with-elixir)
+  with Elixir](/learn/notebooks/distributed-portals-with-elixir)
   notebook;
 
 * Learn how Elixir integrates with Livebook in the
-  [Elixir and Livebook](/explore/notebooks/elixir-and-livebook) notebook;
+  [Elixir and Livebook](/learn/notebooks/elixir-and-livebook) notebook;
 
 * Finally, remember Livebook is an open source project, so feel free to
   look into [the repository](https://github.com/livebook-dev/livebook)

@@ -87,7 +87,7 @@ a regular Code cell for further adjustments!
 The Chart smart cell is one of many Smart cells available
 in Livebook ⚡ Not only that, you can create your own Smart
 cells too, which we discuss in the
-[Exploring Smart cells](/explore/notebooks/smart-cells) notebook!
+[Exploring Smart cells](/learn/notebooks/smart-cells) notebook!
 
 <!-- livebook:{"branch_parent_index":0} -->
 

@@ -1,22 +1,22 @@
-defmodule LivebookWeb.ExploreLive do
+defmodule LivebookWeb.LearnLive do
   use LivebookWeb, :live_view
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{LayoutHelpers, ExploreHelpers, PageHelpers}
-  alias Livebook.Notebook.Explore
+  alias LivebookWeb.{LayoutHelpers, LearnHelpers, PageHelpers}
+  alias Livebook.Notebook.Learn
 
   on_mount LivebookWeb.SidebarHook
 
   @impl true
   def mount(_params, _session, socket) do
-    [lead_notebook_info | notebook_infos] = Explore.visible_notebook_infos()
+    [lead_notebook_info | notebook_infos] = Learn.visible_notebook_infos()
 
     {:ok,
      assign(socket,
        lead_notebook_info: lead_notebook_info,
        notebook_infos: notebook_infos,
-       page_title: "Livebook - Explore"
+       page_title: "Livebook - Learn"
      )}
   end
 
@@ -25,13 +25,13 @@ defmodule LivebookWeb.ExploreLive do
     ~H"""
     <LayoutHelpers.layout
       socket={@socket}
-      current_page={Routes.explore_path(@socket, :page)}
+      current_page={Routes.learn_path(@socket, :page)}
       current_user={@current_user}
       saved_hubs={@saved_hubs}
     >
       <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-lg mx-auto space-y-4">
         <div>
-          <PageHelpers.title text="Explore" />
+          <PageHelpers.title text="Learn" />
           <p class="mt-4 mb-8 text-gray-700">
             Check out a number of examples showcasing various parts of the Elixir ecosystem.<br />
             Click on any notebook you like and start playing around with it!
@@ -51,7 +51,7 @@ defmodule LivebookWeb.ExploreLive do
             </p>
             <div class="mt-4">
               <%= live_patch("Open notebook",
-                to: Routes.explore_path(@socket, :notebook, @lead_notebook_info.slug),
+                to: Routes.learn_path(@socket, :notebook, @lead_notebook_info.slug),
                 class: "button-base button-blue"
               ) %>
             </div>
@@ -61,10 +61,10 @@ defmodule LivebookWeb.ExploreLive do
           <% # Note: it's fine to use stateless components in this comprehension,
           # because @notebook_infos never change %>
           <%= for info <- @notebook_infos do %>
-            <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
+            <LearnHelpers.notebook_card notebook_info={info} socket={@socket} />
           <% end %>
         </div>
-        <%= for group_info <- Explore.group_infos() do %>
+        <%= for group_info <- Learn.group_infos() do %>
           <.notebook_group group_info={group_info} socket={@socket} />
         <% end %>
       </div>
@@ -99,7 +99,7 @@ defmodule LivebookWeb.ExploreLive do
               <div class="grow text-gray-800 font-semibold">
                 <%= notebook_info.title %>
               </div>
-              <%= live_redirect to: Routes.explore_path(@socket, :notebook, notebook_info.slug),
+              <%= live_redirect to: Routes.learn_path(@socket, :notebook, notebook_info.slug),
                     class: "button-base button-outlined-gray mt-3 sm:mt-0" do %>
                 <.remix_icon icon="play-circle-line" class="align-middle mr-1" /> Open notebook
               <% end %>
@@ -117,7 +117,7 @@ defmodule LivebookWeb.ExploreLive do
   end
 
   def handle_params(%{"slug" => slug}, _url, socket) do
-    {notebook, images} = Explore.notebook_by_slug!(slug)
+    {notebook, images} = Learn.notebook_by_slug!(slug)
     {:noreply, create_session(socket, notebook: notebook, images: images)}
   end
 

@@ -28,7 +28,7 @@ Livebook is a web application for writing interactive and collaborative code not
 
 ## Getting started
 
-Head out to [the Install section](https://livebook.dev/#install) of Livebook's website to get started. Once Livebook is up and running on your machine, **visit the "Explore" section** with introductory guides and documentation on several Livebook features. Here is a sneak peak of the "Welcome to Livebook" guide:
+Head out to [the Install section](https://livebook.dev/#install) of Livebook's website to get started. Once Livebook is up and running on your machine, **visit the "Learn" section** with introductory guides and documentation on several Livebook features. Here is a sneak peak of the "Welcome to Livebook" guide:
 
 ![Screenshot](https://github.com/livebook-dev/livebook/raw/main/.github/imgs/welcome.png)
 
