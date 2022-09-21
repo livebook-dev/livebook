@@ -31,6 +31,30 @@ defmodule Livebook.Factory do
     }
   end
 
+  def build(:enterprise_metadata) do
+    id = Livebook.Utils.random_short_id()
+
+    %Livebook.Hubs.Metadata{
+      id: "enterprise-#{id}",
+      name: "Enterprise",
+      color: "#FF00FF",
+      provider: build(:enterprise)
+    }
+  end
+
+  def build(:enterprise) do
+    id = Livebook.Utils.random_short_id()
+
+    %Livebook.Hubs.Enterprise{
+      id: "enterprise-#{id}",
+      hub_name: "Enterprise",
+      hub_color: "#FF0000",
+      external_id: id,
+      token: Livebook.Utils.random_cookie(),
+      url: "http://localhost"
+    }
+  end
+
   def build(:env_var) do
     %Livebook.Settings.EnvVar{
       name: "BAR",
