@@ -33,6 +33,3 @@ npm-debug.log
 
 # The built Escript
 /livebook
-
-# Remove .DS_Store
-.DS_Store
