@@ -66,15 +66,13 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
                 <.select
                   name="autosave_interval_s"
                   selected={@new_attrs.autosave_interval_s}
-                  options={
-                    [
-                      {5, "every 5 seconds"},
-                      {30, "every 30 seconds"},
-                      {60, "every minute"},
-                      {600, "every 10 minutes"},
-                      {nil, "never"}
-                    ]
-                  }
+                  options={[
+                    {5, "every 5 seconds"},
+                    {30, "every 30 seconds"},
+                    {60, "every minute"},
+                    {600, "every 10 minutes"},
+                    {nil, "never"}
+                  ]}
                 />
               </div>
             </div>

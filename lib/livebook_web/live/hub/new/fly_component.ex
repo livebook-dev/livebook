@@ -27,7 +27,7 @@ defmodule LivebookWeb.Hub.New.FlyComponent do
       <.form
         id={@id}
         class="flex flex-col space-y-4"
-        let={f}
+        :let={f}
         for={@changeset}
         phx-submit="save"
         phx-change="validate"

@@ -33,7 +33,7 @@ defmodule LivebookWeb.EnvVarComponent do
       </p>
       <.form
         id={"#{@id}-form"}
-        let={f}
+        :let={f}
         for={@changeset}
         phx-submit={@on_save}
         phx-change={JS.push("validate", target: @myself)}
