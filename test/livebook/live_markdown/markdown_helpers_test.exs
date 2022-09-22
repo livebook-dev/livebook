@@ -205,8 +205,18 @@ defmodule Livebook.LiveMarkdown.MarkdownHelpersTest do
 
     test "table without header" do
       markdown = """
-      | Texas | TX | Austin  |
-      | Maine | ME | Augusta |\
+      | Texas | TX  | Austin  |
+      | Maine | ME  | Augusta |\
+      """
+
+      assert markdown == reformat(markdown)
+    end
+
+    test "table with narrow column" do
+      markdown = """
+      | x   | y   | x and y |
+      | :-: | --- | ------- |
+      | 1   | 1   | 0       |\
       """
 
       assert markdown == reformat(markdown)
