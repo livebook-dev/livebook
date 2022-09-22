@@ -834,6 +834,34 @@ defmodule LivebookWeb.SessionLiveTest do
       close_session_by_id(session_id)
     end
 
+    test "when a remote URL cannot be loaded, attempts to resolve a flat URL", %{conn: conn} do
+      bypass = Bypass.open()
+
+      # Multi-level path is not available
+      Bypass.expect_once(bypass, "GET", "/nested/path/to/notebook.livemd", fn conn ->
+        Plug.Conn.resp(conn, 500, "Error")
+      end)
+
+      # A flat path is available
+      Bypass.expect_once(bypass, "GET", "/notebook.livemd", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("text/plain")
+        |> Plug.Conn.resp(200, "# My notebook")
+      end)
+
+      index_url = url(bypass.port) <> "/index.livemd"
+      {:ok, session} = Sessions.create_session(origin: {:url, index_url})
+
+      assert {:error, {:live_redirect, %{to: "/sessions/" <> session_id}}} =
+               result = live(conn, "/sessions/#{session.id}/nested/path/to/notebook.livemd")
+
+      {:ok, view, _} = follow_redirect(result, conn)
+      assert render(view) =~ "My notebook"
+
+      Session.close(session.pid)
+      close_session_by_id(session_id)
+    end
+
     test "renders an error message if relative remote notebook cannot be loaded", %{conn: conn} do
       bypass = Bypass.open()
 
