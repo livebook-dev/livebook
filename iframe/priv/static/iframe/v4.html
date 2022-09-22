@@ -97,7 +97,7 @@
             state.syncHandler = callback;
           },
 
-          selectSecret(callback, preselectName, options) {
+          selectSecret(callback, preselectName, options = {}) {
             state.secretHandler = callback;
             postMessage({ type: "selectSecret", preselectName, options });
           },
