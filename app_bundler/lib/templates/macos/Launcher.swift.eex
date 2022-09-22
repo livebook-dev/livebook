@@ -3,23 +3,16 @@
 additional_paths = Enum.map_join(@app_options[:additional_paths], ":", &"\\(resourcePath)/#{&1}")
 
 %>import Cocoa
+import Cxx
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var releaseTask: Process!
     var isRunning = false
     var initialInput = "open_app"
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         if !isRunning {
-          releaseTask = startRelease(initialInput)
+          startRelease(initialInput)
           isRunning = true
-        }
-    }
-
-    func applicationWillTerminate(_ n: Notification) {
-        if (releaseTask.isRunning == true) {
-            log("terminating release task")
-            releaseTask.terminate()
         }
     }
 
@@ -42,43 +35,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-func startRelease(_ input : String) -> Process {
-    let task = buildReleaseTask()
-    task.environment!["APP_BUILDER_INPUT"] = input
-    task.arguments = ["start"]
-
-    task.terminationHandler = {(t: Process) in
-        if t.terminationStatus == 0 {
-            log("release exited with: \(t.terminationStatus)")
-        } else {
-            runAlert(messageText: "\(appName) exited with error status \(t.terminationStatus).")
-        }
-
-        NSApp.terminate(nil)
+func startRelease(_ input : String) {
+    let appdir = FileManager.default.currentDirectoryPath
+    let info = "\(appdir)rel/<%= @release.name %>/releases/start_erl.data"
+    do {
+        let versions = try String(contentsOfFile: info)
+        let rel = versions.components(separatedBy: .whitespaces)[1]
+        setEnv(name: "RELEASE_SYS_CONFIG", value: "\(appdir)releases/\(rel)/sys")
+        setEnv(name: "RELEASE_ROOT", value: appdir)    
+        let ret = start_erlang(appdir, appdir)
+        print("Ret: " + String(cString: ret!))
+    } catch {
+        print("Startup failed: couldn't locate start_erl.data")
     }
+}
 
-    try! task.run()
-    log("release pid: \(task.processIdentifier)")
-
-    DispatchQueue.global(qos: .userInteractive).async {
-        task.waitUntilExit()
-    }
-
-    return task
+func setEnv(name: String, value: String) {
+    print("setenv \(name) \(value)")
+    setenv(name, value, 1)
 }
 
 func rpc(_ event: String) {
-    let input = Pipe()
-    let task = buildReleaseTask()
-    task.standardInput = input
-    input.fileHandleForWriting.write("\(event)\n".data(using: .utf8)!)
-    task.arguments = ["rpc", "AppBundler.__rpc__()"]
-    try! task.run()
-    task.waitUntilExit()
-
-    if task.terminationStatus != 0 {
-        runAlert(messageText: "Something went wrong")
-    }
+//    if task.terminationStatus != 0 {
+//        runAlert(messageText: "Something went wrong")
+//    }
 }
 
 func buildReleaseTask() -> Process {
