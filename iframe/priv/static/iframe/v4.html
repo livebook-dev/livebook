@@ -78,6 +78,21 @@
             });
           },
 
+          importJS(url) {
+            return new Promise((resolve, reject) => {
+              const scriptEl = document.createElement("script");
+              scriptEl.addEventListener(
+                "load",
+                (event) => {
+                  resolve();
+                },
+                { once: true }
+              );
+              scriptEl.src = url;
+              document.head.appendChild(scriptEl);
+            });
+          },
+
           handleSync(callback) {
             state.syncHandler = callback;
           },
