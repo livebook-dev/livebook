@@ -18,7 +18,7 @@ defmodule AppBundler.MacOS do
 
     launcher_eex_path = Path.expand("#{@templates_path}/macos/Launcher.swift.eex")
     cxx_interop_path = Path.expand("#{@templates_path}/macos/")
-    liberlang_path = Path.expand("#{@templates_path}/macos/liberlang.xcframework")
+    liberlang_path = Path.expand("#{@templates_path}/macos/liberlang.a")
     launcher_src_path = "#{tmp_dir}/Launcher.swift"
     launcher_x86_64_path = "#{tmp_dir}/#{app_name}Launcher-x86_64"
     launcher_aarch64_path = "#{tmp_dir}/#{app_name}Launcher-aarch64"
@@ -29,15 +29,20 @@ defmodule AppBundler.MacOS do
 
     log(:green, :creating, launcher_x86_64_path)
 
-    cmd!("swiftc", [
+    base_params = [
       "-enable-experimental-cxx-interop",
       "-I",
       cxx_interop_path,
-      "-F",
+      "-L",
       Path.dirname(liberlang_path),
-      "-framework",
-      Path.basename(liberlang_path, ".xcframework"),
-      "-warnings-as-errors",
+      "-l",
+      "erlang",
+      "-l",
+      "termcap",
+      "-warnings-as-errors"
+    ]
+
+    cmd!("swiftc", base_params ++ [
       "-target",
       "x86_64-apple-macosx10.15",
       "-o",
@@ -47,15 +52,7 @@ defmodule AppBundler.MacOS do
 
     log(:green, :creating, launcher_aarch64_path)
 
-    cmd!("swiftc", [
-      "-enable-experimental-cxx-interop",
-      "-F",
-      Path.dirname(liberlang_path),
-      "-framework",
-      Path.basename(liberlang_path, ".xcframework"),
-      "-framework",
-      "liberlang",
-      "-warnings-as-errors",
+    cmd!("swiftc", base_params ++ [
       "-target",
       "arm64-apple-macosx12",
       "-o",

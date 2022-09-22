@@ -6,6 +6,12 @@
 #     $ open _build/app_prod/Livebook.app
 #     $ open livebook://github.com/livebook-dev/livebook/blob/main/test/support/notebooks/basic.livemd
 #     $ open ./test/support/notebooks/basic.livemd
+#
+# Debugging:
+#
+#     $ cd _build/app_prod/Livebook.app/Contents/Resources/
+#     $ lldb ../MacOS/LivebookLauncher
+#     (lldb) $ run
 set -e
 
 . .github/scripts/app/bootstrap_mac.sh

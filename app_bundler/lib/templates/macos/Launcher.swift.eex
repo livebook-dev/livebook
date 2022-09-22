@@ -36,18 +36,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 func startRelease(_ input : String) {
-    let appdir = FileManager.default.currentDirectoryPath
-    let info = "\(appdir)rel/<%= @release.name %>/releases/start_erl.data"
+    let appdir = "\(FileManager.default.currentDirectoryPath)/rel/"
+    let info = "\(appdir)releases/start_erl.data"
     do {
         let versions = try String(contentsOfFile: info)
         let rel = versions.components(separatedBy: .whitespaces)[1]
+        let erts = versions.components(separatedBy: .whitespaces)[0]
+        setEnv(name: "BINDIR", value: "\(appdir)erts-\(erts)/bin")    
         setEnv(name: "RELEASE_SYS_CONFIG", value: "\(appdir)releases/\(rel)/sys")
-        setEnv(name: "RELEASE_ROOT", value: appdir)    
-        let ret = start_erlang(appdir, appdir)
-        print("Ret: " + String(cString: ret!))
     } catch {
-        print("Startup failed: couldn't locate start_erl.data")
+        print("Startup failed: couldn't locate \(info)")
     }
+
+    setEnv(name: "RELEASE_ROOT", value: appdir)    
+    let ret = start_erlang(appdir, appdir)
+    print("Ret: " + String(cString: ret!))
 }
 
 func setEnv(name: String, value: String) {
