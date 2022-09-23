@@ -42,9 +42,7 @@ class Bridge {
     }
 
     private func send(data: Data) {
-        log("send")
         for connection in self.connectionsByID.values {
-            log("send1")
             connection.send(data: data)
         }
     }
