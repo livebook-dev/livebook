@@ -33,12 +33,8 @@ defmodule Livebook.NativeBridge do
             events: [],
             subscribers: []
 
-  def show_url(url) do
-    cast(:webview, :loadURL, [url])
-  end
-
-  def get_system_memory_data() do
-    call(:memsup, :get_system_memory_data, [])
+  def start_link([]) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__, hibernate_after: 5000)
   end
 
   @impl true
@@ -64,14 +60,14 @@ defmodule Livebook.NativeBridge do
     end
   end
 
-  defp cast(module, method, args) do
+  def cast(module, method, args) do
     Logger.info("bridge_cast: #{module}.#{method}(#{inspect(args)})")
     ref = System.unique_integer([:positive]) + 10
     json = encode!([module, method, args ++ [self()]])
     GenServer.cast(ensure_bridge(), {:bridge_call, ref, json})
   end
 
-  defp call(module, method, args) do
+  def call(module, method, args) do
     Logger.info("bridge_call: #{module}.#{method}(#{inspect(args)})")
     ref = System.unique_integer([:positive]) + 10
     json = encode!([module, method, args])
@@ -247,5 +243,13 @@ defmodule Livebook.NativeBridge do
     {from, _message} = reqs[ref]
     if from, do: GenServer.reply(from, json)
     {:noreply, %NativeBridge{state | requests: Map.delete(reqs, ref)}}
+  end
+
+  # this shoud be in a Livebook logic specific module
+  def handle_info(:open_url, state) do
+    LivebookWeb.Endpoint.access_url()
+    |> Livebook.Utils.browser_open()
+
+    {:noreply, state}
   end
 end

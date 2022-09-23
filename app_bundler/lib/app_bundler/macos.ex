@@ -20,6 +20,7 @@ defmodule AppBundler.MacOS do
     cxx_interop_path = Path.expand("#{@templates_path}/macos/")
     liberlang_archive_path = Path.expand("#{@templates_path}/macos/liberlang.a.gz")
     launcher_src_path = "#{tmp_dir}/Launcher.swift"
+    additional_src_paths = Path.wildcard("app_bundler/lib/templates/macos/*.swift")
     liberlang_path = "#{tmp_dir}/liberlang.a"
     launcher_x86_64_path = "#{tmp_dir}/#{app_name}Launcher-x86_64"
     launcher_aarch64_path = "#{tmp_dir}/#{app_name}Launcher-aarch64"
@@ -49,7 +50,7 @@ defmodule AppBundler.MacOS do
       "x86_64-apple-macosx10.15",
       "-o",
       launcher_x86_64_path,
-      launcher_src_path
+      launcher_src_path | additional_src_paths
     ])
 
     log(:green, :creating, launcher_aarch64_path)
@@ -59,7 +60,7 @@ defmodule AppBundler.MacOS do
       "arm64-apple-macosx12",
       "-o",
       launcher_aarch64_path,
-      launcher_src_path
+      launcher_src_path | additional_src_paths
     ])
 
     log(:green, :creating, Path.relative_to_cwd(launcher_bin_path))

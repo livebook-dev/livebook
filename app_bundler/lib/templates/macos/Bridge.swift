@@ -18,11 +18,33 @@ class Bridge {
         case .ready:
             print("Bridge Server ready. Starting Elixir")
             setEnv(name: "BRIDGE_PORT", value: (listener.port?.rawValue.description)!);
+            startRelease("open_app")
         case .failed(let error):
             print("Server failure, error: \(error.localizedDescription)")
             exit(EXIT_FAILURE)
         default:
             break
+        }
+    }
+
+    func sendToProcess(name: String, payload: String) {
+        let json = "{\":payload\": \(payload), \":pid\": \"\(name)\"}"
+        print("sending \(json)")
+        let ref: UInt64 = CFSwapInt64(2)
+        var response = withUnsafeBytes(of: ref) { Data($0) }
+        response.append(json.data(using: .utf8)!)
+
+        let size: UInt32 = CFSwapInt32(UInt32(response.count))
+        var message = withUnsafeBytes(of: size) { Data($0) }
+        message.append(response)
+        self.send(data: message)
+    }
+
+    private func send(data: Data) {
+        print("send")
+        for connection in self.connectionsByID.values {
+            print("send1")
+            connection.send(data: data)
         }
     }
     
@@ -117,41 +139,16 @@ class ServerConnection {
                 
                 let ref = datain!.prefix(8)
                 let data = datain!.dropFirst(8)
-                let json = try! JSONSerialization.jsonObject(with: data, options: [])
+                let json = try! JSONSerialization.jsonObject(with: data, options: 0)
                 
                 let array = json as! [Any]
-                //let module = array[0] as? String
+                let module = array[0] as? String
                 let method = array[1] as? String
                 let args = array[2] as? [Any]
-                
-                //print ("received \(method)")
-                if (method == ":loadURL") {
-                    self.bridge.setURL(url: args![0] as! String)
-                }
-
+            
                 var response = ref
-                if (method == ":getOsDescription") {
-                    response.append(self.dataToList(string: "iOS \(UIDevice().model)"))
-                } else if (method == ":get_system_memory_data"){
-                    response.append("""
-                    [
-                        {":_type": ":tuple", ":value": ["total_memory", 1000000000]},
-                        {":_type": ":tuple", ":value": ["available_memory", 1000000000]},
-                        {":_type": ":tuple", ":value": ["free_memory", 1000000000]},
-                        {":_type": ":tuple", ":value": ["system_total_memory", 1000000000]},
-                        {":_type": ":tuple", ":value": ["buffered_memory", 1000000000]},
-                        {":_type": ":tuple", ":value": ["cached_memory", 1000000000]},
-                        {":_type": ":tuple", ":value": ["total_swap", 1000000000]},
-                        {":_type": ":tuple", ":value": ["free_swap", 1000000000]}
-                    ]
-                    """.data(using: .utf8)!)
-                } else if (method == ":getCanonicalName") {
-                    response.append(self.dataToList(string: "en_en"))
-                } else {
-                    response.append(":ok".data(using: .utf8)!)
-                }
-                        
-                
+                response.append(self.executeMethod(module!, method!, args!).data(using: .utf8)!)
+
                 let size: UInt32 = CFSwapInt32(UInt32(response.count))
                 var message = withUnsafeBytes(of: size) { Data($0) }
                 message.append(response)
@@ -159,6 +156,11 @@ class ServerConnection {
                 self.setupReceive()
             }
         }
+    }
+
+    func executeMethod(_: String, _: String, _: [Any]) -> String {
+        // todo
+        return ":ok"
     }
     
     func dataToList(string: String) -> Data {

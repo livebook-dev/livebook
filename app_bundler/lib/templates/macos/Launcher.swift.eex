@@ -3,17 +3,32 @@
 additional_paths = Enum.map_join(@app_options[:additional_paths], ":", &"\\(resourcePath)/#{&1}")
 
 %>import Cocoa
-import Cxx
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var isRunning = false
-    var initialInput = "open_app"
+    var bridge : Bridge?
+    var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         if !isRunning {
-          startRelease(initialInput)
-          isRunning = true
+            isRunning = true
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            statusItem?.button?.title = "Livebook"
+            statusItem?.button?.target = self
+            statusItem?.button?.action = #selector(onClick(_:))
+
+            do {
+                bridge = try Bridge()
+            } catch {
+                print("Failed initializing beam")
+                exit(1)
+            }
         }
+    }
+
+    @objc func onClick(_ sender: AnyObject) {
+        print("click!")
+        bridge?.sendToProcess(name: ":Elixir.Livebook.NativeBridge", payload: "\":open_url\"")
     }
 
     func application(_ app: NSApplication, open urls: [URL]) {
@@ -28,57 +43,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             if isRunning {
                 rpc(input)
-            } else {
-                initialInput = input
             }
         }
     }
-}
-
-func startRelease(_ input : String) {
-    let appdir = "\(FileManager.default.currentDirectoryPath)/rel/"
-    let info = "\(appdir)releases/start_erl.data"
-    do {
-        let versions = try String(contentsOfFile: info)
-        let rel = versions.components(separatedBy: .whitespaces)[1]
-        let erts = versions.components(separatedBy: .whitespaces)[0]
-        setEnv(name: "BINDIR", value: "\(appdir)erts-\(erts)/bin")    
-        setEnv(name: "RELEASE_SYS_CONFIG", value: "\(appdir)releases/\(rel)/sys")
-    } catch {
-        print("Startup failed: couldn't locate \(info)")
-    }
-
-    setEnv(name: "RELEASE_ROOT", value: appdir)    
-    let ret = start_erlang(appdir, appdir)
-    print("Ret: " + String(cString: ret!))
-}
-
-func setEnv(name: String, value: String) {
-    print("setenv \(name) \(value)")
-    setenv(name, value, 1)
 }
 
 func rpc(_ event: String) {
 //    if task.terminationStatus != 0 {
 //        runAlert(messageText: "Something went wrong")
 //    }
-}
-
-func buildReleaseTask() -> Process {
-    let task = Process()
-    task.launchPath = Bundle.main.path(forResource: "rel/bin/<%= @release.name %>", ofType: "")!
-    task.environment = ProcessInfo.processInfo.environment
-
-<%= if additional_paths != "" do %>
-    let resourcePath = Bundle.main.resourcePath ?? ""
-    let additionalPaths = "<%= additional_paths %>"
-    let path = task.environment!["PATH"] ?? ""
-    task.environment!["PATH"] = "\(additionalPaths):\(path)"
-<% end %>
-
-    task.standardOutput = logFile
-    task.standardError = logFile
-    return task
 }
 
 func runAlert(messageText: String) {
@@ -94,16 +67,3 @@ func runAlert(messageText: String) {
 func log(_ line: String) {
     logFile.write("[\(appName)Launcher] \(line)\n".data(using: .utf8)!)
 }
-
-let fm = FileManager.default
-let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as! String
-let home = NSHomeDirectory()
-let logPath = "\(home)/Library/Logs/\(appName).log"
-if !fm.fileExists(atPath: logPath) { fm.createFile(atPath: logPath, contents: Data()) }
-let logFile = FileHandle(forUpdatingAtPath: logPath)!
-logFile.seekToEndOfFile()
-
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.run()
