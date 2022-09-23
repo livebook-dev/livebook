@@ -2,7 +2,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.6.1"}
+  {:kino, github: "livebook-dev/kino"}
 ])
 ```
 
@@ -71,6 +71,22 @@ The way it works is that Livebook automatically detects
 the output is a kino and renders it in Markdown. That's
 the first of many kinos we will explore today. Let's move
 forward.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.Mermaid
+
+You can include Mermaid diagrams in Markdown, however when generating diagrams dynamically, use `Kino.Mermaid.new/1`. This way the graphs will appear in the notebook source, if the user chooses to persist outputs.
+
+```elixir
+Kino.Mermaid.new("""
+graph TD;
+  A-->B;
+  A-->C;
+  B-->D;
+  C-->D;
+""")
+```
 
 <!-- livebook:{"branch_parent_index":0} -->
 
@@ -194,12 +210,11 @@ can be reset by calling `Kino.Frame.render/2` or `Kino.Frame.clear/1`.
 
 By using loops, you can use `Kino.Frame` to dynamically add contents
 or animate your livebooks. In fact, there is a convenience function
-called `Kino.animate/3` to be used exactly for this purpose:
+called `Kino.animate/2` to be used exactly for this purpose:
 
 ```elixir
-Kino.animate(100, 0, fn i ->
-  md = Kino.Markdown.new("**Iteration: `#{i}`**")
-  {:cont, md, i + 1}
+Kino.animate(100, fn i ->
+  Kino.Markdown.new("**Iteration: `#{i}`**")
 end)
 ```
 
@@ -207,7 +222,76 @@ The above example renders new Markdown output every 100ms.
 You can use the same approach to render regular output
 or images too!
 
-## `dbg`
+There's also `Kino.animate/3`, in case you need to accumulate state or halt the animation at certain point!
+
+```elixir
+button = Kino.Control.button("Click") |> Kino.render()
+
+button
+|> Kino.Control.stream()
+|> Kino.animate(0, fn _event, counter ->
+  new_counter = counter + 1
+  md = Kino.Markdown.new("**Clicks: `#{new_counter}`**")
+  {:cont, md, new_counter}
+end)
+```
+
+Note that this time, instead of refreshing the animation every 100ms, we use an event stream. This way we refresh the animation whenever the button is clicked.
+
+Finally, there's `Kino.listen/{2,3}`, that allows you to consume a stream the same way, but doesn't render anything on its own.
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Kino.Layout
+
+In case you need to arrange multiple kinos, `Kino.Layout` gives you some options!
+
+For one, you can create tabs to show just one thing at a time:
+
+```elixir
+data = [
+  %{id: 1, name: "Elixir", website: "https://elixir-lang.org"},
+  %{id: 2, name: "Erlang", website: "https://www.erlang.org"}
+]
+
+Kino.Layout.tabs(
+  Table: Kino.DataTable.new(data),
+  Raw: data
+)
+```
+
+Then, there is a simple grid that you can use for laying out multiple elements:
+
+```elixir
+Kino.Layout.grid(["1", "2", "3", "4"], columns: 2)
+```
+
+And you can nest grid any way you like:
+
+```elixir
+urls = [
+  "https://images.unsplash.com/photo-1603203040743-24aced6793b4?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1578339850459-76b0ac239aa2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1633479397973-4e69efa75df2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1597838816882-4435b1977fbe?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1629778712393-4f316eee143e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80",
+  "https://images.unsplash.com/photo-1638667168629-58c2516fbd22?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=580&h=580&q=80"
+]
+
+images =
+  for {url, i} <- Enum.with_index(urls, 1) do
+    # For in-memory photo we would use Kino.Image
+    image = Kino.Markdown.new("![](#{url})")
+    label = Kino.Markdown.new("**Image #{i}**")
+    Kino.Layout.grid([image, label], boxed: true)
+  end
+
+Kino.Layout.grid(images, columns: 3)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## dbg
 
 Kino hijacks Elixir's [`dbg/2`](https://hexdocs.pm/elixir/Kernel.html#dbg/2)
 to provide Kino-based debugging:
