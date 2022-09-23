@@ -2,14 +2,8 @@
 #include <thread>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <stdlib.h>
 
-
-#include <CoreFoundation/CoreFoundation.h>
-extern "C" {
-CF_EXPORT void CFLog(int32_t level, CFStringRef format, ...);
-}
-
-static std::string log_file;
 extern "C" {
 extern void erl_start(int argc, char **argv);
 }
@@ -110,8 +104,6 @@ const char* start_erlang(const char* root, const char* home) {
     static std::string log_dir = home;
     
     ensure_slash(root_dir);
-    ensure_slash(log_dir);
-    log_file = log_dir + "elixir.log";
 
     std::string boot_file = root_dir + "releases/start_erl.data";
     FILE *fp = fopen(boot_file.c_str(), "rb");

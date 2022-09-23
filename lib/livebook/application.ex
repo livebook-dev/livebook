@@ -33,14 +33,16 @@ defmodule Livebook.Application do
         # Start the Node Pool for managing node names
         Livebook.Runtime.NodePool,
         # Start the unique task dependencies
-        Livebook.Utils.UniqueTask
+        Livebook.Utils.UniqueTask,
+        # Start native bridge for communication with the local app
+        Livebook.NativeBridge
       ] ++
         iframe_server_specs() ++
         [
           # Start the Endpoint (http/https)
           # We skip the access url as we do our own logging below
           {LivebookWeb.Endpoint, log_access_url: false}
-        ] ++ app_specs()
+        ]
 
     opts = [strategy: :one_for_one, name: Livebook.Supervisor]
 
@@ -173,12 +175,6 @@ defmodule Livebook.Application do
   defp config_env_var?("LIVEBOOK_" <> _), do: true
   defp config_env_var?("RELEASE_" <> _), do: true
   defp config_env_var?(_), do: false
-
-  if Mix.target() == :app do
-    defp app_specs, do: [LivebookApp]
-  else
-    defp app_specs, do: []
-  end
 
   if Livebook.Config.feature_flag_enabled?(:localhost_hub) do
     defp insert_development_hub do

@@ -29,15 +29,10 @@ defmodule Livebook.MixProject do
   def application do
     [
       mod: {Livebook.Application, []},
-      extra_applications:
-        [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl] ++
-          extra_applications(Mix.target()),
+      extra_applications: [:logger, :runtime_tools, :os_mon, :inets, :ssl, :xmerl],
       env: Application.get_all_env(:livebook)
     ]
   end
-
-  defp extra_applications(:app), do: [:wx]
-  defp extra_applications(_), do: []
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]

@@ -18,12 +18,14 @@ defmodule AppBundler.MacOS do
 
     launcher_eex_path = Path.expand("#{@templates_path}/macos/Launcher.swift.eex")
     cxx_interop_path = Path.expand("#{@templates_path}/macos/")
-    liberlang_path = Path.expand("#{@templates_path}/macos/liberlang.a")
+    liberlang_archive_path = Path.expand("#{@templates_path}/macos/liberlang.a.gz")
     launcher_src_path = "#{tmp_dir}/Launcher.swift"
+    liberlang_path = "#{tmp_dir}/liberlang.a"
     launcher_x86_64_path = "#{tmp_dir}/#{app_name}Launcher-x86_64"
     launcher_aarch64_path = "#{tmp_dir}/#{app_name}Launcher-aarch64"
     launcher_bin_path = "#{contents_path}/MacOS/#{app_name}Launcher"
     copy_template(launcher_eex_path, launcher_src_path, release: release, app_options: options)
+    extract_archive(liberlang_archive_path, liberlang_path)
 
     File.mkdir!("#{contents_path}/MacOS")
 
@@ -95,6 +97,12 @@ defmodule AppBundler.MacOS do
     end
 
     release
+  end
+
+  defp extract_archive(from, to) do
+    out = File.read!(from)
+    |> :zlib.gunzip()
+    File.write!(to, out)
   end
 
   defp build_dmg(release, options) do
