@@ -20,14 +20,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 bridge = try Bridge()
             } catch {
-                print("Failed initializing beam")
+                log("Failed initializing beam")
                 exit(1)
             }
         }
     }
 
     @objc func onClick(_ sender: AnyObject) {
-        print("click!")
+        log("click!")
         bridge?.sendToProcess(name: ":Elixir.Livebook.NativeBridge", payload: "\":open_url\"")
     }
 
@@ -62,8 +62,4 @@ func runAlert(messageText: String) {
         alert.informativeText = "Logs available at: \(logPath)"
         alert.runModal()
     }
-}
-
-func log(_ line: String) {
-    logFile.write("[\(appName)Launcher] \(line)\n".data(using: .utf8)!)
 }

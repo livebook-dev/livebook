@@ -2,7 +2,11 @@ import Cocoa
 import Cxx
 
 func startRelease(_ input : String) {
-    let appdir = "\(FileManager.default.currentDirectoryPath)/rel/"
+    var appdir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
+    if !appdir.hasSuffix("/") {
+        appdir.append("/")
+    }
+    appdir.append("rel/")
     let info = "\(appdir)releases/start_erl.data"
     do {
         let versions = try String(contentsOfFile: info)
@@ -11,18 +15,25 @@ func startRelease(_ input : String) {
         setEnv(name: "BINDIR", value: "\(appdir)erts-\(erts)/bin")    
         setEnv(name: "RELEASE_SYS_CONFIG", value: "\(appdir)releases/\(rel)/sys")
     } catch {
-        print("Startup failed: couldn't locate \(info)")
+        log("Startup failed: couldn't locate \(info)")
+        exit(1)
     }
 
     setEnv(name: "RELEASE_ROOT", value: appdir)    
     let ret = start_erlang(appdir, appdir)
-    print("Ret: " + String(cString: ret!))
+    log("Ret: " + String(cString: ret!))
 }
 
 func setEnv(name: String, value: String) {
-    print("setenv \(name) \(value)")
+    log("setenv \(name) \(value)")
     setenv(name, value, 1)
 }
+
+func log(_ line: String) {
+    print(line)
+    logFile.write("[\(appName)Launcher] \(line)\n".data(using: .utf8)!)
+}
+
 
 let fm = FileManager.default
 let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as! String

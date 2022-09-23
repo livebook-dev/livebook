@@ -16,20 +16,21 @@ class Bridge {
     func stateDidChange(to newState: NWListener.State) {
         switch newState {
         case .ready:
-            print("Bridge Server ready. Starting Elixir")
+            log("Bridge Server ready. Starting Elixir")
             setEnv(name: "BRIDGE_PORT", value: (listener.port?.rawValue.description)!);
             startRelease("open_app")
         case .failed(let error):
-            print("Server failure, error: \(error.localizedDescription)")
+            log("Server failure, error: \(error.localizedDescription)")
             exit(EXIT_FAILURE)
         default:
+            log("Unknown Bridge Server state")
             break
         }
     }
 
     func sendToProcess(name: String, payload: String) {
         let json = "{\":payload\": \(payload), \":pid\": \"\(name)\"}"
-        print("sending \(json)")
+        log("sending \(json)")
         let ref: UInt64 = CFSwapInt64(2)
         var response = withUnsafeBytes(of: ref) { Data($0) }
         response.append(json.data(using: .utf8)!)
@@ -41,9 +42,9 @@ class Bridge {
     }
 
     private func send(data: Data) {
-        print("send")
+        log("send")
         for connection in self.connectionsByID.values {
-            print("send1")
+            log("send1")
             connection.send(data: data)
         }
     }
@@ -56,12 +57,12 @@ class Bridge {
         }
         connection.start()
         // connection.send(data: "Welcome you are connection: \(connection.id)".data(using: .utf8)!)
-        print("server did open connection \(connection.id)")
+        log("server did open connection \(connection.id)")
     }
     
     private func connectionDidStop(_ connection: ServerConnection) {
         self.connectionsByID.removeValue(forKey: connection.id)
-        print("server did close connection \(connection.id)")
+        log("server did close connection \(connection.id)")
     }
 
     private func stop() {
@@ -181,16 +182,16 @@ class ServerConnection {
     }
 
     func stop() {
-        print("connection \(id) will stop")
+        log("connection \(id) will stop")
     }
 
     private func connectionDidFail(error: Error) {
-        print("connection \(id) did fail, error: \(error)")
+        log("connection \(id) did fail, error: \(error)")
         stop(error: error)
     }
 
     private func connectionDidEnd() {
-        print("connection \(id) did end")
+        log("connection \(id) did end")
         stop(error: nil)
     }
 
