@@ -1327,6 +1327,16 @@ defmodule LivebookWeb.SessionLive do
     push_event(socket, "section_deleted", %{section_id: section_id})
   end
 
+  defp after_operation(
+         socket,
+         _prev_socket,
+         {:insert_cell, _, session_id, _, _, cell_id, %{output_type: :image}}
+       ) do
+    socket = prune_cell_sources(socket)
+
+    push_patch(socket, to: Routes.session_path(socket, :cell_upload, session_id, cell_id))
+  end
+
   defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
     socket = prune_cell_sources(socket)
 
@@ -1462,6 +1472,10 @@ defmodule LivebookWeb.SessionLive do
     """
 
     {:markdown, %{source: source}}
+  end
+
+  defp cell_type_and_attrs_from_params(%{"type" => "image"}) do
+    {:markdown, %{output_type: :image}}
   end
 
   defp section_with_next_index(notebook, section_id, cell_id)
