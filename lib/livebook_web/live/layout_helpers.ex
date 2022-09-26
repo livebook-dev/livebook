@@ -15,7 +15,7 @@ defmodule LivebookWeb.LayoutHelpers do
 
     ~H"""
     <div class="flex grow h-full">
-      <div class="absolute sm:static h-full z-[600] sm:z-[500]">
+      <div class="absolute sm:static h-full z-[600]">
         <.live_region role="alert" />
         <.sidebar
           socket={@socket}
