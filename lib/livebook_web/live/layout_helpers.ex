@@ -15,18 +15,20 @@ defmodule LivebookWeb.LayoutHelpers do
 
     ~H"""
     <div class="flex grow h-full">
-      <.live_region role="alert" />
-      <.sidebar
-        socket={@socket}
-        current_page={@current_page}
-        current_user={@current_user}
-        saved_hubs={@saved_hubs}
-      />
+      <div class="absolute sm:static h-full z-[600]">
+        <.live_region role="alert" />
+        <.sidebar
+          socket={@socket}
+          current_page={@current_page}
+          current_user={@current_user}
+          saved_hubs={@saved_hubs}
+        />
+      </div>
       <div class="grow overflow-y-auto">
         <div class="flex sm:hidden items-center justify-between sticky sm:pt-1 px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
           <.topbar_sidebar_toggle />
           <div
-            class="hidden items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
+            class="items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
             data-el-toggle-sidebar
           >
             <% # TODO: Use render_slot(@topbar_action) || default() on LiveView 0.18 %>
@@ -52,6 +54,7 @@ defmodule LivebookWeb.LayoutHelpers do
     ~H"""
     <div class="my-2 text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
       <button
+        class="hidden ml-[28rem]"
         aria-label="hide sidebar"
         data-el-toggle-sidebar
         phx-click={
@@ -62,7 +65,6 @@ defmodule LivebookWeb.LayoutHelpers do
         <.remix_icon icon="menu-fold-line" />
       </button>
       <button
-        class="hidden"
         aria-label="show sidebar"
         data-el-toggle-sidebar
         phx-click={
@@ -79,87 +81,92 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar(assigns) do
     ~H"""
     <nav
-      class="w-[18.75rem] min-w-[14rem] flex flex-col justify-between py-1 sm:py-7 bg-gray-900"
+      class="hidden min-w-[14rem] h-full z-[500] sm:relative py-1 sm:py-7 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >
-      <div class="flex flex-col">
-        <div class="space-y-3">
-          <div class="group flex items-center mb-5">
-            <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
-              <img
-                src="/images/logo.png"
-                class="group mx-2"
-                height="40"
-                width="40"
-                alt="logo livebook"
-              />
-              <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
-                Livebook
+      <div class="flex flex-col justify-between h-full">
+        <div class="flex flex-col">
+          <div class="space-y-3">
+            <div class="group flex items-center mb-5">
+              <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
+                <img
+                  src="/images/logo.png"
+                  class="group mx-2"
+                  height="40"
+                  width="40"
+                  alt="logo livebook"
+                />
+                <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
+                  Livebook
+                </span>
+              <% end %>
+              <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
+                v<%= Application.spec(:livebook, :vsn) %>
               </span>
-            <% end %>
-            <span class="text-gray-300 text-xs font-normal font-sans mx-2.5 pt-3 cursor-default">
-              v<%= Application.spec(:livebook, :vsn) %>
-            </span>
-          </div>
-          <.sidebar_link
-            title="Home"
-            icon="home-6-line"
-            to={Routes.home_path(@socket, :page)}
-            current={@current_page}
-          />
-          <.sidebar_link
-            title="Learn"
-            icon="article-line"
-            to={Routes.learn_path(@socket, :page)}
-            current={@current_page}
-          />
-          <.sidebar_link
-            title="Settings"
-            icon="settings-3-line"
-            to={Routes.settings_path(@socket, :page)}
-            current={@current_page}
-          />
-        </div>
-        <.hub_section socket={@socket} hubs={@saved_hubs} current_page={@current_page} />
-      </div>
-      <div class="flex flex-col">
-        <%= if Livebook.Config.shutdown_enabled?() do %>
-          <button
-            class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
-            aria-label="shutdown"
-            phx-click={
-              with_confirm(
-                JS.push("shutdown"),
-                title: "Shut Down",
-                description: "Are you sure you want to shut down Livebook now?",
-                confirm_text: "Shut Down",
-                confirm_icon: "shut-down-line"
-              )
-            }
-          >
-            <.remix_icon icon="shut-down-line" class="text-lg leading-6 w-[56px] flex justify-center" />
-            <span class="text-sm font-medium">
-              Shut Down
-            </span>
-          </button>
-        <% end %>
-        <button
-          class="mt-6 flex items-center group border-l-4 border-transparent"
-          aria_label="user profile"
-          phx-click={show_current_user_modal()}
-        >
-          <div class="w-[56px] flex justify-center">
-            <.user_avatar
-              user={@current_user}
-              class="w-8 h-8 group-hover:ring-white group-hover:ring-2"
-              text_class="text-xs"
+            </div>
+            <.sidebar_link
+              title="Home"
+              icon="home-6-line"
+              to={Routes.home_path(@socket, :page)}
+              current={@current_page}
+            />
+            <.sidebar_link
+              title="Learn"
+              icon="article-line"
+              to={Routes.learn_path(@socket, :page)}
+              current={@current_page}
+            />
+            <.sidebar_link
+              title="Settings"
+              icon="settings-3-line"
+              to={Routes.settings_path(@socket, :page)}
+              current={@current_page}
             />
           </div>
-          <span class="text-sm text-gray-400 font-medium group-hover:text-white">
-            <%= @current_user.name %>
-          </span>
-        </button>
+          <.hub_section socket={@socket} hubs={@saved_hubs} current_page={@current_page} />
+        </div>
+        <div class="flex flex-col">
+          <%= if Livebook.Config.shutdown_enabled?() do %>
+            <button
+              class="h-7 flex items-center text-gray-400 hover:text-white border-l-4 border-transparent hover:border-white"
+              aria-label="shutdown"
+              phx-click={
+                with_confirm(
+                  JS.push("shutdown"),
+                  title: "Shut Down",
+                  description: "Are you sure you want to shut down Livebook now?",
+                  confirm_text: "Shut Down",
+                  confirm_icon: "shut-down-line"
+                )
+              }
+            >
+              <.remix_icon
+                icon="shut-down-line"
+                class="text-lg leading-6 w-[56px] flex justify-center"
+              />
+              <span class="text-sm font-medium">
+                Shut Down
+              </span>
+            </button>
+          <% end %>
+          <button
+            class="mt-6 flex items-center group border-l-4 border-transparent"
+            aria_label="user profile"
+            phx-click={show_current_user_modal()}
+          >
+            <div class="w-[56px] flex justify-center">
+              <.user_avatar
+                user={@current_user}
+                class="w-8 h-8 group-hover:ring-white group-hover:ring-2"
+                text_class="text-xs"
+              />
+            </div>
+            <span class="text-sm text-gray-400 font-medium group-hover:text-white">
+              <%= @current_user.name %>
+            </span>
+          </button>
+        </div>
       </div>
     </nav>
     """
