@@ -58,7 +58,7 @@ defmodule LivebookWeb.LayoutHelpers do
         aria-label="hide sidebar"
         data-el-toggle-sidebar
         phx-click={
-          JS.add_class("hidden sm:flex", to: "[data-el-sidebar]")
+          JS.add_class("hidden", to: "[data-el-sidebar]")
           |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
         }
       >
@@ -68,7 +68,7 @@ defmodule LivebookWeb.LayoutHelpers do
         aria-label="show sidebar"
         data-el-toggle-sidebar
         phx-click={
-          JS.remove_class("hidden sm:flex", to: "[data-el-sidebar]")
+          JS.remove_class("hidden", to: "[data-el-sidebar]")
           |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
         }
       >
@@ -81,7 +81,7 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar(assigns) do
     ~H"""
     <nav
-      class="hidden min-w-[14rem] h-full z-[500] sm:relative py-1 sm:py-7 bg-gray-900"
+      class="hidden sm:flex min-w-[14rem] h-full z-[500] py-1 sm:py-7 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >
