@@ -22,61 +22,87 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Add secret
       </h3>
-      <p class="text-gray-700">
-        Enter the secret name and its value.
-      </p>
-      <.form
-        let={f}
-        for={:data}
-        phx-submit="save"
-        phx-change="validate"
-        autocomplete="off"
-        phx-target={@myself}
-        errors={data_errors(@data)}
-      >
-        <div class="flex flex-col space-y-4">
-          <.input_wrapper form={f} field={:name}>
-            <div class="input-label">
-              Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
+      <div class="flex flex-columns gap-4">
+        <%= if @select_secret_ref do %>
+          <div class="basis-1/2 grow-0 pr-4 border-r">
+            <div class="flex flex-col space-y-4">
+              <p class="text-gray-700">
+                Choose a secret
+              </p>
+              <div class="flex flex-wrap gap-4">
+                <%= for secret <- @secrets do %>
+                  <.choice_button
+                    active={secret.name == @preselect_name}
+                    value={secret.name}
+                    phx-target={@myself}
+                    phx-click="select_secret"
+                    class={
+                      if secret.name == @preselect_name,
+                        do: "text-xs rounded-full",
+                        else: "text-xs rounded-full text-gray-700 hover:bg-gray-200"
+                    }
+                  >
+                    <%= secret.name %>
+                  </.choice_button>
+                <% end %>
+                <%= if @secrets == [] do %>
+                  <div class="w-full text-center text-gray-400 border rounded-lg p-8">
+                    <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
+                    <span class="mt-1 block text-sm text-gray-700">
+                      Secrets not found. <br /> Add to see them here.
+                    </span>
+                  </div>
+                <% end %>
+              </div>
             </div>
-            <%= text_input(f, :name,
-              value: @data["name"],
-              class: "input",
-              autofocus: !@prefill_secret_name,
-              spellcheck: "false"
-            ) %>
-          </.input_wrapper>
-          <.input_wrapper form={f} field={:value}>
-            <div class="input-label">Value</div>
-            <%= text_input(f, :value,
-              value: @data["value"],
-              class: "input",
-              autofocus: !!@prefill_secret_name || unavailable_secret?(@preselect_name, @secrets),
-              spellcheck: "false"
-            ) %>
-          </.input_wrapper>
-          <div class="flex space-x-2">
-            <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
-              Save
-            </button>
-            <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
           </div>
-        </div>
-      </.form>
-      <%= if @select_secret_ref do %>
-        <h3 class="text-2xl font-semibold text-gray-800">
-          Select secret
-        </h3>
+        <% end %>
         <.form
-          let={_}
-          for={:secrets}
-          phx-submit="save_secret"
-          phx-change="select_secret"
+          let={f}
+          for={:data}
+          phx-submit="save"
+          phx-change="validate"
+          autocomplete="off"
           phx-target={@myself}
+          errors={data_errors(@data)}
+          class="basis-1/2 grow"
         >
-          <.select name="secret" selected={@preselect_name} options={secret_options(@secrets)} />
+          <div class="flex flex-col space-y-4">
+            <%= if @select_secret_ref do %>
+              <p class="text-gray-700">
+                Add new secret
+              </p>
+            <% end %>
+            <.input_wrapper form={f} field={:name}>
+              <div class="input-label">
+                Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
+              </div>
+              <%= text_input(f, :name,
+                value: @data["name"],
+                class: "input",
+                autofocus: !@prefill_secret_name,
+                spellcheck: "false"
+              ) %>
+            </.input_wrapper>
+            <.input_wrapper form={f} field={:value}>
+              <div class="input-label">Value</div>
+              <%= text_input(f, :value,
+                value: @data["value"],
+                class: "input",
+                autofocus: !!@prefill_secret_name || unavailable_secret?(@preselect_name, @secrets),
+                spellcheck: "false"
+              ) %>
+            </.input_wrapper>
+            <div class="flex space-x-2">
+              <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
+                <.remix_icon icon="add-line" class="align-middle" />
+                <span class="font-normal">Add</span>
+              </button>
+              <%= live_patch("Cancel", to: @return_to, class: "button-base button-outlined-gray") %>
+            </div>
+          </div>
         </.form>
-      <% end %>
+      </div>
     </div>
     """
   end
@@ -96,7 +122,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     end
   end
 
-  def handle_event("select_secret", %{"secret" => secret_name}, socket) do
+  def handle_event("select_secret", %{"value" => secret_name}, socket) do
     {:noreply,
      socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
   end
@@ -125,8 +151,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp data_error("value", ""), do: "can't be blank"
   defp data_error(_key, _value), do: nil
-
-  defp secret_options(secrets), do: [{"", ""} | Enum.map(secrets, &{&1.name, &1.name})]
 
   defp push_secret_selected(%{assigns: %{select_secret_ref: nil}} = socket, _), do: socket
 
