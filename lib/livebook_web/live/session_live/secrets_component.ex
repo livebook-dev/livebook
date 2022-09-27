@@ -37,9 +37,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     phx-target={@myself}
                     phx-click="select_secret"
                     class={
-                      if secret.name != @preselect_name,
-                        do: "text-xs rounded-full text-gray-700 hover:bg-gray-200",
-                        else: "text-xs rounded-full"
+                      if secret.name == @preselect_name,
+                        do: "text-xs rounded-full",
+                        else: "text-xs rounded-full text-gray-700 hover:bg-gray-200"
                     }
                   >
                     <%= secret.name %>
