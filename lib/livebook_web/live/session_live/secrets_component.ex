@@ -4,7 +4,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
-    IO.inspect(socket)
 
     socket =
       if socket.assigns[:data] do
@@ -23,26 +22,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         Add secret
       </h3>
-      <div class="relative">
-        <div class="absolute inset-0 flex items-center" aria-hidden="true">
-          <div class="w-full border-t border-gray-300"></div>
-        </div>
-        <div class="relative flex justify-center">
-          <span class="bg-white px-2 text-sm text-gray-500">
-            <%= if @select_secret_ref do %>
-              Choose a pre-existing secret or create your own.
-            <% else %>
-              Enter the secret name and its value.
-            <% end %>
-          </span>
-        </div>
-      </div>
       <div class="flex flex-columns gap-4">
         <%= if @select_secret_ref do %>
           <div class="basis-1/2 grow-0 pr-4 border-r">
             <div class="flex flex-col space-y-4">
               <p class="text-gray-700">
-                Choose a Secret
+                Choose a secret
               </p>
               <div class="flex flex-wrap gap-4">
                 <%= for secret <- @secrets do %>
@@ -61,9 +46,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                   </.choice_button>
                 <% end %>
                 <%= if @secrets == [] do %>
-                  <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
-                    No secrets available
-                  </span>
+                  <div class="w-3/4 text-center text-gray-400 border rounded-lg p-8">
+                    <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
+                    <span class="mt-1 block text-sm text-gray-700">
+                      Secrets not found. <br /> Add to see them here.
+                    </span>
+                  </div>
                 <% end %>
               </div>
             </div>
@@ -81,7 +69,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         >
           <div class="flex flex-col space-y-4">
             <p class="text-gray-700">
-              Add Your Own
+              Add new secret
             </p>
             <.input_wrapper form={f} field={:name}>
               <div class="input-label">
