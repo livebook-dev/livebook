@@ -46,7 +46,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                   </.choice_button>
                 <% end %>
                 <%= if @secrets == [] do %>
-                  <div class="w-3/4 text-center text-gray-400 border rounded-lg p-8">
+                  <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
                     <span class="mt-1 block text-sm text-gray-700">
                       Secrets not found. <br /> Add to see them here.
