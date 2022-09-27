@@ -68,9 +68,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
-            <p class="text-gray-700">
-              Add new secret
-            </p>
+            <%= if @select_secret_ref do %>
+              <p class="text-gray-700">
+                Add new secret
+              </p>
+            <% end %>
             <.input_wrapper form={f} field={:name}>
               <div class="input-label">
                 Name <span class="text-xs text-gray-500">(alphanumeric and underscore)</span>
