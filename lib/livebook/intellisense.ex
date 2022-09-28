@@ -503,7 +503,7 @@ defmodule Livebook.Intellisense do
 
     if vsn = app && Application.spec(app, :vsn) do
       url = "https://hexdocs.pm/#{app}/#{vsn}/#{inspect(module)}.html#{hash}"
-      "[view on hexdocs](#{url})"
+      "[View on Hexdocs](#{url})"
     end
   end
 
