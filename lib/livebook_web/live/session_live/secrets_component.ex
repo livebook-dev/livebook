@@ -9,7 +9,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       if socket.assigns[:data] do
         socket
       else
-        assign(socket, data: %{"name" => prefill_secret_name(socket), "value" => ""})
+        assign(socket,
+          data: %{"name" => prefill_secret_name(socket), "value" => ""},
+          title: title(socket)
+        )
       end
 
     {:ok, socket}
@@ -20,7 +23,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     ~H"""
     <div class="p-6 max-w-4xl flex flex-col space-y-5">
       <h3 class="text-2xl font-semibold text-gray-800">
-        Add secret
+        <%= @title %>
       </h3>
       <div class="flex flex-columns gap-4">
         <%= if @select_secret_ref do %>
@@ -176,4 +179,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp unavailable_secret?(preselect_name, secrets) do
     preselect_name not in Enum.map(secrets, & &1.name)
   end
+
+  defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
+  defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
+  defp title(_), do: "Select secret"
 end
