@@ -335,6 +335,7 @@ const JSView = {
         this.pushEvent("select_secret", {
           js_view_ref: this.props.ref,
           preselect_name: message.preselectName,
+          options: message.options,
         });
       }
     }
