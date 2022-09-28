@@ -408,7 +408,7 @@ defmodule LivebookWeb.SessionLive do
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
           preselect_name={@preselect_name}
-          options={@options}
+          select_secret_options={@select_secret_options}
           return_to={@self_path}
         />
       </.modal>
@@ -761,7 +761,8 @@ defmodule LivebookWeb.SessionLive do
        prefill_secret_name: params["secret_name"],
        preselect_name: params["preselect_name"],
        select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref),
-       options: if(params["preselect_name"], do: socket.assigns.options)
+       select_secret_options:
+         if(params["preselect_name"], do: socket.assigns.select_secret_options)
      )}
   end
 
@@ -1127,11 +1128,15 @@ defmodule LivebookWeb.SessionLive do
         %{
           "js_view_ref" => select_secret_ref,
           "preselect_name" => preselect_name,
-          "options" => options
+          "options" => select_secret_options
         },
         socket
       ) do
-    socket = assign(socket, select_secret_ref: select_secret_ref, options: options)
+    socket =
+      assign(socket,
+        select_secret_ref: select_secret_ref,
+        select_secret_options: select_secret_options
+      )
 
     {:noreply,
      push_patch(socket,

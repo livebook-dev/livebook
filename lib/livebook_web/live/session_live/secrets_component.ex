@@ -181,6 +181,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
-  defp title(%{assigns: %{options: %{"title" => title}}}), do: title
+  defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 end
