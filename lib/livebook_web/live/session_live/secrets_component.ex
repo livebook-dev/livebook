@@ -48,6 +48,21 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     <%= secret.name %>
                   </.choice_button>
                 <% end %>
+                <%= for secret <- @notebook_secrets do %>
+                  <.choice_button
+                    active={secret["name"] == @preselect_name}
+                    value={secret["name"]}
+                    phx-target={@myself}
+                    phx-click="select_notebook_secret"
+                    class={
+                      if secret["name"] == @preselect_name,
+                        do: "text-xs rounded-full",
+                        else: "text-xs rounded-full text-gray-700 hover:bg-gray-200"
+                    }
+                  >
+                    <%= secret["name"] %>
+                  </.choice_button>
+                <% end %>
                 <%= if @secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
@@ -129,6 +144,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       secret = %{name: secret_name, value: data["value"]}
       put_secret(socket.assigns.session.pid, secret, data["store"])
 
+      if socket.assigns.select_secret_ref && data["store"] == "notebook",
+        do: put_secret(socket.assigns.session.pid, secret, "session")
+
       {:noreply,
        socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
     else
@@ -137,6 +155,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("select_secret", %{"value" => secret_name}, socket) do
+    {:noreply,
+     socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+  end
+
+  def handle_event("select_notebook_secret", %{"value" => secret_name}, socket) do
+    grant_access(secret_name, socket)
+
     {:noreply,
      socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
   end
@@ -197,4 +222,15 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp put_secret(pid, secret, "session"), do: Livebook.Session.put_secret(pid, secret)
   defp put_secret(pid, secret, "notebook"), do: Livebook.Session.put_notebook_secret(pid, secret)
+
+  defp grant_access(secret_name, socket) do
+    secret_value =
+      Enum.find_value(
+        socket.assigns.notebook_secrets,
+        &if(&1["name"] == secret_name, do: &1["value"])
+      )
+
+    secret = %{name: secret_name, value: secret_value}
+    put_secret(socket.assigns.session.pid, secret, "session")
+  end
 end
