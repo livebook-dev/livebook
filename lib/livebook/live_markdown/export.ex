@@ -70,8 +70,8 @@ defmodule Livebook.LiveMarkdown.Export do
   defp notebook_metadata(notebook) do
     put_unless_default(
       %{},
-      Map.take(notebook, [:persist_outputs, :autosave_interval_s]),
-      Map.take(Notebook.new(), [:persist_outputs, :autosave_interval_s])
+      Map.take(notebook, [:persist_outputs, :autosave_interval_s, :secrets]),
+      Map.take(Notebook.new(), [:persist_outputs, :autosave_interval_s, :secrets])
     )
   end
 

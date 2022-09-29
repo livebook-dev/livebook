@@ -564,6 +564,16 @@ defmodule LivebookWeb.SessionLive do
             </span>
           </div>
         <% end %>
+        <%= for secret <- @data_view.notebook_secrets do %>
+          <div class="flex justify-between items-center text-gray-500">
+            <span class="break-all">
+              <%= secret["name"] %>
+            </span>
+            <span class="rounded-full bg-green-200 px-2 text-xs text-green-600">
+              Notebook
+            </span>
+          </div>
+        <% end %>
       </div>
       <%= live_patch to: Routes.session_path(@socket, :secrets, @session.id),
             class: "inline-flex items-center justify-center p-8 py-1 mt-8 space-x-2 text-sm font-medium text-gray-500 border border-gray-400 border-dashed rounded-xl hover:bg-gray-100",
@@ -1690,7 +1700,8 @@ defmodule LivebookWeb.SessionLive do
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries,
-      secrets: data.secrets
+      secrets: data.secrets,
+      notebook_secrets: data.notebook.secrets
     }
   end
 

@@ -10,7 +10,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         socket
       else
         assign(socket,
-          data: %{"name" => prefill_secret_name(socket), "value" => ""},
+          data: %{"name" => prefill_secret_name(socket), "value" => "", "store" => "session"},
           title: title(socket)
         )
       end
@@ -96,6 +96,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 spellcheck: "false"
               ) %>
             </.input_wrapper>
+            <div>
+              <span class="text-base font-medium text-gray-900">Store</span>
+              <div class="mt-2 space-y-1">
+                <%= label  class: "flex items-center gap-2 text-gray-600" do %>
+                  <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> Session
+                <% end %>
+                <%= label class: "flex items-center gap-2 text-gray-600" do %>
+                  <%= radio_button(f, :store, "notebook", checked: @data["store"] == "notebook") %> Notebook
+                <% end %>
+              </div>
+            </div>
             <div class="flex space-x-2">
               <button class="button-base button-blue" type="submit" disabled={f.errors != []}>
                 <.remix_icon icon="add-line" class="align-middle" />
@@ -116,7 +127,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
     if data_errors(data) == [] do
       secret = %{name: secret_name, value: data["value"]}
-      Livebook.Session.put_secret(socket.assigns.session.pid, secret)
+      put_secret(socket.assigns.session.pid, secret, data["store"])
 
       {:noreply,
        socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
@@ -183,4 +194,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
+
+  defp put_secret(pid, secret, "session"), do: Livebook.Session.put_secret(pid, secret)
+  defp put_secret(pid, secret, "notebook"), do: Livebook.Session.put_notebook_secret(pid, secret)
 end

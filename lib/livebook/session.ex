@@ -511,6 +511,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a notebook secret addition request to the server.
+  """
+  @spec put_notebook_secret(pid(), map()) :: :ok
+  def put_notebook_secret(pid, secret) do
+    GenServer.cast(pid, {:put_notebook_secret, self(), secret})
+  end
+
+  @doc """
   Sends save request to the server.
 
   If there's a file set and the notebook changed since the last save,
@@ -978,6 +986,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:put_notebook_secret, client_pid, secret}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:put_notebook_secret, client_id, secret}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast(:save, state) do
     {:noreply, maybe_save_notebook_async(state)}
   end
@@ -1440,6 +1454,10 @@ defmodule Livebook.Session do
   defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
     if Runtime.connected?(state.data.runtime), do: set_runtime_secrets(state, [secret])
     state
+  end
+
+  defp after_operation(state, _prev_state, {:put_notebook_secret, _client_id, _secret}) do
+    notify_update(state)
   end
 
   defp after_operation(state, _prev_state, _operation), do: state
