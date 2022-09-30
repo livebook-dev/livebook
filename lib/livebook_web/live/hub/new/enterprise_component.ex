@@ -1,7 +1,7 @@
 defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   use LivebookWeb, :live_component
 
-  import Ecto.Changeset, only: [get_field: 2, add_error: 3]
+  import Ecto.Changeset, only: [get_field: 2]
 
   alias Livebook.EctoTypes.HexColor
   alias Livebook.Hubs.{Enterprise, EnterpriseClient}
@@ -120,23 +120,11 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
       {:noreply, assign(socket, changeset: changeset, base: base, connected: true)}
     else
-      {:error, {:failed_connect, _}} ->
-        changeset =
-          %Enterprise{}
-          |> Enterprise.change_hub()
-          |> Map.replace!(:errors, [])
-          |> add_error(:url, "url is unreachable")
-
-        {:noreply, assign(socket, changeset: changeset, base: %Enterprise{}, connected: false)}
-
-      {:error, _} ->
-        changeset =
-          %Enterprise{}
-          |> Enterprise.change_hub()
-          |> Map.replace!(:errors, [])
-          |> add_error(:token, "invalid token")
-
-        {:noreply, assign(socket, changeset: changeset, base: %Enterprise{}, connected: false)}
+      {:error, _message, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, message_from_reason(reason))
+         |> push_patch(to: Routes.hub_path(socket, :new))}
     end
   end
 
@@ -164,4 +152,8 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
   def handle_event("validate", %{"enterprise" => attrs}, socket) do
     {:noreply, assign(socket, changeset: Enterprise.change_hub(socket.assigns.base, attrs))}
   end
+
+  defp message_from_reason(:invalid_url), do: "Failed to connect with given URL"
+  defp message_from_reason(:unauthorized), do: "Failed to authorize with given token"
+  defp message_from_reason(:invalid_token), do: "Failed to authenticate with given token"
 end

@@ -12,6 +12,9 @@ defmodule LivebookWeb.Hub.NewLive do
   end
 
   @impl true
+  def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
   def render(assigns) do
     ~H"""
     <LayoutHelpers.layout

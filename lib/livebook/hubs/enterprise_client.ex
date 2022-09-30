@@ -3,7 +3,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   alias Livebook.Utils.HTTP
 
-  @path "api/v1"
+  @path "/api/v1"
 
   def fetch_info(%{"url" => url, "token" => access_token}) do
     query = """
@@ -41,24 +41,23 @@ defmodule Livebook.Hubs.EnterpriseClient do
     case HTTP.request(:post, graphql_endpoint(url), headers: headers, body: body) do
       {:ok, 200, _, body} ->
         case Jason.decode!(body) do
+          %{"errors" => [%{"message" => "invalid_token"}]} ->
+            {:error, "request failed with invalid token", :invalid_token}
+
+          %{"errors" => [%{"message" => "unauthorized"}]} ->
+            {:error, "request failed with unauthorized", :unauthorized}
+
           %{"errors" => [%{"message" => message}]} ->
-            {:error, message}
+            {:error, "request failed with message: #{message}", :other}
 
           %{"data" => data} ->
             {:ok, data}
         end
 
-      {:ok, _, _, body} ->
-        {:error, body}
-
-      {:error, _} = error ->
-        error
+      {:error, {:failed_connect, _}} ->
+        {:error, "request failed to connect", :invalid_url}
     end
   end
 
-  defp graphql_endpoint(url) do
-    if String.ends_with?(url, "/"),
-      do: "#{url}#{@path}",
-      else: "#{url}/#{@path}"
-  end
+  defp graphql_endpoint(url), do: url <> @path
 end

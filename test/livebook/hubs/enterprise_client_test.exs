@@ -37,8 +37,8 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert EnterpriseClient.fetch_info(%{"url" => url, "token" => "foo"}) ==
-               {:error, "invalid_token"}
+      assert {:error, _, :invalid_token} =
+               EnterpriseClient.fetch_info(%{"url" => url, "token" => "foo"})
     end
   end
 
@@ -67,8 +67,8 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
         |> Plug.Conn.resp(200, Jason.encode!(response))
       end)
 
-      assert EnterpriseClient.fetch_info(%{"url" => url, "token" => "foo"}) ==
-               {:error, "unauthorized"}
+      assert {:error, _, :unauthorized} =
+               EnterpriseClient.fetch_info(%{"url" => url, "token" => "foo"})
     end
   end
 end

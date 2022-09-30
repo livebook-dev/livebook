@@ -59,18 +59,7 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert view
-             |> element("#hubs")
-             |> render() =~ ~s/style="color: #FF00FF"/
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ Routes.hub_path(conn, :edit, hub.id)
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ "Personal Hub"
-
+      assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"], hub_name: attrs["hub_name"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
 
@@ -224,20 +213,17 @@ defmodule LivebookWeb.Hub.EditLiveTest do
 
       assert render(view) =~ "Hub updated successfully"
 
-      assert view
-             |> element("#hubs")
-             |> render() =~ ~s/style="color: #FF00FF"/
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ Routes.hub_path(conn, :edit, hub.id)
-
-      assert view
-             |> element("#hubs")
-             |> render() =~ hub.hub_name
-
+      assert_hub(view, conn, %{hub | hub_color: attrs["hub_color"]})
       refute Hubs.fetch_hub!(hub.id) == hub
     end
+  end
+
+  defp assert_hub(view, conn, hub) do
+    hubs_html = view |> element("#hubs") |> render()
+
+    assert hubs_html =~ ~s/style="color: #{hub.hub_color}"/
+    assert hubs_html =~ Routes.hub_path(conn, :edit, hub.id)
+    assert hubs_html =~ hub.hub_name
   end
 
   defp fly_bypass(bypass, app_id, agent_pid) do
