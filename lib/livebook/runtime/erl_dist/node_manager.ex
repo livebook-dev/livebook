@@ -42,6 +42,9 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        It is used to disconnect the node when the server terminates,
        which happens when the last session using the node disconnects.
        Defaults to `nil`
+
+    * `:capture_orphan_logs` - whether to capture logs out of Livebook
+      evaluator's scope. Defaults to `true`
   """
   def start(opts \\ []) do
     {opts, gen_opts} = split_opts(opts)
@@ -84,6 +87,7 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
     unload_modules_on_termination = Keyword.get(opts, :unload_modules_on_termination, true)
     auto_termination = Keyword.get(opts, :auto_termination, true)
     parent_node = Keyword.get(opts, :parent_node)
+    capture_orphan_logs = Keyword.get(opts, :capture_orphan_logs, true)
 
     ## Initialize the node
 
@@ -112,7 +116,8 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
        runtime_servers: [],
        initial_ignore_module_conflict: initial_ignore_module_conflict,
        original_standard_error: original_standard_error,
-       parent_node: parent_node
+       parent_node: parent_node,
+       capture_orphan_logs: capture_orphan_logs
      }}
   end
 
@@ -152,7 +157,10 @@ defmodule Livebook.Runtime.ErlDist.NodeManager do
   end
 
   def handle_info({:orphan_log, _output} = message, state) do
-    for pid <- state.runtime_servers, do: send(pid, message)
+    if state.capture_orphan_logs do
+      for pid <- state.runtime_servers, do: send(pid, message)
+    end
+
     {:noreply, state}
   end
 
