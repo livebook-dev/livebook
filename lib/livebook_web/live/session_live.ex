@@ -554,24 +554,32 @@ defmodule LivebookWeb.SessionLive do
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Secrets
       </h3>
+      <span class="mt-4 text-sm font-semibold text-gray-500">Secrets available to this notebook</span>
       <div class="flex flex-col mt-4 space-y-4">
         <%= for secret <- @data_view.secrets do %>
           <div class="flex justify-between items-center text-gray-500">
-            <span class="break-all">
+            <span class="text-sm break-all">
               <%= secret.name %>
             </span>
-            <span class="rounded-full bg-gray-200 px-2 text-xs text-gray-600">
+            <span class="rounded-full bg-green-200 px-2 text-xs text-green-600">
               Session
             </span>
           </div>
         <% end %>
+        <div class="w-full border-t border-gray-300 py-1"></div>
+        <span class="mt-4 text-sm font-semibold text-gray-500">Secrets stored in your Livebook</span>
         <%= for secret <- @data_view.notebook_secrets do %>
           <div class="flex justify-between items-center text-gray-500">
-            <span class="break-all">
+            <span class="text-sm break-all">
               <%= secret["name"] %>
             </span>
-            <span class="rounded-full bg-green-200 px-2 text-xs text-green-600">
-              Notebook
+            <span
+              role="button"
+              class="rounded-full bg-gray-200 px-2 text-xs text-gray-600 cursor-pointer hover:bg-gray-300"
+              phx-value-secret_name={secret["name"]}
+              phx-click="put_secret_on_session"
+            >
+              Put on session
             </span>
           </div>
         <% end %>
@@ -1156,6 +1164,18 @@ defmodule LivebookWeb.SessionLive do
            preselect_name: preselect_name
          )
      )}
+  end
+
+  def handle_event("put_secret_on_session", %{"secret_name" => secret_name}, socket) do
+    secret_value =
+      Enum.find_value(
+        socket.assigns.data_view.notebook_secrets,
+        &if(&1["name"] == secret_name, do: &1["value"])
+      )
+
+    secret = %{name: secret_name, value: secret_value}
+    Livebook.Session.put_secret(socket.assigns.session.pid, secret)
+    {:noreply, socket}
   end
 
   @impl true
