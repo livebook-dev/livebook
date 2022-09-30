@@ -98,7 +98,7 @@ defmodule Livebook.MixProject do
       {:earmark_parser, "~> 1.4"},
       {:castore, "~> 0.1.0"},
       {:aws_signature, "~> 0.3.0"},
-      {:ecto, "~> 3.8.4"},
+      {:ecto, "~> 3.9.0"},
       {:phoenix_ecto, "~> 4.4.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:floki, ">= 0.27.0", only: :test},
