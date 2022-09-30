@@ -2,6 +2,7 @@ defmodule LivebookWeb.SettingsLive do
   use LivebookWeb, :live_view
 
   alias LivebookWeb.{LayoutHelpers, PageHelpers}
+  alias Livebook.Storage.Ets
 
   on_mount LivebookWeb.SidebarHook
 
@@ -21,7 +22,8 @@ defmodule LivebookWeb.SettingsLive do
          dialog_opened?: false
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
-       page_title: "Livebook - Settings"
+       page_title: "Livebook - Settings",
+       default_file_system: nil
      )}
   end
 
@@ -116,6 +118,7 @@ defmodule LivebookWeb.SettingsLive do
             <LivebookWeb.SettingsLive.FileSystemsComponent.render
               file_systems={@file_systems}
               socket={@socket}
+              default_file_system={@default_file_system}
             />
           </div>
           <!-- Environment variables configuration -->
@@ -314,8 +317,24 @@ defmodule LivebookWeb.SettingsLive do
 
   def handle_event("detach_file_system", %{"id" => file_system_id}, socket) do
     Livebook.Settings.remove_file_system(file_system_id)
+
+    case Ets.fetch(:file_system, "default_file_system") do
+      :error ->
+        ""
+
+      {:ok, default} ->
+        if default.file_system_id == file_system_id do
+          Ets.delete(:file_system, "default_file_system")
+        end
+    end
+
     file_systems = Livebook.Settings.file_systems()
     {:noreply, assign(socket, file_systems: file_systems)}
+  end
+
+  def handle_event("make_default_file_system", %{"id" => file_system_id}, socket) do
+    Ets.insert(:file_system, "default_file_system", file_system_id: file_system_id)
+    {:noreply, assign(socket, default_file_system: file_system_id)}
   end
 
   def handle_event("save", %{"update_check_enabled" => enabled}, socket) do

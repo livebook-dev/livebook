@@ -5,6 +5,7 @@ defmodule LivebookWeb.HomeLive do
 
   alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
+  alias Livebook.Storage.Ets
 
   on_mount LivebookWeb.SidebarHook
 
@@ -462,7 +463,20 @@ defmodule LivebookWeb.HomeLive do
     end
   end
 
-  defp determine_file(_params), do: Livebook.Config.local_filesystem_home()
+  defp determine_file(_params) do
+    case Ets.fetch(:file_system, "default_file_system") do
+      :error ->
+        Livebook.Config.local_filesystem_home()
+
+      {:ok, default} ->
+        {_id, file} =
+          Enum.find(Livebook.Settings.file_systems(), fn {id, _file} ->
+            id == default.file_system_id
+          end)
+
+        FileSystem.File.new(file)
+    end
+  end
 
   defp open_notebook(socket, file) do
     case import_notebook(file) do
