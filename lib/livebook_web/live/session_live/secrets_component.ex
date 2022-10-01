@@ -173,7 +173,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               <%= text_input(f, :value,
                 value: @data["value"],
                 class: "input",
-                autofocus: !!@prefill_secret_name || unavailable_secret?(@preselect_name, @secrets),
+                autofocus:
+                  !!@prefill_secret_name ||
+                    unavailable_secret?(@preselect_name, @secrets, @notebook_secrets),
                 spellcheck: "false"
               ) %>
             </.input_wrapper>
@@ -273,20 +275,25 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp prefill_secret_name(socket) do
     case socket.assigns.prefill_secret_name do
       nil ->
-        if unavailable_secret?(socket.assigns.preselect_name, socket.assigns.secrets),
-          do: socket.assigns.preselect_name,
-          else: ""
+        if unavailable_secret?(
+             socket.assigns.preselect_name,
+             socket.assigns.secrets,
+             socket.assigns.notebook_secrets
+           ),
+           do: socket.assigns.preselect_name,
+           else: ""
 
       prefill ->
         prefill
     end
   end
 
-  defp unavailable_secret?(nil, _), do: false
-  defp unavailable_secret?("", _), do: false
+  defp unavailable_secret?(nil, _, _), do: false
+  defp unavailable_secret?("", _, _), do: false
 
-  defp unavailable_secret?(preselect_name, secrets) do
-    preselect_name not in Enum.map(secrets, & &1.name)
+  defp unavailable_secret?(preselect_name, secrets, notebook_secrets) do
+    preselect_name not in Enum.map(secrets, & &1.name) &&
+      preselect_name not in Enum.map(notebook_secrets, & &1["name"])
   end
 
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
