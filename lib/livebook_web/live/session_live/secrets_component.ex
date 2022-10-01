@@ -49,15 +49,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 >
                   Grant access
                 </button>
-                <div class="order-2 flex-shrink-0 sm:order-3 sm:ml-2">
-                  <button
-                    class="icon-button text-gray-100 hover:text-blue-900"
-                    phx-click="cancel_grant_access"
-                    phx-target={@myself}
-                  >
-                    <.remix_icon icon="close-line" class="text-2xl" />
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -108,18 +99,35 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                   <% end %>
                 <% end %>
                 <%= for secret <- notebook_only(@secrets, @notebook_secrets) do %>
-                  <div
-                    role="button"
-                    class="flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
-                    phx-value-secret_name={secret["name"]}
-                    phx-target={@myself}
-                    phx-click="select_notebook_secret"
-                  >
-                    <%= secret["name"] %>
-                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                      Notebook
+                  <%= if secret["name"] == @preselect_name do %>
+                    <span class="flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b">
+                      <%= secret["name"] %>
+                      <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                        <svg
+                          class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
+                          fill="currentColor"
+                          viewBox="0 0 8 8"
+                        >
+                          <circle cx="4" cy="4" r="3" />
+                        </svg>
+                        Notebook
+                      </span>
                     </span>
-                  </div>
+                    <% show_confirm_grant(secret["name"], assigns) %>
+                  <% else %>
+                    <div
+                      role="button"
+                      class="flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+                      phx-value-secret_name={secret["name"]}
+                      phx-target={@myself}
+                      phx-click="select_notebook_secret"
+                    >
+                      <%= secret["name"] %>
+                      <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
+                        Notebook
+                      </span>
+                    </div>
+                  <% end %>
                 <% end %>
                 <%= if @secrets == [] && @notebook_secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
@@ -218,7 +226,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("select_notebook_secret", %{"secret_name" => secret_name}, socket) do
-    {:noreply, assign(socket, grant_access: secret_name)}
+    grant_access(secret_name, socket)
+
+    {:noreply,
+     socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+  end
+
+  def handle_event("validate", %{"data" => data}, socket) do
+    {:noreply, assign(socket, data: data)}
   end
 
   def handle_event("grant_access", %{"secret_name" => secret_name}, socket) do
@@ -226,14 +241,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
     {:noreply,
      socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
-  end
-
-  def handle_event("cancel_grant_access", _, socket) do
-    {:noreply, assign(socket, grant_access: nil)}
-  end
-
-  def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data)}
   end
 
   defp data_errors(data) do
@@ -302,5 +309,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp notebook_only(secrets, notebook_secrets) do
     Enum.reject(notebook_secrets, &(&1["name"] in get_in(secrets, [Access.all(), :name])))
+  end
+
+  defp show_confirm_grant(secret_name, socket) do
+    send_update(__MODULE__, id: "secrets", grant_access: secret_name)
+    {:noreply, socket}
   end
 end
