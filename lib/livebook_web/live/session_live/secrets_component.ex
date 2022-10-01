@@ -25,6 +25,31 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
+      <div>
+        <div class="mx-auto">
+          <div class="rounded-lg bg-blue-600 p-2 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between">
+              <div class="flex w-0 flex-1 items-center">
+                <.remix_icon
+                  icon="error-warning-fill"
+                  class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
+                />
+                <span class="ml-2 text-sm font-normal text-gray-100">
+                  The secret you are trying to use needs to be made available to the session
+                </span>
+              </div>
+              <button class="button-base button-gray" phx-click="grant-access">
+                Grant access
+              </button>
+              <div class="order-2 flex-shrink-0 sm:order-3 sm:ml-2">
+                <button class="icon-button text-gray-100 hover:text-blue-900">
+                  <.remix_icon icon="close-line" class="text-2xl" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="flex flex-columns gap-4">
         <%= if @select_secret_ref do %>
           <div class="basis-1/2 grow-0 pr-4 border-r">
