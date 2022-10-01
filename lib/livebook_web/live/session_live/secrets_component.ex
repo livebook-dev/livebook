@@ -11,7 +11,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       else
         assign(socket,
           data: %{"name" => prefill_secret_name(socket), "value" => "", "store" => "session"},
-          title: title(socket)
+          title: title(socket),
+          grant_access: nil
         )
       end
 
@@ -25,31 +26,43 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       <h3 class="text-2xl font-semibold text-gray-800">
         <%= @title %>
       </h3>
-      <div>
-        <div class="mx-auto">
-          <div class="rounded-lg bg-blue-600 p-2 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between">
-              <div class="flex w-0 flex-1 items-center">
-                <.remix_icon
-                  icon="error-warning-fill"
-                  class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
-                />
-                <span class="ml-2 text-sm font-normal text-gray-100">
-                  The secret you are trying to use needs to be made available to the session
-                </span>
-              </div>
-              <button class="button-base button-gray" phx-click="grant-access">
-                Grant access
-              </button>
-              <div class="order-2 flex-shrink-0 sm:order-3 sm:ml-2">
-                <button class="icon-button text-gray-100 hover:text-blue-900">
-                  <.remix_icon icon="close-line" class="text-2xl" />
+      <%= if @grant_access do %>
+        <div>
+          <div class="mx-auto">
+            <div class="rounded-lg bg-blue-600 p-2 shadow-sm">
+              <div class="flex flex-wrap items-center justify-between">
+                <div class="flex w-0 flex-1 items-center">
+                  <.remix_icon
+                    icon="error-warning-fill"
+                    class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
+                  />
+                  <span class="ml-2 text-sm font-normal text-gray-100">
+                    The secret <span class="font-semibold text-white"><%= @grant_access %></span>
+                    needs to be made available to the session
+                  </span>
+                </div>
+                <button
+                  class="button-base button-gray"
+                  phx-click="grant_access"
+                  phx-value-secret_name={@grant_access}
+                  phx-target={@myself}
+                >
+                  Grant access
                 </button>
+                <div class="order-2 flex-shrink-0 sm:order-3 sm:ml-2">
+                  <button
+                    class="icon-button text-gray-100 hover:text-blue-900"
+                    phx-click="cancel_grant_access"
+                    phx-target={@myself}
+                  >
+                    <.remix_icon icon="close-line" class="text-2xl" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      <% end %>
       <div class="flex flex-columns gap-4">
         <%= if @select_secret_ref do %>
           <div class="basis-1/2 grow-0 pr-4 border-r">
@@ -205,10 +218,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("select_notebook_secret", %{"secret_name" => secret_name}, socket) do
+    {:noreply, assign(socket, grant_access: secret_name)}
+  end
+
+  def handle_event("grant_access", %{"secret_name" => secret_name}, socket) do
     grant_access(secret_name, socket)
 
     {:noreply,
      socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+  end
+
+  def handle_event("cancel_grant_access", _, socket) do
+    {:noreply, assign(socket, grant_access: nil)}
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
