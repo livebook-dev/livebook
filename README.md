@@ -39,53 +39,6 @@ For screencasts and news, check out [news.livebook.dev](https://news.livebook.de
 We provide several methods for running Livebook,
 pick the one that best fits your use case.
 
-### On the cloud
-
-  * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
-
-### Desktop app
-
-  * [Download the installer for Mac and Windows from our homepage](https://livebook.dev/#install)
-
-  * Latest stable builds: [Mac (Universal)](https://livebook.dev/releases/latest/LivebookInstall-latest-macos-universal.dmg),
-    [Windows](https://livebook.dev/releases/latest/LivebookInstall-latest-windows-x86_64.exe)
-
-  * Nightly builds: [Mac (Universal)](https://livebook.dev/releases/nightly/LivebookInstall-nightly-macos-universal.dmg),
-    [Windows](https://livebook.dev/releases/nightly/LivebookInstall-nightly-windows-x86_64.exe)
-
-  * Builds for particular Livebook version are available on our
-    [GitHub releases](https://github.com/livebook-dev/livebook/releases).
-
-### Docker
-
-Running Livebook using Docker is a great option for cloud deployments
-and also for local usage in case you don't have Elixir installed.
-
-```shell
-# Running with the default configuration
-docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
-
-# In order to access and save notebooks directly to your machine
-# you can mount a local directory into the container.
-# Make sure to specify the user with "-u $(id -u):$(id -g)"
-# so that the created files have proper permissions
-docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
-
-# You can configure Livebook using environment variables,
-# for all options see the dedicated "Environment variables" section below
-docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
-```
-
-To try out features from the main branch you can alternatively
-use the `livebook/livebook:edge` image.
-See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
-
-### Embedded devices
-
-If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
-check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
-with [Nerves](https://www.nerves-project.org/).
-
 ### Direct installation with Elixir
 
 You can run Livebook on your own machine using just Elixir. You will need
@@ -140,6 +93,53 @@ mix deps.get --only prod
 # Run the Livebook server
 MIX_ENV=prod mix phx.server
 ```
+
+### On the cloud
+
+  * [Launch a Livebook instance close to you on Fly.io](https://fly.io/launch/livebook)
+
+### Desktop app
+
+  * [Download the installer for Mac and Windows from our homepage](https://livebook.dev/#install)
+
+  * Latest stable builds: [Mac (Universal)](https://livebook.dev/releases/latest/LivebookInstall-latest-macos-universal.dmg),
+    [Windows](https://livebook.dev/releases/latest/LivebookInstall-latest-windows-x86_64.exe)
+
+  * Nightly builds: [Mac (Universal)](https://livebook.dev/releases/nightly/LivebookInstall-nightly-macos-universal.dmg),
+    [Windows](https://livebook.dev/releases/nightly/LivebookInstall-nightly-windows-x86_64.exe)
+
+  * Builds for particular Livebook version are available on our
+    [GitHub releases](https://github.com/livebook-dev/livebook/releases).
+
+### Docker
+
+Running Livebook using Docker is a great option for cloud deployments
+and also for local usage in case you don't have Elixir installed.
+
+```shell
+# Running with the default configuration
+docker run -p 8080:8080 -p 8081:8081 --pull always livebook/livebook
+
+# In order to access and save notebooks directly to your machine
+# you can mount a local directory into the container.
+# Make sure to specify the user with "-u $(id -u):$(id -g)"
+# so that the created files have proper permissions
+docker run -p 8080:8080 -p 8081:8081 --pull always -u $(id -u):$(id -g) -v $(pwd):/data livebook/livebook
+
+# You can configure Livebook using environment variables,
+# for all options see the dedicated "Environment variables" section below
+docker run -p 8080:8080 -p 8081:8081 --pull always -e LIVEBOOK_PASSWORD="securesecret" livebook/livebook
+```
+
+To try out features from the main branch you can alternatively
+use the `livebook/livebook:edge` image.
+See [Livebook on Docker Hub](https://hub.docker.com/r/livebook/livebook/tags?page=1&ordering=last_updated).
+
+### Embedded devices
+
+If you want to run Livebook on embedded devices, such as Raspberry Pi, BeagleBone, etc.,
+check out [our Livebook firmware](https://github.com/livebook-dev/nerves_livebook) built
+with [Nerves](https://www.nerves-project.org/).
 
 ## Security considerations
 
