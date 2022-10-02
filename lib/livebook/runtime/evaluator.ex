@@ -475,6 +475,10 @@ defmodule Livebook.Runtime.Evaluator do
       |> Enum.reverse()
       |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
       |> Enum.reverse()
+      |> case do
+        [] -> stack
+        stack -> stack
+      end
     end
   else
     @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
