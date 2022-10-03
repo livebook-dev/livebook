@@ -1613,6 +1613,7 @@ defmodule Livebook.Session do
   end
 
   defp delete_runtime_secrets(state, secret_names) do
+    secret_names = Enum.map(secret_names, &"LB_#{&1}")
     Runtime.delete_system_envs(state.data.runtime, secret_names)
   end
 
