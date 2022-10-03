@@ -554,7 +554,7 @@ defmodule LivebookWeb.SessionLive do
       <h3 class="uppercase text-sm font-semibold text-gray-500">
         Secrets
       </h3>
-      <span class="mt-4 text-sm font-semibold text-gray-500">Secrets available to this notebook</span>
+      <span class="mt-4 text-sm font-semibold text-gray-500">Available to this notebook</span>
       <div class="flex flex-col mt-4 space-y-4">
         <%= for secret <- @data_view.secrets do %>
           <div class="flex justify-between items-center text-gray-500">
@@ -567,20 +567,22 @@ defmodule LivebookWeb.SessionLive do
           </div>
         <% end %>
         <div class="w-full border-t border-gray-300 py-1"></div>
-        <span class="mt-4 text-sm font-semibold text-gray-500">Secrets stored in your Livebook</span>
+        <div class="flex justify-between mt-4">
+          <span class="text-sm font-semibold text-gray-500">Stored in your Livebook</span>
+          <span class="text-sm font-light text-gray-500">On session</span>
+        </div>
         <%= for secret <- @data_view.notebook_secrets do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="text-sm break-all">
               <%= secret["name"] %>
             </span>
-            <span
-              role="button"
-              class="rounded-full bg-gray-200 px-2 text-xs text-gray-600 cursor-pointer hover:bg-gray-300"
-              phx-value-secret_name={secret["name"]}
-              phx-click="put_secret_on_session"
-            >
-              Put on session
-            </span>
+            <.switch_checkbox
+              name="toggle_secret"
+              checked={is_secret_on_session?(secret["name"], @data_view.secrets)}
+              phx-click="toggle_secret"
+              phx-value_secret_name={secret["name"]}
+              phx-value_secret_value={secret["value"]}
+            />
           </div>
         <% end %>
       </div>
@@ -1166,15 +1168,18 @@ defmodule LivebookWeb.SessionLive do
      )}
   end
 
-  def handle_event("put_secret_on_session", %{"secret_name" => secret_name}, socket) do
-    secret_value =
-      Enum.find_value(
-        socket.assigns.data_view.notebook_secrets,
-        &if(&1["name"] == secret_name, do: &1["value"])
-      )
-
+  def handle_event(
+        "toggle_secret",
+        %{"secret-name" => secret_name, "secret-value" => secret_value, "value" => "true"},
+        socket
+      ) do
     secret = %{name: secret_name, value: secret_value}
     Livebook.Session.put_secret(socket.assigns.session.pid, secret)
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_secret", %{"secret-name" => secret_name}, socket) do
+    Livebook.Session.delete_secret(socket.assigns.session.pid, secret_name)
     {:noreply, socket}
   end
 
@@ -1982,5 +1987,9 @@ defmodule LivebookWeb.SessionLive do
     end
 
     :ok
+  end
+
+  defp is_secret_on_session?(secret_name, secrets) do
+    secret_name in Enum.map(secrets, & &1.name)
   end
 end

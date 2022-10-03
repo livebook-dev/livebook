@@ -194,6 +194,7 @@ defmodule Livebook.Session.Data do
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
           | {:put_secret, client_id(), secret()}
+          | {:delete_secret, client_id(), String.t()}
           | {:put_notebook_secret, client_id(), secret()}
 
   @type action ::
@@ -768,6 +769,13 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> put_secret(secret)
+    |> wrap_ok()
+  end
+
+  def apply_operation(data, {:delete_secret, _client_id, secret_name}) do
+    data
+    |> with_actions()
+    |> delete_secret(secret_name)
     |> wrap_ok()
   end
 
@@ -1524,6 +1532,20 @@ defmodule Livebook.Session.Data do
         put_in(data.secrets, [Access.at(idx), :value], secret.value)
       else
         data.secrets ++ [secret]
+      end
+      |> Enum.sort()
+
+    set!(data_actions, secrets: secrets)
+  end
+
+  defp delete_secret({data, _} = data_actions, secret_name) do
+    idx = Enum.find_index(data.secrets, &(&1.name == secret_name))
+
+    secrets =
+      if idx do
+        List.delete_at(data.secrets, idx)
+      else
+        data.secrets
       end
       |> Enum.sort()
 

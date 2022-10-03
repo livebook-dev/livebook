@@ -511,6 +511,14 @@ defmodule Livebook.Session do
   end
 
   @doc """
+  Sends a secret deletion request to the server.
+  """
+  @spec delete_secret(pid(), map()) :: :ok
+  def delete_secret(pid, secret_name) do
+    GenServer.cast(pid, {:delete_secret, self(), secret_name})
+  end
+
+  @doc """
   Sends a notebook secret addition request to the server.
   """
   @spec put_notebook_secret(pid(), map()) :: :ok
@@ -986,6 +994,12 @@ defmodule Livebook.Session do
     {:noreply, handle_operation(state, operation)}
   end
 
+  def handle_cast({:delete_secret, client_pid, secret_name}, state) do
+    client_id = client_id(state, client_pid)
+    operation = {:delete_secret, client_id, secret_name}
+    {:noreply, handle_operation(state, operation)}
+  end
+
   def handle_cast({:put_notebook_secret, client_pid, secret}, state) do
     client_id = client_id(state, client_pid)
     operation = {:put_notebook_secret, client_id, secret}
@@ -1456,6 +1470,11 @@ defmodule Livebook.Session do
     state
   end
 
+  defp after_operation(state, _prev_state, {:delete_secret, _client_id, secret_name}) do
+    if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
+    state
+  end
+
   defp after_operation(state, _prev_state, {:put_notebook_secret, _client_id, _secret}) do
     notify_update(state)
   end
@@ -1591,6 +1610,10 @@ defmodule Livebook.Session do
   defp set_runtime_secrets(state, secrets) do
     secrets = Enum.map(secrets, &{"LB_#{&1.name}", &1.value})
     Runtime.put_system_envs(state.data.runtime, secrets)
+  end
+
+  defp delete_runtime_secrets(state, secret_names) do
+    Runtime.delete_system_envs(state.data.runtime, secret_names)
   end
 
   defp set_runtime_env_vars(state) do
