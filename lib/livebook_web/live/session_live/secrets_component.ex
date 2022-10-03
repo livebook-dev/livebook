@@ -27,32 +27,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         <%= @title %>
       </h3>
       <%= if @grant_access do %>
-        <div>
-          <div class="mx-auto">
-            <div class="rounded-lg bg-blue-600 p-2 shadow-sm">
-              <div class="flex flex-wrap items-center justify-between">
-                <div class="flex w-0 flex-1 items-center">
-                  <.remix_icon
-                    icon="error-warning-fill"
-                    class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
-                  />
-                  <span class="ml-2 text-sm font-normal text-gray-100">
-                    The secret <span class="font-semibold text-white"><%= @grant_access %></span>
-                    needs to be made available to the session
-                  </span>
-                </div>
-                <button
-                  class="button-base button-gray"
-                  phx-click="grant_access"
-                  phx-value-secret_name={@grant_access}
-                  phx-target={@myself}
-                >
-                  Grant access
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <.grant_access_message grant_access={@grant_access} target={@myself} />
       <% end %>
       <div class="flex flex-columns gap-4">
         <%= if @select_secret_ref do %>
@@ -63,75 +38,22 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               </p>
               <div class="flex flex-wrap">
                 <%= for secret <- @secrets do %>
-                  <span
-                    role="button"
-                    class={
-                      if secret.name == @preselect_name,
-                        do:
-                          "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer",
-                        else:
-                          "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
-                    }
-                    phx-value-secret_name={secret.name}
-                    phx-target={@myself}
-                    phx-click="select_secret"
-                  >
-                    <%= secret.name %>
-                    <span class={
-                      if secret.name == @preselect_name,
-                        do:
-                          "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800",
-                        else:
-                          "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
-                    }>
-                      <%= if secret.name == @preselect_name do %>
-                        <svg
-                          class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
-                          fill="currentColor"
-                          viewBox="0 0 8 8"
-                        >
-                          <circle cx="4" cy="4" r="3" />
-                        </svg>
-                      <% end %>
-                      Session
-                    </span>
-                  </span>
+                  <.secret_with_badge
+                    secret_name={secret.name}
+                    stored="Session"
+                    action="select_secret"
+                    active={secret.name == @preselect_name}
+                    target={@myself}
+                  />
                 <% end %>
-                <%= for secret <- notebook_only(@secrets, @notebook_secrets) do %>
-                  <div
-                    role="button"
-                    class={
-                      if secret["name"] == @preselect_name,
-                        do:
-                          "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer",
-                        else:
-                          "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
-                    }
-                    phx-value-secret_name={secret["name"]}
-                    phx-target={@myself}
-                    phx-click="select_notebook_secret"
-                  >
-                    <%= secret["name"] %>
-                    <span class={
-                      if secret["name"] == @preselect_name,
-                        do:
-                          "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800",
-                        else:
-                          "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
-                    }>
-                      <%= if secret["name"] == @preselect_name do %>
-                        <svg
-                          class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
-                          fill="currentColor"
-                          viewBox="0 0 8 8"
-                        >
-                          <circle cx="4" cy="4" r="3" />
-                        </svg>
-                        <% show_confirm_grant(secret["name"], assigns) %>
-                      <% end %>
-                      Notebook
-                    </span>
-                  </div>
+                <%= for secret <- notebook_only_secrets(@secrets, @notebook_secrets) do %>
+                  <.secret_with_badge
+                    secret_name={secret["name"]}
+                    stored="Notebook"
+                    action="select_notebook_secret"
+                    active={secret["name"] == @preselect_name}
+                    target={@myself}
+                  />
                 <% end %>
                 <%= if @secrets == [] && @notebook_secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
@@ -203,6 +125,74 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
             </div>
           </div>
         </.form>
+      </div>
+    </div>
+    """
+  end
+
+  def secret_with_badge(assigns) do
+    ~H"""
+    <div
+      role="button"
+      class={
+        if @active,
+          do:
+            "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer",
+          else:
+            "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+      }
+      phx-value-secret_name={@secret_name}
+      phx-target={@target}
+      phx-click={@action}
+    >
+      <%= @secret_name %>
+      <span class={
+        if @active,
+          do:
+            "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800",
+          else:
+            "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+      }>
+        <%= if @active do %>
+          <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
+            <circle cx="4" cy="4" r="3" />
+          </svg>
+        <% end %>
+        <%= @stored %>
+        <%= if @stored == "Notebook" do %>
+          <% show_confirm_grant(@secret_name, assigns) %>
+        <% end %>
+      </span>
+    </div>
+    """
+  end
+
+  defp grant_access_message(assigns) do
+    ~H"""
+    <div>
+      <div class="mx-auto">
+        <div class="rounded-lg bg-blue-600 p-2 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between">
+            <div class="flex w-0 flex-1 items-center">
+              <.remix_icon
+                icon="error-warning-fill"
+                class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
+              />
+              <span class="ml-2 text-sm font-normal text-gray-100">
+                The secret <span class="font-semibold text-white"><%= @grant_access %></span>
+                needs to be made available to the session
+              </span>
+            </div>
+            <button
+              class="button-base button-gray"
+              phx-click="grant_access"
+              phx-value-secret_name={@grant_access}
+              phx-target={@target}
+            >
+              Grant access
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     """
@@ -322,7 +312,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     put_secret(socket.assigns.session.pid, secret, "session")
   end
 
-  defp notebook_only(secrets, notebook_secrets) do
+  defp notebook_only_secrets(secrets, notebook_secrets) do
     Enum.reject(notebook_secrets, &(&1["name"] in get_in(secrets, [Access.all(), :name])))
   end
 
