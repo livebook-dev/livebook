@@ -216,7 +216,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         do: put_secret(socket.assigns.session.pid, secret, "session")
 
       {:noreply,
-       socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
+       socket
+       |> maybe_sync_secrets(secret, data["store"])
+       |> push_patch(to: socket.assigns.return_to)
+       |> push_secret_selected(secret_name)}
     else
       {:noreply, assign(socket, data: data)}
     end
@@ -321,5 +324,19 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp show_confirm_grant(secret_name, socket) do
     send_update(__MODULE__, id: "secrets", grant_access: secret_name)
     {:noreply, socket}
+  end
+
+  defp maybe_sync_secrets(socket, secret, "notebook") do
+    if secret.name in Enum.map(socket.assigns.secrets, & &1.name),
+      do: put_secret(socket.assigns.session.pid, secret, "session")
+
+    socket
+  end
+
+  defp maybe_sync_secrets(socket, secret, "session") do
+    if secret.name in Enum.map(socket.assigns.notebook_secrets, & &1["name"]),
+      do: put_secret(socket.assigns.session.pid, secret, "notebook")
+
+    socket
   end
 end

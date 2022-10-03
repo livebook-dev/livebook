@@ -561,7 +561,7 @@ defmodule LivebookWeb.SessionLive do
             <span class="text-sm break-all">
               <%= secret.name %>
             </span>
-            <span class="rounded-full bg-green-200 px-2 text-xs text-green-600">
+            <span class="rounded-full bg-gray-200 px-2 text-xs text-gray-600">
               Session
             </span>
           </div>
