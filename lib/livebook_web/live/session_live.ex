@@ -556,7 +556,7 @@ defmodule LivebookWeb.SessionLive do
       </h3>
       <span class="mt-4 text-sm font-semibold text-gray-500">Available to this notebook</span>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- @data_view.secrets do %>
+        <%= for secret <- session_only_secrets(@data_view.secrets, @data_view.notebook_secrets) do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="text-sm break-all">
               <%= secret.name %>
@@ -1987,6 +1987,10 @@ defmodule LivebookWeb.SessionLive do
     end
 
     :ok
+  end
+
+  defp session_only_secrets(secrets, notebook_secrets) do
+    Enum.reject(secrets, &(&1.name in get_in(notebook_secrets, [Access.all(), "name"])))
   end
 
   defp is_secret_on_session?(secret_name, secrets) do
