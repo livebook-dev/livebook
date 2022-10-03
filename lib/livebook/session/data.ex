@@ -1540,15 +1540,7 @@ defmodule Livebook.Session.Data do
 
   defp delete_secret({data, _} = data_actions, secret_name) do
     idx = Enum.find_index(data.secrets, &(&1.name == secret_name))
-
-    secrets =
-      if idx do
-        List.delete_at(data.secrets, idx)
-      else
-        data.secrets
-      end
-      |> Enum.sort()
-
+    secrets = List.delete_at(data.secrets, idx) |> Enum.sort()
     set!(data_actions, secrets: secrets)
   end
 

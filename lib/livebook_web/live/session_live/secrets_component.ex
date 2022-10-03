@@ -63,16 +63,28 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               </p>
               <div class="flex flex-wrap">
                 <%= for secret <- @secrets do %>
-                  <%= if secret.name == @preselect_name do %>
-                    <span
-                      role="button"
-                      class="flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer"
-                      phx-value-secret_name={secret.name}
-                      phx-target={@myself}
-                      phx-click="select_secret"
-                    >
-                      <%= secret.name %>
-                      <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                  <span
+                    role="button"
+                    class={
+                      if secret.name == @preselect_name,
+                        do:
+                          "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer",
+                        else:
+                          "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+                    }
+                    phx-value-secret_name={secret.name}
+                    phx-target={@myself}
+                    phx-click="select_secret"
+                  >
+                    <%= secret.name %>
+                    <span class={
+                      if secret.name == @preselect_name,
+                        do:
+                          "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800",
+                        else:
+                          "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+                    }>
+                      <%= if secret.name == @preselect_name do %>
                         <svg
                           class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
                           fill="currentColor"
@@ -80,29 +92,34 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                         >
                           <circle cx="4" cy="4" r="3" />
                         </svg>
-                        Session
-                      </span>
+                      <% end %>
+                      Session
                     </span>
-                  <% else %>
-                    <span
-                      role="button"
-                      class="flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
-                      phx-value-secret_name={secret.name}
-                      phx-target={@myself}
-                      phx-click="select_secret"
-                    >
-                      <%= secret.name %>
-                      <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                        Session
-                      </span>
-                    </span>
-                  <% end %>
+                  </span>
                 <% end %>
                 <%= for secret <- notebook_only(@secrets, @notebook_secrets) do %>
-                  <%= if secret["name"] == @preselect_name do %>
-                    <span class="flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b">
-                      <%= secret["name"] %>
-                      <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                  <div
+                    role="button"
+                    class={
+                      if secret["name"] == @preselect_name,
+                        do:
+                          "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer",
+                        else:
+                          "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+                    }
+                    phx-value-secret_name={secret["name"]}
+                    phx-target={@myself}
+                    phx-click="select_notebook_secret"
+                  >
+                    <%= secret["name"] %>
+                    <span class={
+                      if secret["name"] == @preselect_name,
+                        do:
+                          "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800",
+                        else:
+                          "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+                    }>
+                      <%= if secret["name"] == @preselect_name do %>
                         <svg
                           class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400"
                           fill="currentColor"
@@ -110,24 +127,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                         >
                           <circle cx="4" cy="4" r="3" />
                         </svg>
-                        Notebook
-                      </span>
+                        <% show_confirm_grant(secret["name"], assigns) %>
+                      <% end %>
+                      Notebook
                     </span>
-                    <% show_confirm_grant(secret["name"], assigns) %>
-                  <% else %>
-                    <div
-                      role="button"
-                      class="flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
-                      phx-value-secret_name={secret["name"]}
-                      phx-target={@myself}
-                      phx-click="select_notebook_secret"
-                    >
-                      <%= secret["name"] %>
-                      <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                        Notebook
-                      </span>
-                    </div>
-                  <% end %>
+                  </div>
                 <% end %>
                 <%= if @secrets == [] && @notebook_secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
@@ -207,17 +211,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
     secret_name = String.upcase(data["name"])
+    store = data["store"]
+    secret = %{name: secret_name, value: data["value"]}
 
     if data_errors(data) == [] do
-      secret = %{name: secret_name, value: data["value"]}
-      put_secret(socket.assigns.session.pid, secret, data["store"])
+      put_secret(socket.assigns.session.pid, secret, store)
 
-      if socket.assigns.select_secret_ref && data["store"] == "notebook",
+      if socket.assigns.select_secret_ref && store == "notebook",
         do: put_secret(socket.assigns.session.pid, secret, "session")
 
       {:noreply,
        socket
-       |> maybe_sync_secrets(secret, data["store"])
+       |> maybe_sync_secrets(secret, store)
        |> push_patch(to: socket.assigns.return_to)
        |> push_secret_selected(secret_name)}
     else
