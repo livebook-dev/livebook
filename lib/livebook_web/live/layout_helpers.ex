@@ -25,12 +25,21 @@ defmodule LivebookWeb.LayoutHelpers do
         />
       </div>
       <div class="grow overflow-y-auto">
-        <div class="flex sm:hidden items-center justify-between sticky sm:pt-1 px-2 top-0 left-0 right-0 z-[500] bg-white border-b border-gray-200">
-          <.topbar_sidebar_toggle />
-          <div
-            class="items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
-            data-el-toggle-sidebar
-          >
+        <div class="sm:hidden sticky flex items-center justify-between h-14 px-4 top-0 left-0 z-[500] bg-white border-b border-gray-200">
+          <div class="text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600">
+            <button
+              data-el-toggle-sidebar
+              aria-label="show sidebar"
+              phx-click={
+                JS.remove_class("hidden", to: "[data-el-sidebar]")
+                |> JS.toggle(to: "[data-el-toggle-sidebar]")
+              }
+            >
+              <.remix_icon icon="menu-unfold-line" />
+            </button>
+          </div>
+
+          <div class="text-gray-400 hover:text-gray-600 focus:text-gray-600">
             <% # TODO: Use render_slot(@topbar_action) || default() on LiveView 0.18 %>
             <%= if @topbar_action == [] do %>
               <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
@@ -50,53 +59,31 @@ defmodule LivebookWeb.LayoutHelpers do
     """
   end
 
-  defp topbar_sidebar_toggle(assigns) do
+  defp sidebar(assigns) do
     ~H"""
-    <div class="my-2 text-2xl text-gray-400 hover:text-gray-600 focus:text-gray-600 rounded-xl h-10 w-10 flex items-center justify-center">
+    <nav
+      class="hidden sm:flex w-[18rem] h-full py-2 sm:py-6 bg-gray-900"
+      aria-label="sidebar"
+      data-el-sidebar
+    >
       <button
-        class="hidden ml-[28rem]"
+        class="hidden text-2xl text-gray-300 hover:text-white focus:text-white absolute top-3 right-3"
         aria-label="hide sidebar"
         data-el-toggle-sidebar
         phx-click={
           JS.add_class("hidden", to: "[data-el-sidebar]")
-          |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
+          |> JS.toggle(to: "[data-el-toggle-sidebar]")
         }
       >
         <.remix_icon icon="menu-fold-line" />
       </button>
-      <button
-        aria-label="show sidebar"
-        data-el-toggle-sidebar
-        phx-click={
-          JS.remove_class("hidden", to: "[data-el-sidebar]")
-          |> JS.toggle(to: "[data-el-toggle-sidebar]", display: "flex")
-        }
-      >
-        <.remix_icon icon="menu-unfold-line" />
-      </button>
-    </div>
-    """
-  end
 
-  defp sidebar(assigns) do
-    ~H"""
-    <nav
-      class="hidden sm:flex min-w-[14rem] h-full z-[500] py-1 sm:py-7 bg-gray-900"
-      aria-label="sidebar"
-      data-el-sidebar
-    >
       <div class="flex flex-col justify-between h-full">
         <div class="flex flex-col">
           <div class="space-y-3">
-            <div class="group flex items-center mb-5">
-              <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900" do %>
-                <img
-                  src="/images/logo.png"
-                  class="group mx-2"
-                  height="40"
-                  width="40"
-                  alt="logo livebook"
-                />
+            <div class="flex items-center mb-5">
+              <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center border-l-4 border-gray-900 group" do %>
+                <img src="/images/logo.png" class="mx-2" height="40" width="40" alt="logo livebook" />
                 <span class="text-gray-300 text-2xl font-logo ml-[-1px] group-hover:text-white pt-1">
                   Livebook
                 </span>
