@@ -108,7 +108,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
         <%= if @saved_file do %>
           <button class="button-base button-outlined-red" phx-click="stop_saving">
-            Stop saving
+            Stop saving to file
           </button>
         <% end %>
       </div>
