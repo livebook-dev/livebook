@@ -96,10 +96,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
           <button
             class="button-base button-blue"
             phx-click="save"
-            disabled={
-              same_attrs?(@new_attrs, @attrs) and
-                not savable?(@draft_file, @saved_file, @running_files)
-            }
+            disabled={not savable?(@draft_file, @saved_file, @running_files)}
           >
             Save
           </button>
@@ -241,7 +238,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
 
   defp savable?(draft_file, saved_file, running_files) do
     file = normalize_file(draft_file)
-    file != saved_file and not FileSystem.File.dir?(file) and file not in running_files
+    not FileSystem.File.dir?(draft_file) and (file not in running_files or file == saved_file)
   end
 
   defp map_diff(left, right) do
