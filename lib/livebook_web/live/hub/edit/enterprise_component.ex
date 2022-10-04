@@ -25,9 +25,9 @@ defmodule LivebookWeb.Hub.Edit.EnterpriseComponent do
           </h2>
 
           <.form
+            :let={f}
             id={@id}
             class="flex flex-col mt-4 space-y-4"
-            let={f}
             for={@changeset}
             phx-submit="save"
             phx-change="validate"
