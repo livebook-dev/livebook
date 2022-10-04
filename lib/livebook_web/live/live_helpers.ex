@@ -485,7 +485,6 @@ defmodule LivebookWeb.LiveHelpers do
         class={"menu__content #{menu_content_class(@position)}"}
         role="menu"
         phx-click-away={JS.remove_class("menu--open", to: "##{@id}")}
-        }
       >
         <%= render_slot(@content) %>
       </menu>
