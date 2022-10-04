@@ -162,7 +162,10 @@ defmodule LivebookTest.Integration.EnterpriseServer do
           result
 
         {error, status} ->
-          raise RuntimeError, IO.ANSI.format([:red, error])
+          [:red, error]
+          |> IO.ANSI.format()
+          |> IO.write()
+
           System.halt(status)
       end
     else
