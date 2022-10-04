@@ -99,7 +99,7 @@ defmodule LivebookWeb.SessionLive do
       data-autofocus-cell-id={@autofocus_cell_id}
     >
       <nav
-        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-7 bg-gray-900"
+        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-5 bg-gray-900"
         aria-label="sidebar"
         data-el-sidebar
       >
@@ -162,7 +162,7 @@ defmodule LivebookWeb.SessionLive do
         </span>
       </nav>
       <div
-        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-10"
+        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
         data-el-side-panel
       >
         <div data-el-sections-list>
