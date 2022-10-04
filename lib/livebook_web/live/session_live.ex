@@ -190,7 +190,7 @@ defmodule LivebookWeb.SessionLive do
           global_status={@data_view.global_status}
         />
         <div
-          class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-7 mx-auto"
+          class="w-full max-w-screen-lg px-4 sm:pl-8 sm:pr-16 md:pl-16 pt-4 sm:py-5 mx-auto"
           data-el-notebook-content
         >
           <div
