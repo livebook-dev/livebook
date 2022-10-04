@@ -29,7 +29,6 @@ defmodule LivebookWeb.LayoutHelpers do
             class="hidden items-center justify-end p-2 text-gray-400 hover:text-gray-600 focus:text-gray-600"
             data-el-toggle-sidebar
           >
-            <% # TODO: Use render_slot(@topbar_action) || default() on LiveView 0.18 %>
             <%= if @topbar_action == [] do %>
               <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
                 <.remix_icon icon="home-6-line" />
