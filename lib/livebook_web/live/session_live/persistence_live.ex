@@ -156,7 +156,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     save(socket)
   end
 
-  def save(%{assigns: assigns} = socket) do
+  defp save(%{assigns: assigns} = socket) do
     %{new_attrs: new_attrs, attrs: attrs, draft_file: draft_file, saved_file: saved_file} =
       assigns
 
