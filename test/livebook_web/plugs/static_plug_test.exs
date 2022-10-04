@@ -52,7 +52,7 @@ defmodule LivebookWeb.StaticPlugTest do
 
     assert conn.status == 200
     assert get_resp_header(conn, "content-encoding") == ["gzip"]
-    assert get_resp_header(conn, "content-type") == ["application/javascript"]
+    assert get_resp_header(conn, "content-type") == ["text/javascript"]
     assert get_resp_header(conn, "etag") == [~s{"digest"}]
   end
 
