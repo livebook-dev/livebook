@@ -175,7 +175,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       />
       <.shortcuts_section
         title="Insert mode"
-        description="Shortcuts in the code editor match Visual Studio Code. Here we list a selection of them assuming a US keyboard layout."
+        description="Shortcuts in the code editor match Visual Studio Code. Here is a summary (US keyboard layout)."
         shortcuts={@shortcuts.insert_mode}
         basic={@basic}
         platform={@platform}
