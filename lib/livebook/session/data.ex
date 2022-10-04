@@ -195,7 +195,6 @@ defmodule Livebook.Session.Data do
           | {:mark_as_not_dirty, client_id()}
           | {:put_secret, client_id(), secret()}
           | {:delete_secret, client_id(), String.t()}
-          | {:put_notebook_secret, client_id(), secret()}
 
   @type action ::
           :connect_runtime
@@ -776,14 +775,6 @@ defmodule Livebook.Session.Data do
     data
     |> with_actions()
     |> delete_secret(secret_name)
-    |> wrap_ok()
-  end
-
-  def apply_operation(data, {:put_notebook_secret, _client_id, secret}) do
-    data
-    |> with_actions()
-    |> put_notebook_secret(secret)
-    |> set_dirty()
     |> wrap_ok()
   end
 
@@ -1542,20 +1533,6 @@ defmodule Livebook.Session.Data do
     idx = Enum.find_index(data.secrets, &(&1.name == secret_name))
     secrets = List.delete_at(data.secrets, idx) |> Enum.sort()
     set!(data_actions, secrets: secrets)
-  end
-
-  defp put_notebook_secret({data, _} = data_actions, secret) do
-    idx = Enum.find_index(data.notebook.secrets, &(&1["name"] == secret.name))
-
-    secrets =
-      if idx do
-        put_in(data.notebook.secrets, [Access.at(idx), "value"], secret.value)
-      else
-        data.notebook.secrets ++ [%{"name" => secret.name, "value" => secret.value}]
-      end
-      |> Enum.sort()
-
-    set!(data_actions, notebook: %{data.notebook | secrets: secrets})
   end
 
   defp set_smart_cell_definitions(data_actions, smart_cell_definitions) do

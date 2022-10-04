@@ -21,8 +21,7 @@ defmodule Livebook.Notebook do
     :leading_comments,
     :persist_outputs,
     :autosave_interval_s,
-    :output_counter,
-    :secrets
+    :output_counter
   ]
 
   alias Livebook.Notebook.{Section, Cell}
@@ -37,8 +36,7 @@ defmodule Livebook.Notebook do
           leading_comments: list(list(line :: String.t())),
           persist_outputs: boolean(),
           autosave_interval_s: non_neg_integer() | nil,
-          output_counter: non_neg_integer(),
-          secrets: list()
+          output_counter: non_neg_integer()
         }
 
   @version "1.0"
@@ -56,8 +54,7 @@ defmodule Livebook.Notebook do
       leading_comments: [],
       persist_outputs: default_persist_outputs(),
       autosave_interval_s: default_autosave_interval_s(),
-      output_counter: 0,
-      secrets: []
+      output_counter: 0
     }
     |> put_setup_cell(Cell.new(:code))
   end

@@ -366,9 +366,6 @@ defmodule Livebook.LiveMarkdown.Import do
       {"autosave_interval_s", autosave_interval_s}, attrs ->
         Map.put(attrs, :autosave_interval_s, autosave_interval_s)
 
-      {"secrets", secrets}, attrs ->
-        Map.put(attrs, :secrets, secrets)
-
       _entry, attrs ->
         attrs
     end)
