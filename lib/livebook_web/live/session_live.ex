@@ -5,7 +5,7 @@ defmodule LivebookWeb.SessionLive do
   import LivebookWeb.SessionHelpers
   import Livebook.Utils, only: [format_bytes: 1]
 
-  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
+  alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown, Secrets}
   alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
@@ -21,6 +21,7 @@ defmodule LivebookWeb.SessionLive do
               Session.register_client(session_pid, self(), socket.assigns.current_user)
 
             Session.subscribe(session_id)
+            Secrets.subscribe()
 
             {data, client_id}
           else
@@ -55,7 +56,8 @@ defmodule LivebookWeb.SessionLive do
            platform: platform,
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
-           page_title: get_page_title(data.notebook.name)
+           page_title: get_page_title(data.notebook.name),
+           livebook_secrets: Secrets.fetch_secrets()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -172,7 +174,12 @@ defmodule LivebookWeb.SessionLive do
           <.clients_list data_view={@data_view} client_id={@client_id} />
         </div>
         <div data-el-secrets-list>
-          <.secrets_list data_view={@data_view} session={@session} socket={@socket} />
+          <.secrets_list
+            data_view={@data_view}
+            livebook_secrets={@livebook_secrets}
+            session={@session}
+            socket={@socket}
+          />
         </div>
         <div data-el-runtime-info>
           <.runtime_info data_view={@data_view} session={@session} socket={@socket} />
@@ -405,7 +412,7 @@ defmodule LivebookWeb.SessionLive do
           id="secrets"
           session={@session}
           secrets={@data_view.secrets}
-          notebook_secrets={@data_view.notebook_secrets}
+          livebook_secrets={@livebook_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
           preselect_name={@preselect_name}
@@ -556,7 +563,7 @@ defmodule LivebookWeb.SessionLive do
       </h3>
       <span class="mt-4 text-sm font-semibold text-gray-500">Available to this notebook</span>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- session_only_secrets(@data_view.secrets, @data_view.notebook_secrets) do %>
+        <%= for secret <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="text-sm break-all">
               <%= secret.name %>
@@ -571,17 +578,17 @@ defmodule LivebookWeb.SessionLive do
           <span class="text-sm font-semibold text-gray-500">Stored in your Livebook</span>
           <span class="text-sm font-light text-gray-500">On session</span>
         </div>
-        <%= for secret <- @data_view.notebook_secrets do %>
+        <%= for secret <- @livebook_secrets do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="text-sm break-all">
-              <%= secret["name"] %>
+              <%= secret.name %>
             </span>
             <.switch_checkbox
               name="toggle_secret"
-              checked={is_secret_on_session?(secret["name"], @data_view.secrets)}
+              checked={is_secret_on_session?(secret.name, @data_view.secrets)}
               phx-click="toggle_secret"
-              phx-value_secret_name={secret["name"]}
-              phx-value_secret_value={secret["value"]}
+              phx-value-secret_name={secret.name}
+              phx-value-secret_value={secret.value}
             />
           </div>
         <% end %>
@@ -1259,6 +1266,14 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_info({:set_secret, _secret}, socket) do
+    {:noreply, assign(socket, livebook_secrets: Secrets.fetch_secrets())}
+  end
+
+  def handle_info({:unset_secret, _secret}, socket) do
+    {:noreply, assign(socket, livebook_secrets: Secrets.fetch_secrets())}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path, requested_url) do
@@ -1726,8 +1741,7 @@ defmodule LivebookWeb.SessionLive do
       setup_cell_view: %{cell_to_view(hd(data.notebook.setup_section.cells), data) | type: :setup},
       section_views: section_views(data.notebook.sections, data),
       bin_entries: data.bin_entries,
-      secrets: data.secrets,
-      notebook_secrets: data.notebook.secrets
+      secrets: data.secrets
     }
   end
 
@@ -1989,8 +2003,9 @@ defmodule LivebookWeb.SessionLive do
     :ok
   end
 
-  defp session_only_secrets(secrets, notebook_secrets) do
-    Enum.reject(secrets, &(&1.name in get_in(notebook_secrets, [Access.all(), "name"])))
+  defp session_only_secrets(secrets, livebook_secrets) do
+    livebook_secrets = Enum.map(livebook_secrets, &Map.from_struct/1)
+    Enum.reject(secrets, &(&1 in livebook_secrets))
   end
 
   defp is_secret_on_session?(secret_name, secrets) do

@@ -12,7 +12,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         assign(socket,
           data: %{"name" => prefill_secret_name(socket), "value" => "", "store" => "session"},
           title: title(socket),
-          grant_access: nil
+          grant_access: must_grant_access(socket)
         )
       end
 
@@ -46,16 +46,16 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     target={@myself}
                   />
                 <% end %>
-                <%= for secret <- notebook_only_secrets(@secrets, @notebook_secrets) do %>
+                <%= for secret <- notebook_only_secrets(@secrets, @livebook_secrets) do %>
                   <.secret_with_badge
-                    secret_name={secret["name"]}
-                    stored="Notebook"
-                    action="select_notebook_secret"
-                    active={secret["name"] == @preselect_name}
+                    secret_name={secret.name}
+                    stored="livebook"
+                    action="select_livebook_secret"
+                    active={secret.name == @preselect_name}
                     target={@myself}
                   />
                 <% end %>
-                <%= if @secrets == [] && @notebook_secrets == [] do %>
+                <%= if @secrets == [] && @livebook_secrets == [] do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
                     <span class="mt-1 block text-sm text-gray-700">
@@ -101,7 +101,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 class: "input",
                 autofocus:
                   !!@prefill_secret_name ||
-                    unavailable_secret?(@preselect_name, @secrets, @notebook_secrets),
+                    unavailable_secret?(@preselect_name, @secrets, @livebook_secrets),
                 spellcheck: "false"
               ) %>
             </.input_wrapper>
@@ -112,7 +112,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                   <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> Session
                 <% end %>
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :store, "notebook", checked: @data["store"] == "notebook") %> Notebook
+                  <%= radio_button(f, :store, "livebook", checked: @data["store"] == "livebook") %> Notebook
                 <% end %>
               </div>
             </div>
@@ -130,7 +130,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     """
   end
 
-  def secret_with_badge(assigns) do
+  defp secret_with_badge(assigns) do
     ~H"""
     <div
       role="button"
@@ -159,9 +159,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           </svg>
         <% end %>
         <%= @stored %>
-        <%= if @stored == "Notebook" do %>
-          <% show_confirm_grant(@secret_name, assigns) %>
-        <% end %>
       </span>
     </div>
     """
@@ -207,7 +204,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     if data_errors(data) == [] do
       put_secret(socket.assigns.session.pid, secret, store)
 
-      if socket.assigns.select_secret_ref && store == "notebook",
+      if socket.assigns.select_secret_ref && store == "livebook",
         do: put_secret(socket.assigns.session.pid, secret, "session")
 
       {:noreply,
@@ -225,7 +222,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
      socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
   end
 
-  def handle_event("select_notebook_secret", %{"secret_name" => secret_name}, socket) do
+  def handle_event("select_livebook_secret", %{"secret_name" => secret_name}, socket) do
     grant_access(secret_name, socket)
 
     {:noreply,
@@ -276,7 +273,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         if unavailable_secret?(
              socket.assigns.preselect_name,
              socket.assigns.secrets,
-             socket.assigns.notebook_secrets
+             socket.assigns.livebook_secrets
            ),
            do: socket.assigns.preselect_name,
            else: ""
@@ -289,9 +286,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp unavailable_secret?(nil, _, _), do: false
   defp unavailable_secret?("", _, _), do: false
 
-  defp unavailable_secret?(preselect_name, secrets, notebook_secrets) do
+  defp unavailable_secret?(preselect_name, secrets, livebook_secrets) do
     preselect_name not in Enum.map(secrets, & &1.name) &&
-      preselect_name not in Enum.map(notebook_secrets, & &1["name"])
+      preselect_name not in Enum.map(livebook_secrets, & &1.name)
   end
 
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
@@ -299,29 +296,24 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(_), do: "Select secret"
 
   defp put_secret(pid, secret, "session"), do: Livebook.Session.put_secret(pid, secret)
-  defp put_secret(pid, secret, "notebook"), do: Livebook.Session.put_notebook_secret(pid, secret)
+  defp put_secret(_pid, secret, "livebook"), do: Livebook.Secrets.set_secret(secret)
 
   defp grant_access(secret_name, socket) do
     secret_value =
       Enum.find_value(
-        socket.assigns.notebook_secrets,
-        &if(&1["name"] == secret_name, do: &1["value"])
+        socket.assigns.livebook_secrets,
+        &if(&1.name == secret_name, do: &1.value)
       )
 
     secret = %{name: secret_name, value: secret_value}
     put_secret(socket.assigns.session.pid, secret, "session")
   end
 
-  defp notebook_only_secrets(secrets, notebook_secrets) do
-    Enum.reject(notebook_secrets, &(&1["name"] in get_in(secrets, [Access.all(), :name])))
+  defp notebook_only_secrets(secrets, livebook_secrets) do
+    Enum.reject(livebook_secrets, &(&1.name in get_in(secrets, [Access.all(), :name])))
   end
 
-  defp show_confirm_grant(secret_name, socket) do
-    send_update(__MODULE__, id: "secrets", grant_access: secret_name)
-    {:noreply, socket}
-  end
-
-  defp maybe_sync_secrets(socket, secret, "notebook") do
+  defp maybe_sync_secrets(socket, secret, "livebook") do
     if secret.name in Enum.map(socket.assigns.secrets, & &1.name),
       do: put_secret(socket.assigns.session.pid, secret, "session")
 
@@ -329,9 +321,16 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp maybe_sync_secrets(socket, secret, "session") do
-    if secret.name in Enum.map(socket.assigns.notebook_secrets, & &1["name"]),
-      do: put_secret(socket.assigns.session.pid, secret, "notebook")
+    if secret.name in Enum.map(socket.assigns.livebook_secrets, & &1.name),
+      do: put_secret(socket.assigns.session.pid, secret, "livebook")
 
     socket
+  end
+
+  defp must_grant_access(%{assigns: %{select_secret_ref: nil}}), do: nil
+
+  defp must_grant_access(%{assigns: %{preselect_name: preselect_name}} = socket) do
+    secrets = notebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
+    if preselect_name in get_in(secrets, [Access.all(), Access.key!(:name)]), do: preselect_name
   end
 end
