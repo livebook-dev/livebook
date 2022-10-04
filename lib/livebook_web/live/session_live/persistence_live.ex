@@ -45,6 +45,7 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
       <h3 class="text-2xl font-semibold text-gray-800">
         Save to file
       </h3>
+
       <div class="w-full flex-col space-y-6">
         <div class="h-full h-52">
           <.live_component

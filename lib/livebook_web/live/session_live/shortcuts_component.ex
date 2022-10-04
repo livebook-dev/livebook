@@ -152,7 +152,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <p class="text-gray-700">
         Livebook highly embraces keyboard navigation to improve your productivity.
         It operates in one of two modes similarly to the Vim text editor.
-        In <span class="font-semibold">navigation mode</span> you move around
+        In <span class="font-semibold">navigation mode</span>
+        you move around
         the notebook and execute commands, whereas in the
         <span class="font-semibold">insert mode</span>
         you have editor focus and directly modify the given cell content.
@@ -239,23 +240,23 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
     seq = shortcut[:"seq_#{platform}"] || shortcut.seq
     press_all = Map.get(shortcut, :press_all, false)
 
-    joiner =
+    elements =
       if press_all do
-        assigns = %{}
-
-        ~H"""
-        <.remix_icon icon="add-line" class="text-lg text-gray-600" />
-        """
+        Enum.intersperse(seq, :joiner)
+      else
+        seq
       end
-
-    elements = Enum.map_intersperse(seq, joiner, &content_tag("kbd", &1))
 
     assigns = %{elements: elements}
 
     ~H"""
     <div class="flex space-x-1 items-center markdown">
       <%= for element <- @elements do %>
-        <%= element %>
+        <%= if element == :joiner do %>
+          <.remix_icon icon="add-line" class="text-lg text-gray-600" />
+        <% else %>
+          <kbd><%= element %></kbd>
+        <% end %>
       <% end %>
     </div>
     """

@@ -40,7 +40,6 @@ defmodule LivebookWeb.LayoutHelpers do
           </div>
 
           <div class="text-gray-400 hover:text-gray-600 focus:text-gray-600">
-            <% # TODO: Use render_slot(@topbar_action) || default() on LiveView 0.18 %>
             <%= if @topbar_action == [] do %>
               <%= live_redirect to: Routes.home_path(@socket, :page), class: "flex items-center", aria: [label: "go to home"] do %>
                 <.remix_icon icon="home-6-line" />
@@ -62,7 +61,7 @@ defmodule LivebookWeb.LayoutHelpers do
   defp sidebar(assigns) do
     ~H"""
     <nav
-      class="hidden sm:flex w-[18rem] h-full py-2 sm:py-6 bg-gray-900"
+      class="hidden sm:flex w-[18rem] h-full py-2 sm:py-5 bg-gray-900"
       aria-label="sidebar"
       data-el-sidebar
     >

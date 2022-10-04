@@ -49,7 +49,7 @@ defmodule LivebookWeb.SessionLive.AttachedLive do
         Then enter the connection information below:
       </p>
       <.form
-        let={f}
+        :let={f}
         for={:data}
         phx-submit="init"
         phx-change="validate"
