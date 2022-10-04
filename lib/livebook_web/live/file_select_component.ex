@@ -181,18 +181,13 @@ defmodule LivebookWeb.FileSelectComponent do
         </div>
       </div>
 
-      <form
-        class="h-full"
-        phx-change="file_validate"
-        phx-drop-target={@uploads.folder.ref}
-        phx-target={@myself}
+      <div
+        class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
+        tabindex="-1"
+        phx-hook="Dropzone"
+        id="upload-file-dropzone"
       >
-        <div
-          class="grow -m-1 p-1 h-full rounded-lg overflow-y-auto tiny-scrollbar"
-          tabindex="-1"
-          phx-hook="Dropzone"
-          id="upload-file-dropzone"
-        >
+        <form phx-change="file_validate" phx-drop-target={@uploads.folder.ref} phx-target={@myself}>
           <%= live_file_input(@uploads.folder, class: "hidden", aria_labelledby: "import-from-file") %>
 
           <%= if any_highlighted?(@file_infos) do %>
@@ -234,8 +229,8 @@ defmodule LivebookWeb.FileSelectComponent do
               <% end %>
             <% end %>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
     """
   end

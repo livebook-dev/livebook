@@ -46,14 +46,16 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
         Save to file
       </h3>
       <div class="w-full flex-col space-y-6">
-        <.live_component
-          module={LivebookWeb.FileSelectComponent}
-          id="persistence_file_select"
-          file={@draft_file}
-          extnames={[LiveMarkdown.extension()]}
-          running_files={@running_files}
-          submit_event={:confirm_file}
-        />
+        <div class="h-full h-52">
+          <.live_component
+            module={LivebookWeb.FileSelectComponent}
+            id="persistence_file_select"
+            file={@draft_file}
+            extnames={[LiveMarkdown.extension()]}
+            running_files={@running_files}
+            submit_event={:confirm_file}
+          />
+        </div>
 
         <form
           phx-change="set_options"
