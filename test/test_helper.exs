@@ -41,7 +41,10 @@ Livebook.Storage.insert(:settings, "global", autosave_path: nil)
 
 erl_docs_available? = Code.fetch_docs(:gen_server) != {:error, :chunk_not_found}
 
-exclude = []
-exclude = if erl_docs_available?, do: exclude, else: Keyword.put(exclude, :erl_docs, true)
+ExUnit.configure(exclude: [:integration | ExUnit.configuration()[:exclude]])
 
-ExUnit.start(assert_receive_timeout: 1_500, exclude: exclude)
+if erl_docs_available? do
+  ExUnit.configure(exclude: [:erl_docs | ExUnit.configuration()[:exclude]])
+end
+
+ExUnit.start(assert_receive_timeout: 1_500)

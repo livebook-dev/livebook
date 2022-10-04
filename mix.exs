@@ -57,7 +57,8 @@ defmodule Livebook.MixProject do
     [
       "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
       "dev.build": ["cmd npm run deploy --prefix ./assets"],
-      "format.all": ["format", "cmd npm run format --prefix ./assets"]
+      "format.all": ["format", "cmd npm run format --prefix ./assets"],
+      "test.integration": ["test --only integration"]
     ]
   end
 
