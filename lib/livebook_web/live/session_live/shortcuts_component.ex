@@ -175,6 +175,7 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       />
       <.shortcuts_section
         title="Insert mode"
+        description="Shortcuts in the code editor match Visual Studio Code. Here is a summary (US keyboard layout)."
         shortcuts={@shortcuts.insert_mode}
         basic={@basic}
         platform={@platform}
@@ -198,13 +199,22 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       end
 
     {left, right} = split_in_half(shortcuts)
-    assigns = assign(assigns, left: left, right: right)
+
+    assigns =
+      assigns
+      |> assign(left: left, right: right)
+      |> assign_new(:description, fn -> nil end)
 
     ~H"""
     <div class="flex flex-col space-y-3">
       <h3 class="text-lg font-medium text-gray-900">
         <%= @title %>
       </h3>
+      <%= if @description do %>
+        <div class="text-gray-700">
+          <%= @description %>
+        </div>
+      <% end %>
       <div class="flex flex-col lg:flex-row lg:space-x-4">
         <div class="lg:grow">
           <.shortcuts_section_table shortcuts={@left} platform={@platform} />
