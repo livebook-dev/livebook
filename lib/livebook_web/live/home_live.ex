@@ -3,7 +3,7 @@ defmodule LivebookWeb.HomeLive do
 
   import LivebookWeb.SessionHelpers
 
-  alias LivebookWeb.{ExploreHelpers, PageHelpers, LayoutHelpers}
+  alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
 
   on_mount LivebookWeb.SidebarHook
@@ -16,7 +16,7 @@ defmodule LivebookWeb.HomeLive do
     end
 
     sessions = Sessions.list_sessions()
-    notebook_infos = Notebook.Explore.visible_notebook_infos() |> Enum.take(3)
+    notebook_infos = Notebook.Learn.visible_notebook_infos() |> Enum.take(3)
 
     {:ok,
      assign(socket,
@@ -50,7 +50,7 @@ defmodule LivebookWeb.HomeLive do
       </:topbar_action>
       <.update_notification version={@new_version} instructions_url={@update_instructions_url} />
       <.memory_notification memory={@memory} app_service_url={@app_service_url} />
-      <div class="p-4 sm:px-8 md:px-16 sm:py-7 max-w-screen-lg mx-auto space-y-4">
+      <div class="p-4 sm:px-8 md:px-16 sm:py-6 max-w-screen-lg mx-auto space-y-4">
         <div class="flex flex-row space-y-0 items-center pb-4 justify-between">
           <PageHelpers.title text="Home" />
           <div class="hidden sm:flex space-x-2" role="navigation" aria-label="new notebook">
@@ -101,12 +101,12 @@ defmodule LivebookWeb.HomeLive do
           </.live_component>
         </div>
 
-        <div class="py-12" data-el-explore-section role="region" aria-label="explore section">
+        <div class="py-12" data-el-learn-section role="region" aria-label="learn section">
           <div class="mb-4 flex justify-between items-center">
             <h2 class="uppercase font-semibold text-gray-500">
-              Explore
+              Learn
             </h2>
-            <%= live_redirect to: Routes.explore_path(@socket, :page),
+            <%= live_redirect to: Routes.learn_path(@socket, :page),
                     class: "flex items-center text-blue-600" do %>
               <span class="font-semibold">See all</span>
               <.remix_icon icon="arrow-right-line" class="align-middle ml-1" />
@@ -116,7 +116,7 @@ defmodule LivebookWeb.HomeLive do
             <% # Note: it's fine to use stateless components in this comprehension,
             # because @notebook_infos never change %>
             <%= for info <- @notebook_infos do %>
-              <ExploreHelpers.notebook_card notebook_info={info} socket={@socket} />
+              <LearnHelpers.notebook_card notebook_info={info} socket={@socket} />
             <% end %>
           </div>
         </div>

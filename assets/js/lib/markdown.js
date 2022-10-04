@@ -65,7 +65,7 @@ class Markdown {
         .use(rehypeSanitize, sanitizeSchema())
         .use(rehypeKatex)
         .use(rehypeMermaid)
-        .use(rehypeExternalLinks)
+        .use(rehypeExternalLinks, { baseUrl: this.baseUrl })
         .use(rehypeStringify)
         .process(this.content)
         .then((file) => String(file))
@@ -224,7 +224,10 @@ function rehypeExternalLinks(options) {
         const url = node.properties.href;
 
         if (isInternalUrl(url)) {
-          node.properties["data-phx-link"] = "redirect";
+          node.properties["data-phx-link"] =
+            options.baseUrl && url.startsWith(options.baseUrl)
+              ? "patch"
+              : "redirect";
           node.properties["data-phx-link-state"] = "push";
         } else if (isAbsoluteUrl(url)) {
           node.properties.target = "_blank";

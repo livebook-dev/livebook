@@ -6,7 +6,7 @@ defmodule LivebookWeb.SessionLive do
   import Livebook.Utils, only: [format_bytes: 1]
 
   alias Livebook.{Sessions, Session, Delta, Notebook, Runtime, LiveMarkdown}
-  alias Livebook.Notebook.Cell
+  alias Livebook.Notebook.{Cell, ContentLoader}
   alias Livebook.JSInterop
 
   @impl true
@@ -99,7 +99,7 @@ defmodule LivebookWeb.SessionLive do
       data-autofocus-cell-id={@autofocus_cell_id}
     >
       <nav
-        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-7 bg-gray-900"
+        class="w-16 flex flex-col items-center px-3 py-1 space-y-2 sm:space-y-4 sm:py-5 bg-gray-900"
         aria-label="sidebar"
         data-el-sidebar
       >
@@ -162,7 +162,7 @@ defmodule LivebookWeb.SessionLive do
         </span>
       </nav>
       <div
-        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-10"
+        class="flex flex-col h-full w-full max-w-xs absolute z-30 top-0 left-[64px] overflow-y-auto shadow-xl md:static md:shadow-none bg-gray-50 border-r border-gray-100 px-6 pt-16 md:py-8"
         data-el-side-panel
       >
         <div data-el-sections-list>
@@ -408,6 +408,7 @@ defmodule LivebookWeb.SessionLive do
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
           preselect_name={@preselect_name}
+          select_secret_options={@select_secret_options}
           return_to={@self_path}
         />
       </.modal>
@@ -759,7 +760,9 @@ defmodule LivebookWeb.SessionLive do
      assign(socket,
        prefill_secret_name: params["secret_name"],
        preselect_name: params["preselect_name"],
-       select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref)
+       select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref),
+       select_secret_options:
+         if(params["preselect_name"], do: socket.assigns.select_secret_options)
      )}
   end
 
@@ -1122,10 +1125,18 @@ defmodule LivebookWeb.SessionLive do
 
   def handle_event(
         "select_secret",
-        %{"js_view_ref" => select_secret_ref, "preselect_name" => preselect_name},
+        %{
+          "js_view_ref" => select_secret_ref,
+          "preselect_name" => preselect_name,
+          "options" => select_secret_options
+        },
         socket
       ) do
-    socket = assign(socket, select_secret_ref: select_secret_ref)
+    socket =
+      assign(socket,
+        select_secret_ref: select_secret_ref,
+        select_secret_options: select_secret_options
+      )
 
     {:noreply,
      push_patch(socket,
@@ -1242,7 +1253,8 @@ defmodule LivebookWeb.SessionLive do
         |> redirect_to_self()
 
       resolution_location ->
-        origin = Notebook.ContentLoader.resolve_location(resolution_location, relative_path)
+        origin = ContentLoader.resolve_location(resolution_location, relative_path)
+        fallback_locations = fallback_relative_locations(resolution_location, relative_path)
 
         case session_id_by_location(origin) do
           {:ok, session_id} ->
@@ -1252,7 +1264,7 @@ defmodule LivebookWeb.SessionLive do
             push_redirect(socket, to: redirect_path)
 
           {:error, :none} ->
-            open_notebook(socket, origin, requested_url)
+            open_notebook(socket, origin, fallback_locations, requested_url)
 
           {:error, :many} ->
             origin_str =
@@ -1282,12 +1294,12 @@ defmodule LivebookWeb.SessionLive do
     end
   end
 
-  defp open_notebook(socket, origin, requested_url) do
-    case Notebook.ContentLoader.fetch_content_from_location(origin) do
+  defp open_notebook(socket, origin, fallback_locations, requested_url) do
+    case fetch_content_with_fallbacks(origin, fallback_locations) do
       {:ok, content} ->
         {notebook, messages} = Livebook.LiveMarkdown.notebook_from_livemd(content)
 
-        # If the current session has no path, fork the notebook
+        # If the current session has no file, fork the notebook
         fork? = socket.private.data.file == nil
         {file, notebook} = file_and_notebook(fork?, origin, notebook)
         url_hash = get_url_hash(requested_url)
@@ -1305,6 +1317,32 @@ defmodule LivebookWeb.SessionLive do
         socket
         |> put_flash(:error, "Cannot navigate, " <> message)
         |> redirect_to_self()
+    end
+  end
+
+  def fallback_relative_locations({:file, _}, _relative_path), do: []
+
+  def fallback_relative_locations(resolution_location, relative_path) do
+    # Other locations to check in case the relative location doesn't
+    # exist. For example, in ExDoc all pages (including notebooks) are
+    # flat, regardless of how they are structured in the file system
+
+    name = relative_path |> String.split("/") |> Enum.at(-1)
+    flat_location = ContentLoader.resolve_location(resolution_location, name)
+    [flat_location]
+  end
+
+  defp fetch_content_with_fallbacks(location, fallbacks) do
+    case ContentLoader.fetch_content_from_location(location) do
+      {:ok, content} ->
+        {:ok, content}
+
+      error ->
+        fallbacks
+        |> Enum.reject(&(&1 == location))
+        |> Enum.find_value(error, fn fallback ->
+          with {:error, _} <- ContentLoader.fetch_content_from_location(fallback), do: nil
+        end)
     end
   end
 

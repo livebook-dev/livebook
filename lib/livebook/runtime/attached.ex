@@ -39,7 +39,7 @@ defmodule Livebook.Runtime.Attached do
       :pong ->
         server_pid =
           Livebook.Runtime.ErlDist.initialize(node,
-            node_manager_opts: [parent_node: node()]
+            node_manager_opts: [parent_node: node(), capture_orphan_logs: false]
           )
 
         {:ok, %{runtime | server_pid: server_pid}}

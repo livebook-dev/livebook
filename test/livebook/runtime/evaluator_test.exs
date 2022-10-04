@@ -110,7 +110,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error, :error, %TokenMissingError{}, []},
+                      {:error, :error, %TokenMissingError{}, _stacktrace},
                       %{
                         code_error: %{
                           line: 1,
@@ -125,7 +125,7 @@ defmodule Livebook.Runtime.EvaluatorTest do
       Evaluator.evaluate_code(evaluator, code, :code_1, nil, file: "file.ex")
 
       assert_receive {:runtime_evaluation_response, :code_1,
-                      {:error, :error, %CompileError{}, []},
+                      {:error, :error, %CompileError{}, _stacktrace},
                       %{
                         code_error: %{
                           line: 1,

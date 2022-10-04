@@ -35,7 +35,7 @@ defmodule LivebookWeb.SessionLive.ElixirStandaloneLive do
     """
   end
 
-  defp matching_runtime?(%Runtime.ElixirStandalone{}), do: true
+  defp matching_runtime?(%Runtime.ElixirStandalone{} = runtime), do: Runtime.connected?(runtime)
   defp matching_runtime?(_runtime), do: false
 
   @impl true
