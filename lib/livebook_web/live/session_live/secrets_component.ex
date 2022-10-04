@@ -26,7 +26,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         Enter the secret name and its value.
       </p>
       <.form
-        :let={f}
+        let={f}
         for={:data}
         phx-submit="save"
         phx-change="validate"
@@ -68,7 +68,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           Select secret
         </h3>
         <.form
-          :let={_}
+          let={_}
           for={:secrets}
           phx-submit="save_secret"
           phx-change="select_secret"
