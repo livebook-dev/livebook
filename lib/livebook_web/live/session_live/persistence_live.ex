@@ -232,10 +232,6 @@ defmodule LivebookWeb.SessionLive.PersistenceLive do
     end)
   end
 
-  defp same_attrs?(new_attrs, attrs) do
-    new_attrs == attrs
-  end
-
   defp savable?(draft_file, saved_file, running_files) do
     file = normalize_file(draft_file)
     not FileSystem.File.dir?(draft_file) and (file not in running_files or file == saved_file)
