@@ -5,7 +5,7 @@ defmodule Livebook.Hubs.EnterpriseClient do
 
   @path "/api/v1"
 
-  def fetch_info(%{"url" => url, "token" => access_token}) do
+  def fetch_info(url, token) do
     query = """
     query {
       info {
@@ -15,12 +15,12 @@ defmodule Livebook.Hubs.EnterpriseClient do
     }
     """
 
-    with {:ok, %{"info" => info}} <- graphql(url, access_token, query) do
+    with {:ok, %{"info" => info}} <- graphql(url, token, query) do
       {:ok, info}
     end
   end
 
-  def fetch_me(%{"url" => url, "token" => access_token}) do
+  def fetch_me(url, token) do
     query = """
     query {
       me {
@@ -29,13 +29,13 @@ defmodule Livebook.Hubs.EnterpriseClient do
     }
     """
 
-    with {:ok, %{"me" => me}} <- graphql(url, access_token, query) do
+    with {:ok, %{"me" => me}} <- graphql(url, token, query) do
       {:ok, me}
     end
   end
 
-  defp graphql(url, access_token, query, input \\ %{}) do
-    headers = [{"Authorization", "Bearer #{access_token}"}]
+  defp graphql(url, token, query, input \\ %{}) do
+    headers = [{"Authorization", "Bearer #{token}"}]
     body = {"application/json", Jason.encode!(%{query: query, variables: input})}
 
     case HTTP.request(:post, graphql_endpoint(url), headers: headers, body: body) do

@@ -1,6 +1,5 @@
 defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
-  use LivebookWeb.ConnCase
-  use Livebook.IntegrationCase
+  use Livebook.EnterpriseIntegrationCase, async: true
 
   import Phoenix.LiveViewTest
 
@@ -9,7 +8,7 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   setup do
     on_exit(&Hubs.clean_hubs/0)
 
-    {:ok, url: LivebookTest.Enterprise.url(), token: LivebookTest.Enterprise.fetch_token()}
+    {:ok, url: EnterpriseServer.url(), token: EnterpriseServer.token()}
   end
 
   describe "enterprise" do

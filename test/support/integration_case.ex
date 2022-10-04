@@ -1,16 +1,21 @@
-defmodule Livebook.IntegrationCase do
+defmodule Livebook.EnterpriseIntegrationCase do
   use ExUnit.CaseTemplate
+
+  alias LivebookTest.Integration.EnterpriseServer
 
   using do
     quote do
       use LivebookWeb.ConnCase
 
-      @moduletag :integration
+      @moduletag :enterprise_integration
+
+      alias LivebookTest.Integration.EnterpriseServer
     end
   end
 
   setup_all do
-    Code.require_file("../setup_enterprise.exs", __DIR__)
+    EnterpriseServer.start_link()
+
     :ok
   end
 end

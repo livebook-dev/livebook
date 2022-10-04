@@ -101,16 +101,14 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponent do
 
   @impl true
   def handle_event("connect", _params, socket) do
-    attrs = %{
-      "url" => get_field(socket.assigns.changeset, :url),
-      "token" => get_field(socket.assigns.changeset, :token)
-    }
+    url = get_field(socket.assigns.changeset, :url)
+    token = get_field(socket.assigns.changeset, :token)
 
-    with {:ok, _info} <- EnterpriseClient.fetch_info(attrs),
-         {:ok, %{"id" => id}} <- EnterpriseClient.fetch_me(attrs) do
+    with {:ok, _info} <- EnterpriseClient.fetch_info(url, token),
+         {:ok, %{"id" => id}} <- EnterpriseClient.fetch_me(url, token) do
       base = %Enterprise{
-        token: attrs["token"],
-        url: attrs["url"],
+        token: token,
+        url: url,
         external_id: id,
         hub_name: "Enterprise",
         hub_color: HexColor.random()
