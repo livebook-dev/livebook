@@ -21,7 +21,8 @@ defmodule LivebookWeb.Output.TextComponent do
         id={"virtualized-text-#{@id}-content"}
         phx-update="ignore"
         phx-no-format
-      ></div>
+      >
+      </div>
       <div class="absolute right-2 top-0 z-10">
         <button
           class="icon-button bg-gray-100"
