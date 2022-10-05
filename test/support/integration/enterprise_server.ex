@@ -2,7 +2,9 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   @moduledoc false
   use GenServer
 
-  defmodule WrappedCollectable do
+  @name __MODULE__
+
+  defmodule CollectableMapper do
     defstruct [:collectable, :fun]
 
     defimpl Collectable do
@@ -23,16 +25,20 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     end
   end
 
+  def start do
+    GenServer.start(__MODULE__, [], name: @name)
+  end
+
   def start_link do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], name: @name)
   end
 
   def url do
-    GenServer.call(__MODULE__, :fetch_url)
+    GenServer.call(@name, :fetch_url)
   end
 
   def token do
-    GenServer.call(__MODULE__, :fetch_token)
+    GenServer.call(@name, :fetch_token)
   end
 
   # GenServer Callbacks
@@ -88,7 +94,6 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     ensure_app_dir!()
     prepare_database()
 
-    executable = :os.find_executable(~c"elixir")
     env = [{~c"MIX_ENV", ~c"livebook"}]
 
     args = [
@@ -100,7 +105,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     ]
 
     port =
-      Port.open({:spawn_executable, executable}, [
+      Port.open({:spawn_executable, elixir_executable()}, [
         :exit_status,
         :use_stdio,
         :stderr_to_stdout,
@@ -143,7 +148,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
         port
 
       {:error, _} ->
-        :timer.sleep(10)
+        Process.sleep(10)
         wait_on_start(port)
     end
   end
@@ -173,12 +178,16 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     end
   end
 
+  defp elixir_executable do
+    System.find_executable("elixir")
+  end
+
   defp mix_executable do
-    :os.find_executable(~c"mix") |> List.to_string()
+    System.find_executable("mix")
   end
 
   defp stream_stdout do
-    %WrappedCollectable{
+    %CollectableMapper{
       collectable: IO.stream(:stdio, :line),
       fun: &IO.ANSI.format([:blue, &1])
     }

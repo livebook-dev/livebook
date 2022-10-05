@@ -14,7 +14,7 @@ defmodule Livebook.EnterpriseIntegrationCase do
   end
 
   setup_all do
-    EnterpriseServer.start_link()
+    EnterpriseServer.start()
 
     :ok
   end

@@ -6,8 +6,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
   alias Livebook.Hubs
 
   setup do
-    on_exit(&Hubs.clean_hubs/0)
-
     {:ok, url: EnterpriseServer.url(), token: EnterpriseServer.token()}
   end
 
