@@ -133,6 +133,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             runtime={@runtime}
             section_id={@section_view.id}
             cell_id={nil}
+            session_id={@session_id}
           />
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
             <.live_component
@@ -152,6 +153,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
               runtime={@runtime}
               section_id={@section_view.id}
               cell_id={cell_view.id}
+              session_id={@session_id}
             />
           <% end %>
         </div>

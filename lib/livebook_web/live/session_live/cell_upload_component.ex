@@ -97,10 +97,12 @@ defmodule LivebookWeb.SessionLive.CellUploadComponent do
       [{:ok, filename}] ->
         src_path = "images/#{URI.encode(filename, &URI.char_unreserved?/1)}"
 
-        {:noreply,
-         socket
-         |> push_patch(to: socket.assigns.return_to)
-         |> push_event("cell_upload", %{cell_id: socket.assigns.cell.id, url: src_path})}
+        {
+          :noreply,
+          socket
+          |> push_patch(to: socket.assigns.return_to)
+          #  |> push_event("cell_upload", %{cell_id: socket.assigns.cell_id, url: src_path})
+        }
 
       [{:error, message}] ->
         {:noreply, assign(socket, error_message: message)}

@@ -335,8 +335,9 @@ defmodule LivebookWeb.SessionLive do
           id="cell-upload"
           session={@session}
           return_to={@self_path}
-          cell={@cell}
           uploads={@uploads}
+          cell_id={@cell_id}
+          section_id={@section_id}
         />
       </.modal>
     <% end %>
@@ -665,9 +666,21 @@ defmodule LivebookWeb.SessionLive do
 
   @impl true
   def handle_params(%{"cell_id" => cell_id}, _url, socket)
-      when socket.assigns.live_action in [:cell_settings, :cell_upload] do
+      when socket.assigns.live_action in [:cell_settings] do
     {:ok, cell, _} = Notebook.fetch_cell_and_section(socket.private.data.notebook, cell_id)
     {:noreply, assign(socket, cell: cell)}
+  end
+
+  @impl true
+  def handle_params(%{"section_id" => section_id, "cell_id" => cell_id}, _url, socket)
+      when socket.assigns.live_action in [:cell_upload] do
+    {:noreply, socket |> assign(cell_id: cell_id) |> assign(section_id: section_id)}
+  end
+
+  @impl true
+  def handle_params(%{"section_id" => section_id}, _url, socket)
+      when socket.assigns.live_action in [:cell_upload] do
+    {:noreply, socket |> assign(cell_id: nil) |> assign(section_id: section_id)}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket)
@@ -1325,16 +1338,6 @@ defmodule LivebookWeb.SessionLive do
          {:delete_section, _client_id, section_id, _delete_cells}
        ) do
     push_event(socket, "section_deleted", %{section_id: section_id})
-  end
-
-  defp after_operation(
-         socket,
-         _prev_socket,
-         {:insert_cell, _, session_id, _, _, cell_id, %{output_type: :image}}
-       ) do
-    socket = prune_cell_sources(socket)
-
-    push_patch(socket, to: Routes.session_path(socket, :cell_upload, session_id, cell_id))
   end
 
   defp after_operation(socket, _prev_socket, {:insert_cell, client_id, _, _, _, cell_id, _attrs}) do
