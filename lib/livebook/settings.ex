@@ -94,6 +94,10 @@ defmodule Livebook.Settings do
   """
   @spec remove_file_system(file_system_id()) :: :ok
   def remove_file_system(filesystem_id) do
+    if default_file_system_id() == filesystem_id do
+      storage().delete_key(:settings, "global", :default_file_system_id)
+    end
+
     storage().delete(:filesystem, filesystem_id)
   end
 
@@ -241,5 +245,49 @@ defmodule Livebook.Settings do
   # Broadcasts given message under the `"settings"` topic.
   defp broadcast_env_vars_change(message) do
     Phoenix.PubSub.broadcast(Livebook.PubSub, "settings", message)
+  end
+
+  @doc """
+  Sets default file system.
+  """
+  @spec set_default_file_system(file_system_id()) :: :ok
+  def set_default_file_system(file_system_id) do
+    storage().insert(:settings, "global", default_file_system_id: file_system_id)
+  end
+
+  @doc """
+  Settings default file system
+  """
+  def default_file_system do
+    case storage().fetch_key(:settings, "global", :default_file_system_id) do
+      :error ->
+        Livebook.Config.local_filesystem_home()
+
+      {:ok, default_file_system_id} ->
+        {_id, file} =
+          Enum.find(Livebook.Settings.file_systems(), fn {id, _file} ->
+            id == default_file_system_id
+          end)
+
+        FileSystem.File.new(file)
+    end
+  end
+
+  @doc """
+  Get default file system id
+  """
+  def default_file_system_id do
+    case storage().fetch_key(:settings, "global", :default_file_system_id) do
+      :error ->
+        "local"
+
+      {:ok, default_file_system_id} ->
+        {id, _file} =
+          Enum.find(Livebook.Settings.file_systems(), fn {id, _file} ->
+            id == default_file_system_id
+          end)
+
+        id
+    end
   end
 end

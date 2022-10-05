@@ -64,28 +64,14 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
   defp default_file_system(
          %{id: file_system_id, default_file_system: default_file_system} = assigns
        ) do
-    case Ets.fetch(:file_system, "default_file_system") do
-      {:ok, default} ->
-        if default.file_system_id != file_system_id && default_file_system != file_system_id do
-          ~H"""
-          <.confirm_make_default id={file_system_id} />
-          """
-        else
-          ~H"""
-          <.labeled_text label="Default"></.labeled_text>
-          """
-        end
-
-      :error ->
-        if file_system_id != "local" do
-          ~H"""
-          <.confirm_make_default id={file_system_id} />
-          """
-        else
-          ~H"""
-          <.labeled_text label="Default"></.labeled_text>
-          """
-        end
+    if default_file_system != file_system_id do
+      ~H"""
+      <.confirm_make_default id={file_system_id} />
+      """
+    else
+      ~H"""
+      <.labeled_text label="Default"></.labeled_text>
+      """
     end
   end
 
