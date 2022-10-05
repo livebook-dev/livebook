@@ -87,16 +87,6 @@ defmodule Livebook.Secrets do
   end
 
   @doc """
-  Returns an `%Ecto.Changeset{}` for tracking secret changes.
-  """
-  @spec change_secret(Secret.t(), map()) :: Ecto.Changeset.t()
-  def change_secret(%Secret{} = secret, attrs \\ %{}) do
-    secret
-    |> Secret.changeset(attrs)
-    |> Map.put(:action, :validate)
-  end
-
-  @doc """
   Subscribe to secrets updates.
 
   ## Messages
