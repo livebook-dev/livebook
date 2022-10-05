@@ -680,7 +680,7 @@ defmodule LivebookWeb.SessionLive do
   @impl true
   def handle_params(%{"section_id" => section_id}, _url, socket)
       when socket.assigns.live_action in [:cell_upload] do
-    {:noreply, socket |> assign(cell_id: nil) |> assign(section_id: section_id)}
+    {:noreply, socket |> assign(cell_id: "") |> assign(section_id: section_id)}
   end
 
   def handle_params(%{"section_id" => section_id}, _url, socket)
@@ -1146,6 +1146,10 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
+  def handle_info({:cell_upload_complete, params}, socket) do
+    handle_event("insert_cell_below", params, socket)
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp handle_relative_path(socket, path, requested_url) do
@@ -1477,8 +1481,10 @@ defmodule LivebookWeb.SessionLive do
     {:markdown, %{source: source}}
   end
 
-  defp cell_type_and_attrs_from_params(%{"type" => "image"}) do
-    {:markdown, %{output_type: :image}}
+  defp cell_type_and_attrs_from_params(%{"type" => "image", "url" => url}) do
+    source = "![](#{url})"
+
+    {:markdown, %{source: source}}
   end
 
   defp section_with_next_index(notebook, section_id, cell_id)

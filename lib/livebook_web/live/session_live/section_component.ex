@@ -132,7 +132,7 @@ defmodule LivebookWeb.SessionLive.SectionComponent do
             smart_cell_definitions={@smart_cell_definitions}
             runtime={@runtime}
             section_id={@section_view.id}
-            cell_id={nil}
+            cell_id=""
             session_id={@session_id}
           />
           <%= for {cell_view, index} <- Enum.with_index(@section_view.cell_views) do %>
