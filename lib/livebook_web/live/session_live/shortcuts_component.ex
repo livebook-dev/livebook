@@ -152,7 +152,8 @@ defmodule LivebookWeb.SessionLive.ShortcutsComponent do
       <p class="text-gray-700">
         Livebook highly embraces keyboard navigation to improve your productivity.
         It operates in one of two modes similarly to the Vim text editor.
-        In <span class="font-semibold">navigation mode</span> you move around
+        In <span class="font-semibold">navigation mode</span>
+        you move around
         the notebook and execute commands, whereas in the
         <span class="font-semibold">insert mode</span>
         you have editor focus and directly modify the given cell content.
