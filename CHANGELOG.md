@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Redesigned the homepage sidebar ([#1325](https://github.com/livebook-dev/livebook/pull/1325))
-- Package serach to always list the exact match first ([#1355](https://github.com/livebook-dev/livebook/pull/1355))
+- Package search to always list the exact match first ([#1355](https://github.com/livebook-dev/livebook/pull/1355))
 - Renamed the Explore section to Learn ([#1424](https://github.com/livebook-dev/livebook/pull/1424))
 - Reduced the number of clicks necessary to save a notebook ([#1458](https://github.com/livebook-dev/livebook/pull/1458))
 
