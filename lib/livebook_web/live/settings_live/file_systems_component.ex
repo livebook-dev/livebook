@@ -33,7 +33,18 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
             <% end %>
           </div>
           <div class="flex justify-end">
-            <.default_file_system id={file_system_id} default_file_system={@default_file_system} />
+            <%= if @default_file_system != file_system_id do %>
+              <button
+                id={"#{file_system_id}-form"}
+                type="submit"
+                phx-click={JS.push("make_default_file_system", value: %{id: file_system_id})}
+                class="button-base button-outlined-gray"
+              >
+                Make default
+              </button>
+            <% else %>
+              <.labeled_text label="Default"></.labeled_text>
+            <% end %>
           </div>
         <% end %>
       </div>
@@ -57,33 +68,6 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
     ~H"""
     <.labeled_text label="Type">S3</.labeled_text>
     <.labeled_text label="Bucket URL"><%= @file_system.bucket_url %></.labeled_text>
-    """
-  end
-
-  defp default_file_system(
-         %{id: file_system_id, default_file_system: default_file_system} = assigns
-       ) do
-    if default_file_system != file_system_id do
-      ~H"""
-      <.confirm_make_default id={file_system_id} />
-      """
-    else
-      ~H"""
-      <.labeled_text label="Default"></.labeled_text>
-      """
-    end
-  end
-
-  defp confirm_make_default(%{id: file_system_id} = assigns) do
-    ~H"""
-    <button
-      id={"#{file_system_id}-form"}
-      type="submit"
-      phx-click={JS.push("make_default_file_system", value: %{id: file_system_id})}
-      class="button-base button-outlined-gray"
-    >
-      Make default
-    </button>
     """
   end
 end
