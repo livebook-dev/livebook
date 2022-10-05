@@ -585,7 +585,7 @@ defmodule LivebookWeb.SessionLive do
             </span>
             <.switch_checkbox
               name="toggle_secret"
-              checked={is_secret_on_session?(secret.name, @data_view.secrets)}
+              checked={is_secret_on_session?(secret, @data_view.secrets)}
               phx-click="toggle_secret"
               phx-value-secret_name={secret.name}
               phx-value-secret_value={secret.value}
@@ -2008,7 +2008,7 @@ defmodule LivebookWeb.SessionLive do
     Enum.reject(secrets, &(&1 in livebook_secrets))
   end
 
-  defp is_secret_on_session?(secret_name, secrets) do
-    secret_name in Enum.map(secrets, & &1.name)
+  defp is_secret_on_session?(secret, secrets) do
+    Map.from_struct(secret) in secrets
   end
 end
