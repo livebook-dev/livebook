@@ -2,7 +2,6 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
   use LivebookWeb, :live_component
 
   alias Livebook.FileSystem
-  alias Livebook.Storage.Ets
 
   @impl true
   def render(assigns) do
