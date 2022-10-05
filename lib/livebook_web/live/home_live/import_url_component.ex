@@ -30,7 +30,7 @@ defmodule LivebookWeb.HomeLive.ImportUrlComponent do
         Paste the URL to a .livemd file, to a GitHub file, or to a Gist.
       </p>
       <.form
-        let={f}
+        :let={f}
         for={:data}
         phx-submit="import"
         phx-change="validate"

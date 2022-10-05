@@ -61,7 +61,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           </div>
         <% end %>
         <.form
-          let={f}
+          :let={f}
           for={:data}
           phx-submit="save"
           phx-change="validate"

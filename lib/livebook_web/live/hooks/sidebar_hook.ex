@@ -1,4 +1,5 @@
 defmodule LivebookWeb.SidebarHook do
+  import Phoenix.Component
   import Phoenix.LiveView
 
   def on_mount(:default, _params, _session, socket) do
