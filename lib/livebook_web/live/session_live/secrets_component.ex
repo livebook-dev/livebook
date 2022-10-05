@@ -48,7 +48,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     target={@myself}
                   />
                 <% end %>
-                <%= for secret <- notebook_only_secrets(@secrets, @livebook_secrets) do %>
+                <%= for secret <- livebook_only_secrets(@secrets, @livebook_secrets) do %>
                   <.secret_with_badge
                     secret_name={secret.name}
                     stored="livebook"
@@ -311,7 +311,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     put_secret(socket.assigns.session.pid, secret, "session")
   end
 
-  defp notebook_only_secrets(secrets, livebook_secrets) do
+  defp livebook_only_secrets(secrets, livebook_secrets) do
     Enum.reject(livebook_secrets, &(&1.name in get_in(secrets, [Access.all(), :name])))
   end
 
@@ -339,7 +339,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp must_grant_access(%{assigns: %{select_secret_ref: nil}}), do: nil
 
   defp must_grant_access(%{assigns: %{preselect_name: preselect_name}} = socket) do
-    secrets = notebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
+    secrets = livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
     if preselect_name in get_in(secrets, [Access.all(), Access.key!(:name)]), do: preselect_name
   end
 end

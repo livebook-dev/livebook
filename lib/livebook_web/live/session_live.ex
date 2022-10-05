@@ -1266,12 +1266,27 @@ defmodule LivebookWeb.SessionLive do
     {:noreply, socket}
   end
 
-  def handle_info({:set_secret, _secret}, socket) do
-    {:noreply, assign(socket, livebook_secrets: Secrets.fetch_secrets())}
+  def handle_info({:set_secret, secret}, socket) do
+    idx = Enum.find_index(socket.assigns.livebook_secrets, &(&1.name == secret.name))
+
+    livebook_secrets =
+      if idx do
+        put_in(
+          socket.assigns.livebook_secrets,
+          [Access.at(idx), Access.key!(:value)],
+          secret.value
+        )
+      else
+        socket.assigns.livebook_secrets ++ [secret]
+      end
+      |> Enum.sort()
+
+    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
   end
 
-  def handle_info({:unset_secret, _secret}, socket) do
-    {:noreply, assign(socket, livebook_secrets: Secrets.fetch_secrets())}
+  def handle_info({:unset_secret, secret}, socket) do
+    livebook_secrets = Enum.reject(socket.assigns.livebook_secrets, &(&1.name == secret.name))
+    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
