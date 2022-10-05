@@ -57,7 +57,8 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           livebook_secrets: Secrets.fetch_secrets()
+           livebook_secrets:
+             Secrets.fetch_secrets() |> Enum.map(&Map.from_struct/1) |> Enum.sort()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -1271,11 +1272,7 @@ defmodule LivebookWeb.SessionLive do
 
     livebook_secrets =
       if idx do
-        put_in(
-          socket.assigns.livebook_secrets,
-          [Access.at(idx), Access.key!(:value)],
-          secret.value
-        )
+        put_in(socket.assigns.livebook_secrets, [Access.at(idx), :value], secret.value)
       else
         socket.assigns.livebook_secrets ++ [secret]
       end
@@ -2019,11 +2016,10 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp session_only_secrets(secrets, livebook_secrets) do
-    livebook_secrets = Enum.map(livebook_secrets, &Map.from_struct/1)
     Enum.reject(secrets, &(&1 in livebook_secrets))
   end
 
   defp is_secret_on_session?(secret, secrets) do
-    Map.from_struct(secret) in secrets
+    secret in secrets
   end
 end

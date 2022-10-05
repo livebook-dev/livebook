@@ -1,8 +1,6 @@
 defmodule LivebookWeb.SessionLive.SecretsComponent do
   use LivebookWeb, :live_component
 
-  alias Livebook.Secrets.Secret
-
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
@@ -316,9 +314,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp maybe_sync_secrets(socket, secret, "livebook") do
-    old_secret =
-      Enum.find(socket.assigns.livebook_secrets, %Secret{}, &(&1.name == secret.name))
-      |> Map.from_struct()
+    old_secret = Enum.find(socket.assigns.livebook_secrets, &(&1.name == secret.name))
 
     if old_secret in socket.assigns.secrets,
       do: put_secret(socket.assigns.session.pid, secret, "session")
@@ -328,9 +324,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp maybe_sync_secrets(socket, secret, "session") do
     old_secret = Enum.find(socket.assigns.secrets, &(&1.name == secret.name))
-    livebook_secrets = Enum.map(socket.assigns.livebook_secrets, &Map.from_struct/1)
 
-    if old_secret in livebook_secrets,
+    if old_secret in socket.assigns.livebook_secrets,
       do: put_secret(socket.assigns.session.pid, secret, "livebook")
 
     socket
@@ -340,6 +335,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   defp must_grant_access(%{assigns: %{preselect_name: preselect_name}} = socket) do
     secrets = livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
-    if preselect_name in get_in(secrets, [Access.all(), Access.key!(:name)]), do: preselect_name
+    if preselect_name in get_in(secrets, [Access.all(), :name]), do: preselect_name
   end
 end

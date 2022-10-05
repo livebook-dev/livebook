@@ -965,9 +965,9 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "sync secrets when they're equal", %{conn: conn, session: session} do
+      Livebook.Secrets.set_secret(%{name: "FOO", value: "123"})
       {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
       Session.put_secret(session.pid, %{name: "FOO", value: "123"})
-      Livebook.Secrets.set_secret(%{name: "FOO", value: "123"})
 
       view
       |> element(~s{form[phx-submit="save"]})
