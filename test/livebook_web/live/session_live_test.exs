@@ -979,8 +979,8 @@ defmodule LivebookWeb.SessionLiveTest do
     end
 
     test "doesn't sync secrets when they are not the same", %{conn: conn, session: session} do
-      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
       Session.put_secret(session.pid, %{name: "FOO_BAR", value: "123"})
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
       Livebook.Secrets.set_secret(%{name: "FOO_BAR", value: "456"})
 
       view

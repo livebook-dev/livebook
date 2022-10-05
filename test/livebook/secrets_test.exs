@@ -28,6 +28,7 @@ defmodule Livebook.SecretsTest do
   end
 
   test "secret_exists?/1" do
+    Secrets.unset_secret("FOO")
     refute Secrets.secret_exists?("FOO")
     Secrets.set_secret(%{name: "FOO", value: "111"})
     assert Secrets.secret_exists?("FOO")
