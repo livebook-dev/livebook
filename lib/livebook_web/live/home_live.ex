@@ -5,7 +5,6 @@ defmodule LivebookWeb.HomeLive do
 
   alias LivebookWeb.{LearnHelpers, PageHelpers, LayoutHelpers}
   alias Livebook.{Sessions, Session, LiveMarkdown, Notebook, FileSystem}
-  alias Livebook.Storage.Ets
 
   on_mount LivebookWeb.SidebarHook
 
