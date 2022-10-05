@@ -34,8 +34,7 @@ defmodule Livebook.Secrets do
   def fetch_secret!(id) do
     case storage().fetch(:secrets, id) do
       :error ->
-        raise NotFoundError,
-          message: "could not find the secret matching #{inspect(id)}"
+        raise NotFoundError, "could not find the secret matching #{inspect(id)}"
 
       {:ok, fields} ->
         struct!(Secret, Map.delete(fields, :id))

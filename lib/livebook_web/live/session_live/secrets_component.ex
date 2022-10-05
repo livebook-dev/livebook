@@ -287,7 +287,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp unavailable_secret?("", _, _), do: false
 
   defp unavailable_secret?(preselect_name, secrets, livebook_secrets) do
-    preselect_name not in Enum.map(secrets, & &1.name) &&
+    preselect_name not in Enum.map(secrets, & &1.name) and
       preselect_name not in Enum.map(livebook_secrets, & &1.name)
   end
 
@@ -310,7 +310,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp livebook_only_secrets(secrets, livebook_secrets) do
-    Enum.reject(livebook_secrets, &(&1.name in get_in(secrets, [Access.all(), :name])))
+    secret_names = get_in(secrets, [Access.all(), :name])
+    Enum.reject(livebook_secrets, &(&1.name in secret_names))
   end
 
   defp maybe_sync_secrets(socket, secret, "livebook") do
