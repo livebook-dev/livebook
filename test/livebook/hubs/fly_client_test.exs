@@ -115,7 +115,7 @@ defmodule Livebook.Hubs.FlyClientTest do
     end
   end
 
-  describe "put_secrets/2" do
+  describe "set_secrets/2" do
     test "puts a list of secrets inside application", %{bypass: bypass} do
       secrets = [
         %{
@@ -135,7 +135,7 @@ defmodule Livebook.Hubs.FlyClientTest do
       end)
 
       hub = build(:fly)
-      assert {:ok, ^secrets} = FlyClient.put_secrets(hub, [%{key: "FOO", value: "BAR"}])
+      assert {:ok, ^secrets} = FlyClient.set_secrets(hub, [%{key: "FOO", value: "BAR"}])
     end
 
     test "returns error when input is invalid", %{bypass: bypass} do
@@ -172,7 +172,7 @@ defmodule Livebook.Hubs.FlyClientTest do
       end)
 
       hub = build(:fly)
-      assert {:error, ^message} = FlyClient.put_secrets(hub, [%{key: "FOO", Value: "BAR"}])
+      assert {:error, ^message} = FlyClient.set_secrets(hub, [%{key: "FOO", Value: "BAR"}])
     end
 
     test "returns unauthorized when token is invalid", %{bypass: bypass} do
@@ -188,11 +188,11 @@ defmodule Livebook.Hubs.FlyClientTest do
       hub = build(:fly)
 
       assert {:error, "request failed with code: UNAUTHORIZED"} =
-               FlyClient.put_secrets(hub, [%{key: "FOO", value: "BAR"}])
+               FlyClient.set_secrets(hub, [%{key: "FOO", value: "BAR"}])
     end
   end
 
-  describe "delete_secrets/2" do
+  describe "unset_secrets/2" do
     test "deletes a list of secrets inside application", %{bypass: bypass} do
       response = %{"data" => %{"unsetSecrets" => %{"app" => %{"secrets" => []}}}}
 
@@ -203,7 +203,7 @@ defmodule Livebook.Hubs.FlyClientTest do
       end)
 
       hub = build(:fly)
-      assert {:ok, []} = FlyClient.delete_secrets(hub, ["FOO"])
+      assert {:ok, []} = FlyClient.unset_secrets(hub, ["FOO"])
     end
 
     test "returns unauthorized when token is invalid", %{bypass: bypass} do
@@ -219,7 +219,7 @@ defmodule Livebook.Hubs.FlyClientTest do
       hub = build(:fly)
 
       assert {:error, "request failed with code: UNAUTHORIZED"} =
-               FlyClient.delete_secrets(hub, ["FOO"])
+               FlyClient.unset_secrets(hub, ["FOO"])
     end
   end
 end

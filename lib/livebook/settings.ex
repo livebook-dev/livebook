@@ -159,17 +159,15 @@ defmodule Livebook.Settings do
     changeset = EnvVar.changeset(env_var, attrs)
 
     with {:ok, env_var} <- apply_action(changeset, :insert) do
-      save_env_var(env_var)
+      {:ok, save_env_var(env_var)}
     end
   end
 
   defp save_env_var(env_var) do
     attributes = env_var |> Map.from_struct() |> Map.to_list()
-
-    with :ok <- Storage.insert(:env_vars, env_var.name, attributes),
-         :ok <- broadcast_env_vars_change({:env_var_set, env_var}) do
-      {:ok, env_var}
-    end
+    :ok = Storage.insert(:env_vars, env_var.name, attributes)
+    :ok = broadcast_env_vars_change({:env_var_set, env_var})
+    env_var
   end
 
   @doc """

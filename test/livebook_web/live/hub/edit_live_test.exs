@@ -205,10 +205,10 @@ defmodule LivebookWeb.Hub.EditLiveTest do
       response =
         cond do
           body["query"] =~ "setSecrets" ->
-            put_secrets_response()
+            set_secrets_response()
 
           body["query"] =~ "unsetSecrets" ->
-            delete_secrets_response()
+            unset_secrets_response()
 
           true ->
             Agent.get(agent_pid, fn
@@ -299,11 +299,11 @@ defmodule LivebookWeb.Hub.EditLiveTest do
     ]
   end
 
-  defp put_secrets_response do
+  defp set_secrets_response do
     %{"data" => %{"setSecrets" => %{"app" => %{"secrets" => secrets(:add)}}}}
   end
 
-  defp delete_secrets_response do
+  defp unset_secrets_response do
     %{"data" => %{"unsetSecrets" => %{"app" => %{"secrets" => secrets(:mount)}}}}
   end
 end

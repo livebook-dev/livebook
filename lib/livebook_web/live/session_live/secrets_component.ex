@@ -12,6 +12,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
       else
         assign(socket,
           data: %{"name" => prefill_form, "value" => "", "store" => "session"},
+          errors: [{"value", {"can't be blank", []}}],
           title: title(socket),
           grant_access: must_grant_access(socket),
           has_prefill: prefill_form != ""
@@ -51,7 +52,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 <%= for {secret_name, _} <- livebook_only_secrets(@secrets, @livebook_secrets) do %>
                   <.secret_with_badge
                     secret_name={secret_name}
-                    stored="livebook"
+                    stored="Livebook"
                     action="select_livebook_secret"
                     active={false}
                     target={@myself}
@@ -76,7 +77,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
           phx-change="validate"
           autocomplete="off"
           phx-target={@myself}
-          errors={data_errors(@data)}
+          errors={@errors}
           class="basis-1/2 grow"
         >
           <div class="flex flex-col space-y-4">
@@ -106,13 +107,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               ) %>
             </.input_wrapper>
             <div>
-              <span class="text-base font-medium text-gray-900">Store</span>
-              <div class="mt-2 space-y-1">
+              <div class="input-label">Storage</div>
+              <div class="my-2 space-y-1 text-sm">
                 <%= label  class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> Session
+                  <%= radio_button(f, :store, "session", checked: @data["store"] == "session") %> only this session
                 <% end %>
                 <%= label class: "flex items-center gap-2 text-gray-600" do %>
-                  <%= radio_button(f, :store, "livebook", checked: @data["store"] == "livebook") %> Notebook
+                  <%= radio_button(f, :store, "livebook", checked: @data["store"] == "livebook") %> in the Livebook app
                 <% end %>
               </div>
             </div>
@@ -134,25 +135,27 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     ~H"""
     <div
       role="button"
-      class={
+      class={[
+        "flex justify-between w-full font-mono text-sm p-2 border-b cursor-pointer",
         if @active do
-          "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer"
+          "bg-blue-100 text-blue-700"
         else
-          "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+          "text-gray-700 hover:bg-gray-100"
         end
-      }
+      ]}
       phx-value-secret_name={@secret_name}
       phx-target={@target}
       phx-click={@action}
     >
       <%= @secret_name %>
-      <span class={
+      <span class={[
+        "inline-flex items-center font-sans rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100",
         if @active do
-          "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+          "bg-indigo-100 text-blue-800"
         else
-          "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+          "bg-gray-100 text-gray-800"
         end
-      }>
+      ]}>
         <%= if @active do %>
           <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
             <circle cx="4" cy="4" r="3" />
@@ -168,7 +171,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     ~H"""
     <div>
       <div class="mx-auto">
-        <div class="rounded-lg bg-blue-600 p-2 shadow-sm">
+        <div class="rounded-lg bg-blue-600 py-1 px-4 shadow-sm">
           <div class="flex flex-wrap items-center justify-between">
             <div class="flex w-0 flex-1 items-center">
               <.remix_icon
@@ -176,8 +179,9 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 class="align-middle text-2xl flex text-gray-100 rounded-lg py-2"
               />
               <span class="ml-2 text-sm font-normal text-gray-100">
-                The secret <span class="font-semibold text-white"><%= @grant_access %></span>
-                needs to be made available to the session
+                There is a secret named
+                <span class="font-semibold text-white"><%= @grant_access %></span>
+                in your Livebook app. Allow this session to access it?
               </span>
             </div>
             <button
@@ -197,23 +201,25 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
   @impl true
   def handle_event("save", %{"data" => data}, socket) do
-    if data_errors(data) == [] do
-      secret_name = String.upcase(data["name"])
-      secret = %{name: secret_name, value: data["value"]}
-      store = data["store"]
+    assigns = socket.assigns
 
-      put_secret(socket.assigns.session.pid, secret, store)
+    case Livebook.Secrets.validate_secret(data) do
+      {:ok, secret} ->
+        store = data["store"]
 
-      if store == "livebook" &&
-           (socket.assigns.select_secret_ref ||
-              {secret.name, socket.assigns.livebook_secrets[secret.name]} in socket.assigns.secrets) do
-        put_secret(socket.assigns.session.pid, secret, "session")
-      end
+        set_secret(assigns.session.pid, secret, store)
 
-      {:noreply,
-       socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
-    else
-      {:noreply, assign(socket, data: data)}
+        if store == "livebook" &&
+             (assigns.select_secret_ref ||
+                {secret.name, assigns.livebook_secrets[secret.name]} in assigns.secrets) do
+          set_secret(assigns.session.pid, secret, "session")
+        end
+
+        {:noreply,
+         socket |> push_patch(to: assigns.return_to) |> push_secret_selected(secret.name)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, errors: changeset.errors)}
     end
   end
 
@@ -230,7 +236,12 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   def handle_event("validate", %{"data" => data}, socket) do
-    {:noreply, assign(socket, data: data)}
+    socket = assign(socket, data: data)
+
+    case Livebook.Secrets.validate_secret(data) do
+      {:ok, _} -> {:noreply, assign(socket, errors: [])}
+      {:error, changeset} -> {:noreply, assign(socket, errors: changeset.errors)}
+    end
   end
 
   def handle_event("grant_access", %{"secret_name" => secret_name}, socket) do
@@ -239,27 +250,6 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     {:noreply,
      socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
   end
-
-  defp data_errors(data) do
-    Enum.flat_map(data, fn {key, value} ->
-      if error = data_error(key, value) do
-        [{String.to_existing_atom(key), {error, []}}]
-      else
-        []
-      end
-    end)
-  end
-
-  defp data_error("name", value) do
-    cond do
-      String.match?(value, ~r/^\w+$/) -> nil
-      value == "" -> "can't be blank"
-      true -> "is invalid"
-    end
-  end
-
-  defp data_error("value", ""), do: "can't be blank"
-  defp data_error(_key, _value), do: nil
 
   defp push_secret_selected(%{assigns: %{select_secret_ref: nil}} = socket, _), do: socket
 
@@ -289,13 +279,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp title(%{assigns: %{select_secret_options: %{"title" => title}}}), do: title
   defp title(_), do: "Select secret"
 
-  defp put_secret(pid, secret, "session"), do: Livebook.Session.put_secret(pid, secret)
-  defp put_secret(_pid, secret, "livebook"), do: Livebook.Secrets.set_secret(secret)
+  defp set_secret(pid, secret, "session"), do: Livebook.Session.set_secret(pid, secret)
+  defp set_secret(_pid, secret, "livebook"), do: Livebook.Secrets.set_secret(secret)
 
   defp grant_access(secret_name, socket) do
     secret_value = socket.assigns.livebook_secrets[secret_name]
     secret = %{name: secret_name, value: secret_value}
-    put_secret(socket.assigns.session.pid, secret, "session")
+    set_secret(socket.assigns.session.pid, secret, "session")
   end
 
   defp livebook_only_secrets(secrets, livebook_secrets) do

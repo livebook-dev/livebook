@@ -18,7 +18,7 @@ defmodule Livebook.Secrets.Secret do
     |> cast(attrs, [:name, :value])
     |> update_change(:name, &String.upcase/1)
     |> validate_format(:name, ~r/^\w+$/,
-      message: "should contain only alphanumeric and underscore"
+      message: "should contain only alphanumeric characters and underscore"
     )
     |> validate_required([:name, :value])
   end

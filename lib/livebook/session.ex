@@ -505,17 +505,17 @@ defmodule Livebook.Session do
   @doc """
   Sends a secret addition request to the server.
   """
-  @spec put_secret(pid(), map()) :: :ok
-  def put_secret(pid, secret) do
-    GenServer.cast(pid, {:put_secret, self(), secret})
+  @spec set_secret(pid(), map()) :: :ok
+  def set_secret(pid, secret) do
+    GenServer.cast(pid, {:set_secret, self(), secret})
   end
 
   @doc """
   Sends a secret deletion request to the server.
   """
-  @spec delete_secret(pid(), map()) :: :ok
-  def delete_secret(pid, secret_name) do
-    GenServer.cast(pid, {:delete_secret, self(), secret_name})
+  @spec unset_secret(pid(), map()) :: :ok
+  def unset_secret(pid, secret_name) do
+    GenServer.cast(pid, {:unset_secret, self(), secret_name})
   end
 
   @doc """
@@ -980,15 +980,15 @@ defmodule Livebook.Session do
     end
   end
 
-  def handle_cast({:put_secret, client_pid, secret}, state) do
+  def handle_cast({:set_secret, client_pid, secret}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:put_secret, client_id, secret}
+    operation = {:set_secret, client_id, secret}
     {:noreply, handle_operation(state, operation)}
   end
 
-  def handle_cast({:delete_secret, client_pid, secret_name}, state) do
+  def handle_cast({:unset_secret, client_pid, secret_name}, state) do
     client_id = client_id(state, client_pid)
-    operation = {:delete_secret, client_id, secret_name}
+    operation = {:unset_secret, client_id, secret_name}
     {:noreply, handle_operation(state, operation)}
   end
 
@@ -1451,12 +1451,12 @@ defmodule Livebook.Session do
     state
   end
 
-  defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
+  defp after_operation(state, _prev_state, {:set_secret, _client_id, secret}) do
     if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, secret)
     state
   end
 
-  defp after_operation(state, _prev_state, {:delete_secret, _client_id, secret_name}) do
+  defp after_operation(state, _prev_state, {:unset_secret, _client_id, secret_name}) do
     if Runtime.connected?(state.data.runtime), do: delete_runtime_secrets(state, [secret_name])
     state
   end

@@ -193,8 +193,8 @@ defmodule Livebook.Session.Data do
           | {:set_file, client_id(), FileSystem.File.t() | nil}
           | {:set_autosave_interval, client_id(), non_neg_integer() | nil}
           | {:mark_as_not_dirty, client_id()}
-          | {:put_secret, client_id(), secret()}
-          | {:delete_secret, client_id(), String.t()}
+          | {:set_secret, client_id(), secret()}
+          | {:unset_secret, client_id(), String.t()}
 
   @type action ::
           :connect_runtime
@@ -764,17 +764,17 @@ defmodule Livebook.Session.Data do
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:put_secret, _client_id, secret}) do
+  def apply_operation(data, {:set_secret, _client_id, secret}) do
     data
     |> with_actions()
-    |> put_secret(secret)
+    |> set_secret(secret)
     |> wrap_ok()
   end
 
-  def apply_operation(data, {:delete_secret, _client_id, secret_name}) do
+  def apply_operation(data, {:unset_secret, _client_id, secret_name}) do
     data
     |> with_actions()
-    |> delete_secret(secret_name)
+    |> unset_secret(secret_name)
     |> wrap_ok()
   end
 
@@ -1515,12 +1515,12 @@ defmodule Livebook.Session.Data do
     end
   end
 
-  defp put_secret({data, _} = data_actions, secret) do
+  defp set_secret({data, _} = data_actions, secret) do
     secrets = Map.put(data.secrets, secret.name, secret.value)
     set!(data_actions, secrets: secrets)
   end
 
-  defp delete_secret({data, _} = data_actions, secret_name) do
+  defp unset_secret({data, _} = data_actions, secret_name) do
     secrets = Map.delete(data.secrets, secret_name)
     set!(data_actions, secrets: secrets)
   end
