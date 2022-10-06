@@ -41,11 +41,12 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
              |> element("#enterprise-form .invalid-feedback")
              |> has_element?()
 
-      assert {:ok, view, _html} =
-               view
-               |> element("#enterprise-form")
-               |> render_submit(%{"enterprise" => attrs})
-               |> follow_redirect(conn)
+      result =
+        view
+        |> element("#enterprise-form")
+        |> render_submit(%{"enterprise" => attrs})
+
+      assert {:ok, view, _html} = follow_redirect(result, conn)
 
       assert render(view) =~ "Hub added successfully"
 
