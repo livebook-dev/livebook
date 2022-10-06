@@ -12,7 +12,7 @@ defmodule Livebook.Settings do
   @typedoc """
   An id that is used for filesystem's manipulation, either insertion or removal.
   """
-  @type file_system_id :: :local | String.t()
+  @type file_system_id :: String.t()
 
   @doc """
   Returns the current autosave path.
@@ -52,7 +52,7 @@ defmodule Livebook.Settings do
   @doc """
   Returns all known filesystems with their associated ids.
 
-  In case of the local filesystem the id resolves to `:local` atom.
+  In case of the local filesystem the id resolves to `"local"`.
   """
   @spec file_systems() :: [{file_system_id(), Filesystem.t()}]
   def file_systems() do

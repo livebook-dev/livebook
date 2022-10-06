@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed the "evaluate all" shortcut to work when a cells is evaluating ([#1334](https://github.com/livebook-dev/livebook/pull/1334))
 - Source corruption when adding dependencies on Windows ([#1337](https://github.com/livebook-dev/livebook/pull/1337))
+- Failure when changing file system from S3 to local ([#1377](https://github.com/livebook-dev/livebook/pull/1377))
 - Evaluator to wait for garbage collected processes to terminate before next evaluation ([#1385](https://github.com/livebook-dev/livebook/pull/1385))
 - Fixed unnecessary vertical whitespace in Mermaid graphs ([#1415](https://github.com/livebook-dev/livebook/pull/1415))
 - Started ignoring non-Livebook logs in the Attached runtime ([#1451](https://github.com/livebook-dev/livebook/pull/1451))
