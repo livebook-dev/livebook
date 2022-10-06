@@ -58,7 +58,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     target={@myself}
                   />
                 <% end %>
-                <%= if @secrets == %{} && @livebook_secrets == %{} do %>
+                <%= if @secrets == %{} and @livebook_secrets == %{} do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
                     <span class="mt-1 block text-sm text-gray-700">
@@ -136,11 +136,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     <div
       role="button"
       class={
-        if @active,
-          do:
-            "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer",
-          else:
-            "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+        if @active do
+          "flex justify-between w-full bg-blue-100 text-sm text-blue-700 p-2 border-b cursor-pointer"
+        else
+          "flex justify-between w-full text-sm text-gray-700 p-2 border-b cursor-pointer hover:bg-gray-100"
+        end
       }
       phx-value-secret_name={@secret_name}
       phx-target={@target}
@@ -148,11 +148,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     >
       <%= @secret_name %>
       <span class={
-        if @active,
-          do:
-            "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800",
-          else:
-            "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+        if @active do
+          "inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+        else
+          "inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
+        end
       }>
         <%= if @active do %>
           <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
@@ -205,14 +205,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
 
       put_secret(socket.assigns.session.pid, secret, store)
 
-      if socket.assigns.select_secret_ref && store == "livebook",
-        do: put_secret(socket.assigns.session.pid, secret, "session")
+      if store == "livebook" &&
+           (socket.assigns.select_secret_ref ||
+              {secret.name, socket.assigns.livebook_secrets[secret.name]} in socket.assigns.secrets) do
+        put_secret(socket.assigns.session.pid, secret, "session")
+      end
 
       {:noreply,
-       socket
-       |> maybe_sync_secrets(secret, store)
-       |> push_patch(to: socket.assigns.return_to)
-       |> push_secret_selected(secret_name)}
+       socket |> push_patch(to: socket.assigns.return_to) |> push_secret_selected(secret_name)}
     else
       {:noreply, assign(socket, data: data)}
     end
@@ -282,7 +282,8 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp unavailable_secret?("", _, _), do: false
 
   defp unavailable_secret?(preselect_name, secrets, livebook_secrets) do
-    preselect_name not in Map.keys(secrets) and preselect_name not in Map.keys(livebook_secrets)
+    not Map.has_key?(secrets, preselect_name) and
+      not Map.has_key?(livebook_secrets, preselect_name)
   end
 
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
@@ -302,29 +303,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Enum.reject(livebook_secrets, &(&1 in secrets)) |> Enum.sort()
   end
 
-  defp maybe_sync_secrets(socket, secret, "livebook") do
-    old_secret = {secret.name, socket.assigns.livebook_secrets[secret.name]}
-
-    if old_secret in socket.assigns.secrets,
-      do: put_secret(socket.assigns.session.pid, secret, "session")
-
-    socket
-  end
-
-  defp maybe_sync_secrets(socket, secret, "session") do
-    old_secret = {secret.name, socket.assigns.secrets[secret.name]}
-
-    if old_secret in socket.assigns.livebook_secrets,
-      do: put_secret(socket.assigns.session.pid, secret, "livebook")
-
-    socket
-  end
-
   defp must_grant_access(secret_name, socket) do
-    secrets_names =
-      livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
-      |> Enum.map(fn {secret_name, _} -> secret_name end)
-
-    if secret_name in secrets_names, do: secret_name
+    if not Map.has_key?(socket.assigns.secrets, secret_name) and
+         Map.has_key?(socket.assigns.livebook_secrets, secret_name) do
+      secret_name
+    end
   end
 end

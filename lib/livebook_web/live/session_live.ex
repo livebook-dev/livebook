@@ -57,8 +57,7 @@ defmodule LivebookWeb.SessionLive do
            data_view: data_to_view(data),
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
-           livebook_secrets:
-             Secrets.fetch_secrets() |> Enum.map(&{&1.name, &1.value}) |> Map.new()
+           livebook_secrets: Secrets.fetch_secrets() |> Map.new(&{&1.name, &1.value})
          )
          |> assign_private(data: data)
          |> prune_outputs()
