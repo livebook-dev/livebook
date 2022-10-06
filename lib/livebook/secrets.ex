@@ -3,24 +3,15 @@ defmodule Livebook.Secrets do
 
   import Ecto.Changeset, only: [apply_action: 2]
 
+  alias Livebook.Storage
   alias Livebook.Secrets.Secret
-
-  defmodule NotFoundError do
-    @moduledoc false
-
-    defexception [:message, plug_status: 404]
-  end
-
-  defp storage() do
-    Livebook.Storage.current()
-  end
 
   @doc """
   Get the secrets list from storage.
   """
   @spec fetch_secrets() :: list(Secret.t())
   def fetch_secrets() do
-    for fields <- storage().all(:secrets) do
+    for fields <- Storage.all(:secrets) do
       struct!(Secret, Map.delete(fields, :id))
     end
     |> Enum.sort()
@@ -32,13 +23,8 @@ defmodule Livebook.Secrets do
   """
   @spec fetch_secret!(String.t()) :: Secret.t()
   def fetch_secret!(id) do
-    case storage().fetch(:secrets, id) do
-      :error ->
-        raise NotFoundError, "could not find the secret matching #{inspect(id)}"
-
-      {:ok, fields} ->
-        struct!(Secret, Map.delete(fields, :id))
-    end
+    fields = Storage.fetch!(:secrets, id)
+    struct!(Secret, Map.delete(fields, :id))
   end
 
   @doc """
@@ -46,7 +32,7 @@ defmodule Livebook.Secrets do
   """
   @spec secret_exists?(String.t()) :: boolean()
   def secret_exists?(id) do
-    storage().fetch(:secrets, id) != :error
+    Storage.fetch(:secrets, id) != :error
   end
 
   @doc """
@@ -65,7 +51,7 @@ defmodule Livebook.Secrets do
   defp save_secret(secret) do
     attributes = secret |> Map.from_struct() |> Map.to_list()
 
-    with :ok <- storage().insert(:secrets, secret.name, attributes),
+    with :ok <- Storage.insert(:secrets, secret.name, attributes),
          :ok <- broadcast_secrets_change({:set_secret, secret}) do
       {:ok, secret}
     end
@@ -78,7 +64,7 @@ defmodule Livebook.Secrets do
   def unset_secret(id) do
     if secret_exists?(id) do
       secret = fetch_secret!(id)
-      storage().delete(:secrets, id)
+      Storage.delete(:secrets, id)
       broadcast_secrets_change({:unset_secret, secret})
     end
 
