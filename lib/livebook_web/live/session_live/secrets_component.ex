@@ -4,15 +4,18 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
+    maybe_grant_access = assigns.preselect_name || assigns.prefill_secret_name
+    prefill_form = prefill_secret_name(maybe_grant_access, socket)
 
     socket =
       if socket.assigns[:data] do
         socket
       else
         assign(socket,
-          data: %{"name" => prefill_secret_name(socket), "value" => "", "store" => "session"},
+          data: %{"name" => prefill_form, "value" => "", "store" => "session"},
           title: title(socket),
-          grant_access: must_grant_access(socket)
+          grant_access: must_grant_access(maybe_grant_access, socket),
+          has_prefill: prefill_form != ""
         )
       end
 
@@ -90,7 +93,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               <%= text_input(f, :name,
                 value: @data["name"],
                 class: "input",
-                autofocus: !@prefill_secret_name,
+                autofocus: !@has_prefill,
                 spellcheck: "false"
               ) %>
             </.input_wrapper>
@@ -99,9 +102,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
               <%= text_input(f, :value,
                 value: @data["value"],
                 class: "input",
-                autofocus:
-                  !!@prefill_secret_name ||
-                    unavailable_secret?(@preselect_name, @secrets, @livebook_secrets),
+                autofocus: @has_prefill,
                 spellcheck: "false"
               ) %>
             </.input_wrapper>
@@ -267,20 +268,14 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_name: secret_name})
   end
 
-  defp prefill_secret_name(socket) do
-    case socket.assigns.prefill_secret_name do
-      nil ->
-        if unavailable_secret?(
-             socket.assigns.preselect_name,
-             socket.assigns.secrets,
-             socket.assigns.livebook_secrets
-           ),
-           do: socket.assigns.preselect_name,
-           else: ""
-
-      prefill ->
-        prefill
-    end
+  defp prefill_secret_name(secret_name, socket) do
+    if unavailable_secret?(
+         secret_name,
+         socket.assigns.secrets,
+         socket.assigns.livebook_secrets
+       ),
+       do: secret_name,
+       else: ""
   end
 
   defp unavailable_secret?(nil, _, _), do: false
@@ -325,19 +320,11 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket
   end
 
-  defp must_grant_access(%{assigns: %{select_secret_ref: nil}} = socket) do
+  defp must_grant_access(secret_name, socket) do
     secrets_names =
       livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
       |> Enum.map(fn {secret_name, _} -> secret_name end)
 
-    if socket.assigns.prefill_secret_name in secrets_names, do: socket.assigns.prefill_secret_name
-  end
-
-  defp must_grant_access(%{assigns: %{preselect_name: preselect_name}} = socket) do
-    secrets_names =
-      livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
-      |> Enum.map(fn {secret_name, _} -> secret_name end)
-
-    if preselect_name in secrets_names, do: preselect_name
+    if secret_name in secrets_names, do: secret_name
   end
 end
