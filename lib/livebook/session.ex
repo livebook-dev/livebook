@@ -1452,7 +1452,7 @@ defmodule Livebook.Session do
   end
 
   defp after_operation(state, _prev_state, {:put_secret, _client_id, secret}) do
-    if Runtime.connected?(state.data.runtime), do: set_runtime_secrets(state, [secret])
+    if Runtime.connected?(state.data.runtime), do: set_runtime_secret(state, secret)
     state
   end
 
@@ -1589,8 +1589,13 @@ defmodule Livebook.Session do
     put_in(state.memory_usage, %{runtime: runtime, system: Livebook.SystemResources.memory()})
   end
 
+  defp set_runtime_secret(state, secret) do
+    secret = {"LB_#{secret.name}", secret.value}
+    Runtime.put_system_envs(state.data.runtime, [secret])
+  end
+
   defp set_runtime_secrets(state, secrets) do
-    secrets = Enum.map(secrets, &{"LB_#{&1.name}", &1.value})
+    secrets = Enum.map(secrets, fn {name, value} -> {"LB_#{name}", value} end)
     Runtime.put_system_envs(state.data.runtime, secrets)
   end
 
