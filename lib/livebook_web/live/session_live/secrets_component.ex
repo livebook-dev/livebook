@@ -54,7 +54,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     secret_name={secret_name}
                     stored="livebook"
                     action="select_livebook_secret"
-                    active={secret_name == @preselect_name}
+                    active={false}
                     target={@myself}
                   />
                 <% end %>
