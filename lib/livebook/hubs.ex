@@ -53,11 +53,9 @@ defmodule Livebook.Hubs do
   @spec save_hub(Provider.t()) :: Provider.t()
   def save_hub(struct) do
     attributes = struct |> Map.from_struct() |> Map.to_list()
-
-    with :ok <- Storage.insert(@namespace, struct.id, attributes),
-         :ok <- broadcast_hubs_change() do
-      struct
-    end
+    :ok = Storage.insert(@namespace, struct.id, attributes)
+    :ok = broadcast_hubs_change()
+    struct
   end
 
   @doc false

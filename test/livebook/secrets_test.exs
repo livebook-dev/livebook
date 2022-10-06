@@ -6,7 +6,7 @@ defmodule Livebook.SecretsTest do
   alias Livebook.Secrets.Secret
 
   test "fetch secrets" do
-    Secrets.set_secret(%{name: "FOO", value: "111"})
+    Secrets.set_secret(%Secret{name: "FOO", value: "111"})
     assert %Secret{name: "FOO", value: "111"} in Secrets.fetch_secrets()
 
     Secrets.unset_secret("FOO")
@@ -14,7 +14,7 @@ defmodule Livebook.SecretsTest do
   end
 
   test "fetch an specific secret" do
-    secret = %{name: "FOO", value: "111"}
+    secret = %Secret{name: "FOO", value: "111"}
     Secrets.set_secret(secret)
 
     assert_raise Livebook.Storage.NotFoundError,
@@ -30,41 +30,28 @@ defmodule Livebook.SecretsTest do
   test "secret_exists?/1" do
     Secrets.unset_secret("FOO")
     refute Secrets.secret_exists?("FOO")
-    Secrets.set_secret(%{name: "FOO", value: "111"})
+    Secrets.set_secret(%Secret{name: "FOO", value: "111"})
     assert Secrets.secret_exists?("FOO")
     Secrets.unset_secret("FOO")
   end
 
-  describe "set_secret/1" do
-    test "creates and stores a secret" do
+  describe "validate_secret/1" do
+    test "returns a valid secret" do
       attrs = %{name: "FOO", value: "111"}
-      assert {:ok, secret} = Secrets.set_secret(attrs)
-
+      assert {:ok, secret} = Secrets.validate_secret(attrs)
       assert attrs.name == secret.name
       assert attrs.value == secret.value
-
-      Secrets.unset_secret(secret.name)
-    end
-
-    test "updates an stored secret" do
-      secret = %Secret{name: "FOO", value: "111"}
-      attrs = %{value: "222"}
-      assert {:ok, updated_secret} = Secrets.set_secret(secret, attrs)
-
-      assert secret.name == updated_secret.name
-      assert updated_secret.value == attrs.value
-
-      Secrets.unset_secret(secret.name)
     end
 
     test "returns changeset error" do
       attrs = %{value: "111"}
-      assert {:error, changeset} = Secrets.set_secret(attrs)
+      assert {:error, changeset} = Secrets.validate_secret(attrs)
       assert "can't be blank" in errors_on(changeset).name
       attrs = %{name: "@inavalid", value: "111"}
 
-      assert {:error, changeset} = Secrets.set_secret(attrs)
-      assert "should contain only alphanumeric and underscore" in errors_on(changeset).name
+      assert {:error, changeset} = Secrets.validate_secret(attrs)
+
+      assert "should contain only alphanumeric characters and underscore" in errors_on(changeset).name
     end
   end
 end

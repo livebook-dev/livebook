@@ -36,25 +36,23 @@ defmodule Livebook.Secrets do
   end
 
   @doc """
-  Sets the given secret.
+  Validates a secret map and either returns a struct struct or changeset.
   """
-  @spec set_secret(Secret.t() | %Secret{}, map()) ::
-          {:ok, Secret.t()} | {:error, Ecto.Changeset.t()}
-  def set_secret(%Secret{} = secret \\ %Secret{}, attrs) do
-    changeset = Secret.changeset(secret, attrs)
-
-    with {:ok, secret} <- apply_action(changeset, :insert) do
-      save_secret(secret)
-    end
+  @spec validate_secret(map()) :: {:ok, Secret.t()} | {:error, Ecto.Changeset.t()}
+  def validate_secret(attrs) do
+    changeset = Secret.changeset(%Secret{}, attrs)
+    apply_action(changeset, :validate)
   end
 
-  defp save_secret(secret) do
+  @doc """
+  Stores the given secret as is, without validation.
+  """
+  @spec set_secret(Secret.t()) :: Secret.t()
+  def set_secret(secret) do
     attributes = secret |> Map.from_struct() |> Map.to_list()
-
-    with :ok <- Storage.insert(:secrets, secret.name, attributes),
-         :ok <- broadcast_secrets_change({:set_secret, secret}) do
-      {:ok, secret}
-    end
+    :ok = Storage.insert(:secrets, secret.name, attributes)
+    :ok = broadcast_secrets_change({:set_secret, secret})
+    secret
   end
 
   @doc """

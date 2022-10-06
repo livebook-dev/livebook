@@ -124,7 +124,7 @@
   }
 
   .switch-button {
-    @apply relative inline-block w-14 h-7 mr-2 select-none;
+    @apply relative inline-block w-14 h-7 select-none;
   }
 
   .switch-button--disabled {
