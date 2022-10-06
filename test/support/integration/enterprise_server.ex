@@ -63,19 +63,13 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   # Port Callbacks
 
   @impl true
-  def handle_info({_port, {:data, msg}}, state) do
-    [:blue, msg]
-    |> IO.ANSI.format()
-    |> IO.write()
-
+  def handle_info({_port, {:data, message}}, state) do
+    info(message)
     {:noreply, state}
   end
 
   def handle_info({_port, {:exit_status, status}}, _state) do
-    [:red, "enterprise quit with status #{status}"]
-    |> IO.ANSI.format()
-    |> IO.write()
-
+    error("enterprise quit with status #{status}")
     System.halt(status)
   end
 
@@ -174,10 +168,11 @@ defmodule LivebookTest.Integration.EnterpriseServer do
         {result, 0} ->
           result
 
-        {error, status} ->
-          [:red, error]
-          |> IO.ANSI.format()
-          |> IO.write()
+        {message, status} ->
+          error("""
+
+          #{message}\
+          """)
 
           System.halt(status)
       end
@@ -200,4 +195,8 @@ defmodule LivebookTest.Integration.EnterpriseServer do
       fun: &IO.ANSI.format([:blue, &1])
     }
   end
+
+  defp info(message), do: log([:blue, message <> "\n"])
+  defp error(message), do: log([:red, message <> "\n"])
+  defp log(data), do: data |> IO.ANSI.format() |> IO.write()
 end
