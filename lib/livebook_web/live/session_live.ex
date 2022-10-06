@@ -58,7 +58,7 @@ defmodule LivebookWeb.SessionLive do
            autofocus_cell_id: autofocus_cell_id(data.notebook),
            page_title: get_page_title(data.notebook.name),
            livebook_secrets:
-             Secrets.fetch_secrets() |> Enum.map(&Map.from_struct/1) |> Enum.sort()
+             Secrets.fetch_secrets() |> Enum.map(&{&1.name, &1.value}) |> Map.new()
          )
          |> assign_private(data: data)
          |> prune_outputs()
@@ -564,10 +564,10 @@ defmodule LivebookWeb.SessionLive do
       </h3>
       <span class="mt-4 text-sm font-semibold text-gray-500">Available to this notebook</span>
       <div class="flex flex-col mt-4 space-y-4">
-        <%= for secret <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
+        <%= for {secret_name, _} <- session_only_secrets(@data_view.secrets, @livebook_secrets) do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="text-sm break-all">
-              <%= secret.name %>
+              <%= secret_name %>
             </span>
             <span class="rounded-full bg-gray-200 px-2 text-xs text-gray-600">
               Session
@@ -579,17 +579,17 @@ defmodule LivebookWeb.SessionLive do
           <span class="text-sm font-semibold text-gray-500">Stored in your Livebook</span>
           <span class="text-sm font-light text-gray-500">On session</span>
         </div>
-        <%= for secret <- @livebook_secrets do %>
+        <%= for {secret_name, secret_value} = secret <- Enum.sort(@livebook_secrets) do %>
           <div class="flex justify-between items-center text-gray-500">
             <span class="text-sm break-all">
-              <%= secret.name %>
+              <%= secret_name %>
             </span>
             <.switch_checkbox
               name="toggle_secret"
               checked={is_secret_on_session?(secret, @data_view.secrets)}
               phx-click="toggle_secret"
-              phx-value-secret_name={secret.name}
-              phx-value-secret_value={secret.value}
+              phx-value-secret_name={secret_name}
+              phx-value-secret_value={secret_value}
             />
           </div>
         <% end %>
@@ -1268,21 +1268,8 @@ defmodule LivebookWeb.SessionLive do
   end
 
   def handle_info({:set_secret, secret}, socket) do
-    idx = Enum.find_index(socket.assigns.livebook_secrets, &(&1.name == secret.name))
+    livebook_secrets = Map.put(socket.assigns.livebook_secrets, secret.name, secret.value)
 
-    livebook_secrets =
-      if idx do
-        put_in(socket.assigns.livebook_secrets, [Access.at(idx), :value], secret.value)
-      else
-        socket.assigns.livebook_secrets ++ [secret]
-      end
-      |> Enum.sort()
-
-    {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
-  end
-
-  def handle_info({:unset_secret, secret}, socket) do
-    livebook_secrets = Enum.reject(socket.assigns.livebook_secrets, &(&1.name == secret.name))
     {:noreply, assign(socket, livebook_secrets: livebook_secrets)}
   end
 
@@ -2016,7 +2003,7 @@ defmodule LivebookWeb.SessionLive do
   end
 
   defp session_only_secrets(secrets, livebook_secrets) do
-    Enum.reject(secrets, &(&1 in livebook_secrets))
+    Enum.reject(secrets, &(&1 in livebook_secrets)) |> Enum.sort()
   end
 
   defp is_secret_on_session?(secret, secrets) do

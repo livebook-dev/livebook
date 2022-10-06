@@ -37,25 +37,25 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                 Choose a secret
               </p>
               <div class="flex flex-wrap">
-                <%= for secret <- @secrets do %>
+                <%= for {secret_name, _} <- Enum.sort(@secrets) do %>
                   <.secret_with_badge
-                    secret_name={secret.name}
+                    secret_name={secret_name}
                     stored="Session"
                     action="select_secret"
-                    active={secret.name == @preselect_name}
+                    active={secret_name == @preselect_name}
                     target={@myself}
                   />
                 <% end %>
-                <%= for secret <- livebook_only_secrets(@secrets, @livebook_secrets) do %>
+                <%= for {secret_name, _} <- livebook_only_secrets(@secrets, @livebook_secrets) do %>
                   <.secret_with_badge
-                    secret_name={secret.name}
+                    secret_name={secret_name}
                     stored="livebook"
                     action="select_livebook_secret"
-                    active={secret.name == @preselect_name}
+                    active={secret_name == @preselect_name}
                     target={@myself}
                   />
                 <% end %>
-                <%= if @secrets == [] && @livebook_secrets == [] do %>
+                <%= if @secrets == %{} && @livebook_secrets == %{} do %>
                   <div class="w-full text-center text-gray-400 border rounded-lg p-8">
                     <.remix_icon icon="folder-lock-line" class="align-middle text-2xl" />
                     <span class="mt-1 block text-sm text-gray-700">
@@ -287,8 +287,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp unavailable_secret?("", _, _), do: false
 
   defp unavailable_secret?(preselect_name, secrets, livebook_secrets) do
-    preselect_name not in Enum.map(secrets, & &1.name) and
-      preselect_name not in Enum.map(livebook_secrets, & &1.name)
+    preselect_name not in Map.keys(secrets) and preselect_name not in Map.keys(livebook_secrets)
   end
 
   defp title(%{assigns: %{select_secret_ref: nil}}), do: "Add secret"
@@ -299,23 +298,17 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp put_secret(_pid, secret, "livebook"), do: Livebook.Secrets.set_secret(secret)
 
   defp grant_access(secret_name, socket) do
-    secret_value =
-      Enum.find_value(
-        socket.assigns.livebook_secrets,
-        &if(&1.name == secret_name, do: &1.value)
-      )
-
+    secret_value = socket.assigns.livebook_secrets[secret_name]
     secret = %{name: secret_name, value: secret_value}
     put_secret(socket.assigns.session.pid, secret, "session")
   end
 
   defp livebook_only_secrets(secrets, livebook_secrets) do
-    secret_names = get_in(secrets, [Access.all(), :name])
-    Enum.reject(livebook_secrets, &(&1.name in secret_names))
+    Enum.reject(livebook_secrets, &(&1 in secrets)) |> Enum.sort()
   end
 
   defp maybe_sync_secrets(socket, secret, "livebook") do
-    old_secret = Enum.find(socket.assigns.livebook_secrets, &(&1.name == secret.name))
+    old_secret = {secret.name, socket.assigns.livebook_secrets[secret.name]}
 
     if old_secret in socket.assigns.secrets,
       do: put_secret(socket.assigns.session.pid, secret, "session")
@@ -324,7 +317,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   end
 
   defp maybe_sync_secrets(socket, secret, "session") do
-    old_secret = Enum.find(socket.assigns.secrets, &(&1.name == secret.name))
+    old_secret = {secret.name, socket.assigns.secrets[secret.name]}
 
     if old_secret in socket.assigns.livebook_secrets,
       do: put_secret(socket.assigns.session.pid, secret, "livebook")
@@ -335,7 +328,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   defp must_grant_access(%{assigns: %{select_secret_ref: nil}}), do: nil
 
   defp must_grant_access(%{assigns: %{preselect_name: preselect_name}} = socket) do
-    secrets = livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
-    if preselect_name in get_in(secrets, [Access.all(), :name]), do: preselect_name
+    secrets_names =
+      livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
+      |> Enum.map(fn {secret_name, _} -> secret_name end)
+
+    if preselect_name in secrets_names, do: preselect_name
   end
 end

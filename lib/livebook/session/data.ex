@@ -122,7 +122,7 @@ defmodule Livebook.Session.Data do
 
   @type index :: non_neg_integer()
 
-  @type secret :: %{label: String.t(), value: String.t()}
+  @type secret :: %{name: String.t(), value: String.t()}
 
   # Snapshot holds information about the cell evaluation dependencies,
   # for example what is the previous cell, the number of times the
@@ -223,7 +223,7 @@ defmodule Livebook.Session.Data do
       smart_cell_definitions: [],
       clients_map: %{},
       users_map: %{},
-      secrets: []
+      secrets: %{}
     }
 
     data
@@ -1516,21 +1516,12 @@ defmodule Livebook.Session.Data do
   end
 
   defp put_secret({data, _} = data_actions, secret) do
-    idx = Enum.find_index(data.secrets, &(&1.name == secret.name))
-
-    secrets =
-      if idx do
-        put_in(data.secrets, [Access.at(idx), :value], secret.value)
-      else
-        data.secrets ++ [secret]
-      end
-      |> Enum.sort()
-
+    secrets = Map.put(data.secrets, secret.name, secret.value)
     set!(data_actions, secrets: secrets)
   end
 
   defp delete_secret({data, _} = data_actions, secret_name) do
-    secrets = Enum.reject(data.secrets, &(&1.name == secret_name))
+    secrets = Map.delete(data.secrets, secret_name)
     set!(data_actions, secrets: secrets)
   end
 

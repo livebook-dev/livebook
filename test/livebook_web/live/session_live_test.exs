@@ -951,7 +951,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{name: "foo", value: "123", store: "session"}})
 
-      assert %{secrets: [%{name: "FOO", value: "123"}]} = Session.get_data(session.pid)
+      assert %{secrets: %{"FOO" => "123"}} = Session.get_data(session.pid)
     end
 
     test "adds a livebook secret from form", %{conn: conn, session: session} do
@@ -973,7 +973,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{name: "FOO", value: "456", store: "session"}})
 
-      assert %{secrets: [%{name: "FOO", value: "456"}]} = Session.get_data(session.pid)
+      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
 
       assert %Livebook.Secrets.Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
     end
@@ -987,7 +987,7 @@ defmodule LivebookWeb.SessionLiveTest do
       |> element(~s{form[phx-submit="save"]})
       |> render_submit(%{data: %{name: "FOO_BAR", value: "999", store: "session"}})
 
-      assert %{secrets: [%{name: "FOO_BAR", value: "999"}]} = Session.get_data(session.pid)
+      assert %{secrets: %{"FOO_BAR" => "999"}} = Session.get_data(session.pid)
 
       assert %Livebook.Secrets.Secret{name: "FOO_BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
 
