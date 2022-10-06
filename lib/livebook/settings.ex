@@ -259,18 +259,12 @@ defmodule Livebook.Settings do
   Settings default file system
   """
   def default_file_system do
-    case storage().fetch_key(:settings, "global", :default_file_system_id) do
-      :error ->
-        Livebook.Config.local_filesystem_home()
+    {_id, file_system} =
+      Enum.find(file_systems(), fn {id, _file_system} ->
+        id == default_file_system_id
+      end)
 
-      {:ok, default_file_system_id} ->
-        {_id, file} =
-          Enum.find(Livebook.Settings.file_systems(), fn {id, _file} ->
-            id == default_file_system_id
-          end)
-
-        FileSystem.File.new(file)
-    end
+    file_system
   end
 
   @doc """
@@ -278,16 +272,13 @@ defmodule Livebook.Settings do
   """
   def default_file_system_id do
     case storage().fetch_key(:settings, "global", :default_file_system_id) do
-      :error ->
-        "local"
-
-      {:ok, default_file_system_id} ->
-        {id, _file} =
-          Enum.find(Livebook.Settings.file_systems(), fn {id, _file} ->
-            id == default_file_system_id
-          end)
-
-        id
+      {:ok, default_file_system_id} -> default_file_system_id
+      :error -> "local"
     end
   end
+
+  @doc """
+  Settings default file system home
+  """
+  def default_file_system_home, do: FileSystem.File.new(default_file_system())
 end

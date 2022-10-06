@@ -33,7 +33,7 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
             <% end %>
           </div>
           <div class="flex justify-end">
-            <%= if @default_file_system != file_system_id do %>
+            <%= unless @default_file_system_id == file_system_id do %>
               <button
                 id={"#{file_system_id}-form"}
                 type="submit"
@@ -42,8 +42,6 @@ defmodule LivebookWeb.SettingsLive.FileSystemsComponent do
               >
                 Make default
               </button>
-            <% else %>
-              <.labeled_text label="Default"></.labeled_text>
             <% end %>
           </div>
         <% end %>

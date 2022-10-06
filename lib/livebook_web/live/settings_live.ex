@@ -22,7 +22,7 @@ defmodule LivebookWeb.SettingsLive do
        },
        update_check_enabled: Livebook.UpdateCheck.enabled?(),
        page_title: "Livebook - Settings",
-       default_file_system: Livebook.Settings.default_file_system_id()
+       default_file_system_id: Livebook.Settings.default_file_system_id()
      )}
   end
 
@@ -117,7 +117,7 @@ defmodule LivebookWeb.SettingsLive do
             <LivebookWeb.SettingsLive.FileSystemsComponent.render
               file_systems={@file_systems}
               socket={@socket}
-              default_file_system={@default_file_system}
+              default_file_system_id={@default_file_system_id}
             />
           </div>
           <!-- Environment variables configuration -->
@@ -323,7 +323,7 @@ defmodule LivebookWeb.SettingsLive do
 
   def handle_event("make_default_file_system", %{"id" => file_system_id}, socket) do
     Livebook.Settings.set_default_file_system(file_system_id)
-    {:noreply, assign(socket, default_file_system: file_system_id)}
+    {:noreply, assign(socket, default_file_system_id: file_system_id)}
   end
 
   def handle_event("save", %{"update_check_enabled" => enabled}, socket) do
