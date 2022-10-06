@@ -4,8 +4,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
   @impl true
   def update(assigns, socket) do
     socket = assign(socket, assigns)
-    maybe_grant_access = assigns.preselect_name || assigns.prefill_secret_name
-    prefill_form = prefill_secret_name(maybe_grant_access, socket)
+    prefill_form = prefill_secret_name(socket)
 
     socket =
       if socket.assigns[:data] do
@@ -14,7 +13,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
         assign(socket,
           data: %{"name" => prefill_form, "value" => "", "store" => "session"},
           title: title(socket),
-          grant_access: must_grant_access(maybe_grant_access, socket),
+          grant_access: must_grant_access(socket),
           has_prefill: prefill_form != ""
         )
       end
@@ -45,7 +44,7 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
                     secret_name={secret_name}
                     stored="Session"
                     action="select_secret"
-                    active={secret_name == @preselect_name}
+                    active={secret_name == @prefill_secret_name}
                     target={@myself}
                   />
                 <% end %>
@@ -268,13 +267,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     push_event(socket, "secret_selected", %{select_secret_ref: ref, secret_name: secret_name})
   end
 
-  defp prefill_secret_name(secret_name, socket) do
+  defp prefill_secret_name(socket) do
     if unavailable_secret?(
-         secret_name,
+         socket.assigns.prefill_secret_name,
          socket.assigns.secrets,
          socket.assigns.livebook_secrets
        ),
-       do: secret_name,
+       do: socket.assigns.prefill_secret_name,
        else: ""
   end
 
@@ -303,10 +302,10 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     Enum.reject(livebook_secrets, &(&1 in secrets)) |> Enum.sort()
   end
 
-  defp must_grant_access(secret_name, socket) do
-    if not Map.has_key?(socket.assigns.secrets, secret_name) and
-         Map.has_key?(socket.assigns.livebook_secrets, secret_name) do
-      secret_name
+  defp must_grant_access(%{assigns: %{prefill_secret_name: prefill_secret_name}} = socket) do
+    if not Map.has_key?(socket.assigns.secrets, prefill_secret_name) and
+         Map.has_key?(socket.assigns.livebook_secrets, prefill_secret_name) do
+      prefill_secret_name
     end
   end
 end

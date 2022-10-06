@@ -415,7 +415,6 @@ defmodule LivebookWeb.SessionLive do
           livebook_secrets={@livebook_secrets}
           prefill_secret_name={@prefill_secret_name}
           select_secret_ref={@select_secret_ref}
-          preselect_name={@preselect_name}
           select_secret_options={@select_secret_options}
           return_to={@self_path}
         />
@@ -786,8 +785,7 @@ defmodule LivebookWeb.SessionLive do
       when socket.assigns.live_action == :secrets do
     {:noreply,
      assign(socket,
-       prefill_secret_name: params["secret_name"],
-       preselect_name: params["preselect_name"],
+       prefill_secret_name: params["secret_name"] || params["preselect_name"],
        select_secret_ref: if(params["preselect_name"], do: socket.assigns.select_secret_ref),
        select_secret_options:
          if(params["preselect_name"], do: socket.assigns.select_secret_options)
