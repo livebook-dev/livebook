@@ -325,7 +325,13 @@ defmodule LivebookWeb.SessionLive.SecretsComponent do
     socket
   end
 
-  defp must_grant_access(%{assigns: %{select_secret_ref: nil}}), do: nil
+  defp must_grant_access(%{assigns: %{select_secret_ref: nil}} = socket) do
+    secrets_names =
+      livebook_only_secrets(socket.assigns.secrets, socket.assigns.livebook_secrets)
+      |> Enum.map(fn {secret_name, _} -> secret_name end)
+
+    if socket.assigns.prefill_secret_name in secrets_names, do: socket.assigns.prefill_secret_name
+  end
 
   defp must_grant_access(%{assigns: %{preselect_name: preselect_name}} = socket) do
     secrets_names =
