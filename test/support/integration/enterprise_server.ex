@@ -8,19 +8,18 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     defstruct [:collectable, :fun]
 
     defimpl Collectable do
-      def into(%{collectable: collectable, fun: fun}) do
-        {term, collectable_fun} = Collectable.into(collectable)
-        {term, wrap(collectable_fun, fun)}
-      end
+      def into(_) do
+        {term, collectable_fun} = Collectable.into(IO.stream(:stdio, :line))
 
-      defp wrap(collectable_fun, fun) do
-        fn
-          term, {:cont, x} ->
-            collectable_fun.(term, {:cont, fun.(x)})
+        fun = fn
+          term, {:cont, data} ->
+            collectable_fun.(term, {:cont, IO.ANSI.format([:blue, data])})
 
           term, command ->
             collectable_fun.(term, command)
         end
+
+        {term, fun}
       end
     end
   end
@@ -161,7 +160,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     cmd_opts =
       if opts[:with_return],
         do: cmd_opts,
-        else: Keyword.put(cmd_opts, :into, stream_stdout())
+        else: Keyword.put(cmd_opts, :into, %CollectableMapper{})
 
     if opts[:with_return] do
       case System.cmd(mix_executable(), args, cmd_opts) do
@@ -187,13 +186,6 @@ defmodule LivebookTest.Integration.EnterpriseServer do
 
   defp mix_executable do
     System.find_executable("mix")
-  end
-
-  defp stream_stdout do
-    %CollectableMapper{
-      collectable: IO.stream(:stdio, :line),
-      fun: &IO.ANSI.format([:blue, &1])
-    }
   end
 
   defp info(message), do: log([:blue, message <> "\n"])
