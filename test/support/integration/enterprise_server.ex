@@ -34,7 +34,7 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   end
 
   def url do
-    GenServer.call(@name, :fetch_url)
+    "http://localhost:#{app_port()}"
   end
 
   def token do
@@ -45,12 +45,12 @@ defmodule LivebookTest.Integration.EnterpriseServer do
 
   @impl true
   def init(_opts) do
-    {:ok, %{token: nil, url: nil, port: nil}, {:continue, :start_enterprise}}
+    {:ok, %{token: nil, port: nil}, {:continue, :start_enterprise}}
   end
 
   @impl true
   def handle_continue(:start_enterprise, state) do
-    {:noreply, %{state | port: start_enterprise(), url: "http://localhost:4043"}}
+    {:noreply, %{state | port: start_enterprise()}}
   end
 
   @impl true
@@ -58,10 +58,6 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     token = state.token || fetch_token_from_enterprise()
 
     {:reply, token, %{state | token: token}}
-  end
-
-  def handle_call(:fetch_url, _from, state) do
-    {:reply, state.url, state}
   end
 
   # Port Callbacks
@@ -94,7 +90,10 @@ defmodule LivebookTest.Integration.EnterpriseServer do
     ensure_app_dir!()
     prepare_database()
 
-    env = [{~c"MIX_ENV", ~c"livebook"}]
+    env = [
+      {~c"MIX_ENV", ~c"livebook"},
+      {~c"LIVEBOOK_ENTERPRISE_PORT", String.to_charlist(app_port())}
+    ]
 
     args = [
       "-e",
@@ -139,11 +138,15 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   end
 
   defp app_dir do
-    System.get_env("ENTERPRISE_PATH") || "../enterprise"
+    System.get_env("ENTERPRISE_PATH", "../enterprise")
+  end
+
+  defp app_port do
+    System.get_env("ENTERPRISE_PORT", "4043")
   end
 
   defp wait_on_start(port) do
-    case :httpc.request(:get, {~c"http://localhost:4043/public/health", []}, [], []) do
+    case :httpc.request(:get, {~c"#{url()}/public/health", []}, [], []) do
       {:ok, _} ->
         port
 
@@ -154,7 +157,12 @@ defmodule LivebookTest.Integration.EnterpriseServer do
   end
 
   defp cmd(args, opts \\ []) do
-    cmd_opts = [stderr_to_stdout: true, env: [{"MIX_ENV", "livebook"}], cd: app_dir()]
+    env = [
+      {"MIX_ENV", "livebook"},
+      {"LIVEBOOK_ENTERPRISE_PORT", app_port()}
+    ]
+
+    cmd_opts = [stderr_to_stdout: true, env: env, cd: app_dir()]
 
     cmd_opts =
       if opts[:with_return],
