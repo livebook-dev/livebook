@@ -936,9 +936,65 @@ defmodule LivebookWeb.SessionLiveTest do
 
       view
       |> element(~s{form[phx-submit="save"]})
-      |> render_submit(%{data: %{name: "foo", value: "123"}})
+      |> render_submit(%{data: %{name: "foo", value: "123", store: "session"}})
 
-      assert %{secrets: [%{name: "FOO", value: "123"}]} = Session.get_data(session.pid)
+      assert %{secrets: %{"FOO" => "123"}} = Session.get_data(session.pid)
+    end
+
+    test "adds a livebook secret from form", %{conn: conn, session: session} do
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "bar", value: "456", store: "livebook"}})
+
+      assert %Livebook.Secrets.Secret{name: "BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
+    end
+
+    test "sync secrets when they're equal", %{conn: conn, session: session} do
+      Livebook.Secrets.set_secret(%{name: "FOO", value: "123"})
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      Session.put_secret(session.pid, %{name: "FOO", value: "123"})
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "FOO", value: "456", store: "livebook"}})
+
+      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
+
+      assert %Livebook.Secrets.Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
+    end
+
+    test "doesn't sync secrets when they are not the same", %{conn: conn, session: session} do
+      Livebook.Secrets.set_secret(%{name: "FOO_BAR", value: "456"})
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      Session.put_secret(session.pid, %{name: "FOO_BAR", value: "123"})
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "FOO_BAR", value: "999", store: "livebook"}})
+
+      assert %{secrets: %{"FOO_BAR" => "123"}} = Session.get_data(session.pid)
+
+      assert %Livebook.Secrets.Secret{name: "FOO_BAR", value: "999"} in Livebook.Secrets.fetch_secrets()
+
+      refute %Livebook.Secrets.Secret{name: "FOO_BAR", value: "456"} in Livebook.Secrets.fetch_secrets()
+    end
+
+    test "never sync secrets when updating from session", %{conn: conn, session: session} do
+      Livebook.Secrets.set_secret(%{name: "FOO", value: "123"})
+      {:ok, view, _} = live(conn, "/sessions/#{session.id}/secrets")
+      Session.put_secret(session.pid, %{name: "FOO", value: "123"})
+
+      view
+      |> element(~s{form[phx-submit="save"]})
+      |> render_submit(%{data: %{name: "FOO", value: "456", store: "session"}})
+
+      assert %{secrets: %{"FOO" => "456"}} = Session.get_data(session.pid)
+
+      refute %Livebook.Secrets.Secret{name: "FOO", value: "456"} in Livebook.Secrets.fetch_secrets()
+
+      assert %Livebook.Secrets.Secret{name: "FOO", value: "123"} in Livebook.Secrets.fetch_secrets()
     end
 
     test "shows the 'Add secret' button for unavailable secrets", %{conn: conn, session: session} do
