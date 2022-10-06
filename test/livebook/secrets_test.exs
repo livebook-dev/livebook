@@ -13,12 +13,12 @@ defmodule Livebook.SecretsTest do
     refute %Secret{name: "FOO", value: "111"} in Secrets.fetch_secrets()
   end
 
-  test "fetch an specif secret" do
+  test "fetch an specific secret" do
     secret = %{name: "FOO", value: "111"}
     Secrets.set_secret(secret)
 
-    assert_raise Secrets.NotFoundError,
-                 ~s(could not find the secret matching "NOT_HERE"),
+    assert_raise Livebook.Storage.NotFoundError,
+                 ~s(could not find entry in \"secrets\" with ID "NOT_HERE"),
                  fn ->
                    Secrets.fetch_secret!("NOT_HERE")
                  end
