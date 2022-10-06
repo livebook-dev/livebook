@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased](https://github.com/livebook-dev/livebook)
+
+### Added
+
+- Added <kbd>Shift</kbd> + <kbd>Enter</kbd> (<kbd>⇧</kbd> + <kbd>↵</kbd>) for evaluating a cell and advancing to the next one ([#1294](https://github.com/livebook-dev/livebook/pull/1294))
+- Support for composite outputs - tabs and grid ([#1326](https://github.com/livebook-dev/livebook/pull/1326) and [#1375](https://github.com/livebook-dev/livebook/pull/1375))
+- Support for anchor links in notebook-relative navigation ([#1327](https://github.com/livebook-dev/livebook/pull/1327))
+- Support for uploading SVG images in Markdown cells ([#1341](https://github.com/livebook-dev/livebook/pull/1341))
+- Secrets management ([#1348](https://github.com/livebook-dev/livebook/pull/1348), [#1406](https://github.com/livebook-dev/livebook/pull/1406) and [#1441](https://github.com/livebook-dev/livebook/pull/1441))
+- Completion for bitstring modifiers ([#1291](https://github.com/livebook-dev/livebook/pull/1291))
+- Ability to configure global environment variables on the settings page ([#1387](https://github.com/livebook-dev/livebook/pull/1387) and [#1409](https://github.com/livebook-dev/livebook/pull/1409))
+- Support for uploading files to the file system navigator via drag-and-drop ([#1422](https://github.com/livebook-dev/livebook/pull/1422))
+- Universal desktop build for Mac and automated nightly builds
+
+### Changed
+
+- Redesigned the homepage sidebar ([#1325](https://github.com/livebook-dev/livebook/pull/1325))
+- Package search to always list the exact match first ([#1355](https://github.com/livebook-dev/livebook/pull/1355))
+- Renamed the Explore section to Learn ([#1424](https://github.com/livebook-dev/livebook/pull/1424))
+- Reduced the number of clicks necessary to save a notebook ([#1458](https://github.com/livebook-dev/livebook/pull/1458))
+
+### Removed
+
+- Removed Mix standalone runtime in favour of the new `Mix.install/2` options, see [#1345](https://github.com/livebook-dev/livebook/pull/1345) to learn more ([#1370](https://github.com/livebook-dev/livebook/pull/1370))
+
+### Fixed
+
+- Fixed the "evaluate all" shortcut to work when a cells is evaluating ([#1334](https://github.com/livebook-dev/livebook/pull/1334))
+- Source corruption when adding dependencies on Windows ([#1337](https://github.com/livebook-dev/livebook/pull/1337))
+- Evaluator to wait for garbage collected processes to terminate before next evaluation ([#1385](https://github.com/livebook-dev/livebook/pull/1385))
+- Fixed unnecessary vertical whitespace in Mermaid graphs ([#1415](https://github.com/livebook-dev/livebook/pull/1415))
+- Started ignoring non-Livebook logs in the Attached runtime ([#1451](https://github.com/livebook-dev/livebook/pull/1451))
+
 ## [v0.6.3](https://github.com/livebook-dev/livebook/tree/v0.6.3) (2022-07-13)
 
 ### Fixed
