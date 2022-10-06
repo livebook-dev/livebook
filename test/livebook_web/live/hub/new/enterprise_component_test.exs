@@ -5,10 +5,6 @@ defmodule LivebookWeb.Hub.New.EnterpriseComponentTest do
 
   alias Livebook.Hubs
 
-  setup do
-    {:ok, url: EnterpriseServer.url(), token: EnterpriseServer.token()}
-  end
-
   describe "enterprise" do
     test "persists new hub", %{conn: conn, url: url, token: token} do
       {:ok, view, _html} = live(conn, Routes.hub_path(conn, :new))

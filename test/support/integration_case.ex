@@ -16,6 +16,6 @@ defmodule Livebook.EnterpriseIntegrationCase do
   setup_all do
     EnterpriseServer.start()
 
-    :ok
+    {:ok, url: EnterpriseServer.url(), token: EnterpriseServer.token()}
   end
 end

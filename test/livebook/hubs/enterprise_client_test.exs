@@ -3,10 +3,6 @@ defmodule Livebook.Hubs.EnterpriseClientTest do
 
   alias Livebook.Hubs.EnterpriseClient
 
-  setup do
-    {:ok, url: EnterpriseServer.url(), token: EnterpriseServer.token()}
-  end
-
   describe "fetch_info/1" do
     test "fetches the token info", %{url: url, token: token} do
       assert {:ok, %{"id" => _, "expire_at" => _}} = EnterpriseClient.fetch_info(url, token)
